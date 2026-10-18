@@ -330,6 +330,14 @@ namespace Scry.Tests
         [InlineData("cave_shrine_lootencap01", "Shrine loot end cap 01")]
         [InlineData("dvergr_new_bossroom_bottom_endcap_stair01", "Boss room bottom end cap stair 01")]
         [InlineData("cave_shrine_mushroom", "Shrine mushroom")]
+        [InlineData("forestcrypt_new_Burialchamber03", "Burial chamber 03")]
+        [InlineData("gobvill_guardplatform", "Guard platform")]
+        [InlineData("meadowsvillage_greathallruin", "Great hall ruin")]
+        [InlineData("meadowsvillage_longhouseruin", "Longhouse ruin")]
+        [InlineData("plainsfortress_Hildir_endcap_goblinbalcony", "Hildir end cap goblin balcony")]
+        // Nothing but a number left once "new" is dropped: the dungeon's own words stand before it.
+        [InlineData("CharredRuins_new01", "Charred ruins 01")]
+        [InlineData("FortressRuins_new01", "Fortress ruins 01")]
         public void AFrostCavesRoomDropsTheWordNewAndSplitsTheWordsItRunsTogether(string prefab, string name)
         {
             // The Frost Caves name every room "new_…" and run words together: "New sloperoom 01" reads "Slope room 01".

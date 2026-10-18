@@ -136,9 +136,9 @@ namespace Scry
             var progress = skill != null ? skill.m_accumulator : 0f;
             var stamina = player.GetStamina();
             var share = SkillMath.JumpShare(YourSkills.LevelOf(Skills.SkillType.Jump));
-            var speed = player.m_jumpForce * share;
             var gravity = Mathf.Abs(Physics.gravity.y);
-            var told = gravity > 0f ? speed * speed / (2f * gravity) : 0f;
+            // The height the skill page tells, by the same rule.
+            var told = SkillMath.JumpHeight(player.m_jumpForce, gravity, YourSkills.LevelOf(Skills.SkillType.Jump));
 
             var start = player.transform.position.y;
             var highest = start;

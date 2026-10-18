@@ -78,9 +78,10 @@ namespace Scry
             // Some rolls of the caves lie on one level: another layout, as the player's button lays one, until one has two.
             for (var roll = 0; roll < 5 && CopyOf(entry) != null && Stage.FloorHeights.Count < 2; roll++)
             {
-                var rolled = ExampleLayouts.Example;
+                // Waited for until the stage stands the new layout, not the old one still standing the frame it is asked for.
+                var standing = Stage.ExampleShown;
                 ExampleLayouts.Another();
-                yield return Until(() => ExampleLayouts.Example != rolled && CopyOf(entry) != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.ExampleFloorsToRead == 0, 90);
+                yield return Until(() => Stage.ExampleShown != null && Stage.ExampleShown != standing && CopyOf(entry) != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.ExampleFloorsToRead == 0, 90);
             }
             if (!p.Check(CopyOf(entry) != null && Stage.ExampleWays != null && Stage.FloorHeights.Count >= 2, "its example stands with two levels or more, laid out again where one has fewer", $"{Numbers.Count(Stage.FloorHeights.Count)} levels"))
             {

@@ -208,6 +208,27 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ALeftoverOfOwnersNumberedApartIsNamedForTheOneTheyAre()
+        {
+            // A mod names props by their copies' numbers ("Ancient Tree (1)", "(2)"): their stump is the one tree's.
+            var catalog = Game();
+            catalog.Add(E("SwampTree1", Kind.Resource, "Ancient Tree (1)"));
+            catalog.Add(E("SwampTree2", Kind.Resource, "Ancient Tree (2)"));
+            catalog.Add(E("SwampTree_Stump", Kind.Other));
+            Leftovers.Pair(catalog, new[] { new Leftover("SwampTree_Stump", "SwampTree1", "stump"), new Leftover("SwampTree_Stump", "SwampTree2", "stump") });
+            Assert.Equal("Ancient Tree · stump", Find(catalog, "SwampTree_Stump").DisplayName);
+
+            // Three owners or more are counted by their kind.
+            catalog.Add(E("wood_debris", Kind.Other));
+            catalog.Add(E("Oak1", Kind.Piece, "Oak"));
+            Leftovers.Pair(catalog, new[]
+            {
+                new Leftover("wood_debris", "wood_wall", "debris"), new Leftover("wood_debris", "SwampTree1", "debris"), new Leftover("wood_debris", "Oak1", "debris"),
+            });
+            Assert.Equal("Debris of 3 kinds", Find(catalog, "wood_debris").DisplayName);
+        }
+
+        [Fact]
         public void ALeftoverOfManyDifferentOwnersIsNamedForWhatItIsAndLinksThemAll()
         {
             var catalog = WithLeftovers();
@@ -219,7 +240,8 @@ namespace Scry.Tests
             });
 
             var debris = Find(catalog, "wood_debris");
-            Assert.Equal("Debris of 2", debris.DisplayName);
+            // Two owners are named; more are counted by their kind.
+            Assert.Equal("Debris of Stone wall and Wood wall", debris.DisplayName);
             Assert.Equal(Kind.Piece, debris.Kind);
             Assert.Equal(new[] { "stone_wall", "wood_wall" }, debris.LeftBy);
         }

@@ -30,6 +30,9 @@ namespace Scry
         /// <summary>The player's own figures: running speed and drain, swimming's drain at no skill and at the top, a dodge's cost, sneaking's drain.</summary>
         public float RunSpeed = 7f, RunDrain = 8f, SwimAtNone = 6f, SwimAtTop = 3f, Dodge = 15f, Sneak = 5f;
 
+        /// <summary>A jump's speed up at no skill (<c>Character.m_jumpForce</c>) and the world's gravity, how much speed it takes away each second; no gravity, no height told.</summary>
+        public float JumpForce = 8f, Gravity;
+
         /// <summary>The fishing float's: stamina a second with a fish on, the share of the pull's drain at the top, the line reeled in a second.</summary>
         public float HookedAtNone = 1f, HookedAtTop = 0.2f, PullAtTop = 0.2f, LineAtNone = 2f, LineAtTop = 6f;
 

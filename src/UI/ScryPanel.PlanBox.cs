@@ -1029,16 +1029,18 @@ namespace Scry
                 var place = _treeRows.RoomInRow(spot.Room) * _treeInnerWidth;
                 var order = _treeRows.OrderInRow(spot.Room);
                 var name = BoxRoomName(explorer, spot.Room);
-                var nameW = Skin.Width(Skin.FaintLabel, name);
+                var nameW = Skin.Width(Skin.DimLabel, name) + U(6f);
                 var room = Mathf.Min(nameW, place * 2f - U(4f));
-                var smallest = Mathf.Max(1, Mathf.RoundToInt(10f * _s)) / (float)Mathf.Max(1, Skin.FaintLabel.fontSize);
+                var smallest = Mathf.Max(1, Mathf.RoundToInt(10f * _s)) / (float)Mathf.Max(1, Skin.DimLabel.fontSize);
                 var over = order % 2 == 1;
                 var under = new Rect(spot.Centre.x - room / 2f, over ? spot.Centre.y - spot.Half.y - U(15f) : spot.Centre.y + spot.Half.y + U(1f), room, U(14f));
                 if (nameW * smallest <= room && Clear(under))
                 {
                     WrittenNames.Add(under);
                     CountDrawn(PanelPart.PlanName);
-                    FitLabel(under, name, Skin.FaintLabel, 10f);
+                    // On the dark backing the other views' names stand on, so the tree's lines do not run through it.
+                    Skin.Fill(under, Skin.Alpha(Skin.Stage, 0.85f));
+                    FitLabel(new Rect(under.x + U(3f), under.y, under.width - U(6f), under.height), name, Skin.DimLabel, 10f);
                 }
             }
             if (beside is Rect taken) WrittenNames.Add(taken);

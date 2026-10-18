@@ -73,5 +73,28 @@ namespace Scry.Tests
         [InlineData("m_cooldownModifier", false)]
         [InlineData("m_speed", false)]
         public void ASettingHoldingATimeIsToldWithItsUnit(string field, bool time) => Assert.Equal(time, StatusEffectWords.IsTime(field));
+
+        [Theory]
+        [InlineData("m_healthOverTimeInterval", "Heals every")]
+        [InlineData("m_healthOverTimeDuration", "Heals over")]
+        [InlineData("m_staminaOverTimeDuration", "Gives stamina over")]
+        [InlineData("m_modifyAttackSkill", "Stronger attacks with")]
+        [InlineData("m_damageModifier", "Their damage")]
+        [InlineData("m_raiseSkill", "Trains faster")]
+        [InlineData("m_raiseSkillModifier", "Trains faster by")]
+        // A setting with no words of its own reads as its name in words.
+        [InlineData("m_runStaminaUsage", "Run stamina usage")]
+        public void ASettingTheGameDoesNotTellReadsInPlayersWords(string field, string label) => Assert.Equal(label, StatusEffectWords.Label(field));
+
+        [Fact]
+        public void ASettingsValueReadsAsWhatItDoes()
+        {
+            Assert.Equal("×1.2", StatusEffectWords.Shown("m_damageModifier", 1.2f, "1.2"));
+            Assert.Equal("+50%", StatusEffectWords.Shown("m_raiseSkillModifier", 0.5f, "0.5"));
+            Assert.Equal("every skill", StatusEffectWords.Shown("m_raiseSkill", "All", "All"));
+            Assert.Equal("every skill", StatusEffectWords.Shown("m_modifyAttackSkill", "All", "All"));
+            Assert.Equal("Bows", StatusEffectWords.Shown("m_modifyAttackSkill", "Bows", "Bows"));
+            Assert.Equal("12", StatusEffectWords.Shown("m_health", 12f, "12"));
+        }
     }
 }

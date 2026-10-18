@@ -420,6 +420,9 @@ namespace Scry
                 var seen = new List<string>();
                 foreach (var entry in explorer.Catalog)
                 {
+                    // Only the names of the world a player meets: an effect, a sound or a projectile is
+                    // never met, and its name ("Fire") is often a plain word of the text ("fires").
+                    if (!Kinds.ForPlayers(entry)) continue;
                     var met = explorer.LevelOf(entry) >= KnownLevel.Seen;
                     // A skill's name is mostly a word of what one does (run, swim, sneak), so text keeps it; facts naming one not learned are left out instead.
                     if (!met && entry.Kind == Kind.Skill) continue;
@@ -444,6 +447,7 @@ namespace Scry
         /// <summary>A section begins: what the strict rules leave out is counted afresh.</summary>
         private static void StrictSectionStarts()
         {
+            HeldAboveForgotten();
             _strictLeft = 0;
             _spotsLeft = 0;
             _toUnlock = 0;

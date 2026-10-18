@@ -89,6 +89,7 @@ namespace Scry
                     break;
                 case "Jump":
                     Line("Jump strength", l => Share(SkillMath.JumpShare(l)));
+                    if (inputs.Gravity > 0f) Line("Jump height, about", l => Numbers.Metres(SkillMath.JumpHeight(inputs.JumpForce, inputs.Gravity, l), 1));
                     break;
                 case "Dodge":
                     Line("Stamina: dodging", l => Numbers.Amount(inputs.Dodge * SkillMath.DodgeShare(l), 1));

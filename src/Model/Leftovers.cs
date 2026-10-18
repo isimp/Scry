@@ -61,12 +61,14 @@ namespace Scry
                 // An effect or sound is only linked: it is found among the effects under its own name.
                 if (effect) continue;
 
-                var shown = owners.Select(o => o.ShownName).Distinct().ToList();
-                leftover.DisplayName = shown.Count == 1
-                    ? shown[0] + " · " + role
-                    : Naming.Capital(role) + " of " + Numbers.Count(owners.Count);
-
+                // Owners numbered apart ("Ancient Tree (1)", "(2)") are the one thing; two are named,
+                // more counted by their kind.
                 var kinds = owners.Select(o => o.Kind).Distinct().ToList();
+                var shown = owners.Select(o => Naming.WithoutVariant(o.ShownName)).Distinct().ToList();
+                leftover.DisplayName = shown.Count == 1 ? shown[0] + " · " + role
+                    : shown.Count == 2 ? Naming.Capital(role) + " of " + Naming.Joined(shown)
+                    : Naming.Capital(role) + " of " + Numbers.Count(shown.Count) + " " + (kinds.Count == 1 ? Kinds.Label(kinds[0]).ToLowerInvariant() : "kinds");
+
                 if (kinds.Count == 1 && leftover.Kind != kinds[0])
                 {
                     leftover.Kind = kinds[0];

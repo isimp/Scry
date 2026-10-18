@@ -700,8 +700,9 @@ namespace Scry
             // The creatures' tab: the two met and what came along with them (their ragdolls), nothing standing in for the rest.
             X.SearchEverything("");
             X.KindFilter = Kind.Creature;
-            var creatures = X.Catalog.Count(e => e.Kind == Kind.Creature);
-            var along = X.Catalog.Where(e => e.Kind == Kind.Creature && e != fought && e != spotted && view.Of(e) >= KnownLevel.Seen).ToList();
+            // A creature's body left where it fell is no creature a player meets: neither counted nor listed (Kinds.ForPlayers).
+            var creatures = X.Catalog.Count(e => e.Kind == Kind.Creature && Kinds.ForPlayers(e));
+            var along = X.Catalog.Where(e => e.Kind == Kind.Creature && Kinds.ForPlayers(e) && e != fought && e != spotted && view.Of(e) >= KnownLevel.Seen).ToList();
             var strays = along.Where(e => !view.Chain(e).Any(o => o == fought || o == spotted)).ToList();
             p.Check(strays.Count == 0, $"the creatures known along with them ({Numbers.Count(along.Count)}) came by way of the two", string.Join(", ", strays.Take(10).Select(e => e.Name)));
             p.Check(X.FoundOf(Kind.Creature) == 2 + along.Count, "the creatures' tab counts them as found", Numbers.Count(X.FoundOf(Kind.Creature)));

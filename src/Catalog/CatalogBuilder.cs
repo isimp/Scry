@@ -28,6 +28,9 @@ namespace Scry
             public PrefabTraits Traits;
             public string Token;
 
+            /// <summary>Whether its name is a piece's a mod switched off on it, numbered by the copy it was made of ("Ancient Tree (1)").</summary>
+            public bool TokenFromModPiece;
+
             /// <summary>Every name the game's records may know it by: its creature's, item's, piece's and station's.</summary>
             public readonly HashSet<string> Tokens = new HashSet<string>(StringComparer.Ordinal);
             public object Icon;
@@ -276,7 +279,8 @@ namespace Scry
             var entry = new Entry
             {
                 Name = name,
-                DisplayName = Localize(found.Token),
+                // A name a mod made up from the copy it named keeps no copy's number; names alike are told apart as any are.
+                DisplayName = found.TokenFromModPiece ? Naming.WithoutVariant(Localize(found.Token)) : Localize(found.Token),
                 Kind = Kinds.Of(found.Traits),
                 Group = Kinds.GroupLabel(Kinds.GroupOf(found.Traits)),
                 GroupOrder = (int)Kinds.GroupOf(found.Traits),
@@ -473,6 +477,7 @@ namespace Scry
                     // switched off on the prefab (MoreVanillaBuildPrefabs does so; none of the
                     // game's own 25,802 pieces in its bundles is), and leaves the prefab what it was.
                     if (piece.enabled) traits.HasPiece = true;
+                    if (found.Token == null && !piece.enabled) found.TokenFromModPiece = true;
                     found.Token = found.Token ?? piece.m_name;
                     Named(found, piece.m_name);
                     found.Icon = found.Icon ?? piece.m_icon;

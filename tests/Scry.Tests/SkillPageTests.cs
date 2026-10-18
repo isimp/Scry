@@ -83,6 +83,10 @@ namespace Scry.Tests
         {
             Assert.Equal(new[] { "Stamina: swimming", "6 a second", "4.5 a second", "3 a second" }, Line(new SkillInputs { Name = "Swim", SwimAtNone = 6f, SwimAtTop = 3f }, 50f, "Stamina: swimming"));
             Assert.Equal(new[] { "Jump strength", "100%", "120%", "140%" }, Line(new SkillInputs { Name = "Jump" }, 50f, "Jump strength"));
+            // Height grows with the square of the jump's speed: 8 m/s against a pull of 20 m/s each second rises 1.6 m, at the
+            // top 3.1 m (a real jump measured within a tenth of it, Character.Jump).
+            Assert.Equal(new[] { "Jump height, about", "1.6 m", "2.3 m", "3.1 m" }, Line(new SkillInputs { Name = "Jump", JumpForce = 8f, Gravity = 20f }, 50f, "Jump height, about"));
+            Assert.Null(Line(new SkillInputs { Name = "Jump", JumpForce = 8f, Gravity = 0f }, 50f, "Jump height, about"));
             Assert.Equal(new[] { "Stamina: dodging", "15", "11.3", "7.5" }, Line(new SkillInputs { Name = "Dodge", Dodge = 15f }, 50f, "Stamina: dodging"));
             Assert.Equal(new[] { "Mount's running speed", "100%", "110%", "125%" }, Line(new SkillInputs { Name = "Ride" }, 40f, "Mount's running speed"));
             Assert.Equal(new[] { "Mount's stamina", "100%", "80%", "50%" }, Line(new SkillInputs { Name = "Ride" }, 40f, "Mount's stamina"));

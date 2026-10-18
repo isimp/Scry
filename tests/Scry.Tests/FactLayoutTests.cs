@@ -463,6 +463,16 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ATradersWaresStandInATopicOfTheirOwnAsEveryPagesRowsDo()
+        {
+            // Laid out by topic, a trader's page says at the topic's end what the compendium left out, as other pages do.
+            var rows = new[] { (StationWords.Sells(null), "station"), (StationWords.Sells("once Moder is defeated"), "station") };
+            var plan = FactLayout.Plan(Kind.Trader, new (string, string)[0], rows, new[] { FactBlock.Hooks });
+            Assert.Equal(new[] { "What it sells", null }, plan.Select(t => t.Heading));
+            Assert.Equal(new[] { 0, 1 }, plan[0].Bits.Select(b => b.Row));
+        }
+
+        [Fact]
         public void ASpawnerShowsItsPaceThenWhatItSpawnsHowItBreaksAndWhereItIs()
         {
             var pairs = new[]

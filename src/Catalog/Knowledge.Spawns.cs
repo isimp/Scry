@@ -526,11 +526,21 @@ namespace Scry
         /// <summary>What traders sell. They stand in locations, so only those loaded are found.</summary>
         private static void Traders()
         {
+            SpawnWords.ForgetBrought();
             Each(Resources.FindObjectsOfTypeAll<Trader>(), Feature.WhatTradersSellAndWhen, "traders", t => t.name, trader =>
             {
                 if (trader.m_items == null) return;
                 var name = CatalogBuilder.Localize(trader.m_name);
                 if (name.Length == 0) name = trader.gameObject.name;
+                // A key it sets for an item brought to it (Hildir's chests) is told by that wherever it is waited for.
+                if (trader.m_useItems != null)
+                {
+                    foreach (var use in trader.m_useItems)
+                    {
+                        var item = use?.m_prefab != null ? CatalogBuilder.Localize(use.m_prefab.m_itemData?.m_shared?.m_name) : "";
+                        if (use != null) SpawnWords.Brought(use.m_setsGlobalKey, item.Length > 0 ? item : null, name);
+                    }
+                }
                 // The trader's own prefab, where it is one, for the line to go to; a copy standing in a location is named after it.
                 var self = trader.transform.root.gameObject.name.Replace("(Clone)", "").Trim();
                 // Its own list, then the items mods add to its store as it opens (TraderStore).

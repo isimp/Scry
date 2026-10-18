@@ -85,8 +85,21 @@ namespace Scry
         private static string KeyWords(string key, Func<string, string> bossOf)
         {
             var boss = bossOf?.Invoke(key);
-            return string.IsNullOrEmpty(boss) ? $"the world key \"{key}\" is set" : $"{boss} is defeated";
+            if (!string.IsNullOrEmpty(boss)) return $"{boss} is defeated";
+            return key != null && BroughtFor.TryGetValue(key, out var brought) ? $"{brought.Item} is brought to {brought.Trader}" : $"the world key \"{key}\" is set";
         }
+
+        /// <summary>The world keys a trader sets for an item brought to it (<c>Trader.m_useItems</c>, as Hildir's chests), by key.</summary>
+        private static readonly Dictionary<string, (string Item, string Trader)> BroughtFor = new Dictionary<string, (string, string)>(StringComparer.Ordinal);
+
+        /// <summary>Notes that a trader sets a world key for an item brought to it, so the key is told by that.</summary>
+        public static void Brought(string key, string item, string trader)
+        {
+            if (!string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(item)) BroughtFor[key] = (item, trader);
+        }
+
+        /// <summary>Forgets the keys traders set, before they are read again.</summary>
+        public static void ForgetBrought() => BroughtFor.Clear();
 
         // ----- Spawners (SpawnArea) -----
 

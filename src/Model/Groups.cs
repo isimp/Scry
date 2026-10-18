@@ -255,6 +255,9 @@ namespace Scry
         /// <summary>A piece no build menu holds.</summary>
         public static Group InNoMenu => new Group("In no build menu", int.MaxValue);
 
+        /// <summary>The one group of the Traders tab: few enough to stand together.</summary>
+        public static Group Trader => new Group("Traders", 0);
+
         // ----- Effects and sounds by what they are for -----
 
         /// <summary>

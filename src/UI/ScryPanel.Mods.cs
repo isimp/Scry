@@ -96,7 +96,8 @@ namespace Scry
                 var headingH = U(26f);
                 // A mod's name heads its part of the report, and goes to its own page as a link does; the report stays for the next.
                 var page = EntryKeys.For(Kind.Mod, mod.Mod);
-                var goes = mod.Mod != ModReportReader.UnknownMod && Goes(explorer, page);
+                // Every mod is known, so a heading that goes nowhere (its page out of the compendium's list) is no name kept back.
+                var goes = mod.Mod != ModReportReader.UnknownMod && InCatalog(explorer, page) && explorer.Reaches(page);
                 var heading = new Rect(x, y, goes ? Mathf.Min(width, Skin.Width(Skin.Label, mod.Mod) + U(4f)) : width, headingH);
                 if (goes)
                 {

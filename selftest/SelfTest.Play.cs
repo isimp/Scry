@@ -263,6 +263,9 @@ namespace Scry
             // Drawn as the troll's own chip, as under the loose rules, its count after its name.
             var chip = ScryPanel.WhereRowsForTest(X, hide).SelectMany(r => r.Items).FirstOrDefault(i => i.Prefab == troll.Name);
             p.Check(chip.Amount == "2 (1 of 1 kill)", "and draws the troll as a chip with that count", chip.Name + " " + chip.Amount);
+            // A plain word of a text is no name kept back, though an effect never met goes by it ("Fire").
+            var fires = ScryPanel.AsDrawn(X, "fires Troll throw projectile");
+            p.Check(!fires.StartsWith(CompendiumWords.Hidden, System.StringComparison.Ordinal), "a word of a text is no name kept back: \"fires\" stays", fires);
             yield return PictureOf(p, "from", "strict TrollHide, where it comes from");
 
             // Played with others: a kill another player's game ran is told under the troll's drops

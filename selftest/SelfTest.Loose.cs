@@ -103,8 +103,10 @@ namespace Scry
                 yield return Until(() => Stage.RoomGoneInto == room && ScryPanel.Drawn(PanelPart.RoomCard) > drawn + 1 && ScryPanel.RoomCardLines.Count > 0, 5);
                 var lines = ScryPanel.RoomCardLines.ToList();
                 p.Note($"{dungeon.Name}'s {room.Room.Name}'s card: " + string.Join(" | ", lines));
-                var met = CompendiumWords.NotYetMet(null, Stage.RoomCreatures(room).Count);
-                p.Check(lines.Contains(met), "and a room's card counts them as not yet met", met);
+                // None of them met, the list says only how many; with some listed, how many more.
+                var count = Stage.RoomCreatures(room).Count;
+                var met = CompendiumWords.NotYetMet(null, count, alone: true);
+                p.Check(lines.Contains(met) || lines.Contains(CompendiumWords.NotYetMet(null, count)), "and a room's card counts them as not yet met", met);
                 yield return Picture(p, $"loose {dungeon.Name} room card, creatures not yet met");
             }
             else p.Note($"{dungeon.Name}: no room of this roll holds a creature");

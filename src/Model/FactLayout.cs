@@ -82,6 +82,7 @@ namespace Scry
             [Kind.Mod] = WithChain(Mod()),
             [Kind.Skill] = WithChain(Skill()),
             [Kind.Spawner] = WithChain(Spawner()),
+            [Kind.Trader] = WithChain(Trader()),
         };
 
         /// <summary>A kind's plan with the chains it is a step of right under its tiles, without a heading of their own (<see cref="ChainBook"/>).</summary>
@@ -359,6 +360,22 @@ namespace Scry
             plan.Starts.Add((l => l.StartsWith("Will not run with", StringComparison.Ordinal) || l.StartsWith("Needs", StringComparison.Ordinal)
                 || l.StartsWith("Needed by", StringComparison.Ordinal) || l.StartsWith("Works with", StringComparison.Ordinal), "ties"));
             Part(plan, "adds", "mod");
+            plan.Blocks[FactBlock.Hooks] = "hooks";
+            return plan;
+        }
+
+        /// <summary>A trader's page: what it sells, the wares waiting for a boss among them, then the rest.</summary>
+        private static KindPlan Trader()
+        {
+            var plan = new KindPlan
+            {
+                Topics = new[] { ("overview", (string)null), ("sells", "What it sells"), (More, "More"), ("hooks", null) },
+            };
+            plan.Starts.Add((l => l.StartsWith(StationWords.Sells(null), StringComparison.Ordinal), "sells"));
+            Label(plan, More, "Not shown");
+            plan.Blocks[FactBlock.Where] = More;
+            plan.Blocks[FactBlock.FoundIn] = More;
+            plan.Blocks[FactBlock.Biomes] = More;
             plan.Blocks[FactBlock.Hooks] = "hooks";
             return plan;
         }

@@ -237,6 +237,9 @@ namespace Scry
         /// <summary>The widths of a table's columns as it is drawn, kept for every table so none makes a new list each frame.</summary>
         private static readonly List<float> ColumnWidths = new List<float>();
 
+        /// <summary>How wide each heading of the table being drawn is, which its column keeps where it can.</summary>
+        private static readonly List<float> HeadingWidths = new List<float>();
+
         /// <summary>
         /// A table: its title, a faint line of column headings, then a line for each of its
         /// lines, the first cell going to what it names. Columns are as wide as what they hold,
@@ -264,10 +267,11 @@ namespace Scry
 
             var gap = U(12f);
             ColumnWidths.Clear();
-            var sum = 0f;
+            HeadingWidths.Clear();
             for (var c = 0; c < row.Columns.Length; c++)
             {
                 var w = Skin.Width(Skin.DimLabel, row.Columns[c]);
+                HeadingWidths.Add(w + U(2f));
                 for (var l = 0; l < row.Lines.Count; l++)
                 {
                     var cells = row.Lines[l].Cells;
@@ -276,15 +280,14 @@ namespace Scry
                     foreach (var under in yours) if (c < under.Cells.Length && !explorer.NotMet(under.Skill)) w = Mathf.Max(w, Skin.Width(Skin.Small, under.Cells[c]) + (c == 0 ? YoursIndent : 0f));
                 }
                 ColumnWidths.Add(w + U(2f));
-                sum += w + U(2f);
             }
-            var room = width - gap * (row.Columns.Length - 1);
-            if (sum > room && sum > 0f) for (var c = 0; c < ColumnWidths.Count; c++) ColumnWidths[c] *= room / sum;
+            // Too wide, each column gives up what it wants beyond its heading, so the headings stay whole.
+            TableFit.Fit(ColumnWidths, HeadingWidths, width - gap * (row.Columns.Length - 1));
 
             var x = 0f;
             for (var c = 0; c < row.Columns.Length; c++)
             {
-                GUI.Label(new Rect(x, y, ColumnWidths[c], U(18f)), row.Columns[c], Skin.DimLabel);
+                GUI.Label(new Rect(x, y, ColumnWidths[c], U(18f)), Skin.Fit(Skin.DimLabel, row.Columns[c], ColumnWidths[c]), Skin.DimLabel);
                 x += ColumnWidths[c] + gap;
             }
             y += U(22f);

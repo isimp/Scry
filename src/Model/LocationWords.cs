@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Scry
@@ -231,6 +232,8 @@ namespace Scry
         {
             { "sloperoom", "slope room" }, { "deeproom", "deep room" }, { "bossroom", "boss room" },
             { "icecorridor", "ice corridor" }, { "iceendcap", "ice end cap" }, { "endcap", "end cap" }, { "lootencap", "loot end cap" },
+            { "burialchamber", "burial chamber" }, { "guardplatform", "guard platform" }, { "greathallruin", "great hall ruin" },
+            { "longhouseruin", "longhouse ruin" }, { "goblinbalcony", "goblin balcony" },
         };
 
         /// <summary>
@@ -245,8 +248,14 @@ namespace Scry
             var name = prefab ?? "";
             var tag = name.IndexOf('_');
             if (tag >= 0 && tag < name.Length - 1) name = name.Substring(tag + 1);
-            if (name.Length > 4 && name.StartsWith("new_", StringComparison.OrdinalIgnoreCase)
-                && (isRoom == null || !isRoom(prefab.Substring(0, tag + 1) + name.Substring(4)))) name = name.Substring(4);
+            // "new_" or "new" before a number: dropped where no room goes by the name without it; where
+            // only the number is left, the dungeon's own words stand before it ("CharredRuins_new01").
+            var glued = name.Length > 3 && name.StartsWith("new", StringComparison.OrdinalIgnoreCase) && char.IsDigit(name[3]);
+            if (glued || (name.Length > 4 && name.StartsWith("new_", StringComparison.OrdinalIgnoreCase)))
+            {
+                var rest = name.Substring(glued ? 3 : 4);
+                if (isRoom == null || !isRoom(prefab.Substring(0, tag + 1) + rest)) name = rest.All(char.IsDigit) ? prefab.Substring(0, tag) + rest : rest;
+            }
 
             var words = new StringBuilder();
             for (var i = 0; i < name.Length; i++)

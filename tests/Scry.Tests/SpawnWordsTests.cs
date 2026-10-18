@@ -128,6 +128,22 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AKeyATraderSetsForAnItemBroughtIsToldByThat()
+        {
+            // Hildir sets Hildir2 when her second chest is brought (Trader.m_useItems).
+            SpawnWords.Brought("Hildir2", "Smouldering Chest", "Hildir");
+            try
+            {
+                Assert.Equal("once Smouldering Chest is brought to Hildir", SpawnWords.Once("Hildir2", Boss));
+            }
+            finally
+            {
+                SpawnWords.ForgetBrought();
+            }
+            Assert.Equal("once the world key \"Hildir2\" is set", SpawnWords.Once("Hildir2", Boss));
+        }
+
+        [Fact]
         public void ASpawnLineTellsWhereWhenHowManyAndWhatItWaitsFor()
         {
             var spawn = new SpawnFacts

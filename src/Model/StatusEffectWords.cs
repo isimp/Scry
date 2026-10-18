@@ -49,6 +49,41 @@ namespace Scry
             return pairs;
         }
 
+        /// <summary>The settings the game's tooltip does not tell, in players' words, by field (<c>SE_Stats</c>).</summary>
+        private static readonly Dictionary<string, string> Labels = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["m_healthOverTimeInterval"] = "Heals every",
+            ["m_healthOverTimeDuration"] = "Heals over",
+            ["m_staminaOverTimeDuration"] = "Gives stamina over",
+            ["m_modifyAttackSkill"] = "Stronger attacks with",
+            ["m_damageModifier"] = "Their damage",
+            ["m_raiseSkill"] = "Trains faster",
+            ["m_raiseSkillModifier"] = "Trains faster by",
+        };
+
+        /// <summary>A setting's label: in players' words where it has some, else its name in words.</summary>
+        public static string Label(string field) => Labels.TryGetValue(field, out var label) ? label : Naming.FieldLabel(field);
+
+        /// <summary>
+        /// A setting's value as what it does: a damage share times as much, a training share more,
+        /// a skill "All" as every skill; else as it is shown (<paramref name="shown"/>).
+        /// </summary>
+        public static string Shown(string field, object value, string shown)
+        {
+            switch (field)
+            {
+                case "m_damageModifier":
+                    return value is float times ? Numbers.Times(times, 2) : shown;
+                case "m_raiseSkillModifier":
+                    return value is float share ? Numbers.Percent(share, 0, signed: true) : shown;
+                case "m_raiseSkill":
+                case "m_modifyAttackSkill":
+                    return value?.ToString() == "All" ? "every skill" : shown;
+                default:
+                    return shown;
+            }
+        }
+
         /// <summary>Whether a setting holds a time in seconds, by its name: a cooldown, a duration, an interval, a time, but no multiplier or modifier of one.</summary>
         public static bool IsTime(string field)
         {

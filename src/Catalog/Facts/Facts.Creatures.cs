@@ -162,11 +162,14 @@ namespace Scry
                 var attack = shared?.m_attack;
                 // What it wears, its armor and shield, is no attack of its.
                 if (attack == null || !CombatWords.IsCreatureAttack(shared.m_itemType.ToString(), attack.m_attackAnimation)) continue;
-                // The game names some attacks in its own shorthand ("slap", "LOG"), not by a name to show;
-                // one of those that fires something goes by what it fires ("fireballattack" is a troll's rock throw).
+                // The game names some attacks in its own shorthand ("slap", "LOG"), not by a name to show,
+                // and some by the creature's own name; one of those that fires something goes by what it
+                // fires ("fireballattack" is a troll's rock throw, a greydwarf's "Greydwarf" its stone throw).
                 var coded = !string.IsNullOrEmpty(shared.m_name) && !shared.m_name.StartsWith("$", StringComparison.Ordinal);
                 var fires = attack.m_attackProjectile;
-                var name = coded ? (fires != null ? CombatWords.FiredName(AnyName(fires, fires.name)) : null) ?? Naming.Readable(shared.m_name) : ItemName(item);
+                var name = coded ? Naming.Readable(shared.m_name) : ItemName(item);
+                if (fires != null && (coded || string.Equals(name, AnyName(prefab, prefab.name), StringComparison.OrdinalIgnoreCase)))
+                    name = CombatWords.FiredName(AnyName(fires, fires.name)) ?? name;
                 if (attacks.Any(a => a.Cells[0] == name)) continue;
                 // Rolled each hit as anything but a player rolls one (Character.GetRandomSkillFactor); a player rolls by its skill.
                 var dealt = rolls ? CombatWords.CreatureDamage(DamageFigures(shared.m_damages)) ?? "" : Damages(shared.m_damages);

@@ -131,6 +131,8 @@ namespace Scry
             For(Skills.SkillType.Swim).Inputs.SwimAtTop = player.m_swimStaminaDrainMaxSkill;
             For(Skills.SkillType.Dodge).Inputs.Dodge = player.m_dodgeStaminaUsage;
             For(Skills.SkillType.Sneak).Inputs.Sneak = player.m_sneakStaminaDrain;
+            For(Skills.SkillType.Jump).Inputs.JumpForce = player.m_jumpForce;
+            For(Skills.SkillType.Jump).Inputs.Gravity = Mathf.Abs(Physics.gravity.y);
         }
 
         /// <summary>An item that trains a skill, or whose attacks, building or placing work by one.</summary>
@@ -138,12 +140,15 @@ namespace Scry
         {
             var shared = prefab.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
             if (shared == null || !Grouping.Obtainable(entry)) return;
-            if (shared.m_skillType != Skills.SkillType.None && Trains(shared.m_itemType))
+            var deals = Facts.DamageFigures(shared.m_damages).Any(d => d.Amount > 0f);
+            // A weapon that deals nothing and fires nothing (a tankard, a horn) never hits, so trains nothing.
+            var hitsNothing = IsWeapon(shared.m_itemType) && !deals && !Attacks(shared).Any(a => a.m_attackProjectile != null);
+            if (shared.m_skillType != Skills.SkillType.None && Trains(shared.m_itemType) && !hitsNothing)
             {
                 var (inputs, related) = For(shared.m_skillType);
                 related.Trains.Add(prefab.name);
-                if (shared.m_attack != null) inputs.HitRises[prefab.name] = SkillMath.RisePerHit(shared.m_attack.m_attackType.ToString(), shared.m_attack.m_raiseSkillAmount);
-                var deals = Facts.DamageFigures(shared.m_damages).Any(d => d.Amount > 0f);
+                // Ammo rises its skill by the attack of the weapon firing it, not by an attack of its own.
+                if (shared.m_attack != null && !IsAmmo(shared.m_itemType)) inputs.HitRises[prefab.name] = SkillMath.RisePerHit(shared.m_attack.m_attackType.ToString(), shared.m_attack.m_raiseSkillAmount);
                 foreach (var attack in Attacks(shared))
                 {
                     if (deals || attack.m_attackProjectile != null) inputs.Hits = true;
@@ -240,6 +245,15 @@ namespace Scry
                 }
             }
         }
+
+        /// <summary>Whether an item is a weapon held to attack with, one hand, two or a bow.</summary>
+        private static bool IsWeapon(ItemDrop.ItemData.ItemType type) =>
+            type == ItemDrop.ItemData.ItemType.OneHandedWeapon || type == ItemDrop.ItemData.ItemType.TwoHandedWeapon
+            || type == ItemDrop.ItemData.ItemType.TwoHandedWeaponLeft || type == ItemDrop.ItemData.ItemType.Bow;
+
+        /// <summary>Whether an item is ammo, fired by a weapon rather than attacking by itself.</summary>
+        private static bool IsAmmo(ItemDrop.ItemData.ItemType type) =>
+            type == ItemDrop.ItemData.ItemType.Ammo || type == ItemDrop.ItemData.ItemType.AmmoNonEquipable;
 
         /// <summary>The items whose skill the game trains with them: weapons, torches, ammo, shields and tools.</summary>
         internal static bool Trains(ItemDrop.ItemData.ItemType type)

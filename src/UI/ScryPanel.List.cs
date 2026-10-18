@@ -411,17 +411,20 @@ namespace Scry
             var textW = (byFloor ? floorMark.x : star.x) - U(8f) - textX;
             var primary = entry.ShownName;
             // In the learned list, what was found out of it, where that is its latest news. With the
-            // compendium on, no prefab name: which of several going by one name it is, where it is one.
-            var secondary = (explorer.LearnedOnly ? explorer.FoundOutNote(entry) : null) ?? entry.Tag
-                            ?? (explorer.CompendiumOn ? explorer.AlikeOf(entry) ?? "" : primary == entry.Name ? "" : entry.Name);
+            // compendium on, no prefab name, a place's tag holding one too: which of several going by
+            // one name it is, where it is one.
+            var secondary = (explorer.LearnedOnly ? explorer.FoundOutNote(entry) : null)
+                            ?? (explorer.CompendiumOn ? explorer.AlikeOf(entry) ?? "" : entry.Tag ?? (primary == entry.Name ? "" : entry.Name));
 
             var nameStyle = Skin.RowName;
             var fullW = Skin.Width(nameStyle, primary);
             var nameW = Mathf.Min(textW, fullW);
             var nameRect = new Rect(textX, inner.y, nameW, inner.height);
             var lit = ReadLit(explorer.MendedText ?? explorer.Text);
-            if (lit) LightMatches(nameRect, primary, nameStyle);
-            Skin.LabelIn(nameRect, primary, nameStyle, entry.Empty ? Skin.Faint : Skin.Text);
+            // A name too long for the row is cut at its end with an ellipsis, whole on hover.
+            var shownName = fullW > textW ? Skin.Fit(nameStyle, primary, textW) : primary;
+            if (lit) LightMatches(nameRect, shownName, nameStyle);
+            Skin.LabelIn(nameRect, shownName, nameStyle, entry.Empty ? Skin.Faint : Skin.Text);
 
             var cut = fullW > textW;
             if (secondary.Length > 0)

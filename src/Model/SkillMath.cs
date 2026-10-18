@@ -81,6 +81,14 @@ namespace Scry
         /// <summary>How much stronger a jump is, up and forward alike (<c>Character.Jump</c>): two fifths at the top.</summary>
         public static float JumpShare(float level) => 1f + Share(level) * 0.4f;
 
+        /// <summary>How high a jump rises at a level on flat ground: its speed up squared over twice the pull of gravity; none without gravity.</summary>
+        public static float JumpHeight(float force, float gravity, float level)
+        {
+            if (gravity <= 0f) return 0f;
+            var speed = force * JumpShare(level);
+            return speed * speed / (2f * gravity);
+        }
+
         /// <summary>The share of its stamina a dodge costs (<c>Player.GetDodgeStaminaUse</c>): half at the top.</summary>
         public static float DodgeShare(float level) => Lerp(1f, 0.5f, Share(level));
 

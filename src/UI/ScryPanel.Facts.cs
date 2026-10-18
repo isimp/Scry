@@ -44,6 +44,8 @@ namespace Scry
             step = Timing.Start();
             if (plan == null)
             {
+                // One section, ending as a topic does with what the compendium left out of it.
+                StrictSectionStarts();
                 var kind = Timing.Start();
                 foreach (var pair in facts.Pairs) y = FactPair(explorer, entry, facts, pair, width, labelW, y);
                 Timing.Add("facts drawn pairs", kind);
@@ -53,6 +55,7 @@ namespace Scry
                 kind = Timing.Start();
                 foreach (var block in EveryBlock) y = FactBlockOf(explorer, entry, facts, block, places, true, width, y);
                 Timing.Add("facts drawn blocks", kind);
+                y = StrictLeftLine(explorer, null, width, y);
                 Timing.Add("side facts drawn", step);
                 return y + U(14f);
             }
@@ -176,6 +179,12 @@ namespace Scry
 
         private static readonly List<(string Label, string Value)> NothingStill = new List<(string, string)>();
 
+        /// <summary>What showed the fact drawn just above, where it was kept back: the next one kept back by the same says it only on hover.</summary>
+        private static string _heldAbove;
+
+        /// <summary>A section begins: no fact kept back stands above.</summary>
+        private static void HeldAboveForgotten() => _heldAbove = null;
+
         /// <summary>Lets go of the page the You box was read for, for another world.</summary>
         private static void ForgetYou()
         {
@@ -265,18 +274,22 @@ namespace Scry
                 if (linkRect.Contains(Event.current.mousePosition)) AskTip("link:" + link, FloorTip(explorer, link, PanelWords.GoTo(ShownName(explorer, link, value))));
                 if (GUI.Button(linkRect, GUIContent.none, GUIStyle.none)) Go(explorer, link);
             }
-            // Kept back: ??? as any value, what shows it faint, as every other hint of the strict rules.
+            // Kept back: ??? as any value, what shows it faint, as every other hint of the strict rules;
+            // said once for lines one after another that one deed shows, the rest saying it on hover.
             else if (keptBack != null)
             {
                 var hidden = Skin.Width(Skin.Wrap, CompendiumWords.Hidden);
                 GUI.Label(new Rect(valueRect.x, valueRect.y, hidden + U(2f), height), CompendiumWords.Hidden, Skin.Wrap);
-                Skin.LabelIn(new Rect(valueRect.x + hidden, valueRect.y, valueRect.width - hidden, height), explorer.KeptBackHint(keptBack), Skin.Wrap, Skin.Faint);
-                if (explorer.MayRunElsewhere(keptBack) && valueRect.Contains(Event.current.mousePosition)) AskTip("elsewhere:" + pair.Key, ElsewhereWords.Tip);
+                var hint = explorer.KeptBackHint(keptBack);
+                if (keptBack != _heldAbove) Skin.LabelIn(new Rect(valueRect.x + hidden, valueRect.y, valueRect.width - hidden, height), hint, Skin.Wrap, Skin.Faint);
+                else if (valueRect.Contains(Event.current.mousePosition)) AskTip("held:" + pair.Key, Naming.Capital(CompendiumWords.ShowsOnce(keptBack, explorer.MayRunElsewhere(keptBack))));
+                if (explorer.MayRunElsewhere(keptBack) && keptBack != _heldAbove && valueRect.Contains(Event.current.mousePosition)) AskTip("elsewhere:" + pair.Key, ElsewhereWords.Tip);
             }
             else
             {
                 GUI.Label(valueRect, value, unsure ? Skin.DimWrap : Skin.Wrap);
             }
+            _heldAbove = keptBack;
             // What it comes to at the character's own skill, faint under the game's figure; none where that is kept back.
             if (keptBack == null && YoursShown(explorer, facts, pair.Key, out var yours))
             {

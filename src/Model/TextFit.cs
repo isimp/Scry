@@ -36,15 +36,21 @@ namespace Scry
             return kept + Ellipsis;
         }
 
+        /// <summary>The least share of a tag's letters its cut keeps to be worth showing: less tells nothing ("Aban…" of a prefab's name).</summary>
+        private const double LeastKept = 0.6;
+
         /// <summary>
         /// A list row's tag as it fits: whole, else its last part, the one telling it from rows
-        /// alike ("Crypt2"), else that cut (<see cref="Cut"/>).
+        /// alike ("Crypt2"), else that cut (<see cref="Cut"/>); nothing where the cut would keep
+        /// too little of it to tell anything, the whole showing on hover.
         /// </summary>
         public static string Tag(string tag, float width, Func<string, float> measure)
         {
             if (string.IsNullOrEmpty(tag) || measure(tag) <= width) return tag ?? "";
             var at = tag.LastIndexOf(Apart, StringComparison.Ordinal);
-            return Cut(at >= 0 ? tag.Substring(at + Apart.Length) : tag, width, measure);
+            var part = at >= 0 ? tag.Substring(at + Apart.Length) : tag;
+            var cut = Cut(part, width, measure);
+            return cut == part || cut.Length - Ellipsis.Length >= part.Length * LeastKept ? cut : "";
         }
 
         /// <summary>The first letters of a text, without the spaces and commas they end on.</summary>

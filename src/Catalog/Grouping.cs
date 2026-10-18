@@ -164,6 +164,8 @@ namespace Scry
                     return Groups.Projectile(Shooters(entry, byName));
                 case Kind.StatusEffect:
                     return Groups.StatusEffect(Givers(entry, byName));
+                case Kind.Trader:
+                    return Groups.Trader;
                 default:
                     return null;
             }

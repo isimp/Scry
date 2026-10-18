@@ -63,7 +63,7 @@ namespace Scry
                     if (Equals(value, TypeFields.Value(field, blank))) continue;
                     // A time is told with its unit ("Cooldown 20 min", not 1,200).
                     var shown = value is float seconds && StatusEffectWords.IsTime(field.Name) ? Numbers.Duration(seconds) : FactWords.Value(value);
-                    if (shown != null) Add(Naming.FieldLabel(field.Name), shown);
+                    if (shown != null) Add(StatusEffectWords.Label(field.Name), StatusEffectWords.Shown(field.Name, value, shown));
                 }
 
                 // A shield absorbing more by its caster's skill (SE_Shield.SetLevel), the skill of the area that puts it on.

@@ -45,7 +45,15 @@ namespace Scry.Tests
             Assert.Equal("Burial Chambers dungeon · Crypt2", TextFit.Tag("Burial Chambers dungeon · Crypt2", 40f, Letters));
             Assert.Equal("Crypt2", TextFit.Tag("Burial Chambers dungeon · Crypt2", 12f, Letters));
             Assert.Equal("Cryp…", TextFit.Tag("Burial Chambers dungeon · Crypt2", 5f, Letters));
-            Assert.Equal("Burial…", TextFit.Tag("Burial Chambers dungeon", 10f, Letters));
+        }
+
+        [Fact]
+        public void ATagCutToAStubIsLeftOutForItsHover()
+        {
+            // "Aban…" of AbandonedLogCabin02 tells nothing; the row's hover shows it whole.
+            Assert.Equal("", TextFit.Tag("AbandonedLogCabin02", 5f, Letters));
+            Assert.Equal("", TextFit.Tag("Burial Chambers dungeon", 10f, Letters));
+            Assert.Equal("AbandonedLogCa…", TextFit.Tag("AbandonedLogCabin02", 15f, Letters));
         }
     }
 }
