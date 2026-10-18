@@ -273,18 +273,29 @@ namespace Scry
             return text;
         }
 
-        /// <summary>One tab per kind with what the search holds of it, wrapping when the row is full.</summary>
+        /// <summary>Where each kind tab was last drawn, for the self-test.</summary>
+        [Diagnostic]
+        public static List<Rect> TabsDrawnForTest { get; } = new List<Rect>();
+
+        /// <summary>
+        /// One tab per kind with what the search holds of it, wrapping when the row is full; each as
+        /// wide as it is picked, its words bold, whether picked or not, so picking one leaves every
+        /// tab where it stood.
+        /// </summary>
         private static float Tabs(Explorer explorer, Rect rect)
         {
             var flow = new ChipFlow(rect.x, rect.xMax, rect.y, rect.height, U(4f), U(4f));
+            var repaint = Event.current.type == EventType.Repaint;
+            if (repaint) TabsDrawnForTest.Clear();
 
             bool Tab(string label, int count, int total, Color dot, bool on, string tipKey = null, string tip = null)
             {
                 var style = on ? Skin.TabOn : Skin.Tab;
                 var text = TabText(label, count, total, on);
-                var width = Skin.Width(style, text) + U(2f);
+                var width = Skin.Width(Skin.TabOn, TabText(label, count, total, true)) + U(2f);
                 var at = flow.Place(width);
                 var tab = new Rect(at.X, at.Y, width, flow.RowHeight);
+                if (repaint) TabsDrawnForTest.Add(tab);
                 var clicked = GUI.Button(tab, text, Skin.Fitted(style, tab));
                 var size = U(8f);
                 Skin.Icon(new Rect(tab.x + U(10f), tab.y + (tab.height - size) / 2f, size, size), Skin.Circle, on ? Skin.OnAccent : dot);

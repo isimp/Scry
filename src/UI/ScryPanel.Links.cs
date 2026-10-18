@@ -45,7 +45,7 @@ namespace Scry
             // One going to what only the floor shows keeps the floor's mark at its end.
             var label = floor ? new Rect(rect.x, rect.y, rect.width - FloorRoom, rect.height) : rect;
             Skin.LabelIn(label, go ? GoText(text) : text, Skin.SmallCenter, go || lit ? LinkText(kind, hover || lit) : Skin.Dim);
-            if (floor) FloorMark(rect.xMax - FloorRoom, rect);
+            if (floor) PlateFloorMark(rect);
 
             return go && GUI.Button(rect, GUIContent.none, GUIStyle.none);
         }
@@ -62,6 +62,18 @@ namespace Scry
             CountDrawn(PanelPart.FloorLink);
             var size = U(14f);
             Skin.Icon(new Rect(x, line.y + (Mathf.Min(line.height, U(26f)) - size) / 2f, size, size), Skin.Steps, Skin.Faint);
+        }
+
+        /// <summary>
+        /// The floor's mark at a plate's end (<see cref="FloorMark"/>): in the plate's middle, as its
+        /// icon and words are, however many lines it has, and as far in from its end as the icon
+        /// is from its start.
+        /// </summary>
+        private static void PlateFloorMark(Rect plate)
+        {
+            CountDrawn(PanelPart.FloorLink);
+            var size = U(14f);
+            Skin.Icon(new Rect(plate.xMax - U(6f) - size, plate.y + (plate.height - size) / 2f, size, size), Skin.Steps, Skin.Faint);
         }
 
         /// <summary>A chip's or link's tip, the floor's line above it where what it goes to shows as known only by the floor.</summary>

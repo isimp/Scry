@@ -65,7 +65,26 @@ namespace Scry
             X.SearchEverything("kind:raid");
             p.Check(X.Results.Count > 0 && X.Results.All(e => e.Kind == Kind.Raid), "\"kind:raid\" finds raids only", $"{Numbers.Count(X.Results.Count)} results");
             X.SearchEverything("");
-            yield break;
+
+            // Picking a kind leaves every tab where it stood, so nothing under them moves.
+            var was = X.KindFilter;
+            X.KindFilter = null;
+            yield return null;
+            yield return null;
+            var still = ScryPanel.TabsDrawnForTest.ToList();
+            var moved = new List<string>();
+            foreach (var kind in new[] { Kind.Creature, Kind.Item, Kind.Piece, Kind.Location, Kind.Other })
+            {
+                X.KindFilter = kind;
+                yield return null;
+                yield return null;
+                var now = ScryPanel.TabsDrawnForTest.ToList();
+                if (now.Count != still.Count || now.Where((r, i) => Mathf.Abs(r.x - still[i].x) > 0.5f || Mathf.Abs(r.y - still[i].y) > 0.5f || Mathf.Abs(r.width - still[i].width) > 0.5f).Any())
+                    moved.Add(Kinds.Label(kind));
+            }
+            X.KindFilter = was;
+            if (still.Count == 0) p.Note("the kind tabs were not drawn");
+            else p.Check(moved.Count == 0, "picking a kind leaves every tab where it stood", "tabs moved picking " + string.Join(", ", moved));
         }
 
         /// <summary>Each kind of term the search's help names finds what it says it finds.</summary>

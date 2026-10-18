@@ -348,7 +348,7 @@ namespace Scry
                 Skin.Box(chip, LinkFill(kind, hover));
                 if (icon != null) DrawSprite(icon, new Rect(U(6f), y + (chipH - U(22f)) / 2f, U(22f), U(22f)));
                 Skin.LabelIn(new Rect(textX, y, textW, chipH), text, wrapped, LinkText(kind, hover));
-                if (floor) FloorMark(chip.xMax - FloorRoom - U(4f), chip);
+                if (floor) PlateFloorMark(chip);
                 if (hover) AskTip("src:" + source.Prefab + source.Unsure + text, FloorTip(explorer, source.Prefab, Naming.Lines(held, source.Unsure, PanelWords.GoTo(ShownName(explorer, source.Prefab, source.Prefab)))));
                 if (GUI.Button(chip, GUIContent.none, GUIStyle.none) && explorer.Jump(source.Prefab))
                 {
@@ -577,7 +577,7 @@ namespace Scry
                     GUI.Label(mark, item.Mark, Skin.Badge);
                 }
                 // What only the floor shows keeps the floor's mark at the chip's end.
-                if (floorW > 0f) FloorMark(chip.xMax - floorW - U(2f), chip);
+                if (floorW > 0f) PlateFloorMark(chip);
 
                 // Clicking an ingredient or a drop goes to it.
                 if (!string.IsNullOrEmpty(item.Prefab))
