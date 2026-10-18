@@ -287,7 +287,10 @@ namespace Scry
             var copyRect = new Rect(starRect.x - U(6f) - size, starRect.y, size, size);
             var nameRect = new Rect(0f, y, copyRect.x - U(10f), U(30f));
             var fits = FitLabel(nameRect, primary, Skin.Big, 13f);
-            if (!fits && nameRect.Contains(Event.current.mousePosition)) AskTip("title", primary);
+            // With the compendium on the prefab's name stays off the line under the name, as the list leaves it out; it shows on the name's hover.
+            var prefabOff = explorer.CompendiumOn && entry.Name != primary;
+            if (nameRect.Contains(Event.current.mousePosition) && (!fits || prefabOff))
+                AskTip("title", Naming.Lines(fits ? null : primary, prefabOff ? DetailWords.PrefabName(entry.Name) : null));
 
             if (copyRect.Contains(Event.current.mousePosition)) AskTip("copy-name", ActionWords.CopyName(entry.Name));
             if (GUI.Button(copyRect, GUIContent.none, Skin.IconButton))
@@ -309,16 +312,16 @@ namespace Scry
             }
             y += U(34f);
 
-            // Kind in colour, then the prefab name (when the game shows another) and where it comes from.
+            // Kind in colour, then the prefab name (when the game shows another, and the compendium is off) and where it comes from.
             var x = _compact ? KindBadge(entry, new Vector2(0f, y)) + U(10f) : 0f;
             var origin = DetailWords.From(entry);
-            var sub = entry.Name == primary ? origin : DetailWords.Sub(entry.Name, origin);
+            var sub = entry.Name == primary || prefabOff ? origin : DetailWords.Sub(entry.Name, origin);
             {
                 var subRect = new Rect(x, y, width - x, U(22f));
                 // Where a mod added it, where it comes from is a link to the mod's own page, or else
                 // shows everything it added, drawn as a link; the prefab's name before it is not.
                 var linked = entry.Origin == Origin.Mod && entry.ModName.Length > 0 && entry.Kind != Kind.Mod;
-                var lead = entry.Name == primary ? "" : DetailWords.SubLead(entry.Name);
+                var lead = entry.Name == primary || prefabOff ? "" : DetailWords.SubLead(entry.Name);
                 var leadW = lead.Length > 0 ? Skin.Width(Skin.DimLabel, lead) : 0f;
                 if (linked && leadW + Skin.Width(Skin.DimLabel, origin) <= subRect.width)
                 {

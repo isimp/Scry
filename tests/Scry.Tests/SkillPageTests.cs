@@ -24,7 +24,10 @@ namespace Scry.Tests
         public void AWeaponSkillTellsWhatAHitDealsAndWhatAttacksCost()
         {
             var swords = new SkillInputs { Name = "Swords", Hits = true, Costs = true };
-            Assert.Equal(new[] { "Damage of a hit", "25–55%", "45–75%", "85–100%" }, Line(swords, 34f, "Damage of a hit"));
+            // Knockback is rolled with the damage (Attack.DoMeleeAttack: m_pushForce times the same share).
+            Assert.Equal(new[] { "Damage and knockback of a hit", "25–55%", "45–75%", "85–100%" }, Line(swords, 34f, "Damage and knockback of a hit"));
+            // The ends are clamped before the roll (Skills.GetRandomSkillFactor), so the top's average is 92.5%, 2.3 times no skill's.
+            Assert.Equal(new[] { "Average hit", "40%", "60.4%, ×1.5", "92.5%, ×2.3" }, Line(swords, 34f, "Average hit"));
             Assert.Equal(new[] { "Cost of an attack", "100%", "89%", "67%" }, Line(swords, 34f, "Cost of an attack"));
             // A skill nothing hits with tells neither, and attacks that cost nothing tell no cost.
             Assert.Empty(SkillPageWords.Changes(new SkillInputs { Name = "Swords" }, 34f));
@@ -178,11 +181,49 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheWayToTheNextLevelCountsHitsWithTheWeaponInHand()
+        {
+            // A Staff of Frost's bolt rises a fifth of a usual hit (its attack's m_raiseSkillAmount 0.2):
+            // 39.53 left of 104.03 at level 34, 0.2 a hit, 0.3 rested.
+            Assert.Equal("62% there, about 198 hits on creatures with Staff of Frost, 132 rested",
+                SkillPageWords.ToNext("ElementalMagic", 34f, 64.5f, 1f, 1.5f, ("Staff of Frost", 0.2f)));
+            // Without one in hand, the skill's usual hit.
+            Assert.Equal("62% there, about 40 hits on creatures, 27 rested", SkillPageWords.ToNext("ElementalMagic", 34f, 64.5f, 1f, 1.5f));
+        }
+
+        [Fact]
+        public void AnAttackRisesHalfAsMuchAgainOnlyAsASwing()
+        {
+            // A swing hitting a creature rises half as much again (Attack.DoMeleeAttack), an area attack or a projectile as it is.
+            Assert.Equal(1.5f, SkillMath.RisePerHit("Horizontal", 1f));
+            Assert.Equal(1.5f, SkillMath.RisePerHit("Vertical", 1f));
+            Assert.Equal(1f, SkillMath.RisePerHit("Area", 1f));
+            Assert.Equal(0.2f, SkillMath.RisePerHit("Projectile", 0.2f));
+        }
+
+        [Fact]
+        public void AWeaponTrainingItsSkillSlowerThanUsualSaysSoOnItsChip()
+        {
+            Assert.Equal("×0.2 a hit", SkillPageWords.RiseShare("ElementalMagic", 0.2f));
+            // A sledge's area attack against a swing's half again.
+            Assert.Equal("×0.67 a hit", SkillPageWords.RiseShare("Clubs", 1f));
+            Assert.Null(SkillPageWords.RiseShare("Swords", 1.5f));
+            Assert.Null(SkillPageWords.RiseShare("Run", 1f));
+        }
+
+        [Fact]
         public void EachSkillSaysWhatRaisesIt()
         {
-            Assert.Equal("Hitting creatures with what trains it", SkillPageWords.RisesBy("Swords"));
-            Assert.Equal("Hitting rocks and ore with a pickaxe", SkillPageWords.RisesBy("Pickaxes"));
-            Assert.Equal("Hitting creatures with what trains it, and your summons' hits, half as much", SkillPageWords.RisesBy("BloodMagic"));
+            Assert.Equal("Hitting creatures with what trains it, once a swing however many it hits", SkillPageWords.RisesBy("Swords"));
+            // Anything that breaks but a tree or a creature trains a pickaxe (m_skillHitType Default): rocks, ore, building pieces.
+            Assert.Equal("Hitting rocks, ore and other things that break, a tree or a creature aside, with a pickaxe", SkillPageWords.RisesBy("Pickaxes"));
+            Assert.Equal("Hitting creatures with what trains it; your summons' hits, half as much, for the one they follow; a shield it cast breaking, for the one it shielded", SkillPageWords.RisesBy("BloodMagic"));
+            Assert.Equal("Hitting creatures with what trains it, or an archery target, up to a third as much at its centre", SkillPageWords.RisesBy("Bows"));
+            Assert.Equal("Each jump with the stamina for it", SkillPageWords.RisesBy("Jump"));
+            Assert.Equal("Each second reeling in, twice as much with a fish on", SkillPageWords.RisesBy("Fishing"));
+            Assert.Equal("Putting food on a cooking station and taking it off, cooked or burnt, and making things where it speeds the making", SkillPageWords.RisesBy("Cooking"));
+            Assert.Equal("Making things where it speeds the making, each of several made at once; repairing, by how worn it was; building, each piece taken down cancelling the next one built, up to 20", SkillPageWords.RisesBy("Crafting"));
+            Assert.Equal("Picking crops and wild plants, by hand or with a scythe, each plant once, and planting with the cultivator", SkillPageWords.RisesBy("Farming"));
             Assert.Equal("Each second running with stamina left", SkillPageWords.RisesBy("Run"));
             Assert.Equal("Each second sneaking, a tenth as much with no creature near enough to notice you", SkillPageWords.RisesBy("Sneak"));
             Assert.Null(SkillPageWords.RisesBy("1795429391"));

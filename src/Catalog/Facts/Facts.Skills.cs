@@ -32,7 +32,8 @@ namespace Scry
             Add(SkillPageWords.RisesLabel, SkillPageWords.RisesBy(skill.Name));
 
             var related = SkillReading.RelatedTo(type);
-            Listed(SkillPageWords.TrainedWithTitle, related.Trains);
+            // A weapon whose hits rise the skill another share than its usual hit says so on its chip.
+            Listed(SkillPageWords.TrainedWithTitle, related.Trains, name => inputs.HitRises.TryGetValue(name, out var rise) ? SkillPageWords.RiseShare(skill.Name, rise) : null);
             Listed(SkillPageWords.ToolsTitle, related.Tools);
             Listed(SkillPageWords.StationsTitle, related.Stations);
             Listed(SkillPageWords.CookingTitle, related.Cooking);
@@ -108,14 +109,18 @@ namespace Scry
         internal static string SkillName(Skills.SkillType skill) =>
             EntryOf(EntryKeys.For(Kind.Skill, skill.ToString()))?.ShownName ?? SkillWords.Name(skill.ToString(), CatalogBuilder.Localize);
 
-        /// <summary>A row listing prefabs of the catalog, each a chip going to it; with the compendium on, only those seen show.</summary>
-        private void Listed(string title, IEnumerable<string> prefabs)
+        /// <summary>A row listing prefabs of the catalog, each a chip going to it, with what <paramref name="amountOf"/> says of it; with the compendium on, only those seen show.</summary>
+        private void Listed(string title, IEnumerable<string> prefabs, System.Func<string, string> amountOf = null)
         {
             var row = new Row { Title = title, Lists = true };
             foreach (var name in prefabs.Distinct())
             {
                 var entry = EntryOf(name);
-                if (entry != null) row.Items.Add(EntryChip(entry));
+                if (entry == null) continue;
+                var chip = EntryChip(entry);
+                var amount = amountOf?.Invoke(name);
+                if (amount != null) chip.Amount = amount;
+                row.Items.Add(chip);
             }
             if (row.Items.Count > 0) Rows.Add(row);
         }

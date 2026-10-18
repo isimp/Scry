@@ -208,6 +208,11 @@ namespace Scry
             ("Player", "RaiseSkill", 2, 0x1C9E0C4D, Feature.SkillPages),
             ("SE_Stats", "ModifySkillLevel", 2, 0x57411071, Feature.SkillPages),
             ("SE_Stats", "ModifyRaiseSkill", 2, 0x7B679054, Feature.SkillPages),
+            // What raises a skill as the pages tell it: a projectile's hit, an archery target, a shield breaking, building after taking down.
+            ("Projectile", "OnHit", 4, 0x811C2E5C, Feature.SkillPages),
+            ("ArcheryTarget", "OnProjectileHit", 7, 0xB833FCA9, Feature.SkillPages),
+            ("SE_Shield", "IsDone", 0, 0x7ED4CFE2, Feature.SkillPages),
+            ("Player", "UpdatePlacement", 2, 0xA217A3E3, Feature.SkillPages),
 
             ("Windmill", "GetPowerOutput", 0, 0xB1FEA767, Feature.WindmillWind),
             ("Windmill", "CheckCover", 0, 0x18BCDE3E, Feature.WindmillWind),

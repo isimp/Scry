@@ -142,6 +142,7 @@ namespace Scry
             {
                 var (inputs, related) = For(shared.m_skillType);
                 related.Trains.Add(prefab.name);
+                if (shared.m_attack != null) inputs.HitRises[prefab.name] = SkillMath.RisePerHit(shared.m_attack.m_attackType.ToString(), shared.m_attack.m_raiseSkillAmount);
                 var deals = Facts.DamageFigures(shared.m_damages).Any(d => d.Amount > 0f);
                 foreach (var attack in Attacks(shared))
                 {

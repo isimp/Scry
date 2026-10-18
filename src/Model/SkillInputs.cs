@@ -12,6 +12,9 @@ namespace Scry
         /// <summary>The skill's name in the game's list ("Swords", "WoodCutting"), or a mod's skill's number.</summary>
         public string Name = "";
 
+        /// <summary>What a hit on a creature with each thing training it rises the skill by before its step, from its first attack (<see cref="SkillMath.RisePerHit"/>), by prefab.</summary>
+        public readonly Dictionary<string, float> HitRises = new Dictionary<string, float>();
+
         /// <summary>Attacks of what trains it deal damage, and some cost stamina, eitr or health.</summary>
         public bool Hits;
         public bool Costs;

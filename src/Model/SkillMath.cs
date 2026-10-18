@@ -70,6 +70,14 @@ namespace Scry
         /// <summary>A figure the game moves from one end at no skill to the other at the top: swimming's drain, fishing's, a scythe's reach.</summary>
         public static float Between(float atNone, float atTop, float level) => Lerp(atNone, atTop, Share(level));
 
+        /// <summary>
+        /// How much a hit on a creature with an attack raises its skill, before the skill's step
+        /// (<c>Attack.m_raiseSkillAmount</c>): a swing half as much again, once however many it
+        /// hits (<c>Attack.DoMeleeAttack</c>); an area attack (<c>DoAreaAttack</c>) or a
+        /// projectile's hit (<c>Projectile.OnHit</c>) as it is.
+        /// </summary>
+        public static float RisePerHit(string attackType, float amount) => attackType == "Horizontal" || attackType == "Vertical" ? amount * 1.5f : amount;
+
         /// <summary>How much stronger a jump is, up and forward alike (<c>Character.Jump</c>): two fifths at the top.</summary>
         public static float JumpShare(float level) => 1f + Share(level) * 0.4f;
 

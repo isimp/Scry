@@ -104,7 +104,7 @@ namespace Scry
             var (kept, fromEffects, progress) = Detail(type);
             var level = LevelOf(type);
             lines.Add((SkillPageWords.LevelLabel, SkillPageWords.Level(level, fromEffects)));
-            var next = SkillPageWords.ToNext(skill.Name, kept, progress, skill.Step, 1f + RestedShare());
+            var next = SkillPageWords.ToNext(skill.Name, kept, progress, skill.Step, 1f + RestedShare(), Held(type));
             if (next != null) lines.Add((SkillPageWords.ToNextLabel(kept), next));
             return lines;
         }
@@ -115,7 +115,16 @@ namespace Scry
             var type = (Skills.SkillType)skill.Type;
             var (kept, fromEffects, progress) = Detail(type);
             if (!Known) return (SkillPageWords.Card(0f, 0f), null);
-            return (SkillPageWords.Card(LevelOf(type), fromEffects), SkillPageWords.ToNext(skill.Name, kept, progress, skill.Step, 1f + RestedShare()));
+            return (SkillPageWords.Card(LevelOf(type), fromEffects), SkillPageWords.ToNext(skill.Name, kept, progress, skill.Step, 1f + RestedShare(), Held(type)));
+        }
+
+        /// <summary>The weapon in the character's hand where it trains a skill, by name, with what a hit with its first attack rises the skill by (<see cref="SkillMath.RisePerHit"/>); none otherwise.</summary>
+        private static (string Weapon, float PerHit)? Held(Skills.SkillType skill)
+        {
+            var weapon = Player.m_localPlayer != null ? Player.m_localPlayer.GetCurrentWeapon() : null;
+            var shared = weapon?.m_shared;
+            if (shared?.m_attack == null || shared.m_skillType != skill) return null;
+            return (CatalogBuilder.Localize(shared.m_name), SkillMath.RisePerHit(shared.m_attack.m_attackType.ToString(), shared.m_attack.m_raiseSkillAmount));
         }
 
         /// <summary>How much more each rise gives while rested: the Rested effect's own share for every skill (<c>SE_Stats.ModifyRaiseSkill</c>).</summary>

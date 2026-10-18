@@ -258,7 +258,7 @@ namespace Scry
         public static string CameWith(string owner) => "with " + owner;
 
         /// <summary>A thing known before its character's book was kept, from what the game kept of it.</summary>
-        public const string KnownBefore = "already known when this book began";
+        public const string KnownBefore = "known before Scry kept track of this character";
 
         /// <summary>How many damage types a creature's grid keeps back under the strict rules, told faintly under it; none where it keeps none back.</summary>
         public static string NotYetHitWith(int count) => count > 0 ? $"{Numbers.Count(count)} more not yet hit with" : null;

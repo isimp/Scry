@@ -60,7 +60,11 @@ namespace Scry
             string Chance(float chance) => Numbers.Percent(chance, 1);
             string Seconds(float seconds) => $"{Numbers.Amount(seconds, 1)} s";
 
-            if (inputs.Hits) Line("Damage of a hit", l => HitShares(l));
+            if (inputs.Hits)
+            {
+                Line("Damage and knockback of a hit", l => HitShares(l));
+                Line("Average hit", l => AverageHit(l));
+            }
             if (inputs.OnTrees) Line("An axe's hit on a tree", l => HitShares(l));
             if (inputs.Costs) Line("Cost of an attack", l => Share(SkillMath.CostShare(l)));
             var draws = inputs.DrawTimes.Distinct().ToList();
@@ -135,6 +139,21 @@ namespace Scry
             return Numbers.CountRange((long)Math.Round(least * 100f), (long)Math.Round(most * 100f)) + "%";
         }
 
+        /// <summary>
+        /// The share of its damage a hit deals on average at a level, the middle of its two ends
+        /// as the roll falls evenly between them, and above no skill how many times no skill's:
+        /// "92.5%, ×2.3".
+        /// </summary>
+        private static string AverageHit(float level)
+        {
+            var (least, most) = SkillMath.HitShare(level);
+            var (leastAtNone, mostAtNone) = SkillMath.HitShare(0f);
+            var average = (least + most) / 2f;
+            var atNone = (leastAtNone + mostAtNone) / 2f;
+            var share = Numbers.Percent(average, 1);
+            return level >= 1f ? share + ", " + Numbers.Times(average / atNone, 1) : share;
+        }
+
         /// <summary>The character's level, with how much of it effects add: "54, 20 of it from effects"; "100, the top".</summary>
         public static string Level(float level, float fromEffects)
         {
@@ -146,14 +165,17 @@ namespace Scry
         /// <summary>
         /// How far the next level is: the share of the way there, and about how many of what
         /// raises it are left, and with being rested (<paramref name="rested"/> times as much);
-        /// a skill a mod adds only its share. None at the top.
+        /// a weapon skill's hits by the weapon in hand where it trains the skill
+        /// (<paramref name="held"/>, its rise a hit, <see cref="SkillMath.RisePerHit"/>), else by
+        /// the skill's usual hit; a skill a mod adds only its share. None at the top.
         /// </summary>
-        public static string ToNext(string skill, float level, float progress, float step, float rested)
+        public static string ToNext(string skill, float level, float progress, float step, float rested, (string Weapon, float PerHit)? held = null)
         {
             if (level >= SkillMath.Top) return null;
             var there = $"{Numbers.Percent(Math.Min(1f, progress / SkillMath.NextLevelNeeds(level)))} there";
             var unit = RiseUnit(skill);
             if (unit.Words == null || step <= 0f) return there;
+            if (held != null && held.Value.PerHit > 0f && UsualHitRise(skill) != null) unit = (unit.Words + " with " + held.Value.Weapon, held.Value.PerHit, false);
             var each = step * unit.Amount;
             var left = SkillMath.RisesToNext(level, progress, each);
             var leftRested = SkillMath.RisesToNext(level, progress, each * rested);
@@ -162,11 +184,27 @@ namespace Scry
                 : $"{there}, about {Numbers.Count(left)} {unit.Words}, {Numbers.Count(leftRested)} rested";
         }
 
+        /// <summary>A weapon skill's usual rise a hit on a creature before its step: a swing's half again for those mostly swung, a shot's for the rest; none for any other skill.</summary>
+        public static float? UsualHitRise(string skill) => Melee.Contains(skill) ? 1.5f : Ranged.Contains(skill) ? 1f : (float?)null;
+
+        /// <summary>
+        /// What a weapon's chip under what trains a skill says where a hit with it rises the skill
+        /// another share than the skill's usual hit (<see cref="UsualHitRise"/>): "×0.2 a hit";
+        /// none where it is the usual.
+        /// </summary>
+        public static string RiseShare(string skill, float perHit)
+        {
+            var usual = UsualHitRise(skill);
+            if (usual == null || perHit <= 0f) return null;
+            var share = perHit / usual.Value;
+            return Math.Abs(share - 1f) < 0.01f ? null : Numbers.Times(share, 2) + " a hit";
+        }
+
         /// <summary>What a rise of a skill comes from, how much one gives before its step, and whether it comes each second.</summary>
         private static (string Words, float Amount, bool Seconds) RiseUnit(string skill)
         {
-            if (Melee.Contains(skill)) return ("hits on creatures", 1.5f, false);
-            if (Ranged.Contains(skill)) return ("hits on creatures", 1f, false);
+            var usual = UsualHitRise(skill);
+            if (usual != null) return ("hits on creatures", usual.Value, false);
             switch (skill)
             {
                 case "Pickaxes": return ("hits on rocks and ore", 1f, false);
@@ -178,7 +216,7 @@ namespace Scry
                 case "Swim": return ("swimming", 1f, true);
                 case "Ride": return ("riding at a run", 1f, true);
                 case "Sneak": return ("sneaking near creatures", 1f, true);
-                case "Fishing": return ("reeling in", 1f, true);
+                case "Fishing": return ("reeling in with no fish on", 1f, true);
                 case "Cooking": return ("dishes cooked", 1f, false);
                 case "Farming": return ("plants picked", 1f, false);
                 case "Crafting": return ("things made", 1f, false);
@@ -186,28 +224,40 @@ namespace Scry
             }
         }
 
-        /// <summary>What raises a skill, as the game raises each; none for a skill a mod adds.</summary>
+        /// <summary>
+        /// What raises a skill, as the game raises each: a swing once however many it hits
+        /// (<c>Attack.DoMeleeAttack</c>), a pickaxe on anything that breaks but a tree or a
+        /// creature (its attacks' <c>m_skillHitType</c>), an archery target a third as much at its
+        /// centre (<c>ArcheryTarget.m_raiseSkillMultiplier</c>), summons and a broken shield for
+        /// the one they follow or shielded (<c>Tameable.m_levelUpOwnerSkill</c>,
+        /// <c>SE_Shield.m_levelUpSkillOnBreak</c>), no tired jump (<c>Character.Jump</c>), a fish
+        /// on twice as fast (<c>FishingFloat</c>), each piece taken down cancelling the next one
+        /// built (<c>Player.m_buildRemoveDebt</c>); none for a skill a mod adds.
+        /// </summary>
         public static string RisesBy(string skill)
         {
-            if (skill == "BloodMagic") return "Hitting creatures with what trains it, and your summons' hits, half as much";
-            if (Melee.Contains(skill) || Ranged.Contains(skill)) return "Hitting creatures with what trains it";
             switch (skill)
             {
-                case "Pickaxes": return "Hitting rocks and ore with a pickaxe";
+                case "BloodMagic": return "Hitting creatures with what trains it; your summons' hits, half as much, for the one they follow; a shield it cast breaking, for the one it shielded";
+                case "Bows":
+                case "Crossbows":
+                    return "Hitting creatures with what trains it, or an archery target, up to a third as much at its centre";
+                case "Pickaxes": return "Hitting rocks, ore and other things that break, a tree or a creature aside, with a pickaxe";
                 case "WoodCutting": return "Hitting trees with an axe";
                 case "Blocking": return "Each hit blocked, twice as much for a parry";
-                case "Jump": return "Each jump";
+                case "Jump": return "Each jump with the stamina for it";
                 case "Dodge": return "Each dodge, a tenth as much unless a hit passes through it";
                 case "Run": return "Each second running with stamina left";
                 case "Swim": return "Each second swimming";
                 case "Ride": return "Each second riding at a run";
                 case "Sneak": return "Each second sneaking, a tenth as much with no creature near enough to notice you";
-                case "Fishing": return "Each second reeling in, more with a fish on";
-                case "Cooking": return "Putting food on a cooking station and taking it off cooked, and making things where it speeds the making";
-                case "Farming": return "Picking crops and wild plants, and planting with the cultivator";
-                case "Crafting": return "Making things where it speeds the making, building, and repairing";
-                default: return null;
+                case "Fishing": return "Each second reeling in, twice as much with a fish on";
+                case "Cooking": return "Putting food on a cooking station and taking it off, cooked or burnt, and making things where it speeds the making";
+                case "Farming": return "Picking crops and wild plants, by hand or with a scythe, each plant once, and planting with the cultivator";
+                case "Crafting": return "Making things where it speeds the making, each of several made at once; repairing, by how worn it was; building, each piece taken down cancelling the next one built, up to 20";
             }
+            if (Melee.Contains(skill)) return "Hitting creatures with what trains it, once a swing however many it hits";
+            return Ranged.Contains(skill) ? "Hitting creatures with what trains it" : null;
         }
 
         /// <summary>What a death takes of a skill (<c>Skills.OnDeath</c>), and when it takes nothing (<c>Player.OnDeath</c>: not within the wait after a death).</summary>

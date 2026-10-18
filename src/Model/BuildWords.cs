@@ -121,6 +121,9 @@ namespace Scry
 
         /// <summary>What sleeping in one's own bed needs (<c>Bed.Interact</c>: night, <c>CheckEnemies</c>, <c>CheckExposure</c>, <c>CheckFire</c>, <c>CheckWet</c>).</summary>
         public static string BedSleep(float cover) => $"at night, with no enemy sensing you, under a roof with at least {Numbers.Percent(cover)} cover, by a fire, and dry";
+
+        /// <summary>What an archery target trains: the skill of what hits it, by its share of a hit's rise at its centre.</summary>
+        public static string ArcheryTarget(float share) => $"the skill of what hits it, up to {Numbers.Percent(share)} of a hit on a creature at its centre, less the farther out";
     }
 }
 

@@ -162,10 +162,12 @@ namespace Scry
                 var attack = shared?.m_attack;
                 // What it wears, its armor and shield, is no attack of its.
                 if (attack == null || !CombatWords.IsCreatureAttack(shared.m_itemType.ToString(), attack.m_attackAnimation)) continue;
-                // The game names some attacks in its own shorthand ("slap", "LOG"), not by a name to show.
-                var name = !string.IsNullOrEmpty(shared.m_name) && !shared.m_name.StartsWith("$", StringComparison.Ordinal) ? Naming.Readable(shared.m_name) : ItemName(item);
-                if (attacks.Any(a => a.Cells[0] == name)) continue;
+                // The game names some attacks in its own shorthand ("slap", "LOG"), not by a name to show;
+                // one of those that fires something goes by what it fires ("fireballattack" is a troll's rock throw).
+                var coded = !string.IsNullOrEmpty(shared.m_name) && !shared.m_name.StartsWith("$", StringComparison.Ordinal);
                 var fires = attack.m_attackProjectile;
+                var name = coded ? (fires != null ? CombatWords.FiredName(AnyName(fires, fires.name)) : null) ?? Naming.Readable(shared.m_name) : ItemName(item);
+                if (attacks.Any(a => a.Cells[0] == name)) continue;
                 // Rolled each hit as anything but a player rolls one (Character.GetRandomSkillFactor); a player rolls by its skill.
                 var dealt = rolls ? CombatWords.CreatureDamage(DamageFigures(shared.m_damages)) ?? "" : Damages(shared.m_damages);
                 var cells = CombatWords.AttackCells(name, dealt, attack.m_attackType.ToString(), shared.m_aiAttackRangeMin, shared.m_aiAttackRange, shared.m_aiAttackInterval,

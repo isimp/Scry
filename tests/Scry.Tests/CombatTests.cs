@@ -9,6 +9,18 @@ namespace Scry.Tests
         // level above the first. A hit at a level is 1 + half a star each (Attack.GetLevelDamageFactor).
 
         [Fact]
+        public void AnAttackKnownOnlyByItsCodeNameIsNamedByWhatItFires()
+        {
+            // A troll's rock throw is "fireballattack" in the game's data: named by its projectile, not "Fireball attack".
+            Assert.Equal("Troll throw", CombatWords.FiredName("Troll throw projectile"));
+            Assert.Equal("Goblin shaman fireball", CombatWords.FiredName("Goblin shaman projectile fireball"));
+            Assert.Equal("Spit", CombatWords.FiredName("Spit"));
+            // A projectile named for nothing but being one tells nothing better.
+            Assert.Null(CombatWords.FiredName("Projectile"));
+            Assert.Null(CombatWords.FiredName(""));
+        }
+
+        [Fact]
         public void WhatStarsAddIsATableOfHealthAndDamageByStar()
         {
             Assert.Equal("With stars", CombatWords.StarsTitle);

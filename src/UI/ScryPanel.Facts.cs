@@ -376,6 +376,16 @@ namespace Scry
             MoreChip("where", lines.Count, firstLines, width, ref more);
             if (more.InRow) y = more.RowBottom + U(5f);
             foreach (var row in rows) y = FactRow(explorer, row, width, y);
+            // Under the strict rules a giver's chip may hold its count back as a line does.
+            if (explorer.LeavingOut && rows.Count > 0)
+            {
+                foreach (var source in where)
+                {
+                    if (source.AllPlay || !SourceGroups.Groups(source.Record) || explorer.StrictSourceAmount(source.Record) != CompendiumWords.Hidden) continue;
+                    var held = SourceWords.HeldTip(source.Record);
+                    if (held != null && held != TallyWords.NeverCounted && !HeldHints.Contains(held)) HeldHints.Add(held);
+                }
+            }
             // What shows a count not yet seen, faintly under the lines, once for each way of counting.
             // What shows each amount held back, faintly under the lines, once each; what nothing counts says so on hover only.
             foreach (var hint in HeldHints) y = HintLine(hint, "not-counted:", hint, PanelPart.TallyCounted, width, y);
@@ -395,13 +405,12 @@ namespace Scry
         /// Where a thing comes from, split into the lines told as they are and the rows of chips
         /// the ways giving an amount or nothing go into, a row for each way, givers alike but for
         /// their biome one chip saying how many (<see cref="SourceGroups"/>), each giver's own line
-        /// and prefab on its hover. Under the strict rules every giver keeps its own line, its
+        /// and prefab on its hover. Under the strict rules every giver keeps a chip of its own, its
         /// count the character's. Worked out once for each list while the page and what the
         /// character knows stay the same.
         /// </summary>
         private static (IReadOnlyList<Source> Lines, IReadOnlyList<Facts.Row> Rows) SplitWhere(Explorer explorer, IReadOnlyList<Source> where)
         {
-            if (explorer.LeavingOut) return (where, Array.Empty<Facts.Row>());
             if (!ReferenceEquals(_splitIn, explorer) || _splitStamp != explorer.KnowStamp || _splitSelection != explorer.SelectionVersion || WhereSplits.Count > 64)
             {
                 _splitIn = explorer;
@@ -418,23 +427,44 @@ namespace Scry
                 else lines.Add(source);
             }
             var rows = new List<Facts.Row>();
-            foreach (var group in SourceGroups.Of(grouped))
+            Facts.Row RowOf(string lead)
             {
-                var row = rows.Count > 0 && rows[rows.Count - 1].Title == group.Lead ? rows[rows.Count - 1] : null;
-                if (row == null)
-                {
-                    row = new Facts.Row { Title = group.Lead };
-                    rows.Add(row);
-                }
-                // The chip goes to the first of its givers the character can go to.
-                var first = group.Givers.FirstOrDefault(g => explorer.Reaches(g.Giver))?.Giver ?? group.Givers[0].Giver;
-                row.Items.Add(new Facts.Ingredient
-                {
-                    Icon = PrefabIcon(first), Name = group.Chip, Amount = group.Amount ?? "", Prefab = first,
-                    MarkTip = group.Tip(s => SourceWords.Line(s, Knowledge.BossOf)),
-                });
+                var row = rows.Count > 0 && rows[rows.Count - 1].Title == lead ? rows[rows.Count - 1] : null;
+                if (row != null) return row;
+                row = new Facts.Row { Title = lead };
+                rows.Add(row);
+                return row;
             }
-            split = (lines.Count == where.Count ? where : lines, rows);
+            if (explorer.LeavingOut)
+            {
+                // Each giver its own chip, its amount the character's count or ???, the line and how
+                // the count comes to show on its hover.
+                foreach (var record in grouped)
+                {
+                    var own = SourceGroups.Of(new[] { record })[0];
+                    var amount = explorer.StrictSourceAmount(record);
+                    var held = amount == CompendiumWords.Hidden ? SourceWords.HeldTip(record) : null;
+                    RowOf(own.Lead).Items.Add(new Facts.Ingredient
+                    {
+                        Icon = PrefabIcon(record.Giver), Name = own.Chip, Amount = amount ?? own.Amount ?? "", Prefab = record.Giver,
+                        MarkTip = Naming.Lines(explorer.StrictSourceLine(record) ?? SourceWords.Line(record, Knowledge.BossOf), held),
+                    });
+                }
+            }
+            else
+            {
+                foreach (var group in SourceGroups.Of(grouped))
+                {
+                    // The chip goes to the first of its givers the character can go to.
+                    var first = group.Givers.FirstOrDefault(g => explorer.Reaches(g.Giver))?.Giver ?? group.Givers[0].Giver;
+                    RowOf(group.Lead).Items.Add(new Facts.Ingredient
+                    {
+                        Icon = PrefabIcon(first), Name = group.Chip, Amount = group.Amount ?? "", Prefab = first,
+                        MarkTip = group.Tip(s => SourceWords.Line(s, Knowledge.BossOf)),
+                    });
+                }
+            }
+            split =(lines.Count == where.Count ? where : lines, rows);
             WhereSplits[where] = split;
             return split;
         }

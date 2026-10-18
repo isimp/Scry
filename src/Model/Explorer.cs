@@ -367,16 +367,27 @@ namespace Scry
         /// </summary>
         public string StrictSourceLine(SourceFacts source)
         {
+            var amount = StrictSourceAmount(source);
+            return amount != null ? SourceWords.Counted(source, amount) : null;
+        }
+
+        /// <summary>
+        /// The amount a line of where the item shown comes from tells under the strict rules
+        /// (<see cref="StrictSourceLine"/>), alone, as its giver's chip says it: the character's
+        /// count, or ???; none where the game's own amount shows.
+        /// </summary>
+        public string StrictSourceAmount(SourceFacts source)
+        {
             if (!LeavingOut) return null;
             // A producer's pace: as the game tells it once collected from, ??? before.
             var shownBy = SourceWords.ShownBy(source);
-            if (shownBy != null) return _view.Book.Witnessed(source.Giver, shownBy) ? null : SourceWords.Counted(source, CompendiumWords.Hidden);
+            if (shownBy != null) return _view.Book.Witnessed(source.Giver, shownBy) ? null : CompendiumWords.Hidden;
             var by = SourceWords.CountedBy(source);
             if (by == null) return null;
             // A way nothing counts reads an empty count (CompendiumBook.Tallied), so ???.
             var counted = _view.Book.Tallied(by.Value);
             var drop = counted.Of(source.Giver).FirstOrDefault(d => d.Item == _selected.Name);
-            return SourceWords.Counted(source, drop != null ? TallyWords.Line(by.Value, drop, counted.Kills(source.Giver)) : CompendiumWords.Hidden);
+            return drop != null ? TallyWords.Line(by.Value, drop, counted.Kills(source.Giver)) : CompendiumWords.Hidden;
         }
 
         /// <summary>Whether, under the strict rules on a page that leaves things out, the character played with others, so another player's game may have run what it saw.</summary>

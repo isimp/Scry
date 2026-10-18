@@ -176,6 +176,21 @@ namespace Scry
             return with.ToArray();
         }
 
+        /// <summary>The words a projectile's name holds for being one, which tell nothing of what an attack fires.</summary>
+        private static readonly HashSet<string> ProjectileWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "projectile", "proj" };
+
+        /// <summary>
+        /// The name of an attack the game knows only by a code name ("fireballattack" for a troll's
+        /// rock throw), from the projectile it fires, without the word "projectile": "Troll throw";
+        /// none where that leaves nothing.
+        /// </summary>
+        public static string FiredName(string projectile)
+        {
+            if (string.IsNullOrEmpty(projectile)) return null;
+            var kept = projectile.Split(' ').Where(w => w.Length > 0 && !ProjectileWords.Contains(w)).ToList();
+            return kept.Count > 0 ? Naming.Capital(string.Join(" ", kept)) : null;
+        }
+
         /// <summary>
         /// An attack as a line of its table: the item it is made with, what it does, how (a
         /// swing, a shot, around it, or the projectile it fires), from how near to how far its
