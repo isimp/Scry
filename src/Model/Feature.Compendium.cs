@@ -12,5 +12,6 @@ namespace Scry
         public static readonly Feature CompendiumUse = Listed("knowing what a character uses and what the game shows it, for the compendium");
         public static readonly Feature CompendiumTogether = Listed("noting what the character sees go together, for the compendium's strict rules");
         public static readonly Feature CompendiumTiers = Listed("working out what each boss's fall opens, for the compendium's floor");
+        public static readonly Feature CompendiumTextsRead = Listed("the runestone texts the character has read, for the compendium");
     }
 }

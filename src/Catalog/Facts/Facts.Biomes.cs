@@ -40,7 +40,7 @@ namespace Scry
             // What is at home here is found once, so a row's own test, some of which look into
             // the prefab, runs on the biome's entries rather than on every entry of the game.
             var home = catalog.Where(e => e.Biomes.Contains(biome.Name)).ToList();
-            int Here(string title, Func<Entry, bool> which, Func<Entry, string[]> also = null, Func<List<Entry>, List<Entry>> order = null)
+            Row Here(string title, Func<Entry, bool> which, Func<Entry, string[]> also = null, Func<List<Entry>, List<Entry>> order = null)
             {
                 var found = (also == null ? home.Where(which) : catalog.Where(e => also(e).Contains(biome.Name) && !e.Biomes.Contains(biome.Name) && which(e)))
                     .OrderBy(e => e.ShownName, StringComparer.OrdinalIgnoreCase)
@@ -49,7 +49,7 @@ namespace Scry
                 foreach (var entry in order != null ? order(found) : found) row.Items.Add(EntryChip(entry));
                 row.Title = Naming.Counted(title, row.Items.Count);
                 if (row.Items.Count > 0) Rows.Add(row);
-                return row.Items.Count;
+                return row;
             }
             bool Fish(Entry e) => e.Kind == Kind.Item && e.Source is UnityEngine.GameObject prefab && prefab.GetComponent<global::Fish>() != null;
             List<Entry> Toughest(List<Entry> found) => ContentOrder.ToughestFirst(found, e => FoeOf(e.Source as UnityEngine.GameObject));
@@ -68,9 +68,12 @@ namespace Scry
             Here("Also placed here", e => (e.Kind == Kind.Other || e.Kind == Kind.Effect || e.Kind == Kind.Projectile || (e.Kind == Kind.Item && !Fish(e))) && Knowledge.IsPlacedByWorld(e.Name));
             Here("Here only during a world event", e => e.Kind != Kind.Biome, e => Knowledge.EventBiomes(e.Name), Toughest);
             Here("Comes here later in the game", e => e.Kind != Kind.Biome, e => Knowledge.LaterBiomes(e.Name), Toughest);
-            // How many live and are placed there, as the page's headline tiles.
-            Add("Creatures", Numbers.Count(creatures));
-            Add("Places", Numbers.Count(places));
+            // How many live and are placed there, as the page's headline tiles; with the compendium on
+            // the panel counts what the row shows of them (<see cref="TileCounts"/>).
+            Add("Creatures", Numbers.Count(creatures.Items.Count));
+            Add("Places", Numbers.Count(places.Items.Count));
+            TileCounts["Creatures"] = creatures;
+            TileCounts["Places"] = places;
         }
     }
 }

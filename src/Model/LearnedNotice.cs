@@ -48,7 +48,7 @@ namespace Scry
             {
                 var entry = explorer.Find(key);
                 // Named as the list shows them: the world a player meets.
-                if (entry != null && explorer.LevelOf(entry) >= KnownLevel.Seen && Kinds.ForPlayers(entry.Kind)) _new.Add(entry);
+                if (entry != null && explorer.LevelOf(entry) >= KnownLevel.Seen && Kinds.ForPlayers(entry)) _new.Add(entry);
             }
             return _new;
         }

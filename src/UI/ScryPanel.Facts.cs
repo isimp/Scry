@@ -315,8 +315,11 @@ namespace Scry
         private static float WhereBlock(Explorer explorer, Facts facts, bool titled, float width, float y)
         {
             // A line of where it spawns or grows shows only where it was met in one of its biomes;
-            // one counted over every character's play is left out quietly, the page counting this character's own.
-            var where = ShownStrictly(explorer, facts.Where, s => !s.AllPlay && (explorer.LeavesOut(s.Prefab) || explorer.LeavesOutAll(s.MetIn)));
+            // one counted over every character's play is left out quietly under the strict rules, the
+            // page counting this character's own, and under the loose rules where its giver was not met.
+            var where = ShownStrictly(explorer, facts.Where, s => s.AllPlay
+                ? !explorer.LeavingOut && explorer.LeavesOut(s.Prefab)
+                : explorer.LeavesOut(s.Prefab) || explorer.LeavesOutAll(s.MetIn));
             if (explorer.LeavingOut && OwnPlayOnly(where)) where = OwnPlay;
             if (where.Count == 0) return y;
             var (lines, rows) = SplitWhere(explorer, where);
@@ -516,7 +519,7 @@ namespace Scry
         {
             y += U(6f);
             var titleRect = new Rect(0f, y, width, U(20f));
-            GUI.Label(titleRect, row.Unsure != null ? UnsureWords.Marked(row.Title) : row.Title, Skin.DimLabel);
+            GUI.Label(titleRect, Masked(explorer, row.Unsure != null ? UnsureWords.Marked(row.Title) : row.Title), Skin.DimLabel);
             if (row.Unsure != null && titleRect.Contains(Event.current.mousePosition)) AskTip("unsure:" + row.Title, row.Unsure);
             y += U(24f);
 
@@ -724,7 +727,7 @@ namespace Scry
                 return y;
             }
             y += U(6f);
-            GUI.Label(new Rect(0f, y, width, U(20f)), row.Title, Skin.DimLabel);
+            GUI.Label(new Rect(0f, y, width, U(20f)), Masked(explorer, row.Title), Skin.DimLabel);
             y += U(24f);
             var shown = explorer.Selected as Entry;
             var flow = new ChipFlow(0f, width, y, U(26f), U(4f), U(5f));

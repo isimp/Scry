@@ -20,7 +20,8 @@ namespace Scry.Tests
             public readonly Entry Hit = E("vfx_troll_hit", Kind.Effect);
             public readonly Entry Grunt = E("sfx_troll_grunt", Kind.Sound);
             public readonly Entry Rock = E("troll_throw_projectile", Kind.Projectile);
-            public readonly Entry Ragdoll = E("Troll_ragdoll", Kind.Other);
+            // The game's ragdolls are creatures by their components, leftovers of their creature.
+            public readonly Entry Ragdoll = Body(E("Troll_ragdoll", Kind.Creature));
             public readonly Entry Mod = E("Monstrum", Kind.Mod);
             public readonly Explorer Explorer;
             public readonly CompendiumView View;
@@ -32,6 +33,12 @@ namespace Scry.Tests
                 Explorer = new Explorer(all, new Favourites(Path.Combine(TempDir(), "favourites.txt")));
                 View = new CompendiumView(Explorer.Entries);
                 foreach (var entry in all) Book.Raise(entry.Key, KnownLevel.Known);
+            }
+
+            private static Entry Body(Entry entry)
+            {
+                entry.Components = new[] { "Ragdoll" };
+                return entry;
             }
 
             public World Rule(CompendiumRule rule)
@@ -72,6 +79,13 @@ namespace Scry.Tests
             Assert.Equal(1, world.Explorer.CountAll);
             Assert.Equal(0, world.Explorer.CountOf(Kind.Effect));
             Assert.Equal(0, world.Explorer.CountOf(Kind.Mod));
+            // A creature's ragdoll is its leftover, no creature a player meets: not listed nor counted.
+            Assert.Equal(1, world.Explorer.CountOf(Kind.Creature));
+            Assert.Equal(1, world.Explorer.FoundOf(Kind.Creature));
+            // A link to what the list never shows is plain text, as a page left out is.
+            Assert.False(world.Explorer.Reaches(world.Rock.Key));
+            Assert.False(world.Explorer.Reaches(world.Ragdoll.Key));
+            Assert.True(world.Explorer.Reaches(world.Troll.Key));
             // Picking such a kind lists none of it.
             world.Explorer.KindFilter = Kind.Sound;
             Assert.DoesNotContain(world.Grunt, world.Explorer.Results);
@@ -82,6 +96,7 @@ namespace Scry.Tests
         {
             var world = new World().Rule(CompendiumRule.Off);
             Assert.Equal(6, world.Explorer.CountAll);
+            Assert.True(world.Explorer.Reaches(world.Rock.Key));
 
             world.Rule(CompendiumRule.Strict);
             Assert.Equal(1, world.Explorer.CountAll);
@@ -99,6 +114,51 @@ namespace Scry.Tests
 
             var news = new LearnedNotice().New(world.Explorer);
             Assert.Equal(new[] { world.Troll }, news.ToArray());
+        }
+
+        [Fact]
+        public void ThingsGoingByOneNameAreToldApartByTheWordsTheirPrefabsDoNotShare()
+        {
+            var plain = E("piece_ArcheryTarget", Kind.Piece, "Archery Target");
+            var wooden = E("rae_WoodenArcheryTarget", Kind.Piece, "Archery Target");
+            Search.OrderNames(new[] { plain, wooden });
+            // The one with no word of its own is the plain one; short tags and build words tell nothing.
+            Assert.Null(plain.Alike);
+            Assert.Equal("wooden", wooden.Alike);
+
+            var troll = E("Troll", Kind.Creature, "Troll");
+            var summoned = E("Troll_Summoned", Kind.Creature, "Troll");
+            Search.OrderNames(new[] { troll, summoned });
+            Assert.Null(troll.Alike);
+            Assert.Equal("summoned", summoned.Alike);
+
+            // Where no word tells them apart, which of them it is.
+            var one = E("Rock_3", Kind.Resource, "Rock");
+            var two = E("Rock_4", Kind.Resource, "Rock");
+            Search.OrderNames(new[] { one, two });
+            Assert.Equal("1 of 2", one.Alike);
+            Assert.Equal("2 of 2", two.Alike);
+        }
+
+        [Fact]
+        public void WithTheCompendiumOnThingsAlikeAreToldApartOnlyAmongWhatTheListShows()
+        {
+            var plain = E("Rock_3", Kind.Resource, "Rock");
+            var other = E("Rock_4", Kind.Resource, "Rock");
+            var explorer = new Explorer(new[] { plain, other }.ToList(), new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+            Search.OrderNames(explorer.Catalog.ToList());
+            Assert.Equal("1 of 2", explorer.AlikeOf(plain));
+            var book = new CompendiumBook();
+            book.Raise(plain.Key, KnownLevel.Known);
+            var view = new CompendiumView(explorer.Entries);
+            view.Tell(book, CompendiumRule.Loose);
+            explorer.Know(view);
+            // The list shows the met one alone, so it says nothing of the other.
+            Assert.Null(explorer.AlikeOf(plain));
+            book.Raise(other.Key, KnownLevel.Seen);
+            view.Tell(book, CompendiumRule.Loose);
+            explorer.Know(view);
+            Assert.Equal("2 of 2", explorer.AlikeOf(other));
         }
 
         [Fact]

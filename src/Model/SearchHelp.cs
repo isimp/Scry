@@ -121,6 +121,8 @@ namespace Scry
                 Add("mod", entry.ModName, entry.ModName);
                 foreach (var key in Search.WordKeys)
                 {
+                    // How it takes and deals damage types the strict rules keep back until hits tell them.
+                    if (!_relations[at] && Search.FightWord(key)) continue;
                     foreach (var word in entry.TermWords(key)) Add(key, word, Naming.Capital(word));
                 }
                 if (!_relations[at]) continue;

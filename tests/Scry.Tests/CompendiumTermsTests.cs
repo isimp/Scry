@@ -109,6 +109,18 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void UnderStrictHowAKnownCreatureTakesOrDealsADamageTypeIsNotOffered()
+        {
+            // Its grid and attacks wait for the hits that tell them; the search box offers no term they would find.
+            var world = new World();
+            world.Troll.SetTermWords("weak", new[] { "fire" });
+            world.Troll.SetTermWords("damage", new[] { "blunt" });
+            Assert.Empty(world.SuggestStrict("weak:"));
+            Assert.Empty(world.SuggestStrict("damage:"));
+            Assert.Equal(new[] { "Fire" }, Labels(world.Suggest("weak:")));
+        }
+
+        [Fact]
         public void WithTheCompendiumOffEverySuggestionIsOffered()
         {
             var world = new World();

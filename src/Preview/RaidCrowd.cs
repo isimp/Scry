@@ -15,6 +15,12 @@ namespace Scry
         public static Entry LastFor { get; private set; }
         public static IReadOnlyList<RolledCreature> LastRoll { get; private set; } = new List<RolledCreature>();
 
+        /// <summary>How many creatures the last roll brought that stand nowhere, the character not having met them.</summary>
+        public static int LastNotMet { get; private set; }
+
+        /// <summary>Whether a creature, by its prefab's name, is left out of the crowd, as of a place's copy (<see cref="Stage.CreatureLeftOff"/>); told by the session.</summary>
+        public static System.Func<string, bool> LeftOff;
+
         /// <summary>Whether a raid brings any creature to roll.</summary>
         public static bool Brings(RandomEvent raid) => raid?.m_spawn != null && raid.m_spawn.Exists(s => s != null && s.m_enabled && s.m_prefab != null);
 
@@ -43,9 +49,12 @@ namespace Scry
                 if (!radii.ContainsKey(data.m_prefab.name)) radii[data.m_prefab.name] = Mathf.Max(0f, data.m_groupRadius);
             }
 
-            var rolled = RaidRoll.FirstRoll(spawns, () => Random.Range(0f, 100f), Random.Range);
+            // With the compendium on, a creature the character has not met stands nowhere and is only counted, as on a place's copy.
+            var all = RaidRoll.FirstRoll(spawns, () => Random.Range(0f, 100f), Random.Range);
+            var rolled = LeftOff == null ? all : all.Where(r => !LeftOff(r.Prefab)).ToList();
             LastFor = entry;
             LastRoll = rolled;
+            LastNotMet = all.Count - rolled.Count;
 
             var holder = new GameObject("Scry raid");
             holder.transform.SetParent(parent, false);

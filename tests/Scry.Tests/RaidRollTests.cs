@@ -129,5 +129,16 @@ namespace Scry.Tests
             Assert.Equal("The first roll of each, as the game rolls it: Greydwarf ×3 (1 with stars), Greydwarf brute.", RaidWords.FirstRoll(wave, Name));
             Assert.Equal("This roll brought nothing; roll again.", RaidWords.FirstRoll(new List<RolledCreature>(), Name));
         }
+
+        [Fact]
+        public void WithTheCompendiumOnTheRollNamesOnlyWhatWasMetAndCountsTheRest()
+        {
+            var wave = new List<RolledCreature> { new RolledCreature { Prefab = "Greydwarf", Level = 1 } };
+            Assert.Equal("The first roll of each, as the game rolls it: Greydwarf, and 3 more not yet met.", RaidWords.FirstRoll(wave, p => "Greydwarf", notMet: 3));
+            Assert.Equal("The first roll of each, as the game rolls it: 2 not yet met.", RaidWords.FirstRoll(new List<RolledCreature>(), p => p, notMet: 2));
+            // The card's line the same way.
+            Assert.Equal("Brings Troll, and 2 more not yet met", RaidWords.Brings(new[] { "Troll" }, notMet: 2));
+            Assert.Equal("Brings 2 not yet met", RaidWords.Brings(new string[0], notMet: 2));
+        }
     }
 }

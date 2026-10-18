@@ -58,6 +58,7 @@ namespace Scry
         }
 
         private static readonly Dictionary<Entry, (string Lasts, string Brings)> RaidCardCache = new Dictionary<Entry, (string, string)>();
+        private static int _raidCardStamp = -1;
 
         private static Entry _skillCardOf;
         private static float _skillCardAt;
@@ -104,11 +105,19 @@ namespace Scry
         /// <summary>A raid has nothing to show on the stage: how long it lasts and what it brings, the rest under In the game.</summary>
         private static void RaidCard(Entry entry, Rect rect)
         {
+            // Made again when what the character knows changes: with the compendium on, it names only creatures met.
+            var stamp = _explorer?.KnowStamp ?? -1;
+            if (stamp != _raidCardStamp)
+            {
+                RaidCardCache.Clear();
+                _raidCardStamp = stamp;
+            }
             if (!RaidCardCache.TryGetValue(entry, out var card))
             {
                 var raid = entry.Source as RandomEvent;
-                var brings = raid?.m_spawn?.Where(s => s?.m_prefab != null).Select(s => ShownNameOf(s.m_prefab)).Distinct().ToList() ?? new List<string>();
-                card = (raid != null ? PanelWords.Lasts(raid.m_duration) : "", RaidWords.Brings(brings));
+                var spawned = raid?.m_spawn?.Where(s => s?.m_prefab != null).Select(s => s.m_prefab).Distinct().ToList() ?? new List<GameObject>();
+                var met = spawned.Where(p => _explorer == null || !_explorer.NotMet(p.name)).ToList();
+                card = (raid != null ? PanelWords.Lasts(raid.m_duration) : "", RaidWords.Brings(met.Select(ShownNameOf).Distinct().ToList(), spawned.Count - met.Count));
                 RaidCardCache[entry] = card;
             }
             GUI.Label(new Rect(rect.x + U(20f), rect.y + U(40f), rect.width - U(40f), U(24f)), card.Lasts, Skin.Center);

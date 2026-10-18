@@ -104,7 +104,14 @@ namespace Scry
             var step = Timing.Start();
             if (topic.Tiles.Count > 0)
             {
-                y = Tiles(explorer, facts, topic.Tiles, width, y);
+                // A tile naming what the rules leave out is left out and counted, as a fact is.
+                ShownTiles.Clear();
+                foreach (var tile in topic.Tiles)
+                {
+                    if (facts.Links.TryGetValue(facts.Pairs[tile].Key, out var linked) && explorer.LeavesOut(linked)) StrictLeft(1);
+                    else ShownTiles.Add(tile);
+                }
+                if (ShownTiles.Count > 0) y = Tiles(explorer, facts, ShownTiles, width, y);
                 Timing.Add("facts drawn tiles", step);
             }
             foreach (var bit in topic.Bits)
@@ -132,7 +139,7 @@ namespace Scry
                 }
                 if (bit.Notes.Count == 0) continue;
                 step = Timing.Start();
-                foreach (var note in bit.Notes) y = FactNote(facts, facts.Pairs[note], width, y);
+                foreach (var note in bit.Notes) y = FactNote(explorer, facts, facts.Pairs[note], width, y);
                 Timing.Add("facts drawn notes", step);
             }
             return y;
@@ -144,7 +151,11 @@ namespace Scry
             _planFacts = null;
             _plan = null;
             _planBlocks = -1;
+            ShownCounts.Clear();
         }
+
+        /// <summary>The tiles of the topic being drawn that the rules keep, kept so no frame makes a new list.</summary>
+        private static readonly List<int> ShownTiles = new List<int>();
 
         /// <summary>
         /// A topic's headline numbers as tiles, a small label over each value, up to four in a
@@ -204,8 +215,24 @@ namespace Scry
         private static string TileValue(Explorer explorer, Facts facts, KeyValuePair<string, string> pair, out string kept)
         {
             kept = facts.Proofs.TryGetValue(pair.Key, out var proof) && explorer.KeepsBack(proof) ? proof : null;
-            return kept != null ? CompendiumWords.Hidden : Masked(explorer, pair.Value);
+            if (kept != null) return CompendiumWords.Hidden;
+            // A tile counting a row says how many of it the page names, not all there are.
+            if (explorer.NamesOnlyMet && facts.TileCounts.TryGetValue(pair.Key, out var row)) return ShownCount(explorer, row);
+            return Masked(explorer, pair.Value);
         }
+
+        /// <summary>How many of a row's chips the page names, in a tile's words; worked out again only as what the character knows changes.</summary>
+        private static string ShownCount(Explorer explorer, Facts.Row row)
+        {
+            if (ShownCounts.TryGetValue(row, out var told) && told.Stamp == explorer.KnowStamp) return told.Said;
+            var count = 0;
+            foreach (var item in row.Items) if (!explorer.LeavesOut(item.Prefab)) count++;
+            var said = CompendiumWords.MetCount(count);
+            ShownCounts[row] = (explorer.KnowStamp, said);
+            return said;
+        }
+
+        private static readonly Dictionary<Facts.Row, (int Stamp, string Said)> ShownCounts = new Dictionary<Facts.Row, (int, string)>();
 
         /// <summary>The widths of a table's columns as it is drawn, kept for every table so none makes a new list each frame.</summary>
         private static readonly List<float> ColumnWidths = new List<float>();
@@ -232,7 +259,7 @@ namespace Scry
                 return HintLine(explorer.ShowsOnce(row.Title, whole), explorer.MayRunElsewhere(whole) ? ElsewhereWords.Tip : null, "table-kept:", row.Title, PanelPart.TableKeptBack, width, y + U(6f));
             }
             y += U(6f);
-            GUI.Label(new Rect(0f, y, width, U(20f)), row.Title, Skin.DimLabel);
+            GUI.Label(new Rect(0f, y, width, U(20f)), Masked(explorer, row.Title), Skin.DimLabel);
             y += U(24f);
 
             var gap = U(12f);
@@ -453,10 +480,22 @@ namespace Scry
         }
 
         /// <summary>A fact that qualifies what stands above it, told under it in a soft line.</summary>
-        private static float FactNote(Facts facts, KeyValuePair<string, string> pair, float width, float y)
+        private static float FactNote(Explorer explorer, Facts facts, KeyValuePair<string, string> pair, float width, float y)
         {
+            // A note goes through what a fact goes through: counted over every character's play, naming
+            // what the rules leave out, or telling what is still to find out, it is left out or hinted at.
+            if (explorer.LeavingOut && facts.AllPlay.Contains(pair.Key)) return y;
+            if (facts.Links.TryGetValue(pair.Key, out var linked) && explorer.LeavesOut(linked))
+            {
+                StrictLeft(1);
+                return y;
+            }
+            if (facts.Proofs.TryGetValue(pair.Key, out var proof) && explorer.KeepsBack(proof))
+            {
+                return HintLine(explorer.ShowsOnce(pair.Key, proof), explorer.MayRunElsewhere(proof) ? ElsewhereWords.Tip : null, "note-kept:", pair.Key, PanelPart.FactKeptBack, width, y);
+            }
             var unsure = facts.Unsure.TryGetValue(pair.Key, out var why);
-            var text = FactWords.Note(unsure ? UnsureWords.Marked(pair.Key) : pair.Key, pair.Value);
+            var text = Masked(explorer, FactWords.Note(unsure ? UnsureWords.Marked(pair.Key) : pair.Key, pair.Value));
             var height = Skin.Height(Skin.DimWrap, text, width);
             var line = new Rect(0f, y, width, height);
             GUI.Label(line, text, Skin.DimWrap);

@@ -182,7 +182,7 @@ namespace Scry
                     {
                         var key = EntryKeys.For(Kind.Location, room.Room.Name);
                         var known = Goes(explorer, key);
-                        var name = ShownName(explorer, key, LocationWords.RoomName(room.Room.Name));
+                        var name = explorer.NotMet(key) ? CompendiumWords.Unknown(Kind.Location) : ShownName(explorer, key, LocationWords.RoomName(room.Room.Name));
                         AskTip("stageroom:" + room.Room.Name, Stage.HasInside ? Peek(explorer, room) : StageWords.RoomTip(name, known));
                         if (known) roomKey = key;
                         pointed = room;

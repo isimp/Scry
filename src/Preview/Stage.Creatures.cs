@@ -53,8 +53,9 @@ namespace Scry
 
         /// <summary>
         /// Whether a creature, by its prefab's name, is left off a place's copy on the stage: with
-        /// the compendium on, one the character has not met (<see cref="Explorer.NotMet"/>), so the
-        /// stage shows no creature its pages would not name. Told by the session.
+        /// the compendium on, one the character has not met (<see cref="Explorer.NotMet"/>), and
+        /// under the strict rules one the page shown leaves out (<see cref="Explorer.LeavesOut"/>),
+        /// so the stage shows no creature its page would not name. Told by the session.
         /// </summary>
         public static Func<string, bool> CreatureLeftOff
         {

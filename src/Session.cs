@@ -128,6 +128,9 @@ namespace Scry
             Step(Feature.CompendiumShown, "showing what the character knows", "update compendium list", ShowKnown);
         }
 
+        /// <summary>Whether a creature, by its prefab's name, is left off the stage: as the page shown would leave it out (<see cref="Explorer.NotMet"/>, <see cref="Explorer.LeavesOut"/>).</summary>
+        private static readonly Func<string, bool> CreatureLeftOff = key => Explorer != null && (Explorer.NotMet(key) || Explorer.LeavesOut(key));
+
         /// <summary>What the character knows of the explorer's catalog, for the compendium; made with the explorer.</summary>
         private static CompendiumView _known;
 
@@ -278,8 +281,10 @@ namespace Scry
 
             Explorer = new Explorer(catalog, _favourites) { RecentLimit = Settings.RecentCount };
             WorldCatalog.Set(Explorer.Entries);
-            // A creature the character has not met stands on no place's copy, as no page names it.
-            Stage.CreatureLeftOff = Explorer.NotMet;
+            // A creature the page shown would leave out stands on no place's copy and in no raid's crowd:
+            // one the character has not met, and under the strict rules one never seen together with the page.
+            Stage.CreatureLeftOff = CreatureLeftOff;
+            RaidCrowd.LeftOff = CreatureLeftOff;
             if (_carried.HasValue)
             {
                 var carried = _carried.Value;

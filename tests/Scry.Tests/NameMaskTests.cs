@@ -30,8 +30,19 @@ namespace Scry.Tests
         [Fact]
         public void OnlyWholeNamesAreTakenNotPartsOfWords()
         {
-            Assert.Equal("Trolls and Fadermoon", Mask.Apply("Trolls and Fadermoon"));
+            Assert.Equal("??? and Fadermoon", Mask.Apply("Trolls and Fadermoon"));
             Assert.Equal("an Oxford", Mask.Apply("an Oxford"));
+        }
+
+        [Fact]
+        public void ANameIsTakenInAnyCaseAndAsAPlainPlural()
+        {
+            // A game's text names things in its own case, and many of a thing with an s.
+            Assert.Equal("a ??? hide", Mask.Apply("a troll hide"));
+            Assert.Equal("Beware the ??? of the swamp", Mask.Apply("Beware the TROLLS of the swamp"));
+            Assert.Equal("??? and ???", Mask.Apply("black metal scraps and Scrap"));
+            // A name also seen stays whatever its case.
+            Assert.Equal("a wolf and wolfs", Mask.Apply("a wolf and wolfs"));
         }
 
         [Fact]

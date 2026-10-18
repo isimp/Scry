@@ -413,7 +413,7 @@ namespace Scry
             // In the learned list, what was found out of it, where that is its latest news. With the
             // compendium on, no prefab name: which of several going by one name it is, where it is one.
             var secondary = (explorer.LearnedOnly ? explorer.FoundOutNote(entry) : null) ?? entry.Tag
-                            ?? (explorer.CompendiumOn ? entry.Alike ?? "" : primary == entry.Name ? "" : entry.Name);
+                            ?? (explorer.CompendiumOn ? explorer.AlikeOf(entry) ?? "" : primary == entry.Name ? "" : entry.Name);
 
             var nameStyle = Skin.RowName;
             var fullW = Skin.Width(nameStyle, primary);

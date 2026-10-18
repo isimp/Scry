@@ -243,13 +243,13 @@ namespace Scry
 
         /// <summary>
         /// Whether a page may go to the entry a key names (<see cref="EntryKeys"/>): one in the
-        /// catalog the character has seen or knows, any of them while the compendium is off. A
-        /// name it may not go to is told as plain text.
+        /// catalog the character has seen or knows and the list could show (<see cref="Kinds.ForPlayers(Entry)"/>),
+        /// any of them while the compendium is off or peeking. A name it may not go to is told as plain text.
         /// </summary>
         public bool Reaches(string key)
         {
             var entry = Find(key);
-            return entry != null && LevelOf(entry) >= KnownLevel.Seen;
+            return entry != null && LevelOf(entry) >= KnownLevel.Seen && (!CompendiumOn || Kinds.ForPlayers(entry));
         }
 
         /// <summary>
@@ -495,6 +495,8 @@ namespace Scry
                 _visible = new List<Entry>();
                 foreach (var entry in _catalog)
                 {
+                    // A creature's body is its leftover, counted and listed nowhere.
+                    if (Kinds.IsBody(entry)) continue;
                     var level = _view.Of(entry);
                     _total[(int)entry.Kind]++;
                     if (level >= KnownLevel.Seen) _found[(int)entry.Kind]++;
@@ -508,6 +510,29 @@ namespace Scry
         }
 
         private bool Unmet(Place place) => place.Selected != null && LevelOf(place.Selected) < KnownLevel.Seen;
+
+        /// <summary>
+        /// Which of the entries of its kind going by its name an entry is, as its list row tells it
+        /// (<see cref="Entry.Alike"/>); with the compendium set, told among what the list shows
+        /// only, so it never tells how many alike the character has not met.
+        /// </summary>
+        public string AlikeOf(Entry entry)
+        {
+            if (entry == null) return null;
+            if (!CompendiumSet || _visible == null) return entry.Alike;
+            if (_alikeStamp != KnowStamp)
+            {
+                _alikeStamp = KnowStamp;
+                _alikeShown.Clear();
+                var shown = new List<Entry>(_visible);
+                shown.Sort((a, b) => a.NameOrder != b.NameOrder ? a.NameOrder.CompareTo(b.NameOrder) : string.Compare(a.ShownName, b.ShownName, StringComparison.OrdinalIgnoreCase));
+                Search.TellAlike(shown, (e, alike) => { if (alike != null) _alikeShown[e] = alike; });
+            }
+            return _alikeShown.TryGetValue(entry, out var told) ? told : null;
+        }
+
+        private readonly Dictionary<Entry, string> _alikeShown = new Dictionary<Entry, string>();
+        private int _alikeStamp = -1;
 
         /// <summary>The selection as the stage may show it: none while the character has not seen it.</summary>
         public Entry Shown => _selected != null && LevelOf(_selected) >= KnownLevel.Seen ? _selected : null;
@@ -803,7 +828,7 @@ namespace Scry
                 foreach (var key in _view.Lately)
                 {
                     var entry = Find(key);
-                    if (entry != null && _view.Of(entry) >= KnownLevel.Seen && (_peeking || Kinds.ForPlayers(entry.Kind)) && learned.Add(key)) _learnedCount++;
+                    if (entry != null && _view.Of(entry) >= KnownLevel.Seen && (_peeking || Kinds.ForPlayers(entry)) && learned.Add(key)) _learnedCount++;
                 }
             }
 

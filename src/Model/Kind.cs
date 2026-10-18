@@ -198,6 +198,12 @@ namespace Scry
         /// </summary>
         public static bool OffersClips(Kind kind) => kind != Kind.StatusEffect && kind != Kind.Raid && kind != Kind.Location && kind != Kind.Skill;
 
+        /// <summary>Whether an entry is of the world a player meets: of a kind for players (<see cref="ForPlayers(Kind)"/>) and no creature's body left where it fell (<see cref="IsBody"/>).</summary>
+        public static bool ForPlayers(Entry entry) => entry != null && ForPlayers(entry.Kind) && !IsBody(entry);
+
+        /// <summary>Whether an entry is a creature's body left where it fell (a <c>Ragdoll</c>), its creature's leftover rather than anything a player meets.</summary>
+        public static bool IsBody(Entry entry) => entry?.Components != null && Array.IndexOf(entry.Components, "Ragdoll") >= 0;
+
         /// <summary>
         /// Whether a kind is of the world a player meets (creatures, items, pieces, places, the
         /// character's own skills and the rest), which the compendium lists, rather than of what the game is built of (effects,

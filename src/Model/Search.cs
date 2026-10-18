@@ -123,6 +123,9 @@ namespace Scry
         /// <summary>The keys whose values are words the catalog reads into each entry (<see cref="Entry.TermWords"/>), each matched by its start.</summary>
         public static readonly string[] WordKeys = { "is", "weak", "resists", "immune", "damage", "skill" };
 
+        /// <summary>Whether a key's values tell how something takes or deals a damage type, which the strict rules keep back until hits tell them.</summary>
+        public static bool FightWord(string key) => key == "weak" || key == "resists" || key == "immune" || key == "damage";
+
         /// <summary>The keys whose values name other entries the catalog links each entry to (<see cref="Entry.TermLinks"/>).</summary>
         public static readonly string[] LinkKeys = { "drops", "from", "needs", "gives", "spawns" };
 
@@ -195,7 +198,7 @@ namespace Scry
         /// given, is added to: for each kind, how many would match with any kind let through, so
         /// the kind chips count across every kind while one is picked.
         /// With the compendium set (<paramref name="view"/>, none off), only the world a player meets
-        /// is listed (<see cref="Kinds.ForPlayers"/>) unless <paramref name="peeking"/>, and only what
+        /// is listed (<see cref="Kinds.ForPlayers(Entry)"/>) unless <paramref name="peeking"/>, and only what
         /// the character has seen or knows matches, and what it has only seen only by its name and
         /// kind, since any other term would tell what its closed page holds. A known entry matches a
         /// term naming what it goes with (drops, biomes, places, stations, owners) only through what
@@ -221,7 +224,7 @@ namespace Scry
                 if (only != null && !only.Contains(entry.Key)) continue;
 
                 // The compendium lists the world a player meets; what the game is built of, off or peeking.
-                if (view != null && !peeking && !Kinds.ForPlayers(entry.Kind)) continue;
+                if (view != null && !peeking && !Kinds.ForPlayers(entry)) continue;
 
                 var level = view != null ? view.Of(entry) : KnownLevel.Known;
                 if (level < KnownLevel.Seen)
@@ -292,22 +295,34 @@ namespace Scry
             for (var i = 0; i < order.Count; i++) order[i].Key.NameOrder = i;
 
             // Those of one name stand together, each kind's in the order of their prefabs.
-            for (var start = 0; start < order.Count;)
+            TellAlike(order.Select(o => o.Key).ToList(), (entry, alike) => entry.Alike = alike);
+        }
+
+        /// <summary>
+        /// Tells things of one kind going by one name apart, the entries given in the list's name
+        /// order: by the words their prefabs do not share (<see cref="Naming.Apart"/>), else which
+        /// of them each is, "2 of 3"; nothing for one alone of its name and kind.
+        /// </summary>
+        public static void TellAlike(IReadOnlyList<Entry> inNameOrder, Action<Entry, string> tell)
+        {
+            var group = new List<Entry>();
+            for (var start = 0; start < inNameOrder.Count;)
             {
                 var end = start + 1;
-                while (end < order.Count && string.Equals(order[end].Key.ShownName, order[start].Key.ShownName, StringComparison.OrdinalIgnoreCase)) end++;
+                while (end < inNameOrder.Count && string.Equals(inNameOrder[end].ShownName, inNameOrder[start].ShownName, StringComparison.OrdinalIgnoreCase)) end++;
                 for (var i = start; i < end; i++)
                 {
-                    var entry = order[i].Key;
-                    var which = 0;
-                    var of = 0;
-                    for (var j = start; j < end; j++)
+                    var entry = inNameOrder[i];
+                    group.Clear();
+                    for (var j = start; j < end; j++) if (inNameOrder[j].Kind == entry.Kind) group.Add(inNameOrder[j]);
+                    if (group.Count < 2)
                     {
-                        if (order[j].Key.Kind != entry.Kind) continue;
-                        of++;
-                        if (j <= i) which++;
+                        tell(entry, null);
+                        continue;
                     }
-                    entry.Alike = of > 1 ? ListWords.OneOf(which, of) : null;
+                    var apart = Naming.Apart(group.Select(e => e.Name).ToList());
+                    var at = group.IndexOf(entry);
+                    tell(entry, apart != null ? (apart[at].Length > 0 ? apart[at] : null) : ListWords.OneOf(at + 1, group.Count));
                 }
                 start = end;
             }

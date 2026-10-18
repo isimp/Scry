@@ -312,6 +312,9 @@ namespace Scry
         /// </summary>
         public readonly Dictionary<string, string> Proofs = new Dictionary<string, string>();
 
+        /// <summary>A headline tile counting a row's chips, by its label: with the compendium on, it counts what the row shows of them, not all there are.</summary>
+        public readonly Dictionary<string, Row> TileCounts = new Dictionary<string, Row>(StringComparer.Ordinal);
+
         /// <summary>The labels of pairs counted over all your play, every character's (<see cref="Row.AllPlay"/>).</summary>
         public readonly HashSet<string> AllPlay = new HashSet<string>();
 

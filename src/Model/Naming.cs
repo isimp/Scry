@@ -100,6 +100,43 @@ namespace Scry
             return told;
         }
 
+        /// <summary>
+        /// The words telling apart things going by one name in a list, from their prefabs: each
+        /// one's words the others' all lack, readable ("wooden" for rae_WoodenArcheryTarget beside
+        /// piece_ArcheryTarget, "summoned" for Troll_Summoned beside Troll), nothing for the one
+        /// with no word of its own. Short words, numbers and words telling how a prefab is built
+        /// tell nothing. Null where these words cannot tell them all apart: two alike, or more than
+        /// one with none.
+        /// </summary>
+        public static List<string> Apart(IReadOnlyList<string> prefabs)
+        {
+            if (prefabs == null || prefabs.Count < 2) return null;
+            var words = new List<List<string>>(prefabs.Count);
+            foreach (var prefab in prefabs)
+            {
+                var kept = new List<string>();
+                foreach (var word in PrefabWords(prefab ?? ""))
+                {
+                    if (word.Length > 3 && !IsNumber(word) && !BuildTags.Contains(word) && !ApartTags.Contains(word) && !kept.Contains(word)) kept.Add(word);
+                }
+                words.Add(kept);
+            }
+            var shared = new HashSet<string>(words[0], StringComparer.Ordinal);
+            for (var i = 1; i < words.Count; i++) shared.IntersectWith(words[i]);
+            // Two alike, two with no word of their own among them, tell nothing apart.
+            var told = new List<string>(words.Count);
+            foreach (var kept in words)
+            {
+                var own = string.Join(" ", kept.FindAll(w => !shared.Contains(w)).ToArray());
+                if (told.Contains(own)) return null;
+                told.Add(own);
+            }
+            return told;
+        }
+
+        /// <summary>Words a prefab's name carries for what kind of prefab it is, telling nothing apart: "piece", "item".</summary>
+        private static readonly HashSet<string> ApartTags = new HashSet<string>(StringComparer.Ordinal) { "piece", "item" };
+
         /// <summary>A row's title with how many it holds: "Lives here (12)".</summary>
         public static string Counted(string title, int count) => $"{title} ({Numbers.Count(count)})";
 

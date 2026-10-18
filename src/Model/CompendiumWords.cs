@@ -388,6 +388,12 @@ namespace Scry
             }
         }
 
+        /// <summary>The line at the end of a place's runestone texts with the compendium on, counting those the character has not read: "2 more not yet read"; null for none.</summary>
+        public static string NotYetRead(int count) => count > 0 ? $"{Numbers.Count(count)} more not yet read" : null;
+
+        /// <summary>A headline tile's count with the compendium on: how many of the row's the page names, "3 met".</summary>
+        public static string MetCount(int count) => $"{Numbers.Count(count)} met";
+
         /// <summary>The faint line under a row's title whose wares wait for a boss not yet fallen, under the loose rules: "2 more to unlock"; null for none.</summary>
         public static string ToUnlock(int count) => count > 0 ? $"{Numbers.Count(count)} more to unlock" : null;
 

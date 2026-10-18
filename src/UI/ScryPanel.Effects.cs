@@ -206,6 +206,30 @@ namespace Scry
         private static Entry _playsInFor;
         private static List<PlaysInRow> _playsInRows = new List<PlaysInRow>();
 
+        /// <summary>The owners of the row being drawn the rules keep, by their place in its list; kept so no frame makes a new list.</summary>
+        private static readonly List<int> KeptOwners = new List<int>();
+
+        /// <summary>The Plays in rows with an owner the rules keep, and how many owners the rows left out had; worked out again as what the character knows changes.</summary>
+        private static readonly List<PlaysInRow> PlaysInKept = new List<PlaysInRow>();
+        private static int _playsInLeft;
+        private static int _playsInStamp = -1;
+        private static List<PlaysInRow> _playsInKeptOf;
+
+        private static List<PlaysInRow> PlaysInShown(Explorer explorer)
+        {
+            if (_playsInStamp == explorer.KnowStamp && ReferenceEquals(_playsInKeptOf, _playsInRows)) return PlaysInKept;
+            _playsInStamp = explorer.KnowStamp;
+            _playsInKeptOf = _playsInRows;
+            PlaysInKept.Clear();
+            _playsInLeft = 0;
+            foreach (var row in _playsInRows)
+            {
+                if (row.Owners.Exists(o => o.Key == null || !explorer.LeavesOut(o.Key))) PlaysInKept.Add(row);
+                else _playsInLeft += row.Owners.Count;
+            }
+            return PlaysInKept;
+        }
+
         /// <summary>
         /// The effect lists a sound or effect is part of, one row per list: what it is for, who
         /// plays it, and what else it plays, all of which go where they name. Play plays the whole
@@ -233,12 +257,14 @@ namespace Scry
                     row.Names = ChipNames.Apart(row.Owners.Select(o => (o.Key, ShownName(explorer, o.Key, o.Shown))).ToList());
                 }
             }
-            var rows = _playsInRows;
+            // The rows with an owner the rules keep, those left out counted at the section's end.
+            var rows = PlaysInShown(explorer);
             if (rows.Count == 0) return y;
 
             y = SectionHeading("PLAYS IN", width, y, null, "playsin", rows.Count);
             if (IsFolded("playsin")) return y;
             StrictSectionStarts();
+            StrictLeft(_playsInLeft);
             // Each row is a list of its own, so fewer show before the rest are asked for.
             const int firstRows = 8;
             var rowH = U(26f);
@@ -272,18 +298,21 @@ namespace Scry
                 GUI.Label(new Rect(x, y, labelW, rowH), row.Label, Skin.Label);
                 x += labelW + U(8f);
 
+                // Its owners the rules keep, windowed and counted after the gate, those left out counted for the section's end.
                 const int firstOwners = 4;
-                var ownersKey = OwnersKey(index);
-                var shownOwners = Mathf.Min(ShownOf(ownersKey, row.Owners.Count, firstOwners), row.Owners.Count);
-                var owners = new ChipFlow(0f, width, y, rowH, U(5f), U(5f), start: x);
-                for (var o = 0; o < shownOwners; o++)
+                KeptOwners.Clear();
+                for (var o = 0; o < row.Owners.Count; o++)
                 {
+                    if (row.Owners[o].Key != null && explorer.LeavesOut(row.Owners[o].Key)) StrictLeft(1);
+                    else KeptOwners.Add(o);
+                }
+                var ownersKey = OwnersKey(index);
+                var shownOwners = Mathf.Min(ShownOf(ownersKey, KeptOwners.Count, firstOwners), KeptOwners.Count);
+                var owners = new ChipFlow(0f, width, y, rowH, U(5f), U(5f), start: x);
+                for (var k = 0; k < shownOwners; k++)
+                {
+                    var o = KeptOwners[k];
                     var owner = row.Owners[o];
-                    if (owner.Key != null && explorer.LeavesOut(owner.Key))
-                    {
-                        StrictLeft(1);
-                        continue;
-                    }
                     var shown = row.Names != null && o < row.Names.Length ? row.Names[o] : ShownName(explorer, owner.Key, owner.Shown);
                     var go = owner.Key != null && Goes(explorer, owner.Key);
                     var floor = go && explorer.ShownByFloor(owner.Key);
@@ -294,7 +323,7 @@ namespace Scry
                     if (LinkChip(chip, shown, kind, false, go, floor)) Go(explorer, owner.Key);
                     if (go && chip.Contains(Event.current.mousePosition)) AskTip("owner:" + owner.Key, FloorTip(explorer, owner.Key, PanelWords.GoTo(shown)));
                 }
-                MoreChip(ownersKey, row.Owners.Count, firstOwners, width, ref owners);
+                MoreChip(ownersKey, KeptOwners.Count, firstOwners, width, ref owners);
                 y = owners.RowBottom + U(5f);
 
                 // What plays along.
@@ -326,6 +355,9 @@ namespace Scry
             _effectsCarried = null;
             _effects = null;
             _playsInRows = new List<PlaysInRow>();
+            PlaysInKept.Clear();
+            _playsInKeptOf = null;
+            _playsInStamp = -1;
             _playsInFor = null;
             MemberKeys.Clear();
             _firstEffect = default;

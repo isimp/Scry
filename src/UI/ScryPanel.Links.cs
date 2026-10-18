@@ -171,12 +171,29 @@ namespace Scry
             MakeLinkRowsFor(explorer, entry);
             if (LinkRows.Count == 0) return y;
 
-            y = SectionHeading("LINKED", width, y, null, "links", _linkedCount);
+            y = SectionHeading("LINKED", width, y, null, "links", LinkedCount(explorer));
             if (IsFolded("links")) return y;
 
+            // What the rules leave out of it is counted at its end, as in any section.
+            StrictSectionStarts();
             foreach (var (title, items) in LinkRows) y = LinkItems(explorer, title, items, width, y);
+            y = StrictLeftLine(explorer, null, width, y);
             return y + U(4f);
         }
+
+        /// <summary>How many links the section shows, those the rules leave out not counted; worked out again only as what the character knows changes.</summary>
+        private static int LinkedCount(Explorer explorer)
+        {
+            if (_linkedStamp == explorer.KnowStamp && _linkedCountFor == _linksFor) return _linkedCount;
+            _linkedStamp = explorer.KnowStamp;
+            _linkedCountFor = _linksFor;
+            _linkedCount = 0;
+            foreach (var (_, items) in LinkRows) foreach (var item in items) if (!explorer.LeavesOut(item.Key)) _linkedCount++;
+            return _linkedCount;
+        }
+
+        private static int _linkedStamp = -1;
+        private static Entry _linkedCountFor;
 
         /// <summary>
         /// The link rows of the entry shown: those for LINKED, and those a topic of In the game
@@ -191,7 +208,7 @@ namespace Scry
             LinkRows.Clear();
             PlacedLinkRows.Clear();
             MakeLinkRows(explorer, entry);
-            _linkedCount = LinkRows.Sum(r => r.Items.Count);
+            _linkedStamp = -1;
         }
 
         /// <summary>A group of links a topic of In the game shows, its heading left out where it is all the topic holds.</summary>
@@ -401,7 +418,13 @@ namespace Scry
                 MaskedTexts.Clear();
                 var unseen = new List<string>();
                 var seen = new List<string>();
-                foreach (var entry in explorer.Catalog) (explorer.LevelOf(entry) >= KnownLevel.Seen ? seen : unseen).Add(entry.ShownName);
+                foreach (var entry in explorer.Catalog)
+                {
+                    var met = explorer.LevelOf(entry) >= KnownLevel.Seen;
+                    // A skill's name is mostly a word of what one does (run, swim, sneak), so text keeps it; facts naming one not learned are left out instead.
+                    if (!met && entry.Kind == Kind.Skill) continue;
+                    (met ? seen : unseen).Add(entry.ShownName);
+                }
                 _mask = new NameMask(unseen, seen);
             }
             if (MaskedTexts.TryGetValue(text, out var masked)) return masked;
@@ -616,6 +639,8 @@ namespace Scry
             _preparing = null;
             _prepared = null;
             _linksFor = null;
+            _linkedCountFor = null;
+            _linkedStamp = -1;
             _linksIn = null;
             LinkRows.Clear();
             _kindsFor = null;
