@@ -247,17 +247,34 @@ namespace Scry
             Minimap.instance.SetMapMode(Minimap.MapMode.Large);
             yield return Until(() => MapMarkButtons.MarksShown > 0, 5);
             p.Check(MapMarkButtons.MarksShown == 1, "the large map has a mark for the map of this world alone", $"{Numbers.Count(MapMarkButtons.MarksShown)} marks");
-            // The pointer put on it, as a player's: what it meets first, the game's tip shown, a click taken.
+            // The pointer put on it, as a player's: what the game's event system meets there (the map,
+            // which takes the click to hand on), the mark found there as the pointer is read, the
+            // game's tip shown, a click taken.
             var center = MapMarkButtons.MarkCenterForTest(0);
             if (!p.Check(center != null, "the mark stands on the screen")) yield break;
-            p.Note($"the pointer at the mark's middle first meets: {MapMarkButtons.RaycastForTest(0) ?? "no event system"}");
+            p.Note($"the game's event system at the mark's middle first meets: {MapMarkButtons.RaycastForTest(0) ?? "no event system"}");
+            p.Check(MapMarkButtons.MarkAtForTest(center.Value) == 0, "the pointer at the mark's middle is read as on it, as the game's map and tips read it");
+            _pointerBeforeMarks = ZInput.pointerPosition;
             ZInput.SetMousePosition(center.Value);
-            yield return Until(() => MapMarkButtons.TipShownForTest, 3);
-            p.Check(MapMarkButtons.TipShownForTest, "the pointer resting on it shows the game's tip");
-            var shownAt = Time.unscaledTime;
-            yield return Until(() => Time.unscaledTime - shownAt > 1.2f, 3);
-            yield return Picture(p, $"the mark of {entry.Name} on the map with its tip");
-            p.Check(MapMarkButtons.ClickWherePointerIsForTest(), "a click on the map where the pointer is goes to the mark");
+            bool Arrived() => ((Vector2)ZInput.pointerPosition - center.Value).sqrMagnitude < 4f;
+            yield return Until(Arrived, 3);
+            bool clicked;
+            if (Arrived())
+            {
+                yield return Until(() => MapMarkButtons.TipShownForTest, 3);
+                p.Check(MapMarkButtons.TipShownForTest, "the pointer resting on it shows the game's tip");
+                var shownAt = Time.unscaledTime;
+                yield return Until(() => Time.unscaledTime - shownAt > 1.2f, 3);
+                yield return Picture(p, $"the mark of {entry.Name} on the map with its tip");
+                clicked = MapMarkButtons.ClickAtForTest(ZInput.pointerPosition);
+            }
+            else
+            {
+                Vector2 read = ZInput.pointerPosition;
+                p.Note($"the pointer was put at {Numbers.Fixed(center.Value.x, 0)}, {Numbers.Fixed(center.Value.y, 0)} but the game reads it at {Numbers.Fixed(read.x, 0)}, {Numbers.Fixed(read.y, 0)}, as while its window is not in front: the tip untried, the click made at the mark's middle");
+                clicked = MapMarkButtons.ClickAtForTest(center.Value);
+            }
+            p.Check(clicked, "a click on the map at the mark goes to the mark");
             yield return Until(() => ExampleLayouts.ShownMap == id && Stage.ExampleRoomsTotal == rolled.Rooms.Count, 60);
             p.Check(Minimap.instance.m_mode != Minimap.MapMode.Large && Session.IsOpen && X.Selected == entry && ExampleLayouts.ShownMap == id,
                 "a click on it closes the map and opens Scry on its page, its map on the stage", $"map {Minimap.instance.m_mode}, selected {X.Selected?.Name}, shown {ExampleLayouts.ShownMap ?? "an example"}");
@@ -334,11 +351,16 @@ namespace Scry
             DungeonFogAsItWas();
         }
 
-        /// <summary>Closes the large map the self-test opened and ends the fog's stand-ins.</summary>
+        /// <summary>Where the player's pointer stood before the self-test put it on a mark; none once put back.</summary>
+        private static Vector2? _pointerBeforeMarks;
+
+        /// <summary>Closes the large map the self-test opened, puts the player's pointer back where it stood and ends the fog's stand-ins.</summary>
         private static void MarksAsTheyWere()
         {
             if (Minimap.instance != null && Minimap.instance.m_mode == Minimap.MapMode.Large) Minimap.instance.SetMapMode(Minimap.MapMode.Small);
             if (!Session.IsOpen) Session.Show(null);
+            if (_pointerBeforeMarks is Vector2 was && Cursor.lockState != CursorLockMode.Locked) ZInput.SetMousePosition(was);
+            _pointerBeforeMarks = null;
             DungeonFogAsItWas();
         }
 

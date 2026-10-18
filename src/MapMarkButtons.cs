@@ -12,12 +12,13 @@ namespace Scry
     /// While Valheim's large map is open, a mark of Scry's just above the entrance of each dungeon
     /// the character has been in in the world played (<see cref="DungeonWalks"/>), placed as the game
     /// places its pins and as big as one (<see cref="MapMarks"/>), on the layer of the pins' names
-    /// so no name covers it. Each is a button of its own, its own canvas group letting the pointer
-    /// meet it whatever the map's layers say; where the pointer still meets the map first, the
-    /// map's own click hands it to the mark (<see cref="MapMarkClick"/>), so a click on a mark never
-    /// ticks or adds a pin of the player's. A click closes the map and opens Scry on the dungeon's
-    /// page, its map on the stage. Its tip, the game's own, gives its name and how far it was
-    /// walked, shown as the pointer rests on it. It is no pin of the game's: nothing is added to
+    /// so no name covers it. The pointer never reaches that layer through the game's event system,
+    /// so each mark is a picture taking no clicks of its own: the pointer is read against it as the
+    /// game's map and tips read it, with no camera, and the map's own click, made on the map under
+    /// it, is handed to the mark under the pointer (<see cref="MapMarkClick"/>), so a click on a mark
+    /// never ticks or adds a pin of the player's. A click closes the map and opens Scry on the
+    /// dungeon's page, its map on the stage. Its tip, the game's own, gives its name and how far it
+    /// was walked, shown as the pointer rests on it. It is no pin of the game's: nothing is added to
     /// the player's pins, saved with the world or shared. No rooms are drawn on the map.
     /// <c>DungeonMarksOnMap</c> turns the marks off.
     /// </summary>
@@ -63,8 +64,16 @@ namespace Scry
         {
             if (mark < 0 || mark >= Marks.Count || !Marks[mark].Made.activeSelf) return null;
             var rect = Marks[mark].Rect;
-            return RectTransformUtility.WorldToScreenPoint(CanvasCamera(), rect.TransformPoint(rect.rect.center));
+            return RectTransformUtility.WorldToScreenPoint(null, rect.TransformPoint(rect.rect.center));
         }
+
+        /// <summary>Which mark a point of the screen stands on, as the pointer is read for the tip and the click; -1 for none, for the self-test.</summary>
+        [Diagnostic]
+        public static int MarkAtForTest(Vector2 screen) => Marks.IndexOf(MarkAt(screen));
+
+        /// <summary>Clicks the map at a point of the screen, as the map's own click hands a mark its click there, for the self-test.</summary>
+        [Diagnostic]
+        public static bool ClickAtForTest(Vector2 screen) => TakeClick(screen);
 
         /// <summary>What the pointer first meets at a mark's middle, as the game's event system finds it, for the self-test.</summary>
         [Diagnostic]
@@ -76,10 +85,6 @@ namespace Scry
             system.RaycastAll(new PointerEventData(system) { position = at }, hits);
             return hits.Count > 0 ? hits[0].gameObject.name : "";
         }
-
-        /// <summary>Clicks the map where the pointer is, as the map's own click hands a mark its click, for the self-test.</summary>
-        [Diagnostic]
-        public static bool ClickWherePointerIsForTest() => TakeClick();
 
         public static void Forget()
         {
@@ -158,7 +163,7 @@ namespace Scry
         /// <summary>Shows the tip of the mark the pointer rests on, as the pointer comes onto it, and takes it away as it leaves.</summary>
         private static void Hover()
         {
-            var over = UnderPointer();
+            var over = MarkAt(ZInput.pointerPosition);
             if (over == _hovered) return;
             HideTip();
             _hovered = over;
@@ -171,37 +176,27 @@ namespace Scry
             _hovered = null;
         }
 
-        /// <summary>The mark standing under the pointer; none.</summary>
-        private static Mark UnderPointer()
+        /// <summary>The mark standing at a point of the screen, read with no camera as the game's map and tips read the pointer; none.</summary>
+        private static Mark MarkAt(Vector2 screen)
         {
-            if (MarksShown == 0) return null;
-            Vector2 pointer = ZInput.pointerPosition;
-            var camera = CanvasCamera();
             for (var i = 0; i < MarksShown && i < Marks.Count; i++)
             {
-                if (Marks[i].Made.activeSelf && RectTransformUtility.RectangleContainsScreenPoint(Marks[i].Rect, pointer, camera)) return Marks[i];
+                if (Marks[i].Made.activeSelf && RectTransformUtility.RectangleContainsScreenPoint(Marks[i].Rect, screen, null)) return Marks[i];
             }
             return null;
         }
 
-        /// <summary>The camera the map's canvas is drawn with; none for one drawn over the screen.</summary>
-        private static Camera CanvasCamera()
+        /// <summary>A click of the map's own at a point of the screen: the mark's there, opening its map; false where it is on none.</summary>
+        public static bool TakeClick(Vector2 screen)
         {
-            var canvas = _layer != null ? _layer.GetComponentInParent<Canvas>() : null;
-            return canvas == null || canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
-        }
-
-        /// <summary>A click of the map's own over a mark: the mark's, opening its map; false where the pointer is on none.</summary>
-        public static bool TakeClick()
-        {
-            var mark = UnderPointer();
+            var mark = MarkAt(screen);
             if (mark == null) return false;
             Open(mark.Id);
             return true;
         }
 
         /// <summary>Whether the pointer stands on a mark, so a double-click there adds no pin.</summary>
-        public static bool PointerOnMark() => UnderPointer() != null;
+        public static bool PointerOnMark() => MarkAt(ZInput.pointerPosition) != null;
 
         /// <summary>A location's name as the catalog shows it, else as its prefab is called.</summary>
         private static string Shown(string location)
@@ -233,19 +228,12 @@ namespace Scry
             rect.anchorMin = pin.anchorMin;
             rect.anchorMax = pin.anchorMax;
             rect.pivot = pin.pivot;
-            // Met by the pointer whatever the layers over it say of theirs.
-            var group = made.AddComponent<CanvasGroup>();
-            group.ignoreParentGroups = true;
-            group.blocksRaycasts = true;
-            group.interactable = true;
+            // A picture taking no rays, so the map under it gets every click to hand on.
             var picture = made.AddComponent<Image>();
             picture.sprite = MarkSprite();
             picture.preserveAspect = true;
-            picture.raycastTarget = true;
-            var button = made.AddComponent<Button>();
-            button.targetGraphic = picture;
+            picture.raycastTarget = false;
             var mark = new Mark { Made = made, Rect = rect };
-            button.onClick.AddListener(() => Guard.Run(Feature.DungeonMarksOnMap, "opening a dungeon's map from Valheim's map", () => Open(mark.Id)));
             mark.Tip = WithTip(made, map);
             Marks.Add(mark);
             return mark;
@@ -331,7 +319,7 @@ namespace Scry
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static bool Take() => MapMarkButtons.TakeClick();
+        private static bool Take() => MapMarkButtons.TakeClick(ZInput.pointerPosition);
     }
 
     /// <summary>A double-click on a dungeon's mark adds no pin (<see cref="MapMarkClick"/>).</summary>
