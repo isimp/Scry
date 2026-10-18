@@ -127,12 +127,12 @@ namespace Scry
             if (Cutting) _lastOpen = _level;
         }
 
-        /// <summary>Cuts at a height set by hand, opening the floor it is over (<see cref="PlaceView.LevelAt"/>), within that floor's reach: between two floors far apart, the lower at the top of its.</summary>
+        /// <summary>Cuts at a height set by hand, exactly there, opening the floor it is over (<see cref="PlaceView.LevelAt"/>); only Shift and the wheel keep to a floor's reach.</summary>
         public void CutTo(float height)
         {
             if (_floors.Count == 0) return;
             Open(PlaceView.LevelAt(_floors, height));
-            CutWithin(height);
+            _shift = height - _cuts[_level];
         }
 
         /// <summary>

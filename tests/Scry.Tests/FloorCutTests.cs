@@ -686,15 +686,19 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void CutByHandBetweenTwoFloorsFarApartItShowsTheLowerAtTheTopOfItsReach()
+        public void DraggedOnTheRulerTheCutFollowsThePointerFreelyOverEveryFloor()
         {
             var cut = TakenFarApart();
+            for (var height = 30f; height >= -5f; height -= 0.25f)
+            {
+                cut.CutTo(height);
+                Assert.Equal(height, cut.At, 3);
+                Assert.Equal(PlaceView.LevelAt(FarApart, height), cut.Level);
+            }
+            // Between two floors far apart, the lower opened, cut where it was set.
             cut.CutTo(10f);
             Assert.Equal(1, cut.Level);
-            Assert.Equal(cut.Cuts[1] + FloorCut.RoofOver, cut.At, 3);
-            cut.CutTo(3f);
-            Assert.Equal(1, cut.Level);
-            Assert.Equal(3f, cut.At, 3);
+            Assert.Equal(10f, cut.At, 3);
         }
 
         [Fact]

@@ -46,9 +46,7 @@ namespace Scry
             p.Check(Mathf.Abs(Stage.Pitch - 10f) < 0.01f, "and the camera stays where it was put", $"{Numbers.Fixed(Stage.Pitch, 0)} degrees");
             var height = (Stage.ModelBottom + Stage.ModelTop) / 2f;
             Stage.CutTo(height);
-            // Within the reach of the floor below it: no higher than set, between two floors far apart the lower at the top of its reach.
-            p.Check(Stage.CutAt <= height + 0.01f && Stage.CutAt >= Stage.FloorHeights[Stage.CutLevel] + FloorCut.LeastOver - 0.01f && Stage.CutLevel == PlaceView.LevelAt(Stage.FloorHeights, height),
-                "the ruler sets the cut anywhere within the reach of the floor below it", $"{Numbers.Fixed(Stage.CutAt, 1)} m of {Numbers.Fixed(height, 1)} m, {Stage.CutLabel}");
+            p.Check(Mathf.Abs(Stage.CutAt - height) < 0.01f && Stage.CutLevel == PlaceView.LevelAt(Stage.FloorHeights, height), "the ruler sets the cut anywhere, over the floor below it", $"{Numbers.Fixed(Stage.CutAt, 1)} m of {Numbers.Fixed(height, 1)} m, {Stage.CutLabel}");
             Stage.ToggleRoof();
             p.Check(!Stage.Cutting, "and the chip puts the roof back on", Stage.CutLabel);
         }
