@@ -76,6 +76,13 @@ namespace Scry
             YoursTips[label] = SkillWords.YoursTip(you.Value.Name);
         }
 
+        /// <summary>The skill using it trains, going to the skill's page.</summary>
+        private void TrainsSkill(Skills.SkillType skill)
+        {
+            var page = EntryKeys.For(Kind.Skill, skill.ToString());
+            Add("Trains", SkillName(skill), EntryOf(page) != null ? page : null);
+        }
+
         /// <summary>A skill's name as its page names it, else as Scry's words name it.</summary>
         internal static string SkillName(Skills.SkillType skill) =>
             EntryOf(EntryKeys.For(Kind.Skill, skill.ToString()))?.ShownName ?? SkillWords.Name(skill.ToString(), CatalogBuilder.Localize);

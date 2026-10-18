@@ -103,6 +103,13 @@ namespace Scry
                 var yields = Yield.PerDay(pickable.m_amount, pickable.m_respawnTimeMinutes, day);
                 if (yields != null) Add("Gives", GatherWords.PerDay(yields, day));
                 Drops(pickable.m_extraDrops, GatherWords.AlsoDrops, tallied: prefab.name);
+                // Picking it trains a skill, which makes one more likelier (Pickable.Interact).
+                if (pickable.m_pickRaiseSkill != Skills.SkillType.None && pickable.m_maxLevelBonusChance > 0f)
+                {
+                    TrainsSkill(pickable.m_pickRaiseSkill);
+                    Add("Bonus when picked", SkillWords.BonusSpan(pickable.m_bonusYieldAmount, pickable.m_maxLevelBonusChance));
+                    YoursAt("Bonus when picked", pickable.m_pickRaiseSkill, level => SkillWords.Bonus(pickable.m_bonusYieldAmount, SkillMath.BonusChance(level, pickable.m_maxLevelBonusChance)));
+                }
                 if (pickable.m_respawnTimeMinutes > 0f) Hooked(HookedRule.Growth);
             }
 

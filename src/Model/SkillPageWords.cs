@@ -58,9 +58,7 @@ namespace Scry
             void Line(string what, Func<float, string> at) => lines.Add(new[] { what, at(0f), at(level), at(SkillMath.Top) });
             string Share(float share) => Numbers.Percent(share);
             string Chance(float chance) => Numbers.Percent(chance, 1);
-            string PerSecond(float amount) => $"{Numbers.Amount(amount, 1)} a second";
             string Seconds(float seconds) => $"{Numbers.Amount(seconds, 1)} s";
-            string Speed(float metres) => $"{Numbers.Amount(metres, 1)} m/s";
 
             if (inputs.Hits) Line("Damage of a hit", l => HitShares(l));
             if (inputs.OnTrees) Line("An axe's hit on a tree", l => HitShares(l));
@@ -79,11 +77,11 @@ namespace Scry
                     Line("Block", l => Share(SkillMath.Block(1f, l)));
                     break;
                 case "Run":
-                    Line("Running speed", l => Speed(inputs.RunSpeed * SkillMath.RunSpeedShare(l)));
-                    Line("Stamina running", l => PerSecond(inputs.RunDrain * SkillMath.RunDrainShare(l)));
+                    Line("Running speed", l => SkillWords.Speed(inputs.RunSpeed * SkillMath.RunSpeedShare(l)));
+                    Line("Stamina running", l => SkillWords.PerSecond(inputs.RunDrain * SkillMath.RunDrainShare(l)));
                     break;
                 case "Swim":
-                    Line("Stamina swimming", l => PerSecond(SkillMath.Between(inputs.SwimAtNone, inputs.SwimAtTop, l)));
+                    Line("Stamina swimming", l => SkillWords.PerSecond(SkillMath.Between(inputs.SwimAtNone, inputs.SwimAtTop, l)));
                     break;
                 case "Jump":
                     Line("Jump strength", l => Share(SkillMath.JumpShare(l)));
@@ -92,7 +90,7 @@ namespace Scry
                     Line("Stamina a dodge", l => Numbers.Amount(inputs.Dodge * SkillMath.DodgeShare(l), 1));
                     break;
                 case "Sneak":
-                    Line("Stamina sneaking", l => PerSecond(inputs.Sneak * SkillMath.SneakDrainShare(l)));
+                    Line("Stamina sneaking", l => SkillWords.PerSecond(inputs.Sneak * SkillMath.SneakDrainShare(l)));
                     Line("Seen in the dark", l => Share(SkillMath.Stealth(l, 0f)));
                     Line("Seen in full light", l => Share(SkillMath.Stealth(l, 1f)));
                     break;
@@ -101,9 +99,9 @@ namespace Scry
                     Line("Mount's stamina", l => Share(SkillMath.MountDrainShare(l)));
                     break;
                 case "Fishing":
-                    Line("Stamina, a fish on", l => PerSecond(SkillMath.Between(inputs.HookedAtNone, inputs.HookedAtTop, l)));
+                    Line("Stamina, a fish on", l => SkillWords.PerSecond(SkillMath.Between(inputs.HookedAtNone, inputs.HookedAtTop, l)));
                     Line("Stamina reeling in", l => Share(SkillMath.Between(1f, inputs.PullAtTop, l)));
-                    Line("Reeling in", l => Speed(SkillMath.Between(inputs.LineAtNone, inputs.LineAtTop, l)));
+                    Line("Reeling in", l => SkillWords.Speed(SkillMath.Between(inputs.LineAtNone, inputs.LineAtTop, l)));
                     break;
             }
 

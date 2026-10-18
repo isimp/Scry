@@ -86,6 +86,14 @@ namespace Scry
                     Add("Holds", StationWords.Fuel(cooking.m_maxFuel));
                 }
                 if (cooking.m_requireFire) Add("Needs", StationWords.FireUnder);
+                // Food taken off it may come with more, likelier by the skill it trains (CookingStation.OnInteract).
+                var gui = InventoryGui.instance;
+                if (cooking.m_skill != Skills.SkillType.None && cooking.m_canGiveBonusYield && gui != null && gui.m_craftBonusChance > 0f)
+                {
+                    TrainsSkill(cooking.m_skill);
+                    Add("Bonus when taken off", SkillWords.BonusSpan(gui.m_craftBonusAmount, gui.m_craftBonusChance));
+                    YoursAt("Bonus when taken off", cooking.m_skill, level => SkillWords.Bonus(gui.m_craftBonusAmount, SkillMath.BonusChance(level, gui.m_craftBonusChance)));
+                }
                 Hooked(HookedRule.Cooking);
             }
 
@@ -152,6 +160,21 @@ namespace Scry
                 Add("Building reach", BuildWords.Range(craft.m_rangeBuild, craft.m_extraRangePerLevel));
                 var needs = StationWords.CraftingNeeds(craft.m_craftRequireRoof, craft.m_craftRequireFire);
                 if (needs != null) Add("Crafting needs", needs);
+                // Making here trains its skill: faster, and more of what stacks likelier (InventoryGui.UpdateRecipe, InventoryGui.DoCrafting).
+                var gui = InventoryGui.instance;
+                if (craft.m_craftingSkill != Skills.SkillType.None && gui != null)
+                {
+                    TrainsSkill(craft.m_craftingSkill);
+                    var time = gui.m_craftDuration;
+                    var saved = gui.m_craftDurationSkillMaxDecrease;
+                    Add("Making takes", SkillWords.Span(Numbers.Duration(time), Numbers.Duration(time * SkillMath.CraftTimeShare(SkillMath.Top, saved))));
+                    YoursAt("Making takes", craft.m_craftingSkill, level => Numbers.Duration(time * SkillMath.CraftTimeShare(level, saved)));
+                    if (gui.m_craftBonusChance > 0f)
+                    {
+                        Add("Bonus on what stacks", SkillWords.BonusSpan(gui.m_craftBonusAmount, gui.m_craftBonusChance));
+                        YoursAt("Bonus on what stacks", craft.m_craftingSkill, level => SkillWords.Bonus(gui.m_craftBonusAmount, SkillMath.BonusChance(level, gui.m_craftBonusChance)));
+                    }
+                }
                 MadeHere(prefab.name);
             }
             // An upgrader takes what can be upgraded past its top quality, with the upgrade kits

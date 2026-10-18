@@ -79,6 +79,50 @@ namespace Scry
         /// <summary>The label of an axe's hits on trees, which take the skill the axe names for them: "on trees, at Wood Cutting 12".</summary>
         public static string OnTrees(string at) => "on trees, " + at;
 
+        /// <summary>A figure the skill moves, from no skill to the top: "1.5 m, 2.5 m at the top".</summary>
+        public static string Span(string atNone, string atTop) => $"{atNone}, {atTop} at the top";
+
+        /// <summary>A speed to a tenth: "7.7 m/s".</summary>
+        public static string Speed(float metres) => $"{Numbers.Amount(metres, 1)} m/s";
+
+        /// <summary>An amount each second to a tenth: "6.4 a second".</summary>
+        public static string PerSecond(float amount) => $"{Numbers.Amount(amount, 1)} a second";
+
+        /// <summary>How near a creature sees the character sneaking (<c>Player.UpdateStealth</c>), from the dark to full light.</summary>
+        public static string Sneaking(float dark, float lit) => $"sneaking, {Numbers.Metres(dark, 1)} in the dark to {Numbers.Metres(lit, 1)} in full light";
+
+        /// <summary>A bonus the skill makes likelier, from never at no skill to its most at the top.</summary>
+        public static string BonusSpan(int amount, float atTop) => $"{Numbers.Count(amount)} more at times: never at no skill, {Numbers.Percent(atTop, 1)} at the top";
+
+        /// <summary>How likely a bonus is at the character's skill: "7.5% for 1 more".</summary>
+        public static string Bonus(int amount, float chance) => $"{Numbers.Percent(chance, 1)} for {Numbers.Count(amount)} more";
+
+        /// <summary>
+        /// How many summons a staff keeps at once by the skill's level (<c>SpawnAbility.Spawn</c>):
+        /// the first step's, then each further one at the level it starts at; none below a first
+        /// step that starts above nothing.
+        /// </summary>
+        public static string SummonSteps(IReadOnlyList<int> levels, IReadOnlyList<int> counts)
+        {
+            var steps = Math.Min(levels.Count, counts.Count);
+            if (steps == 0) return null;
+            var first = levels[0] <= 0 ? 1 : 0;
+            var start = first == 1 ? Numbers.Count(counts[0]) : "none";
+            var later = new List<string>();
+            for (var i = first; i < steps; i++) later.Add(later.Count == 0 ? $"{Numbers.Count(counts[i])} at level {Numbers.Count(levels[i])}" : $"{Numbers.Count(counts[i])} at {Numbers.Count(levels[i])}");
+            return later.Count == 0 ? start : $"{start}, then {Naming.Joined(later)}";
+        }
+
+        /// <summary>How many summons a staff keeps at once at a level (<see cref="SkillMath.SummonStep"/>): the step's count, or none below the first.</summary>
+        public static string SummonsAt(IReadOnlyList<int> levels, IReadOnlyList<int> counts, float level)
+        {
+            var step = SkillMath.SummonStep(levels, level);
+            return step >= 0 && step < counts.Count ? Numbers.Count(counts[step]) : "none";
+        }
+
+        /// <summary>What a staff's summons' hits are times by the skill's level (<c>SpawnAbility.Spawn</c>).</summary>
+        public static string SummonsHit(float perLevel) => $"×1, and {Numbers.Times(perLevel)} more for each level";
+
         /// <summary>What the faint lines at the character's skill say on hover.</summary>
         public static string YoursTip(string skill) =>
             $"What it comes to at your {skill} level now, with what effects add to the level. What you wear and other effects change it further.";

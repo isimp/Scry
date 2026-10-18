@@ -66,6 +66,13 @@ namespace Scry
                     if (shown != null) Add(Naming.FieldLabel(field.Name), shown);
                 }
 
+                // A shield absorbing more by its caster's skill (SE_Shield.SetLevel), the skill of the area that puts it on.
+                if (effect is SE_Shield shield && shield.m_absorbDamagePerSkillLevel > 0f)
+                {
+                    YoursAt(Naming.FieldLabel(nameof(SE_Shield.m_absorbDamage)), SkillReading.ShieldSkill(shield.name),
+                        level => Numbers.Amount(SkillMath.ShieldAbsorb(shield.m_absorbDamage, shield.m_absorbDamagePerSkillLevel, level), 0));
+                }
+
                 if (effect is SE_Stats stats && stats.m_mods != null)
                 {
                     foreach (var pair in stats.m_mods)

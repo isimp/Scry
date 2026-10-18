@@ -97,6 +97,42 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AFigureTheSkillMovesTellsBothEnds()
+        {
+            Assert.Equal("1.5 m, 2.5 m at the top", SkillWords.Span(Numbers.Metres(1.5f, 1), Numbers.Metres(2.5f, 1)));
+            Assert.Equal("7.7 m/s", SkillWords.Speed(7.7175f));
+            Assert.Equal("6.4 a second", SkillWords.PerSecond(6.36f));
+        }
+
+        [Fact]
+        public void ACreatureSeesYouSneakingNearerTheDarkerItIs()
+        {
+            // Player.UpdateStealth: its sight times your stealth, from the dark to full light.
+            Assert.Equal("sneaking, 8.5 m in the dark to 18 m in full light", SkillWords.Sneaking(8.5f, 18f));
+        }
+
+        [Fact]
+        public void ABonusSaysHowMuchAndHowLikely()
+        {
+            Assert.Equal("1 more at times: never at no skill, 25% at the top", SkillWords.BonusSpan(1, 0.25f));
+            Assert.Equal("7.5% for 1 more", SkillWords.Bonus(1, 0.075f));
+        }
+
+        [Fact]
+        public void AStaffTellsHowManySummonsItKeepsAtEachLevel()
+        {
+            // SpawnAbility.Spawn: the step whose level the skill reaches sets how many it keeps at once.
+            Assert.Equal("1, then 2 at level 20, 3 at 40, 4 at 60 and 5 at 80", SkillWords.SummonSteps(new[] { 0, 20, 40, 60, 80 }, new[] { 1, 2, 3, 4, 5 }));
+            Assert.Equal("1, then 3 at level 80", SkillWords.SummonSteps(new[] { 0, 80 }, new[] { 1, 3 }));
+            Assert.Equal("3", SkillWords.SummonSteps(new[] { 0 }, new[] { 3 }));
+            Assert.Equal("none, then 2 at level 10", SkillWords.SummonSteps(new[] { 10 }, new[] { 2 }));
+            Assert.Equal("×1, and ×0.02 more for each level", SkillWords.SummonsHit(0.02f));
+            Assert.Equal("2", SkillWords.SummonsAt(new[] { 0, 20, 40 }, new[] { 1, 2, 3 }, 34f));
+            Assert.Equal("none", SkillWords.SummonsAt(new[] { 10 }, new[] { 2 }, 5f));
+            Assert.Equal("1", SkillWords.SummonsAt(new[] { 0, 20, 40 }, new[] { 1, 2, 3 }, 5f));
+        }
+
+        [Fact]
         public void TheFaintLinesSayWhatTheyLeaveOut()
         {
             Assert.Equal("What it comes to at your Swords level now, with what effects add to the level. What you wear and other effects change it further.", SkillWords.YoursTip("Swords"));

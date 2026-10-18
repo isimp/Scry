@@ -30,6 +30,16 @@ namespace Scry
 
         private static Dictionary<int, (SkillInputs Inputs, Related Related)> _read;
 
+        /// <summary>The skill each shield's absorbing grows with, by the shield effect's name.</summary>
+        private static readonly Dictionary<string, Skills.SkillType> ShieldSkills = new Dictionary<string, Skills.SkillType>(StringComparer.Ordinal);
+
+        /// <summary>The skill a shield's absorbing grows with (<c>SE_Shield.SetLevel</c>), by the area putting it on; none where none does.</summary>
+        public static Skills.SkillType ShieldSkill(string effect)
+        {
+            Of(Skills.SkillType.None);
+            return ShieldSkills.TryGetValue(effect ?? "", out var skill) ? skill : Skills.SkillType.None;
+        }
+
         /// <summary>What a skill works on, read once a world; a skill nothing uses has only its name.</summary>
         public static SkillInputs Inputs(Skills.SkillType skill) => Of(skill).Inputs;
 
@@ -197,6 +207,7 @@ namespace Scry
                     if (given != shield.name) continue;
                     var aoe = GamePrefabs.Named(giver).OrNull()?.GetComponentInChildren<Aoe>(true);
                     if (aoe == null || aoe.m_skill == Skills.SkillType.None || aoe.m_skill == Skills.SkillType.All) continue;
+                    ShieldSkills[shield.name] = aoe.m_skill;
                     var inputs = For(aoe.m_skill).Inputs;
                     inputs.ShieldListed = shield.m_absorbDamage;
                     inputs.ShieldPerLevel = shield.m_absorbDamagePerSkillLevel;
@@ -226,6 +237,10 @@ namespace Scry
         }
 
         /// <summary>Forgets what was read, for another world.</summary>
-        public static void Forget() => _read = null;
+        public static void Forget()
+        {
+            _read = null;
+            ShieldSkills.Clear();
+        }
     }
 }

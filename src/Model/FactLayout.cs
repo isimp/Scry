@@ -160,13 +160,13 @@ namespace Scry
             Tile(plan, "overview", null, "Type", "Weight", "Stacks to", "Worth");
             // The table by quality goes with what it is about, by the part that told it: a weapon's fight, armour's wearing.
             Label(plan, "fight", "Damage", CombatWords.WeaponAttacksTitle, "Secondary attack", "Block", "Block force", "Parry bonus", "Backstab", "Knockback", "Each attack costs", "Drawing costs",
-                CombatWords.FullDraw, CombatWords.Reloads,
+                CombatWords.FullDraw, CombatWords.Reloads, "Summons at once", "Summons hit",
                 "At full adrenaline", "On hit", ItemWords.DamageTaken(false), ItemWords.ResistsNothing(false));
             Label(plan, "wearing", "Armour", "Movement", "When worn", "Set bonus", "Other changes while worn", ItemWords.DamageTaken(true), ItemWords.ResistsNothing(true));
             Label(plan, "food", "Food", "Heals", "Lasts", "When used");
             Label(plan, "hatching", "Hatches into", "Hatches in", "Hatches when");
             // What a trophy, a key, a fish, a bait or a building tool is for.
-            Label(plan, "does", "On its boss stone", "Opens");
+            Label(plan, "does", "On its boss stone", "Opens", "Each use costs", "Each use wears", "Harvests within", "With a fish on", "Reels in");
             Part(plan, "does", "builds", "fishing", "bait");
             Label(plan, "making", "Type", "Weight", "Quality", "Durability", "Repaired at", "Upgrades need", "Skill", "Tool tier", "Stacks to", "Worth", "Portals");
             Label(plan, More, "Not shown");

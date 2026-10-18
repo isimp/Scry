@@ -218,6 +218,9 @@ namespace Scry
             if (ai != null)
             {
                 Add("Sees", CombatWords.Sight(ai.m_viewRange, ai.m_viewAngle));
+                // How near it sees the character sneaking at its Sneak, from the dark to full light
+                // (Player.UpdateStealth, read by BaseAI.CanSeeTarget).
+                YoursAt("Sees", Skills.SkillType.Sneak, level => SkillWords.Sneaking(ai.m_viewRange * SkillMath.Stealth(level, 0f), ai.m_viewRange * SkillMath.Stealth(level, 1f)));
                 Add("Hears", CombatWords.Hears(ai.m_hearRange));
                 if (ai.m_afraidOfFire) Add("Fire", "afraid of it");
                 else if (ai.m_avoidFire) Add("Fire", "keeps away from it");
@@ -227,6 +230,11 @@ namespace Scry
                 if (ai is MonsterAI monster)
                 {
                     Add("Turns on you", CombatWords.Alerted(monster.m_alertRange));
+                    // MonsterAI.UpdateAI takes the character's stealth the same way.
+                    if (monster.m_alertRange > 0f && monster.m_alertRange < 9000f)
+                    {
+                        YoursAt("Turns on you", Skills.SkillType.Sneak, level => SkillWords.Sneaking(monster.m_alertRange * SkillMath.Stealth(level, 0f), monster.m_alertRange * SkillMath.Stealth(level, 1f)));
+                    }
                     Add("Gives up chasing", CombatWords.Chase(monster.m_maxChaseDistance));
                     Add("Flees", CombatWords.Flees(monster.m_fleeIfLowHealth));
                     if (!monster.m_attackPlayerObjects) Add("Leaves alone", "what players build");
@@ -239,7 +247,7 @@ namespace Scry
                 Add("Takes to tame", Numbers.Duration(tame.m_tamingTime));
                 Add("Stays fed", Numbers.Duration(tame.m_fedDuration));
                 Proofs["Takes to tame"] = Proofs["Stays fed"] = EntryKeys.Did(Deed.Tamed);
-                Part("riding", () => Riding(tame));
+                Part("riding", () => Riding(tame, character));
                 var breed = prefab.GetComponent<Procreation>();
                 if (breed != null) Part("breeding", () => Breeding(breed));
                 Hooked(HookedRule.Taming);
@@ -274,14 +282,24 @@ namespace Scry
             }
         }
 
-        /// <summary>What a saddle lets it be ridden with, and its stamina while ridden (<c>Sadle</c>).</summary>
-        private void Riding(Tameable tame)
+        /// <summary>
+        /// What a saddle lets it be ridden with, and its stamina while ridden (<c>Sadle</c>); its
+        /// drain less and its running faster by the rider's Riding (<c>Sadle.UpdateRiding</c>,
+        /// <c>Character.GetRunSpeedFactor</c>).
+        /// </summary>
+        private void Riding(Tameable tame, Character character)
         {
             if (tame.m_saddleItem != null) Add("Ridden with", ItemName(tame.m_saddleItem.gameObject), tame.m_saddleItem.gameObject.name);
             var saddle = tame.m_saddle;
             if (saddle == null) return;
             Add("Stamina when ridden", RideWords.Stamina(saddle.m_maxStamina, saddle.m_staminaRegen, saddle.m_staminaRegenHungry));
             Add("Riding drains", RideWords.Drains(saddle.m_runStaminaDrain, saddle.m_swimStaminaDrain));
+            YoursAt("Riding drains", Skills.SkillType.Ride, level => RideWords.Drains(saddle.m_runStaminaDrain * SkillMath.MountDrainShare(level), saddle.m_swimStaminaDrain * SkillMath.MountDrainShare(level)));
+            if (character.m_runSpeed > 0f)
+            {
+                Add("Runs ridden", SkillWords.Span(SkillWords.Speed(character.m_runSpeed), SkillWords.Speed(character.m_runSpeed * SkillMath.MountSpeedShare(SkillMath.Top))));
+                YoursAt("Runs ridden", Skills.SkillType.Ride, level => SkillWords.Speed(character.m_runSpeed * SkillMath.MountSpeedShare(level)));
+            }
         }
 
         /// <summary>How a tame one breeds (<c>Procreation.Procreate</c>), and its young.</summary>

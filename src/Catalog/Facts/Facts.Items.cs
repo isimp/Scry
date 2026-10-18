@@ -41,6 +41,7 @@ namespace Scry
             if (worn) Add("Armour", ItemWords.Armour(shared.m_armor));
             if (upgradable) Part(worn ? "gear" : "item stats", () => QualityTable(prefab, shared, worn));
             Part("item stats", () => Combat(prefab, shared));
+            Part("item stats", () => SkillUses(shared));
             Part("resistances", () => GearResists(shared, worn));
             if (damage.Length > 0 || (worn && shared.m_armor > 0f) || shared.m_blockPower > 1f) Hooked(HookedRule.ItemStats);
 
@@ -288,6 +289,64 @@ namespace Scry
                 var under = new List<string[]> { lines[step] };
                 if (treeLines != null) under.Add(treeLines[step]);
                 table.Yours[first + step] = under;
+            }
+        }
+
+        /// <summary>
+        /// What an item does by a skill besides hitting: a build tool's cost and wear for each
+        /// use (<c>Player.GetBuildStamina</c>, <c>Player.GetPlaceDurability</c>), a scythe's reach
+        /// (<c>Attack.DoMeleeAttack</c>), a fishing float's drain and reeling
+        /// (<c>FishingFloat.FixedUpdate</c>), a staff's summons (<c>SpawnAbility.Spawn</c>); each with
+        /// what it comes to at the character's skill.
+        /// </summary>
+        private void SkillUses(ItemDrop.ItemData.SharedData shared)
+        {
+            var table = shared.m_buildPieces;
+            if (table != null && shared.m_attack != null && shared.m_attack.m_attackStamina > 0f)
+            {
+                var stamina = shared.m_attack.m_attackStamina;
+                Add("Each use costs", CombatWords.Costs(stamina, 0f, 0f, 0f));
+                YoursAt("Each use costs", table.m_skill, level => CombatWords.Costs(stamina * SkillMath.BuildStaminaShare(level), 0f, 0f, 0f, 1));
+            }
+            if (table != null && shared.m_useDurability && shared.m_useDurabilityDrain > 0f)
+            {
+                var wear = shared.m_useDurabilityDrain;
+                Add("Each use wears", Numbers.Amount(wear));
+                if (shared.m_placementDurabilityMax > 0f) YoursAt("Each use wears", shared.m_placementDurabilitySkill, level => Numbers.Amount(wear * SkillMath.WearShare(level, shared.m_placementDurabilityMax)));
+            }
+            var told = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var attack in SkillReading.Attacks(shared))
+            {
+                if (attack.m_harvest && attack.m_harvestRadiusMaxLevel > 0f && told.Add("Harvests within"))
+                {
+                    var least = attack.m_harvestRadius;
+                    var most = attack.m_harvestRadiusMaxLevel;
+                    Add("Harvests within", SkillWords.Span(Numbers.Metres(least, 1), Numbers.Metres(most, 1)));
+                    YoursAt("Harvests within", Skills.SkillType.Farming, level => Numbers.Metres(SkillMath.Between(least, most, level), 1));
+                }
+                var fishing = attack.m_attackProjectile != null ? attack.m_attackProjectile.GetComponent<FishingFloat>() : null;
+                if (fishing != null && told.Add("With a fish on"))
+                {
+                    Add("With a fish on", SkillWords.Span(SkillWords.PerSecond(fishing.m_hookedStaminaPerSec), SkillWords.PerSecond(fishing.m_hookedStaminaPerSecMaxSkill)));
+                    YoursAt("With a fish on", Skills.SkillType.Fishing, level => SkillWords.PerSecond(SkillMath.Between(fishing.m_hookedStaminaPerSec, fishing.m_hookedStaminaPerSecMaxSkill, level)));
+                    Add("Reels in", SkillWords.Span(SkillWords.Speed(fishing.m_pullLineSpeed), SkillWords.Speed(fishing.m_pullLineSpeedMaxSkill)));
+                    YoursAt("Reels in", Skills.SkillType.Fishing, level => SkillWords.Speed(SkillMath.Between(fishing.m_pullLineSpeed, fishing.m_pullLineSpeedMaxSkill, level)));
+                }
+                var spawn = attack.m_attackProjectile != null ? attack.m_attackProjectile.GetComponent<SpawnAbility>() : null;
+                if (spawn != null && spawn.m_levelUpSettings != null && spawn.m_levelUpSettings.Count > 0 && !spawn.m_setMaxInstancesFromWeaponLevel && told.Add("Summons at once"))
+                {
+                    var skill = spawn.m_levelUpSettings[0].m_skill;
+                    var levels = spawn.m_levelUpSettings.Select(s => s.m_skillLevel).ToArray();
+                    var counts = spawn.m_levelUpSettings.Select(s => s.m_maxSpawns).ToArray();
+                    Add("Summons at once", SkillWords.SummonSteps(levels, counts));
+                    YoursAt("Summons at once", skill, level => SkillWords.SummonsAt(levels, counts, level));
+                    if (spawn.m_copySkill != Skills.SkillType.None && spawn.m_copySkillToRandomFactor > 0f)
+                    {
+                        var perLevel = spawn.m_copySkillToRandomFactor;
+                        Add("Summons hit", SkillWords.SummonsHit(perLevel));
+                        YoursAt("Summons hit", spawn.m_copySkill, level => Numbers.Times(SkillMath.SummonStrength(level, perLevel)));
+                    }
+                }
             }
         }
 
