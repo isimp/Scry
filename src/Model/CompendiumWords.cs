@@ -137,7 +137,7 @@ namespace Scry
         public const string ReadMapTip = "Counts the kinds of place in the ground this character explored in this world as seen, as on its first visit with Scry";
 
         /// <summary>The log's line on a dedicated server.</summary>
-        public static string ServerPart => "on a dedicated server Scry only answers players' explored maps, for their compendium";
+        public static string ServerPart => "on a dedicated server Scry only answers players' explored maps, for their compendium, and keeps the group's records of the dungeons they walk";
 
         /// <summary>The caption of the milestone floor in the title row.</summary>
         public const string FloorCaption = "Floor";

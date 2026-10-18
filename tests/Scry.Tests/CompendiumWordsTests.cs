@@ -89,7 +89,7 @@ namespace Scry.Tests
             Assert.Equal("Read the map again", CompendiumWords.ReadMap);
             Assert.Equal("Places in the ground this character explored count as seen, read again each session", CompendiumWords.MapBar);
             Assert.Equal("Counts the kinds of place in the ground this character explored in this world as seen, as on its first visit with Scry", CompendiumWords.ReadMapTip);
-            Assert.Equal("on a dedicated server Scry only answers players' explored maps, for their compendium", CompendiumWords.ServerPart);
+            Assert.Equal("on a dedicated server Scry only answers players' explored maps, for their compendium, and keeps the group's records of the dungeons they walk", CompendiumWords.ServerPart);
         }
 
         [Fact]

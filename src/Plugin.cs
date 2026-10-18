@@ -21,7 +21,7 @@ namespace Scry
     {
         private Harmony _harmony;
 
-        /// <summary>Whether this is a dedicated server, where Scry only answers players' explored maps.</summary>
+        /// <summary>Whether this is a dedicated server, where Scry only answers players' explored maps and keeps the group's dungeon records.</summary>
         private bool _server;
 
         private void Awake()
