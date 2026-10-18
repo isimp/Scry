@@ -176,6 +176,8 @@ namespace Scry.Tests
             maps.Keep("w:1:9", "Crypt4", Rooms(4), new Vec3(0f, 0f, 0f), new Vec3(0f, 5000f, 0f), Quat.Identity);
             Assert.Equal(new[] { "w:1:2", "w:1:7" }, maps.OfLocation("w", "Crypt2").Select(m => m.Id));
             Assert.Empty(maps.OfLocation(null, "Crypt2"));
+            Assert.Equal(new[] { "w:1:2", "w:1:7", "w:1:9" }, maps.OfWorld("w").Select(m => m.Id));
+            Assert.Empty(maps.OfWorld(null));
         }
 
         [Fact]

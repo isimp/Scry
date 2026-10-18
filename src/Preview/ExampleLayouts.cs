@@ -169,6 +169,20 @@ namespace Scry
             _lookAgain = 0f;
         }
 
+        /// <summary>A map to open once its location is shown, as a click on its mark on Valheim's map asks; none waiting.</summary>
+        private static (string Location, string Id)? _openWhenShown;
+
+        /// <summary>Opens a kept map once its location is shown: at once where it is, else as it is selected.</summary>
+        public static void OpenMapWhenShown(string location, string id)
+        {
+            if (_entry?.Source is PlaceSource shown && shown.Prefab == location)
+            {
+                OpenMap(id);
+                return;
+            }
+            _openWhenShown = (location, id);
+        }
+
         /// <summary>The map opened as a dungeon of the world, the same each time; none where it is not of the location shown or was forgotten.</summary>
         private static WorldDungeon Opened(string location)
         {
@@ -383,6 +397,9 @@ namespace Scry
         {
             Forget();
             _entry = entry;
+            // A map asked for before its location was shown opens now.
+            if (_openWhenShown is (string location, string id) && entry.Source is PlaceSource starting && starting.Prefab == location) OpenMap(id);
+            _openWhenShown = null;
             var byPrefab = new Dictionary<string, Entry>(StringComparer.Ordinal);
             foreach (var e in explorer.Catalog)
             {

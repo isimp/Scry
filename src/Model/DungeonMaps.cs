@@ -63,7 +63,11 @@ namespace Scry
 
         /// <summary>The maps of a location's dungeons in a world, in the order kept; none outside a world.</summary>
         public IEnumerable<(string Id, DungeonMap Map)> OfLocation(string world, string location) =>
-            world == null ? Enumerable.Empty<(string, DungeonMap)>() : All.Where(m => InWorld(m.Id, world) && m.Map.Location == location);
+            OfWorld(world).Where(m => m.Map.Location == location);
+
+        /// <summary>The maps of a world's dungeons, in the order kept; none outside a world.</summary>
+        public IEnumerable<(string Id, DungeonMap Map)> OfWorld(string world) =>
+            world == null ? Enumerable.Empty<(string, DungeonMap)>() : All.Where(m => InWorld(m.Id, world));
 
         private static bool InWorld(string id, string world) => id.StartsWith(world + ":", StringComparison.Ordinal);
 
@@ -226,6 +230,9 @@ namespace Scry
         public const string OpenTip = "Shows this dungeon on the stage as far as you walked it, wherever you are";
         public const string Forget = "Forget";
         public const string ForgetTip = "Forgets this map: its rooms show again only as you walk them";
+
+        /// <summary>The tip of a dungeon's mark on Valheim's map, under its name.</summary>
+        public static string MarkTip(int walked, int rooms) => PlanBoxWords.Walked(walked, rooms) + "\nClick to open its map in Scry";
 
         /// <summary>The answer to forgetting the maps of the world played.</summary>
         public static string WorldForgotten(int maps) => maps == 0

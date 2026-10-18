@@ -125,6 +125,7 @@ namespace Scry
             Step(Feature.FloorsKept, "the floors kept", "update floors kept", FloorRecords.Update);
             Step(Feature.CompendiumCatchUp, "what the character knows", "update compendium", CompendiumKeeper.Update);
             Step(Feature.DungeonMaps, "the rooms walked in a dungeon", "update dungeon walks", DungeonWalks.Update);
+            Step(Feature.DungeonMarksOnMap, "the marks on Valheim's map", "update map marks", MapMarkButtons.Update);
             Step(Feature.CompendiumShown, "showing what the character knows", "update compendium list", ShowKnown);
         }
 

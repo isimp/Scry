@@ -304,6 +304,8 @@ namespace Scry
             ("Localization", "LoadCSV", 2, 0x3D8CF610, Feature.CompendiumCatchUp),
             ("Localization", "DoQuoteLineSplit", 1, 0xAB9EC07E, Feature.CompendiumCatchUp),
             ("Menu", "Update", 0, 0x0A30DC16, Feature.KeysKeptFromGame),
+            ("Minimap", "WorldToMapPoint", 3, 0xF712954C, Feature.DungeonMarksOnMap),
+            ("Minimap", "MapPointToLocalGuiPos", 4, 0x867FE4B7, Feature.DungeonMarksOnMap),
             ("OfferingBowl", "Interact", 3, 0xE0D1BB7B, Feature.AltarsItemStands),
             ("Player", "HaveRequirements", 4, 0x23C01547, Feature.UpgradeKits),
             ("Player", "TakeInput", 0, 0x3DECB72C, Feature.KeysKeptFromGame),

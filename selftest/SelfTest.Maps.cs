@@ -213,6 +213,57 @@ namespace Scry
             DungeonFogAsItWas();
         }
 
+        /// <summary>
+        /// A map of a crypt kept in the world played and one of another world, both where the player
+        /// stands: the large map open, a mark stands for the one of this world alone; a click on it
+        /// closes the map and opens Scry on the crypt's page, its map on the stage.
+        /// </summary>
+        private static IEnumerator MarksOnTheMap(Probe p)
+        {
+            var entry = Crypt();
+            if (entry == null) p.Skip("there is no such location");
+            var world = CompendiumMap.World;
+            var player = Player.m_localPlayer;
+            if (world == null || player == null || Minimap.instance == null || Game.m_noMap) p.Skip("no map in this world");
+            var noCompendium = new CompendiumView(X.Entries);
+            noCompendium.Tell(new CompendiumBook(), CompendiumRule.Off);
+            Session.ShowKnownInstead(noCompendium);
+            Select(entry);
+            Stage.Inside = true;
+            yield return Until(() => ReferenceEquals(X.Compendium, noCompendium) && ExampleLayouts.Of(entry) && ExampleLayouts.Example != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 150);
+            var rolled = ExampleLayouts.Of(entry) ? ExampleLayouts.Example : null;
+            if (!p.Check(rolled != null, "an example has been laid out")) yield break;
+
+            var here = player.transform.position;
+            var at = new Vec3(here.x, here.y, here.z);
+            var maps = new DungeonMaps();
+            var saved = SavedAsTheGameSaves(rolled);
+            var id = DungeonMaps.IdOf(world, 1L, 11u);
+            maps.Keep(id, PlaceOf(entry).Prefab, saved, at, rolled.Site.Generator, rolled.Site.Turn);
+            maps.Keep(DungeonMaps.IdOf("another world", 1L, 12u), PlaceOf(entry).Prefab, saved, at, rolled.Site.Generator, rolled.Site.Turn);
+            DungeonWalks.MapsInsteadForTest(maps);
+            // The panel put away, as it would cover the map; the click opens it again.
+            Session.Hide();
+            Minimap.instance.SetMapMode(Minimap.MapMode.Large);
+            yield return Until(() => MapMarkButtons.MarksShown > 0, 5);
+            p.Check(MapMarkButtons.MarksShown == 1, "the large map has a mark for the map of this world alone", $"{Numbers.Count(MapMarkButtons.MarksShown)} marks");
+            yield return Picture(p, $"the mark of {entry.Name} on the map");
+
+            MapMarkButtons.ClickForTest(0);
+            yield return Until(() => ExampleLayouts.ShownMap == id && Stage.ExampleRoomsTotal == rolled.Rooms.Count, 60);
+            p.Check(Minimap.instance.m_mode != Minimap.MapMode.Large && Session.IsOpen && X.Selected == entry && ExampleLayouts.ShownMap == id,
+                "a click on it closes the map and opens Scry on its page, its map on the stage", $"map {Minimap.instance.m_mode}, selected {X.Selected?.Name}, shown {ExampleLayouts.ShownMap ?? "an example"}");
+            MarksAsTheyWere();
+        }
+
+        /// <summary>Closes the large map the self-test opened and ends the fog's stand-ins.</summary>
+        private static void MarksAsTheyWere()
+        {
+            if (Minimap.instance != null && Minimap.instance.m_mode == Minimap.MapMode.Large) Minimap.instance.SetMapMode(Minimap.MapMode.Small);
+            if (!Session.IsOpen) Session.Show(null);
+            DungeonFogAsItWas();
+        }
+
         /// <summary>Ends the fog's stand-ins: the peek, the made-up character, the maps and where the player stood.</summary>
         private static void DungeonFogAsItWas()
         {

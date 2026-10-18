@@ -59,7 +59,9 @@ $sources = @(
     (Join-Path $managed "UnityEngine.InputLegacyModule.dll"),
     (Join-Path $managed "UnityEngine.IMGUIModule.dll"),
     (Join-Path $managed "UnityEngine.AssetBundleModule.dll"),
-    (Join-Path $managed "UnityEngine.TextRenderingModule.dll")
+    (Join-Path $managed "UnityEngine.TextRenderingModule.dll"),
+    (Join-Path $managed "UnityEngine.UIModule.dll"),
+    (Join-Path $managed "UnityEngine.UI.dll")
 )
 
 Add-Type -Path $cecil

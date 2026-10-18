@@ -27,6 +27,7 @@ namespace Scry
         private static ConfigEntry<int> _recentCount;
         private static ConfigEntry<float> _spinSpeed;
         private static ConfigEntry<bool> _readLocations;
+        private static ConfigEntry<bool> _dungeonMarks;
 
         /// <summary>
         /// The key that opens the panel. One the game or the panel already uses for something
@@ -61,6 +62,9 @@ namespace Scry
         public static int RecentCount => _recentCount?.Value ?? 30;
         public static float SpinSpeed => Mathf.Clamp(_spinSpeed?.Value ?? 14f, 1f, 90f);
         public static bool ReadLocationsAutomatically => _readLocations?.Value ?? false;
+
+        /// <summary>Whether each dungeon been in is marked on Valheim's large map.</summary>
+        public static bool DungeonMarksOnMap => _dungeonMarks?.Value ?? true;
 
         /// <summary>Whether the log tells what previews play and what Scry saw of each prefab, for finding out why something looks or sounds wrong.</summary>
         public static bool LogPreviews => _logPreviews?.Value ?? false;
@@ -124,6 +128,8 @@ namespace Scry
                     new AcceptableValueRange<float>(0f, 120f)));
             _readLocations = config.Bind("1 - General", "ReadLocationsAutomatically", false,
                 "Reads where things are found in each world's locations and dungeons by itself, in the background once the prefabs are read, taking a few minutes. Off, they are read only when asked, with Read all locations or /scry locations.");
+            _dungeonMarks = config.Bind("1 - General", "DungeonMarksOnMap", true,
+                "Marks each dungeon you have been in on Valheim's large map, just above its entrance, telling how much of it you walked; a click on a mark opens its map in Scry. Off, the map shows nothing of Scry's.");
             _autoSpin = config.Bind("2 - Preview", "AutoSpin", true,
                 "Turns the model in the preview slowly while you are not dragging it.");
             _spinSpeed = config.Bind("2 - Preview", "SpinSpeed", 14f,
