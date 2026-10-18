@@ -75,7 +75,14 @@ namespace Scry
             Stage.Inside = true;
             Select(entry);
             yield return Until(() => CopyOf(entry) != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.ExampleFloorsToRead == 0, 90);
-            if (!p.Check(CopyOf(entry) != null && Stage.ExampleWays != null && Stage.FloorHeights.Count >= 2, "its example stands with two levels or more", $"{Numbers.Count(Stage.FloorHeights.Count)} levels"))
+            // Some rolls of the caves lie on one level: another layout, as the player's button lays one, until one has two.
+            for (var roll = 0; roll < 5 && CopyOf(entry) != null && Stage.FloorHeights.Count < 2; roll++)
+            {
+                var rolled = ExampleLayouts.Example;
+                ExampleLayouts.Another();
+                yield return Until(() => ExampleLayouts.Example != rolled && CopyOf(entry) != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.ExampleFloorsToRead == 0, 90);
+            }
+            if (!p.Check(CopyOf(entry) != null && Stage.ExampleWays != null && Stage.FloorHeights.Count >= 2, "its example stands with two levels or more, laid out again where one has fewer", $"{Numbers.Count(Stage.FloorHeights.Count)} levels"))
             {
                 Stage.Inside = wasInside;
                 yield break;
