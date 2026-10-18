@@ -114,6 +114,61 @@ namespace Scry
         }
 
         /// <summary>
+        /// With the compendium on, a made-up character's list holds the world a player meets: no
+        /// effect, sound, projectile, other part or mod is listed or has a tab, while peeking they
+        /// are; places sharing a name say which of them each is; a known troll's page offers no
+        /// spawn command, peeking it does; and its stars table waits as one faint line until one
+        /// is killed. The troll's fight and the list are pictured.
+        /// </summary>
+        private static IEnumerator CompendiumPlayerView(Probe p)
+        {
+            var troll = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Creature && e.Name == "Troll");
+            if (troll == null)
+            {
+                p.Skip("there is no troll");
+                yield break;
+            }
+            var book = new CompendiumBook();
+            book.Raise(troll.Key, KnownLevel.Known);
+            var view = new CompendiumView(X.Entries);
+            view.Tell(book, CompendiumRule.Strict);
+            Session.ShowKnownInstead(view);
+            if (!Session.IsOpen) Session.Show(null);
+            KeepView();
+            ScryPanel.Compact = false;
+            yield return Until(() => ReferenceEquals(X.Compendium, view), 3);
+            X.Select(troll);
+            yield return null;
+
+            var listed = X.Results.Where(e => !Kinds.ForPlayers(e.Kind)).Select(e => e.Name).Take(5).ToList();
+            var tabs = BuiltOf.Where(k => X.CountOf(k) > 0).Select(k => k.ToString()).ToList();
+            p.Check(listed.Count == 0 && tabs.Count == 0, "with the compendium on, nothing the game is built of is listed or has a tab", string.Join(", ", listed.Concat(tabs)));
+            var alike = X.Catalog.Where(e => e.Alike != null).Take(4).Select(e => $"{e.ShownName} {e.Alike} ({e.Name})").ToList();
+            p.Note("alike names: " + string.Join("; ", alike));
+            p.Check(alike.Count > 0, "entries of one kind sharing a name say which of them each is");
+
+            var command = ScryPanel.Drawn(PanelPart.Command);
+            yield return null;
+            yield return null;
+            p.Check(ScryPanel.Drawn(PanelPart.Command) == command, "a known troll's page offers no spawn command");
+            var stars = Facts.For(troll).Rows.FirstOrDefault(r => r.Title == CombatWords.StarsTitle);
+            p.Check(stars == null || X.KeepsBackWhole(stars.LineProofs, stars.Lines.Count) != null, "its stars table waits as one faint line until one is killed");
+            yield return PictureOf(p, "fight", "player view Troll's fight, nothing found out");
+            yield return Picture(p, "player view list and tabs");
+
+            X.Peeking = true;
+            command = ScryPanel.Drawn(PanelPart.Command);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.Command) > command, 3);
+            p.Check(BuiltOf.Any(k => X.CountOf(k) > 0), "peeking, what the game is built of is listed again");
+            p.Check(ScryPanel.Drawn(PanelPart.Command) > command, "and the troll's page offers its spawn command");
+            X.Peeking = false;
+            Session.ShowKnownInstead(null);
+        }
+
+        /// <summary>The kinds the game is built of, which the compendium lists only off or while peeking.</summary>
+        private static readonly Kind[] BuiltOf = { Kind.Effect, Kind.Sound, Kind.Projectile, Kind.Other, Kind.Mod };
+
+        /// <summary>
         /// Names as a player reads them: where Stone comes from is a row for each way, each giver a
         /// chip named by the game or by its prefab's words, rocks alike but for their biome one chip
         /// saying how many; a troll's attacks read as words. Stone's page is pictured.

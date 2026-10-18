@@ -316,6 +316,24 @@ namespace Scry
         /// </summary>
         public bool KeepsBack(string proof) => LeavingOut && proof != null && !_view.Book.Witnessed(_selected.Key, proof);
 
+        /// <summary>
+        /// What shows a table every line of which the page shown keeps back (<see cref="KeepsBack"/>),
+        /// as a creature's stars table before one was killed: what shows its first line, the first
+        /// of it to show; none where any line shows or waits for nothing, or with no lines.
+        /// </summary>
+        public string KeepsBackWhole(IReadOnlyDictionary<int, string> lineProofs, int lines)
+        {
+            if (lines <= 0 || lineProofs == null) return null;
+            for (var line = 0; line < lines; line++)
+            {
+                if (!lineProofs.TryGetValue(line, out var proof) || !KeepsBack(proof)) return null;
+            }
+            return lineProofs[0];
+        }
+
+        /// <summary>Whether a page offers the game's commands that spawn or give its thing: with the compendium off or while peeking, never as part of what a character knows.</summary>
+        public bool ShowsCommands => !CompendiumOn;
+
         /// <summary>Whether the page shown keeps back what any one of several things seen would show (<see cref="KeepsBack"/>), as a thing to bring against a creature; never for none.</summary>
         public bool KeepsBackAll(IReadOnlyList<string> proofs)
         {
@@ -784,7 +802,7 @@ namespace Scry
                 foreach (var key in _view.Lately)
                 {
                     var entry = Find(key);
-                    if (entry != null && _view.Of(entry) >= KnownLevel.Seen && learned.Add(key)) _learnedCount++;
+                    if (entry != null && _view.Of(entry) >= KnownLevel.Seen && (_peeking || Kinds.ForPlayers(entry.Kind)) && learned.Add(key)) _learnedCount++;
                 }
             }
 

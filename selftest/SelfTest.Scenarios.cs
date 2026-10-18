@@ -58,6 +58,7 @@ namespace Scry
             yield return S("a made-up character's pages read under the strict rules as a player sees them", CompendiumStrictRead, 30, () => { AllKnown(); ResetList(); });
             yield return S("under the loose rules a known page names only what the character has met, and the stage stands no creature not met", CompendiumLooseRead, 90, () => { AllKnown(); ResetList(); RoomCardAsItWas(); StageAsItWas(); });
             yield return S("what the game leaves unnamed reads as words, and givers alike but for their biome go into one chip", ReadableNames, 20, ResetList);
+            yield return S("with the compendium on the list holds the world a player meets, names alike say which each is, and no page offers a spawn command", CompendiumPlayerView, 30, () => { AllKnown(); ResetList(); });
             yield return S("with the compendium on, a made-up character sees only what it met", CompendiumShown, 60, () => { AllKnown(); ResetList(); });
             yield return S("a dungeon only seen from outside shows its outside alone", SeenFromOutside, 60, () => { AllKnown(); ResetList(); });
             yield return S("a dungeon's page is told again quickly, however many parts its rooms hold", DungeonPagesQuick, 20);

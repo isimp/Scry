@@ -197,7 +197,8 @@ namespace Scry
             y = Section("side effects", y, at => Effects(explorer, entry, cw, at, withStage));
             y = Section("side plays in", y, at => PlaysInSection(explorer, entry, cw, at));
             y = Section("side links", y, at => LinksSection(explorer, entry, cw, at));
-            y = Section("side command", y, at => Command(explorer, entry, cw, at));
+            // The game's commands that spawn or give a thing are no part of what a character knows.
+            if (explorer.ShowsCommands) y = Section("side command", y, at => Command(explorer, entry, cw, at));
             y = Section("side details", y, at => Details(explorer, entry, cw, at));
             EndMarking();
             // The height as this draw found it, so the scroll range is right from the next event on,

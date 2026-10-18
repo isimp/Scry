@@ -751,6 +751,7 @@ namespace Scry
             if (command == null) return y;
 
             y = SectionHeading(DetailWords.CommandHeading(isItem), width, y, null, "command");
+            CountDrawn(PanelPart.Command);
             if (IsFolded("command")) return y;
             var rowH = U(28f);
 

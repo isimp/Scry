@@ -185,6 +185,14 @@ namespace Scry
         /// </summary>
         public static bool OffersClips(Kind kind) => kind != Kind.StatusEffect && kind != Kind.Raid && kind != Kind.Location;
 
+        /// <summary>
+        /// Whether a kind is of the world a player meets (creatures, items, pieces, places and the
+        /// rest), which the compendium lists, rather than of what the game is built of (effects,
+        /// sounds, projectiles, other parts) or a mod, which it lists only off or while peeking.
+        /// </summary>
+        public static bool ForPlayers(Kind kind) =>
+            kind != Kind.Effect && kind != Kind.Sound && kind != Kind.Projectile && kind != Kind.Other && kind != Kind.Mod;
+
         /// <summary>The word that picks a kind in a search's kind: term, as the search's help gives it.</summary>
         public static string TermWord(Kind kind) => kind == Kind.StatusEffect ? "se" : kind.ToString().ToLowerInvariant();
 

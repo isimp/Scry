@@ -47,7 +47,8 @@ namespace Scry
             foreach (var key in book.LearnedSince(mark))
             {
                 var entry = explorer.Find(key);
-                if (entry != null && explorer.LevelOf(entry) >= KnownLevel.Seen) _new.Add(entry);
+                // Named as the list shows them: the world a player meets.
+                if (entry != null && explorer.LevelOf(entry) >= KnownLevel.Seen && Kinds.ForPlayers(entry.Kind)) _new.Add(entry);
             }
             return _new;
         }

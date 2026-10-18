@@ -51,11 +51,11 @@ namespace Scry.Tests
             Assert.Equal("Compendium · Strict  ▾", CompendiumWords.Button(CompendiumRule.Strict));
             Assert.Equal("What your character knows, shown in the catalog", CompendiumWords.BoxCaption);
             Assert.Equal("Rules", CompendiumWords.RulesCaption);
-            Assert.Equal("Loose: list only what this character has seen, a page open once it has fought, held, built, used or entered it, and count in each kind's tab what was found of all there is", CompendiumWords.StepTip(CompendiumRule.Loose));
+            Assert.Equal("Loose: only what this character has met shows; a page opens whole once it has fought, held, built, used or entered it", CompendiumWords.StepTip(CompendiumRule.Loose));
             Assert.Equal("Show only what this character has come to know, by the rules chosen for it here; each character keeps its own", CompendiumWords.ModeTip);
             Assert.Equal("show everything. What this character comes to know is kept all the same, so turning the compendium on later shows everything met meanwhile", CompendiumWords.RuleTip(CompendiumRule.Off));
-            Assert.Equal("list only what this character has seen, a page open once it has fought, held, built, used or entered it, and count in each kind's tab what was found of all there is", CompendiumWords.RuleTip(CompendiumRule.Loose));
-            Assert.Equal("list the same as Loose, but a page shows of how its entry connects (drops, places, recipes, attacks) only what this character saw go together, keeps back the names of what it has not seen, and the numbers the game never shows until you find them out", CompendiumWords.RuleTip(CompendiumRule.Strict));
+            Assert.Equal("only what this character has met shows; a page opens whole once it has fought, held, built, used or entered it", CompendiumWords.RuleTip(CompendiumRule.Loose));
+            Assert.Equal("as Loose, but a page shows only what this character saw go together, and keeps back the numbers the game never shows until it finds them out", CompendiumWords.RuleTip(CompendiumRule.Strict));
         }
 
         [Fact]
@@ -96,14 +96,12 @@ namespace Scry.Tests
         [Fact]
         public void TheFloorSaysHowFarItReachesAndWhatRaisingOrLoweringItDoes()
         {
-            Assert.Equal("Floor: none", CompendiumWords.Floor(0));
-            Assert.Equal("Floor: Black forest", CompendiumWords.Floor(2));
             // In the title row, a caption and the biome stepped between arrows.
-            Assert.Equal(("Floor", "none", "Black forest"), (CompendiumWords.FloorCaption, CompendiumWords.FloorName(0), CompendiumWords.FloorName(2)));
-            // What it shows that the character never came to know is marked, on its row and page.
-            Assert.Equal("Shown by the Floor: Black forest, not yet come to know by this character", CompendiumWords.ByFloor(2));
+            Assert.Equal(("Known up to", "none", "Black forest"), (CompendiumWords.FloorCaption, CompendiumWords.FloorName(0), CompendiumWords.FloorName(2)));
+            // What it shows that the character never came to know is marked, on its row and page, named as the control is.
+            Assert.Equal("Shown as known up to Black forest, not yet come to know by this character", CompendiumWords.ByFloor(2));
             // A link to such a thing says so above where it goes.
-            Assert.Equal("Shown by the Floor: Black forest, not yet come to know by this character\nGo to Troll", CompendiumWords.FloorTip(2, "Go to Troll"));
+            Assert.Equal("Shown as known up to Black forest, not yet come to know by this character\nGo to Troll", CompendiumWords.FloorTip(2, "Go to Troll"));
             Assert.Equal("Show everything of the Swamp as known: Bonemass fell for this character", CompendiumWords.RaiseFloor(3, "Bonemass"));
             Assert.Equal("Show everything of the Swamp as known", CompendiumWords.RaiseFloor(3, null));
             Assert.Equal("Show the Meadows and what came before as known, not the Black forest", CompendiumWords.LowerFloor(1));
@@ -179,7 +177,7 @@ namespace Scry.Tests
             Assert.Equal(Counted.Length, Counted.Select(CompendiumWords.HowToKnow).Distinct().Count());
             Assert.All(Counted, kind => Assert.EndsWith("to come to know it.", CompendiumWords.HowToKnow(kind)));
             // Under the strict rules a page known still keeps some back: said too.
-            Assert.Equal("Some of its page shows only once you find it out.", CompendiumWords.ClosedStrict);
+            Assert.Equal("Under Strict, numbers and connections show as you see them.", CompendiumWords.ClosedStrict);
         }
     }
 }

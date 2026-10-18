@@ -12,6 +12,9 @@ namespace Scry
         /// <summary>The tip of what brings the folded list back.</summary>
         public const string BringBack = "Bring the list back";
 
+        /// <summary>Which of several of one kind going by one name an entry is, beside it in the list: "2 of 3".</summary>
+        public static string OneOf(int which, int of) => $"{Numbers.Count(which)} of {Numbers.Count(of)}";
+
         /// <summary>A kind's tab: its label and, in the colour given, how many it holds.</summary>
         public static string Tab(string label, int count, string colour) => $"{label}  <color=#{colour}>{Numbers.Count(count)}</color>";
 

@@ -188,6 +188,9 @@ namespace Scry
         /// <summary>A word or two beside its name in the list, in place of its prefab name (a room's "entrance room"); null for none.</summary>
         public string Tag;
 
+        /// <summary>Which of the entries of its kind going by its name it is, where others share it: "2 of 3", told by <see cref="Search.OrderNames"/>; null for a name of its own.</summary>
+        public string Alike;
+
         /// <summary>Whether it is listed indented, under the first of its group (a room under its dungeon).</summary>
         public bool Indent;
 
