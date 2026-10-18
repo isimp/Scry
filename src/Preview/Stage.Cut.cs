@@ -167,7 +167,7 @@ namespace Scry
             _floorHits = hits;
             _floorNames = names;
             if (place.IsRoom) return found.Count > 0 ? found : PlaceView.RoomFloors(place.Contents?.Room);
-            return PlaceView.LocationFloors(found, PlaceCeiling);
+            return PlaceView.LocationFloors(found, floor => FloorFinder.Covered(hits, floor));
         }
 
         private static void ClearFloors() => TheCut.Clear();
