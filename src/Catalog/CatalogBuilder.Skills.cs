@@ -28,7 +28,7 @@ namespace Scry
                 Guard.Each(Feature.SkillPages, "skill entries", name, () =>
                 {
                     var ofTheGame = Enum.IsDefined(typeof(global::Skills.SkillType), def.m_skill);
-                    var shown = Localize("$skill_" + name.ToLowerInvariant());
+                    var shown = Localize(SkillWords.Token(name));
                     var group = Groups.Skill(ofTheGame ? name : "");
                     entries.Add(new Entry
                     {

@@ -76,6 +76,20 @@ namespace Scry
             YoursTips[label] = SkillWords.YoursTip(you.Value.Name);
         }
 
+        /// <summary>
+        /// What reeling a fish in drains a second while pulled in (<c>FishingFloat.FixedUpdate</c>:
+        /// its own drain, more while it pulls away, times its level, less by the rod's share at
+        /// the character's Fishing).
+        /// </summary>
+        private void Reeling(Fish fish)
+        {
+            if (fish.m_staminaUse <= 0f && fish.m_escapeStaminaUse <= 0f) return;
+            Add("Reeling it in", SkillWords.Reeling(fish.m_staminaUse, fish.m_escapeStaminaUse, true));
+            var pull = SkillReading.Inputs(Skills.SkillType.Fishing).PullAtTop;
+            YoursAt("Reeling it in", Skills.SkillType.Fishing, level =>
+                SkillWords.Reeling(fish.m_staminaUse * SkillMath.Between(1f, pull, level), fish.m_escapeStaminaUse * SkillMath.Between(1f, pull, level), false));
+        }
+
         /// <summary>The skill using it trains, going to the skill's page.</summary>
         private void TrainsSkill(Skills.SkillType skill)
         {

@@ -13,12 +13,15 @@ namespace Scry
     {
         public const string ModSkill = "a skill a mod adds";
 
+        /// <summary>The game's word for a skill's name, as its skill screen and its effects' tooltips look it up: "$skill_" and its name in small letters.</summary>
+        public static string Token(string skill) => "$skill_" + (skill ?? "").ToLowerInvariant();
+
         /// <summary>A skill's name from the game's name for it (or its number), or null for none.</summary>
         public static string Name(string skill, Func<string, string> localize)
         {
             if (string.IsNullOrEmpty(skill)) return null;
             if (!char.IsDigit(skill[0]) && skill[0] != '-') return Naming.FieldLabel(skill);
-            var named = localize?.Invoke("$skill_" + skill);
+            var named = localize?.Invoke(Token(skill));
             return string.IsNullOrEmpty(named) ? ModSkill : named;
         }
 
@@ -122,6 +125,55 @@ namespace Scry
 
         /// <summary>What a staff's summons' hits are times by the skill's level (<c>SpawnAbility.Spawn</c>).</summary>
         public static string SummonsHit(float perLevel) => $"×1, and {Numbers.Times(perLevel)} more for each level";
+
+        /// <summary>
+        /// The faint line under the table by quality's damage (<see cref="ItemWords.DamageByQuality"/>):
+        /// what a hit deals at each quality at the character's skill; null where that table has no damage line.
+        /// </summary>
+        public static string[] DamageByQuality(string at, IReadOnlyList<(string Type, float Base, float PerLevel)> damage, int maxQuality, (float Least, float Most) share)
+        {
+            if (maxQuality <= 1 || !damage.Any(d => d.PerLevel > 0f)) return null;
+            var line = new List<string> { at };
+            for (var q = 1; q <= maxQuality; q++) line.Add(DamageRange(damage.Select(d => (d.Type, d.Base + d.PerLevel * (q - 1))), share.Least, share.Most) ?? "");
+            return line.ToArray();
+        }
+
+        /// <summary>The faint line under the table by quality's block: what it holds back at each quality at the character's Blocking (<see cref="SkillMath.Block"/>).</summary>
+        public static string[] BlockByQuality(string at, float value, float perLevel, int maxQuality, float level)
+        {
+            if (maxQuality <= 1 || perLevel <= 0f) return null;
+            var line = new List<string> { at };
+            for (var q = 1; q <= maxQuality; q++) line.Add(Numbers.Amount(SkillMath.Block(value + perLevel * (q - 1), level)));
+            return line.ToArray();
+        }
+
+        /// <summary>What a parry holds back at the character's Blocking: its block times the parry bonus.</summary>
+        public static string Parry(float blocked) => $"{Numbers.Amount(blocked)} held back on a parry";
+
+        /// <summary>What reeling a fish in drains a second (<c>FishingFloat.FixedUpdate</c>): steadily and while it pulls away, the game's own figures times the fish's level.</summary>
+        public static string Reeling(float steady, float fighting, bool timesLevel) =>
+            $"{Numbers.Amount(steady, 1)} stamina a second, {Numbers.Amount(fighting, 1)} while it pulls away" + (timesLevel ? ", each times its level" : "");
+
+        /// <summary>Whose skill a tamed creature's hits train, and by how much of a rise (<c>Character.RaiseSkill</c>).</summary>
+        public static string TrainsOwner(string skill, float share) => $"its owner's {skill}, {Numbers.Percent(share)} of a rise each";
+
+        /// <summary>The faint label of a summon's figures when summoned at the character's level.</summary>
+        public static string SummonedAt(string at) => "summoned " + at;
+
+        /// <summary>
+        /// A summon's attack line when summoned at the character's level: its damage times its
+        /// strength, rolled as anything but a player rolls a hit (<c>Character.GetRandomSkillFactor</c>:
+        /// the square root of an even roll from 0.75 to 1), the rest blank.
+        /// </summary>
+        public static string[] SummonedLine(string at, IEnumerable<(string Type, float Amount)> damage, float strength) =>
+            new[] { at, DamageRange(damage.Select(d => (d.Type, d.Amount * strength)), (float)Math.Sqrt(0.75), 1f) ?? None, "", "", "" };
+
+        /// <summary>What an archery target trains (<c>ArcheryTarget</c>): the skill of what hits it, more the nearer its middle.</summary>
+        public static string TargetTrains(float multiplier) =>
+            "the skill of what hits it, more the nearer its middle" + (Math.Abs(multiplier - 1f) > 0.001f ? $", {Numbers.Times(multiplier)} as much" : "");
+
+        /// <summary>How fast the character runs at its Run.</summary>
+        public static string Runs(float speed) => "runs " + Speed(speed);
 
         /// <summary>What the faint lines at the character's skill say on hover.</summary>
         public static string YoursTip(string skill) =>

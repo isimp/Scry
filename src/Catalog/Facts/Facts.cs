@@ -522,6 +522,7 @@ namespace Scry
             // What a fish bites on, and what a bait catches.
             var fish = prefab.GetComponent<Fish>();
             if (fish != null && fish.m_baits != null) Part("fishing", () => ChanceRow("Bites on, when it reaches the hook", fish.m_baits.Where(b => b?.m_bait != null).Select(b => (b.m_bait.gameObject.name, b.m_chance))));
+            if (fish != null) Part("fishing", () => Reeling(fish));
             Part("bait", () => ChanceRow("Catches, when one reaches the hook", Knowledge.Catches(prefab.name)));
 
             // What a door is opened with, and what a key opens.

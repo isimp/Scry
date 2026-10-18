@@ -154,6 +154,10 @@ namespace Scry
                 Add("Holds", StationWords.Fuel(shield.m_maxFuel));
             }
 
+            // A hit on an archery target raises the skill of what was shot, more the nearer its middle (ArcheryTarget).
+            var target = prefab.GetComponentInChildren<ArcheryTarget>(true);
+            if (target != null && target.m_raiseSkillMultiplier > 0f) Add("Trains", SkillWords.TargetTrains(target.m_raiseSkillMultiplier));
+
             var craft = prefab.GetComponent<CraftingStation>();
             if (craft != null)
             {

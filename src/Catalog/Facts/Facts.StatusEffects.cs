@@ -101,6 +101,17 @@ namespace Scry
             var pairs = StatusEffectWords.TooltipPairs(Naming.Plain(text), Naming.Plain(Localization.instance.Localize(effect.m_tooltip ?? "")),
                 Localization.instance.Localize("$se_ttl"), Localization.instance.Localize("$inventory_dmgmod"));
             AddAll(pairs);
+            // A skill the effect adds levels to goes to its page, by the name its tooltip gives it (SE_Stats.GetTooltipString).
+            if (effect is SE_Stats stats && stats.m_skillLevel != Skills.SkillType.None)
+            {
+                foreach (var skill in new[] { stats.m_skillLevel, stats.m_skillLevel2 })
+                {
+                    if (skill == Skills.SkillType.None || skill == Skills.SkillType.All) continue;
+                    var named = CatalogBuilder.Localize(SkillWords.Token(skill.ToString()));
+                    var page = EntryKeys.For(Kind.Skill, skill.ToString());
+                    if (EntryOf(page) != null && Pairs.Any(p => p.Key == named)) Links[named] = page;
+                }
+            }
             return pairs.Count > 0;
         }
 

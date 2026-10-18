@@ -56,14 +56,36 @@ namespace Scry
             var pickaxes = Pick(Kind.Skill, "Pickaxes");
             if (pickaxes != null) p.Check(Tells(Facts.For(pickaxes), "Digging the ground"), "Pickaxes' page says digging the ground is the same at every level", Pairs(Facts.For(pickaxes)));
 
+            // Each page told afresh, the quickest of two, as a player opening it pays.
+            var slowest = (Name: "", Ms: 0.0);
             foreach (var page in pages)
             {
                 Select(page);
                 yield return null;
-                var each = Facts.For(page);
-                var changes = each.Rows.FirstOrDefault(r => r.Title == SkillPageWords.ChangesTitle);
-                p.Note($"{page.ShownName}: {(changes != null ? string.Join(" | ", changes.Lines.Select(l => string.Join(", ", l.Cells))) : "no table")}");
+                var quickest = double.MaxValue;
+                for (var time = 0; time < 2; time++)
+                {
+                    Facts.Forget(page);
+                    var watch = System.Diagnostics.Stopwatch.StartNew();
+                    Facts.For(page);
+                    quickest = System.Math.Min(quickest, watch.Elapsed.TotalMilliseconds);
+                }
+                if (quickest > slowest.Ms) slowest = (page.ShownName, quickest);
+                var changes = Facts.For(page).Rows.FirstOrDefault(r => r.Title == SkillPageWords.ChangesTitle);
+                p.Note($"{page.ShownName} in {Numbers.Amount(quickest, 2)} ms: {(changes != null ? string.Join(" | ", changes.Lines.Select(l => string.Join(", ", l.Cells))) : "no table")}");
             }
+            p.Check(slowest.Ms < 10.0, "a skill's page is told in under 10 ms", $"slowest {slowest.Name} in {Numbers.Amount(slowest.Ms, 2)} ms");
+
+            // What the skills work on is read with the catalog; read again here to time it.
+            var reading = double.MaxValue;
+            for (var time = 0; time < 2; time++)
+            {
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                SkillReading.Read(X.Catalog);
+                reading = System.Math.Min(reading, watch.Elapsed.TotalMilliseconds);
+                yield return null;
+            }
+            p.Check(reading < 100.0, "reading what every skill works on, a step of the catalog's reading, takes under 100 ms", $"{Numbers.Amount(reading, 1)} ms over {Numbers.Count(X.Catalog.Count)} entries");
             var after = skills.GetSkillList().Count;
             p.Check(after == trained, "reading every skill gives the character no skill it never trained", $"{Numbers.Count(trained)} before, {Numbers.Count(after)} after");
         }
@@ -94,6 +116,15 @@ namespace Scry
                 p.Check(told.Yours.TryGetValue("Damage", out var damage) && damage == expected, "its damage at the character's Swords is the game's own range", $"{damage} / {expected}");
             }
             else p.Note("Swords never trained: the game's own range is not asked");
+            var quickest = double.MaxValue;
+            for (var time = 0; time < 2; time++)
+            {
+                Facts.Forget(sword);
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                told = Facts.For(sword);
+                quickest = System.Math.Min(quickest, watch.Elapsed.TotalMilliseconds);
+            }
+            p.Check(quickest < 10.0, "its page, with its lines at the character's skill, is told in under 10 ms", $"{Numbers.Amount(quickest, 2)} ms");
             var attacks = told.Rows.FirstOrDefault(r => r.Title == CombatWords.WeaponAttacksTitle);
             p.Check(attacks != null && attacks.Lines.Count > 0 && Enumerable.Range(0, attacks.Lines.Count).All(attacks.Yours.ContainsKey), "each line of its attacks has a faint line at the character's skill",
                 attacks == null ? "" : string.Join(" | ", attacks.Yours.Values.SelectMany(v => v).Select(c => string.Join(", ", c))));
@@ -123,6 +154,27 @@ namespace Scry
             if (crop != null) p.Check(Facts.For(crop).Yours.ContainsKey("Bonus when picked"), $"{crop.ShownName} tells its bonus when picked at your Farming", Pairs(Facts.For(crop)));
             var hammer = Pick(Kind.Item, "Hammer");
             if (hammer != null) p.Check(Facts.For(hammer).Yours.ContainsKey("Each use costs"), "the hammer tells what each use costs at your Crafting", Pairs(Facts.For(hammer)));
+
+            // The rest of what a skill changes on other pages.
+            var byQuality = told.Rows.FirstOrDefault(r => r.Title == ItemWords.ByQualityTitle);
+            p.Check(byQuality != null && byQuality.Yours.Count > 0, "the sword's table by quality has its damage at your Swords at each quality",
+                byQuality == null ? "no table" : string.Join(" | ", byQuality.Yours.Values.SelectMany(v => v).Select(c => string.Join(", ", c))));
+            var shield = Pick(Kind.Item, "ShieldBronzeBuckler", "ShieldWood", "ShieldBanded");
+            if (shield != null) p.Check(Facts.For(shield).Yours.ContainsKey("Block") && Facts.For(shield).Yours.ContainsKey("Parry bonus"), $"{shield.ShownName} tells its block and parry at your Blocking", Pairs(Facts.For(shield)));
+            var fish = Pick(Kind.Item, "Fish1", "Fish2");
+            if (fish != null) p.Check(Facts.For(fish).Yours.ContainsKey("Reeling it in"), $"{fish.ShownName} tells what reeling it in costs at your Fishing", Pairs(Facts.For(fish)));
+            var summon = Pick(Kind.Creature, "Skeleton_Friendly");
+            if (summon != null)
+            {
+                var its = Facts.For(summon);
+                var hits = its.Rows.FirstOrDefault(r => r.Title == CombatWords.AttacksTitle);
+                p.Check(Tells(its, "Its hits train") && hits != null && hits.Yours.Count > 0, "a summoned skeleton tells whose skill its hits train and how hard it hits summoned at yours",
+                    Pairs(its) + (hits == null ? "" : " | " + string.Join(" | ", hits.Yours.Values.SelectMany(v => v).Select(c => string.Join(", ", c)))));
+            }
+            var target = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Piece && e.Source is GameObject go && go != null && go.GetComponentInChildren<ArcheryTarget>(true) != null);
+            if (target != null) p.Check(Tells(Facts.For(target), "Trains"), $"{target.ShownName} tells what it trains", Pairs(Facts.For(target)));
+            var person = Pick(Kind.Creature, GamePrefabs.PersonName);
+            if (person != null) p.Check(Facts.For(person).Yours.ContainsKey("Moves"), "the player's page tells how fast you run at your Run", Pairs(Facts.For(person)));
         }
     }
 }

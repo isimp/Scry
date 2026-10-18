@@ -36,6 +36,14 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ASkillsNameIsLookedUpAsTheGameLooksItUp()
+        {
+            // SkillsDialog and SE_Stats.GetTooltipString: "$skill_" and the skill's name in small letters.
+            Assert.Equal("$skill_woodcutting", SkillWords.Token("WoodCutting"));
+            Assert.Equal("$skill_1795429391", SkillWords.Token("1795429391"));
+        }
+
+        [Fact]
         public void NoSkillIsNone()
         {
             Assert.Null(SkillWords.Name("", Localize));
@@ -130,6 +138,57 @@ namespace Scry.Tests
             Assert.Equal("2", SkillWords.SummonsAt(new[] { 0, 20, 40 }, new[] { 1, 2, 3 }, 34f));
             Assert.Equal("none", SkillWords.SummonsAt(new[] { 10 }, new[] { 2 }, 5f));
             Assert.Equal("1", SkillWords.SummonsAt(new[] { 0, 20, 40 }, new[] { 1, 2, 3 }, 5f));
+        }
+
+        [Fact]
+        public void TheTableByQualityHasYourHitsAndBlockAtEachQuality()
+        {
+            // ItemData.GetDamage and GetBaseBlockPower add so much a level; the skill's share works on each.
+            var damage = SkillWords.DamageByQuality("at Swords 34", new[] { ("slash", 55f, 6f) }, 3, (0.454f, 0.754f));
+            Assert.Equal(new[] { "at Swords 34", "25–41 slash", "28–46 slash", "30–51 slash" }, damage);
+            Assert.Null(SkillWords.DamageByQuality("at Swords 34", new[] { ("slash", 55f, 0f) }, 3, (0.454f, 0.754f)));
+            Assert.Null(SkillWords.DamageByQuality("at Swords 34", new[] { ("slash", 55f, 6f) }, 1, (0.454f, 0.754f)));
+            Assert.Equal(new[] { "at Blocking 20", "11", "16.5", "22" }, SkillWords.BlockByQuality("at Blocking 20", 10f, 5f, 3, 20f));
+            Assert.Null(SkillWords.BlockByQuality("at Blocking 20", 10f, 0f, 3, 20f));
+        }
+
+        [Fact]
+        public void AParryTellsWhatItHoldsBackAtYourBlocking()
+        {
+            Assert.Equal("22 held back on a parry", SkillWords.Parry(22f));
+        }
+
+        [Fact]
+        public void AFishTellsWhatReelingItInCosts()
+        {
+            // FishingFloat.FixedUpdate: the fish's own drain, more while it pulls away, times its level.
+            Assert.Equal("1 stamina a second, 2 while it pulls away, each times its level", SkillWords.Reeling(1f, 2f, true));
+            Assert.Equal("0.6 stamina a second, 1.2 while it pulls away", SkillWords.Reeling(0.6f, 1.2f, false));
+        }
+
+        [Fact]
+        public void ASummonTellsWhoseSkillItTrainsAndHowHardItHitsForYou()
+        {
+            // Character.RaiseSkill: a tamed creature's hits raise its owner's skill by its share.
+            Assert.Equal("its owner's Blood Magic, 50% of a rise each", SkillWords.TrainsOwner("Blood Magic", 0.5f));
+            Assert.Equal("summoned at Blood Magic 30", SkillWords.SummonedAt("at Blood Magic 30"));
+            // Character.GetRandomSkillFactor for anything but a player: the square root of an even roll from 0.75 to 1, times its strength.
+            Assert.Equal(new[] { "summoned at Blood Magic 30", "28–32 slash", "", "", "" },
+                SkillWords.SummonedLine("summoned at Blood Magic 30", new[] { ("slash", 20f) }, 1.6f));
+        }
+
+        [Fact]
+        public void AnArcheryTargetTellsWhatItTrains()
+        {
+            // ArcheryTarget: a hit raises the skill of what was shot, more the nearer its middle.
+            Assert.Equal("the skill of what hits it, more the nearer its middle", SkillWords.TargetTrains(1f));
+            Assert.Equal("the skill of what hits it, more the nearer its middle, ×2 as much", SkillWords.TargetTrains(2f));
+        }
+
+        [Fact]
+        public void YouRunFasterAtYourRun()
+        {
+            Assert.Equal("runs 7.7 m/s", SkillWords.Runs(7.7175f));
         }
 
         [Fact]

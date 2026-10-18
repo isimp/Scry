@@ -116,7 +116,7 @@ namespace Scry
             Order(plan, "Takes to tame", "overview", "taming", "riding", "fight", "loot", "lives", "senses");
             Tile(plan, "overview", null, "Health", "Faction", "Moves", "Tameable", "Boss");
             Tile(plan, "senses", null, "Sees", "Hears", "Turns on you", "Fire");
-            Label(plan, "fight", "Attacks", CombatWords.StarsTitle, "Its fight", "Fights", "Damage it takes");
+            Label(plan, "fight", "Attacks", CombatWords.StarsTitle, "Its fight", "Fights", "Damage it takes", "Its hits train");
             Label(plan, "senses", "Gives up chasing", "Flees", "Leaves alone", "With Passive enemies");
             Label(plan, "loot", "Drops");
             Label(plan, "taming", "Takes to tame", "Stays fed", "Eats");
@@ -166,7 +166,7 @@ namespace Scry
             Label(plan, "food", "Food", "Heals", "Lasts", "When used");
             Label(plan, "hatching", "Hatches into", "Hatches in", "Hatches when");
             // What a trophy, a key, a fish, a bait or a building tool is for.
-            Label(plan, "does", "On its boss stone", "Opens", "Each use costs", "Each use wears", "Harvests within", "With a fish on", "Reels in");
+            Label(plan, "does", "On its boss stone", "Opens", "Each use costs", "Each use wears", "Harvests within", "With a fish on", "Reels in", "Reeling it in");
             Part(plan, "does", "builds", "fishing", "bait");
             Label(plan, "making", "Type", "Weight", "Quality", "Durability", "Repaired at", "Upgrades need", "Skill", "Tool tier", "Stacks to", "Worth", "Portals");
             Label(plan, More, "Not shown");

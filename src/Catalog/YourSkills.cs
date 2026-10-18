@@ -111,8 +111,11 @@ namespace Scry
         {
             if (_readAt >= 0f && Time.unscaledTime - _readAt < 1f) return;
             _readAt = Time.unscaledTime;
-            Guard.Run(Feature.YourSkillFigures, "reading your skills", ReadNow);
+            Guard.Run(Feature.YourSkillFigures, "reading your skills", ReadNowStep, "your skills read");
         }
+
+        /// <summary>The read as a step, made once rather than at every read.</summary>
+        private static readonly Action ReadNowStep = ReadNow;
 
         private static void ReadNow()
         {

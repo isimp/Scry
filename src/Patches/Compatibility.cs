@@ -198,6 +198,8 @@ namespace Scry
             ("Player", "GetPlaceDurability", 1, 0x3A32F40D, Feature.YourSkillFigures),
             ("SE_Shield", "SetLevel", 2, 0xC7282AE8, Feature.YourSkillFigures),
             ("SpawnAbility", "Spawn", 0, 0xD3A37693, Feature.YourSkillFigures),
+            ("Character", "GetRandomSkillFactor", 1, 0x54892FB0, Feature.YourSkillFigures),
+            ("Character", "RaiseSkill", 2, 0x5C289BDC, Feature.SkillPages),
             ("Skills+Skill", "Raise", 1, 0x4B05875C, Feature.SkillPages),
             ("Skills+Skill", "GetNextLevelRequirement", 0, 0xDF9C97AA, Feature.SkillPages),
             ("Skills", "OnDeath", 0, 0xA04D44B6, Feature.SkillPages),

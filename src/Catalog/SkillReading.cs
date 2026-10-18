@@ -30,6 +30,16 @@ namespace Scry
 
         private static Dictionary<int, (SkillInputs Inputs, Related Related)> _read;
 
+        /// <summary>What each summon's strength grows with, by its prefab's name: its summoner's skill and what each level adds.</summary>
+        private static readonly Dictionary<string, (Skills.SkillType Skill, float PerLevel)> Summoned = new Dictionary<string, (Skills.SkillType, float)>(StringComparer.Ordinal);
+
+        /// <summary>The skill a summon's hits grow with and what each level adds (<c>SpawnAbility.Spawn</c>); none for what nothing summons so.</summary>
+        public static (Skills.SkillType Skill, float PerLevel)? SummonedBy(string prefab)
+        {
+            Of(Skills.SkillType.None);
+            return Summoned.TryGetValue(prefab ?? "", out var by) ? by : ((Skills.SkillType, float)?)null;
+        }
+
         /// <summary>The skill each shield's absorbing grows with, by the shield effect's name.</summary>
         private static readonly Dictionary<string, Skills.SkillType> ShieldSkills = new Dictionary<string, Skills.SkillType>(StringComparer.Ordinal);
 
@@ -48,12 +58,20 @@ namespace Scry
 
         private static (SkillInputs Inputs, Related Related) Of(Skills.SkillType skill)
         {
-            if (_read == null)
-            {
-                _read = new Dictionary<int, (SkillInputs, Related)>();
-                Guard.Run(Feature.SkillPages, "what the skills work on", ReadAll);
-            }
+            if (_read == null) Read(WorldCatalog.Current?.All ?? Enumerable.Empty<Entry>());
             return For(skill);
+        }
+
+        /// <summary>
+        /// Reads what every skill works on from the catalog's entries, once a world: with the
+        /// catalog, so no page drawn pays for it; again only after the world is left.
+        /// </summary>
+        public static void Read(IEnumerable<Entry> entries)
+        {
+            _read = new Dictionary<int, (SkillInputs, Related)>();
+            ShieldSkills.Clear();
+            Summoned.Clear();
+            Guard.Run(Feature.SkillPages, "what the skills work on", ReadAll, entries);
         }
 
         private static (SkillInputs Inputs, Related Related) For(Skills.SkillType skill)
@@ -62,12 +80,14 @@ namespace Scry
             return read;
         }
 
-        private static void ReadAll()
+        private static void ReadAll(IEnumerable<Entry> entries)
         {
             Moving();
             var gui = InventoryGui.instance;
-            foreach (var entry in WorldCatalog.Current?.All ?? Enumerable.Empty<Entry>())
+            foreach (var entry in entries)
             {
+                // Only items, pieces (stations) and resources (what is picked) work by a skill.
+                if (entry.Kind != Kind.Item && entry.Kind != Kind.Piece && entry.Kind != Kind.Resource) continue;
                 if (!(entry.Source is GameObject prefab) || prefab == null) continue;
                 Guard.Each(Feature.SkillPages, "what the skills work on", prefab.name, () =>
                 {
@@ -168,6 +188,10 @@ namespace Scry
         private static void Summons(ItemDrop.ItemData.SharedData shared, Attack attack)
         {
             var spawn = attack.m_attackProjectile != null ? attack.m_attackProjectile.GetComponent<SpawnAbility>() : null;
+            if (spawn != null && spawn.m_copySkill != Skills.SkillType.None && spawn.m_copySkillToRandomFactor > 0f && spawn.m_spawnPrefab != null)
+            {
+                foreach (var spawned in spawn.m_spawnPrefab) if (spawned != null) Summoned[spawned.name] = (spawn.m_copySkill, spawn.m_copySkillToRandomFactor);
+            }
             if (spawn == null || spawn.m_levelUpSettings == null || spawn.m_levelUpSettings.Count == 0 || spawn.m_setMaxInstancesFromWeaponLevel) return;
             var skill = spawn.m_levelUpSettings[0].m_skill;
             if (skill == Skills.SkillType.None || spawn.m_levelUpSettings.Any(s => s.m_skill != skill)) return;
@@ -241,6 +265,7 @@ namespace Scry
         {
             _read = null;
             ShieldSkills.Clear();
+            Summoned.Clear();
         }
     }
 }

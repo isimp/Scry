@@ -154,7 +154,7 @@ namespace Scry
         private void Attacks(GameObject prefab)
         {
             // Each attack with the projectile it fires and what it puts on you, each a link.
-            var attacks = new List<(string[] Cells, string Item, GameObject Fires, StatusEffect OnHit)>();
+            var attacks = new List<(string[] Cells, string Item, GameObject Fires, StatusEffect OnHit, (string Type, float Amount)[] Damage)>();
             foreach (var item in Relations.CarriedItems(prefab))
             {
                 var shared = item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
@@ -167,14 +167,24 @@ namespace Scry
                 var fires = attack.m_attackProjectile;
                 var cells = CombatWords.AttackCells(name, Damages(shared.m_damages), attack.m_attackType.ToString(), shared.m_aiAttackRangeMin, shared.m_aiAttackRange, shared.m_aiAttackInterval,
                     fires != null ? AnyName(fires, fires.name) : null);
-                attacks.Add((cells, item.name, fires, shared.m_attackStatusEffect));
+                attacks.Add((cells, item.name, fires, shared.m_attackStatusEffect, DamageFigures(shared.m_damages)));
             }
             var onHit = attacks.Any(a => a.OnHit != null);
             var table = new Row { Title = CombatWords.AttacksTitle, Columns = CombatWords.AttackColumnsFor(onHit), AttackCells = onHit ? new[] { 1, 3 } : new[] { 1 } };
-            foreach (var (cells, item, fires, effect) in attacks)
+            // A summon hits harder by its summoner's skill (SpawnAbility.Spawn), rolled as anything
+            // but a player rolls a hit (Character.GetRandomSkillFactor): faint, as summoned at the character's level.
+            var summoned = SkillReading.SummonedBy(prefab.name);
+            var summoner = summoned != null ? YourAt(summoned.Value.Skill) : null;
+            if (summoner != null) table.YoursTip = SkillWords.YoursTip(summoner.Value.Name);
+            foreach (var (cells, item, fires, effect, damage) in attacks)
             {
                 var line = table.Lines.Count;
                 table.Lines.Add((onHit ? CombatWords.OnHitCells(cells, effect != null ? EffectName(effect) : null) : cells, EntryKeys.PlayAttack(item)));
+                if (summoner != null)
+                {
+                    var strength = SkillMath.SummonStrength(summoner.Value.Level, summoned.Value.PerLevel);
+                    table.Yours[line] = new List<string[]> { SkillWords.SummonedLine(SkillWords.SummonedAt(summoner.Value.At), damage, strength) };
+                }
                 if (fires != null) table.CellLinks[(line, 2)] = fires.name;
                 if (effect != null) table.CellLinks[(line, 3)] = EntryKeys.For(Kind.StatusEffect, effect.name);
             }
@@ -214,6 +224,8 @@ namespace Scry
         {
             Add("Moves", CombatWords.Moves(character.m_flying, character.m_flySlowSpeed, character.m_flyFastSpeed, character.m_walkSpeed, character.m_runSpeed,
                 character.m_canSwim, character.m_swimSpeed));
+            // The player runs faster at its Run (Player.GetRunSpeedFactor).
+            if (character is Player) YoursAt("Moves", Skills.SkillType.Run, level => SkillWords.Runs(character.m_runSpeed * SkillMath.RunSpeedShare(level)));
 
             var ai = prefab.GetComponent<BaseAI>();
             if (ai != null)
@@ -246,6 +258,12 @@ namespace Scry
             if (tame != null)
             {
                 Add("Takes to tame", Numbers.Duration(tame.m_tamingTime));
+                // A summon's hits train its summoner's skill, by its share of a rise (Character.RaiseSkill).
+                if (tame.m_levelUpOwnerSkill != Skills.SkillType.None && tame.m_levelUpFactor > 0f)
+                {
+                    var page = EntryKeys.For(Kind.Skill, tame.m_levelUpOwnerSkill.ToString());
+                    Add("Its hits train", SkillWords.TrainsOwner(SkillName(tame.m_levelUpOwnerSkill), tame.m_levelUpFactor), EntryOf(page) != null ? page : null);
+                }
                 Add("Stays fed", Numbers.Duration(tame.m_fedDuration));
                 Proofs["Takes to tame"] = Proofs["Stays fed"] = EntryKeys.Did(Deed.Tamed);
                 Part("riding", () => Riding(tame, character));

@@ -188,6 +188,11 @@ namespace Scry
                 if (shared.m_blockPower > 1f) YoursAt("Block", Skills.SkillType.Blocking, level => ItemWords.Block(SkillMath.Block(shared.m_blockPower, level)));
                 if (shared.m_deflectionForce > 1f) Add("Block force", Numbers.Amount(shared.m_deflectionForce));
                 if (shared.m_timedBlockBonus > 1f) Add("Parry bonus", Numbers.Times(shared.m_timedBlockBonus));
+                // A parry holds back the block times its bonus (Humanoid.BlockAttack).
+                if (shared.m_timedBlockBonus > 1f && shared.m_blockPower > 1f)
+                {
+                    YoursAt("Parry bonus", Skills.SkillType.Blocking, level => SkillWords.Parry(SkillMath.Block(shared.m_blockPower, level) * shared.m_timedBlockBonus));
+                }
             }
 
             var attack = shared.m_attack;
@@ -195,7 +200,11 @@ namespace Scry
             var second = weapon && attack != null ? shared.m_secondaryAttack : null;
             var twoAttacks = second != null && !string.IsNullOrEmpty(second.m_attackAnimation);
             // A weapon's knockback is in its attacks table.
-            if ((ammo || weapon && attack == null) && shared.m_attackForce > 0f) Add("Knockback", Numbers.Amount(shared.m_attackForce));
+            if ((ammo || weapon && attack == null) && shared.m_attackForce > 0f)
+            {
+                Add("Knockback", Numbers.Amount(shared.m_attackForce));
+                YoursAt("Knockback", shared.m_skillType, level => SkillWords.Range(shared.m_attackForce * SkillMath.HitShare(level).Least, shared.m_attackForce * SkillMath.HitShare(level).Most));
+            }
             if (weapon && shared.m_backstabBonus > 1f) Add("Backstab", Numbers.Times(shared.m_backstabBonus));
 
             if (weapon && attack != null)
@@ -382,7 +391,23 @@ namespace Scry
                 lines.Add((ItemWords.StationLevels(CatalogBuilder.Localize(station.m_name), levels), station.gameObject.name));
             }
             var table = new Row { Title = ItemWords.ByQualityTitle, Columns = ItemWords.QualityColumns(most) };
-            foreach (var line in lines) if (line.Cells != null) table.Lines.Add(line);
+            // Faint under damage and block, the same at the character's skill at each quality.
+            var damageAt = SkillReading.Trains(type) ? YourAt(shared.m_skillType) : null;
+            var blockAt = blocks && shared.m_blockPower > 1f ? YourAt(Skills.SkillType.Blocking) : null;
+            var yours = new[]
+            {
+                damageAt != null ? SkillWords.DamageByQuality(damageAt.Value.At, DamageFigures(shared.m_damages).Select((d, i) => (d.Type, d.Amount, perLevel[i].Amount)).ToList(), most, SkillMath.HitShare(damageAt.Value.Level)) : null,
+                null,
+                blockAt != null ? SkillWords.BlockByQuality(blockAt.Value.At, shared.m_blockPower, shared.m_blockPowerPerLevel, most, blockAt.Value.Level) : null,
+            };
+            for (var i = 0; i < lines.Count; i++)
+            {
+                if (lines[i].Cells == null) continue;
+                table.Lines.Add(lines[i]);
+                if (i < yours.Length && yours[i] != null) table.Yours[table.Lines.Count - 1] = new List<string[]> { yours[i] };
+            }
+            if (damageAt != null) table.YoursTip = SkillWords.YoursTip(damageAt.Value.Name);
+            else if (blockAt != null) table.YoursTip = SkillWords.YoursTip(blockAt.Value.Name);
             if (table.Lines.Count > 0) Rows.Add(table);
         }
 
