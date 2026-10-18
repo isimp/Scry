@@ -80,7 +80,17 @@ namespace Scry
         public static GUIStyle Button, Primary, On, Chip, ChipOn, Segment, SegmentOn, Close;
 
         public static GUIStyle Field, Placeholder, Tab, TabOn, Tip, IconButton, Cross;
+
+        /// <summary>Segments drawn tighter, for a row with little room: off and on.</summary>
+        public static GUIStyle SegmentTight, SegmentOnTight;
+
+        /// <summary>The halves of two icon buttons joined into one piece, each rounded only at the piece's own end: off and on, left and right.</summary>
+        public static GUIStyle JoinedLeft, JoinedRight, JoinedLeftOn, JoinedRightOn;
+
         public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize, Roof, Speed, Repeat, Steps, Eye, Up, Down;
+
+        /// <summary>A rounded box's shape rounded only at its left, or only at its right, for joined buttons; a chevron pointing down, for folding away.</summary>
+        public static Texture2D RoundedLeft, RoundedRight, FoldDown;
 
         private static float _builtScale = -1f;
         private static bool _warmed;
@@ -437,6 +447,13 @@ namespace Scry
             Cross.clipping = TextClipping.Overflow;
             IconButton = Boxed(Style(13f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), Raised, RaisedHover, Shade(Raised, 1.35f), Rounded, scale);
             IconButton.padding = new RectOffset(0, 0, 0, 0);
+            SegmentTight = new GUIStyle(Segment) { padding = new RectOffset(Px(7f), Px(7f), Segment.padding.top, Segment.padding.bottom) };
+            SegmentOnTight = new GUIStyle(SegmentOn) { padding = new RectOffset(Px(7f), Px(7f), SegmentOn.padding.top, SegmentOn.padding.bottom) };
+            // Two icon buttons joined into one piece, as the plan's own switches: off as an icon button, on as On.
+            JoinedLeft = Joined(Boxed(Style(13f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), Raised, RaisedHover, Shade(Raised, 1.35f), RoundedLeft, scale));
+            JoinedRight = Joined(Boxed(Style(13f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), Raised, RaisedHover, Shade(Raised, 1.35f), RoundedRight, scale));
+            JoinedLeftOn = Joined(Boxed(Style(13f, Accent, FontStyle.Bold, TextAnchor.MiddleCenter), Alpha(Accent, 0.20f), Alpha(Accent, 0.28f), Alpha(Accent, 0.36f), RoundedLeft, scale));
+            JoinedRightOn = Joined(Boxed(Style(13f, Accent, FontStyle.Bold, TextAnchor.MiddleCenter), Alpha(Accent, 0.20f), Alpha(Accent, 0.28f), Alpha(Accent, 0.36f), RoundedRight, scale));
 
             // Kind tabs: flat until hovered, filled when chosen. The left padding leaves room for the kind's dot.
             Tab = Boxed(Style(13f, Dim, FontStyle.Normal, TextAnchor.MiddleLeft), Color.clear, RaisedHover, Shade(RaisedHover, 1.3f), Pill, scale);
@@ -649,6 +666,13 @@ namespace Scry
 
         private static readonly RectOffset BoxBorder = new RectOffset(10, 10, 10, 10);
 
+        /// <summary>A half of two joined icon buttons: no padding, as an icon button has none.</summary>
+        private static GUIStyle Joined(GUIStyle style)
+        {
+            style.padding = new RectOffset(0, 0, 0, 0);
+            return style;
+        }
+
         private static GUIStyle Boxed(GUIStyle text, Color normal, Color hover, Color active, Texture2D shape, float scale)
         {
             var style = new GUIStyle(text)
@@ -741,6 +765,16 @@ namespace Scry
             Eye = Shape(32, 32, EyeCoverage);
             Up = Shape(32, 32, (x, y) => y >= 6f && y <= 26f && Mathf.Abs(x - 16f) <= (26f - y) * 0.6f);
             Down = Shape(32, 32, (x, y) => y >= 6f && y <= 26f && Mathf.Abs(x - 16f) <= (y - 6f) * 0.6f);
+            RoundedLeft = Shape(32, 32, (x, y) => x >= 16f || RoundedCoverage(x, y, 32, 32, 8f));
+            RoundedRight = Shape(32, 32, (x, y) => x <= 16f || RoundedCoverage(x, y, 32, 32, 8f));
+            FoldDown = Shape(32, 32, FoldDownCoverage);
+        }
+
+        /// <summary>A chevron pointing down, its two arms meeting at the bottom, as thick as the resize arrow's shaft: folding away.</summary>
+        private static bool FoldDownCoverage(float x, float y)
+        {
+            var dx = Mathf.Abs(x - 16f);
+            return dx <= 9f && y >= 9f && y <= 22f && Mathf.Abs(y - 11f - dx) <= 2.3f;
         }
 
         /// <summary>Three steps rising to the right: the compendium's floor, tier upon tier.</summary>
