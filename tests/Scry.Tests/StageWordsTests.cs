@@ -21,8 +21,10 @@ namespace Scry.Tests
         public void OpenedTheKeySheetAddsTheFloorsAndTheCut()
         {
             var sheet = StageWords.KeySheet(cut: true, inRoom: false);
-            Assert.Contains("Page Up and Down", sheet);
-            Assert.Contains("Shift and the wheel: move the cut", sheet);
+            // Every notch steps: Shift and the wheel, Page Up and Down, the wheel on the ruler or the plan; the ruler's drag cuts anywhere.
+            Assert.Contains("Shift and the wheel, Page Up and Down, the wheel on the ruler or the plan: the next floor or level", sheet);
+            Assert.Contains("Drag on the ruler: cut anywhere", sheet);
+            Assert.DoesNotContain("move the cut", sheet);
         }
 
         [Fact]
@@ -31,7 +33,7 @@ namespace Scry.Tests
             var sheet = StageWords.KeySheet(cut: true, inRoom: true);
             Assert.Contains("Esc", sheet);
             Assert.Contains("back button", sheet);
-            Assert.Contains("past its ends", sheet);
+            Assert.Contains("Shift and the wheel, Page Up and Down: the room's next mark; past its ends, the next level", sheet);
             // The roof button puts the room's own roof on, it does not leave the room.
             Assert.DoesNotContain("roof button to come back out", sheet);
         }

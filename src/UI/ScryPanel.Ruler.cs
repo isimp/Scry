@@ -49,6 +49,24 @@ namespace Scry
             Stage.StepCut(down);
         }
 
+        /// <summary>The wheel's turns that move the cut, a step a notch however the wheel tells them.</summary>
+        private static readonly WheelNotches CutNotches = new WheelNotches();
+
+        /// <summary>
+        /// A turn of the wheel that moves the cut, as Shift and the wheel on the stage and the wheel
+        /// on the ruler, the plan box or the room's card do (down for a turn toward the player):
+        /// each notch a step as Page Up and Down take, a level, in a room gone into its next mark.
+        /// </summary>
+        private static void WheelStep(float turn)
+        {
+            var step = CutNotches.Take(turn);
+            if (step != 0) StepCutOrRoom(step > 0);
+        }
+
+        /// <summary>Turns the wheel over the stage with Shift held, as the player does, for the self-test.</summary>
+        [Diagnostic]
+        public static void WheelForTest(float turn) => WheelStep(turn);
+
         /// <summary>Where the ruler stands at the stage's right edge, and its roof button over it.</summary>
         private static Rect RulerRect(Rect stage, out Rect roof)
         {
@@ -121,7 +139,7 @@ namespace Scry
             }
             else if (e.type == EventType.ScrollWheel)
             {
-                Stage.StepCut(e.delta.y > 0f);
+                WheelStep(StageCamera.WheelTurn(e.delta.x, e.delta.y));
                 e.Use();
             }
         }
@@ -187,7 +205,7 @@ namespace Scry
             }
             else if (e.type == EventType.ScrollWheel)
             {
-                Stage.StepRoomCut(e.delta.y > 0f);
+                WheelStep(StageCamera.WheelTurn(e.delta.x, e.delta.y));
                 e.Use();
             }
         }

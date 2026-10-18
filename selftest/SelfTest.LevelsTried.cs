@@ -123,12 +123,12 @@ namespace Scry
                         var away = Stage.ExampleShown?.Rooms.Count(r => !r.Room.EndCap && !r.Room.Divider && Stage.ExampleRoomShown(r) == PlanRoomShown.None) ?? 0;
                         if (away > 0 && Stage.GhostsDrawn != away) unghosted.Add($"{entry.Name} {words}: {Numbers.Count(Stage.GhostsDrawn)} ghosts for {Numbers.Count(away)} rooms put away");
 
-                        // Shift and the wheel raise the level's cut half a metre: its first group's film with
+                        // The level's cut raised half a metre, as a drag on the ruler does: its first group's film with
                         // it, every other as far as its own ceiling lets it.
                         if (films > 1 && Stage.FilmCutsForTest is List<float> before && before.Count == films)
                         {
                             var filmGroups = Enumerable.Range(0, cuts.Groups.Count).Where(g => cuts.Groups[g].Level == level).Reverse().ToList();
-                            Stage.WheelCut(0.5f);
+                            Stage.CutBy(0.5f);
                             yield return null;
                             var after = Stage.FilmCutsForTest;
                             if (Stage.CutLevel == mark && after != null && after.Count == films)
@@ -144,7 +144,7 @@ namespace Scry
                                 }
                                 p.Note($"{entry.Name} {words}, cut raised half a metre: films moved {string.Join(", ", told)}");
                             }
-                            Stage.WheelCut(-0.5f);
+                            Stage.CutBy(-0.5f);
                             yield return null;
                         }
                     }

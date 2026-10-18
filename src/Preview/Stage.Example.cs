@@ -418,10 +418,6 @@ namespace Scry
         /// <summary>The ways between a dungeon example's rooms (<see cref="DungeonWays"/>); none for a camp's or with no example.</summary>
         public static DungeonWays ExampleWays => TheExample.Ways;
 
-        /// <summary>The lowest floor any room of the example has, in the stage's heights, for the self-test; none without rooms.</summary>
-        [Diagnostic]
-        public static float? ExampleLowestFloorForTest => TheExample.LowestFloor() is float lowest ? lowest + ExampleLift : (float?)null;
-
         /// <summary>The ruler's mark that opens a level of the plan, for the self-test.</summary>
         [Diagnostic]
         public static int ExampleMarkOfLevelForTest(int level) => TheExample.MarkOfLevel(level);
@@ -482,13 +478,6 @@ namespace Scry
         {
             var (floors, ceiling) = ExampleMarksNow();
             RefreshFloors(floors, ceiling, TheExample.Top);
-            ReachExampleFloors();
-        }
-
-        /// <summary>Lets the cut go down to the lowest floor any room of a dungeon's example has, a pit under its lowest level's rooms among them.</summary>
-        private static void ReachExampleFloors()
-        {
-            if (TheExample.IsDungeon && TheExample.LowestFloor() is float lowest) TheCut.Reach(lowest + ExampleLift);
         }
 
         /// <summary>The lowest ground of the rooms of the level opened, in the example's own space, for the plan to leave out only what lies below them; none for a camp or with none opened.</summary>
@@ -843,11 +832,7 @@ namespace Scry
             var outside = _lastShown?.Source is PlaceSource place ? PlaceView.Ground(place.Contents, place.IsRoom) : 0f;
             MeasureStanding(Origin.y + (inside ? floors[floors.Count - 1] : outside) * _baseScale.y);
             TheCut.ForgetEntry();
-            if (floorsInside)
-            {
-                SetFloors(_lastShown, floors, true, insideCeiling, TheExample.Top);
-                ReachExampleFloors();
-            }
+            if (floorsInside) SetFloors(_lastShown, floors, true, insideCeiling, TheExample.Top);
             else SetFloors(_lastShown, floors, false, PlaceCeiling, _placeTop);
             FrameAnew();
             CenterView();

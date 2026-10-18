@@ -274,12 +274,12 @@ namespace Scry
                     ScryPanel.HoverStageForTest(null);
                     Stage.ComeOut();
 
-                    // Shift and the wheel: down with the roof on, the top floor opened; far down, a turn at
-                    // a time over each gap between levels, the lowest, no lower.
+                    // Shift and the wheel: a notch down with the roof on, the top floor opened; far down,
+                    // a notch a level, the lowest, no lower.
                     Stage.OpenLevel(Stage.FloorHeights.Count);
-                    Stage.WheelCut(-0.75f);
+                    ScryPanel.WheelForTest(3f);
                     var topOpened = Stage.Cutting && Stage.CutLevel == 0;
-                    for (var turn = 0; turn < 2 * Stage.FloorHeights.Count + 2; turn++) Stage.WheelCut(-1000f);
+                    for (var turn = 0; turn < Stage.FloorHeights.Count + 2; turn++) ScryPanel.WheelForTest(3f);
                     if (!topOpened || Stage.CutLevel != Stage.FloorHeights.Count - 1) unwheeled.Add($"{entry.Name}: top floor opened {topOpened}, at floor {Numbers.Count(Stage.CutLevel + 1)} of {Numbers.Count(Stage.FloorHeights.Count)} after far down");
                     Stage.OpenLevel(Stage.FloorHeights.Count);
                 }
@@ -363,37 +363,45 @@ namespace Scry
                 yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnAbove + 1 && !Stage.Gliding, 5);
                 yield return Picture(p, $"plan {entry.Name} Above deepest gone into");
 
-                // In the room the ruler is its own: Shift and the wheel keep the cut within it, raised
-                // past its top put its roof on and bring the rooms above back, and down from there
-                // cut it again; the roof button too; none of it leaves the room.
+                // In the room the ruler is its own: from its lowest mark, Shift and the wheel step up
+                // its marks a notch each, past its top putting its roof on and bringing the rooms above
+                // back, and a notch down from there cut at its top mark again; the roof button too;
+                // none of it leaves the room.
                 if (Stage.RoomGoneInto == deepest && Stage.RoomRulerNow is RoomRuler ruler)
                 {
                     roomRulerTried++;
                     var aboveRooms = ways.Rooms.Where(r => Stage.ExampleRoomLook(r) == RoomLook.Away).ToList();
-                    Stage.WheelCut(-1000f);
+                    Stage.OpenRoomTick(0);
                     var rulerDrawn = ScryPanel.Drawn(PanelPart.Ruler);
                     yield return Until(() => ScryPanel.Drawn(PanelPart.Ruler) > rulerDrawn + 1, 3);
                     var lowest = Stage.CutAt;
                     var bar = ScryPanel.RulerBarForTest;
                     var barOn = bar.Bar >= bar.Top - 0.5f && bar.Bar <= bar.Bottom + 0.5f;
                     var shown = ScryPanel.RoomRulerShown;
-                    Stage.WheelCut(1000f);
+                    var rising = true;
+                    for (var notch = 1; notch < ruler.Ticks.Count; notch++)
+                    {
+                        var was = Stage.CutAt;
+                        ScryPanel.WheelForTest(-3f);
+                        if (!(Stage.CutAt > was + 0.01f) || Stage.RoomGoneInto != deepest) rising = false;
+                    }
+                    ScryPanel.WheelForTest(-3f);
                     var roofOn = Stage.RoomRoofOn;
                     yield return Until(() => aboveRooms.All(r => Stage.ExampleRoomDrawn(r)?.Standing == true), 3);
                     var back = aboveRooms.Count(r => Stage.ExampleRoomDrawn(r)?.Standing == true);
                     if (aboveRooms.Count > 0 && back == aboveRooms.Count) yield return Picture(p, $"plan {entry.Name} deepest with its roof on, the rooms above back");
-                    Stage.WheelCut(-0.5f);
-                    var cutAgain = !Stage.RoomRoofOn && Stage.Cutting && Mathf.Abs(Stage.CutAt - lowest) < 0.01f;
+                    ScryPanel.WheelForTest(3f);
+                    var cutAgain = !Stage.RoomRoofOn && Stage.Cutting;
                     Stage.ToggleRoof();
                     var buttonRoof = Stage.RoomRoofOn;
                     Stage.ToggleRoof();
                     var stillIn = Stage.RoomGoneInto == deepest;
-                    if (!shown || Mathf.Abs(lowest - ruler.Least) > 0.01f || !barOn || !roofOn || back != aboveRooms.Count || !cutAgain || !buttonRoof || !stillIn)
-                        unruled.Add($"{entry.Name}: ruler shown {shown}, cut down to {Numbers.Fixed(lowest, 1)} m of its least {Numbers.Fixed(ruler.Least, 1)} m, bar on the ruler {barOn}, roof on {roofOn}, {Numbers.Count(back)} of {Numbers.Count(aboveRooms.Count)} rooms above back, cut again {cutAgain}, roof button {buttonRoof}, still in the room {stillIn}");
+                    if (!shown || lowest < ruler.Least - 0.01f || !barOn || !rising || !roofOn || back != aboveRooms.Count || !cutAgain || !buttonRoof || !stillIn)
+                        unruled.Add($"{entry.Name}: ruler shown {shown}, its lowest mark cut at {Numbers.Fixed(lowest, 1)} m, its least {Numbers.Fixed(ruler.Least, 1)} m, bar on the ruler {barOn}, each notch higher {rising}, roof on {roofOn}, {Numbers.Count(back)} of {Numbers.Count(aboveRooms.Count)} rooms above back, cut again {cutAgain}, roof button {buttonRoof}, still in the room {stillIn}");
 
                     // Cut from the side, there is no height to move: the wheel leaves the room as it is, and no ruler stands.
                     Stage.SetCutFromSide(true);
-                    Stage.WheelCut(-3f);
+                    ScryPanel.WheelForTest(3f);
                     var sideRulerDrawn = ScryPanel.Drawn(PanelPart.Ruler);
                     var sideFrame = Time.frameCount;
                     yield return Until(() => Time.frameCount >= sideFrame + 3, 2);
@@ -474,10 +482,10 @@ namespace Scry
             p.Check(switchTried > 0 && unswitched.Count == 0, "the box's switch leaves the rooms below the room gone into out of the plan from above, its ways down marked, each mark finding the room it leads to, and back, the stage showing them as before; remembered with the panel", switchTried == 0 ? "no entrance had rooms below it to try the switch on" : string.Join("; ", unswitched));
             p.Check(noWayBack.Count == 0, "in a room, the stage's breadcrumb ends at the room, after its dungeon and level", string.Join("; ", noWayBack));
             p.Check(untrailed.Count == 0, "the breadcrumb names the dungeon as its page does, its level frames the level again, its menu goes into the deepest room, and its dungeon shows the whole of it with the roof on", string.Join("; ", untrailed));
-            p.Check(roomRulerTried > 0 && unruled.Count == 0, "in a room the ruler is its own: Shift and the wheel keep the cut within it, past its top its roof on and the rooms above back, down from there cut again, the roof button too, never leaving the room; cut from the side, none", roomRulerTried == 0 ? "no deepest room was cut from above" : string.Join("; ", unruled.Take(6)));
+            p.Check(roomRulerTried > 0 && unruled.Count == 0, "in a room the ruler is its own: Shift and the wheel step up its marks a notch each, past its top its roof on and the rooms above back, a notch down from there cut again, the roof button too, never leaving the room; cut from the side, none", roomRulerTried == 0 ? "no deepest room was cut from above" : string.Join("; ", unruled.Take(6)));
             p.Check(unfresh.Count == 0, "going into a room frames it afresh, a zoom or drag on what was framed before let go of", string.Join("; ", unfresh));
             p.Check(unreturned.Count == 0, "coming back out opens the level the room is on, the view on it at the zoom from before it was gone into, the room outlined", string.Join("; ", unreturned));
-            p.Check(unwheeled.Count == 0, "Shift and the wheel open the top floor from the roof and take the cut no lower than the lowest floor", string.Join("; ", unwheeled));
+            p.Check(unwheeled.Count == 0, "Shift and the wheel open the top floor from the roof a notch, and step no lower than the lowest floor", string.Join("; ", unwheeled));
             p.Check(apartCaps.Count == 0, "with a floor opened, each end cap and divider is drawn as the room it closes", string.Join("; ", apartCaps));
             p.Check(unwalked.Count == 0, "from above, every way runs along its rooms' walls inside them, and the walkway to a room lit runs from the entrance's middle to its own", string.Join("; ", unwalked.Take(6)));
             p.Check(capsFound.Count == 0, "the mouse on an end cap or divider on the stage finds the room it closes", string.Join("; ", capsFound));

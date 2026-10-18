@@ -120,24 +120,6 @@ namespace Scry
         /// <summary>Moves the cut up or down.</summary>
         public static void CutBy(float metres) => TheCut.CutBy(metres);
 
-        /// <summary>Moves the cut as Shift and the wheel do (<see cref="FloorCut.Wheel"/>): a room's cut in the room gone into, within its ruler, else through the floors, opening the one it is over; a room cut from the side has no height to move.</summary>
-        public static void WheelCut(float metres)
-        {
-            if (TheExample.Focused != null && CutFromSide) return;
-            var framed = LevelFramed();
-            var was = TheCut.Level;
-            if (!TheCut.Held) TheExample.Unfocus();
-            var past = TheCut.Wheel(metres);
-            // Past the ends of the room gone into, on to the level below or above, as Page Up and Down go.
-            if (past != 0 && TheExample.Focused != null)
-            {
-                GoOnPast(past);
-                return;
-            }
-            // Moved into another floor, the view stays on the spot it looked at; the wheel frames nothing afresh.
-            if (framed is Vector4 kept && TheCut.Level != was && TheCut.Cutting && !TheCut.Held) KeepLevelFrame(kept);
-        }
-
         /// <summary>
         /// Takes the floors of the place shown. The first time for an entry, a room is opened on
         /// its top floor and looked down into, and a location keeps its roof; a new copy of the

@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Scry
 {
-    /// <summary>The self-test's cases for moving through a dungeon's levels and rooms with Shift and the wheel, and for where the plan box's controls stand.</summary>
+    /// <summary>The self-test's cases for stepping through a dungeon's levels and rooms with Shift and the wheel, and for where the plan box's controls stand.</summary>
     internal static partial class SelfTest
     {
         /// <summary>
@@ -60,12 +60,12 @@ namespace Scry
         private static string Said(Rect at) => $"{Numbers.Fixed(at.x, 0)}, {Numbers.Fixed(at.y, 0)} ({Numbers.Fixed(at.width, 0)} by {Numbers.Fixed(at.height, 0)})";
 
         /// <summary>
-        /// The Frost Caves, whose two levels lie far apart: Shift and the wheel down keep the top
-        /// level open to just over its floor, then open the level below at its own cut, never
-        /// stopping where neither is open; up again, the top level just over its floor. On the
-        /// lowest level the cut goes down to the lowest floor any room has. A room with a floor of
-        /// its own on another level stands whole there. In a room, Shift and the wheel go on past
-        /// its ends to the level below or above, and from room to room the zoom stays.
+        /// The Frost Caves, laid out again until one has two levels: Shift and the wheel step through
+        /// its levels a notch at a time, each opened at its own cut, down and up alike, the lowest
+        /// no lower and over the top the roof on; small turns, as a touchpad's, add up to a step. A
+        /// room with a floor of its own on another level stands whole there. In a room each notch
+        /// steps its marks, and past its ends the level below or above; from room to room the zoom
+        /// stays.
         /// </summary>
         private static IEnumerator ScrollingThroughLevels(Probe p)
         {
@@ -89,48 +89,41 @@ namespace Scry
             }
             Stage.SetCutFromSide(false);
             Stage.ComeOut();
-            Stage.OpenLevel(0);
+            Stage.OpenLevel(Stage.FloorHeights.Count);
             yield return LevelSettled();
 
-            // Down through the levels.
-            var floors = Stage.FloorHeights.ToList();
+            // A notch at a time from the roof down, each level at its own cut, the lowest no lower;
+            // then up again, over the top level the roof back on.
             var cuts = Stage.CutHeights.ToList();
-            var lowestOnTop = float.PositiveInfinity;
-            var notches = 0;
-            while (Stage.CutLevel == 0 && notches++ < 80)
+            var count = cuts.Count;
+            var unstepped = new List<string>();
+            for (var notch = 0; notch <= count; notch++)
             {
-                lowestOnTop = Mathf.Min(lowestOnTop, Stage.CutAt);
-                Stage.WheelCut(-0.75f);
-                yield return null;
+                ScryPanel.WheelForTest(3f);
+                var want = Mathf.Min(notch, count - 1);
+                if (Stage.CutLevel != want || Mathf.Abs(Stage.CutAt - cuts[want]) > 0.01f)
+                    unstepped.Add($"down, notch {Numbers.Count(notch + 1)}: {Stage.CutLabel} at {Numbers.Fixed(Stage.CutAt, 2)} m, its cut {Numbers.Fixed(cuts[want], 2)} m");
             }
-            var landed = Stage.CutAt;
-            p.Check(Stage.CutLevel == 1, "Shift and the wheel go on down to the level below", Stage.CutLabel);
-            p.Check(lowestOnTop >= floors[0] + FloorCut.LeastOver - 0.01f, "the top level stays open no lower than just over its floor", $"{Numbers.Fixed(lowestOnTop, 2)} m, its floor {Numbers.Fixed(floors[0], 2)} m");
-            var farApart = floors[0] + FloorCut.LeastOver > cuts[1] + FloorCut.RoofOver;
-            if (farApart) p.Check(Mathf.Abs(landed - cuts[1]) < 0.01f, "the level far below opens at its own cut, not over its rooms' ceilings", $"{Numbers.Fixed(landed, 2)} m, its cut {Numbers.Fixed(cuts[1], 2)} m");
             yield return LevelSettled();
             var whole = Stage.ExampleShown.Rooms.Count(r => Stage.ExampleRoomShown(r) == PlanRoomShown.Whole);
-            p.Check(whole > 0, "and rooms stand whole on it", $"{Numbers.Count(whole)} rooms");
-            yield return Picture(p, $"scroll {entry.Name} down to the level below");
-
-            // Up again.
-            notches = 0;
-            while (Stage.CutLevel == 1 && notches++ < 80)
+            p.Check(whole > 0, "rooms stand whole on the lowest level", $"{Numbers.Count(whole)} rooms");
+            yield return Picture(p, $"scroll {entry.Name} down to the lowest level");
+            for (var notch = count - 2; notch >= -1; notch--)
             {
-                Stage.WheelCut(0.75f);
-                yield return null;
+                ScryPanel.WheelForTest(-3f);
+                if (notch >= 0 ? Stage.CutLevel != notch || Mathf.Abs(Stage.CutAt - cuts[notch]) > 0.01f : Stage.Cutting)
+                    unstepped.Add($"up to {(notch >= 0 ? "level " + Numbers.Count(notch + 1) : "the roof")}: {Stage.CutLabel} at {Numbers.Fixed(Stage.CutAt, 2)} m");
             }
-            p.Check(Stage.CutLevel == 0, "Shift and the wheel go on up to the level above", Stage.CutLabel);
-            if (farApart) p.Check(Mathf.Abs(Stage.CutAt - (floors[0] + FloorCut.LeastOver)) < 0.01f, "the level far above opens just over its floor", $"{Numbers.Fixed(Stage.CutAt, 2)} m");
+            p.Check(unstepped.Count == 0, "Shift and the wheel step a level a notch, each at its own cut, down and up alike, the lowest no lower, over the top the roof on", string.Join("; ", unstepped));
 
-            // Down to the lowest floor any room has.
-            var last = floors.Count - 1;
-            Stage.OpenLevel(last);
-            yield return LevelSettled();
-            for (var i = 0; i < 4; i++) Stage.WheelCut(-1000f);
-            var lowest = Stage.ExampleLowestFloorForTest;
-            var least = Mathf.Min(floors[last], lowest ?? floors[last]) + FloorCut.LeastOver;
-            p.Check(Stage.CutLevel == last && Mathf.Abs(Stage.CutAt - least) < 0.01f, "on the lowest level the cut goes down to the lowest floor any room has", $"{Numbers.Fixed(Stage.CutAt, 2)} m, the lowest floor {Numbers.Fixed(lowest ?? float.NaN, 2)} m");
+            // Small turns, as a touchpad's, add up to a step.
+            Stage.OpenLevel(0);
+            ScryPanel.WheelForTest(-0.5f);
+            ScryPanel.WheelForTest(0.4f);
+            ScryPanel.WheelForTest(0.4f);
+            var held = Stage.CutLevel;
+            ScryPanel.WheelForTest(0.4f);
+            p.Check(held == 0 && Stage.CutLevel == 1, "small turns of the wheel add up to one step", $"level {Numbers.Count(held + 1)}, then {Numbers.Count(Stage.CutLevel + 1)}");
 
             // A room with a floor of its own on another level stands whole there.
             var levelCuts = Stage.ExampleLevelCuts;
@@ -153,26 +146,29 @@ namespace Scry
             if (reaching.Count == 0) p.Note($"{entry.Name}: no room of this example has a floor of its own on another level");
             else p.Check(unstood.Count == 0, "a room with a floor of its own on another level stands whole there", string.Join("; ", unstood));
 
-            // In a room, Shift and the wheel go on past its ends.
+            // In a room each notch steps its marks, the cut lower each time, and past its lowest the level below.
             var top = rooms.FirstOrDefault(r => Stage.ExampleLevelOfRoomForTest(r) == 0);
             var below = rooms.FirstOrDefault(r => Stage.ExampleLevelOfRoomForTest(r) == 1);
             if (top != null)
             {
                 Stage.GoInto(top);
                 yield return Until(() => Stage.RoomGoneInto == top && !Stage.Gliding, 5);
-                Stage.WheelCut(-1000f);
-                Stage.WheelCut(-0.75f);
-                yield return null;
-                p.Check(Stage.RoomGoneInto == null && Stage.CutLevel == Stage.ExampleMarkOfLevelForTest(1), "in a room, Shift and the wheel down past its lowest go on to the level below", Stage.RoomGoneInto?.Room.Name ?? Stage.CutLabel);
+                var marks = new List<float>();
+                for (var notch = 0; notch < 12 && Stage.RoomGoneInto == top; notch++)
+                {
+                    marks.Add(Stage.CutAt);
+                    ScryPanel.WheelForTest(3f);
+                }
+                var falling = marks.Zip(marks.Skip(1), (a, b) => b < a - 0.01f).All(f => f);
+                p.Check(Stage.RoomGoneInto == null && Stage.CutLevel == Stage.ExampleMarkOfLevelForTest(1) && falling,
+                    "in a room each notch steps its marks down, and past its lowest the level below", $"{Numbers.Count(marks.Count)} marks, {Stage.RoomGoneInto?.Room.Name ?? Stage.CutLabel}");
             }
             if (below != null)
             {
                 Stage.GoInto(below);
                 yield return Until(() => Stage.RoomGoneInto == below && !Stage.Gliding, 5);
-                Stage.WheelCut(1000f);
-                Stage.WheelCut(0.75f);
-                yield return null;
-                p.Check(Stage.RoomGoneInto == null && Stage.CutLevel == Stage.ExampleMarkOfLevelForTest(0), "and up past its roof on to the level above", Stage.RoomGoneInto?.Room.Name ?? Stage.CutLabel);
+                for (var notch = 0; notch < 12 && Stage.RoomGoneInto == below; notch++) ScryPanel.WheelForTest(-3f);
+                p.Check(Stage.RoomGoneInto == null && Stage.CutLevel == Stage.ExampleMarkOfLevelForTest(0), "and up past its roof the level above", Stage.RoomGoneInto?.Room.Name ?? Stage.CutLabel);
             }
 
             // From room to room the zoom stays.

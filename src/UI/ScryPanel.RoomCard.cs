@@ -378,7 +378,9 @@ namespace Scry
             else if (openPage) Go(explorer, card.Key);
             else if (goPage != null) Go(explorer, goPage);
 
-            // The card is not the stage: a click or the wheel on it neither turns nor zooms it.
+            // The card is not the stage: a click on it neither turns nor zooms it, and the wheel on it
+            // steps the room's cut a mark a notch, as Shift and the wheel do on the stage.
+            if (area.Contains(e.mousePosition) && e.type == EventType.ScrollWheel && Stage.HasFloors) WheelStep(StageCamera.WheelTurn(e.delta.x, e.delta.y));
             if (area.Contains(e.mousePosition) && (e.type == EventType.MouseDown || e.type == EventType.ScrollWheel)) e.Use();
             return area;
         }

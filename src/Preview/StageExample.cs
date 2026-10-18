@@ -552,20 +552,8 @@ namespace Scry
             for (var i = 0; i < rooms.Count; i++) levelOf.Add(levels.LevelOf(rooms[i]));
             _levelGrounds = grounds;
             _levelCuts = LevelCuts.Of(grounds, ceilings, levelOf, floors);
-            _lowestFloor = null;
-            for (var i = 0; i < rooms.Count; i++)
-            {
-                var low = _levelCuts.LowestFloor(i);
-                if (!float.IsNaN(low) && (_lowestFloor == null || low < _lowestFloor)) _lowestFloor = low;
-            }
             return _levelCuts;
         }
-
-        /// <summary>The lowest floor any room has, its own lower levels among them, in the example's own space; none with no rooms.</summary>
-        private float? _lowestFloor;
-
-        /// <summary>The lowest floor any room of the example has, which the cut may go down to; none with no rooms or no ways.</summary>
-        public float? LowestFloor() => LevelCutsNow() != null ? _lowestFloor : null;
 
         /// <summary>Each room's ground as the level cuts were worked out with it, by its place among the rooms.</summary>
         private List<float> _levelGrounds = new List<float>();

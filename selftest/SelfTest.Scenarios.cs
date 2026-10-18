@@ -144,7 +144,7 @@ namespace Scry
             yield return S("the plan box shows a dungeon from above, as a map turned to any angle, and as a tree of its ways", PlanBoxShows, 360, () => { PlanBoxAsItWas(); StageAsItWas(); }, bearsSkips: true);
             yield return S("nothing drawn over the stage covers anything else, whatever its size and the plan box's", NothingOverlapsOnStage, 180, () => { OverlapsAsTheyWere(); StageAsItWas(); }, bearsSkips: true);
             yield return S("the whole of a dungeon opens by the plan's levels, each filmed in as many cuts as it needs", LevelsTried, 300, StageAsItWas, bearsSkips: true);
-            yield return S("Shift and the wheel go through a dungeon's levels and rooms, never stopping where none is open, the zoom kept from room to room", ScrollingThroughLevels, 240, () => { Stage.ComeOut(); StageAsItWas(); }, bearsSkips: true);
+            yield return S("Shift and the wheel step through a dungeon's levels and rooms a notch at a time, the zoom kept from room to room", ScrollingThroughLevels, 240, () => { Stage.ComeOut(); StageAsItWas(); }, bearsSkips: true);
             yield return S("places' floors are kept and told again from what was kept, as their rays find them", FloorsKept, 300, KeptFloorsUnverified, bearsSkips: true);
             yield return S("a place whose kept floors are still being found waits for them over frames, none of them long", FloorsWaitedFor, 300, FloorFilesFreed, bearsSkips: true);
             yield return S("a place's creatures stand on the stage with it", PlaceCreatures, 60, bearsSkips: true);

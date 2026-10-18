@@ -67,14 +67,15 @@ namespace Scry
 
         /// <summary>
         /// What the stage answers to, a control a line, as its ? shows: turning, moving and
-        /// zooming; with floors, stepping them and moving the cut; in a room gone into, its cut,
-        /// on past its ends, and coming back out; inside a dungeon, picking a room and going into it.
+        /// zooming; with floors, every notch and key stepping them, the ruler's drag cutting
+        /// anywhere; in a room gone into, its marks, on past its ends, and coming back out; inside
+        /// a dungeon, picking a room and going into it.
         /// </summary>
         public static string KeySheet(bool cut, bool inRoom, bool rooms = false)
         {
             var sheet = inRoom
-                ? "Drag: turn around the room\nWheel: zoom toward the pointer\nShift and the wheel, Page Up and Down: the room's cut; past its ends, the next level\nEsc, the breadcrumb's level or the mouse's back button: come back out"
-                : "Drag: turn it\nRight-drag: move it\nWheel: zoom toward the pointer\nDouble-click: frame it again" + (cut ? "\nPage Up and Down, the ruler: the next floor or level\nShift and the wheel: move the cut" : "");
+                ? "Drag: turn around the room\nWheel: zoom toward the pointer\nShift and the wheel, Page Up and Down: the room's next mark; past its ends, the next level\nEsc, the breadcrumb's level or the mouse's back button: come back out"
+                : "Drag: turn it\nRight-drag: move it\nWheel: zoom toward the pointer\nDouble-click: frame it again" + (cut ? "\nShift and the wheel, Page Up and Down, the wheel on the ruler or the plan: the next floor or level\nDrag on the ruler: cut anywhere" : "");
             return rooms ? sheet + "\nClick a room: pick it, Esc letting go of it\nDouble-click a room or Enter: go into it" : sheet;
         }
 

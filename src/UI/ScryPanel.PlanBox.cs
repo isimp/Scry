@@ -448,7 +448,9 @@ namespace Scry
                 }
             }
 
-            // The box is not the stage: a click or the wheel on it neither turns nor zooms it.
+            // The box is not the stage: a click on it neither turns nor zooms it, and the wheel on it
+            // steps the cut, a level or a room's mark a notch, as Shift and the wheel do on the stage.
+            if (box.Contains(e.mousePosition) && e.type == EventType.ScrollWheel && Stage.HasFloors) WheelStep(StageCamera.WheelTurn(e.delta.x, e.delta.y));
             if (box.Contains(e.mousePosition) && (e.type == EventType.MouseDown || e.type == EventType.ScrollWheel)) e.Use();
             return box;
         }
