@@ -31,6 +31,12 @@ namespace Scry
 
         /// <summary>Collected from a producer: how often it makes what it makes.</summary>
         Collected,
+
+        /// <summary>Saw a crop grow: how long that takes.</summary>
+        Grew,
+
+        /// <summary>Saw a station hand out what it made: how long each takes and what it burns.</summary>
+        Finished,
     }
 
     /// <summary>

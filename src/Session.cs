@@ -162,6 +162,8 @@ namespace Scry
             Timing.Add("compendium tiers", step);
             // Only the skills the character has learned show; read only while the compendium is on.
             if (rule != CompendiumRule.Off) _known.SkillsLearned(YourSkills.Learned, YourSkills.LearnedVersion);
+            // Under the strict rules a dungeon's rooms show by their kinds walked.
+            if (rule == CompendiumRule.Strict) _known.RoomsWalked(WalkedRooms.Walked, WalkedRooms.Version);
             if (!_known.OnlyLearnedSince(book, rule) || Time.unscaledTime - _knownToldAt >= 1f)
             {
                 step = Timing.Start();

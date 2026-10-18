@@ -11,6 +11,9 @@ namespace Scry
     /// </summary>
     internal static class DungeonWords
     {
+        /// <summary>A room's name where the compendium's strict rules keep it back, its kind not yet walked.</summary>
+        public const string RoomNotWalked = "A room not yet walked";
+
         public static string Layout(DungeonPlan plan)
         {
             switch (plan.Algorithm)

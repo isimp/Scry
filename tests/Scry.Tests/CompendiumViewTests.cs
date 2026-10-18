@@ -262,6 +262,43 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void UnderStrictADungeonKnownMakesKnownOnlyTheKindsOfRoomTheCharacterWalked()
+        {
+            var crypt = Place("Crypt2", "Burial chambers");
+            var walked = Room("sunkencrypt_Room1", "Burial chambers");
+            var notWalked = Room("sunkencrypt_Room2", "Burial chambers");
+            var view = View(crypt, walked, notWalked);
+            var book = new CompendiumBook();
+            book.Raise(crypt.Key, KnownLevel.Known);
+            var stood = new HashSet<string> { "sunkencrypt_Room1" };
+            view.RoomsWalked(stood.Contains, 1);
+
+            view.Tell(book, CompendiumRule.Strict);
+            Assert.Equal(KnownLevel.Known, view.Of(walked));
+            Assert.True(view.Of(notWalked) < KnownLevel.Seen);
+
+            // Walking one more shows it at the next telling, nothing else changed.
+            stood.Add("sunkencrypt_Room2");
+            view.RoomsWalked(stood.Contains, 2);
+            view.Tell(book, CompendiumRule.Strict);
+            Assert.Equal(KnownLevel.Known, view.Of(notWalked));
+        }
+
+        [Fact]
+        public void UnderLooseADungeonKnownMakesKnownEveryKindOfRoomWalkedOrNot()
+        {
+            var crypt = Place("Crypt2", "Burial chambers");
+            var notWalked = Room("sunkencrypt_Room2", "Burial chambers");
+            var view = View(crypt, notWalked);
+            var book = new CompendiumBook();
+            book.Raise(crypt.Key, KnownLevel.Known);
+            view.RoomsWalked(_ => false, 1);
+
+            view.Tell(book, CompendiumRule.Loose);
+            Assert.Equal(KnownLevel.Known, view.Of(notWalked));
+        }
+
+        [Fact]
         public void WhatIsToldFollowsThePlacesReadAfterTheViewWasMade()
         {
             // Reading the world's places names where things are found and what each place goes by.

@@ -8,7 +8,8 @@ namespace Scry
     /// rules (<see cref="Deed"/>): a tamed creature giving birth (<c>Procreation.Procreate</c>,
     /// its pregnancy ending), a young one growing up (<c>Growup.GrowUpdate</c>, the young one
     /// gone as the grown one comes), a pickable growing back (<c>Pickable.SetPicked</c> to not
-    /// picked). Each counts within sight of the character, and only where the game does it on
+    /// picked), a crop growing (<c>Plant.Grow</c>), a station handing out what it made
+    /// (<c>Smelter.Spawn</c>, <c>Fermenter.DelayedTap</c>, <c>CookingStation.SpawnItem</c>). Each counts within sight of the character, and only where the game does it on
     /// this machine, as for the creature's or pickable's owner. The hooks only watch.
     /// </summary>
     internal static class DeedWatch
@@ -66,6 +67,20 @@ namespace Scry
         {
             if (!held || user == null || user != Player.m_localPlayer) return;
             Guard.Run(Feature.CompendiumTogether, "noting a producer collected from", () => CompendiumKeeper.SawDone(producer.gameObject, Deed.Collected));
+        }
+
+        /// <summary>A crop that grew in this call, within sight: grown.</summary>
+        public static void Grown(Plant plant, bool grew)
+        {
+            if (!grew || !InSight(plant)) return;
+            Guard.Run(Feature.CompendiumTogether, "noting a crop grown", () => CompendiumKeeper.SawDone(plant.gameObject, Deed.Grew));
+        }
+
+        /// <summary>A station that handed out what it made in this call, within sight: its work seen finished.</summary>
+        public static void Finished(Component station)
+        {
+            if (!InSight(station)) return;
+            Guard.Run(Feature.CompendiumTogether, "noting a station's work finished", () => CompendiumKeeper.SawDone(station.gameObject, Deed.Finished));
         }
 
         /// <summary>A picked pickable set back to not picked: grown back.</summary>
@@ -130,5 +145,33 @@ namespace Scry
         private static void Prefix(Pickable __instance, out bool __state) => __state = __instance != null && __instance.GetPicked();
 
         private static void Postfix(Pickable __instance, bool picked, bool __state) => DeedWatch.SetPicked(__instance, __state, picked);
+    }
+
+    /// <summary>A crop grown within sight shows how long it takes (<c>Plant.Grow</c>, the grown prefab made in its place).</summary>
+    [HarmonyPatch(typeof(Plant), nameof(Plant.Grow))]
+    internal static class CropGrown
+    {
+        private static void Postfix(Plant __instance, GameObject __result) => DeedWatch.Grown(__instance, __result != null);
+    }
+
+    /// <summary>A smelter, kiln, windmill or the like handing out what it made within sight shows how long each takes and what it burns (<c>Smelter.Spawn</c>).</summary>
+    [HarmonyPatch(typeof(Smelter), "Spawn")]
+    internal static class SmeltingFinished
+    {
+        private static void Postfix(Smelter __instance) => DeedWatch.Finished(__instance);
+    }
+
+    /// <summary>A fermenter tapped within sight shows how long it ferments (<c>Fermenter.DelayedTap</c>).</summary>
+    [HarmonyPatch(typeof(Fermenter), "DelayedTap")]
+    internal static class FermentingFinished
+    {
+        private static void Postfix(Fermenter __instance) => DeedWatch.Finished(__instance);
+    }
+
+    /// <summary>A cooking station handing out what it cooked within sight shows how long each takes and what it burns (<c>CookingStation.SpawnItem</c>).</summary>
+    [HarmonyPatch(typeof(CookingStation), "SpawnItem")]
+    internal static class CookingFinished
+    {
+        private static void Postfix(CookingStation __instance) => DeedWatch.Finished(__instance);
     }
 }

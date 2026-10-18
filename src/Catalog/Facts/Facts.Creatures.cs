@@ -330,8 +330,9 @@ namespace Scry
             Add("Breeds when", BreedWords.Needs(breed.m_partnerCheckRange, partner, breed.m_noPartnerOffspring != null));
             Add("Love", BreedWords.Love(breed.m_updateInterval, breed.m_pregnancyChance, breed.m_requiredLovePoints));
             Add("Pregnant for", Numbers.Duration(breed.m_pregnancyDuration));
-            Proofs["Pregnant for"] = EntryKeys.Did(Deed.Born);
             Add("Stops breeding", BreedWords.Crowd(breed.m_maxCreatures, breed.m_totalCheckRange));
+            // The game shows none of these numbers: under the strict rules they wait for a birth seen.
+            Proofs["Breeds when"] = Proofs["Love"] = Proofs["Pregnant for"] = Proofs["Stops breeding"] = EntryKeys.Did(Deed.Born);
             if (breed.m_offspring != null) Rows.Add(new Row { Title = BreedWords.Young(breed.m_minOffspringLevel), Items = { Chip(breed.m_offspring.name, "") } });
             if (breed.m_noPartnerOffspring != null) Rows.Add(new Row { Title = "With no partner near, has", Items = { Chip(breed.m_noPartnerOffspring.name, "") } });
         }

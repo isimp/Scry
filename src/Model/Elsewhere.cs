@@ -20,7 +20,7 @@ namespace Scry
     /// <summary>What only the game running a thing sees, so another player's game may run it in the character's place.</summary>
     internal static class OtherGames
     {
-        /// <summary>Whether a deed is seen only by the game running the thing: a birth, growing up, a break, a starred one's fall, a spawn.</summary>
+        /// <summary>Whether a deed is seen only by the game running the thing: a birth, growing up, a break, a starred one's fall, a spawn, a crop grown, a station's work finished.</summary>
         public static bool MayRun(Deed deed)
         {
             switch (deed)
@@ -30,6 +30,8 @@ namespace Scry
                 case Deed.Broke:
                 case Deed.StarredFell:
                 case Deed.Spawned:
+                case Deed.Grew:
+                case Deed.Finished:
                     return true;
                 default:
                     return false;

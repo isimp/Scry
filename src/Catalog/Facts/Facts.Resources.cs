@@ -142,6 +142,8 @@ namespace Scry
             if (plant != null)
             {
                 Add("Takes to grow", Numbers.DurationRange(plant.m_growTime, Math.Max(plant.m_growTime, plant.m_growTimeMax)));
+                // The game never shows it: under the strict rules it waits for one seen grown.
+                Proofs["Takes to grow"] = EntryKeys.Did(Deed.Grew);
                 if (plant.m_biome != 0) BiomeRow("Grows in", plant.m_biome);
                 if (plant.m_needCultivatedGround) Add("Needs", GatherWords.CultivatedGround);
                 Hooked(HookedRule.Growth);

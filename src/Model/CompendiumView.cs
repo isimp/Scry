@@ -66,6 +66,9 @@ namespace Scry
         private Func<int, bool> _learned;
         private int _learnedVersion = -1;
         private bool _skillsMoved;
+        private Func<string, bool> _walked;
+        private int _walkedVersion = -1;
+        private bool _roomsMoved;
 
         public CompendiumView(EntryCatalog catalog)
         {
@@ -158,6 +161,23 @@ namespace Scry
             _skillsMoved = true;
         }
 
+        /// <summary>
+        /// The kinds of dungeon room the character has stood in, by the room's prefab name, and a
+        /// count that moves each time which they are changes (<c>DungeonWalks</c>). Under the strict
+        /// rules a dungeon known brings along only the kinds of room walked; under the loose rules
+        /// every room it is built of. Told on the next <see cref="Tell"/> when the count moved.
+        /// </summary>
+        public void RoomsWalked(Func<string, bool> walked, int version)
+        {
+            if (version == _walkedVersion && walked == _walked) return;
+            _walked = walked;
+            _walkedVersion = version;
+            _roomsMoved = true;
+        }
+
+        /// <summary>Whether a room is of a kind the character has stood in (<see cref="RoomsWalked"/>).</summary>
+        private bool Walked(Entry room) => _walked != null && _walked(room.Name);
+
         /// <summary>Whether the character has learned a skill (<see cref="SkillsLearned"/>).</summary>
         private bool Learned(Entry skill) => _learned != null && skill.Source is SkillSource source && _learned(source.Type);
 
@@ -208,7 +228,7 @@ namespace Scry
         /// (<see cref="Tell"/>), and with the panel open at most once a second.
         /// </summary>
         public bool OnlyLearnedSince(CompendiumBook book, CompendiumRule rule) =>
-            book != null && ReferenceEquals(book, _book) && book.Version != _bookVersion && rule == _rule && !_floorMoved && !_skillsMoved && _indexedAt == _catalog.Regroups;
+            book != null && ReferenceEquals(book, _book) && book.Version != _bookVersion && rule == _rule && !_floorMoved && !_skillsMoved && !_roomsMoved && _indexedAt == _catalog.Regroups;
 
         /// <summary>
         /// Works out every entry's level for this book and rule, unless nothing changed since last
@@ -220,7 +240,7 @@ namespace Scry
         {
             if (book == null) book = new CompendiumBook();
             var regrouped = _indexedAt != _catalog.Regroups;
-            if (ReferenceEquals(book, _book) && book.Version == _bookVersion && rule == _rule && !regrouped && !_floorMoved && !_skillsMoved) return;
+            if (ReferenceEquals(book, _book) && book.Version == _bookVersion && rule == _rule && !regrouped && !_floorMoved && !_skillsMoved && !_roomsMoved) return;
             if (rule != CompendiumRule.Off && OnlyLearnedSince(book, rule) && book.RaisedSince(_bookVersion, Raised))
             {
                 _bookVersion = book.Version;
@@ -231,6 +251,7 @@ namespace Scry
             }
             _floorMoved = false;
             _skillsMoved = false;
+            _roomsMoved = false;
             // Off, everything is known whatever the book holds: nothing to tell again.
             var stillOff = rule == CompendiumRule.Off && _rule == CompendiumRule.Off;
             _book = book;
@@ -380,7 +401,8 @@ namespace Scry
             var label = Places.LabelOf(owner);
             if (label != null && Of(owner) == KnownLevel.Known && _rooms.TryGetValue(label, out var rooms))
             {
-                foreach (var room in rooms) yield return room;
+                // Under the strict rules only the kinds of room walked.
+                foreach (var room in rooms) if (_rule != CompendiumRule.Strict || Walked(room)) yield return room;
             }
             foreach (var link in owner.Links)
             {

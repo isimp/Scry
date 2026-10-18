@@ -61,6 +61,8 @@ namespace Scry
                     Add("While away", StationWords.CatchesUp(StationWords.SmelterCatchUp));
                 }
                 else Add("Each takes", Numbers.Duration(smelter.m_secPerProduct));
+                // The game shows neither how long each takes nor what it burns: under the strict rules they wait for one seen finished.
+                Proofs["Each takes"] = Proofs["Burns"] = EntryKeys.Did(Deed.Finished);
                 if (smelter.m_requiresRoof) Add("Needs", StationWords.Roof);
                 Hooked(HookedRule.Smelting);
             }
@@ -75,6 +77,7 @@ namespace Scry
                     var least = times.Min();
                     var most = times.Max();
                     Add("Each takes", Numbers.DurationRange(least, most));
+                    Proofs["Each takes"] = EntryKeys.Did(Deed.Finished);
                 }
                 if (cooking.m_canOvercookItems && cooking.m_overCookedItem != null)
                 {
@@ -84,6 +87,7 @@ namespace Scry
                 {
                     Add("Burns", StationWords.BurnsOneEvery(ItemName(cooking.m_fuelItem.gameObject), cooking.m_secPerFuel), cooking.m_fuelItem.gameObject.name);
                     Add("Holds", StationWords.Fuel(cooking.m_maxFuel));
+                    Proofs["Burns"] = EntryKeys.Did(Deed.Finished);
                 }
                 if (cooking.m_requireFire) Add("Needs", StationWords.FireUnder);
                 // Food taken off it may come with more, likelier by the skill it trains (CookingStation.OnInteract).
@@ -101,6 +105,7 @@ namespace Scry
             if (fermenter != null)
             {
                 Add("Each takes", Numbers.Duration(fermenter.m_fermentationDuration));
+                Proofs["Each takes"] = EntryKeys.Did(Deed.Finished);
                 // Fermenter.UpdateCover restarts the batch without a roof or with less than 70% cover.
                 Add("Needs", StationWords.Sheltered);
                 Hooked(HookedRule.Fermenting);

@@ -501,8 +501,13 @@ namespace Scry
             return new Rect(area.x + left, area.y, area.width - left, size);
         }
 
-        private static string BoxRoomName(Explorer explorer, PlacedRoom room) =>
-            ShownName(explorer, EntryKeys.For(Kind.Location, room.Room.Name), LocationWords.RoomName(room.Room.Name));
+        /// <summary>A room's name as the plan box, the room card and the breadcrumb tell it: its page's, else its prefab's words; a kind not met, "a room not yet walked".</summary>
+        private static string BoxRoomName(Explorer explorer, PlacedRoom room)
+        {
+            // Under the strict rules a kind of room not yet walked stands unnamed.
+            var key = EntryKeys.For(Kind.Location, room.Room.Name);
+            return explorer.NotMet(key) ? DungeonWords.RoomNotWalked : ShownName(explorer, key, LocationWords.RoomName(room.Room.Name));
+        }
 
         /// <summary>Whether a point lies inside a four-sided shape with no corner bent in, its corners in order round it.</summary>
         private static bool InQuad(Vector2[] quad, Vector2 point)

@@ -90,7 +90,7 @@ namespace Scry
 
             var ways = Stage.ExampleWays;
             card = new RoomCardShown { Room = room, Read = Stage.ExampleRoomsRead, Rooms = Stage.ExampleRoomsShown, Know = explorer.KnowStamp, Strict = explorer.LeavingOut, Trims = explorer.NamesOnlyMet, LayoutOnly = ExampleLayouts.ShowsWorlds };
-            string RoomName(PlacedRoom r) => ShownName(explorer, EntryKeys.For(Kind.Location, r.Room.Name), LocationWords.RoomName(r.Room.Name));
+            string RoomName(PlacedRoom r) => BoxRoomName(explorer, r);
             card.Key = EntryKeys.For(Kind.Location, room.Room.Name);
             card.Name = RoomName(room);
             card.Goes = Goes(explorer, card.Key);
