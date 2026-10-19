@@ -277,8 +277,8 @@ namespace Scry
                     else
                     {
                         foundBelow++;
-                        yield return Until(() => Stage.LitRoom == below && Stage.LitOutlineShown, 3);
                         var top = below.Position.Y + below.Room.Size.Y / 2f;
+                        yield return Until(() => Stage.LitRoom == below && Stage.LitOutlineShown && (!Stage.OutlinesPastCutForTest || Mathf.Abs(Stage.LitOutlineTopLaid - top) <= 0.01f), 3);
                         if (Stage.LitRoom != below || !Stage.LitOutlineShown) unchosen.Add($"{entry.Name}: {below.Room.Name} found but not outlined");
                         else
                         {

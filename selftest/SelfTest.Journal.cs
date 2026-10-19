@@ -59,7 +59,9 @@ namespace Scry
             p.Check(Line("Killed you") == "twice, last on day 21", "the deaths it dealt are counted with the last", Line("Killed you"));
             yield return PictureOf(p, "facts", "you Troll, first seen, came to know and killed you");
 
-            // Learned, by day.
+            // Learned, by day, the folds as the list starts them, the selection in the newest day.
+            ScryPanel.FoldsAsAtFirstForTest();
+            X.Select(boar);
             X.LearnedOnly = true;
             yield return null;
             yield return null;
@@ -69,6 +71,13 @@ namespace Scry
             p.Check(headings.Select(h => h.Folded).SequenceEqual(DaysFolded), "the newest day is open, older days and what has no day are folded");
             p.Check(X.LearnedNote(boar) == "seen" && X.LearnedNote(troll) == "fought" && X.LearnedNote(wood) == "known", "each row says how it came", $"{X.LearnedNote(boar)}, {X.LearnedNote(troll)}, {X.LearnedNote(wood)}");
             yield return Picture(p, "learned by day");
+            // The selection moved into a folded day opens it.
+            X.Select(troll);
+            yield return null;
+            yield return null;
+            var opened = ScryPanel.ListHeadingsForTest;
+            p.Check(opened.Any(h => h.Heading.StartsWith("Day 12", System.StringComparison.Ordinal) && !h.Folded), "the selection moved into a folded day opens it",
+                string.Join("; ", opened.Select(h => h.Heading + (h.Folded ? " (folded)" : ""))));
 
             // The notice in words.
             p.Check(ScryPanel.NewsLine == "Since day 12: came to know Troll, saw Boar, and read 1 thing from the game's records of this character", "the notice tells what happened in words", ScryPanel.NewsLine);

@@ -276,8 +276,9 @@ namespace Scry
         /// <summary>The groups folded away, by kind and name; they stay folded while the game runs.</summary>
         private static readonly HashSet<string> FoldedGroups = new HashSet<string>(StringComparer.Ordinal);
 
-        /// <summary>The selection a folded group was last opened for, so one is opened once, when the selection moves into it.</summary>
+        /// <summary>The selection a folded group was last opened for, and the list it was in, so one is opened once, when the selection moves into it or the list turns to another kind or to what was learned.</summary>
         private static Entry _foldChecked;
+        private static (bool Learned, Kind? Kind) _foldCheckedIn;
 
         private static string FoldKey(Explorer explorer, string group) => explorer.KindFilter + "|" + group;
 
@@ -339,6 +340,14 @@ namespace Scry
 
         private static readonly List<ListRow> _listRows = new List<ListRow>();
 
+        /// <summary>Puts every group back as the list starts it, folded or open, for the self-test.</summary>
+        [Diagnostic]
+        public static void FoldsAsAtFirstForTest()
+        {
+            FoldedGroups.Clear();
+            _rowsFor = null;
+        }
+
         /// <summary>The list's group headings as last listed, each with whether it is folded, for the self-test.</summary>
         [Diagnostic]
         public static List<(string Heading, bool Folded)> ListHeadingsForTest => _listRows.Where(r => r.Entry < 0).Select(r => (r.Heading, r.Folded)).ToList();
@@ -363,9 +372,11 @@ namespace Scry
             // A selection that lands in a folded group, by a link or a search, opens it; folding
             // the group the selection is in afterwards keeps it folded.
             var selected = explorer.SelectedIndex;
-            if (!ReferenceEquals(explorer.Selected, _foldChecked))
+            var listedIn = (explorer.LearnedOnly, explorer.KindFilter);
+            if (!ReferenceEquals(explorer.Selected, _foldChecked) || listedIn != _foldCheckedIn)
             {
                 _foldChecked = explorer.Selected;
+                _foldCheckedIn = listedIn;
                 if (selected >= 0 && selected < results.Count && Unfold(explorer, results[selected])) _rowsFor = null;
             }
             if (ReferenceEquals(results, _rowsFor)) return _listRows;

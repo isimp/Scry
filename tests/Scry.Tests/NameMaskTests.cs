@@ -24,6 +24,8 @@ namespace Scry.Tests
             // Nothing the game names, nor the parts the game is built of.
             Assert.False(NameMask.Keeps(new Entry { Name = "rock_mistlands1", Kind = Kind.Resource }, byWords: false));
             Assert.False(NameMask.Keeps(new Entry { Name = "vfx_fire", DisplayName = "Fire", Kind = Kind.Effect }, byWords: false));
+            // A status effect's name is mostly a word of what it does to you ("Fire", "Wet", "Cold"): "fires" stays.
+            Assert.False(NameMask.Keeps(new Entry { Name = "Fire", DisplayName = "Fire", Kind = Kind.StatusEffect }, byWords: false));
             Assert.False(NameMask.Keeps(null, byWords: false));
         }
 
