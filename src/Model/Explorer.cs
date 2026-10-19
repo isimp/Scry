@@ -289,8 +289,9 @@ namespace Scry
 
         /// <summary>
         /// Whether the page shown leaves out a fact naming the entry a key names: on a known page
-        /// under either rules, what the character has not met (<see cref="NotMet"/>); under the
-        /// strict rules above the milestone floor also what it never saw go together with the
+        /// under either rules, what the character has not met (<see cref="NotMet"/>), unless the
+        /// page is a place shown with all it holds (<see cref="CompendiumView.HoldsNamed"/>); under
+        /// the strict rules above the milestone floor also what it never saw go together with the
         /// page, is no part of it (its sounds, effects, projectiles) and owns it not. Never a mod,
         /// always known, nor a skill the character has learned; always one it has not.
         /// </summary>
@@ -299,7 +300,7 @@ namespace Scry
             if (!NamesOnlyMet) return false;
             var other = Find(key);
             if (other == null || other == _selected || other.Kind == Kind.Mod) return false;
-            if (_view.Of(other) < KnownLevel.Seen) return true;
+            if (_view.Of(other) < KnownLevel.Seen) return !NamesAllHeld(other);
             return other.Kind != Kind.Skill && LeavingOut && !_view.Related(_selected, other);
         }
 
@@ -313,15 +314,19 @@ namespace Scry
 
         /// <summary>
         /// Whether a key names an entry of the catalog the character has not met, seen or come to
-        /// know, with the compendium on, whatever page is shown: a creature so is left off a
-        /// place's example on the stage. Never while peeking or with the compendium off.
+        /// know, with the compendium on: a creature so is left off a place's example on the stage,
+        /// and out of a room's card, unless the page shown is a place shown with all it holds.
+        /// Never while peeking or with the compendium off.
         /// </summary>
         public bool NotMet(string key)
         {
             if (!CompendiumOn) return false;
             var entry = Find(key);
-            return entry != null && _view.Of(entry) < KnownLevel.Seen;
+            return entry != null && _view.Of(entry) < KnownLevel.Seen && !NamesAllHeld(entry);
         }
+
+        /// <summary>Whether the page shown names an entry the character never met as one of all it holds: a place shown with its insides (<see cref="CompendiumView.HoldsNamed"/>); never a skill not learned, named nowhere.</summary>
+        private bool NamesAllHeld(Entry other) => other.Kind != Kind.Skill && _view.HoldsNamed(_selected);
 
         /// <summary>
         /// The faint line at a section's end telling how many things its page left out, in the

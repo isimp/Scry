@@ -279,9 +279,15 @@ namespace Scry
         public bool Whole(Entry entry) => BelowFloor(entry) || entry != null && _byWorld.ContainsKey(entry);
 
         /// <summary>Whether a dungeon shows all of its inside by the player's choice: by the floor, or by a source shown with insides.</summary>
-        public bool InsidesShown(Entry entry) => BelowFloor(entry) || entry != null && _insidesShown.Contains(entry);
+        public bool InsidesShown(Entry entry) => BelowFloor(entry) || HoldsNamed(entry);
 
-        /// <summary>The places a source shows with insides (<see cref="SourceLevel.WithInsides"/>).</summary>
+        /// <summary>
+        /// Whether a page names all a place holds by the player's choice: a place a source shows
+        /// with its insides, or a room of its dungeon, whatever the character met of it.
+        /// </summary>
+        public bool HoldsNamed(Entry entry) => entry != null && _insidesShown.Contains(entry);
+
+        /// <summary>The places a source shows with insides (<see cref="SourceLevel.WithInsides"/>), and the rooms of their dungeons.</summary>
         private readonly HashSet<Entry> _insidesShown = new HashSet<Entry>();
 
         /// <summary>The source an entry shows from only, as the player chose how it shows, neither the character meeting it nor anything it knows bringing it along; none for any other.</summary>
@@ -521,11 +527,19 @@ namespace Scry
                         _byWorld[entry] = source;
                     }
                     else if (level != SourceLevel.WithInsides) continue;
-                    if (level == SourceLevel.WithInsides) _insidesShown.Add(entry);
+                    if (level == SourceLevel.WithInsides) ShownWithInsides(entry);
                     met.Enqueue(entry);
                 }
                 Spread(met, false, source, level == SourceLevel.WithInsides);
             }
+        }
+
+        /// <summary>A place shown with its insides, and every room of its dungeon.</summary>
+        private void ShownWithInsides(Entry place)
+        {
+            _insidesShown.Add(place);
+            var label = Places.LabelOf(place);
+            if (label != null && _rooms.TryGetValue(label, out var rooms)) _insidesShown.UnionWith(rooms);
         }
 
         /// <summary>What an entry owns: what it plays, what it leaves behind, a known dungeon's rooms, and what it links to that is not a thing of its own, by its own links, not those back from what links to it.</summary>

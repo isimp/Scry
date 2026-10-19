@@ -329,6 +329,89 @@ namespace Scry.Tests
             Assert.Equal("Goes to Haldor", explorer.ChoiceTip(s.Haldor.Key, "Goes to Haldor"));
         }
 
+        /// <summary>A place holding a creature never met, and a skill never learned, its source shown as given; the explorer handed what it shows.</summary>
+        private static (Explorer Explorer, Setup Setup, Entry Draugr, Entry Skill) Holding(WorldSource source, SourceLevel level)
+        {
+            var s = new Setup();
+            var draugr = new Entry { Kind = Kind.Creature, Name = "Draugr" };
+            var skill = new Entry { Kind = Kind.Skill, Name = "Swords" };
+            s.Crypt.Links.Add(new Link { Group = "Its spawn points place", Target = draugr.Key });
+            s.NotWalked.Links.Add(new Link { Group = "Its spawn points place", Target = draugr.Key });
+            s.Crypt.Links.Add(new Link { Group = "Trains", Target = skill.Key });
+            var explorer = new Explorer(new[] { s.Crypt, s.Walked, s.NotWalked, s.Haldor, s.Glow, draugr, skill }, new Favourites(System.IO.Path.Combine(TestCatalog.TempDir(), "favourites.txt")));
+            var view = new CompendiumView(explorer.Entries);
+            view.RoomsWalked(name => name == "sunkencrypt_Room1", 1);
+            view.InWorld(World);
+            s.Book.FoundIn(World, source, new[] { "Crypt2", "Vendor_BlackForest" });
+            s.Book.Show(source, level);
+            view.Tell(s.Book, CompendiumRule.Strict);
+            explorer.Know(view);
+            return (explorer, s, draugr, skill);
+        }
+
+        [Fact]
+        public void APlaceShownWithItsInsidesNamesAllItHoldsOnItsPage()
+        {
+            var (explorer, s, draugr, skill) = Holding(WorldSource.SharedMaps, SourceLevel.WithInsides);
+            Assert.True(explorer.LevelOf(draugr) < KnownLevel.Seen);
+            explorer.Select(s.Crypt);
+            Assert.False(explorer.LeavesOut(draugr.Key));
+            // Its example stands every creature it places.
+            Assert.False(explorer.NotMet(draugr.Key));
+            // A skill never learned is named nowhere, all it holds or not.
+            Assert.True(explorer.LeavesOut(skill.Key));
+            Assert.True(explorer.NotMet(skill.Key));
+        }
+
+        [Fact]
+        public void EachRoomItBringsNamesAllItHoldsToo()
+        {
+            var (explorer, s, draugr, _) = Holding(WorldSource.SharedMaps, SourceLevel.WithInsides);
+            explorer.Select(s.NotWalked);
+            Assert.False(explorer.LeavesOut(draugr.Key));
+            Assert.False(explorer.NotMet(draugr.Key));
+            explorer.Select(s.Walked);
+            Assert.False(explorer.LeavesOut(draugr.Key));
+        }
+
+        [Fact]
+        public void APlaceShownKnownOrAnyOtherPageNamesOnlyWhatWasMet()
+        {
+            var (known, s, draugr, _) = Holding(WorldSource.SharedMaps, SourceLevel.Known);
+            known.Select(s.Crypt);
+            Assert.True(known.LeavesOut(draugr.Key));
+            Assert.True(known.NotMet(draugr.Key));
+
+            // A page the source brings along, but no place shown with its insides: its effect.
+            var (insides, t, other, _) = Holding(WorldSource.SharedMaps, SourceLevel.WithInsides);
+            insides.Select(t.Glow);
+            Assert.True(insides.LeavesOut(other.Key));
+            Assert.True(insides.NotMet(other.Key));
+        }
+
+        [Fact]
+        public void WhatAPlaceHoldsIsNamedOnlyOnItsPagesNotSeenElsewhere()
+        {
+            var (explorer, s, draugr, _) = Holding(WorldSource.SharedMaps, SourceLevel.WithInsides);
+            explorer.Select(s.Crypt);
+            Assert.True(explorer.LevelOf(draugr) < KnownLevel.Seen);
+            Assert.False(explorer.Reaches(draugr.Key));
+            Assert.Equal(0, explorer.FoundOf(Kind.Creature));
+        }
+
+        [Fact]
+        public void OnlyASourceShownWithInsidesNamesAllAPlaceHolds()
+        {
+            var s = new Setup().Found(WorldSource.SharedMaps, "Crypt2").Shows(WorldSource.SharedMaps, SourceLevel.WithInsides, CompendiumRule.Strict);
+            Assert.True(s.View.HoldsNamed(s.Crypt));
+            Assert.True(s.View.HoldsNamed(s.NotWalked));
+            Assert.True(s.View.HoldsNamed(s.Walked));
+            Assert.False(s.View.HoldsNamed(s.Haldor));
+            s.Shows(WorldSource.SharedMaps, SourceLevel.Known, CompendiumRule.Strict);
+            Assert.False(s.View.HoldsNamed(s.Crypt));
+            Assert.False(s.View.HoldsNamed(s.NotWalked));
+        }
+
         private static List<string> Sorted(IEnumerable<string> kinds)
         {
             var list = new List<string>(kinds);

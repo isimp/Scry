@@ -13,7 +13,8 @@ namespace Scry
         /// The compendium's box shows, while the compendium is on, a row of levels for each source
         /// of the world, the one chosen lit; choosing another keeps it in the character's book at
         /// once, and the levels it had are put back. A made-up character's book with a place found
-        /// on shared maps and shown known lists it marked, its page saying so under the title.
+        /// on shared maps and shown known lists it marked, its page saying so under the title;
+        /// shown with its insides, its page names all it holds, met or not.
         /// </summary>
         private static IEnumerator WorldSourcesShown(Probe p)
         {
@@ -69,6 +70,22 @@ namespace Scry
             yield return Until(() => ScryPanel.Drawn(PanelPart.FloorLine) > marks, 3);
             p.Check(ScryPanel.Drawn(PanelPart.FloorLine) > marks, "its page says under the title where it is shown from");
             yield return PictureOf(p, "facts", "source shared maps known place");
+
+            // Shown with its insides: its page names all it holds, met or not, nothing of it seen elsewhere.
+            made.Show(WorldSource.SharedMaps, SourceLevel.WithInsides);
+            view.Tell(made, CompendiumRule.Loose);
+            yield return null;
+            X.Select(place);
+            yield return null;
+            var held = Facts.For(place).Rows.Where(r => r.Items != null).SelectMany(r => r.Items).Select(i => i.Prefab)
+                .FirstOrDefault(k => !string.IsNullOrEmpty(k) && X.Find(k) is Entry e && e.Kind != Kind.Location && view.Of(e) < KnownLevel.Seen);
+            if (held == null) p.Note($"{place.ShownName}'s page names nothing the made-up character never met (its contents may not be read yet)");
+            else
+            {
+                p.Check(view.HoldsNamed(place) && !X.LeavesOut(held) && !X.NotMet(held), $"shown with its insides, {place.ShownName}'s page names {held}, never met");
+                p.Check(view.Of(X.Find(held)) < KnownLevel.Seen, "and it is seen nowhere else");
+            }
+            yield return PictureOf(p, "facts", "source shared maps place with insides");
             Session.ShowKnownInstead(null);
         }
 
