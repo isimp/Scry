@@ -225,6 +225,8 @@ namespace Scry
             ("CharacterDrop", "OnDeath", 0, 0x15143844, Feature.DropsSeenInPlay),
             // Who hit a creature that died, as the game flags each player who hits it and tells them the kill.
             ("Character", "ApplyDamage", 4, 0x2DB5159A, Feature.CompendiumTogether),
+            // Vegvisirs and rune stones mark a place through one call, which the places marked for the character follow.
+            ("Game", "DiscoverClosestLocation", 6, 0x93FC2162, Feature.CompendiumUse),
             ("Character", "OnDeath", 0, 0xE8638E7F, Feature.CompendiumTogether),
             ("Ragdoll", "Setup", 7, 0x7D29C725, Feature.DropsSeenInPlay),
             ("Ragdoll", "SpawnLoot", 1, 0x515425F4, Feature.DropsSeenInPlay),
@@ -450,6 +452,7 @@ namespace Scry
             Each("InventoryGui.m_currentContainer", () => Member(list, "InventoryGui", "m_currentContainer", Feature.CompendiumSeen));
             Each("StoreGui.m_trader", () => Member(list, "StoreGui", "m_trader", Feature.CompendiumTogether));
             Each("Minimap.m_explored", () => Member(list, "Minimap", "m_explored", Feature.CompendiumMap));
+            Each("Minimap.m_exploredOthers", () => Member(list, "Minimap", "m_exploredOthers", Feature.CompendiumMap));
             Each("Player.m_knownTexts", () => Member(list, "Player", "m_knownTexts", Feature.CompendiumTextsRead));
             Each("Minimap.m_pinNamePrefab", () => Member(list, "Minimap", "m_pinNamePrefab", Feature.DungeonMarksOnMap));
             Each("ZoneSystem.m_locationInstances", () => Member(list, "ZoneSystem", "m_locationInstances", Feature.CompendiumMap));

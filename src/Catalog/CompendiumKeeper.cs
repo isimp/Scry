@@ -413,12 +413,13 @@ namespace Scry
             _catchUp.CardShown(token, Into);
         }
 
-        /// <summary>A place a Vegvisir marked on the character's map, as news: seen, and paired with the Vegvisir.</summary>
+        /// <summary>A place a Vegvisir or a rune stone marked on the character's map, as news: seen, paired with the stone, and kept as a place marked for it in this world (<see cref="WorldSource.Marked"/>).</summary>
         public static void Marked(GameObject vegvisir, string place)
         {
             if (Into == null || _catchUp == null || vegvisir == null) return;
             var key = EntryKeys.For(Kind.Location, place);
             _catchUp.Met(key, KnownLevel.Seen, Into);
+            Into.FoundIn(CompendiumMap.World, WorldSource.Marked, new[] { place });
             var stone = vegvisir.GetComponentInParent<ZNetView>();
             Into.Witness(Utils.GetPrefabName((stone != null ? stone.gameObject : vegvisir)), key);
         }

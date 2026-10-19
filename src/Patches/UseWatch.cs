@@ -7,8 +7,8 @@ namespace Scry
     /// What the character uses and what the game shows it, for the compendium: whatever it uses
     /// with success, pressing use on it or using an item on it (both end in
     /// <c>Humanoid.DoInteractAnimation</c>), is known; an item whose tooltip card shows, in the
-    /// inventory, a chest or a trader's store, is known; and the places a Vegvisir marks on the
-    /// map are seen.
+    /// inventory, a chest or a trader's store, is known; and the places a Vegvisir or a rune
+    /// stone marks on the map are seen (both through <c>Game.DiscoverClosestLocation</c>).
     /// </summary>
     internal static class UseWatch
     {
@@ -33,6 +33,13 @@ namespace Scry
                 foreach (var place in vegvisir.m_locations) if (!string.IsNullOrEmpty(place?.m_locationName)) CompendiumKeeper.Marked(vegvisir.gameObject, place.m_locationName);
             });
         }
+
+        /// <summary>A rune stone read that marks a place on the map, as some of the game's do.</summary>
+        public static void Read(RuneStone stone, Humanoid who, bool done)
+        {
+            if (!done || stone == null || who == null || who != Player.m_localPlayer || string.IsNullOrEmpty(stone.m_locationName)) return;
+            Guard.Run(Feature.CompendiumUse, "noting the place a rune stone marks", () => CompendiumKeeper.Marked(stone.gameObject, stone.m_locationName));
+        }
     }
 
     [HarmonyPatch(typeof(Humanoid), "DoInteractAnimation")]
@@ -45,6 +52,12 @@ namespace Scry
     internal static class CardWatched
     {
         private static void Postfix(UITooltip __instance) => UseWatch.Hovered(__instance);
+    }
+
+    [HarmonyPatch(typeof(RuneStone), nameof(RuneStone.Interact))]
+    internal static class RuneStoneWatched
+    {
+        private static void Postfix(RuneStone __instance, Humanoid character, bool __result) => UseWatch.Read(__instance, character, __result);
     }
 
     [HarmonyPatch(typeof(Vegvisir), nameof(Vegvisir.Interact))]

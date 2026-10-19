@@ -163,14 +163,19 @@ namespace Scry
         public static int ApplyBiomes(CompendiumBook book, IEnumerable<string> biomes) =>
             biomes.Count(biome => Seen(book, EntryKeys.For(Kind.Biome, biome)));
 
-        /// <summary>Writes the kinds of place as seen, as news off the map, and the world as caught up; how many were new.</summary>
-        public static int Apply(CompendiumBook book, string world, IEnumerable<string> kinds)
+        /// <summary>
+        /// Writes the kinds of place as seen, as news off the map, keeps them as found in the
+        /// character's own ground of the world (<see cref="WorldSource.Explored"/>), for how the
+        /// player chose they show, and marks the world caught up; how many were new.
+        /// </summary>
+        public static int Apply(CompendiumBook book, string world, IReadOnlyCollection<string> kinds)
         {
             var raised = 0;
             foreach (var kind in kinds)
             {
                 if (Seen(book, EntryKeys.For(Kind.Location, kind))) raised++;
             }
+            book.FoundIn(world, WorldSource.Explored, kinds);
             book.MarkMapped(world);
             return raised;
         }

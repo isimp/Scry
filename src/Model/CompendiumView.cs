@@ -46,6 +46,9 @@ namespace Scry
         /// <summary>Another kind of room walked.</summary>
         Rooms,
 
+        /// <summary>Another world, a place a source found, or how a source shows (<see cref="CompendiumView.InWorld"/>).</summary>
+        World,
+
         /// <summary>More learned than the book remembers since the last telling.</summary>
         TooMuchLearned,
     }
@@ -84,6 +87,9 @@ namespace Scry
         private readonly HashSet<(Entry, Entry)> _owns = new HashSet<(Entry, Entry)>();
         private readonly HashSet<Entry> _byFloor = new HashSet<Entry>();
 
+        /// <summary>What shows only because a source of the world found it, or brought along by such a place, by the source (<see cref="ByWorld"/>).</summary>
+        private readonly Dictionary<Entry, WorldSource> _byWorld = new Dictionary<Entry, WorldSource>();
+
         private CompendiumBook _book;
         private int _bookVersion = -1;
         private CompendiumRule _rule;
@@ -97,6 +103,9 @@ namespace Scry
         private Func<string, bool> _walked;
         private int _walkedVersion = -1;
         private bool _roomsMoved;
+        private string _world;
+        private bool _worldMoved;
+        private int _sourcesVersion = -1;
 
         public CompendiumView(EntryCatalog catalog)
         {
@@ -258,6 +267,20 @@ namespace Scry
         /// <summary>Whether an entry shows as known only because of the floor: neither the character knows it nor anything it knows brings it along.</summary>
         public bool ByFloor(Entry entry) => entry != null && _byFloor.Contains(entry);
 
+        /// <summary>The world played, by its id, whose places the book's sources found (<see cref="CompendiumBook.FoundIn"/>) show; another counts afresh at the next telling.</summary>
+        public void InWorld(string world)
+        {
+            if (world == _world) return;
+            _world = world;
+            _worldMoved = true;
+        }
+
+        /// <summary>The source an entry shows from only, as the player chose how it shows, neither the character meeting it nor anything it knows bringing it along; none for any other.</summary>
+        public WorldSource? ByWorld(Entry entry) => entry != null && _byWorld.TryGetValue(entry, out var source) ? source : (WorldSource?)null;
+
+        /// <summary>Whether the sources moved since the levels were last told: another world, or the same book's sources changed.</summary>
+        private bool SourcesMoved(CompendiumBook book) => _worldMoved || ReferenceEquals(book, _book) && book.SourcesVersion != _sourcesVersion;
+
         /// <summary>How many times every entry's level was worked out afresh, the catalog gone through whole.</summary>
         public int WholeCounts { get; private set; }
 
@@ -267,7 +290,7 @@ namespace Scry
         private readonly int[] _wholeBy = new int[Enum.GetValues(typeof(WholeCause)).Length];
 
         /// <summary>What sets off the whole count about to be made, the first cause that holds.</summary>
-        private WholeCause CauseOf(CompendiumBook book, CompendiumRule rule, bool regrouped) =>
+        private WholeCause CauseOf(CompendiumBook book, CompendiumRule rule, bool regrouped, bool sourcesMoved) =>
             _book == null ? WholeCause.First
             : !ReferenceEquals(book, _book) ? WholeCause.Book
             : rule != _rule ? WholeCause.Rule
@@ -275,6 +298,7 @@ namespace Scry
             : _floorMoved ? WholeCause.Floor
             : _skillsMoved ? WholeCause.Skills
             : _roomsMoved ? WholeCause.Rooms
+            : sourcesMoved ? WholeCause.World
             : WholeCause.TooMuchLearned;
 
         /// <summary>
@@ -283,7 +307,7 @@ namespace Scry
         /// (<see cref="Tell"/>), and with the panel open at most once a second.
         /// </summary>
         public bool OnlyLearnedSince(CompendiumBook book, CompendiumRule rule) =>
-            book != null && ReferenceEquals(book, _book) && book.Version != _bookVersion && rule == _rule && !_floorMoved && !_skillsMoved && !_roomsMoved && _indexedAt == _catalog.Regroups;
+            book != null && ReferenceEquals(book, _book) && book.Version != _bookVersion && rule == _rule && !_floorMoved && !_skillsMoved && !_roomsMoved && !SourcesMoved(book) && _indexedAt == _catalog.Regroups;
 
         /// <summary>
         /// Works out every entry's level for this book and rule, unless nothing changed since last
@@ -295,7 +319,7 @@ namespace Scry
         {
             if (book == null) book = new CompendiumBook();
             var regrouped = _indexedAt != _catalog.Regroups;
-            if (ReferenceEquals(book, _book) && book.Version == _bookVersion && rule == _rule && !regrouped && !_floorMoved && !_skillsMoved && !_roomsMoved) return;
+            if (ReferenceEquals(book, _book) && book.Version == _bookVersion && rule == _rule && !regrouped && !_floorMoved && !_skillsMoved && !_roomsMoved && !SourcesMoved(book)) return;
             if (rule != CompendiumRule.Off && OnlyLearnedSince(book, rule) && book.RaisedSince(_bookVersion, Raised))
             {
                 _bookVersion = book.Version;
@@ -304,10 +328,12 @@ namespace Scry
                 Version++;
                 return;
             }
-            var cause = CauseOf(book, rule, regrouped);
+            var cause = CauseOf(book, rule, regrouped, SourcesMoved(book));
             _floorMoved = false;
             _skillsMoved = false;
             _roomsMoved = false;
+            _worldMoved = false;
+            _sourcesVersion = book.SourcesVersion;
             // Off, everything is known whatever the book holds: nothing to tell again.
             var stillOff = rule == CompendiumRule.Off && _rule == CompendiumRule.Off;
             _book = book;
@@ -322,6 +348,7 @@ namespace Scry
             _because.Clear();
             _owns.Clear();
             _byFloor.Clear();
+            _byWorld.Clear();
             if (rule == CompendiumRule.Off) return;
 
             // What the character knows itself, with all it brings along; then what the floor adds,
@@ -349,6 +376,7 @@ namespace Scry
                 met.Enqueue(entry);
             }
             Spread(met, true);
+            if (_world != null) ShowFromWorld(book, met);
 
             var heard = new List<(Entry Named, Entry By)>();
             foreach (var pair in _levels)
@@ -389,15 +417,19 @@ namespace Scry
                 if (level == KnownLevel.Known)
                 {
                     _because.Remove(entry);
-                    if (now == KnownLevel.Known && !_byFloor.Remove(entry)) continue;
+                    var shown = _byFloor.Remove(entry) | _byWorld.Remove(entry);
+                    if (now == KnownLevel.Known && !shown) continue;
                     _levels[entry] = KnownLevel.Known;
                     if (now != KnownLevel.Known) NewlyKnown.Add(entry);
                     Bringing.Enqueue(entry);
                 }
                 else if (now != KnownLevel.Known)
                 {
+                    // Shown seen by a source, it stays so till the book holds as much.
+                    if (level < KnownLevel.Seen && _byWorld.ContainsKey(entry)) continue;
                     _levels[entry] = level;
                     _because.Remove(entry);
+                    _byWorld.Remove(entry);
                 }
             }
             while (Bringing.Count > 0)
@@ -407,7 +439,8 @@ namespace Scry
                 {
                     _owns.Add((owner, owned));
                     var was = Of(owned);
-                    if (was == KnownLevel.Known && !_byFloor.Remove(owned)) continue;
+                    var shown = _byFloor.Remove(owned) | _byWorld.Remove(owned);
+                    if (was == KnownLevel.Known && !shown) continue;
                     _levels[owned] = KnownLevel.Known;
                     _because[owned] = owner;
                     if (was != KnownLevel.Known) NewlyKnown.Add(owned);
@@ -426,12 +459,12 @@ namespace Scry
         /// each owner waiting in the queue, and what it brings along; by the floor, told so, and
         /// only what is of no higher a tier than the floor.
         /// </summary>
-        private void Spread(Queue<Entry> met, bool byFloor)
+        private void Spread(Queue<Entry> met, bool byFloor, WorldSource? source = null, bool insides = false)
         {
             while (met.Count > 0)
             {
                 var owner = met.Dequeue();
-                foreach (var owned in Owned(owner))
+                foreach (var owned in Owned(owner, insides))
                 {
                     if (byFloor && (AboveFloor(owned) || OnlyGlimpsed(owned))) continue;
                     _owns.Add((owner, owned));
@@ -439,13 +472,53 @@ namespace Scry
                     _levels[owned] = KnownLevel.Known;
                     _because[owned] = owner;
                     if (byFloor) _byFloor.Add(owned);
+                    if (source != null) _byWorld[owned] = source.Value;
                     met.Enqueue(owned);
                 }
             }
         }
 
+        /// <summary>
+        /// What the world's sources show as the player chose (<see cref="CompendiumBook.Shows"/>):
+        /// the places each found in this world, the strongest source first, seen or known as chosen
+        /// and told apart as that source's (<see cref="ByWorld"/>), a known one bringing along
+        /// what a known place does, with insides every room of a dungeon, walked or not. What the
+        /// character holds itself, or anything brings along already, is left as it is, but a
+        /// dungeon shown with insides adds its rooms not yet shown.
+        /// </summary>
+        private void ShowFromWorld(CompendiumBook book, Queue<Entry> met)
+        {
+            for (var level = SourceLevel.WithInsides; level > SourceLevel.Off; level--)
+            foreach (var source in WorldSources.All)
+            {
+                if (book.Shows(source) != level) continue;
+                foreach (var kind in book.Found(_world, source))
+                {
+                    var entry = _catalog.Find(EntryKeys.For(Kind.Location, kind));
+                    if (entry == null) continue;
+                    var now = Of(entry);
+                    if (level == SourceLevel.Seen)
+                    {
+                        if (now >= KnownLevel.Seen) continue;
+                        _levels[entry] = KnownLevel.Seen;
+                        _byWorld[entry] = source;
+                        continue;
+                    }
+                    if (now != KnownLevel.Known)
+                    {
+                        _levels[entry] = KnownLevel.Known;
+                        _because.Remove(entry);
+                        _byWorld[entry] = source;
+                    }
+                    else if (level != SourceLevel.WithInsides) continue;
+                    met.Enqueue(entry);
+                }
+                Spread(met, false, source, level == SourceLevel.WithInsides);
+            }
+        }
+
         /// <summary>What an entry owns: what it plays, what it leaves behind, a known dungeon's rooms, and what it links to that is not a thing of its own, by its own links, not those back from what links to it.</summary>
-        private IEnumerable<Entry> Owned(Entry owner)
+        private IEnumerable<Entry> Owned(Entry owner, bool insides = false)
         {
             if (_played.TryGetValue(owner.Name, out var played)) foreach (var entry in played) yield return entry;
             if (_leftovers.TryGetValue(owner.Name, out var left)) foreach (var entry in left) yield return entry;
@@ -458,8 +531,8 @@ namespace Scry
             var label = Places.LabelOf(owner);
             if (label != null && Of(owner) == KnownLevel.Known && _rooms.TryGetValue(label, out var rooms))
             {
-                // Under the strict rules only the kinds of room walked.
-                foreach (var room in rooms) if (_rule != CompendiumRule.Strict || Walked(room)) yield return room;
+                // Under the strict rules only the kinds of room walked, unless shown with its insides.
+                foreach (var room in rooms) if (insides || _rule != CompendiumRule.Strict || Walked(room)) yield return room;
             }
             foreach (var link in owner.Links)
             {

@@ -62,6 +62,53 @@ namespace Scry
         private readonly Dictionary<string, KnownLevel> _levels = new Dictionary<string, KnownLevel>(StringComparer.Ordinal);
         private readonly List<string> _lately = new List<string>();
         private readonly HashSet<string> _mapped = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>The kinds of place each source found in each world (<see cref="FoundIn"/>).</summary>
+        private readonly Dictionary<(string World, WorldSource Source), HashSet<string>> _foundIn = new Dictionary<(string, WorldSource), HashSet<string>>();
+
+        /// <summary>How each source's places show, where the player chose other than it starts at (<see cref="Shows"/>).</summary>
+        private readonly Dictionary<WorldSource, SourceLevel> _shows = new Dictionary<WorldSource, SourceLevel>();
+
+        private static readonly string[] NoKinds = Array.Empty<string>();
+
+        /// <summary>Counts up whenever a source finds another kind of place or the player sets how a source shows, for what is told from them to tell again.</summary>
+        public int SourcesVersion { get; private set; }
+
+        /// <summary>
+        /// Kinds of place a source found in a world (<see cref="WorldSource"/>), kept with the book
+        /// apart from what the character knows: what they show as is the player's choice
+        /// (<see cref="Shows"/>), laid over the book, never written into it.
+        /// </summary>
+        public void FoundIn(string world, WorldSource source, IEnumerable<string> kinds)
+        {
+            if (string.IsNullOrEmpty(world) || kinds == null) return;
+            foreach (var kind in kinds)
+            {
+                if (string.IsNullOrEmpty(kind)) continue;
+                if (!_foundIn.TryGetValue((world, source), out var found)) _foundIn[(world, source)] = found = new HashSet<string>(StringComparer.Ordinal);
+                if (!found.Add(kind)) continue;
+                SourcesVersion++;
+                Changed = true;
+            }
+        }
+
+        /// <summary>The kinds of place a source found in a world; none for a world it found none in.</summary>
+        public IReadOnlyCollection<string> Found(string world, WorldSource source) =>
+            world != null && _foundIn.TryGetValue((world, source), out var found) ? found : (IReadOnlyCollection<string>)NoKinds;
+
+        /// <summary>How a source's places show: as the player chose, else as it starts (<see cref="WorldSources.Least"/>).</summary>
+        public SourceLevel Shows(WorldSource source) => _shows.TryGetValue(source, out var level) ? level : WorldSources.Least(source);
+
+        /// <summary>Sets how a source's places show, no lower than the least it allows.</summary>
+        public void Show(WorldSource source, SourceLevel level)
+        {
+            var least = WorldSources.Least(source);
+            if (level < least) level = least;
+            if (Shows(source) == level) return;
+            _shows[source] = level;
+            SourcesVersion++;
+            Changed = true;
+        }
         private int _floor;
         private CompendiumRule _rule;
         private readonly HashSet<(string, string)> _pairs = new HashSet<(string, string)>();
@@ -437,6 +484,8 @@ namespace Scry
             var levels = _levels.ToArray();
             var lately = _lately.ToArray();
             var mapped = _mapped.ToArray();
+            var foundIn = _foundIn.SelectMany(p => p.Value.Select(kind => (p.Key.World, p.Key.Source, Kind: kind))).ToArray();
+            var shows = _shows.Where(p => p.Value != WorldSources.Least(p.Key)).ToArray();
             var rule = _rule;
             var floor = _floor;
             var pairs = _pairs.ToArray();
@@ -467,6 +516,11 @@ namespace Scry
                     text.Append('\n');
                 }
                 foreach (var world in mapped.OrderBy(w => w, StringComparer.Ordinal)) text.Append("mapped\t").Append(Stored.Escaped(world)).Append('\n');
+                foreach (var (world, source, kind) in foundIn.OrderBy(f => f.World, StringComparer.Ordinal).ThenBy(f => f.Source).ThenBy(f => f.Kind, StringComparer.Ordinal))
+                {
+                    text.Append("place\t").Append(Stored.Escaped(world)).Append('\t').Append(source).Append('\t').Append(Stored.Escaped(kind)).Append('\n');
+                }
+                foreach (var pair in shows.OrderBy(p => p.Key)) text.Append("shows\t").Append(pair.Key).Append('\t').Append(pair.Value).Append('\n');
                 if (rule != CompendiumRule.Off) text.Append("rule\t").Append(rule).Append('\n');
                 if (floor > 0) text.Append("floor\t").Append(Stored.Count(floor)).Append('\n');
                 foreach (var (a, b) in pairs.OrderBy(p => p.Item1, StringComparer.Ordinal).ThenBy(p => p.Item2, StringComparer.Ordinal))
@@ -594,6 +648,15 @@ namespace Scry
                         break;
                     case "mapped" when parts.Length == 2:
                         book._mapped.Add(name);
+                        break;
+                    case "place" when parts.Length == 4 && Enum.TryParse(parts[2], out WorldSource source) && Enum.IsDefined(typeof(WorldSource), source)
+                                      && Stored.TryUnescaped(parts[3], out var kind) && kind.Length > 0:
+                        if (!book._foundIn.TryGetValue((name, source), out var found)) book._foundIn[(name, source)] = found = new HashSet<string>(StringComparer.Ordinal);
+                        found.Add(kind);
+                        break;
+                    case "shows" when parts.Length == 3 && Enum.TryParse(name, out WorldSource shown) && Enum.IsDefined(typeof(WorldSource), shown)
+                                      && Enum.TryParse(parts[2], out SourceLevel level) && Enum.IsDefined(typeof(SourceLevel), level) && level >= WorldSources.Least(shown):
+                        book._shows[shown] = level;
                         break;
                     case "rule" when parts.Length == 2 && (name == nameof(CompendiumRule.Loose) || name == nameof(CompendiumRule.Strict)):
                         book._rule = name == nameof(CompendiumRule.Loose) ? CompendiumRule.Loose : CompendiumRule.Strict;

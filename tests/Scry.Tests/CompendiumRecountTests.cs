@@ -182,6 +182,8 @@ namespace Scry.Tests
             view.Tell(book, CompendiumRule.Loose);
             view.RoomsWalked(_ => true, 1);
             view.Tell(book, CompendiumRule.Loose);
+            view.InWorld("1234");
+            view.Tell(book, CompendiumRule.Loose);
             var other = new CompendiumBook();
             view.Tell(other, CompendiumRule.Loose);
             for (var i = 0; i <= CompendiumBook.RaisesKept; i++) other.Raise("unlisted" + i, KnownLevel.Seen);
@@ -191,7 +193,7 @@ namespace Scry.Tests
             view.Tell(other, CompendiumRule.Loose);
 
             foreach (WholeCause cause in Enum.GetValues(typeof(WholeCause))) Assert.True(view.WholeCountsOf(cause) == 1, $"{cause}: {view.WholeCountsOf(cause)}");
-            Assert.Equal(8, view.WholeCounts);
+            Assert.Equal(9, view.WholeCounts);
         }
 
         [Fact]

@@ -12,10 +12,16 @@ namespace Scry
     /// the kinds of place lying where it explored count as seen. Where this game is the world's
     /// server (single player, or hosting) it holds where every place is
     /// (<c>ZoneSystem.m_locationInstances</c>); a dedicated server's client asks the server's Scry
-    /// (<see cref="CompendiumLink"/>), which never sends positions back. Only the character's own
-    /// exploring counts (<c>Minimap.m_explored</c>), not a map shared at a cartography table. The
-    /// cells are worked out on a worker thread from copies taken here; nothing is read before the
-    /// character has stood in the world a while, so its map is in.
+    /// (<see cref="CompendiumLink"/>), which never sends positions back. The character's own
+    /// exploring is caught up so (<c>Minimap.m_explored</c>); the ground it took from maps shared
+    /// at a cartography table, which the game keeps apart (<c>Minimap.m_exploredOthers</c>), is
+    /// asked about the same way, once a session and again after a map is read at a table
+    /// (<c>MapTable.OnRead</c>), its kinds kept as found on shared maps (<see cref="WorldSource.SharedMaps"/>)
+    /// and never written as seen. The places with a map icon, which the game itself tells every
+    /// client of (<c>ZoneSystem.GetLocationIcons</c>), are kept as the places on every map
+    /// (<see cref="WorldSource.OnEveryMap"/>), looked at every half minute. The cells are worked
+    /// out on a worker thread from copies taken here; nothing is read before the character has
+    /// stood in the world a while, so its map is in.
     /// </summary>
     internal static class CompendiumMap
     {
@@ -25,6 +31,17 @@ namespace Scry
         private const float SettleSeconds = 10f;
 
         private static AccessTools.FieldRef<Minimap, BitArray> _exploredBits;
+        private static AccessTools.FieldRef<Minimap, BitArray> _sharedBits;
+
+        /// <summary>The world whose shared maps were asked about this session; none while they are to be asked again.</summary>
+        private static string _sharedFor;
+        private static Task<List<string>> _sharing;
+        private static string _sharingFor;
+
+        /// <summary>How often the places on every map are looked at.</summary>
+        private const float IconsEvery = 30f;
+        private static float _iconsAt = float.NegativeInfinity;
+        private static readonly Dictionary<Vector3, string> Icons = new Dictionary<Vector3, string>();
         private static Task<List<string>> _reading;
         private static string _readingFor;
         private static string _failedFor;
@@ -62,6 +79,8 @@ namespace Scry
             if (book != null && player != null && world != null && ReadThisSession.Add(world)) book.Unmap(world);
             var settled = player != null && Time.unscaledTime - _playerSince >= SettleSeconds;
             UpdateBiomes(book, world, settled);
+            UpdateIcons(book, world, settled);
+            UpdateShared(book, world, settled);
 
             if (_reading != null)
             {
@@ -93,6 +112,69 @@ namespace Scry
             var raised = MapCatchUp.Apply(book, world, kinds);
             CompendiumKeeper.Noted(PlayEvent.MapRead);
             Log.Report(CompendiumWords.MapRead(kinds.Count, raised, fromServer: true));
+        }
+
+        /// <summary>Takes in the kinds of place a server told lie in the ground from shared maps.</summary>
+        public static void ToldShared(CompendiumBook book, string world, List<string> kinds)
+        {
+            if (book == null || world == null || world != World) return;
+            book.FoundIn(world, WorldSource.SharedMaps, kinds);
+        }
+
+        /// <summary>A map read at a cartography table: the shared ground is asked about again.</summary>
+        public static void MapTableRead() => _sharedFor = null;
+
+        /// <summary>The ground from shared maps of the character played, packed on a worker thread from a copy taken now; none where it holds none.</summary>
+        public static Task<byte[]> PackSharedOnWorker()
+        {
+            var (size, pixel, words) = Copy(shared: true);
+            return words == null ? null : Task.Run(() => Grid(size, pixel, words).Pack());
+        }
+
+        /// <summary>
+        /// The ground from shared maps, once a session and again after a map is read at a table,
+        /// once the character's own map is caught up: worked out here where this game is the
+        /// world's server, else asked of the server's Scry. Ground none was shared of asks nothing.
+        /// </summary>
+        private static void UpdateShared(CompendiumBook book, string world, bool settled)
+        {
+            if (_sharing != null)
+            {
+                if (!_sharing.IsCompleted) return;
+                var done = _sharing;
+                var doneFor = _sharingFor;
+                _sharing = null;
+                _sharingFor = null;
+                if (done.Status != TaskStatus.RanToCompletion)
+                {
+                    Faults.Tell(Feature.CompendiumMap, "reading the ground from shared maps", done.Exception?.GetBaseException());
+                    return;
+                }
+                ToldShared(book, doneFor, done.Result);
+                return;
+            }
+            if (book == null || world == null || !settled || world == _sharedFor || !book.Mapped(world)) return;
+            if (ZNet.instance.IsServer())
+            {
+                var (size, pixel, words) = Copy(shared: true);
+                _sharedFor = world;
+                if (words == null) return;
+                var places = Places();
+                _sharingFor = world;
+                _sharing = Task.Run(() => MapCatchUp.Kinds(Grid(size, pixel, words), places));
+            }
+            else if (CompendiumLink.AskShared(world)) _sharedFor = world;
+        }
+
+        /// <summary>The places with a map icon, as the game tells every client of them, kept as the places on every map; every half minute, as more are placed while the world is explored.</summary>
+        private static void UpdateIcons(CompendiumBook book, string world, bool settled)
+        {
+            var zones = ZoneSystem.instance;
+            if (book == null || world == null || !settled || zones == null || Time.unscaledTime - _iconsAt < IconsEvery) return;
+            _iconsAt = Time.unscaledTime;
+            Icons.Clear();
+            zones.GetLocationIcons(Icons);
+            book.FoundIn(world, WorldSource.OnEveryMap, Icons.Values);
         }
 
         /// <summary>Gives up on this world for the session, as when its server has no Scry to ask.</summary>
@@ -184,13 +266,18 @@ namespace Scry
             _biomes = Task.Run(() => MapCatchUp.Biomes(Grid(size, pixel, words), (x, z) => generator.GetBiome(x, z).ToString()));
         }
 
-        /// <summary>The map's size, its pixels' width and a copy of its explored bits; no bits before the character's map is in (it always has the ground it stands on explored).</summary>
-        private static (int Size, float Pixel, int[] Words) Copy()
+        /// <summary>
+        /// The map's size, its pixels' width and a copy of its explored bits, the character's own or
+        /// those from shared maps; no bits before the character's map is in (it always has the
+        /// ground it stands on explored), nor where none were shared.
+        /// </summary>
+        private static (int Size, float Pixel, int[] Words) Copy(bool shared = false)
         {
             var map = Minimap.instance;
             if (map == null) return (0, 0f, null);
             if (_exploredBits == null) _exploredBits = AccessTools.FieldRefAccess<Minimap, BitArray>("m_explored");
-            var bits = _exploredBits(map);
+            if (_sharedBits == null) _sharedBits = AccessTools.FieldRefAccess<Minimap, BitArray>("m_exploredOthers");
+            var bits = shared ? _sharedBits(map) : _exploredBits(map);
             var size = map.m_textureSize;
             if (bits == null || size <= 0 || bits.Length < size * size) return (0, 0f, null);
             var words = new int[(bits.Length + 31) / 32];
@@ -203,12 +290,27 @@ namespace Scry
 
         private static void Forget()
         {
+            _sharedFor = null;
+            _sharing = null;
+            _sharingFor = null;
+            _iconsAt = float.NegativeInfinity;
+            Icons.Clear();
             _reading = null;
             _readingFor = null;
             _failedFor = null;
             _player = null;
             _biomes = null;
             _biomesFor = null;
+        }
+    }
+
+    /// <summary>A map read at a cartography table brings shared ground to ask about (<see cref="CompendiumMap.MapTableRead"/>).</summary>
+    [HarmonyPatch(typeof(MapTable), "OnRead", typeof(Switch), typeof(Humanoid), typeof(ItemDrop.ItemData), typeof(bool))]
+    internal static class MapTableRead
+    {
+        private static void Postfix(bool __result)
+        {
+            if (__result) Guard.Run(Feature.CompendiumMap, "noting a shared map read", CompendiumMap.MapTableRead);
         }
     }
 }
