@@ -33,9 +33,9 @@ namespace Scry.Tests
         public void ARenamedPrefabGoesByItsNewWords()
         {
             var entry = new Entry { Name = "vfx_troll_hit", Kind = Kind.Effect };
-            Assert.Equal("Troll hit", entry.ShownName);
+            Assert.Equal("Troll hit visual", entry.ShownName);
             entry.Name = "sfx_boar_idle";
-            Assert.Equal("Boar idle", entry.ShownName);
+            Assert.Equal("Boar idle sound", entry.ShownName);
         }
 
         [Fact]

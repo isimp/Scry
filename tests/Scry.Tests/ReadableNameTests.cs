@@ -19,9 +19,7 @@ namespace Scry.Tests
         [InlineData("RockDolmen_1", "Rock dolmen")]
         [InlineData("Troll(Clone)", "Troll")]
         [InlineData("StoneTower3Ruin", "Stone tower ruin")]
-        // The makers' marks for an effect, a sound and an area of effect.
-        [InlineData("vfx_spawn", "Spawn")]
-        [InlineData("sfx_troll_hit", "Troll hit")]
+        // The makers' marks for an effect and an area of effect.
         [InlineData("fx_Puke", "Puke")]
         [InlineData("aoe_nova", "Area nova")]
         // A word said twice in a row is said once.
@@ -29,6 +27,27 @@ namespace Scry.Tests
         public void ANamelessThingIsNamedByItsPrefabsWords(string prefab, string named)
         {
             Assert.Equal(named, Naming.Readable(prefab));
+        }
+
+        [Theory]
+        [InlineData("sfx_troll_hit", "Troll hit sound")]
+        [InlineData("vfx_troll_hit", "Troll hit visual")]
+        [InlineData("vfx_spawn", "Spawn visual")]
+        [InlineData("fx_troll_hit", "Troll hit")]
+        // Said once where the prefab says it already.
+        [InlineData("sfx_hit_sound", "Hit sound")]
+        public void ASoundOrAVisualSaysWhatItIs(string prefab, string named)
+        {
+            // The makers mark a sound "sfx", a visual "vfx" and an effect of both "fx"; read
+            // without the marks, a creature's hit, its look and its sound would go by one name.
+            Assert.Equal(named, Naming.Readable(prefab));
+        }
+
+        [Fact]
+        public void AnEffectAndItsSoundSideBySideReadApart()
+        {
+            Assert.NotEqual(Naming.Readable("fx_Abomination_arise_end"), Naming.Readable("sfx_abomination_arise_end"));
+            Assert.Equal("Abomination arise end sound", Naming.Readable("sfx_abomination_arise_end"));
         }
 
         [Theory]

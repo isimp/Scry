@@ -160,7 +160,7 @@ namespace Scry
             return text.IndexOf('<') < 0 ? text : Markup.Replace(text, "");
         }
 
-        /// <summary>The tags in a prefab's name that tell how it is built, not what it is: left out of its readable name (vfx, sfx and fx mark an effect or a sound).</summary>
+        /// <summary>The tags in a prefab's name that tell how it is built, not what it is: left out of its readable name (vfx, sfx and fx mark a visual, a sound or an effect of both, which the name then says in words, <see cref="Readable"/>).</summary>
         private static readonly HashSet<string> BuildTags = new HashSet<string>(StringComparer.Ordinal) { "frac", "clone", "pickable", "test", "prop", "vfx", "sfx", "fx" };
 
         /// <summary>The makers' shorthand in prefab names, in words: "aoe" is an area of effect.</summary>
@@ -177,8 +177,11 @@ namespace Scry
         /// shorthand: its words in sentence case, without numbers, its copy number, "(Clone)" or
         /// the tags telling how it is built, the makers' shorthand in words, a word said twice in
         /// a row said once: "rock4_heath_frac" as "Rock heath", "Pickable_MountainCaveRandom" as
-        /// "Mountain cave random", "fireballattack" as "Fireball attack", "vfx_spawn" as "Spawn",
-        /// "aoe_nova" as "Area nova". A name of nothing else stays as it is.
+        /// "Mountain cave random", "fireballattack" as "Fireball attack", "aoe_nova" as "Area nova".
+        /// A sound or a visual, marked "sfx" or "vfx", ends with what it is, so a creature's hit,
+        /// its look and its sound do not go by one name: "sfx_troll_hit" as "Troll hit sound",
+        /// "vfx_spawn" as "Spawn visual"; an effect of both ("fx") goes by its words alone. A name
+        /// of nothing else stays as it is.
         /// </summary>
         public static string Readable(string name)
         {
@@ -188,8 +191,11 @@ namespace Scry
             {
                 if (words.Count == 0 || !string.Equals(words[words.Count - 1], word, StringComparison.OrdinalIgnoreCase)) words.Add(word);
             }
+            string isA = null;
             foreach (var word in PrefabWords(name))
             {
+                if (word == "sfx") isA = "sound";
+                else if (word == "vfx") isA = "visual";
                 if (BuildTags.Contains(word) || IsNumber(word)) continue;
                 // The game names some attacks in one word: "fireballattack".
                 if (word.Length > 6 && word.EndsWith("attack", StringComparison.Ordinal))
@@ -200,6 +206,7 @@ namespace Scry
                 else Add(Shorthand.TryGetValue(word, out var said) ? said : word);
             }
             if (words.Count == 0) return name.Trim();
+            if (isA != null) Add(isA);
             words[0] = char.ToUpperInvariant(words[0][0]) + words[0].Substring(1);
             return string.Join(" ", words.ToArray());
         }
