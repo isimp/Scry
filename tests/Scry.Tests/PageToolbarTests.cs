@@ -41,6 +41,23 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ACaptionStandsFaintAfterTheActionsAGapAwayWrappingAsTheyDo()
+        {
+            // A status effect's "only the look, never the effect" beside its button.
+            var laid = PageToolbar.Lay(400f, new[] { 100f }, icons: 3, icon: 24f, seam: 1f, gap: 8f, Placed, caption: 150f);
+            Assert.Equal((108f, 0), (laid.CaptionX, laid.CaptionLine));
+            Assert.Equal(1, laid.Lines);
+            // No room left of the icons: under the actions, from the left.
+            laid = PageToolbar.Lay(300f, new[] { 100f }, icons: 3, icon: 24f, seam: 1f, gap: 8f, Placed, caption: 150f);
+            Assert.Equal((0f, 1), (laid.CaptionX, laid.CaptionLine));
+            Assert.Equal(2, laid.Lines);
+            // With no action, where the button would be.
+            laid = PageToolbar.Lay(300f, new float[0], icons: 0, icon: 24f, seam: 1f, gap: 8f, Placed, caption: 150f);
+            Assert.Equal((0f, 0), (laid.CaptionX, laid.CaptionLine));
+            Assert.Equal(1, laid.Lines);
+        }
+
+        [Fact]
         public void AnActionWiderThanALineStandsAloneAtItsStartAndNothingIsNoLine()
         {
             var laid = PageToolbar.Lay(100f, new[] { 150f, 40f }, icons: 0, icon: 24f, seam: 1f, gap: 8f, Placed);

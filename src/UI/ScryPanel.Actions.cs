@@ -26,14 +26,17 @@ namespace Scry
         /// <summary>What the actions note at the page's top, as their last pass said.</summary>
         private static string _actionNote;
 
+        /// <summary>The faint caption after the actions in the toolbar, as their last pass said; none for most.</summary>
+        private static string _actionCaption;
+
         /// <summary>Measures the entry's action buttons for the toolbar to lay out (<see cref="ActionWidths"/>).</summary>
-        private static void MeasureActions(Entry entry, bool withStage) => _actionNote = ActionButtons(entry, withStage, draw: false);
+        private static void MeasureActions(Entry entry, bool withStage) => _actionNote = ActionButtons(entry, withStage, draw: false, out _actionCaption);
 
         /// <summary>Draws the entry's action buttons where the toolbar laid them out, its first line at a point.</summary>
         private static void DrawActions(Entry entry, bool withStage, Vector2 at)
         {
             _toolbarAt = at;
-            _actionNote = ActionButtons(entry, withStage, draw: true);
+            _actionNote = ActionButtons(entry, withStage, draw: true, out _actionCaption);
         }
 
         /// <summary>How tall a line of the toolbar is, and the gap between its lines.</summary>
@@ -45,10 +48,12 @@ namespace Scry
         /// <see cref="ActionWidths"/>), or drawn at the places the toolbar gave them
         /// (<see cref="ActionPlaces"/>), the pieces of a line joined into one. A button that can do
         /// nothing for now stays, greyed, so the group does not shift; one that needs the stage is
-        /// left out without one. Returns the note to show at the page's top.
+        /// left out without one. Returns the note to show at the page's top, and gives the faint
+        /// caption to stand after the buttons.
         /// </summary>
-        private static string ActionButtons(Entry entry, bool withStage, bool draw)
+        private static string ActionButtons(Entry entry, bool withStage, bool draw, out string caption)
         {
+            caption = null;
             if (!draw) ActionWidths.Clear();
             var index = 0;
 
@@ -107,7 +112,7 @@ namespace Scry
                     break;
 
                 case Kind.StatusEffect:
-                    note = StatusActions(entry, Button);
+                    caption = StatusActions(entry, Button);
                     break;
 
                 case Kind.Raid:
@@ -235,13 +240,14 @@ namespace Scry
 
         /// <summary>
         /// A status effect's buttons: show its start visuals on you and take them off again, and
-        /// play any other list it has once. Returns the note to show under them.
+        /// play any other list it has once. Returns the faint caption to stand after them, that it
+        /// is only the look, or where they would be, that it has none.
         /// </summary>
         private static string StatusActions(Entry entry, Func<string, ActionLook, string, bool> button)
         {
             var effect = entry.Source as StatusEffect;
             var lists = StatusLists(entry);
-            if (effect == null || lists.Count == 0) return "It has no visuals or sounds of its own.";
+            if (effect == null || lists.Count == 0) return StatusEffectWords.NoLook;
 
             var hasStart = lists.Any(l => l.Value == effect.m_startEffects);
             if (hasStart)
@@ -266,7 +272,7 @@ namespace Scry
                 }
             }
 
-            return "Only the look. The effect itself is never applied to you.";
+            return StatusEffectWords.OnlyTheLook;
         }
 
         /// <summary>

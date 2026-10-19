@@ -39,6 +39,12 @@ namespace Scry
                 p.Check(off < 0.05f && size > 0.8f && size < 1.25f, "its look stands on the jaw at its own size in the world, as the game puts it");
             }
             yield return PictureOf(p, "facts", "status Feeling sick on the person");
+            // Beside its button, faint: only the look. Nothing of it under the tabs.
+            var parts = ScryPanel.ToolbarPartsForTest.ToList();
+            var caption = parts.FirstOrDefault(t => t.Part == "caption");
+            var button = parts.Where(t => t.Part == "action").Select(t => t.At).DefaultIfEmpty(Rect.zero).Max(r => r.xMax);
+            p.Check(caption.Part != null && caption.At.width > 0f && caption.At.x >= button, "a faint caption beside its button says it shows only the look",
+                caption.Part == null ? "none drawn" : $"at {Numbers.Fixed(caption.At.x, 0)}, the buttons ending at {Numbers.Fixed(button, 0)}");
 
             // Played out, a click on the stage plays it again.
             yield return Until(() => Stage.LookPlayedOut, 15);

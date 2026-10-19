@@ -90,6 +90,13 @@ namespace Scry.Tests
         public void ASettingTheGameDoesNotTellReadsInPlayersWords(string field, string label) => Assert.Equal(label, StatusEffectWords.Label(field));
 
         [Fact]
+        public void BesideItsButtonAStatusEffectSaysItShowsOnlyItsLook()
+        {
+            Assert.Equal("only the look, never the effect", StatusEffectWords.OnlyTheLook);
+            Assert.Equal("nothing of its own to see or hear", StatusEffectWords.NoLook);
+        }
+
+        [Fact]
         public void ASettingsValueReadsAsWhatItDoes()
         {
             Assert.Equal("×1.2", StatusEffectWords.Shown("m_damageModifier", 1.2f, "1.2"));

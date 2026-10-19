@@ -94,6 +94,14 @@ namespace Scry
             if (laid.Lines == 0) return y;
             CountDrawn(PanelPart.Toolbar);
             DrawActions(entry, withStage, new Vector2(0f, y));
+            // The faint caption after the buttons, cut short of the icons on their line.
+            if (_actionCaption != null && laid.CaptionLine >= 0)
+            {
+                var end = laid.CaptionLine == 0 && laid.IconsX < width ? laid.IconsX - U(8f) : width;
+                var at = new Rect(laid.CaptionX, y + laid.CaptionLine * (ToolbarRow + ToolbarLineGap), Mathf.Max(0f, end - laid.CaptionX), ToolbarRow);
+                GUI.Label(at, Skin.Fit(Skin.FaintLabel, _actionCaption, at.width), Skin.FaintLabel);
+                if (Event.current.type == EventType.Repaint) ToolbarPartsForTest.Add(("caption", at));
+            }
             SlideIcons(entry, explorer.Modifiers, laid.IconsX, y, sized);
             return y + ToolbarHeight(laid.Lines);
         }
@@ -149,7 +157,8 @@ namespace Scry
             var width = rect.width - U(14f);
             MeasureActions(entry, withStage);
             var sized = Adjustable(entry, withStage, out var staged) && staged;
-            var laid = PageToolbar.Lay(width, ActionWidths, SlideIconCount(entry, sized), ToolbarRow, U(1f), U(8f), ActionPlaces);
+            var caption = _actionCaption != null ? Skin.Width(Skin.FaintLabel, _actionCaption) + U(2f) : 0f;
+            var laid = PageToolbar.Lay(width, ActionWidths, SlideIconCount(entry, sized), ToolbarRow, U(1f), U(8f), ActionPlaces, caption);
             var lineH = SectionLineHeight(width);
             var headerH = TitleHeight(explorer, entry) + ToolbarHeight(laid.Lines) + lineH;
             if (withStage) top += SideStage(explorer, entry, rect, headerH + U(PageKept));

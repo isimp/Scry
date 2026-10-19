@@ -9,6 +9,12 @@ namespace Scry
     /// </summary>
     internal static class StatusEffectWords
     {
+        /// <summary>The faint caption beside a status effect's button: it shows on you its look alone.</summary>
+        public const string OnlyTheLook = "only the look, never the effect";
+
+        /// <summary>The faint caption where a status effect's button would be, for one with nothing to show.</summary>
+        public const string NoLook = "nothing of its own to see or hear";
+
         public static string Lasts(float seconds) => seconds > 0f ? Numbers.Duration(seconds) : "no time limit of its own";
 
         /// <summary>What its card says of how long it lasts.</summary>
