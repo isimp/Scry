@@ -49,6 +49,7 @@ namespace Scry
             yield return S("pages tell, faint under the game's figures, what they come to at your skills", SkillLines, 30);
             yield return S("with the compendium on, a skill not learned is named nowhere and nothing is told at it", SkillsUnlearned, 30);
             yield return S("a trader's page sells all its store does, and with the compendium on counts what waits for a boss not yet fallen", TraderPage, 30);
+            yield return S("every trader stands facing the camera on the stage", TradersFaceCamera, 30);
             yield return S("the last round of polish shows in the game, a jump rises as its page tells, and what the next look over the words needs is gathered", PolishSweep, 60);
             yield return S("build tools and their pieces lead to each other", ToolsAndPieces, 10);
             yield return S("mods hooking into drops, loot and spawning are named", HookingMods, 10);

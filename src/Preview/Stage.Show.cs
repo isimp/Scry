@@ -122,21 +122,30 @@ namespace Scry
         /// <summary>
         /// A body rigged as a person (a humanoid animator, as a trader's, whose head the game turns
         /// to look at a player and whose body it never turns) turned so its front faces the
-        /// camera's start, found from where its legs stand (<see cref="FrontTurn"/>): its prefab may
-        /// face otherwise than the +Z a creature walks along. Anything else stands as it is.
+        /// camera's start, found from where its legs stand once its animator has posed it
+        /// (<see cref="FrontTurn"/>): a humanoid animator sets the body's facing itself, which the
+        /// prefab's resting bones need not show. Anything else stands as it is.
         /// </summary>
         private static void TurnToFront(GameObject subject)
         {
+            LastFrontTurn = 0f;
             var animator = subject.GetComponentInChildren<Animator>();
             if (animator == null || !animator.isHuman) return;
+            if (animator.isActiveAndEnabled && animator.runtimeAnimatorController != null) animator.Update(0f);
             var left = animator.GetBoneTransform(HumanBodyBones.LeftUpperLeg);
             var right = animator.GetBoneTransform(HumanBodyBones.RightUpperLeg);
             if (left == null || right == null) return;
             var l = subject.transform.InverseTransformPoint(left.position);
             var r = subject.transform.InverseTransformPoint(right.position);
             var turn = FrontTurn.Degrees(l.x, l.z, r.x, r.z);
-            if (Mathf.Abs(turn) > 1f) subject.transform.localRotation = Quaternion.Euler(0f, turn, 0f) * subject.transform.localRotation;
+            if (Mathf.Abs(turn) <= 1f) return;
+            subject.transform.localRotation = Quaternion.Euler(0f, turn, 0f) * subject.transform.localRotation;
+            LastFrontTurn = turn;
         }
+
+        /// <summary>How far the last subject put on was turned to face the camera, in degrees; 0 for none. For the self-test.</summary>
+        [Diagnostic]
+        public static float LastFrontTurn { get; private set; }
 
         /// <summary>Whether the subject, where it is rigged as a person, faces the camera from where its legs stand; null for anything else or with nothing shown. For the self-test.</summary>
         [Diagnostic]

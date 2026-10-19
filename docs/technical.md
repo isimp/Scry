@@ -60,7 +60,7 @@ Every preview is a copy of the prefab made under an inactive holder, so none of 
 
 Star levels, wear and the other looks the game switches by script are read from the untouched prefab and applied to the matching parts of the copy, found by their place in the hierarchy. A prefab of a hundred and fifty parts or more, such as the person, is stripped once and kept asleep, four at most, and later copies are made from that.
 
-The camera starts in front of a copy, along the prefab's +Z, as a creature walks. A body rigged as a person (a humanoid animator, as a trader's: the game turns its head to look at a player, `LookAt`, and never its body) may face otherwise in its prefab, so it is turned to face that way, its front found from where its left and right upper legs stand (`Stage.TurnToFront`, `FrontTurn`).
+The camera starts in front of a copy, along the prefab's +Z, as a creature walks. A body rigged as a person (a humanoid animator, as a trader's: the game turns its head to look at a player, `LookAt`, and never its body) may face otherwise in its prefab, so it is turned to face that way, its front found from where its left and right upper legs stand once its animator has posed it, as a humanoid animator sets the body's facing itself, which the prefab's resting bones need not show (`Stage.TurnToFront`, `FrontTurn`).
 
 ## Looks and gear
 

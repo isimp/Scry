@@ -6,6 +6,35 @@ namespace Scry
     internal static partial class SelfTest
     {
         /// <summary>
+        /// Every trader stands facing the camera on the stage: each is rigged as a person and turned
+        /// to its front as its animator poses it, though its prefab faces otherwise; each pictured.
+        /// </summary>
+        private static IEnumerator TradersFaceCamera(Probe p)
+        {
+            var traders = X.Catalog.Where(e => e.Kind == Kind.Trader).ToList();
+            if (traders.Count == 0)
+            {
+                p.Skip("there are no traders");
+                yield break;
+            }
+            if (!Session.IsOpen) Session.Show(null);
+            KeepView();
+            ScryPanel.Compact = false;
+            foreach (var trader in traders)
+            {
+                Select(trader);
+                yield return Until(() => Stage.SubjectFacesCamera() != null, 5);
+                // A moment of its idle playing, as a player sees it.
+                yield return Until(() => false, 0.5f);
+                var faces = Stage.SubjectFacesCamera();
+                p.Note($"{trader.ShownName}: turned {Numbers.Fixed(Stage.LastFrontTurn, 0)} degrees to its front");
+                if (faces == null) p.Note($"{trader.ShownName} is not rigged as a person, so its facing is not told");
+                else p.Check(faces == true, $"{trader.ShownName} stands facing the camera");
+                yield return Picture(p, "trader " + trader.Name + " facing");
+            }
+        }
+
+        /// <summary>
         /// Haldor's page as a player meets it: a trader of the Traders tab, selling everything his
         /// store does, the game's upgrades among it with no page to go to; with the compendium on,
         /// a made-up character who knows him sees the rows waiting for a boss not yet fallen in this
