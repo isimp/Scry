@@ -99,5 +99,26 @@ namespace Scry
             if (string.IsNullOrEmpty(key) || !namesOnlyMet || (has != null && has(key))) return UnlockShown.Whole;
             return strict ? UnlockShown.Folded : UnlockShown.Counted;
         }
+
+        /// <summary>
+        /// How many wares a row counted under a title tells, rows counted under one title (as names
+        /// not met are kept back) being one wherever they stand among the section's rows: the
+        /// first tells all of theirs; none for each after it, nor for a row counted under none.
+        /// </summary>
+        public static int? Told<T>(IReadOnlyList<T> rows, int at, Func<T, string> countedAs, Func<T, int> wares)
+        {
+            var title = countedAs(rows[at]);
+            if (title == null) return null;
+            for (var before = 0; before < at; before++)
+            {
+                if (countedAs(rows[before]) == title) return null;
+            }
+            var told = 0;
+            for (var row = at; row < rows.Count; row++)
+            {
+                if (countedAs(rows[row]) == title) told += wares(rows[row]);
+            }
+            return told;
+        }
     }
 }

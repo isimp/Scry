@@ -650,15 +650,14 @@ namespace Scry
                 if (unlock == UnlockShown.Counted)
                 {
                     // Rows whose titles read the same once names not met are kept back ("Sells once ??? is
-                    // defeated") are one: the first tells them all, the others add to its count.
+                    // defeated") are one wherever they stand: the first tells them all, the others add to its count.
                     var countedAs = Masked(explorer, row.Title);
-                    if (rows != null && rowAt > 0 && CountedAs(explorer, rows[rowAt - 1]) == countedAs) return y;
-                    var waiting = row.Items.Count;
-                    for (var next = rowAt + 1; rows != null && rowAt >= 0 && next < rows.Count && CountedAs(explorer, rows[next]) == countedAs; next++) waiting += rows[next].Items.Count;
+                    var waiting = rows != null && rowAt >= 0 ? UnlockRows.Told(rows, rowAt, r => CountedAs(explorer, r), r => r.Items.Count) : row.Items.Count;
+                    if (waiting == null) return y;
                     if (KeepUnlockTitlesForTest) UnlockTitlesForTest.Add((Time.frameCount, countedAs));
                     y += U(6f);
                     GUI.Label(new Rect(0f, y, width, U(20f)), countedAs, Skin.DimLabel);
-                    return HintLine(CompendiumWords.ToUnlock(waiting), "to-unlock:", row.Title, PanelPart.ToUnlock, width, y + U(20f));
+                    return HintLine(CompendiumWords.ToUnlock(waiting.Value), "to-unlock:", row.Title, PanelPart.ToUnlock, width, y + U(20f));
                 }
             }
             if (row.Cells != null) return GridRow(explorer, row, width, y);
