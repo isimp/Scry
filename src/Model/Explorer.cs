@@ -35,6 +35,10 @@ namespace Scry
         private int _countAll;
         private int _learnedCount;
 
+        /// <summary>What was learned lately, and how many of each kind of it the search finds; worked out again with the list.</summary>
+        private readonly List<Entry> _learned = new List<Entry>();
+        private readonly int[] _learnedCounts = new int[Enum.GetValues(typeof(Kind)).Length];
+
         /// <summary>The catalog's name words, for mending slips (<see cref="SearchSlip"/>), read when first needed.</summary>
         private HashSet<string> _slipWords;
 
@@ -849,15 +853,20 @@ namespace Scry
             if (_learnedOnly) Search.Run(_catalog, _query, _favourites.Keys, null, _counts, view, _peeking);
             _countAll = 0;
             foreach (var count in _counts) _countAll += count;
+            // The learned tab counts what the search finds among what was learned, as each kind's tab
+            // counts what it finds of its kind, whichever tab is shown.
             _learnedCount = 0;
             if (CompendiumSet)
             {
-                var learned = new HashSet<string>(StringComparer.Ordinal);
+                _learned.Clear();
                 foreach (var key in _view.Lately)
                 {
                     var entry = Find(key);
-                    if (entry != null && _view.Of(entry) >= KnownLevel.Seen && (_peeking || Kinds.ForPlayers(entry)) && learned.Add(key)) _learnedCount++;
+                    if (entry != null) _learned.Add(entry);
                 }
+                Array.Clear(_learnedCounts, 0, _learnedCounts.Length);
+                Search.Run(_learned, _query, _favourites.Keys, null, _learnedCounts, view, _peeking);
+                foreach (var count in _learnedCounts) _learnedCount += count;
             }
 
             // Nothing found at all: a word one slip from a name's word is read as that word, if

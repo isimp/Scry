@@ -463,6 +463,30 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ASearchCountsOnTheLearnedTabOnlyWhatItFindsThere()
+        {
+            var world = new World().Rule(CompendiumRule.Loose);
+            // Seen long ago: found by a search, but not among what was learned lately.
+            world.Book.Raise(world.Fenring.Key, KnownLevel.Seen, quietly: true);
+            world.Rule(CompendiumRule.Loose);
+            var explorer = world.Explorer;
+
+            explorer.Text = "troll";
+            Assert.Equal(1, explorer.LearnedCount);
+            // Found, but nothing of it learned lately: the tab has nothing to show, so it is not drawn.
+            explorer.Text = "fenring";
+            Assert.Equal(1, explorer.CountAll);
+            Assert.Equal(0, explorer.LearnedCount);
+            explorer.Text = "";
+            Assert.Equal(2, explorer.LearnedCount);
+
+            // Something learned that the catalog no longer holds, as a removed mod's thing, is not counted.
+            world.Book.Raise("RemovedModThing", KnownLevel.Known);
+            world.Rule(CompendiumRule.Loose);
+            Assert.Equal(2, explorer.LearnedCount);
+        }
+
+        [Fact]
         public void ANoticeTellsWhatWasLearnedSinceItLastToldOfWhatWasMet()
         {
             // What was only heard of is not named; with the compendium off or peeking, nothing is told.
