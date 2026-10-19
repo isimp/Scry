@@ -64,6 +64,9 @@ namespace Scry
             yield return S("made-up events through the real hooks are recorded, the world and the character's book left alone", CompendiumHooksFed, 10, () => CompendiumKeeper.RecordInto(null));
             yield return S("events cross between the players' games through the game running the world, each counted once by the one rule", CompendiumEventsCross, 20, EventsCrossAsItWas);
             yield return S("the players whose games lack Scry are named in a notice, and everyone played with in the compendium's box", PlayingWithShown, 15, PlayingWithAsItWas);
+            yield return S("the server's game runs made-up events as a friend's would, choosing who gets them by the rules for every event", CompendiumEventsRunByWorld, 20, EventsCrossAsItWas);
+            yield return S("this game sends its own events to the games they concern, the server's among them, and to no other", CompendiumEventsSent, 15);
+            yield return S("a player rising again after a death stays played with, one without Scry is named after a wait, one gone is forgotten", PlayersComeAndGo, 25, PlayersAsTheyWere);
             yield return S("a made-up character's pages read under the strict rules as a player sees them", CompendiumStrictRead, 30, () => { AllKnown(); ResetList(); });
             yield return S("a made-up character's You box tells its moments, Learned goes by day and the notice tells what happened", YouAndLearnedRead, 20, () => { X.LearnedOnly = false; AllKnown(); ResetList(); });
             yield return S("a status effect's look stands on the person where the game puts it, plays again on a click, and its text keeps plain words", StatusLookRead, 30, () => { AllKnown(); ResetList(); });

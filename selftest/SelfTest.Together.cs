@@ -49,7 +49,7 @@ namespace Scry
             CompendiumKeeper.RecordInto(book);
             EventLink.TakeOwnForTest = local;
             var me = new[] { ZNet.GetUID() };
-            const string Made = "ScrySelfTestCreature";
+            var made = TestEvents.Prefix + "Creature";
             var far = player.transform.position + Vector3.right * (Sighting.PersonReach * 2f);
             var near = player.transform.position + Vector3.right * 2f;
             // Numbers no game of the world reaches, so none of its own events is taken for these.
@@ -59,10 +59,10 @@ namespace Scry
 
             var taken = EventLink.Taken;
             // The one passed on first: the others are sent after it, so it has come once they have.
-            EventLink.AskEcho(Death(world + 1, Made + "Passed", far, me), 1);
-            EventLink.AskEcho(Death(world, Made + "Done", far, me), 2);
-            EventLink.AskEcho(Death(world, Made + "Unseen", far, null), 1);
-            EventLink.AskEcho(Death(world, Made + "Seen", near, null), 2);
+            EventLink.AskEcho(Death(world + 1, made + "Passed", far, me), 1);
+            EventLink.AskEcho(Death(world, made + "Done", far, me), 2);
+            EventLink.AskEcho(Death(world, made + "Unseen", far, null), 1);
+            EventLink.AskEcho(Death(world, made + "Seen", near, null), 2);
             yield return Until(() => EventLink.Taken - taken >= 5, 10);
             var came = EventLink.Taken - taken;
             var fell = book.Tallied(Tally.Fell);
@@ -70,10 +70,10 @@ namespace Scry
             else
             {
                 p.Check(came == 5, (local ? "every event came back through this game" : "every event came back over the network") + ", the one passed on not taken", $"{Numbers.Count(came)} of 5 taken");
-                p.Check(fell.Kills(Made + "Done") == 1, "one the character had a hand in, beyond sight, counts once though it came twice");
-                p.Check(fell.Kills(Made + "Unseen") == 0, "one beyond sight it had no hand in records nothing");
-                p.Check(fell.Kills(Made + "Seen") == 1, "one within sight counts once, the character seeing it");
-                p.Check(fell.Kills(Made + "Passed") == 0, "one passed on as from a game that did not run it is passed over");
+                p.Check(fell.Kills(made + "Done") == 1, "one the character had a hand in, beyond sight, counts once though it came twice");
+                p.Check(fell.Kills(made + "Unseen") == 0, "one beyond sight it had no hand in records nothing");
+                p.Check(fell.Kills(made + "Seen") == 1, "one within sight counts once, the character seeing it");
+                p.Check(fell.Kills(made + "Passed") == 0, "one passed on as from a game that did not run it is passed over");
             }
 
             CompendiumKeeper.RecordInto(null);
