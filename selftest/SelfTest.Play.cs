@@ -15,9 +15,10 @@ namespace Scry
         /// Made-up events through the real hooks, recorded into a book of the test's own
         /// (<see cref="CompendiumKeeper.RecordInto"/>): a hit of the character's on a loaded
         /// creature, on its weak spot, an armed creature's hit taken, a birth, a regrowth and a
-        /// taming near by, a tree breaking with an item come to be, a kill, a break and a pick
-        /// that ran in another player's game, a map read. Nothing in the world changes, and
-        /// neither the character's book nor the play counts do.
+        /// taming near by, a tree breaking by the character's hit with an item come to be, a death
+        /// beyond sight done and not done and told twice, a kill, a break and a pick that ran in
+        /// another player's game, a map read. Nothing in the world changes, and neither the
+        /// character's book nor the play counts do.
         /// </summary>
         private static IEnumerator CompendiumHooksFed(Probe p)
         {
@@ -31,6 +32,18 @@ namespace Scry
             var counted = CompendiumKeeper.Play.Told();
             var book = new CompendiumBook();
             CompendiumKeeper.RecordInto(book);
+            var me = new[] { ZNet.GetUID() };
+
+            // One rule for every event: one beyond sight counts only where the character did it, and
+            // once however often it is told.
+            const string Made = "ScrySelfTestCreature";
+            var far = player.transform.position + Vector3.right * (Sighting.PersonReach * 2f);
+            CompendiumKeeper.Tell(WorldEvents.Make(Happened.Died, Made, far));
+            p.Check(book.Tallied(Tally.Fell).Kills(Made) == 0, "a death beyond sight that the character had no hand in records nothing");
+            var done = WorldEvents.Make(Happened.Died, Made, far, doers: me);
+            CompendiumKeeper.Tell(done);
+            CompendiumKeeper.Tell(done);
+            p.Check(book.Tallied(Tally.Fell).Kills(Made) == 1, "one the character had a hand in counts, once however often it is told");
 
             // A hit of the character's on the nearest loaded creature: how its damage landed, then its weak spot.
             var creature = UnityEngine.Object.FindObjectsByType<Character>(FindObjectsSortMode.None).Where(c => c != null && !c.IsPlayer())
@@ -113,13 +126,13 @@ namespace Scry
             }
             p.Note("growing up is seen in play only, as a young creature has to be gone for it");
 
-            // A tree breaking with an item come to be meanwhile: counted as what it gave.
+            // A tree breaking by the character's hit with an item come to be meanwhile: counted as what it gave, however far.
             var tree = Nearest<TreeBase>(player);
             var item = Nearest<ItemDrop>(player);
             if (tree == null || item == null) p.Note("no tree and item are loaded to count a break with");
             else
             {
-                YieldWatch.Begin(tree);
+                YieldWatch.Begin(tree, me);
                 YieldWatch.ItemMade(item);
                 YieldWatch.End();
                 var treeKey = Utils.GetPrefabName(tree.gameObject);
@@ -141,12 +154,12 @@ namespace Scry
                 p.Check(book.CountElsewhere(Elsewhere.Break, treeKey) == 1, $"{treeKey} hit and gone in another player's game is counted as a break there, once");
             }
 
-            // A pick with an item come to be: counted as what it gave, no break.
+            // A pick of the character's with an item come to be: counted as what it gave, no break.
             var picked = Nearest<Pickable>(player);
             if (picked == null || item == null) p.Note("no pickable and item are loaded to count a pick with");
             else
             {
-                YieldWatch.Begin(picked);
+                YieldWatch.Begin(picked, me);
                 YieldWatch.ItemMade(item);
                 YieldWatch.End();
                 var pickKey = Utils.GetPrefabName(picked.gameObject);

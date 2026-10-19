@@ -9,18 +9,13 @@ namespace Scry
     /// its pregnancy ending), a young one growing up (<c>Growup.GrowUpdate</c>, the young one
     /// gone as the grown one comes), a pickable growing back (<c>Pickable.SetPicked</c> to not
     /// picked), a crop growing (<c>Plant.Grow</c>), a station handing out what it made
-    /// (<c>Smelter.Spawn</c>, <c>Fermenter.DelayedTap</c>, <c>CookingStation.SpawnItem</c>). Each counts within sight of the character, and only where the game does it on
-    /// this machine, as for the creature's or pickable's owner. The hooks only watch.
+    /// (<c>Smelter.Spawn</c>, <c>Fermenter.DelayedTap</c>, <c>CookingStation.SpawnItem</c>). Each is
+    /// told as an event (<see cref="WorldEvents"/>), counted where the character saw it, and only
+    /// where the game does it on this machine, as for the creature's or pickable's owner. A
+    /// producer the character collected from is the character's own doing. The hooks only watch.
     /// </summary>
     internal static class DeedWatch
     {
-        /// <summary>Whether a thing is within sight of the character, as far as one of a person's size is seen.</summary>
-        private static bool InSight(Component thing)
-        {
-            var player = Player.m_localPlayer;
-            return thing != null && player != null && Vector3.Distance(player.transform.position, thing.transform.position) <= Sighting.PersonReach;
-        }
-
         /// <summary>Whether a creature is pregnant now, as the game keeps it on its object.</summary>
         public static bool Pregnant(Procreation procreation) =>
             Guard.Run(Feature.CompendiumTogether, "noting a birth seen", () =>
@@ -32,8 +27,8 @@ namespace Scry
         /// <summary>A pregnancy that ended in this call: a birth.</summary>
         public static void Procreated(Procreation procreation, bool wasPregnant)
         {
-            if (!wasPregnant || Pregnant(procreation) || !InSight(procreation)) return;
-            Guard.Run(Feature.CompendiumTogether, "noting a birth seen", () => CompendiumKeeper.SawDone(procreation.gameObject, Deed.Born));
+            if (!wasPregnant || Pregnant(procreation)) return;
+            Guard.Run(Feature.CompendiumTogether, "noting a birth seen", () => WorldEvents.Tell(Happened.Born, procreation));
         }
 
         /// <summary>Whether a young creature is still in the world, before it may grow up.</summary>
@@ -43,15 +38,15 @@ namespace Scry
         /// <summary>A young creature gone in this call: grown up.</summary>
         public static void Grew(Growup young, bool wasHere)
         {
-            if (!wasHere || Here(young) || !InSight(young)) return;
-            Guard.Run(Feature.CompendiumTogether, "noting one grown up", () => CompendiumKeeper.SawDone(young.gameObject, Deed.GrewUp));
+            if (!wasHere || Here(young)) return;
+            Guard.Run(Feature.CompendiumTogether, "noting one grown up", () => WorldEvents.Tell(Happened.GrewUp, young));
         }
 
-        /// <summary>A spawner that spawned in this call, within sight.</summary>
+        /// <summary>A spawner that spawned in this call.</summary>
         public static void Spawned(SpawnArea area, bool spawned)
         {
-            if (!spawned || !InSight(area)) return;
-            Guard.Run(Feature.CompendiumTogether, "noting a spawn seen", () => CompendiumKeeper.SawDone(area.gameObject, Deed.Spawned));
+            if (!spawned) return;
+            Guard.Run(Feature.CompendiumTogether, "noting a spawn seen", () => WorldEvents.Tell(Happened.Spawned, area));
         }
 
         /// <summary>Whether a producer holds anything to collect, as the game keeps it on its object.</summary>
@@ -66,28 +61,28 @@ namespace Scry
         public static void Collected(Component producer, Humanoid user, bool held)
         {
             if (!held || user == null || user != Player.m_localPlayer) return;
-            Guard.Run(Feature.CompendiumTogether, "noting a producer collected from", () => CompendiumKeeper.SawDone(producer.gameObject, Deed.Collected));
+            Guard.Run(Feature.CompendiumTogether, "noting a producer collected from", () => CompendiumKeeper.CollectedFrom(producer.gameObject));
         }
 
-        /// <summary>A crop that grew in this call, within sight: grown.</summary>
+        /// <summary>A crop that grew in this call: grown.</summary>
         public static void Grown(Plant plant, bool grew)
         {
-            if (!grew || !InSight(plant)) return;
-            Guard.Run(Feature.CompendiumTogether, "noting a crop grown", () => CompendiumKeeper.SawDone(plant.gameObject, Deed.Grew));
+            if (!grew) return;
+            Guard.Run(Feature.CompendiumTogether, "noting a crop grown", () => WorldEvents.Tell(Happened.Grew, plant));
         }
 
-        /// <summary>A station that handed out what it made in this call, within sight: its work seen finished.</summary>
+        /// <summary>A station that handed out what it made in this call: its work finished.</summary>
         public static void Finished(Component station)
         {
-            if (!InSight(station)) return;
-            Guard.Run(Feature.CompendiumTogether, "noting a station's work finished", () => CompendiumKeeper.SawDone(station.gameObject, Deed.Finished));
+            if (station == null) return;
+            Guard.Run(Feature.CompendiumTogether, "noting a station's work finished", () => WorldEvents.Tell(Happened.Finished, station));
         }
 
         /// <summary>A picked pickable set back to not picked: grown back.</summary>
         public static void SetPicked(Pickable pickable, bool wasPicked, bool picked)
         {
-            if (!wasPicked || picked || !InSight(pickable)) return;
-            Guard.Run(Feature.CompendiumTogether, "noting one grown back", () => CompendiumKeeper.SawDone(pickable.gameObject, Deed.GrewBack));
+            if (!wasPicked || picked) return;
+            Guard.Run(Feature.CompendiumTogether, "noting one grown back", () => WorldEvents.Tell(Happened.GrewBack, pickable));
         }
     }
 

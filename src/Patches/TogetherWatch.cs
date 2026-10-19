@@ -13,12 +13,12 @@ namespace Scry
     /// (<see cref="ActedOn"/>); a boss called at its altar with the altar, its offering and its
     /// place; a fish caught with its bait and where it swam. Picking up, placing and petting run
     /// on the client of the character doing it; eating only on the client that owns the creature,
-    /// where its mind runs, so it counts only near the character, where its game owns the
-    /// creature. A taming is seen otherwise (<see cref="CompendiumKeeper"/>).
+    /// where its mind runs, told there as an event the character sees near by
+    /// (<see cref="WorldEvents"/>). A taming is seen otherwise (<see cref="CompendiumKeeper"/>).
     /// </summary>
     internal static class TogetherWatch
     {
-        /// <summary>How near the character a creature eats for the character to see it, as far as a creature in view is seen.</summary>
+        /// <summary>How near the character a boss is called for the character to see it, as far as a creature in view is seen.</summary>
         private const float Near = 30f;
 
         public static (string Key, Vector3 At) PickingUp(Humanoid who, GameObject go) =>
@@ -160,14 +160,8 @@ namespace Scry
         public static void Ate(Tameable tameable, ItemDrop food)
         {
             var creature = tameable != null ? tameable.GetComponent<Character>() : null;
-            if (food == null || !NearBy(creature)) return;
-            Guard.Run(Feature.CompendiumTogether, "noting what a creature ate", () => CompendiumKeeper.Fed(creature, Utils.GetPrefabName(food.gameObject)));
-        }
-
-        private static bool NearBy(Character creature)
-        {
-            var player = Player.m_localPlayer;
-            return creature != null && player != null && Vector3.Distance(player.transform.position, creature.transform.position) <= Near;
+            if (food == null || creature == null) return;
+            Guard.Run(Feature.CompendiumTogether, "noting what a creature ate", () => WorldEvents.Tell(Happened.Ate, creature, Utils.GetPrefabName(food.gameObject)));
         }
     }
 

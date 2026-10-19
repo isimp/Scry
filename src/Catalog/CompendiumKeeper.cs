@@ -339,16 +339,27 @@ namespace Scry
             Noted(PlayEvent.Tamed);
         }
 
-        /// <summary>Something the character saw done to a thing, which shows a number the game never does (<see cref="Deed"/>).</summary>
-        public static void SawDone(GameObject thing, Deed deed)
+        /// <summary>The events told to the character's game in this world (<see cref="EventRule"/>).</summary>
+        private static readonly EventLedger Told = new EventLedger();
+
+        /// <summary>
+        /// An event this game ran (<see cref="WorldEvents"/>), told to the character: recorded once,
+        /// where the character did it or saw it, by the one rule (<see cref="EventRule"/>).
+        /// </summary>
+        public static void Tell(WorldEvent told)
         {
-            if (Into == null || thing == null) return;
-            Into.FoundOut(Utils.GetPrefabName(thing), EntryKeys.Did(deed));
-            if (deed == Deed.Born) Noted(PlayEvent.Born);
-            else if (deed == Deed.GrewUp) Noted(PlayEvent.GrewUp);
-            else if (deed == Deed.GrewBack) Noted(PlayEvent.GrewBack);
-            else if (deed == Deed.Spawned) Noted(PlayEvent.Spawned);
-            else if (deed == Deed.Collected) Noted(PlayEvent.Collected);
+            var player = Player.m_localPlayer;
+            if (Into == null || told == null || player == null) return;
+            var at = player.transform.position;
+            EventRule.Tell(told, ZNet.GetUID(), at.x, at.y, at.z, Told, Into, _into == null ? Play : null);
+        }
+
+        /// <summary>A producer the character collected from shows its pace (<see cref="Deed.Collected"/>).</summary>
+        public static void CollectedFrom(GameObject producer)
+        {
+            if (Into == null || producer == null) return;
+            Into.FoundOut(Utils.GetPrefabName(producer), EntryKeys.Did(Deed.Collected));
+            Noted(PlayEvent.Collected);
         }
 
         /// <summary>Something the strict rules keep back of an entry, found out in play, as news (<see cref="CompendiumBook.FoundOut"/>).</summary>
@@ -360,40 +371,6 @@ namespace Scry
             if (Into == null || creature == null || string.IsNullOrEmpty(part)) return;
             Into.FoundOut(Utils.GetPrefabName(creature.gameObject), EntryKeys.WeakSpot(part));
             Noted(PlayEvent.WeakSpotHit);
-        }
-
-        /// <summary>A creature's loot seen to fall as it died, counted for the character.</summary>
-        public static void Dropped(string creature, List<(string Item, int Amount)> loot)
-        {
-            if (Into == null) return;
-            Into.Dropped(creature, loot);
-            Noted(PlayEvent.LootCounted);
-        }
-
-        /// <summary>
-        /// What a tree, rock or other thing was seen to give as it broke, or a pickable as it was
-        /// picked, counted for the character, and each seen to come from it; broken, its health shows.
-        /// </summary>
-        public static void Yielded(string thing, List<(string Item, int Amount)> loot, bool picked = false)
-        {
-            if (Into == null) return;
-            Into.Yielded(thing, loot);
-            foreach (var (item, _) in loot) Into.Witness(thing, item);
-            if (picked)
-            {
-                Noted(PlayEvent.PickCounted);
-                return;
-            }
-            Into.FoundOut(thing, EntryKeys.Did(Deed.Broke));
-            Noted(PlayEvent.BreakCounted);
-        }
-
-        /// <summary>A starred creature seen to fall, as its loot came out: what its stars change shows.</summary>
-        public static void StarredFell(string creature)
-        {
-            if (Into == null || string.IsNullOrEmpty(creature)) return;
-            Into.FoundOut(creature, EntryKeys.Did(Deed.StarredFell));
-            Noted(PlayEvent.StarredFell);
         }
 
         /// <summary>
@@ -498,13 +475,6 @@ namespace Scry
             {
                 if (Knowledge.UsesOf(input.Name).Any(g => g.Kind == UseKind.TurnsInto && g.Place == station && g.Targets.Any(t => t.Target == item))) yield return input.Name;
             }
-        }
-
-        /// <summary>A creature the character saw eat: paired with what it ate, for the strict rules.</summary>
-        public static void Fed(Character creature, string food)
-        {
-            if (Into == null || creature == null || string.IsNullOrEmpty(food)) return;
-            Into.Witness(Utils.GetPrefabName(creature.gameObject), food);
         }
 
         /// <summary>The character saw two things go together, by their entries' keys (<see cref="CompendiumBook.Witness"/>).</summary>
@@ -680,6 +650,7 @@ namespace Scry
             Save(now: true);
             _weatherSeen = default;
             WildNear.Forget();
+            Told.Forget();
             CreaturesHit.Forget();
             HitElsewhere.Forget();
             TameableNear.Clear();

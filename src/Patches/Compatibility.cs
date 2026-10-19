@@ -223,6 +223,9 @@ namespace Scry
             ("Player", "AddKnownBiome", 1, 0xF483E90C, Feature.CompendiumCatchUp),
             ("BiomeSector", "GetName", 1, 0x2BE3144A, Feature.CompendiumCatchUp),
             ("CharacterDrop", "OnDeath", 0, 0x15143844, Feature.DropsSeenInPlay),
+            // Who hit a creature that died, as the game flags each player who hits it and tells them the kill.
+            ("Character", "ApplyDamage", 4, 0x2DB5159A, Feature.CompendiumTogether),
+            ("Character", "OnDeath", 0, 0xE8638E7F, Feature.CompendiumTogether),
             ("Ragdoll", "Setup", 7, 0x7D29C725, Feature.DropsSeenInPlay),
             ("Ragdoll", "SpawnLoot", 1, 0x515425F4, Feature.DropsSeenInPlay),
             ("DropTable", "AddItemToList", 2, 0xAECEE75C, Feature.DropTableAmounts),

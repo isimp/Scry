@@ -13,8 +13,10 @@ namespace Scry
     /// (<c>CharacterDrop.OnDeath</c>, while its drops are on) or through its ragdoll as that goes
     /// (<c>Ragdoll.SpawnLoot</c>, the creature told by <c>Ragdoll.Setup</c>); every item that
     /// comes to be while either runs, the game's and any a mod spawns in its own hook there, is
-    /// counted for that creature. The hooks only watch, and change nothing. Loot another
-    /// player's machine makes, and a ragdoll set up before the game was started, are not seen.
+    /// counted for that creature, and told as the creature's death (<see cref="WorldEvents"/>),
+    /// with the players flagged on it as its attackers and where its loot fell. The hooks only
+    /// watch, and change nothing. Loot another player's machine makes, and a ragdoll set up before
+    /// the game was started, are not seen.
     /// </summary>
     internal static class DropWatch
     {
@@ -22,11 +24,16 @@ namespace Scry
         private static string _creature;
         private static readonly List<ItemDrop> Made = new List<ItemDrop>();
 
-        /// <summary>The ragdolls lying with loot to come, and the creature each was.</summary>
-        private static readonly Dictionary<Ragdoll, (string Creature, int Level)> Ragdolls = new Dictionary<Ragdoll, (string, int)>();
+        /// <summary>The ragdolls lying with loot to come, the creature each was and the players who hit it.</summary>
+        private static readonly Dictionary<Ragdoll, (string Creature, int Level, IReadOnlyList<long> Doers)> Ragdolls = new Dictionary<Ragdoll, (string, int, IReadOnlyList<long>)>();
 
         /// <summary>The stars of the creature whose loot is coming out, a level above 1 for each.</summary>
         private static int _level;
+
+        /// <summary>The players who hit the creature whose loot is coming out, and where it comes out.</summary>
+        private static IReadOnlyList<long> _doers;
+
+        private static Vector3 _at;
 
         private static float _savedAt;
         private static string File => Path.Combine(Settings.DataFolder, "seen-drops.txt");
@@ -59,7 +66,9 @@ namespace Scry
                 _triedField = true;
                 Guard.Each(Feature.DropsSeenInPlay, "drops seen in play", "CharacterDrop.m_dropsEnabled", () => _dropsEnabled = AccessTools.FieldRefAccess<CharacterDrop, bool>("m_dropsEnabled"));
             }
-            if (_dropsEnabled != null && _dropsEnabled(drops)) Begin(Utils.GetPrefabName(drops.gameObject), drops.GetComponent<Character>().OrNull()?.GetLevel() ?? 1);
+            if (_dropsEnabled == null || !_dropsEnabled(drops)) return;
+            var creature = drops.GetComponent<Character>();
+            Begin(Utils.GetPrefabName(drops.gameObject), creature != null ? creature.GetLevel() : 1, WorldEvents.Attackers(creature), drops.transform.position);
         }
 
         /// <summary>A ragdoll given a creature's loot to drop when it goes.</summary>
@@ -67,20 +76,22 @@ namespace Scry
         {
             if (ragdoll == null || drops == null || !ragdoll.m_dropItems) return;
             if (Ragdolls.Count > 256) Prune();
-            Ragdolls[ragdoll] = (Utils.GetPrefabName(drops.gameObject), level);
+            Ragdolls[ragdoll] = (Utils.GetPrefabName(drops.gameObject), level, WorldEvents.Attackers(drops.GetComponent<Character>()));
         }
 
         public static void BeginRagdoll(Ragdoll ragdoll)
         {
             if (ragdoll == null || !Ragdolls.TryGetValue(ragdoll, out var dead)) return;
             Ragdolls.Remove(ragdoll);
-            Begin(dead.Creature, dead.Level);
+            Begin(dead.Creature, dead.Level, dead.Doers, ragdoll.transform.position);
         }
 
-        private static void Begin(string creature, int level)
+        private static void Begin(string creature, int level, IReadOnlyList<long> doers, Vector3 at)
         {
             _creature = creature;
             _level = level;
+            _doers = doers;
+            _at = at;
             Made.Clear();
         }
 
@@ -90,7 +101,7 @@ namespace Scry
             if (_creature != null && item != null) Made.Add(item);
         }
 
-        /// <summary>The loot is out: counted for its creature, as whole stacks.</summary>
+        /// <summary>The loot is out: counted for its creature, as whole stacks, and the death told.</summary>
         public static void End()
         {
             if (_creature == null) return;
@@ -101,12 +112,9 @@ namespace Scry
                 loot.Add((Utils.GetPrefabName(item.gameObject), Mathf.Max(1, item.m_itemData?.m_stack ?? 1)));
             }
             Seen.Record(_creature, loot);
-            // The character saw each drop fall from the creature, and how many, for the strict rules.
-            foreach (var (item, _) in loot) CompendiumKeeper.Saw(_creature, item);
-            CompendiumKeeper.Dropped(_creature, loot);
-            // A starred one fallen shows what stars change.
-            if (_level > 1) CompendiumKeeper.StarredFell(_creature);
+            WorldEvents.Tell(Happened.Died, _creature, _at, loot, _level, _doers);
             _creature = null;
+            _doers = null;
             Made.Clear();
             Version++;
         }

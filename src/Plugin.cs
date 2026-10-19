@@ -111,6 +111,8 @@ namespace Scry
             { typeof(BrokenYield), Feature.CompendiumTogether },
             { typeof(YieldItemMade), Feature.CompendiumTogether },
             { typeof(PickYield), Feature.CompendiumTogether },
+            { typeof(DestroyingWatched), Feature.CompendiumTogether },
+            { typeof(PieceDestroyingWatched), Feature.CompendiumTogether },
             { typeof(SpawnSeen), Feature.CompendiumTogether },
             { typeof(HiveCollected), Feature.CompendiumTogether },
             { typeof(TapCollected), Feature.CompendiumTogether },
