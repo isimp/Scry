@@ -84,6 +84,8 @@ namespace Scry
             {
                 yield return CatalogWords.Progress("Grouping entries", done);
             }
+            // What only creatures have is tagged with them once grouped as theirs.
+            Timed("attack tags", () => Guard.Run(Feature.Groups, "tagging creatures' attacks", AttackTags.Tell, read.Entries));
 
             // Locations and rooms take their names from creatures' (a Fuling camp), so they come
             // last but for the mods, which come once every entry knows the mod that added it.

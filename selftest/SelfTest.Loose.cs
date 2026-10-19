@@ -204,6 +204,18 @@ namespace Scry
             p.Note("Troll's attacks: " + string.Join(", ", attacks));
             var raw = attacks.Where(a => a.IndexOf('_') >= 0 || a.Length > 0 && char.IsLower(a[0]) || a.Length > 1 && a.All(c => !char.IsLetter(c) || char.IsUpper(c))).ToList();
             p.Check(attacks.Count > 0 && raw.Count == 0, "a troll's attacks read as words", string.Join(", ", raw));
+
+            // What the game names nothing goes by its prefab's words, the prefab beside it; a game name starts with a capital.
+            var coded = X.Catalog.Where(e => e.Kind != Kind.Mod && (string.IsNullOrEmpty(e.DisplayName) && e.ShownName.IndexOf('_') >= 0 || e.ShownName.Length > 0 && char.IsLower(e.ShownName[0]))).Select(e => e.Kind + " " + e.ShownName).ToList();
+            p.Check(coded.Count == 0, "no entry but a mod is listed by a prefab's name or in small letters", Numbers.Count(coded.Count) + ": " + string.Join(", ", coded.Take(12)));
+
+            // A creature's attacks tell whose they are, and are told apart by it rather than only by a count.
+            var carried = X.Catalog.Where(e => e.Kind == Kind.Item && e.Group == Groups.CreatureAttacks.Name && e.Links.Any(l => l.Group == LinkWords.CarriedBy && X.Find(l.Target)?.Kind == Kind.Creature)).ToList();
+            var untagged = carried.Where(e => !e.TagNamesCarrier).Select(e => e.Name).ToList();
+            p.Note($"{Numbers.Count(carried.Count)} creature attacks, for example " + string.Join(", ", carried.Take(8).Select(e => e.ShownName + " (" + e.Tag + (e.Alike != null ? ", " + e.Alike : "") + ")")));
+            p.Check(carried.Count > 0 && untagged.Count == 0, "every creature's attack is tagged with what carries it", string.Join(", ", untagged.Take(12)));
+            var counted = carried.Where(e => e.Alike != null && System.Text.RegularExpressions.Regex.IsMatch(e.Alike, @"^\d+ of \d+$")).Select(e => e.Name).ToList();
+            p.Check(counted.Count == 0, "no creature's attack is told apart only by a count", string.Join(", ", counted.Take(12)));
         }
     }
 }

@@ -59,6 +59,23 @@ namespace Scry
             ["m_damageModifier"] = "Their damage",
             ["m_raiseSkill"] = "Trains faster",
             ["m_raiseSkillModifier"] = "Trains faster by",
+            ["m_attributes"] = "Also",
+            ["m_effectsOnlyOnPlayer"] = "Shows on",
+            ["m_staminaDrainPerSec"] = "Drains stamina",
+        };
+
+        /// <summary>
+        /// What each mark an effect puts on a character does, where the game asks for it
+        /// (<c>StatusEffect.StatusAttribute</c>): the wind on a ship one sails
+        /// (<c>Ship.IsWindControllActive</c>), taming near one (<c>Tameable</c>), objects crashing
+        /// into one (<c>ImpactEffect</c>); cold resistance the game asks for nowhere.
+        /// </summary>
+        private static readonly Dictionary<string, string> Marks = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SailingPower"] = "the wind blows the way your ship sails",
+            ["TamingBoost"] = "tames animals near you faster",
+            ["DoubleImpactDamage"] = "falling and rolling things hit twice as hard",
+            ["ColdResistance"] = "a mark of cold resistance the game itself never reads",
         };
 
         /// <summary>A setting's label: in players' words where it has some, else its name in words.</summary>
@@ -66,7 +83,8 @@ namespace Scry
 
         /// <summary>
         /// A setting's value as what it does: a damage share times as much, a training share more,
-        /// a skill "All" as every skill; else as it is shown (<paramref name="shown"/>).
+        /// a skill "All" as every skill, the marks it puts on a character by what the game does
+        /// for each, a drain by the second; else as it is shown (<paramref name="shown"/>).
         /// </summary>
         public static string Shown(string field, object value, string shown)
         {
@@ -79,9 +97,29 @@ namespace Scry
                 case "m_raiseSkill":
                 case "m_modifyAttackSkill":
                     return value?.ToString() == "All" ? "every skill" : shown;
+                case "m_attributes":
+                    return MarksOf(value?.ToString()) ?? shown;
+                case "m_effectsOnlyOnPlayer":
+                    return value is bool only && only ? "players only" : shown;
+                case "m_staminaDrainPerSec":
+                    return value is float drain ? Numbers.Amount(drain) + " a second" : shown;
                 default:
                     return shown;
             }
+        }
+
+        /// <summary>The marks of a flags value ("TamingBoost, DoubleImpactDamage") in words, one a mod adds as its name in words; none for none.</summary>
+        private static string MarksOf(string flags)
+        {
+            if (string.IsNullOrEmpty(flags)) return null;
+            var said = new List<string>();
+            foreach (var flag in flags.Split(','))
+            {
+                var name = flag.Trim();
+                if (name.Length == 0) continue;
+                said.Add(Marks.TryGetValue(name, out var words) ? words : Naming.Readable(name));
+            }
+            return said.Count > 0 ? string.Join("; ", said.ToArray()) : null;
         }
 
         /// <summary>Whether a setting holds a time in seconds, by its name: a cooldown, a duration, an interval, a time, but no multiplier or modifier of one.</summary>

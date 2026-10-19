@@ -271,6 +271,7 @@ namespace Scry
             ("HitData", "ApplyResistance", 2, 0x8BB9A7D5, Feature.TrueDamage),
             ("SE_Rested", "CalculateComfortLevel", 2, 0x71FEE0E8, Feature.ComfortGroups),
             ("SE_Stats", "GetTooltipString", 0, 0x8126FDA1, Feature.StatusEffectStats),
+            ("Ship", "IsWindControllActive", 0, 0x75B0CD2D, Feature.StatusEffectStats),
             ("Character", "RPC_Damage", 2, 0xA60616C2, Feature.DamageEffects),
             ("Character", "AddLightningDamage", 2, 0x068B93DE, Feature.DamageEffects),
             ("SE_Burning", "UpdateStatusEffect", 1, 0x6E71CE63, Feature.DamageEffects),

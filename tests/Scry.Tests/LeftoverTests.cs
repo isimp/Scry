@@ -302,7 +302,7 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void AnOwnerWithoutAShownNameLendsItsPrefabName()
+        public void AnOwnerTheGameGivesNoNameLendsItsPrefabsWords()
         {
             var catalog = WithLeftovers();
             catalog.Add(E("Rock_big", Kind.Piece));
@@ -310,7 +310,7 @@ namespace Scry.Tests
 
             Leftovers.Pair(catalog, new[] { new Leftover("Rock_big_frac", "Rock_big", "broken") });
 
-            Assert.Equal("Rock_big · broken", Find(catalog, "Rock_big_frac").DisplayName);
+            Assert.Equal("Rock big · broken", Find(catalog, "Rock_big_frac").DisplayName);
         }
 
         [Fact]

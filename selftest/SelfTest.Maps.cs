@@ -174,9 +174,9 @@ namespace Scry
         }
 
         /// <summary>
-        /// Two maps of a crypt kept in the world played, on maps of the self-test's own: the crypt's
-        /// page has a line for each, how far it was walked, Open map showing it on the stage though
-        /// the player stands nowhere near, and Forget taking it away, an example in its place.
+        /// Maps of a crypt kept in the world played, on maps of the self-test's own: the crypt's page
+        /// has a line for each with a room walked, how far it was walked, Open map showing it on the
+        /// stage though the player stands nowhere near, and Forget taking it away, an example in its place.
         /// </summary>
         private static IEnumerator MapsKept(Probe p)
         {
@@ -200,11 +200,14 @@ namespace Scry
             maps.Keep(first, PlaceOf(entry).Prefab, saved, new Vec3(0f, 0f, 0f), rolled.Site.Generator, rolled.Site.Turn);
             maps.Keep(second, PlaceOf(entry).Prefab, saved, new Vec3(0f, 0f, 0f), rolled.Site.Generator, rolled.Site.Turn);
             maps.Walk(second, 0);
+            for (var room = 0; room < 3; room++) maps.Walk(first, room);
+            // A third with no room walked holds nothing to show, and has no line.
+            maps.Keep(DungeonMaps.IdOf(world, 1L, 4u), PlaceOf(entry).Prefab, saved, new Vec3(0f, 0f, 0f), rolled.Site.Generator, rolled.Site.Turn);
             maps.Keep(DungeonMaps.IdOf("another world", 1L, 3u), PlaceOf(entry).Prefab, saved, new Vec3(0f, 0f, 0f), rolled.Site.Generator, rolled.Site.Turn);
             DungeonWalks.MapsInsteadForTest(maps);
             var lines = ScryPanel.Drawn(PanelPart.MapLine);
             yield return Until(() => ScryPanel.Drawn(PanelPart.MapLine) > lines + 1, 5);
-            p.Check(ScryPanel.MapLinesDrawn == 2, "its page has a line for each map of this world", $"{Numbers.Count(ScryPanel.MapLinesDrawn)} lines");
+            p.Check(ScryPanel.MapLinesDrawn == 2, "its page has a line for each map of this world with a room walked", $"{Numbers.Count(ScryPanel.MapLinesDrawn)} lines");
             yield return Picture(p, $"maps of {entry.Name} on its page");
 
             ScryPanel.OpenMapForTest(second);
@@ -216,7 +219,7 @@ namespace Scry
             lines = ScryPanel.Drawn(PanelPart.MapLine);
             yield return Until(() => ScryPanel.Drawn(PanelPart.MapLine) > lines + 1, 5);
             p.Check(!ExampleLayouts.ShowsWorlds && ScryPanel.MapLinesDrawn == 1 && maps.Of(second) == null, "Forget takes the map away, an example in its place", $"{Numbers.Count(ScryPanel.MapLinesDrawn)} lines");
-            p.Check(maps.All.Count() == 2, "the map of another world stays");
+            p.Check(maps.All.Count() == 3, "the map of another world and the one not walked stay");
             DungeonFogAsItWas();
         }
 

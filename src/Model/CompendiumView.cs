@@ -141,9 +141,20 @@ namespace Scry
         public void Milestones(IReadOnlyDictionary<string, int> tiers, int floor)
         {
             if (ReferenceEquals(tiers, _tiers) && floor == _floor) return;
+            // Worked out again the same, as a place looked at regroups the catalog: nothing to count afresh.
+            var same = floor == _floor && Alike(tiers, _tiers);
             _tiers = tiers;
             _floor = floor;
-            _floorMoved = true;
+            if (!same) _floorMoved = true;
+        }
+
+        /// <summary>Whether two sets of tiers hold the same tier for every entry.</summary>
+        private static bool Alike(IReadOnlyDictionary<string, int> a, IReadOnlyDictionary<string, int> b)
+        {
+            if (a == null || b == null) return a == b;
+            if (a.Count != b.Count) return false;
+            foreach (var pair in a) if (!b.TryGetValue(pair.Key, out var tier) || tier != pair.Value) return false;
+            return true;
         }
 
         /// <summary>

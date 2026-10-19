@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -13,8 +14,9 @@ namespace Scry
     /// whose fall it waits for (its defeat key); each recipe, piece cost and station's making a
     /// way of its own (<see cref="TierWays"/>); the spawners and raids that bring a creature, a
     /// raid no sooner than what it waits for; the owners of what is played or left behind; the
-    /// givers of a status effect. Gathered on the main thread, worked out on a worker, again
-    /// whenever the catalog's groups change, as when the world's places are read.
+    /// givers of a status effect. Gathered on the main thread a few milliseconds a frame, so a
+    /// place looked at, which regroups the catalog, costs no frame of its own; worked out on a
+    /// worker; again whenever the catalog's groups change, as when the world's places are read.
     /// </summary>
     internal static class CompendiumTiers
     {
@@ -25,6 +27,12 @@ namespace Scry
         private static int _forRegroups = -1;
         private static Task<Dictionary<string, int>> _working;
         private static Dictionary<string, int> _tiers;
+
+        /// <summary>The gathering under way, a share each frame; none between.</summary>
+        private static TierGathering _gathering;
+
+        /// <summary>How much of a frame the gathering takes at most.</summary>
+        private const double FrameShareMs = 3.0;
 
         /// <summary>Counts up each time new tiers are in, so what uses them can tell.</summary>
         public static int Version { get; private set; }
@@ -46,38 +54,95 @@ namespace Scry
             }
             if (_working == null && (!ReferenceEquals(catalog, _for) || catalog.Regroups != _forRegroups))
             {
+                // Regrouped again before the last gathering finished: it starts over on the catalog as it is.
                 _for = catalog;
                 _forRegroups = catalog.Regroups;
-                var pass = Gather(catalog);
+                _gathering = new TierGathering(catalog);
+            }
+            if (_gathering != null && _gathering.Step(FrameShareMs))
+            {
+                var pass = _gathering.Pass;
+                _gathering = null;
                 _working = Task.Run(pass.Work);
             }
             return ReferenceEquals(catalog, _for) ? _tiers : null;
         }
 
-        /// <summary>The ways to come by each entry of a catalog, read from what Scry knows of it.</summary>
+        /// <summary>The ways to come by each entry of a catalog, read from what Scry knows of it, all at once.</summary>
         public static TierPass Gather(EntryCatalog catalog)
         {
-            var pass = new TierPass();
-            var places = new Dictionary<string, List<Entry>>(StringComparer.Ordinal);
-            foreach (var entry in catalog.All)
-            {
-                var label = Places.LabelOf(entry);
-                if (label == null) continue;
-                if (!places.TryGetValue(label, out var list)) places[label] = list = new List<Entry>();
-                list.Add(entry);
-            }
-            var keyTiers = DefeatKeys(catalog);
-            string KeyOf(string name) => catalog.Find(name)?.Key;
+            var gathering = new TierGathering(catalog);
+            gathering.Step(double.PositiveInfinity);
+            return gathering.Pass;
+        }
 
-            foreach (var entry in catalog.All)
+        /// <summary>
+        /// The ways to come by each entry of a catalog, gathered a share at a time: the places that
+        /// hold things and the bosses' keys first, then entry by entry, then the recipes and piece
+        /// costs; each step under the time it is given.
+        /// </summary>
+        private sealed class TierGathering
+        {
+            private readonly EntryCatalog _catalog;
+            private Dictionary<string, List<Entry>> _places;
+            private Dictionary<string, int> _keyTiers;
+            private int _next;
+            private bool _done;
+
+            public TierGathering(EntryCatalog catalog) => _catalog = catalog;
+
+            /// <summary>What is gathered so far, whole once <see cref="Step"/> says it is done.</summary>
+            public TierPass Pass { get; } = new TierPass();
+
+            /// <summary>Gathers on for at most so many milliseconds; whether it is done.</summary>
+            public bool Step(double ms)
             {
+                if (_done) return true;
+                var started = Stopwatch.GetTimestamp();
+                bool Spent() => (Stopwatch.GetTimestamp() - started) * 1000.0 / Stopwatch.Frequency >= ms;
+                if (_places == null)
+                {
+                    _places = new Dictionary<string, List<Entry>>(StringComparer.Ordinal);
+                    foreach (var entry in _catalog.All)
+                    {
+                        var label = Places.LabelOf(entry);
+                        if (label == null) continue;
+                        if (!_places.TryGetValue(label, out var list)) _places[label] = list = new List<Entry>();
+                        list.Add(entry);
+                    }
+                    _keyTiers = DefeatKeys(_catalog);
+                    if (Spent()) return false;
+                }
+                var all = _catalog.All;
+                while (_next < all.Count)
+                {
+                    Ways(all[_next++]);
+                    if (_next < all.Count && Spent()) return false;
+                }
+
+                // Each recipe and piece cost a way of its own: all it takes to make it once and its station; a piece with each tool that builds it.
+                foreach (var way in Knowledge.CraftWays)
+                {
+                    if (way.Built) TierWays.Building(Pass, way, Knowledge.Tools.ToolsOf(way.Target).Select(u => u.Tool), KeyOf);
+                    else TierWays.Making(Pass, way, KeyOf);
+                }
+                _done = true;
+                return true;
+            }
+
+            private string KeyOf(string name) => _catalog.Find(name)?.Key;
+
+            /// <summary>The ways to come by one entry.</summary>
+            private void Ways(Entry entry)
+            {
+                var pass = Pass;
                 var key = entry.Key;
                 if (entry.Kind == Kind.Biome) pass.Add(WayFrom.Biome, key, Tiers.OfBiome(entry.Name));
-                if (entry.Kind == Kind.Raid && entry.Source is RandomEvent raid) TierWays.Raid(pass, key, entry.Biomes.Select(Tiers.OfBiome), Ready(raid), keyTiers, KeyOf, entry.TermLinks("spawns").Select(b => b.Key));
+                if (entry.Kind == Kind.Raid && entry.Source is RandomEvent raid) TierWays.Raid(pass, key, entry.Biomes.Select(Tiers.OfBiome), Ready(raid), _keyTiers, KeyOf, entry.TermLinks("spawns").Select(b => b.Key));
                 else foreach (var biome in entry.Biomes) pass.Add(WayFrom.Biome, key, Tiers.OfBiome(biome));
                 foreach (var label in entry.FoundIn)
                 {
-                    if (label == null || !places.TryGetValue(label, out var holders)) continue;
+                    if (label == null || !_places.TryGetValue(label, out var holders)) continue;
                     foreach (var place in holders) if (place != entry) pass.Add(WayFrom.Place, key, 0, place.Key);
                 }
                 foreach (var owner in entry.UsedBy) pass.Add(WayFrom.Played, key, 0, owner);
@@ -89,14 +154,14 @@ namespace Scry
                 }
                 foreach (var brought in entry.TermLinks("spawns")) pass.Add(WayFrom.Spawned, brought.Key, 0, key);
 
-                if (EntryKeys.HasOwnNamespace(entry.Kind)) continue;
+                if (EntryKeys.HasOwnNamespace(entry.Kind)) return;
                 foreach (var source in Knowledge.SourceLines(entry.Name))
                 {
                     var record = source.Record;
-                    var giver = record != null ? catalog.Find(record.Giver) : null;
+                    var giver = record != null ? _catalog.Find(record.Giver) : null;
                     if (giver == null || giver == entry) continue;
                     var tier = 0;
-                    if (record.Way == SourceWay.Sold && record.Key.Length > 0 && !keyTiers.TryGetValue(record.Key, out tier)) continue;
+                    if (record.Way == SourceWay.Sold && record.Key.Length > 0 && !_keyTiers.TryGetValue(record.Key, out tier)) continue;
                     pass.Add(WayFrom.Source, key, tier, giver.Key);
                 }
                 // What stations turn into it, each item they take a way of its own where any one will do.
@@ -105,14 +170,6 @@ namespace Scry
                     foreach (var way in TierWays.Of(making)) TierWays.Making(pass, way, KeyOf, WayFrom.Station);
                 }
             }
-
-            // Each recipe and piece cost a way of its own: all it takes to make it once and its station; a piece with each tool that builds it.
-            foreach (var way in Knowledge.CraftWays)
-            {
-                if (way.Built) TierWays.Building(pass, way, Knowledge.Tools.ToolsOf(way.Target).Select(u => u.Tool), KeyOf);
-                else TierWays.Making(pass, way, KeyOf);
-            }
-            return pass;
         }
 
         /// <summary>The ways a raid becomes ready, read from what it waits for.</summary>
@@ -158,6 +215,7 @@ namespace Scry
             _for = null;
             _forRegroups = -1;
             _working = null;
+            _gathering = null;
             _tiers = null;
         }
     }

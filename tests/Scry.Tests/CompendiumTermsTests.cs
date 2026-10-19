@@ -125,7 +125,8 @@ namespace Scry.Tests
         {
             var world = new World();
 
-            Assert.Equal(new[] { "RawMeat", "TrollHide", "Wood" }, Labels(world.SuggestAll("drops:")));
+            // Each by the name it is shown by, its prefab's words where the game gives none.
+            Assert.Equal(new[] { "Raw meat", "Troll hide", "Wood" }, Labels(world.SuggestAll("drops:")));
             Assert.Equal(new[] { "Fenring", "Wolf" }, Labels(world.SuggestAll("playedby:")));
             Assert.Equal(3, world.SuggestAll("has:").Single(s => s.Label == "Character").Count);
         }

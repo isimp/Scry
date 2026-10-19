@@ -5,14 +5,14 @@ namespace Scry
 {
     /// <summary>
     /// The maps kept of a dungeon location's dungeons in the world played, under its stage's
-    /// buttons (<see cref="DungeonWalks"/>): a line each saying how far it was walked, with
+    /// buttons (<see cref="DungeonWalks"/>): a line each with a room walked saying how far, with
     /// <i>Open map</i>, which shows it on the stage wherever the player is, and <i>Forget</i>; then,
     /// where the compendium's floor opens them, a line for each of the group's records the server
     /// sent (<see cref="GroupMapsLink"/>), with <i>Open map</i>. No world position is shown.
     /// </summary>
     internal static partial class ScryPanel
     {
-        private static readonly List<(string Id, DungeonMap Map)> MapsShown = new List<(string, DungeonMap)>();
+        private static readonly List<(string Id, DungeonMap Map, int Walked, int Rooms)> MapsShown = new List<(string, DungeonMap, int, int)>();
         private static readonly List<(string Id, DungeonMap Map)> GroupShown = new List<(string, DungeonMap)>();
 
         /// <summary>How many of the group's lines were last drawn, for the self-test.</summary>
@@ -34,7 +34,9 @@ namespace Scry
             GroupLinesDrawn = 0;
             if (!(entry.Source is PlaceSource place) || place.IsRoom || place.Contents?.Dungeon?.Algorithm != "Dungeon") return y;
             MapsShown.Clear();
-            foreach (var map in DungeonWalks.Maps.OfLocation(CompendiumMap.World, place.Prefab)) MapsShown.Add(map);
+            // A walk with no room walked shows nothing; /scry forget maps still clears it.
+            var example = ExampleLayouts.Of(entry);
+            MapsShown.AddRange(DungeonWalks.Maps.WalkedOf(CompendiumMap.World, place.Prefab, map => example ? ExampleLayouts.Count(map) : DungeonMaps.Walked(map, _ => null)));
             GroupShown.Clear();
             if (ExampleLayouts.Of(entry) && ExampleLayouts.GroupOpen) foreach (var map in GroupMapsLink.Group.OfLocation(CompendiumMap.World, place.Prefab)) GroupShown.Add(map);
             if (MapsShown.Count == 0 && GroupShown.Count == 0) return y;
@@ -42,8 +44,7 @@ namespace Scry
             y += U(6f);
             for (var i = 0; i < MapsShown.Count; i++)
             {
-                var (id, map) = MapsShown[i];
-                var (walked, rooms) = ExampleLayouts.Of(entry) ? ExampleLayouts.Count(map) : DungeonMaps.Walked(map, _ => null);
+                var (id, _, walked, rooms) = MapsShown[i];
                 var said = DungeonMapWords.Yours(i, MapsShown.Count, walked, rooms);
                 var forgetW = Skin.Width(Skin.Button, DungeonMapWords.Forget) + U(12f);
                 var openW = Skin.Width(Skin.Button, DungeonMapWords.Open) + U(12f);

@@ -82,6 +82,9 @@ namespace Scry.Tests
         [InlineData("m_damageModifier", "Their damage")]
         [InlineData("m_raiseSkill", "Trains faster")]
         [InlineData("m_raiseSkillModifier", "Trains faster by")]
+        [InlineData("m_attributes", "Also")]
+        [InlineData("m_effectsOnlyOnPlayer", "Shows on")]
+        [InlineData("m_staminaDrainPerSec", "Drains stamina")]
         // A setting with no words of its own reads as its name in words.
         [InlineData("m_runStaminaUsage", "Run stamina usage")]
         public void ASettingTheGameDoesNotTellReadsInPlayersWords(string field, string label) => Assert.Equal(label, StatusEffectWords.Label(field));
@@ -95,6 +98,21 @@ namespace Scry.Tests
             Assert.Equal("every skill", StatusEffectWords.Shown("m_modifyAttackSkill", "All", "All"));
             Assert.Equal("Bows", StatusEffectWords.Shown("m_modifyAttackSkill", "Bows", "Bows"));
             Assert.Equal("12", StatusEffectWords.Shown("m_health", 12f, "12"));
+            Assert.Equal("players only", StatusEffectWords.Shown("m_effectsOnlyOnPlayer", true, "Yes"));
+            Assert.Equal("2.5 a second", StatusEffectWords.Shown("m_staminaDrainPerSec", 2.5f, "2.5"));
+        }
+
+        [Fact]
+        public void WhatAnEffectMarksACharacterWithReadsAsWhatTheGameDoesForIt()
+        {
+            // StatusEffect.StatusAttribute, read where the game asks for each (Ship.IsWindControllActive,
+            // Tameable, ImpactEffect); cold resistance it asks for nowhere.
+            Assert.Equal("the wind blows the way your ship sails", StatusEffectWords.Shown("m_attributes", "SailingPower", "Sailing power"));
+            Assert.Equal("tames animals near you faster; falling and rolling things hit twice as hard",
+                StatusEffectWords.Shown("m_attributes", "TamingBoost, DoubleImpactDamage", "Taming boost, double impact damage"));
+            Assert.Equal("a mark of cold resistance the game itself never reads", StatusEffectWords.Shown("m_attributes", "ColdResistance", "Cold resistance"));
+            // One a mod adds reads as its name in words.
+            Assert.Equal("Glowing skin", StatusEffectWords.Shown("m_attributes", "GlowingSkin", "Glowing skin"));
         }
     }
 }

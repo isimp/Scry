@@ -591,14 +591,28 @@ namespace Scry
             return HintLine(CompendiumWords.NotYetHitWith(keptBack), "damage-kept-back", "", PanelPart.DamageKeptBack, width, y);
         }
 
+        /// <summary>Whether the titles of rows told as waiting for a boss are kept as drawn (<see cref="UnlockTitlesForTest"/>), for the self-test.</summary>
+        [Diagnostic]
+        public static bool KeepUnlockTitlesForTest { get; set; }
+
+        /// <summary>The titles of rows told as waiting for a boss, with the frame each was drawn in, while kept for the self-test.</summary>
+        [Diagnostic]
+        public static List<(int Frame, string Title)> UnlockTitlesForTest { get; } = new List<(int, string)>();
+
+        /// <summary>The title a row of wares waiting for a boss is counted under, as the compendium shows it; none for any other row.</summary>
+        private static string CountedAs(Explorer explorer, Facts.Row row) =>
+            row?.WaitsFor != null && UnlockRows.Of(row.WaitsFor, explorer.NamesOnlyMet, explorer.LeavingOut, WorldKeySet) == UnlockShown.Counted ? Masked(explorer, row.Title) : null;
+
         /// <summary>Whether the world played has a key set, a boss's fall; none without a world.</summary>
         private static readonly Func<string, bool> WorldKeySet = key => ZoneSystem.instance != null && ZoneSystem.instance.GetGlobalKey(key);
 
         /// <summary>
         /// A titled row of chips, each an item with its amount that goes to it when clicked; the
         /// title goes to the station it names. A long row shows its first chips and one for the rest.
+        /// Given the rows it stands among (<paramref name="rows"/>, it at <paramref name="rowAt"/>),
+        /// rows of wares counted under one title as the compendium shows it are told as one.
         /// </summary>
-        private static float FactRow(Explorer explorer, Facts.Row row, float width, float y)
+        private static float FactRow(Explorer explorer, Facts.Row row, float width, float y, IReadOnlyList<Facts.Row> rows = null, int rowAt = -1)
         {
             if (row.AllPlay && explorer.LeavingOut) return y;
             // Wares waiting for a boss not yet fallen are not named with the compendium on: under the
@@ -613,9 +627,16 @@ namespace Scry
                 }
                 if (unlock == UnlockShown.Counted)
                 {
+                    // Rows whose titles read the same once names not met are kept back ("Sells once ??? is
+                    // defeated") are one: the first tells them all, the others add to its count.
+                    var countedAs = Masked(explorer, row.Title);
+                    if (rows != null && rowAt > 0 && CountedAs(explorer, rows[rowAt - 1]) == countedAs) return y;
+                    var waiting = row.Items.Count;
+                    for (var next = rowAt + 1; rows != null && rowAt >= 0 && next < rows.Count && CountedAs(explorer, rows[next]) == countedAs; next++) waiting += rows[next].Items.Count;
+                    if (KeepUnlockTitlesForTest) UnlockTitlesForTest.Add((Time.frameCount, countedAs));
                     y += U(6f);
-                    GUI.Label(new Rect(0f, y, width, U(20f)), Masked(explorer, row.Title), Skin.DimLabel);
-                    return HintLine(CompendiumWords.ToUnlock(row.Items.Count), "to-unlock:", row.Title, PanelPart.ToUnlock, width, y + U(20f));
+                    GUI.Label(new Rect(0f, y, width, U(20f)), countedAs, Skin.DimLabel);
+                    return HintLine(CompendiumWords.ToUnlock(waiting), "to-unlock:", row.Title, PanelPart.ToUnlock, width, y + U(20f));
                 }
             }
             if (row.Cells != null) return GridRow(explorer, row, width, y);

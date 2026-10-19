@@ -412,9 +412,11 @@ namespace Scry
             var primary = entry.ShownName;
             // In the learned list, what was found out of it, where that is its latest news. With the
             // compendium on, no prefab name, a place's tag holding one too: which of several going by
-            // one name it is, where it is one.
+            // one name it is, where it is one, the creatures carrying it kept back until met. Off, its
+            // tag or its prefab's name; a creature's attack by its carrier, told apart from its others.
             var secondary = (explorer.LearnedOnly ? explorer.FoundOutNote(entry) : null)
-                            ?? (explorer.CompendiumOn ? explorer.AlikeOf(entry) ?? "" : entry.Tag ?? (primary == entry.Name ? "" : entry.Name));
+                            ?? (explorer.CompendiumOn ? Masked(explorer, explorer.AlikeOf(entry)) ?? ""
+                                : (entry.TagNamesCarrier ? entry.Alike : null) ?? entry.Tag ?? (primary == entry.Name ? "" : entry.Name));
 
             var nameStyle = Skin.RowName;
             var fullW = Skin.Width(nameStyle, primary);

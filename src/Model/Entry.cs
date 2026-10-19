@@ -15,6 +15,7 @@ namespace Scry
         // Worked out once per name, since the search reads them for every entry on every keystroke.
         private string _nameUpper;
         private string _displayNameUpper;
+        private string _shownName;
         private string _key;
 
         /// <summary>The prefab name, or the status effect's name.</summary>
@@ -25,6 +26,7 @@ namespace Scry
             {
                 _name = value;
                 _nameUpper = null;
+                _shownName = null;
                 _key = null;
                 NameOrder = -1;
             }
@@ -38,12 +40,22 @@ namespace Scry
             {
                 _displayName = value;
                 _displayNameUpper = null;
+                _shownName = null;
                 NameOrder = -1;
             }
         }
 
-        /// <summary>The name it is shown by: the game's, or the prefab's where the game gives none.</summary>
-        public string ShownName => string.IsNullOrEmpty(_displayName) ? _name : _displayName;
+        /// <summary>
+        /// The name it is shown by: the game's, starting with a capital, or where the game gives
+        /// none its prefab's words (<see cref="Naming.Readable"/>); a mod's as the mod writes it.
+        /// </summary>
+        public string ShownName => _shownName ?? (_shownName = Shown());
+
+        private string Shown()
+        {
+            if (_kind == Kind.Mod) return string.IsNullOrEmpty(_displayName) ? _name : _displayName;
+            return string.IsNullOrEmpty(_displayName) ? Naming.Readable(_name) : Naming.Capital(_displayName);
+        }
 
         /// <summary>
         /// Where the name comes among the catalog's names, for sorting results by name without
@@ -65,6 +77,7 @@ namespace Scry
             set
             {
                 _kind = value;
+                _shownName = null;
                 _key = null;
             }
         }
@@ -187,6 +200,9 @@ namespace Scry
 
         /// <summary>A word or two beside its name in the list, in place of its prefab name (a room's "entrance room"); null for none.</summary>
         public string Tag;
+
+        /// <summary>Whether its tag names the creatures carrying it (<see cref="AttackTags"/>), no prefab, so things alike are told apart by it with the compendium on too.</summary>
+        public bool TagNamesCarrier;
 
         /// <summary>Which of the entries of its kind going by its name it is, where others share it: "2 of 3", told by <see cref="Search.OrderNames"/>; null for a name of its own.</summary>
         public string Alike;

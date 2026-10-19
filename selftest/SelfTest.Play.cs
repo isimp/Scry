@@ -239,7 +239,18 @@ namespace Scry
             p.Check(X.StrictAmount(Tally.Fell, troll.Name, hide.Name) == CompendiumWords.Hidden && ScryPanel.Drawn(PanelPart.TallyCounted) > tally,
                 "how many hides it drops reads ??? until counted, a faint line saying what shows it");
             yield return PictureOf(p, "overview", "strict Troll, nothing found out");
+            ScryPanel.TablesDrawnForTest.Clear();
+            ScryPanel.KeepTablesForTest = true;
             yield return PictureOf(p, "fight", "strict Troll's fight, nothing found out");
+            ScryPanel.KeepTablesForTest = false;
+            // Its damage kept back reads ???, its columns no wider than their headings need.
+            var attacks = Facts.For(troll).Rows.FirstOrDefault(r => r.Title == CombatWords.AttacksTitle);
+            if (attacks?.AttackCells != null && ScryPanel.TablesDrawnForTest.TryGetValue(attacks.Title, out var drawn))
+            {
+                var wide = attacks.AttackCells.Where(c => c < drawn.Columns.Length && drawn.Columns[c] > drawn.Headings[c] + 1f).Select(c => $"{attacks.Columns[c]} {Numbers.Fixed(drawn.Columns[c], 0)} for a heading of {Numbers.Fixed(drawn.Headings[c], 0)}").ToList();
+                p.Check(wide.Count == 0, "a column of damage kept back is as wide as its heading, not its hidden figures", string.Join("; ", wide));
+            }
+            else p.Check(false, "the troll's attacks table was drawn in its fight");
             yield return PictureOf(p, "loot", "strict Troll's drops, nothing counted");
 
             // Killed and its loot counted: its health and its hide's count show, and Learned says what was found out.

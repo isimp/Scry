@@ -300,8 +300,9 @@ namespace Scry
 
         /// <summary>
         /// Tells things of one kind going by one name apart, the entries given in the list's name
-        /// order: by the words their prefabs do not share (<see cref="Naming.Apart"/>), else which
-        /// of them each is, "2 of 3"; nothing for one alone of its name and kind.
+        /// order: by the creatures carrying them where tagged so (<see cref="AttackTags"/>), then
+        /// by the words their prefabs do not share (<see cref="Naming.Apart"/>), else which of
+        /// them each is, "2 of 3"; nothing for one alone of its name and kind.
         /// </summary>
         public static void TellAlike(IReadOnlyList<Entry> inNameOrder, Action<Entry, string> tell)
         {
@@ -313,20 +314,32 @@ namespace Scry
                 for (var i = start; i < end; i++)
                 {
                     var entry = inNameOrder[i];
+                    var carrier = CarrierOf(entry);
                     group.Clear();
-                    for (var j = start; j < end; j++) if (inNameOrder[j].Kind == entry.Kind) group.Add(inNameOrder[j]);
+                    var ofKind = 0;
+                    for (var j = start; j < end; j++)
+                    {
+                        if (inNameOrder[j].Kind != entry.Kind) continue;
+                        ofKind++;
+                        if (CarrierOf(inNameOrder[j]) == carrier) group.Add(inNameOrder[j]);
+                    }
                     if (group.Count < 2)
                     {
-                        tell(entry, null);
+                        // Alone of its name and kind it needs nothing; among others of its name, its carriers tell it apart.
+                        tell(entry, ofKind > 1 ? carrier : null);
                         continue;
                     }
                     var apart = Naming.Apart(group.Select(e => e.Name).ToList());
                     var at = group.IndexOf(entry);
-                    tell(entry, apart != null ? (apart[at].Length > 0 ? apart[at] : null) : ListWords.OneOf(at + 1, group.Count));
+                    var told = apart != null ? (apart[at].Length > 0 ? apart[at] : null) : ListWords.OneOf(at + 1, group.Count);
+                    tell(entry, carrier == null ? told : told == null ? carrier : carrier + " · " + told);
                 }
                 start = end;
             }
         }
+
+        /// <summary>The creatures carrying an entry, as its tag names them; none for anything else.</summary>
+        private static string CarrierOf(Entry entry) => entry.TagNamesCarrier ? entry.Tag : null;
 
         /// <summary>The filters other than the text and the kind: favourites and origin.</summary>
         private static bool PassesAnyKind(Entry entry, Query query, ICollection<string> favourites)

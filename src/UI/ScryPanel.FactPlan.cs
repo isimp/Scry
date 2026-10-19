@@ -124,7 +124,7 @@ namespace Scry
                 }
                 else if (bit.Row >= 0)
                 {
-                    y = FactRow(explorer, facts.Rows[bit.Row], width, y);
+                    y = FactRow(explorer, facts.Rows[bit.Row], width, y, facts.Rows, bit.Row);
                     Timing.Add("facts drawn rows", step);
                 }
                 else if (bit.Block is FactBlock block)
@@ -240,10 +240,19 @@ namespace Scry
         /// <summary>How wide each heading of the table being drawn is, which its column keeps where it can.</summary>
         private static readonly List<float> HeadingWidths = new List<float>();
 
+        /// <summary>Whether each table's widths are kept as drawn (<see cref="TablesDrawnForTest"/>), for the self-test.</summary>
+        [Diagnostic]
+        public static bool KeepTablesForTest { get; set; }
+
+        /// <summary>Each table's column widths and its headings' as last drawn, by its title, while kept for the self-test.</summary>
+        [Diagnostic]
+        public static Dictionary<string, (float[] Columns, float[] Headings)> TablesDrawnForTest { get; } = new Dictionary<string, (float[], float[])>();
+
         /// <summary>
         /// A table: its title, a faint line of column headings, then a line for each of its
-        /// lines, the first cell going to what it names. Columns are as wide as what they hold,
-        /// narrowed together where the side is narrower, a cell wrapping where it must.
+        /// lines, the first cell going to what it names. Columns are as wide as what they show
+        /// (??? where the compendium keeps a number back, nothing of a line left out), narrowed
+        /// together where the side is narrower, a cell wrapping where it must.
         /// </summary>
         private static float TableRow(Explorer explorer, Facts.Row row, float width, float y)
         {
@@ -274,15 +283,18 @@ namespace Scry
                 HeadingWidths.Add(w + U(2f));
                 for (var l = 0; l < row.Lines.Count; l++)
                 {
-                    var cells = row.Lines[l].Cells;
-                    if (c < cells.Length) w = Mathf.Max(w, Skin.Width(Skin.Small, CellShown(explorer, row, l, c, cells[c])) + (explorer.ShownByFloor(CellLink(row, l, c)) ? FloorRoom : 0f));
-                    if (!row.Yours.TryGetValue(l, out var yours)) continue;
+                    // Measured as drawn: a line left out takes no room, a number kept back that of ???.
+                    if (LineLeftOut(explorer, row.Lines[l].Link)) continue;
+                    var drawn = CellDrawn(explorer, row, l, c);
+                    if (drawn != null) w = Mathf.Max(w, Skin.Width(Skin.Small, drawn) + (drawn != CompendiumWords.Hidden && explorer.ShownByFloor(CellLink(row, l, c)) ? FloorRoom : 0f));
+                    if (!row.Yours.TryGetValue(l, out var yours) || LineKept(explorer, row, l, out _) || AttackKept(explorer, row, l)) continue;
                     foreach (var under in yours) if (c < under.Cells.Length && !explorer.NotMet(under.Skill)) w = Mathf.Max(w, Skin.Width(Skin.Small, under.Cells[c]) + (c == 0 ? YoursIndent : 0f));
                 }
                 ColumnWidths.Add(w + U(2f));
             }
             // Too wide, each column gives up what it wants beyond its heading, so the headings stay whole.
             TableFit.Fit(ColumnWidths, HeadingWidths, width - gap * (row.Columns.Length - 1));
+            if (KeepTablesForTest) TablesDrawnForTest[row.Title ?? ""] = (ColumnWidths.ToArray(), HeadingWidths.ToArray());
 
             var x = 0f;
             for (var c = 0; c < row.Columns.Length; c++)
@@ -299,19 +311,19 @@ namespace Scry
             {
                 var (cells, link) = row.Lines[l];
                 // A line of what was not seen together with the page (an attack never seen) is left out.
-                if (!string.IsNullOrEmpty(link) && explorer.LeavesOut(link))
+                if (LineLeftOut(explorer, link))
                 {
                     StrictLeft(1);
                     continue;
                 }
                 // Under the strict rules an attack that never hit the character keeps its damage
                 // back, and a line only something seen done tells (health by stars) all its numbers.
-                var attackKept = row.AttackCells != null && explorer.HidesAttack(link);
+                var attackKept = AttackKept(explorer, row, l);
                 if (attackKept) attacksKept++;
-                var lineKept = row.LineProofs.TryGetValue(l, out var lineProof) && explorer.KeepsBack(lineProof);
+                var lineKept = LineKept(explorer, row, l, out var lineProof);
                 if (lineKept && cells.Length > 0) KeptLines.Add((explorer.ShowsOnce(cells[0], lineProof), explorer.MayRunElsewhere(lineProof)));
                 var height = U(20f);
-                for (var c = 0; c < cells.Length && c < ColumnWidths.Count; c++) height = Mathf.Max(height, Skin.Height(Skin.SmallWrap, cells[c], ColumnWidths[c]));
+                for (var c = 0; c < cells.Length && c < ColumnWidths.Count; c++) height = Mathf.Max(height, Skin.Height(Skin.SmallWrap, CellDrawn(explorer, row, l, c), ColumnWidths[c]));
                 // Faint lines under it: the same at the character's skill, left out where the line
                 // keeps its numbers back, and each where the compendium shows no such skill.
                 var under = !lineKept && !attackKept && row.Yours.TryGetValue(l, out var yoursLines) ? yoursLines : null;
@@ -464,6 +476,33 @@ namespace Scry
             row.Tally != Tally.None && cell == row.TallyColumn && line < row.LineItems.Count
                 ? explorer.StrictAmount(row.Tally, row.TallyOf, row.LineItems[line]) ?? text
                 : text;
+
+        /// <summary>Whether a table's line is left out, what it names not seen together with the page (an attack never seen).</summary>
+        private static bool LineLeftOut(Explorer explorer, string link) => !string.IsNullOrEmpty(link) && explorer.LeavesOut(link);
+
+        /// <summary>Whether a table's line keeps all its numbers back, as one only something seen done tells (health by stars).</summary>
+        private static bool LineKept(Explorer explorer, Facts.Row row, int line, out string proof) => row.LineProofs.TryGetValue(line, out proof) && explorer.KeepsBack(proof);
+
+        /// <summary>Whether a table's line is an attack that never hit the character, its damage kept back.</summary>
+        private static bool AttackKept(Explorer explorer, Facts.Row row, int line) => row.AttackCells != null && explorer.HidesAttack(row.Lines[line].Link);
+
+        /// <summary>
+        /// What a cell of a line drawn shows, in the order the table tries them: its name, the
+        /// strict count, ??? for a number or name kept back, a link's name, else its text with
+        /// names not met kept back; none past the line's cells.
+        /// </summary>
+        private static string CellDrawn(Explorer explorer, Facts.Row row, int line, int cell)
+        {
+            var cells = row.Lines[line].Cells;
+            if (cell >= cells.Length) return null;
+            var text = cells[cell];
+            if (cell == 0) return string.IsNullOrEmpty(row.Lines[line].Link) ? Masked(explorer, text) : text;
+            var counted = CellShown(explorer, row, line, cell, text);
+            if (!ReferenceEquals(counted, text)) return counted;
+            if (LineKept(explorer, row, line, out _) || (AttackKept(explorer, row, line) && Array.IndexOf(row.AttackCells, cell) >= 0)) return CompendiumWords.Hidden;
+            if (row.CellLinks.TryGetValue((line, cell), out var to)) return explorer.LeavesOut(to) ? CompendiumWords.Hidden : Goes(explorer, to) ? text : Masked(explorer, text);
+            return Masked(explorer, text);
+        }
 
         /// <summary>What a table's cell goes to: its line's link for the first, its own for a later one; none for none.</summary>
         private static string CellLink(Facts.Row row, int line, int cell) =>

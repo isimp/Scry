@@ -45,7 +45,14 @@ namespace Scry
             p.Check(X.FoundOf(Kind.Trader) == 1, "the Traders tab lists the one trader the character knows", Numbers.Count(X.FoundOf(Kind.Trader)));
             var unlock = ScryPanel.Drawn(PanelPart.ToUnlock);
             var hints = ScryPanel.Drawn(PanelPart.HintLine);
+            ScryPanel.UnlockTitlesForTest.Clear();
+            ScryPanel.KeepUnlockTitlesForTest = true;
             yield return PictureOf(p, "facts", "trader Haldor loose");
+            ScryPanel.KeepUnlockTitlesForTest = false;
+            // Rows reading alike once a boss not met is kept back ("Sells once ??? is defeated") are told as one.
+            var twice = ScryPanel.UnlockTitlesForTest.GroupBy(t => t).Where(g => g.Count() > 1).Select(g => g.Key.Title).Distinct().ToList();
+            p.Note("waiting rows drawn: " + string.Join("; ", ScryPanel.UnlockTitlesForTest.Select(t => t.Title).Distinct()));
+            p.Check(twice.Count == 0, "rows waiting for bosses not met, alike once kept back, are told as one", string.Join("; ", twice));
             if (locked.Count > 0)
             {
                 p.Check(ScryPanel.Drawn(PanelPart.ToUnlock) > unlock && ScryPanel.Drawn(PanelPart.HintLine) > hints,

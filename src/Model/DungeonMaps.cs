@@ -81,6 +81,20 @@ namespace Scry
         public IEnumerable<(string Id, DungeonMap Map)> OfLocation(string world, string location) =>
             OfWorld(world).Where(m => m.Map.Location == location);
 
+        /// <summary>
+        /// A location's maps worth a line on its page, in the order kept, each with how far it was
+        /// walked: one with no room walked holds nothing to show and is left out, still kept until
+        /// forgotten.
+        /// </summary>
+        public IEnumerable<(string Id, DungeonMap Map, int Walked, int Rooms)> WalkedOf(string world, string location, Func<DungeonMap, (int Walked, int Rooms)> count)
+        {
+            foreach (var (id, map) in OfLocation(world, location))
+            {
+                var (walked, rooms) = count(map);
+                if (walked > 0) yield return (id, map, walked, rooms);
+            }
+        }
+
         /// <summary>The maps of a world's dungeons, in the order kept; none outside a world.</summary>
         public IEnumerable<(string Id, DungeonMap Map)> OfWorld(string world) =>
             world == null ? Enumerable.Empty<(string, DungeonMap)>() : All.Where(m => InWorld(m.Id, world));

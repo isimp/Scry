@@ -110,6 +110,27 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TiersWorkedOutAgainTheSameCountNothingAfresh()
+        {
+            // A place looked at regroups the catalog and the tiers are worked out again; where they
+            // come out as before, the whole catalog is not counted a second time.
+            var all = Catalog(new Random(7));
+            var catalog = new EntryCatalog(all);
+            var book = new CompendiumBook();
+            var view = new CompendiumView(catalog);
+            view.Milestones(new Dictionary<string, int> { [all[2].Key] = 1 }, 1);
+            view.Tell(book, CompendiumRule.Loose);
+            var whole = view.WholeCounts;
+            view.Milestones(new Dictionary<string, int> { [all[2].Key] = 1 }, 1);
+            view.Tell(book, CompendiumRule.Loose);
+            Assert.Equal(whole, view.WholeCounts);
+            // Tiers that moved are counted afresh.
+            view.Milestones(new Dictionary<string, int> { [all[2].Key] = 2 }, 1);
+            view.Tell(book, CompendiumRule.Loose);
+            Assert.Equal(whole + 1, view.WholeCounts);
+        }
+
+        [Fact]
         public void OnlyANewBookRulesFloorOrGroupsCountAfresh()
         {
             var all = Catalog(new Random(7));

@@ -193,6 +193,20 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APageListsOnlyTheWalksWithARoomWalked()
+        {
+            // A walk kept with no room walked holds nothing to show; it stays kept, for forgetting.
+            var maps = new DungeonMaps();
+            maps.Keep("w:1:2", "Crypt2", Rooms(4), new Vec3(0f, 0f, 0f), new Vec3(0f, 5000f, 0f), Quat.Identity);
+            maps.Keep("w:1:3", "Crypt2", Rooms(4), new Vec3(0f, 0f, 0f), new Vec3(0f, 5000f, 0f), Quat.Identity);
+            maps.Walk("w:1:3", 1);
+            var listed = maps.WalkedOf("w", "Crypt2", m => DungeonMaps.Walked(m, _ => null)).ToList();
+            Assert.Equal(new[] { "w:1:3" }, listed.Select(m => m.Id));
+            Assert.Equal((1, 4), (listed[0].Walked, listed[0].Rooms));
+            Assert.Equal(2, maps.OfLocation("w", "Crypt2").Count());
+        }
+
+        [Fact]
         public void ThePageSaysHowFarEachMapWasWalked()
         {
             Assert.Equal("Your walk: 6 of 18 rooms walked", DungeonMapWords.Yours(0, 1, 6, 18));
