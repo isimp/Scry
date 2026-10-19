@@ -234,7 +234,7 @@ namespace Scry
                 }
 
                 var guard = view == null || level != KnownLevel.Known ? null
-                    : view.Rule == CompendiumRule.Strict && !view.BelowFloor(entry) ? strictly : loosely;
+                    : view.Rule == CompendiumRule.Strict && !view.Whole(entry) ? strictly : loosely;
                 var score = Score(entry, search, level == KnownLevel.Known, guard);
                 if (score == Miss) continue;
 

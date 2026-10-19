@@ -261,7 +261,7 @@ namespace Scry
             _fogged = explorer.CompendiumSet;
             _peeking = explorer.Peeking;
             // The group's records of a dungeon the floor reaches, asked for now and then.
-            _groupOpen = plan.Algorithm == "Dungeon" && _fogged && explorer.Compendium != null && explorer.Compendium.BelowFloor(entry);
+            _groupOpen = plan.Algorithm == "Dungeon" && _fogged && explorer.Compendium != null && explorer.Compendium.InsidesShown(entry);
             if (_groupOpen) GroupMapsLink.Ask(place.Prefab);
             // A peek, the compendium or the floor changed lays it out at once; rooms walked while it is shown, now and then.
             var fogNow = (DungeonWalks.Maps.Stamp, GroupMapsLink.Group.Stamp, _fogged, _peeking, _groupOpen);

@@ -275,6 +275,15 @@ namespace Scry
             _worldMoved = true;
         }
 
+        /// <summary>Whether a page shows whole under either rules, as what the player chose to show: by the floor, or by a source of the world.</summary>
+        public bool Whole(Entry entry) => BelowFloor(entry) || entry != null && _byWorld.ContainsKey(entry);
+
+        /// <summary>Whether a dungeon shows all of its inside by the player's choice: by the floor, or by a source shown with insides.</summary>
+        public bool InsidesShown(Entry entry) => BelowFloor(entry) || entry != null && _insidesShown.Contains(entry);
+
+        /// <summary>The places a source shows with insides (<see cref="SourceLevel.WithInsides"/>).</summary>
+        private readonly HashSet<Entry> _insidesShown = new HashSet<Entry>();
+
         /// <summary>The source an entry shows from only, as the player chose how it shows, neither the character meeting it nor anything it knows bringing it along; none for any other.</summary>
         public WorldSource? ByWorld(Entry entry) => entry != null && _byWorld.TryGetValue(entry, out var source) ? source : (WorldSource?)null;
 
@@ -349,6 +358,7 @@ namespace Scry
             _owns.Clear();
             _byFloor.Clear();
             _byWorld.Clear();
+            _insidesShown.Clear();
             if (rule == CompendiumRule.Off) return;
 
             // What the character knows itself, with all it brings along; then what the floor adds,
@@ -511,6 +521,7 @@ namespace Scry
                         _byWorld[entry] = source;
                     }
                     else if (level != SourceLevel.WithInsides) continue;
+                    if (level == SourceLevel.WithInsides) _insidesShown.Add(entry);
                     met.Enqueue(entry);
                 }
                 Spread(met, false, source, level == SourceLevel.WithInsides);

@@ -233,13 +233,88 @@ namespace Scry
         /// known brought it along, else the floor, else known before the book was kept; none for
         /// one not known.
         /// </summary>
-        public static string CameLine(CameBy? way, int day, string biome, string owner, bool byFloor, bool known, DayPart time = DayPart.None, string weather = null, string inHand = null)
+        public static string CameLine(CameBy? way, int day, string biome, string owner, bool byFloor, bool known, DayPart time = DayPart.None, string weather = null, string inHand = null,
+            WorldSource? byWorld = null)
         {
             if (way is CameBy by) return CameToKnow(by, day, biome, time, weather, inHand);
             if (!string.IsNullOrEmpty(owner)) return CameWith(owner);
             if (byFloor) return "shown as known up to its biome";
+            if (byWorld is WorldSource source) return "shown as known from " + SourcePhrase(source);
             return known ? KnownBefore : null;
         }
+
+        /// <summary>The box's heading over the world's sources (<see cref="WorldSource"/>).</summary>
+        public const string SourcesCaption = "What this world shows as known";
+
+        /// <summary>The faint line under the sources, saying what turning one down does.</summary>
+        public const string SourcesHint = "What these show is marked on its row and page; your book keeps only what you met, so turning one down takes it all back.";
+
+        /// <summary>A source's name in the box.</summary>
+        public static string SourceName(WorldSource source)
+        {
+            switch (source)
+            {
+                case WorldSource.Explored: return "Ground you explored";
+                case WorldSource.SharedMaps: return "Shared maps";
+                case WorldSource.Marked: return "Places marked for you";
+                default: return "Places on every map";
+            }
+        }
+
+        /// <summary>A source as a sentence names it: "from your explored ground".</summary>
+        private static string SourcePhrase(WorldSource source)
+        {
+            switch (source)
+            {
+                case WorldSource.Explored: return "your explored ground";
+                case WorldSource.SharedMaps: return "shared maps";
+                case WorldSource.Marked: return "the places marked for you";
+                default: return "the places every map shows";
+            }
+        }
+
+        /// <summary>What a source's places are, on its name's hover.</summary>
+        public static string SourceTip(WorldSource source)
+        {
+            switch (source)
+            {
+                case WorldSource.Explored: return "The places lying in ground you explored yourself, by your map. Seen as you explore; known, or with their insides, as you choose.";
+                case WorldSource.SharedMaps: return "The places lying in ground from maps you read at a cartography table.";
+                case WorldSource.Marked: return "The places a Vegvisir or a rune stone marked on your map. Seen as they are marked; known, or with their insides, as you choose.";
+                default: return "The places the game shows on every map: traders, boss altars and the start.";
+            }
+        }
+
+        /// <summary>A level's name on its segment.</summary>
+        public static string LevelName(SourceLevel level)
+        {
+            switch (level)
+            {
+                case SourceLevel.Off: return "Off";
+                case SourceLevel.Seen: return "Seen";
+                case SourceLevel.Known: return "Known";
+                default: return "With insides";
+            }
+        }
+
+        /// <summary>What a level shows of a source's places, on its segment's hover.</summary>
+        public static string LevelTip(SourceLevel level)
+        {
+            switch (level)
+            {
+                case SourceLevel.Off: return "Shows nothing of them";
+                case SourceLevel.Seen: return "Listed, their pages closed";
+                case SourceLevel.Known: return "Their pages open, with what a known place brings along";
+                default: return "Known, with every room of a dungeon, walked or not";
+            }
+        }
+
+        /// <summary>The tip on what a source shows: from where, and as what (<see cref="CompendiumView.ByWorld"/>).</summary>
+        public static string ByWorld(WorldSource source, KnownLevel shown) =>
+            $"Shown as {(shown == KnownLevel.Known ? "known" : "seen")} from {SourcePhrase(source)}, not yet met by this character";
+
+        /// <summary>A tip on a chip or link to what a source shows, its own tip under it.</summary>
+        public static string WorldTip(WorldSource source, KnownLevel shown, string tip) => Naming.Lines(ByWorld(source, shown), tip);
 
         /// <summary>A thing known because something known brings it along, as a creature its attacks.</summary>
         public static string CameWith(string owner) => "with " + owner;

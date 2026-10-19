@@ -76,9 +76,8 @@ namespace Scry
             Skin.Icon(new Rect(plate.xMax - U(6f) - size, plate.y + (plate.height - size) / 2f, size, size), Skin.Steps, Skin.Faint);
         }
 
-        /// <summary>A chip's or link's tip, the floor's line above it where what it goes to shows as known only by the floor.</summary>
-        private static string FloorTip(Explorer explorer, string key, string tip) =>
-            explorer.ShownByFloor(key) ? CompendiumWords.FloorTip(explorer.Compendium.Floor, tip) : tip;
+        /// <summary>A chip's or link's tip, the floor's or the source's line above it where what it goes to shows only by the player's choice (<see cref="Explorer.ChoiceTip"/>).</summary>
+        private static string FloorTip(Explorer explorer, string key, string tip) => explorer.ChoiceTip(key, tip);
 
         /// <summary>The fill of anything that goes to an entry: a dark shade of its kind's colour.</summary>
         private static Color LinkFill(Kind? kind, bool hover, bool lit = false)
@@ -148,7 +147,7 @@ namespace Scry
             {
                 var item = all[i];
                 var go = !Unseen(explorer, item.Key);
-                var floor = go && explorer.ShownByFloor(item.Key);
+                var floor = go && explorer.ShownByChoice(item.Key);
                 var w = Mathf.Min(width, LinkChipWidth(item.Text, go, floor));
                 var at = flow.Place(w);
                 var chip = new Rect(at.X, at.Y, w, flow.RowHeight);

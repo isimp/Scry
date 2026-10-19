@@ -47,5 +47,11 @@ namespace Scry
         /// </summary>
         public static SourceLevel Least(WorldSource source) =>
             source == WorldSource.Explored || source == WorldSource.Marked ? SourceLevel.Seen : SourceLevel.Off;
+
+        private static readonly SourceLevel[] Every = (SourceLevel[])Enum.GetValues(typeof(SourceLevel));
+        private static readonly SourceLevel[] FromSeen = Array.FindAll(Every, level => level >= SourceLevel.Seen);
+
+        /// <summary>The levels the box offers a source, the least it allows first.</summary>
+        public static SourceLevel[] Offered(WorldSource source) => Least(source) == SourceLevel.Seen ? FromSeen : Every;
     }
 }

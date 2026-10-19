@@ -99,7 +99,7 @@ namespace Scry
                     var record = book.Came(entry.Key);
                     var at = record?.At ?? Moment.None;
                     came = CompendiumWords.CameLine(record?.Way, at.Day, BiomeShown(explorer, at.Biome), explorer.Compendium.Because(entry)?.ShownName, explorer.ByFloor(entry),
-                        explorer.LevelOf(entry) == KnownLevel.Known, at.Time, at.Weather, InHandShown(explorer, at.InHand));
+                        explorer.LevelOf(entry) == KnownLevel.Known, at.Time, at.Weather, InHandShown(explorer, at.InHand), explorer.ByWorld(entry));
                     if (book.FirstSeen(entry.Key) is var first && first != null)
                     {
                         var sight = first.Value.At;
@@ -288,7 +288,7 @@ namespace Scry
             // A link only to what is in the catalog: a creature's own attack items are not.
             else if (facts.Links.TryGetValue(pair.Key, out var link) && Goes(explorer, link))
             {
-                var floor = explorer.ShownByFloor(link);
+                var floor = explorer.ShownByChoice(link);
                 var linkW = Mathf.Min(valueW - (floor ? FloorRoom : 0f), Skin.Width(Skin.Wrap, value) + U(4f));
                 var linkRect = new Rect(valueRect.x, valueRect.y, linkW, height);
                 LinkLabel(linkRect, value, Skin.Wrap, LinkText(KindOf(explorer, link), false));
@@ -388,7 +388,7 @@ namespace Scry
                 }
 
                 var icon = PrefabIcon(source.Prefab);
-                var floor = explorer.ShownByFloor(source.Prefab);
+                var floor = explorer.ShownByChoice(source.Prefab);
                 var textX = icon != null ? U(34f) : U(12f);
                 var textW = width - textX - U(10f) - (floor ? FloorRoom : 0f);
                 var wrapped = Skin.SmallWrap;
@@ -701,7 +701,7 @@ namespace Scry
             }
             else if (!string.IsNullOrEmpty(row.TitleLink) && Goes(explorer, row.TitleLink))
             {
-                var titleFloor = explorer.ShownByFloor(row.TitleLink);
+                var titleFloor = explorer.ShownByChoice(row.TitleLink);
                 var titleW = Mathf.Min(width - (titleFloor ? FloorRoom : 0f), Skin.Width(Skin.DimLabel, title) + U(4f));
                 var titleRect = new Rect(0f, y, titleW, U(20f));
                 LinkLabel(titleRect, title, Skin.DimLabel, LinkText(KindOf(explorer, row.TitleLink), false));
@@ -724,7 +724,7 @@ namespace Scry
                 var text = DetailWords.Amounted(amount, item.Name);
                 // A mark (only here, what a trader pays) in a pill of its own at the chip's end.
                 var markW = item.Mark != null ? Skin.Width(Skin.Badge, item.Mark) + U(16f) : 0f;
-                var floorW = !string.IsNullOrEmpty(item.Prefab) && explorer.ShownByFloor(item.Prefab) ? FloorRoom : 0f;
+                var floorW = !string.IsNullOrEmpty(item.Prefab) && explorer.ShownByChoice(item.Prefab) ? FloorRoom : 0f;
                 markW += floorW;
                 var w = Mathf.Min(width, Skin.Width(Skin.Chip, text) + U(30f) + markW);
                 var at = flow.Place(w);
@@ -828,7 +828,7 @@ namespace Scry
                 {
                     var name = ShownName(explorer, key, key);
                     var here = shown != null && (shown.Name == key || shown.Key == key);
-                    var floor = !here && explorer.ShownByFloor(key);
+                    var floor = !here && explorer.ShownByChoice(key);
                     var w = Mathf.Min(width, LinkChipWidth(name, true, floor));
                     var at = flow.Place(w);
                     var chip = new Rect(at.X, at.Y, w, flow.RowHeight);

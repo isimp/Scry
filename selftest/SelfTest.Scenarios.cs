@@ -57,6 +57,7 @@ namespace Scry
             yield return S("what equipping something changes in play is watched", EquippingWatched, 5);
             yield return S("what the character knows is kept, caught up with its records and with what it carries", CompendiumKept, 30);
             yield return S("the compendium's rules are chosen in the panel, for the character played", CompendiumChosen, 10, () => { ScryPanel.HoldCompendiumBox(false); PutRuleBack(); AllKnown(); });
+            yield return S("what a world shows as known is chosen source by source in the box, and what a source shows is marked", WorldSourcesShown, 15, () => { ScryPanel.HoldCompendiumBox(false); PutSourcesBack(); Session.ShowKnownInstead(null); });
             yield return S("what the character learns waits for the panel to open before it is told again", CompendiumWaitsForPanel, 10, AllKnown);
             yield return S("the compendium watches fights, hits and sight without fault", CompendiumWatched, 10);
             yield return S("made-up events through the real hooks are recorded, the world and the character's book left alone", CompendiumHooksFed, 10, () => CompendiumKeeper.RecordInto(null));

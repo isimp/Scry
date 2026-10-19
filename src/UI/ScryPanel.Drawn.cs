@@ -38,6 +38,9 @@ namespace Scry
         CompendiumBox,
         CutChip,
         LearnedTab,
+
+        /// <summary>The world's sources and their levels in the compendium's box.</summary>
+        SourcesControl,
         PeekButton,
         MapBar,
         FloorMark,

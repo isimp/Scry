@@ -347,14 +347,16 @@ namespace Scry
                 y += U(26f);
             }
 
-            // Shown as known only by the compendium's floor: said under the title, with the list's mark.
-            if (explorer.ByFloor(entry))
+            // Shown only by the player's choice, the compendium's floor or a source of the world: said under the title, with the list's mark.
+            var shownBy = explorer.ByFloor(entry) ? CompendiumWords.ByFloor(explorer.Compendium.Floor)
+                : explorer.ByWorld(entry) is WorldSource source ? CompendiumWords.ByWorld(source, explorer.LevelOf(entry)) : null;
+            if (shownBy != null)
             {
                 CountDrawn(PanelPart.FloorLine);
                 var mark = U(16f);
                 Skin.Icon(new Rect(0f, y + (U(22f) - mark) / 2f, mark, mark), Skin.Steps, Skin.Faint);
                 var line = new Rect(mark + U(6f), y, width - mark - U(6f), U(22f));
-                var said = CompendiumWords.ByFloor(explorer.Compendium.Floor);
+                var said = shownBy;
                 if (!FitLabel(line, said, Skin.DimLabel, 10f) && line.Contains(Event.current.mousePosition)) AskTip("floor-line", said);
                 y += U(24f);
             }

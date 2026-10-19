@@ -140,7 +140,7 @@ namespace Scry
             if (LeftOut(explorer, entry.Key)) return y;
             var rowH = U(26f);
             var go = Goes(explorer, entry.Key);
-            var floor = go && explorer.ShownByFloor(entry.Key);
+            var floor = go && explorer.ShownByChoice(entry.Key);
             var w = Mathf.Min(width * 0.5f, LinkChipWidth(entry.Shown, go, floor));
             var chip = new Rect(x, y, w, rowH);
             if (!OutOfSight(chip, visible))
@@ -170,7 +170,7 @@ namespace Scry
             {
                 var entry = entries[i];
                 var go = Goes(explorer, entry.Key);
-                var floor = go && explorer.ShownByFloor(entry.Key);
+                var floor = go && explorer.ShownByChoice(entry.Key);
                 var w = Mathf.Min(width, LinkChipWidth(entry.Shown, go, floor));
                 var at = flow.Place(w);
                 var chip = new Rect(at.X, at.Y, w, flow.RowHeight);

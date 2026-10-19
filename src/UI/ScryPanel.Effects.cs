@@ -171,7 +171,7 @@ namespace Scry
             {
                 var member = members[i];
                 var go = member != self && Goes(explorer, member);
-                var floor = go && explorer.ShownByFloor(member);
+                var floor = go && explorer.ShownByChoice(member);
                 var w = Mathf.Min(width, LinkChipWidth(member, go, floor));
                 var at = flow.Place(w);
                 var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
@@ -315,7 +315,7 @@ namespace Scry
                     var owner = row.Owners[o];
                     var shown = row.Names != null && o < row.Names.Length ? row.Names[o] : ShownName(explorer, owner.Key, owner.Shown);
                     var go = owner.Key != null && Goes(explorer, owner.Key);
-                    var floor = go && explorer.ShownByFloor(owner.Key);
+                    var floor = go && explorer.ShownByChoice(owner.Key);
                     var w = Mathf.Min(width, LinkChipWidth(shown, go, floor));
                     var at = owners.Place(w);
                     var chip = new Rect(at.X, at.Y, w, rowH);

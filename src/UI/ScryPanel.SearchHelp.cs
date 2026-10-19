@@ -116,7 +116,7 @@ namespace Scry
                 var guarded = new HashSet<Entry>();
                 foreach (var entry in explorer.Catalog)
                 {
-                    if (view.Of(entry) == KnownLevel.Known && !view.BelowFloor(entry)) guarded.Add(entry);
+                    if (view.Of(entry) == KnownLevel.Known && !view.Whole(entry)) guarded.Add(entry);
                 }
                 return guarded;
             }

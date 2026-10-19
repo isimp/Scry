@@ -449,8 +449,8 @@ namespace Scry
             if (favourite) Skin.Icon(star, Skin.Star, Skin.Accent);
             else if (hover) Skin.Icon(star, Skin.StarHollow, star.Contains(e.mousePosition) ? Skin.Accent : Skin.Faint);
 
-            // Shown as known only by the compendium's floor: a mark before the star.
-            var byFloor = explorer.ByFloor(entry);
+            // Shown only by the player's choice, the compendium's floor or a source of the world: a mark before the star.
+            var byFloor = explorer.ByChoice(entry);
             var floorMark = new Rect(star.x - U(22f), star.y, star.width, star.height);
             if (byFloor)
             {

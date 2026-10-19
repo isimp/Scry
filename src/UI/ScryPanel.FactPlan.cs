@@ -286,7 +286,7 @@ namespace Scry
                     // Measured as drawn: a line left out takes no room, a number kept back that of ???.
                     if (LineLeftOut(explorer, row.Lines[l].Link)) continue;
                     var drawn = CellDrawn(explorer, row, l, c);
-                    if (drawn != null) w = Mathf.Max(w, Skin.Width(Skin.Small, drawn) + (drawn != CompendiumWords.Hidden && explorer.ShownByFloor(CellLink(row, l, c)) ? FloorRoom : 0f));
+                    if (drawn != null) w = Mathf.Max(w, Skin.Width(Skin.Small, drawn) + (drawn != CompendiumWords.Hidden && explorer.ShownByChoice(CellLink(row, l, c)) ? FloorRoom : 0f));
                     if (!row.Yours.TryGetValue(l, out var yours) || LineKept(explorer, row, l, out _) || AttackKept(explorer, row, l)) continue;
                     foreach (var under in yours) if (c < under.Cells.Length && !explorer.NotMet(under.Skill)) w = Mathf.Max(w, Skin.Width(Skin.Small, under.Cells[c]) + (c == 0 ? YoursIndent : 0f));
                 }
@@ -386,7 +386,7 @@ namespace Scry
                         else if (c == 0 && !string.IsNullOrEmpty(link) && Goes(explorer, link))
                         {
                             LinkLabel(cell, cells[c], Skin.SmallWrap, LinkText(KindOf(explorer, link), false));
-                            if (explorer.ShownByFloor(link)) FloorMark(FloorMarkX(cell, cells[c]), cell);
+                            if (explorer.ShownByChoice(link)) FloorMark(FloorMarkX(cell, cells[c]), cell);
                             if (cell.Contains(Event.current.mousePosition)) AskTip("table:" + link, FloorTip(explorer, link, PanelWords.GoTo(cells[c])));
                             if (GUI.Button(cell, GUIContent.none, GUIStyle.none)) Go(explorer, link);
                         }
@@ -411,7 +411,7 @@ namespace Scry
                         else if (c > 0 && row.CellLinks.TryGetValue((l, c), out var to) && Goes(explorer, to))
                         {
                             LinkLabel(cell, cells[c], Skin.SmallWrap, LinkText(KindOf(explorer, to), false));
-                            if (explorer.ShownByFloor(to)) FloorMark(FloorMarkX(cell, cells[c]), cell);
+                            if (explorer.ShownByChoice(to)) FloorMark(FloorMarkX(cell, cells[c]), cell);
                             if (cell.Contains(Event.current.mousePosition)) AskTip("table:" + to, FloorTip(explorer, to, PanelWords.GoTo(cells[c])));
                             if (GUI.Button(cell, GUIContent.none, GUIStyle.none)) Go(explorer, to);
                         }

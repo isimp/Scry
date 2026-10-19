@@ -343,6 +343,14 @@ namespace Scry
         private static bool _bookFloorShown;
         private static float _bookCaptionW;
 
+        /// <summary>Whether the box shows the world's sources (<see cref="WorldSource"/>): while the compendium is on.</summary>
+        private static bool _bookSourcesShown;
+
+        /// <summary>Where each source's levels stand in the box, by source and level, and its caption and hint.</summary>
+        private static readonly Rect[][] SourceSegments = Array.ConvertAll(WorldSources.All, _ => new Rect[Enum.GetValues(typeof(SourceLevel)).Length]);
+        private static readonly Rect[] SourceNames = new Rect[WorldSources.All.Length];
+        private static Rect _sourcesCaption, _sourcesHint;
+
         /// <summary>Holds the compendium's box open, or lets it close again; for the self-test.</summary>
         internal static void HoldCompendiumBox(bool open) => _bookHeld = open;
 
@@ -411,22 +419,44 @@ namespace Scry
         /// <summary>
         /// Where the box and its controls stand under the button, kept inside the panel: its
         /// caption, the rules' segments and, while the compendium is on and a floor can be set,
-        /// the floor between its arrows; and whether it is open, while the mouse is on the button
-        /// or the box, with a little room between them.
+        /// the floor between its arrows; while it is on, what the world shows as known, a row of
+        /// levels for each source and the faint line under them; and whether it is open, while the
+        /// mouse is on the button or the box, with a little room between them.
         /// </summary>
         private static void BookLayout(CompendiumBook book, Rect button, float height, Rect room, Event e)
         {
             var pad = U(10f);
             var gap = U(4f);
-            _bookCaptionW = Mathf.Max(Skin.Width(Skin.FaintLabel, CompendiumWords.RulesCaption), Skin.Width(Skin.FaintLabel, CompendiumWords.FloorCaption)) + U(10f);
             _bookFloorShown = book.Rule != CompendiumRule.Off && (CompendiumKeeper.Ceiling > 0 || book.Floor > 0);
+            _bookSourcesShown = book.Rule != CompendiumRule.Off;
+            _bookCaptionW = Mathf.Max(Skin.Width(Skin.FaintLabel, CompendiumWords.RulesCaption), Skin.Width(Skin.FaintLabel, CompendiumWords.FloorCaption));
+            var sourcesW = 0f;
+            if (_bookSourcesShown)
+            {
+                foreach (var source in WorldSources.All)
+                {
+                    _bookCaptionW = Mathf.Max(_bookCaptionW, Skin.Width(Skin.FaintLabel, CompendiumWords.SourceName(source)));
+                    var levelsW = 0f;
+                    foreach (var level in WorldSources.Offered(source)) levelsW += Skin.Width(Skin.Segment, CompendiumWords.LevelName(level)) + U(6f) + (levelsW > 0f ? gap : 0f);
+                    sourcesW = Mathf.Max(sourcesW, levelsW);
+                }
+            }
+            _bookCaptionW += U(10f);
             var segmentsW = 0f;
             for (var i = 0; i < CompendiumWords.Rules.Count; i++) segmentsW += Skin.Width(Skin.Segment, CompendiumWords.RuleName(CompendiumWords.Rules[i])) + U(6f) + (i > 0 ? gap : 0f);
             var floorW = _bookFloorShown ? height * 2f + _floorValueW + gap * 2f : 0f;
-            var width = Mathf.Min(room.width, Mathf.Max(Skin.Width(Skin.FaintLabel, CompendiumWords.BoxCaption), _bookCaptionW + Mathf.Max(segmentsW, floorW)) + pad * 2f);
+            var captionsW = Mathf.Max(Skin.Width(Skin.FaintLabel, CompendiumWords.BoxCaption), _bookSourcesShown ? Skin.Width(Skin.FaintLabel, CompendiumWords.SourcesCaption) : 0f);
+            var width = Mathf.Min(room.width, Mathf.Max(captionsW, _bookCaptionW + Mathf.Max(segmentsW, Mathf.Max(floorW, sourcesW))) + pad * 2f);
             var rows = _bookFloorShown ? 2 : 1;
             var x = Mathf.Clamp(button.xMax - width, room.x, room.xMax - width);
-            _bookBox = new Rect(x, button.yMax + gap, width, pad + U(26f) + rows * height + (rows - 1) * U(6f) + pad);
+            var sourcesH = 0f;
+            var hintH = 0f;
+            if (_bookSourcesShown)
+            {
+                hintH = Skin.DimWrap.CalcHeight(new GUIContent(CompendiumWords.SourcesHint), width - pad * 2f - U(10f));
+                sourcesH = U(14f) + U(22f) + WorldSources.All.Length * (height + U(6f)) + hintH;
+            }
+            _bookBox = new Rect(x, button.yMax + gap, width, pad + U(26f) + rows * height + (rows - 1) * U(6f) + sourcesH + pad);
 
             var rowY = _bookBox.y + pad + U(26f);
             var sx = _bookBox.x + pad + _bookCaptionW;
@@ -440,6 +470,26 @@ namespace Scry
             _bookLower = new Rect(_bookBox.x + pad + _bookCaptionW, floorY, height, height);
             _bookValue = new Rect(_bookLower.xMax + gap, floorY, _floorValueW, height);
             _bookRaise = new Rect(_bookValue.xMax + gap, floorY, height, height);
+            if (_bookSourcesShown)
+            {
+                var sourceY = rowY + rows * height + (rows - 1) * U(6f) + U(14f);
+                _sourcesCaption = new Rect(_bookBox.x + pad, sourceY, _bookBox.width - pad * 2f, U(20f));
+                sourceY += U(22f);
+                for (var s = 0; s < WorldSources.All.Length; s++)
+                {
+                    SourceNames[s] = new Rect(_bookBox.x + pad, sourceY, _bookCaptionW, height);
+                    var lx = _bookBox.x + pad + _bookCaptionW;
+                    for (var l = 0; l < SourceSegments[s].Length; l++) SourceSegments[s][l] = Rect.zero;
+                    foreach (var level in WorldSources.Offered(WorldSources.All[s]))
+                    {
+                        var w = Skin.Width(Skin.Segment, CompendiumWords.LevelName(level)) + U(6f);
+                        SourceSegments[s][(int)level] = new Rect(lx, sourceY, w, height);
+                        lx += w + gap;
+                    }
+                    sourceY += height + U(6f);
+                }
+                _sourcesHint = new Rect(_bookBox.x + pad, sourceY, _bookBox.width - pad * 2f, hintH);
+            }
 
             var zone = button;
             if (_bookOpen)
@@ -468,6 +518,13 @@ namespace Scry
                 }
                 if (_bookFloorShown && _bookLower.Contains(e.mousePosition) && book.Floor > 0) SetFloor(book, book.Floor - 1);
                 else if (_bookFloorShown && _bookRaise.Contains(e.mousePosition) && CanRaise(book.Floor)) SetFloor(book, book.Floor + 1);
+                for (var s = 0; _bookSourcesShown && s < WorldSources.All.Length; s++)
+                {
+                    foreach (var level in WorldSources.Offered(WorldSources.All[s]))
+                    {
+                        if (SourceSegments[s][(int)level].Contains(e.mousePosition) && book.Shows(WorldSources.All[s]) != level) ShowSource(WorldSources.All[s], level);
+                    }
+                }
             }
             e.Use();
         }
@@ -497,6 +554,7 @@ namespace Scry
                 if (repaint) GUI.Button(BookSegments[i], CompendiumWords.RuleName(rule), book.Rule == rule ? Skin.SegmentOn : Skin.Segment);
                 if (BookSegments[i].Contains(mouse)) AskTip("mode-" + CompendiumWords.RuleName(rule), CompendiumWords.StepTip(rule));
             }
+            DrawSources(book, mouse, repaint);
             if (!_bookFloorShown) return;
             CountDrawn(PanelPart.FloorControl);
             var floor = book.Floor;
@@ -518,6 +576,42 @@ namespace Scry
                 var boss = explorer.Find(Tiers.BossOf(floor + 1))?.ShownName ?? Naming.Readable(Tiers.BossOf(floor + 1));
                 AskTip("floor-up", canRaise ? CompendiumWords.RaiseFloor(floor + 1, boss) : CompendiumWords.FloorWaits(boss));
             }
+        }
+
+        /// <summary>The box's rows for the world's sources: the caption, each source's name with its levels, the one chosen lit, and the faint line saying what turning one down does; each with its tip.</summary>
+        private static void DrawSources(CompendiumBook book, Vector2 mouse, bool repaint)
+        {
+            if (!_bookSourcesShown) return;
+            CountDrawn(PanelPart.SourcesControl);
+            if (repaint)
+            {
+                GUI.Label(_sourcesCaption, CompendiumWords.SourcesCaption, Skin.FaintLabel);
+                Skin.Box(new Rect(_sourcesHint.x, _sourcesHint.y + U(2f), U(2f), _sourcesHint.height - U(4f)), Skin.Accent, Skin.Accent);
+                GUI.Label(new Rect(_sourcesHint.x + U(10f), _sourcesHint.y, _sourcesHint.width - U(10f), _sourcesHint.height), CompendiumWords.SourcesHint, Skin.DimWrap);
+            }
+            for (var s = 0; s < WorldSources.All.Length; s++)
+            {
+                var source = WorldSources.All[s];
+                if (repaint) GUI.Label(SourceNames[s], CompendiumWords.SourceName(source), Skin.FaintLabel);
+                if (SourceNames[s].Contains(mouse)) AskTip("source-" + source, CompendiumWords.SourceTip(source));
+                var shows = book.Shows(source);
+                foreach (var level in WorldSources.Offered(source))
+                {
+                    var at = SourceSegments[s][(int)level];
+                    if (repaint) GUI.Button(at, CompendiumWords.LevelName(level), shows == level ? Skin.SegmentOn : Skin.Segment);
+                    if (at.Contains(mouse)) AskTip("source-level-" + level, CompendiumWords.LevelTip(level));
+                }
+            }
+        }
+
+        /// <summary>Sets how a source of the world shows for the character played and keeps it at once: a choice of the player's. The box, and the self-test.</summary>
+        public static void ShowSource(WorldSource source, SourceLevel level)
+        {
+            var book = CompendiumKeeper.Book;
+            if (book == null) return;
+            book.Show(source, level);
+            CompendiumKeeper.Save(now: true);
+            ListFiltered();
         }
 
         /// <summary>Chooses the compendium's rules for the character played and keeps them at once: a choice of the player's. The mode's arrows, and the self-test.</summary>

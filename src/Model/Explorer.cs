@@ -255,6 +255,24 @@ namespace Scry
             return new NewsLine(entry?.ShownName ?? "", news?.How ?? NewsHow.Seen, news?.Proof, news?.Day ?? -1);
         }
 
+        /// <summary>The source of the world an entry shows from only, as the player chose (<see cref="CompendiumView.ByWorld"/>); none with the compendium off.</summary>
+        public WorldSource? ByWorld(Entry entry) => CompendiumOn ? _view.ByWorld(entry) : null;
+
+        /// <summary>Whether an entry shows only by the player's choice, the floor or a source of the world, so it is marked.</summary>
+        public bool ByChoice(Entry entry) => ByFloor(entry) || ByWorld(entry) != null;
+
+        /// <summary>Whether what a link or chip goes to, by its key, shows only by the player's choice (<see cref="ByChoice"/>), to be marked as its row is.</summary>
+        public bool ShownByChoice(string key) => ByChoice(Find(key));
+
+        /// <summary>A link's or chip's tip, with what shows only by the player's choice saying so first: the floor's tier, or the source and how it shows.</summary>
+        public string ChoiceTip(string key, string tip)
+        {
+            var entry = Find(key);
+            if (ByFloor(entry)) return CompendiumWords.FloorTip(_view.Floor, tip);
+            var source = ByWorld(entry);
+            return source != null ? CompendiumWords.WorldTip(source.Value, _view.Of(entry), tip) : tip;
+        }
+
         /// <summary>Whether what a link or chip on a page goes to, by its key, shows as known only because of the floor (<see cref="ByFloor"/>), to be marked as its row is.</summary>
         public bool ShownByFloor(string key) => ByFloor(Find(key));
 
@@ -472,7 +490,7 @@ namespace Scry
         /// </summary>
         public bool LeavingOut =>
             CompendiumOn && _view.Rule == CompendiumRule.Strict && _selected != null && _selected.Kind != Kind.Mod && _selected.Kind != Kind.Skill
-            && _view.Of(_selected) == KnownLevel.Known && !_view.BelowFloor(_selected);
+            && _view.Of(_selected) == KnownLevel.Known && !_view.Whole(_selected);
 
         /// <summary>How many of a kind the character has met (seen or known), whatever is typed.</summary>
         public int FoundOf(Kind kind) => _found[(int)kind];

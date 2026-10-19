@@ -278,6 +278,57 @@ namespace Scry.Tests
             Assert.Equal(whole + 1, s.View.WholeCountsOf(WholeCause.World));
         }
 
+        [Fact]
+        public void WhatASourceShowsReadsWholeAsWhatTheFloorShowsDoes()
+        {
+            // One meaning for every mark: shown by the player's choice, a page shows whole under either rules.
+            var s = new Setup().Found(WorldSource.SharedMaps, "Crypt2").Shows(WorldSource.SharedMaps, SourceLevel.Known, CompendiumRule.Strict);
+            Assert.True(s.View.Whole(s.Crypt));
+            Assert.False(s.View.Whole(s.Haldor));
+            Assert.False(s.View.InsidesShown(s.Crypt));
+            s.Shows(WorldSource.SharedMaps, SourceLevel.WithInsides, CompendiumRule.Strict);
+            Assert.True(s.View.InsidesShown(s.Crypt));
+            s.Shows(WorldSource.SharedMaps, SourceLevel.Known, CompendiumRule.Strict);
+            Assert.False(s.View.InsidesShown(s.Crypt));
+        }
+
+        [Fact]
+        public void AMarkSaysWhichSourceShowsItAndHow()
+        {
+            Assert.Equal("Shown as known from your explored ground, not yet met by this character", CompendiumWords.ByWorld(WorldSource.Explored, KnownLevel.Known));
+            Assert.Equal("Shown as seen from shared maps, not yet met by this character", CompendiumWords.ByWorld(WorldSource.SharedMaps, KnownLevel.Seen));
+            Assert.Equal("shown as known from the places every map shows", CompendiumWords.CameLine(null, -1, null, owner: null, byFloor: false, known: true, byWorld: WorldSource.OnEveryMap));
+        }
+
+        [Fact]
+        public void TheBoxNamesEachSourceAndWhatEachLevelDoes()
+        {
+            Assert.Equal(new[] { "Ground you explored", "Shared maps", "Places marked for you", "Places on every map" },
+                System.Array.ConvertAll(WorldSources.All, CompendiumWords.SourceName));
+            Assert.Equal(new[] { "Off", "Seen", "Known", "With insides" },
+                System.Array.ConvertAll((SourceLevel[])System.Enum.GetValues(typeof(SourceLevel)), CompendiumWords.LevelName));
+            foreach (var source in WorldSources.All) Assert.False(string.IsNullOrEmpty(CompendiumWords.SourceTip(source)));
+            foreach (SourceLevel level in System.Enum.GetValues(typeof(SourceLevel))) Assert.False(string.IsNullOrEmpty(CompendiumWords.LevelTip(level)));
+            // Your own ground and marked places offer no Off, as they show at least seen.
+            Assert.Equal(new[] { SourceLevel.Seen, SourceLevel.Known, SourceLevel.WithInsides }, WorldSources.Offered(WorldSource.Explored));
+            Assert.Equal(new[] { SourceLevel.Off, SourceLevel.Seen, SourceLevel.Known, SourceLevel.WithInsides }, WorldSources.Offered(WorldSource.SharedMaps));
+        }
+
+        [Fact]
+        public void ChipsAndLinksToWhatASourceShowsAreMarkedWithItsTip()
+        {
+            var s = new Setup().Found(WorldSource.SharedMaps, "Crypt2").Shows(WorldSource.SharedMaps, SourceLevel.Seen);
+            var explorer = new Explorer(new[] { s.Crypt, s.Walked, s.NotWalked, s.Haldor, s.Glow }, new Favourites(System.IO.Path.Combine(TestCatalog.TempDir(), "favourites.txt")));
+            var view = new CompendiumView(explorer.Entries);
+            view.InWorld(World);
+            view.Tell(s.Book, CompendiumRule.Loose);
+            explorer.Know(view);
+            Assert.True(explorer.ShownByChoice(s.Crypt.Key));
+            Assert.False(explorer.ShownByChoice(s.Haldor.Key));
+            Assert.Equal(CompendiumWords.ByWorld(WorldSource.SharedMaps, KnownLevel.Seen) + "\n" + "Goes to Crypt", explorer.ChoiceTip(s.Crypt.Key, "Goes to Crypt"));
+            Assert.Equal("Goes to Haldor", explorer.ChoiceTip(s.Haldor.Key, "Goes to Haldor"));
+        }
+
         private static List<string> Sorted(IEnumerable<string> kinds)
         {
             var list = new List<string>(kinds);
