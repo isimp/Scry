@@ -22,6 +22,34 @@ namespace Scry
         }
     }
 
+    /// <summary>What set off a whole count of what the character knows (<see cref="CompendiumView.WholeCountsOf"/>).</summary>
+    internal enum WholeCause
+    {
+        /// <summary>The first telling.</summary>
+        First,
+
+        /// <summary>Another character's book.</summary>
+        Book,
+
+        /// <summary>Other rules.</summary>
+        Rule,
+
+        /// <summary>The catalog regrouped.</summary>
+        Groups,
+
+        /// <summary>The floor or its tiers moved.</summary>
+        Floor,
+
+        /// <summary>Another skill learned.</summary>
+        Skills,
+
+        /// <summary>Another kind of room walked.</summary>
+        Rooms,
+
+        /// <summary>More learned than the book remembers since the last telling.</summary>
+        TooMuchLearned,
+    }
+
     /// <summary>
     /// What each entry shows as, from what the character knows (<see cref="CompendiumBook"/>) and
     /// the ruleset. Off, everything is known. Under <see cref="CompendiumRule.Loose"/> an entry is
@@ -233,6 +261,22 @@ namespace Scry
         /// <summary>How many times every entry's level was worked out afresh, the catalog gone through whole.</summary>
         public int WholeCounts { get; private set; }
 
+        /// <summary>How many of the whole counts each cause set off (<see cref="WholeCause"/>), for the self-test to tell.</summary>
+        public int WholeCountsOf(WholeCause cause) => _wholeBy[(int)cause];
+
+        private readonly int[] _wholeBy = new int[Enum.GetValues(typeof(WholeCause)).Length];
+
+        /// <summary>What sets off the whole count about to be made, the first cause that holds.</summary>
+        private WholeCause CauseOf(CompendiumBook book, CompendiumRule rule, bool regrouped) =>
+            _book == null ? WholeCause.First
+            : !ReferenceEquals(book, _book) ? WholeCause.Book
+            : rule != _rule ? WholeCause.Rule
+            : regrouped ? WholeCause.Groups
+            : _floorMoved ? WholeCause.Floor
+            : _skillsMoved ? WholeCause.Skills
+            : _roomsMoved ? WholeCause.Rooms
+            : WholeCause.TooMuchLearned;
+
         /// <summary>
         /// Whether all that changed since the levels were last told is more learned in the same
         /// book: the rules, the floor and the catalog's groups as they were. Told on top
@@ -260,6 +304,7 @@ namespace Scry
                 Version++;
                 return;
             }
+            var cause = CauseOf(book, rule, regrouped);
             _floorMoved = false;
             _skillsMoved = false;
             _roomsMoved = false;
@@ -272,6 +317,7 @@ namespace Scry
             if (regrouped) Index();
             Version++;
             WholeCounts++;
+            _wholeBy[(int)cause]++;
             _levels.Clear();
             _because.Clear();
             _owns.Clear();

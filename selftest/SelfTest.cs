@@ -305,7 +305,8 @@ namespace Scry
 
         /// <summary>
         /// A scenario that also fails when any part of Scry failed while it ran or a feature went
-        /// off for a game change, and notes how long Scry's own work took in its frames. A part of
+        /// off for a game change, and notes how long Scry's own work took in its frames, and what
+        /// set off each time what the played character knows was counted whole. A part of
         /// a single prefab left out fails it too, unless it reads what mods add as well
         /// (<paramref name="bearsSkips"/>), where Scry is made to bear that and it is only noted.
         /// Its body may yield another's steps, which run in place. Only a full run takes one
@@ -320,6 +321,7 @@ namespace Scry
             var faults = Faults.Count;
             var skipped = Faults.Skipped;
             var off = Faults.ChangedFeatures.Count;
+            var whole = WholeCounts();
             var steps = new Stack<IEnumerator>();
             steps.Push(body(p));
             while (steps.Count > 0)
@@ -349,7 +351,15 @@ namespace Scry
             if (mine.Frames > 0) p.Note(mine.Line(Budget) + Slowest(mine, 1));
             // Where a part's slowest frame was slow, every part of it: the slowest alone may hold others.
             if (mine.Max >= SlowFrame && mine.PartsOfSlowest(1)[0] is string parts) p.Note("its slowest frame: " + parts);
+            var wholeNow = WholeCounts();
+            var causes = Causes.Where(c => wholeNow[(int)c] > whole[(int)c]).Select(c => $"{c} {Numbers.Count(wholeNow[(int)c] - whole[(int)c])}").ToList();
+            if (causes.Count > 0) p.Note("the played character's compendium counted whole, by what set it off: " + string.Join(", ", causes));
         }
+
+        private static readonly WholeCause[] Causes = (WholeCause[])Enum.GetValues(typeof(WholeCause));
+
+        /// <summary>How many times what the played character knows was counted whole so far, by cause.</summary>
+        private static int[] WholeCounts() => Causes.Select(Session.KnownWholeCountsOf).ToArray();
 
         private static string Slowest(FrameStats stats, int count)
         {

@@ -177,6 +177,10 @@ namespace Scry
             Timing.Add("compendium listed", step);
         }
 
+        /// <summary>How many times what the played character knows was counted whole for the list, by what set it off; for the self-test.</summary>
+        [Diagnostic]
+        public static int KnownWholeCountsOf(WholeCause cause) => _known != null ? _known.WholeCountsOf(cause) : 0;
+
         /// <summary>When what the character knows was last told to the list, by the unscaled clock.</summary>
         private static float _knownToldAt = float.NegativeInfinity;
 

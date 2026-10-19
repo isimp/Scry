@@ -165,6 +165,36 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void EachWholeCountSaysWhatSetItOff()
+        {
+            var all = Catalog(new Random(7));
+            var catalog = new EntryCatalog(all);
+            var book = new CompendiumBook();
+            var view = new CompendiumView(catalog);
+
+            view.Tell(book, CompendiumRule.Strict);
+            catalog.Regroup();
+            view.Tell(book, CompendiumRule.Strict);
+            view.Tell(book, CompendiumRule.Loose);
+            view.Milestones(new Dictionary<string, int> { [all[2].Key] = 1 }, 1);
+            view.Tell(book, CompendiumRule.Loose);
+            view.SkillsLearned(_ => true, 1);
+            view.Tell(book, CompendiumRule.Loose);
+            view.RoomsWalked(_ => true, 1);
+            view.Tell(book, CompendiumRule.Loose);
+            var other = new CompendiumBook();
+            view.Tell(other, CompendiumRule.Loose);
+            for (var i = 0; i <= CompendiumBook.RaisesKept; i++) other.Raise("unlisted" + i, KnownLevel.Seen);
+            view.Tell(other, CompendiumRule.Loose);
+            // Only more learned, told on top: no whole count.
+            other.Raise(all[3].Key, KnownLevel.Known);
+            view.Tell(other, CompendiumRule.Loose);
+
+            foreach (WholeCause cause in Enum.GetValues(typeof(WholeCause))) Assert.True(view.WholeCountsOf(cause) == 1, $"{cause}: {view.WholeCountsOf(cause)}");
+            Assert.Equal(8, view.WholeCounts);
+        }
+
+        [Fact]
         public void MoreLearnedThanTheBookRemembersIsCountedAfresh()
         {
             var all = Catalog(new Random(8));
