@@ -62,6 +62,9 @@ namespace Scry
         /// <summary>Records what the hooks see into a book of the self-test's own until given none again; the character's book and the play counts are left alone meanwhile.</summary>
         public static void RecordInto(CompendiumBook book) => _into = book;
 
+        /// <summary>Whether the self-test is feeding the hooks into a book of its own (<see cref="RecordInto"/>): nothing of it is sent to other players' games.</summary>
+        public static bool RecordingForTest => _into != null;
+
         /// <summary>How often each hook fired this session (<see cref="PlayCounts"/>), what the self-test feeds them left out.</summary>
         public static PlayCounts Play { get; } = new PlayCounts();
 

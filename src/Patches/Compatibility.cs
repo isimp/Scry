@@ -227,6 +227,8 @@ namespace Scry
             ("Character", "ApplyDamage", 4, 0x2DB5159A, Feature.CompendiumTogether),
             // Vegvisirs and rune stones mark a place through one call, which the places marked for the character follow.
             ("Game", "DiscoverClosestLocation", 6, 0x93FC2162, Feature.CompendiumUse),
+            // A server passes a routed message on to the player it is for, knowing it or not, which events between games rely on.
+            ("ZRoutedRpc", "RouteRPC", 1, 0x01B23498, Feature.CompendiumTogether),
             ("Character", "OnDeath", 0, 0xE8638E7F, Feature.CompendiumTogether),
             ("Ragdoll", "Setup", 7, 0x7D29C725, Feature.DropsSeenInPlay),
             ("Ragdoll", "SpawnLoot", 1, 0x515425F4, Feature.DropsSeenInPlay),

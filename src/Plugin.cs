@@ -144,6 +144,7 @@ namespace Scry
         {
             Guard.Run(Feature.CompendiumMap, "Scry's messages with the server", CompendiumLink.Update);
             Guard.Run(Feature.GroupDungeonMaps, "the group's dungeon records", GroupMapsLink.Update);
+            Guard.Run(Feature.CompendiumTogether, "Scry's messages with the other players' games", EventLink.Update);
             if (_server) return;
             var started = Timing.Start();
             Guard.Run(Feature.World, "the frame", Session.Update);

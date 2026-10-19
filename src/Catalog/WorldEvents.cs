@@ -6,8 +6,9 @@ namespace Scry
 {
     /// <summary>
     /// The events this game runs, made as it runs them (<see cref="WorldEvent"/>): numbered in
-    /// turn, with who did them as the game itself knows it, and told to the character's game,
-    /// which is this one (<see cref="CompendiumKeeper.Tell"/>). Who did it goes by the player's
+    /// turn, with who did them as the game itself knows it, told to the character's game, which is
+    /// this one (<see cref="CompendiumKeeper.Tell"/>), and sent to the other players' games it
+    /// concerns (<see cref="EventLink.Send"/>). Who did it goes by the player's
     /// game's session, as the game addresses a player's game: a hit's attacker among the world's
     /// players by their character, a creature's attackers by the names the game flags it with as
     /// they hit it (<c>Character.ApplyDamage</c>) and tells each of them its kill by
@@ -32,7 +33,9 @@ namespace Scry
             IReadOnlyList<long> doers = null, string with = null)
         {
             if (string.IsNullOrEmpty(thing)) return;
-            CompendiumKeeper.Tell(Make(what, thing, at, came, level, doers, with));
+            var told = Make(what, thing, at, came, level, doers, with);
+            CompendiumKeeper.Tell(told);
+            EventLink.Send(told);
         }
 
         /// <summary>Something seen done to a thing where it stands, which no one does.</summary>
