@@ -526,7 +526,9 @@ namespace Scry
                 var target = attribute.info.declaringType;
                 var name = attribute.info.methodName;
                 var feature = FeatureOfPatch(type);
-                var method = target.GetMethods(All).FirstOrDefault(m => m.Name == name);
+                // The overload its attribute names by its parameters' types, else the first of its name.
+                var types = attribute.info.argumentTypes;
+                var method = target.GetMethods(All).FirstOrDefault(m => m.Name == name && (types == null || m.GetParameters().Select(a => a.ParameterType).SequenceEqual(types)));
                 var patched = method != null && Harmony.GetPatchInfo(method)?.Owners.Contains(About.Guid) == true;
                 list.Add($"{target.Name}.{name}", feature, patched ? Found.Present : Found.Missing);
             }

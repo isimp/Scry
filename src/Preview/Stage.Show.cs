@@ -113,9 +113,46 @@ namespace Scry
             else
             {
                 _subject = Looks.Copy(entry, modifiers, _root.transform, Origin, Quaternion.identity, _layer, "selection");
+                if (_subject != null) TurnToFront(_subject);
             }
             if (_subject == null) return;
             Present(entry, modifiers);
+        }
+
+        /// <summary>
+        /// A body rigged as a person (a humanoid animator, as a trader's, whose head the game turns
+        /// to look at a player and whose body it never turns) turned so its front faces the
+        /// camera's start, found from where its legs stand (<see cref="FrontTurn"/>): its prefab may
+        /// face otherwise than the +Z a creature walks along. Anything else stands as it is.
+        /// </summary>
+        private static void TurnToFront(GameObject subject)
+        {
+            var animator = subject.GetComponentInChildren<Animator>();
+            if (animator == null || !animator.isHuman) return;
+            var left = animator.GetBoneTransform(HumanBodyBones.LeftUpperLeg);
+            var right = animator.GetBoneTransform(HumanBodyBones.RightUpperLeg);
+            if (left == null || right == null) return;
+            var l = subject.transform.InverseTransformPoint(left.position);
+            var r = subject.transform.InverseTransformPoint(right.position);
+            var turn = FrontTurn.Degrees(l.x, l.z, r.x, r.z);
+            if (Mathf.Abs(turn) > 1f) subject.transform.localRotation = Quaternion.Euler(0f, turn, 0f) * subject.transform.localRotation;
+        }
+
+        /// <summary>Whether the subject, where it is rigged as a person, faces the camera from where its legs stand; null for anything else or with nothing shown. For the self-test.</summary>
+        [Diagnostic]
+        public static bool? SubjectFacesCamera()
+        {
+            var animator = _subject != null ? _subject.GetComponentInChildren<Animator>() : null;
+            if (animator == null || !animator.isHuman || _camera == null) return null;
+            var left = animator.GetBoneTransform(HumanBodyBones.LeftUpperLeg);
+            var right = animator.GetBoneTransform(HumanBodyBones.RightUpperLeg);
+            if (left == null || right == null) return null;
+            var across = right.position - left.position;
+            var front = Vector3.Cross(across, Vector3.up);
+            var toCamera = _camera.transform.position - (left.position + right.position) / 2f;
+            front.y = 0f;
+            toCamera.y = 0f;
+            return Vector3.Dot(front, toCamera) > 0f;
         }
 
         /// <summary>A few milliseconds a frame for making a location or room.</summary>

@@ -39,9 +39,10 @@ namespace Scry
                 p.Note($"fx_Puke: {Numbers.Fixed(off, 3)} m from the jaw, {Numbers.Fixed(size, 2)} times its size");
                 p.Check(off < 0.05f && size > 0.8f && size < 1.25f, "its look stands on the jaw at its own size in the world, as the game puts it");
             }
-            // Its stream starts a moment after the look is put on: pictured once it flows.
-            yield return Until(() => Flowing(Looks.LookForTest), 5);
-            p.Check(Flowing(Looks.LookForTest), "its stream flows from the person");
+            // Its stream starts a moment after the look is put on (its parts' delay; the splat bursts at once): pictured once it flows.
+            var delay = Delay(look);
+            yield return Until(() => false, delay + 0.5f);
+            p.Check(Flowing(Looks.LookForTest), "its stream flows from the person", $"after {Numbers.Fixed(delay, 1)} s");
             yield return PictureOf(p, "facts", "status Feeling sick on the person");
             // Beside its button, faint: only the look. Nothing of it under the tabs.
             var parts = ScryPanel.ToolbarPartsForTest.ToList();
@@ -71,6 +72,10 @@ namespace Scry
             p.Note("its text under the loose rules: " + masked);
             p.Check(text.Length > 0 && masked.IndexOf(CompendiumWords.Hidden, System.StringComparison.Ordinal) < 0, "its text keeps every plain word, no name of the game's in it", masked);
         }
+
+        /// <summary>How long the latest of a look's parts switched on waits before it starts.</summary>
+        private static float Delay(System.Collections.Generic.IEnumerable<GameObject> look) =>
+            look.Where(c => c != null).SelectMany(c => c.GetComponentsInChildren<ParticleSystem>(false)).Select(s => s.main.startDelay.constantMax).DefaultIfEmpty(0f).Max();
 
         /// <summary>Whether a look's particles show anything now.</summary>
         private static bool Flowing(System.Collections.Generic.IEnumerable<GameObject> look) =>

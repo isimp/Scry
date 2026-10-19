@@ -453,7 +453,7 @@ namespace Scry
             var hintH = 0f;
             if (_bookSourcesShown)
             {
-                hintH = Skin.DimWrap.CalcHeight(new GUIContent(CompendiumWords.SourcesHint), width - pad * 2f - U(10f));
+                hintH = Skin.DimWrap.CalcHeight(new GUIContent(CompendiumWords.SourcesHint), width - pad * 2f - U(30f));
                 sourcesH = U(14f) + U(22f) + WorldSources.All.Length * (height + U(6f)) + hintH;
             }
             _bookBox = new Rect(x, button.yMax + gap, width, pad + U(26f) + rows * height + (rows - 1) * U(6f) + sourcesH + pad);
@@ -586,8 +586,10 @@ namespace Scry
             if (repaint)
             {
                 GUI.Label(_sourcesCaption, CompendiumWords.SourcesCaption, Skin.FaintLabel);
-                Skin.Box(new Rect(_sourcesHint.x, _sourcesHint.y + U(2f), U(2f), _sourcesHint.height - U(4f)), Skin.Accent, Skin.Accent);
-                GUI.Label(new Rect(_sourcesHint.x + U(10f), _sourcesHint.y, _sourcesHint.width - U(10f), _sourcesHint.height), CompendiumWords.SourcesHint, Skin.DimWrap);
+                // As a page's hint line: the accent bar and the compass, its words a step brighter.
+                Skin.Fill(new Rect(_sourcesHint.x + U(6f), _sourcesHint.y + U(2f), U(2f), _sourcesHint.height - U(4f)), Skin.Accent);
+                Skin.Icon(new Rect(_sourcesHint.x + U(12f), _sourcesHint.y + U(3f), U(14f), U(14f)), Skin.Compass, Skin.Accent);
+                GUI.Label(new Rect(_sourcesHint.x + U(30f), _sourcesHint.y, _sourcesHint.width - U(30f), _sourcesHint.height), CompendiumWords.SourcesHint, Skin.DimWrap);
             }
             for (var s = 0; s < WorldSources.All.Length; s++)
             {

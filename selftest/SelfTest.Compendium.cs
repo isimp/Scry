@@ -467,6 +467,12 @@ namespace Scry
             yield return Until(() => CompendiumKeeper.Book != null, 10);
             var book = CompendiumKeeper.Book;
             if (!p.Check(book != null, "the character's book is read")) yield break;
+            // From a made-up character's knowledge shown, so it is the played one's that waits.
+            var made = new CompendiumView(X.Entries);
+            made.Tell(new CompendiumBook(), CompendiumRule.Loose);
+            if (!Session.IsOpen) Session.Show(null);
+            Session.ShowKnownInstead(made);
+            yield return Until(() => ReferenceEquals(X.Compendium, made), 3);
             Session.Hide();
             Session.ShowKnownInstead(null);
             yield return Until(() => false, 0.5f);

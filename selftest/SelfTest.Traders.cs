@@ -43,6 +43,11 @@ namespace Scry
             X.Select(haldor);
             yield return null;
             p.Check(X.FoundOf(Kind.Trader) == 1, "the Traders tab lists the one trader the character knows", Numbers.Count(X.FoundOf(Kind.Trader)));
+            // Rigged as a person, he stands facing the camera, though his prefab faces otherwise.
+            yield return Until(() => Stage.SubjectFacesCamera() != null, 5);
+            var faces = Stage.SubjectFacesCamera();
+            if (faces == null) p.Note("Haldor is not rigged as a person here, so his facing is not told");
+            else p.Check(faces == true, "Haldor stands facing the camera");
             var unlock = ScryPanel.Drawn(PanelPart.ToUnlock);
             var hints = ScryPanel.Drawn(PanelPart.HintLine);
             ScryPanel.UnlockTitlesForTest.Clear();

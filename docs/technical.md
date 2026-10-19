@@ -60,6 +60,8 @@ Every preview is a copy of the prefab made under an inactive holder, so none of 
 
 Star levels, wear and the other looks the game switches by script are read from the untouched prefab and applied to the matching parts of the copy, found by their place in the hierarchy. A prefab of a hundred and fifty parts or more, such as the person, is stripped once and kept asleep, four at most, and later copies are made from that.
 
+The camera starts in front of a copy, along the prefab's +Z, as a creature walks. A body rigged as a person (a humanoid animator, as a trader's: the game turns its head to look at a player, `LookAt`, and never its body) may face otherwise in its prefab, so it is turned to face that way, its front found from where its left and right upper legs stand (`Stage.TurnToFront`, `FrontTurn`).
+
 ## Looks and gear
 
 Where the game switches a prefab's look by script, one kind of look is offered: a plant's growth, a fire's state, a portal open or shut, a door, a chest, a windmill turning, a smelter or fermenter at work, a crafting station in use, a saddle, a pickable picked, a humanoid's gear, or an item's style. Each is set as the game's own method sets it (`Fireplace.UpdateState`, `Door.SetState`, `Smelter.UpdateState`, `ItemStyle.Setup` and so on), and those methods are among the ones the startup check fingerprints.

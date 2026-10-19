@@ -205,7 +205,7 @@ namespace Scry
             Guard.Run(Feature.Stage, "keeping the stage's parts drawn", Stage.StepDetail);
 
             // A dungeon or camp selected: its rooms are read for an example layout.
-            Guard.Run(Feature.ExampleDungeonAndCampLayouts, "laying out an example dungeon", ExampleLayouts.Update, explorer);
+            if (!PlaceCopiesOffForTest) Guard.Run(Feature.ExampleDungeonAndCampLayouts, "laying out an example dungeon", ExampleLayouts.Update, explorer);
 
             if (_stageStale)
             {
@@ -323,13 +323,21 @@ namespace Scry
         }
 
         /// <summary>
+        /// Whether a selected place's bundle is held, so its music plays, but neither its stage copy
+        /// nor its example layout is made; for the self-test, which plays every place's music and
+        /// need not build each place it plays.
+        /// </summary>
+        [Diagnostic]
+        public static bool PlaceCopiesOffForTest { get; set; }
+
+        /// <summary>
         /// The selected location or room has loaded: what it holds is read, the first time, and its
         /// entry named as the game names it (a Burial Chamber rather than "Crypt"), then its copy
-        /// is put on the stage.
+        /// is put on the stage, unless the self-test holds copies off.
         /// </summary>
         private static void PlaceLoaded(Explorer explorer, Entry entry)
         {
-            if (!(entry?.Source is PlaceSource place)) return;
+            if (!(entry?.Source is PlaceSource place) || PlaceCopiesOffForTest) return;
             var asset = PlaceAssets.Asset(place);
             if (asset == null) return;
             if (place.Contents == null)

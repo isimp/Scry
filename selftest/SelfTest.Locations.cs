@@ -556,12 +556,18 @@ namespace Scry
             yield break;
         }
 
-        /// <summary>Every location and room that names music of its own plays it.</summary>
+        /// <summary>
+        /// Every location and room that names music of its own plays it, from its bundle held, none
+        /// of them built on the stage (<see cref="Previews.PlaceCopiesOffForTest"/>): a hundred
+        /// places built one after another weighed on the game for no part of what is checked here,
+        /// which a place's music playing on Enter checks with its copy built.
+        /// </summary>
         private static IEnumerator EveryMusic(Probe p)
         {
             if (Locations.Now != Locations.State.Read) p.Skip("the locations are not read");
             var withMusic = X.Catalog.Where(e => PlaceOf(e)?.Contents?.Music.Count > 0).ToList();
             if (withMusic.Count == 0) p.Skip("no location or room plays music");
+            Previews.PlaceCopiesOffForTest = true;
             var silent = new List<string>();
             foreach (var entry in withMusic)
             {
@@ -573,6 +579,7 @@ namespace Scry
                 if (MusicPreview.PlayingFor != entry || !MusicPreview.Sounding) silent.Add($"{entry.Name} ({place.Contents.Music[0].Name}: {said})");
                 Previews.StopSound();
             }
+            Previews.PlaceCopiesOffForTest = false;
             p.Note($"{Numbers.Count(withMusic.Count)} play music: " + string.Join(", ", withMusic.Take(12).Select(e => e.Name)));
             p.Check(silent.Count == 0, "each plays its music", string.Join(", ", silent));
         }
