@@ -53,15 +53,6 @@ namespace Scry
 
         /// <summary>A weather seen coming in a biome.</summary>
         WeatherSeen,
-
-        /// <summary>A kill of the character's that another player's game ran, told by that game.</summary>
-        KillElsewhere,
-
-        /// <summary>A thing the character hit that broke in another player's game.</summary>
-        BreakElsewhere,
-
-        /// <summary>A pick of the character's sent to another player's game.</summary>
-        PickElsewhere,
     }
 
     /// <summary>
@@ -106,9 +97,6 @@ namespace Scry
                 case PlayEvent.StarredFell: return Naming.Count(n, "starred fall", "starred falls") + " seen";
                 case PlayEvent.Spawned: return Naming.Count(n, "spawn", "spawns") + " seen";
                 case PlayEvent.Collected: return Numbers.Count(n) + " collected from";
-                case PlayEvent.KillElsewhere: return Naming.Count(n, "kill", "kills") + " in another player's game";
-                case PlayEvent.BreakElsewhere: return Naming.Count(n, "break", "breaks") + " in another player's game";
-                case PlayEvent.PickElsewhere: return Naming.Count(n, "pick", "picks") + " in another player's game";
                 default: return Naming.Count(n, "weather", "weathers") + " seen";
             }
         }

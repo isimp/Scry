@@ -17,7 +17,6 @@ namespace Scry
             {
                 if (hit.GetAttacker() != Player.m_localPlayer) return;
                 CompendiumKeeper.Fought(__instance);
-                CompendiumKeeper.Struck(__instance);
             });
         }
     }

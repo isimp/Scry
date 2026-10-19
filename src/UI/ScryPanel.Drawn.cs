@@ -41,13 +41,19 @@ namespace Scry
 
         /// <summary>The world's sources and their levels in the compendium's box.</summary>
         SourcesControl,
+
+        /// <summary>The notice under the header naming the players whose games lack Scry.</summary>
+        PlayingWithNotice,
+
+        /// <summary>The compendium box's row of the players played with, whether each one's game has Scry.</summary>
+        PlayingWithRow,
         PeekButton,
         MapBar,
         FloorMark,
         FloorLine,
         StrictLeftOut,
 
-        /// <summary>A line telling what is still to find, set apart from a page's footnotes (<see cref="ScryPanel.HintLine(string, string, string, string, PanelPart, float, float)"/>).</summary>
+        /// <summary>A line telling what is still to find, set apart from a page's footnotes (<see cref="ScryPanel.HintLine"/>).</summary>
         HintLine,
 
         /// <summary>The count of wares waiting for a boss not yet fallen: under a row's title, or at a section's end.</summary>
@@ -56,7 +62,6 @@ namespace Scry
         FactKeptBack,
         FloorLink,
         StillToFindOut,
-        RanElsewhere,
         WeakSpotsLeftOut,
         TableKeptBack,
         TallyCounted,

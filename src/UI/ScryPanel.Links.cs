@@ -488,28 +488,13 @@ namespace Scry
         }
 
         /// <summary>
-        /// A faint line saying what the strict rules keep back, its whole text on hover where it
-        /// does not fit, the tip told apart by its kind and what it is of; nothing for none.
-        /// </summary>
-        private static float FaintLine(string said, string tipKind, string tipOf, PanelPart part, float width, float y)
-        {
-            if (said == null) return y;
-            CountDrawn(part);
-            var line = new Rect(U(6f), y + U(2f), width - U(6f), U(20f));
-            if (!FitLabel(line, said, Skin.FaintLabel, 10f) && line.Contains(Event.current.mousePosition)) AskTip(tipKind + tipOf, said);
-            return y + U(24f);
-        }
-
-        /// <summary>
         /// A line telling what is still to find with the compendium on (what was not met or seen
         /// together, a number kept back, what is still to unlock), set apart from a page's footnotes,
         /// which stay faint: an accent bar and a compass at its start, its words a step brighter; its
-        /// whole text on hover where it does not fit, and why where a tip is given.
+        /// whole text on hover where it does not fit, the tip told apart by its kind and what it is
+        /// of; nothing for none.
         /// </summary>
-        private static float HintLine(string said, string tipKind, string tipOf, PanelPart part, float width, float y) =>
-            HintLine(said, null, tipKind, tipOf, part, width, y);
-
-        private static float HintLine(string said, string tip, string tipKind, string tipOf, PanelPart part, float width, float y)
+        private static float HintLine(string said, string tipKind, string tipOf, PanelPart part, float width, float y)
         {
             if (said == null) return y;
             CountDrawn(part);
@@ -517,20 +502,7 @@ namespace Scry
             Skin.Fill(new Rect(U(6f), y + U(4f), U(2f), U(16f)), Skin.Accent);
             Skin.Icon(new Rect(U(12f), y + U(5f), U(14f), U(14f)), Skin.Compass, Skin.Accent);
             var line = new Rect(U(30f), y + U(2f), width - U(30f), U(20f));
-            var fits = FitLabel(line, said, Skin.HintLabel, 10f);
-            if (line.Contains(Event.current.mousePosition) && (!fits || tip != null)) AskTip(tipKind + tipOf, tip == null ? said : fits ? tip : Naming.Lines(said, tip));
-            return y + U(24f);
-        }
-
-        /// <summary>The same, saying why on hover where a tip is given, its whole text first where it does not fit.</summary>
-        private static float FaintLine(string said, string tip, string tipKind, string tipOf, PanelPart part, float width, float y)
-        {
-            if (tip == null) return FaintLine(said, tipKind, tipOf, part, width, y);
-            if (said == null) return y;
-            CountDrawn(part);
-            var line = new Rect(U(6f), y + U(2f), width - U(6f), U(20f));
-            var fits = FitLabel(line, said, Skin.FaintLabel, 10f);
-            if (line.Contains(Event.current.mousePosition)) AskTip(tipKind + tipOf, fits ? tip : Naming.Lines(said, tip));
+            if (!FitLabel(line, said, Skin.HintLabel, 10f) && line.Contains(Event.current.mousePosition)) AskTip(tipKind + tipOf, said);
             return y + U(24f);
         }
 

@@ -18,6 +18,9 @@ namespace Scry
         /// <summary>The messages each player's game said hello with, by its session.</summary>
         private readonly Dictionary<long, int> _hellos = new Dictionary<long, int>();
 
+        /// <summary>Each player in the world by its session: their name, and when first seen there.</summary>
+        private readonly Dictionary<long, (string Name, double Since)> _inWorld = new Dictionary<long, (string, double)>();
+
         /// <summary>Counts up whenever who has Scry changes, for what is told from it to tell again.</summary>
         public int Version { get; private set; }
 
@@ -35,30 +38,59 @@ namespace Scry
         /// <summary>Whether a player's game runs Scry of other messages.</summary>
         public bool Outdated(long session) => _hellos.TryGetValue(session, out var messages) && messages != Messages;
 
-        /// <summary>Forgets the players no longer in the world.</summary>
-        public void KeepOnly(IEnumerable<long> sessions)
+        /// <summary>How many seconds a player is in the world before a missing hello says their game has no Scry: it may still be on its way.</summary>
+        public const double HelloWait = 10.0;
+
+        /// <summary>
+        /// The players in the world now, by session and name, at a time in seconds, and how many
+        /// more the game lists without a character, as one rising again after a death or still
+        /// coming in: those new are noted from then; those missing are forgotten, hello and all,
+        /// once every player listed is accounted for, as one without a character may be one of
+        /// them. A hello heard before its player shows in the world is kept, as the two travel apart.
+        /// </summary>
+        public void InWorld(IEnumerable<(long Session, string Name)> players, int withoutCharacter, double now)
         {
-            var kept = new HashSet<long>(sessions);
+            var kept = new HashSet<long>();
+            foreach (var (session, name) in players)
+            {
+                kept.Add(session);
+                _inWorld[session] = (name, _inWorld.TryGetValue(session, out var had) ? had.Since : now);
+            }
+            if (withoutCharacter > 0) return;
             var gone = new List<long>();
-            foreach (var session in _hellos.Keys) if (!kept.Contains(session)) gone.Add(session);
-            foreach (var session in gone) _hellos.Remove(session);
-            if (gone.Count > 0) Version++;
+            foreach (var session in _inWorld.Keys) if (!kept.Contains(session)) gone.Add(session);
+            foreach (var session in gone)
+            {
+                _inWorld.Remove(session);
+                if (_hellos.Remove(session)) Version++;
+            }
         }
 
-        /// <summary>The names of the players in the world whose games never said hello: they run no Scry. Never the character's own.</summary>
-        public List<string> Without(IEnumerable<(long Session, string Name)> players, long me)
+        /// <summary>On leaving a world: no one is known to play with Scry.</summary>
+        public void Forget()
         {
-            var names = new List<string>();
-            foreach (var (session, name) in players) if (session != me && !_hellos.ContainsKey(session)) names.Add(name);
-            return names;
+            if (_hellos.Count > 0) Version++;
+            _hellos.Clear();
+            _inWorld.Clear();
         }
 
-        /// <summary>The names of the players in the world whose games run Scry of other messages.</summary>
-        public List<string> OutdatedOf(IEnumerable<(long Session, string Name)> players, long me)
+        /// <summary>
+        /// The players played with (<see cref="InWorld"/>), by name, and whether each one's game
+        /// has Scry: never the character itself, nor one without a hello that came into the world
+        /// under <see cref="HelloWait"/> ago.
+        /// </summary>
+        public List<(string Name, PeerScry Scry)> PlayingWith(long me, double now)
         {
-            var names = new List<string>();
-            foreach (var (session, name) in players) if (session != me && Outdated(session)) names.Add(name);
-            return names;
+            var with = new List<(string Name, PeerScry Scry)>();
+            foreach (var pair in _inWorld)
+            {
+                if (pair.Key == me) continue;
+                var (name, since) = pair.Value;
+                if (_hellos.TryGetValue(pair.Key, out var messages)) with.Add((name, messages == Messages ? PeerScry.Scry : PeerScry.Outdated));
+                else if (now - since >= HelloWait) with.Add((name, PeerScry.None));
+            }
+            with.Sort((a, b) => StringComparer.OrdinalIgnoreCase.Compare(a.Name, b.Name));
+            return with;
         }
     }
 

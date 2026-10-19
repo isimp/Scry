@@ -37,22 +37,69 @@ namespace Scry.Tests
             Assert.False(peers.Outdated(Bjorn));
         }
 
+        private static readonly (long Session, string Name)[] Nobody = new (long, string)[0];
+
         [Fact]
-        public void APlayerWhoLeftIsForgotten()
+        public void APlayerWhoLeftIsForgottenHelloAndAll()
         {
             var peers = Roster((Ana, ScryPeers.Messages), (Bjorn, ScryPeers.Messages));
-            peers.KeepOnly(new[] { Bjorn });
+            peers.InWorld(new[] { (Ana, "Ana"), (Bjorn, "Bjorn") }, 0, 0.0);
+            peers.InWorld(new[] { (Bjorn, "Bjorn") }, 0, 1.0);
             Assert.False(peers.Has(Ana));
             Assert.True(peers.Has(Bjorn));
+            // Gone, they are not played with however long after.
+            Assert.Equal(new[] { ("Bjorn", PeerScry.Scry) }, peers.PlayingWith(Me, 1.0 + ScryPeers.HelloWait));
         }
 
         [Fact]
-        public void ThePlayersWithoutScryAreNamedNeverTheCharacterItself()
+        public void APlayerRisingAgainAfterDyingIsStillPlayedWith()
+        {
+            // While they rise again the game lists them without a character, so by no session:
+            // whoever is missing may be them, and is kept until every player is accounted for.
+            var peers = Roster((Ana, ScryPeers.Messages));
+            peers.InWorld(new[] { (Me, "Me"), (Ana, "Ana") }, 0, 0.0);
+            peers.InWorld(new[] { (Me, "Me") }, 1, 5.0);
+            Assert.True(peers.Has(Ana));
+            Assert.Equal(new[] { ("Ana", PeerScry.Scry) }, peers.PlayingWith(Me, 5.0));
+            peers.InWorld(new[] { (Me, "Me"), (Ana, "Ana") }, 0, 30.0);
+            Assert.Equal(new[] { ("Ana", PeerScry.Scry) }, peers.PlayingWith(Me, 30.0));
+        }
+
+        [Fact]
+        public void AHelloHeardBeforeThePlayerShowsInTheWorldIsKept()
+        {
+            // The hello and the game's list of players travel apart: either may come first.
+            var peers = Roster((Ana, ScryPeers.Messages));
+            peers.InWorld(Nobody, 0, 0.0);
+            Assert.Empty(peers.PlayingWith(Me, 0.0));
+            peers.InWorld(new[] { (Ana, "Ana") }, 0, 1.0);
+            Assert.True(peers.Has(Ana));
+            Assert.Equal(new[] { ("Ana", PeerScry.Scry) }, peers.PlayingWith(Me, 1.0));
+        }
+
+        [Fact]
+        public void ThePlayersPlayedWithAreListedByNameWithWhetherTheirGamesHaveScryNeverTheCharacterItself()
         {
             var peers = Roster((Ana, ScryPeers.Messages), (Cara, ScryPeers.Messages + 1));
-            var players = new[] { (Me, "Me"), (Ana, "Ana"), (Bjorn, "Bjorn"), (Cara, "Cara") };
-            Assert.Equal(new[] { "Bjorn" }, peers.Without(players, Me));
-            Assert.Equal(new[] { "Cara" }, peers.OutdatedOf(players, Me));
+            peers.InWorld(new[] { (Me, "Me"), (Cara, "Cara"), (Bjorn, "bjorn"), (Ana, "Ana") }, 0, 0.0);
+            Assert.Equal(new[] { ("Ana", PeerScry.Scry), ("bjorn", PeerScry.None), ("Cara", PeerScry.Outdated) },
+                peers.PlayingWith(Me, ScryPeers.HelloWait));
+        }
+
+        [Fact]
+        public void APlayerJustComeIntoTheWorldIsNotYetToldToLackScry()
+        {
+            // Their hello may still be on its way: the wait goes from when they came, however often
+            // the world is looked at meanwhile.
+            var peers = new ScryPeers();
+            peers.InWorld(new[] { (Ana, "Ana") }, 0, 100.0);
+            peers.InWorld(new[] { (Ana, "Ana") }, 0, 105.0);
+            Assert.Empty(peers.PlayingWith(Me, 100.0 + ScryPeers.HelloWait - 1.0));
+            Assert.Equal(new[] { ("Ana", PeerScry.None) }, peers.PlayingWith(Me, 100.0 + ScryPeers.HelloWait));
+            // A hello tells at once.
+            peers.Hello(Bjorn, ScryPeers.Messages);
+            peers.InWorld(new[] { (Ana, "Ana"), (Bjorn, "Bjorn") }, 0, 1000.0);
+            Assert.Equal(new[] { ("Ana", PeerScry.None), ("Bjorn", PeerScry.Scry) }, peers.PlayingWith(Me, 1000.0));
         }
 
         private static WorldEvent Death(float x, params long[] doers) =>

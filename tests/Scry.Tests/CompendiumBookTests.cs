@@ -358,6 +358,22 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void GuessesAtWhatRanInAnotherPlayersGameAreReadPastAndNotWrittenAgain()
+        {
+            // A book from before events crossed between games kept counts of the character's
+            // kills, breaks and picks another game ran, and that it played with others; the
+            // events themselves replaced both.
+            var back = CompendiumBook.Load("know\tTroll\t3\nelsewhere\tTroll\tKill\t2\nelsewhere\tBeech1\tBreak\t1\nplayed\twith-others\nknow\tDeer\t2");
+
+            Assert.Equal(KnownLevel.Known, back.Level("Troll"));
+            Assert.Equal(KnownLevel.Seen, back.Level("Deer"));
+            var saved = back.Save();
+            Assert.DoesNotContain("elsewhere", saved);
+            Assert.DoesNotContain("played", saved);
+            Assert.Equal(saved, CompendiumBook.Load(saved).Save());
+        }
+
+        [Fact]
         public void WhatWasLearnedReadBackHoldsEachEntryOnce()
         {
             var text = "lately\tTroll\nlately\tTroll\n" + string.Concat(Enumerable.Range(0, 60).Select(i => $"lately\tItem{i}\n"));

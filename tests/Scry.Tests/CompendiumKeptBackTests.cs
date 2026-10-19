@@ -161,9 +161,6 @@ namespace Scry.Tests
             Assert.Equal(new[] { ("See one grow", "shows how long that takes"), ("See one finish", "shows how long each takes and what it burns") }, rows.ToArray());
             Assert.Equal("its growing found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.Grew)));
             Assert.Equal("its working found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.Finished)));
-            // Both run only in the game running the crop or the station.
-            Assert.True(OtherGames.MayRun(Deed.Grew));
-            Assert.True(OtherGames.MayRun(Deed.Finished));
         }
 
         [Fact]

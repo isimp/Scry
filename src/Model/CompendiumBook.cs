@@ -234,32 +234,6 @@ namespace Scry
             }
         }
 
-        /// <summary>How many of the character's own kills, breaks and picks of each thing ran in another player's game (<see cref="Elsewhere"/>).</summary>
-        private readonly Dictionary<(Elsewhere, string), int> _elsewhere = new Dictionary<(Elsewhere, string), int>();
-
-        /// <summary>One more of the character's own kills, breaks or picks of a thing ran in another player's game.</summary>
-        public void RanElsewhere(Elsewhere what, string key)
-        {
-            if (string.IsNullOrEmpty(key)) return;
-            _elsewhere.TryGetValue((what, key), out var count);
-            _elsewhere[(what, key)] = count + 1;
-            Changed = true;
-        }
-
-        /// <summary>How many of the character's own kills, breaks or picks of a thing ran in another player's game.</summary>
-        public int CountElsewhere(Elsewhere what, string key) => key != null && _elsewhere.TryGetValue((what, key), out var count) ? count : 0;
-
-        /// <summary>Whether the character played in a world with another player, so another player's game may have run what it saw.</summary>
-        public bool WithOthers { get; private set; }
-
-        /// <summary>The character plays in a world with another player.</summary>
-        public void PlayedWithOthers()
-        {
-            if (WithOthers) return;
-            WithOthers = true;
-            Changed = true;
-        }
-
         /// <summary>The chests the character opened, by an id of each in its world, so each is counted only the first time.</summary>
         private readonly HashSet<string> _opened = new HashSet<string>(StringComparer.Ordinal);
 
@@ -499,8 +473,6 @@ namespace Scry
             var held = _held.Save();
             var weathers = _weathers.Save();
             var opened = _opened.ToArray();
-            var elsewhere = _elsewhere.ToArray();
-            var withOthers = WithOthers;
             Changed = false;
             return () =>
             {
@@ -552,11 +524,6 @@ namespace Scry
                 foreach (var line in held.Split('\n')) if (line.Length > 0) text.Append("held\t").Append(line).Append('\n');
                 foreach (var line in weathers.Split('\n')) if (line.Length > 0) text.Append("weather\t").Append(line).Append('\n');
                 foreach (var id in opened.OrderBy(o => o, StringComparer.Ordinal)) text.Append("opened\t").Append(Stored.Escaped(id)).Append('\n');
-                foreach (var pair in elsewhere.OrderBy(p => p.Key.Item2, StringComparer.Ordinal).ThenBy(p => p.Key.Item1))
-                {
-                    text.Append("elsewhere\t").Append(Stored.Escaped(pair.Key.Item2)).Append('\t').Append(pair.Key.Item1).Append('\t').Append(Stored.Count(pair.Value)).Append('\n');
-                }
-                if (withOthers) text.Append("played\t").Append(WithOthersLine).Append('\n');
                 return text.ToString();
             };
         }
@@ -596,10 +563,11 @@ namespace Scry
             return true;
         }
 
-        /// <summary>The line saying the character played with others.</summary>
-        private const string WithOthersLine = "with-others";
-
-        /// <summary>What was saved; a line that cannot be read is passed over, as are those of a question no longer asked ("asked").</summary>
+        /// <summary>
+        /// What was saved; a line that cannot be read is passed over, as are those of a question no
+        /// longer asked ("asked") and those of guesses at what ran in another player's game, which
+        /// events crossing between games replaced ("elsewhere", "played").
+        /// </summary>
         public static CompendiumBook Load(string text)
         {
             var book = new CompendiumBook();
@@ -627,12 +595,6 @@ namespace Scry
                 if (parts.Length < 2 || !Stored.TryUnescaped(parts[1], out var name) || name.Length == 0) continue;
                 switch (parts[0])
                 {
-                    case "elsewhere" when parts.Length == 4 && Enum.TryParse(parts[2], out Elsewhere what) && Enum.IsDefined(typeof(Elsewhere), what) && Stored.TryCount(parts[3], out var times):
-                        book._elsewhere[(what, name)] = times;
-                        break;
-                    case "played" when parts.Length == 2 && name == WithOthersLine:
-                        book.WithOthers = true;
-                        break;
                     case "opened" when parts.Length == 2:
                         book._opened.Add(name);
                         break;

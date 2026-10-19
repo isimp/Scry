@@ -210,7 +210,6 @@ namespace Scry
             if (trader != null) _catchUp.Traded(Utils.GetPrefabName(trader.gameObject), trader.GetAvailableItems().Where(t => t?.m_prefab != null).Select(t => t.m_prefab.name), _book);
             Weather();
             Tamings(player, creature => creature.IsTamed());
-            if (!_book.WithOthers && ZNet.instance != null && ZNet.instance.GetPlayerList().Count > 1) _book.PlayedWithOthers();
             var place = Location.GetLocation(player.transform.position);
             if (place != null) _catchUp.StoodIn(EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject)), place.m_hasInterior, player.InInterior(), _book);
             var hovered = player.GetHoverObject();
@@ -261,65 +260,6 @@ namespace Scry
             var tool = Player.m_localPlayer.OrNull()?.GetCurrentWeapon()?.m_dropPrefab.OrNull();
             if (tool != null) Into.Witness(key, tool.name);
             MetIn(key, resource.transform.position);
-            var view = resource.GetComponent<ZNetView>();
-            if (view != null && view.IsValid() && !view.IsOwner()) HitRunElsewhere(resource);
-        }
-
-        /// <summary>The creatures the character hit lately, by the name the game tells a kill by (<see cref="KilledElsewhere"/>).</summary>
-        private static readonly Lately<string> CreaturesHit = new Lately<string>(60.0);
-
-        /// <summary>The things the character hit lately that another player's game runs, by their id in the world's data (<see cref="Gone"/>).</summary>
-        private static readonly Lately<ZDOID> HitElsewhere = new Lately<ZDOID>(30.0);
-
-        /// <summary>A creature the character hit, remembered by its name a minute, for a kill another player's game tells of.</summary>
-        public static void Struck(Character creature)
-        {
-            if (creature == null || creature == Player.m_localPlayer) return;
-            CreaturesHit.Hit(creature.m_name, Utils.GetPrefabName(creature.gameObject), Time.unscaledTime);
-        }
-
-        /// <summary>
-        /// A kill the character took part in that another player's game ran, told by the
-        /// creature's name: counted for the creature of that name the character hit last within a
-        /// minute, else for the one creature going by it; none where several do.
-        /// </summary>
-        public static void KilledElsewhere(string name)
-        {
-            if (Into == null || _catchUp == null || string.IsNullOrEmpty(name)) return;
-            var key = CreaturesHit.Of(name, Time.unscaledTime) ?? _catchUp.OnlyNamed(name, Kind.Creature);
-            if (key == null) return;
-            Into.RanElsewhere(Elsewhere.Kill, key);
-            Noted(PlayEvent.KillElsewhere);
-        }
-
-        /// <summary>A thing the character hit that another player's game runs: remembered half a minute, for it going (<see cref="Gone"/>).</summary>
-        internal static void HitRunElsewhere(Component thing)
-        {
-            var view = thing != null ? thing.GetComponent<ZNetView>() : null;
-            if (view == null || !view.IsValid()) return;
-            HitElsewhere.Hit(view.GetZDO().m_uid, Utils.GetPrefabName(thing.gameObject), Time.unscaledTime);
-        }
-
-        /// <summary>
-        /// A thing in the world gone, by its id, and whether this game ran it as it went: one the
-        /// character hit within half a minute that another player's game ran broke there, so is
-        /// counted as such; one this game ran was counted as it broke.
-        /// </summary>
-        public static void Gone(ZDOID id, bool ranHere)
-        {
-            if (Into == null) return;
-            var key = HitElsewhere.Take(id, Time.unscaledTime);
-            if (key == null || ranHere) return;
-            Into.RanElsewhere(Elsewhere.Break, key);
-            Noted(PlayEvent.BreakElsewhere);
-        }
-
-        /// <summary>A pick of the character's that another player's game runs: what it gave goes uncounted, counted as such.</summary>
-        public static void PickedElsewhere(Pickable pickable)
-        {
-            if (Into == null || pickable == null) return;
-            Into.RanElsewhere(Elsewhere.Pick, Utils.GetPrefabName(pickable.gameObject));
-            Noted(PlayEvent.PickElsewhere);
         }
 
         /// <summary>A piece the character placed, as news: known, and paired with the tool in hand that built it.</summary>
@@ -655,8 +595,6 @@ namespace Scry
             _weatherSeen = default;
             WildNear.Forget();
             Told.Forget();
-            CreaturesHit.Forget();
-            HitElsewhere.Forget();
             TameableNear.Clear();
             _catchUp = null;
             _catchUpOf = null;

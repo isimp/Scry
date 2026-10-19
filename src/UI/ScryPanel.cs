@@ -107,6 +107,8 @@ namespace Scry
             // The search help's index holds the whole catalog.
             Assist.Forget();
             ForgetNews();
+            _gaps.Forget();
+            PinCompendiumBox(false);
 
             // A box left open would still match the new world's empty selection and draw on.
             CloseBoxes();
@@ -338,6 +340,9 @@ namespace Scry
             var knownH = CompendiumStripHeight(explorer);
             if (knownH > 0f) CompendiumStrip(explorer, new Rect(pad, U(54f) + noticeH, w - pad * 2f, knownH - U(4f)));
             noticeH += knownH;
+            var withH = PlayingWithNoticeHeight();
+            if (withH > 0f) PlayingWithNotice(new Rect(pad, U(54f) + noticeH, w - pad * 2f, withH - U(4f)));
+            noticeH += withH;
 
             var controls = Timing.Start();
             var y = Controls(explorer, new Rect(pad, U(56f) + noticeH, w - pad * 2f, U(36f)));

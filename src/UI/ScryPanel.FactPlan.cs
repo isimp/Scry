@@ -268,7 +268,7 @@ namespace Scry
             var whole = explorer.KeepsBackWhole(row.LineProofs, row.Lines.Count);
             if (whole != null)
             {
-                return HintLine(explorer.ShowsOnce(row.Title, whole), explorer.MayRunElsewhere(whole) ? ElsewhereWords.Tip : null, "table-kept:", row.Title, PanelPart.TableKeptBack, width, y + U(6f));
+                return HintLine(explorer.ShowsOnce(row.Title, whole), "table-kept:", row.Title, PanelPart.TableKeptBack, width, y + U(6f));
             }
             y += U(6f);
             GUI.Label(new Rect(0f, y, width, U(20f)), Masked(explorer, row.Title), Skin.DimLabel);
@@ -321,7 +321,7 @@ namespace Scry
                 var attackKept = AttackKept(explorer, row, l);
                 if (attackKept) attacksKept++;
                 var lineKept = LineKept(explorer, row, l, out var lineProof);
-                if (lineKept && cells.Length > 0) KeptLines.Add((explorer.ShowsOnce(cells[0], lineProof), explorer.MayRunElsewhere(lineProof)));
+                if (lineKept && cells.Length > 0) KeptLines.Add(explorer.ShowsOnce(cells[0], lineProof));
                 var height = U(20f);
                 for (var c = 0; c < cells.Length && c < ColumnWidths.Count; c++) height = Mathf.Max(height, Skin.Height(Skin.SmallWrap, CellDrawn(explorer, row, l, c), ColumnWidths[c]));
                 // Faint lines under it: the same at the character's skill, left out where the line
@@ -430,9 +430,8 @@ namespace Scry
             CountDrawn(PanelPart.FactTable);
             y += U(4f);
             y = HintLine(CompendiumWords.NotYetTaken(attacksKept), "attacks-kept:", row.Title, PanelPart.TableKeptBack, width, y);
-            if (notCounted) y = HintLine(explorer.NotYetCounted(row.Tally), explorer.MayRunElsewhere(row.Tally) ? ElsewhereWords.Tip : null, "not-counted:", row.Title, PanelPart.TallyCounted, width, y);
-            foreach (var said in explorer.ElsewhereLines(row.Tally, row.TallyOf)) y = FaintLine(said, ElsewhereWords.Tip, "elsewhere:", said, PanelPart.RanElsewhere, width, y);
-            foreach (var (said, elsewhere) in KeptLines) y = HintLine(said, elsewhere ? ElsewhereWords.Tip : null, "line-kept:", said, PanelPart.TableKeptBack, width, y);
+            if (notCounted) y = HintLine(explorer.NotYetCounted(row.Tally), "not-counted:", row.Title, PanelPart.TallyCounted, width, y);
+            foreach (var said in KeptLines) y = HintLine(said, "line-kept:", said, PanelPart.TableKeptBack, width, y);
             return y;
         }
 
@@ -512,14 +511,10 @@ namespace Scry
         private static float FloorMarkX(Rect cell, string text) => cell.x + Mathf.Min(Skin.Width(Skin.Small, text) + U(4f), cell.width - FloorRoom);
 
         /// <summary>What shows each line of the table being drawn whose numbers are kept back, for its faint lines.</summary>
-        private static readonly List<(string Said, bool Elsewhere)> KeptLines = new List<(string, bool)>();
+        private static readonly List<string> KeptLines = new List<string>();
 
-        /// <summary>The tip of a number kept back in a table's line: what shows it, and why where another player's game may run that.</summary>
-        private static string KeptTip(Explorer explorer, string what, string proof)
-        {
-            var shows = explorer.ShowsOnce(what, proof);
-            return explorer.MayRunElsewhere(proof) ? Naming.Lines(shows, ElsewhereWords.Tip) : shows;
-        }
+        /// <summary>The tip of a number kept back in a table's line: what shows it.</summary>
+        private static string KeptTip(Explorer explorer, string what, string proof) => explorer.ShowsOnce(what, proof);
 
         /// <summary>A fact that qualifies what stands above it, told under it in a soft line.</summary>
         private static float FactNote(Explorer explorer, Facts facts, KeyValuePair<string, string> pair, float width, float y)
@@ -534,7 +529,7 @@ namespace Scry
             }
             if (facts.Proofs.TryGetValue(pair.Key, out var proof) && explorer.KeepsBack(proof))
             {
-                return HintLine(explorer.ShowsOnce(pair.Key, proof), explorer.MayRunElsewhere(proof) ? ElsewhereWords.Tip : null, "note-kept:", pair.Key, PanelPart.FactKeptBack, width, y);
+                return HintLine(explorer.ShowsOnce(pair.Key, proof), "note-kept:", pair.Key, PanelPart.FactKeptBack, width, y);
             }
             var unsure = facts.Unsure.TryGetValue(pair.Key, out var why);
             var text = Masked(explorer, FactWords.Note(unsure ? UnsureWords.Marked(pair.Key) : pair.Key, pair.Value));

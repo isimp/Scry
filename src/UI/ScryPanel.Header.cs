@@ -354,6 +354,21 @@ namespace Scry
         /// <summary>Holds the compendium's box open, or lets it close again; for the self-test.</summary>
         internal static void HoldCompendiumBox(bool open) => _bookHeld = open;
 
+        /// <summary>Whether the box stays open though the mouse is elsewhere, as the notice's chip asked, until the mouse has been on it and left; and whether it has been.</summary>
+        private static bool _bookPinned, _bookPinnedVisited;
+
+        /// <summary>Keeps the box open until the mouse has been on it and left it, or lets it close.</summary>
+        private static void PinCompendiumBox(bool pin)
+        {
+            _bookPinned = pin;
+            _bookPinnedVisited = false;
+        }
+
+        /// <summary>Whether the box shows the players played with: while the compendium is on and another player is in the world; and where its row and the line under it stand.</summary>
+        private static bool _bookWithShown;
+
+        private static Rect _withCaption, _withValue, _withHint;
+
         /// <summary>The compendium's button as last drawn: its width and its label, for the self-test to see the label fits.</summary>
         private static float _bookButtonW;
         private static string _bookLabel;
@@ -420,8 +435,9 @@ namespace Scry
         /// Where the box and its controls stand under the button, kept inside the panel: its
         /// caption, the rules' segments and, while the compendium is on and a floor can be set,
         /// the floor between its arrows; while it is on, what the world shows as known, a row of
-        /// levels for each source and the faint line under them; and whether it is open, while the
-        /// mouse is on the button or the box, with a little room between them.
+        /// levels for each source and the faint line under them, then the players played with and
+        /// the line under them; and whether it is open, while the mouse is on the button or the
+        /// box, with a little room between them, or while the notice's chip keeps it open.
         /// </summary>
         private static void BookLayout(CompendiumBook book, Rect button, float height, Rect room, Event e)
         {
@@ -429,7 +445,10 @@ namespace Scry
             var gap = U(4f);
             _bookFloorShown = book.Rule != CompendiumRule.Off && (CompendiumKeeper.Ceiling > 0 || book.Floor > 0);
             _bookSourcesShown = book.Rule != CompendiumRule.Off;
+            ReadPlayingWith();
+            _bookWithShown = _bookSourcesShown && _withRow != null;
             _bookCaptionW = Mathf.Max(Skin.Width(Skin.FaintLabel, CompendiumWords.RulesCaption), Skin.Width(Skin.FaintLabel, CompendiumWords.FloorCaption));
+            if (_bookWithShown) _bookCaptionW = Mathf.Max(_bookCaptionW, Skin.Width(Skin.FaintLabel, PlayingWithWords.RowCaption));
             var sourcesW = 0f;
             if (_bookSourcesShown)
             {
@@ -456,7 +475,16 @@ namespace Scry
                 hintH = Skin.DimWrap.CalcHeight(new GUIContent(CompendiumWords.SourcesHint), width - pad * 2f - U(30f));
                 sourcesH = U(14f) + U(22f) + WorldSources.All.Length * (height + U(6f)) + hintH;
             }
-            _bookBox = new Rect(x, button.yMax + gap, width, pad + U(26f) + rows * height + (rows - 1) * U(6f) + sourcesH + pad);
+            var withH = 0f;
+            var rowH = 0f;
+            var withHintH = 0f;
+            if (_bookWithShown)
+            {
+                rowH = Mathf.Max(height, Skin.Wrap.CalcHeight(new GUIContent(_withRow), width - pad * 2f - _bookCaptionW));
+                withHintH = Skin.DimWrap.CalcHeight(new GUIContent(PlayingWithWords.RowHint), width - pad * 2f - U(30f));
+                withH = U(14f) + rowH + U(6f) + withHintH;
+            }
+            _bookBox = new Rect(x, button.yMax + gap, width, pad + U(26f) + rows * height + (rows - 1) * U(6f) + sourcesH + withH + pad);
 
             var rowY = _bookBox.y + pad + U(26f);
             var sx = _bookBox.x + pad + _bookCaptionW;
@@ -490,6 +518,13 @@ namespace Scry
                 }
                 _sourcesHint = new Rect(_bookBox.x + pad, sourceY, _bookBox.width - pad * 2f, hintH);
             }
+            if (_bookWithShown)
+            {
+                var withY = _bookBox.yMax - pad - withH + U(14f);
+                _withCaption = new Rect(_bookBox.x + pad, withY, _bookCaptionW, height);
+                _withValue = new Rect(_bookBox.x + pad + _bookCaptionW, withY, _bookBox.width - pad * 2f - _bookCaptionW, rowH);
+                _withHint = new Rect(_bookBox.x + pad, withY + rowH + U(6f), _bookBox.width - pad * 2f, withHintH);
+            }
 
             var zone = button;
             if (_bookOpen)
@@ -498,7 +533,10 @@ namespace Scry
                 var right = Mathf.Max(button.xMax, _bookBox.xMax) + U(6f);
                 zone = new Rect(left, button.y - U(6f), right - left, _bookBox.yMax - button.y + U(12f));
             }
-            _bookOpen = _bookHeld || zone.Contains(e.mousePosition);
+            var on = zone.Contains(e.mousePosition);
+            if (_bookPinned && on) _bookPinnedVisited = true;
+            else if (_bookPinned && _bookPinnedVisited) PinCompendiumBox(false);
+            _bookOpen = _bookHeld || _bookPinned || on;
         }
 
         /// <summary>Whether the floor can be raised from where it is, as far as the bosses that fell in a row reach (<see cref="CompendiumKeeper.Ceiling"/>).</summary>
@@ -555,6 +593,7 @@ namespace Scry
                 if (BookSegments[i].Contains(mouse)) AskTip("mode-" + CompendiumWords.RuleName(rule), CompendiumWords.StepTip(rule));
             }
             DrawSources(book, mouse, repaint);
+            DrawPlayingWith(repaint);
             if (!_bookFloorShown) return;
             CountDrawn(PanelPart.FloorControl);
             var floor = book.Floor;
@@ -586,10 +625,7 @@ namespace Scry
             if (repaint)
             {
                 GUI.Label(_sourcesCaption, CompendiumWords.SourcesCaption, Skin.FaintLabel);
-                // As a page's hint line: the accent bar and the compass, its words a step brighter.
-                Skin.Fill(new Rect(_sourcesHint.x + U(6f), _sourcesHint.y + U(2f), U(2f), _sourcesHint.height - U(4f)), Skin.Accent);
-                Skin.Icon(new Rect(_sourcesHint.x + U(12f), _sourcesHint.y + U(3f), U(14f), U(14f)), Skin.Compass, Skin.Accent);
-                GUI.Label(new Rect(_sourcesHint.x + U(30f), _sourcesHint.y, _sourcesHint.width - U(30f), _sourcesHint.height), CompendiumWords.SourcesHint, Skin.DimWrap);
+                BoxHint(_sourcesHint, CompendiumWords.SourcesHint);
             }
             for (var s = 0; s < WorldSources.All.Length; s++)
             {
@@ -604,6 +640,25 @@ namespace Scry
                     if (at.Contains(mouse)) AskTip("source-level-" + level, CompendiumWords.LevelTip(level));
                 }
             }
+        }
+
+        /// <summary>A line in the box as a page's hint line: the accent bar and the compass, its words a step brighter.</summary>
+        private static void BoxHint(Rect rect, string said)
+        {
+            Skin.Fill(new Rect(rect.x + U(6f), rect.y + U(2f), U(2f), rect.height - U(4f)), Skin.Accent);
+            Skin.Icon(new Rect(rect.x + U(12f), rect.y + U(3f), U(14f), U(14f)), Skin.Compass, Skin.Accent);
+            GUI.Label(new Rect(rect.x + U(30f), rect.y, rect.width - U(30f), rect.height), said, Skin.DimWrap);
+        }
+
+        /// <summary>The box's row of the players played with, each with whether their game has Scry, and the line saying what one without it means.</summary>
+        private static void DrawPlayingWith(bool repaint)
+        {
+            if (!_bookWithShown) return;
+            CountDrawn(PanelPart.PlayingWithRow);
+            if (!repaint) return;
+            GUI.Label(_withCaption, PlayingWithWords.RowCaption, Skin.FaintLabel);
+            GUI.Label(_withValue, _withRow, Skin.Wrap);
+            BoxHint(_withHint, PlayingWithWords.RowHint);
         }
 
         /// <summary>Sets how a source of the world shows for the character played and keeps it at once: a choice of the player's. The box, and the self-test.</summary>

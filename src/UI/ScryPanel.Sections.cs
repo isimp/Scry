@@ -252,6 +252,83 @@ namespace Scry
             }
         }
 
+        // ----- Who plays with Scry -----
+
+        /// <summary>When the notice naming the players whose games lack Scry shows (<see cref="GapNotice"/>).</summary>
+        private static GapNotice _gaps = new GapNotice();
+
+        private static int _withVersion = -1;
+        private static string _withLine;
+        private static string _withRow;
+        private static List<string> _lacking = new List<string>();
+
+        /// <summary>The notice's line and the box's row as last told, for the self-test.</summary>
+        internal static string PlayingWithLine => _withLine;
+
+        internal static string PlayingWithRow => _withRow;
+
+        /// <summary>A notice of the self-test's own in place of the player's, so what it closes is left as it was; the one it replaced.</summary>
+        internal static GapNotice GapNoticeForTest(GapNotice notice)
+        {
+            var was = _gaps;
+            _gaps = notice ?? new GapNotice();
+            return was;
+        }
+
+        /// <summary>What is told of the players played with, read again whenever they change (<see cref="EventLink.PlayingWithVersion"/>), not every frame.</summary>
+        private static void ReadPlayingWith()
+        {
+            if (EventLink.PlayingWithVersion == _withVersion) return;
+            _withVersion = EventLink.PlayingWithVersion;
+            var players = EventLink.PlayingWith;
+            _withLine = PlayingWithWords.Notice(players);
+            _withRow = PlayingWithWords.Row(players);
+            _lacking = PlayingWithWords.Lacking(players);
+        }
+
+        /// <summary>How tall the notice naming players without Scry is: none with the compendium off, every player's game with Scry, or the notice put away for them.</summary>
+        private static float PlayingWithNoticeHeight()
+        {
+            var book = CompendiumKeeper.Book;
+            if (book == null || book.Rule == CompendiumRule.Off) return 0f;
+            ReadPlayingWith();
+            return _withLine != null && _gaps.Shows(_lacking) ? U(32f) : 0f;
+        }
+
+        /// <summary>
+        /// A strip under the header naming the players whose games lack Scry, as what runs in
+        /// their games counts nothing for the character: a chip opening the compendium's box,
+        /// which lists everyone played with, and a cross putting it away until another such
+        /// player joins.
+        /// </summary>
+        private static void PlayingWithNotice(Rect rect)
+        {
+            CountDrawn(PanelPart.PlayingWithNotice);
+            switch (NoticeStrip(rect, Skin.Accent, _withLine, Skin.Label, false, PlayingWithWords.WhoHasScry, _bookPinned, true, crossTip: PlayingWithWords.PutAway))
+            {
+                case StripClick.Chip:
+                    ShowWhoHasScry(!_bookPinned);
+                    break;
+                case StripClick.Cross:
+                    PutPlayingWithAway();
+                    break;
+            }
+        }
+
+        /// <summary>Opens the compendium's box with whom the character plays with, in the full view, or lets it close: the notice's chip, and the self-test.</summary>
+        internal static void ShowWhoHasScry(bool show)
+        {
+            if (show) Compact = false;
+            PinCompendiumBox(show);
+        }
+
+        /// <summary>Puts the notice away until another player without Scry joins: its cross, and the self-test.</summary>
+        internal static void PutPlayingWithAway()
+        {
+            _gaps.Close(_lacking);
+            PinCompendiumBox(false);
+        }
+
         /// <summary>Starts or stops showing everything though the compendium is on (<see cref="Explorer.Peeking"/>), keeping the list where it was.</summary>
         private static void Peek(Explorer explorer, bool peek)
         {
