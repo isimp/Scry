@@ -76,6 +76,7 @@ namespace Scry
             { typeof(UnequipWatched), Feature.WhatEquippingDid },
             { typeof(HitWatched), Feature.CompendiumFought },
             { typeof(HitByWatched), Feature.CompendiumFought },
+            { typeof(DeathWatched), Feature.CompendiumDeaths },
             { typeof(DestructibleHitWatched), Feature.CompendiumHit },
             { typeof(TreeHitWatched), Feature.CompendiumHit },
             { typeof(LogHitWatched), Feature.CompendiumHit },

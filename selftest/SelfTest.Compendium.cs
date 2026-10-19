@@ -114,7 +114,7 @@ namespace Scry
             var unknown = carried.Where(n => CompendiumKeeper.Book.Level(n) != KnownLevel.Known).ToList();
             p.Check(unknown.Count == 0, $"all {Numbers.Count(carried.Count)} kinds of thing it carries are known", string.Join(", ", unknown.Take(10)));
             var cameTold = carried.Select(n => (Name: n, Came: CompendiumKeeper.Book.Came(n))).Where(c => c.Came != null).ToList();
-            p.Note($"{Numbers.Count(cameTold.Count)} of them tell how they came to be known" + (cameTold.Count > 0 ? $", as {cameTold[0].Name}: {CompendiumWords.CameToKnow(cameTold[0].Came.Value.Way, cameTold[0].Came.Value.Day, cameTold[0].Came.Value.Biome)}" : ""));
+            p.Note($"{Numbers.Count(cameTold.Count)} of them tell how they came to be known" + (cameTold.Count > 0 ? $", as {cameTold[0].Name}: {CompendiumWords.CameToKnow(cameTold[0].Came.Value.Way, cameTold[0].Came.Value.At.Day, cameTold[0].Came.Value.At.Biome, cameTold[0].Came.Value.At.Time, cameTold[0].Came.Value.At.Weather, cameTold[0].Came.Value.At.InHand)}" : ""));
             var counted = carried.Select(X.Find).Where(e => e != null).Select(e => (e, Counts: CharacterRecords.Counts(e))).FirstOrDefault(c => c.Counts != null && c.Counts.PickedUp > 0);
             p.Check(carried.Count == 0 || counted.e != null, "the game's counts tell how many of what it carries it picked up", counted.e != null ? $"{counted.e.Name}: {Numbers.Count(counted.Counts.PickedUp)}" : null);
 

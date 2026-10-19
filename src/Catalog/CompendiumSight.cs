@@ -100,7 +100,8 @@ namespace Scry
                 if (Vector3.Distance(player.transform.position, centre) <= Sighting.Reach(creature.GetHeight()) && InView(view, centre) && Clear(view.position, centre, null))
                 {
                     var key = Utils.GetPrefabName(creature.gameObject);
-                    catchUp.Met(key, KnownLevel.Seen, book);
+                    // Its level less one is its stars, as the game shows them over it.
+                    catchUp.Met(key, KnownLevel.Seen, book, stars: creature.GetLevel() - 1);
                     CompendiumKeeper.MetIn(key, creature.transform.position);
                 }
             }

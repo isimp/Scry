@@ -205,6 +205,7 @@ namespace Scry
             ("Skills", "OnDeath", 0, 0xA04D44B6, Feature.SkillPages),
             ("Skills", "LowerAllSkills", 1, 0x7D6D0A3F, Feature.SkillPages),
             ("Player", "OnDeath", 0, 0x8CAFAB56, Feature.SkillPages),
+            ("Player", "OnDeath", 0, 0x8CAFAB56, Feature.CompendiumDeaths),
             ("Player", "RaiseSkill", 2, 0x1C9E0C4D, Feature.SkillPages),
             ("SE_Stats", "ModifySkillLevel", 2, 0x57411071, Feature.SkillPages),
             ("SE_Stats", "ModifyRaiseSkill", 2, 0x7B679054, Feature.SkillPages),
@@ -435,6 +436,7 @@ namespace Scry
             Each("ZSFX.m_fadeOutTimer", () => Member(list, "ZSFX", "m_fadeOutTimer", Feature.SoundsAfterSeek));
             Each("CharacterDrop.m_dropsEnabled", () => Member(list, "CharacterDrop", "m_dropsEnabled", Feature.DropsSeenInPlay));
             Each("Player.m_knownMaterial", () => Member(list, "Player", "m_knownMaterial", Feature.CompendiumCatchUp));
+            Each("Character.m_lastHit", () => Member(list, "Character", "m_lastHit", Feature.CompendiumDeaths));
             Each("Player.m_knownRecipes", () => Member(list, "Player", "m_knownRecipes", Feature.CompendiumCatchUp));
             Each("Player.m_knownStations", () => Member(list, "Player", "m_knownStations", Feature.CompendiumCatchUp));
             Each("Player.m_knownBiome", () => Member(list, "Player", "m_knownBiome", Feature.CompendiumCatchUp));

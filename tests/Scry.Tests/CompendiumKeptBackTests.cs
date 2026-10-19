@@ -250,7 +250,7 @@ namespace Scry.Tests
 
             Assert.True(world.Explorer.FromMap(world.Meadows));
             Assert.False(world.Explorer.FromMap(world.Troll));
-            Assert.Equal("seen on your explored map", world.Explorer.FoundOutNote(world.Meadows));
+            Assert.Equal("seen on your explored map", world.Explorer.LearnedNote(world.Meadows));
             world.Rule(CompendiumRule.Off);
             Assert.False(world.Explorer.FromMap(world.Meadows));
         }
@@ -262,8 +262,8 @@ namespace Scry.Tests
             world.Book.FoundOut(world.Troll.Key, EntryKeys.Did(Deed.Killed));
             world.Rule(CompendiumRule.Strict);
 
-            Assert.Equal("its health found out", world.Explorer.FoundOutNote(world.Troll));
-            Assert.Null(world.Explorer.FoundOutNote(world.Hide));
+            Assert.Equal("its health found out", world.Explorer.LearnedNote(world.Troll));
+            Assert.Equal("known", world.Explorer.LearnedNote(world.Hide));
 
             // Open, the list puts what was just found out first, under either rules.
             world.Rule(CompendiumRule.Loose);
@@ -272,7 +272,7 @@ namespace Scry.Tests
             world.Rule(CompendiumRule.Loose);
             Assert.Same(world.Hide, world.Explorer.Results[0]);
             world.Rule(CompendiumRule.Off);
-            Assert.Null(world.Explorer.FoundOutNote(world.Troll));
+            Assert.Null(world.Explorer.LearnedNote(world.Troll));
         }
 
         [Fact]

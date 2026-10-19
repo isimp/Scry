@@ -8,6 +8,10 @@ namespace Scry
     internal sealed class CharacterCounts
     {
         public int Killed;
+
+        /// <summary>Of the kills, those the game counted as dealt all in melee, with arrows or bolts, by magic, or bare-handed; a kill of mixed hits is in none.</summary>
+        public int Melee, Ranged, Magic, Unarmed;
+
         public int Built;
         public int Eaten;
         public int Picked;

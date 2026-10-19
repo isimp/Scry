@@ -1,0 +1,78 @@
+using System.Collections;
+using System.Linq;
+
+namespace Scry
+{
+    /// <summary>The self-test's case for the You box's moments, Learned by day and the notice's news.</summary>
+    internal static partial class SelfTest
+    {
+        /// <summary>
+        /// A made-up character's book with moments: the Troll first seen at dusk in the rain with
+        /// a star, come to know at night with a spear in hand, and twice the character's death; a
+        /// boar seen later; wood caught up from the game's records. The Troll's You box tells it
+        /// all, Learned groups by day with the older ones and what has no day folded, and the
+        /// notice tells what happened in words.
+        /// </summary>
+        private static readonly string[] DayHeadings = { "Day 22  1", "Day 12  1", "Earlier  1" };
+        private static readonly bool[] DaysFolded = { false, true, true };
+
+        private static IEnumerator YouAndLearnedRead(Probe p)
+        {
+            var troll = Pick(Kind.Creature, "Troll");
+            var boar = Pick(Kind.Creature, "Boar");
+            var wood = Pick(Kind.Item, "Wood");
+            var spear = Pick(Kind.Item, "SpearFlint");
+            if (troll == null || boar == null || wood == null || spear == null)
+            {
+                p.Skip("there is no troll, boar, wood or flint spear");
+                yield break;
+            }
+            var book = new CompendiumBook();
+            book.Now = () => new Moment(9, "BlackForest", DayPart.Dusk, "Rain");
+            book.Raise(troll.Key, KnownLevel.Seen, stars: 1);
+            book.Now = () => new Moment(12, "BlackForest", DayPart.Night, "Clear", spear.Name);
+            book.Raise(troll.Key, KnownLevel.Known, way: CameBy.Fought);
+            book.Died(troll.Key);
+            book.Now = () => new Moment(21, "BlackForest");
+            book.Died(troll.Key);
+            book.Now = () => new Moment(22, "Meadows", DayPart.Day);
+            book.Raise(boar.Key, KnownLevel.Seen);
+            book.CatchingUp = true;
+            book.Raise(wood.Key, KnownLevel.Known);
+            book.CatchingUp = false;
+
+            var view = new CompendiumView(X.Entries);
+            view.Tell(book, CompendiumRule.Loose);
+            Session.ShowKnownInstead(view);
+            if (!Session.IsOpen) Session.Show(null);
+            KeepView();
+            ScryPanel.Compact = false;
+            yield return Until(() => ReferenceEquals(X.Compendium, view), 3);
+            X.Select(troll);
+            yield return Until(() => ScryPanel.YouLinesForTest.Any(l => l.Label == "First seen"), 3);
+
+            var lines = ScryPanel.YouLinesForTest;
+            p.Note("the Troll's You box: " + string.Join("; ", lines.Select(l => l.Label + ": " + l.Value)));
+            string Line(string label) => lines.FirstOrDefault(l => l.Label == label).Value;
+            p.Check(Line("First seen") == "day 9, at dusk in the rain, in the Black Forest; it had 1 star", "the first sighting tells its day, time, weather, biome and stars", Line("First seen"));
+            p.Check(Line("Came to know it") == $"day 12, at night, fighting it with your {spear.ShownName} in the Black Forest", "coming to know it tells its moment and what was in hand", Line("Came to know it"));
+            p.Check(Line("Killed you") == "twice, last on day 21", "the deaths it dealt are counted with the last", Line("Killed you"));
+            yield return PictureOf(p, "facts", "you Troll, first seen, came to know and killed you");
+
+            // Learned, by day.
+            X.LearnedOnly = true;
+            yield return null;
+            yield return null;
+            var headings = ScryPanel.ListHeadingsForTest;
+            p.Note("Learned: " + string.Join("; ", headings.Select(h => h.Heading + (h.Folded ? " (folded)" : ""))));
+            p.Check(headings.Select(h => h.Heading).SequenceEqual(DayHeadings), "Learned is grouped by day, newest first, what has no day last");
+            p.Check(headings.Select(h => h.Folded).SequenceEqual(DaysFolded), "the newest day is open, older days and what has no day are folded");
+            p.Check(X.LearnedNote(boar) == "seen" && X.LearnedNote(troll) == "fought" && X.LearnedNote(wood) == "known", "each row says how it came", $"{X.LearnedNote(boar)}, {X.LearnedNote(troll)}, {X.LearnedNote(wood)}");
+            yield return Picture(p, "learned by day");
+
+            // The notice in words.
+            p.Check(ScryPanel.NewsLine == "Since day 12: came to know Troll, saw Boar, and read 1 thing from the game's records of this character", "the notice tells what happened in words", ScryPanel.NewsLine);
+            X.LearnedOnly = false;
+        }
+    }
+}

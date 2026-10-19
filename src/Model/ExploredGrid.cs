@@ -175,10 +175,10 @@ namespace Scry
             return raised;
         }
 
-        /// <summary>An entry the map shows, as news noted as off the map; true when it was new.</summary>
+        /// <summary>An entry the map shows, as news noted as off the map, no sighting; true when it was new.</summary>
         private static bool Seen(CompendiumBook book, string key)
         {
-            if (!book.Raise(key, KnownLevel.Seen)) return false;
+            if (!book.Raise(key, KnownLevel.Seen, sighted: false)) return false;
             book.NoteNews(key, EntryKeys.OnMap);
             return true;
         }

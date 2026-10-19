@@ -69,16 +69,21 @@ namespace Scry
         private static float _youAt = -1f;
         private static float _youHeight;
         private static List<(string Label, string Value)> _you = new List<(string, string)>();
+
+        /// <summary>The You box's lines as last read, for the self-test.</summary>
+        [Diagnostic]
+        public static List<(string Label, string Value)> YouLinesForTest => new List<(string, string)>(_you);
         private static List<(string Label, string Value)> _still = new List<(string, string)>();
         private static string _killedElsewhere;
 
         /// <summary>
         /// The box a page opens with, titled "You": what the game counted of the thing for the
-        /// character (<see cref="CharacterRecords.Counts"/>) and, with the compendium on, how it
-        /// came to know it (<see cref="CompendiumWords.CameLine"/>); under the strict rules, what
-        /// the page still keeps back, a row for each thing to do (<see cref="CompendiumWords.StillToFindOut"/>).
-        /// Read again once a second and on another page; drawn behind what it holds at the height
-        /// that held last time.
+        /// character (<see cref="CharacterRecords.Counts"/>) and, with the compendium on, how
+        /// often it killed the character, when it was first seen and how it came to know it, each
+        /// with its moment (<see cref="JournalWords"/>, <see cref="CompendiumWords.CameLine"/>);
+        /// under the strict rules, what the page still keeps back, a row for each thing to do
+        /// (<see cref="CompendiumWords.StillToFindOut"/>). Read again once a second and on another
+        /// page; drawn behind what it holds at the height that held last time.
         /// </summary>
         private static float YouBox(Explorer explorer, Entry entry, Facts facts, float width, float y)
         {
@@ -86,14 +91,23 @@ namespace Scry
             {
                 _youOf = entry;
                 _youAt = Time.unscaledTime;
-                string came = null;
-                if (explorer.CompendiumOn)
+                string came = null, seen = null, killedYou = null;
+                // The book the compendium shows: the character's, or one shown in its place.
+                var book = explorer.CompendiumOn ? explorer.Compendium?.Book : null;
+                if (book != null)
                 {
-                    var record = CompendiumKeeper.Book?.Came(entry.Key);
-                    var biome = record?.Biome != null ? explorer.Find(EntryKeys.For(Kind.Biome, record.Value.Biome))?.ShownName ?? record.Value.Biome : null;
-                    came = CompendiumWords.CameLine(record?.Way, record?.Day ?? -1, biome, explorer.Compendium.Because(entry)?.ShownName, explorer.ByFloor(entry), explorer.LevelOf(entry) == KnownLevel.Known);
+                    var record = book.Came(entry.Key);
+                    var at = record?.At ?? Moment.None;
+                    came = CompendiumWords.CameLine(record?.Way, at.Day, BiomeShown(explorer, at.Biome), explorer.Compendium.Because(entry)?.ShownName, explorer.ByFloor(entry),
+                        explorer.LevelOf(entry) == KnownLevel.Known, at.Time, at.Weather, InHandShown(explorer, at.InHand));
+                    if (book.FirstSeen(entry.Key) is var first && first != null)
+                    {
+                        var sight = first.Value.At;
+                        seen = JournalWords.FirstSeen(sight.Day, sight.Time, sight.Weather, BiomeShown(explorer, sight.Biome), first.Value.Stars);
+                    }
+                    if (book.DeathsBy(entry.Key) is var deaths && deaths != null) killedYou = JournalWords.KilledYou(deaths.Value.Count, deaths.Value.LastDay);
                 }
-                _you = CompendiumWords.You(CharacterRecords.Counts(entry), came);
+                _you = CompendiumWords.You(CharacterRecords.Counts(entry), came, seen, killedYou);
                 // A skill's page opens with the character's level and the way to the next.
                 if (entry.Source is SkillSource skill) _you.AddRange(YourSkills.Lines(skill));
                 _killedElsewhere = entry.Kind == Kind.Creature ? explorer.KilledElsewhere(entry.Key) : null;
@@ -143,6 +157,14 @@ namespace Scry
             CountDrawn(PanelPart.YouBox);
             return y + U(10f);
         }
+
+        /// <summary>A biome kept in a moment by its name, as its page names it; none for none.</summary>
+        private static string BiomeShown(Explorer explorer, string biome) =>
+            biome == null ? null : explorer.Find(EntryKeys.For(Kind.Biome, biome))?.ShownName ?? BiomeWords.Shown(biome);
+
+        /// <summary>What was in hand in a moment, by its prefab, as its page names it; none bare-handed.</summary>
+        private static string InHandShown(Explorer explorer, string prefab) =>
+            prefab == null ? null : explorer.Find(prefab)?.ShownName ?? Naming.Readable(prefab);
 
         /// <summary>
         /// What a page under the strict rules still keeps back, gathered from what it draws: the

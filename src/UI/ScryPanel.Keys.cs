@@ -105,7 +105,7 @@ namespace Scry
         private static bool InFoldedGroup(Explorer explorer)
         {
             var entry = explorer.Selected;
-            return entry != null && Grouped(explorer) && FoldedGroups.Contains(FoldKey(explorer, entry.Group));
+            return entry != null && IsFolded(explorer, entry);
         }
 
         /// <summary>

@@ -73,6 +73,12 @@ namespace Scry
             {
                 case Kind.Creature:
                     counts.Killed = Sum(stats.m_enemyStats[0]);
+                    // Counted again by how it was dealt, where every hit was of one kind.
+                    int By(KillModifiers kind) => (int)kind < stats.m_enemyStats.Length && stats.m_enemyStats[(int)kind] != null ? Sum(stats.m_enemyStats[(int)kind]) : 0;
+                    counts.Melee = By(KillModifiers.Melee);
+                    counts.Ranged = By(KillModifiers.Ranged);
+                    counts.Magic = By(KillModifiers.Magic);
+                    counts.Unarmed = By(KillModifiers.Unarmed);
                     break;
                 case Kind.Piece:
                     counts.Built = Sum(stats.m_piecesPlacedStats);

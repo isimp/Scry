@@ -281,6 +281,43 @@ namespace Scry
 
         private static string FoldKey(Explorer explorer, string group) => explorer.KindFilter + "|" + group;
 
+        /// <summary>The group an entry is listed under: in the learned list its day (<see cref="ListWords.DayGroup"/>), else its own group.</summary>
+        private static string GroupOf(Explorer explorer, Entry entry) => explorer.LearnedOnly ? ListWords.DayGroup(explorer.LearnedDay(entry)) : entry.Group;
+
+        /// <summary>The results the newest learned day was last worked out for, and that day.</summary>
+        private static IReadOnlyList<Entry> _newestOf;
+        private static int _newestDay = -1;
+
+        /// <summary>The newest day in the learned list, whose group and the one before start open (<see cref="JournalWords.FoldedAtFirst"/>).</summary>
+        private static int NewestLearned(Explorer explorer)
+        {
+            var results = explorer.Results;
+            if (ReferenceEquals(results, _newestOf)) return _newestDay;
+            _newestOf = results;
+            _newestDay = -1;
+            foreach (var entry in results) _newestDay = Math.Max(_newestDay, explorer.LearnedDay(entry));
+            return _newestDay;
+        }
+
+        /// <summary>
+        /// Whether the group an entry is in is folded away: a day of the learned list as it starts
+        /// (older days folded) unless its heading was clicked, a kind's group once folded.
+        /// </summary>
+        private static bool IsFolded(Explorer explorer, Entry entry)
+        {
+            if (explorer.LearnedOnly) return JournalWords.FoldedAtFirst(explorer.LearnedDay(entry), NewestLearned(explorer)) != FoldedGroups.Contains(FoldKey(explorer, GroupOf(explorer, entry)));
+            return Grouped(explorer) && FoldedGroups.Contains(FoldKey(explorer, entry.Group));
+        }
+
+        /// <summary>Opens the group an entry is in; true when it was folded.</summary>
+        private static bool Unfold(Explorer explorer, Entry entry)
+        {
+            if (!IsFolded(explorer, entry)) return false;
+            var key = FoldKey(explorer, GroupOf(explorer, entry));
+            if (!FoldedGroups.Remove(key)) FoldedGroups.Add(key);
+            return true;
+        }
+
         /// <summary>Whether the list is one kind's, in its groups; not while every kind is shown for an empty tab.</summary>
         private static bool Grouped(Explorer explorer) => explorer.KindFilter != null && !explorer.ShowingEveryKind;
 
@@ -301,6 +338,10 @@ namespace Scry
         }
 
         private static readonly List<ListRow> _listRows = new List<ListRow>();
+
+        /// <summary>The list's group headings as last listed, each with whether it is folded, for the self-test.</summary>
+        [Diagnostic]
+        public static List<(string Heading, bool Folded)> ListHeadingsForTest => _listRows.Where(r => r.Entry < 0).Select(r => (r.Heading, r.Folded)).ToList();
 
         /// <summary>Whether anything in the list has an icon of its own, so the icon column is kept.</summary>
         private static bool _listHasIcons;
@@ -325,7 +366,7 @@ namespace Scry
             if (!ReferenceEquals(explorer.Selected, _foldChecked))
             {
                 _foldChecked = explorer.Selected;
-                if (selected >= 0 && selected < results.Count && Grouped(explorer) && FoldedGroups.Remove(FoldKey(explorer, results[selected].Group))) _rowsFor = null;
+                if (selected >= 0 && selected < results.Count && Unfold(explorer, results[selected])) _rowsFor = null;
             }
             if (ReferenceEquals(results, _rowsFor)) return _listRows;
             _rowsFor = results;
@@ -339,20 +380,22 @@ namespace Scry
                 break;
             }
 
-            // Recent lists newest first, not by group, so it has no headings.
-            var grouped = Grouped(explorer) && !explorer.RecentOnly && results.Any(e => e.Group.Length > 0);
+            // Recent lists newest first, not by group, so it has no headings; what was learned goes by day.
+            var byDay = explorer.LearnedOnly;
+            var grouped = byDay || Grouped(explorer) && !explorer.RecentOnly && results.Any(e => e.Group.Length > 0);
             for (var i = 0; i < results.Count; i++)
             {
                 var folded = false;
                 if (grouped)
                 {
-                    folded = FoldedGroups.Contains(FoldKey(explorer, results[i].Group));
-                    if (i == 0 || results[i].Group != results[i - 1].Group)
+                    var group = GroupOf(explorer, results[i]);
+                    folded = IsFolded(explorer, results[i]);
+                    if (i == 0 || group != GroupOf(explorer, results[i - 1]))
                     {
                         var count = 1;
-                        while (i + count < results.Count && results[i + count].Group == results[i].Group) count++;
-                        var name = results[i].Group.Length > 0 ? results[i].Group : "Ungrouped";
-                        _listRows.Add(new ListRow { Entry = -1, Heading = PanelWords.Heading(name, count), Group = results[i].Group, Folded = folded });
+                        while (i + count < results.Count && GroupOf(explorer, results[i + count]) == group) count++;
+                        var name = byDay ? JournalWords.DayHeading(explorer.LearnedDay(results[i])) : results[i].Group.Length > 0 ? results[i].Group : "Ungrouped";
+                        _listRows.Add(new ListRow { Entry = -1, Heading = PanelWords.Heading(name, count), Group = group, Folded = folded });
                     }
                 }
                 if (folded)
@@ -410,11 +453,11 @@ namespace Scry
             if ((entry.Indent || explorer.UnderOwner(entry)) && oneKind) textX += U(20f);
             var textW = (byFloor ? floorMark.x : star.x) - U(8f) - textX;
             var primary = entry.ShownName;
-            // In the learned list, what was found out of it, where that is its latest news. With the
+            // In the learned list, how its latest news came (killed, seen, what was found out). With the
             // compendium on, no prefab name, a place's tag holding one too: which of several going by
             // one name it is, where it is one, the creatures carrying it kept back until met. Off, its
             // tag or its prefab's name; a creature's attack by its carrier, told apart from its others.
-            var secondary = (explorer.LearnedOnly ? explorer.FoundOutNote(entry) : null)
+            var secondary = (explorer.LearnedOnly ? explorer.LearnedNote(entry) : null)
                             ?? (explorer.CompendiumOn ? Masked(explorer, explorer.AlikeOf(entry)) ?? ""
                                 : (entry.TagNamesCarrier ? entry.Alike : null) ?? entry.Tag ?? (primary == entry.Name ? "" : entry.Name));
 
@@ -426,7 +469,9 @@ namespace Scry
             // A name too long for the row is cut at its end with an ellipsis, whole on hover.
             var shownName = fullW > textW ? Skin.Fit(nameStyle, primary, textW) : primary;
             if (lit) LightMatches(nameRect, shownName, nameStyle);
-            Skin.LabelIn(nameRect, shownName, nameStyle, entry.Empty ? Skin.Faint : Skin.Text);
+            // In the learned list what was only seen is faint, as is what has nothing to see.
+            var faint = entry.Empty || explorer.LearnedOnly && explorer.LevelOf(entry) < KnownLevel.Known;
+            Skin.LabelIn(nameRect, shownName, nameStyle, faint ? Skin.Faint : Skin.Text);
 
             var cut = fullW > textW;
             if (secondary.Length > 0)

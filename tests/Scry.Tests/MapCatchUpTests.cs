@@ -169,11 +169,12 @@ namespace Scry.Tests
         public void TheNoticeCountsWhatTheMapShowedInOneLine()
         {
             // A map read can bring hundreds of places: counted, not named; the rest named as ever.
-            Assert.Equal("Your explored map showed 240 places", CompendiumWords.News(new string[0], 240, 0));
-            Assert.Equal("Your explored map showed 1 place and 2 biomes", CompendiumWords.News(new string[0], 1, 2));
-            Assert.Equal("Your explored map showed 1 biome", CompendiumWords.News(new string[0], 0, 1));
-            Assert.Equal("Newly learned: Troll and Wood", CompendiumWords.News(new[] { "Troll", "Wood" }, 0, 0));
-            Assert.Equal("Newly learned: Troll; your explored map showed 12 places", CompendiumWords.News(new[] { "Troll" }, 12, 0));
+            Assert.Equal("Your explored map showed 240 places", JournalWords.News(new NewsLine[0], 240, 0));
+            Assert.Equal("Your explored map showed 1 place and 2 biomes", JournalWords.News(new NewsLine[0], 1, 2));
+            Assert.Equal("Your explored map showed 1 biome", JournalWords.News(new NewsLine[0], 0, 1));
+            var troll = new NewsLine("Troll", NewsHow.Known, null, 14);
+            Assert.Equal("Day 14: came to know Troll and Wood", JournalWords.News(new[] { troll, new NewsLine("Wood", NewsHow.Known, null, 14) }, 0, 0));
+            Assert.Equal("Day 14: came to know Troll, and your explored map showed 12 places", JournalWords.News(new[] { troll }, 12, 0));
         }
     }
 }

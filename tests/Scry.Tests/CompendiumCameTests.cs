@@ -7,7 +7,7 @@ namespace Scry.Tests
         // A page tells how and when the character came to know it: the way it did, the game's day
         // and the biome it stood in, kept in its book from the moment it learned it in play.
 
-        private static CompendiumBook Book(int day = 12, string biome = "BlackForest") => new CompendiumBook { Now = () => (day, biome) };
+        private static CompendiumBook Book(int day = 12, string biome = "BlackForest") => new CompendiumBook { Now = () => new Moment(day, biome) };
 
         [Fact]
         public void WhatIsComeToKnowInPlayIsKeptWithHowWhenAndWhere()
@@ -16,7 +16,7 @@ namespace Scry.Tests
 
             book.Raise("Troll", KnownLevel.Known, way: CameBy.Fought);
 
-            Assert.Equal((CameBy.Fought, 12, "BlackForest"), book.Came("Troll"));
+            Assert.Equal((CameBy.Fought, new Moment(12, "BlackForest")), book.Came("Troll"));
         }
 
         [Fact]
@@ -27,10 +27,10 @@ namespace Scry.Tests
             Assert.Null(book.Came("Troll"));
 
             book.Raise("Troll", KnownLevel.Known, way: CameBy.Tamed);
-            book.Now = () => (40, "Mountain");
+            book.Now = () => new Moment(40, "Mountain");
             book.Raise("Troll", KnownLevel.Known, way: CameBy.Fought);
 
-            Assert.Equal((CameBy.Tamed, 12, "BlackForest"), book.Came("Troll"));
+            Assert.Equal((CameBy.Tamed, new Moment(12, "BlackForest")), book.Came("Troll"));
         }
 
         [Fact]
@@ -51,7 +51,7 @@ namespace Scry.Tests
             var book = new CompendiumBook();
             book.Raise("Troll", KnownLevel.Known, way: CameBy.Fought);
 
-            Assert.Equal((CameBy.Fought, -1, null), book.Came("Troll"));
+            Assert.Equal((CameBy.Fought, Moment.None), book.Came("Troll"));
         }
 
         [Fact]
@@ -64,8 +64,8 @@ namespace Scry.Tests
 
             var read = CompendiumBook.Load(book.Save());
 
-            Assert.Equal((CameBy.Fought, 12, "BlackForest"), read.Came("Troll"));
-            Assert.Equal((CameBy.WentInside, -1, null), read.Came("loc:Crypt2"));
+            Assert.Equal((CameBy.Fought, new Moment(12, "BlackForest")), read.Came("Troll"));
+            Assert.Equal((CameBy.WentInside, Moment.None), read.Came("loc:Crypt2"));
             Assert.Null(CompendiumBook.Load("came\tTroll\tNoSuchWay\t3\tMeadows\n").Came("Troll"));
             Assert.Null(CompendiumBook.Load("came\tTroll\tFought\n").Came("Troll"));
         }

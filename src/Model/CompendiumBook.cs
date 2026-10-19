@@ -50,30 +50,70 @@ namespace Scry
 
     /// <summary>
     /// What one character has come to know, entry by entry (by <see cref="Entry.Key"/>), each
-    /// only ever rising; the latest learned, newest first; the worlds whose explored map was
-    /// caught up with; the rules the player chose for the compendium and the floor they raised
-    /// it to; the pairs seen together; and how, on which day and in which biome each thing came
-    /// to be known in play. Kept from session to session as text (<see cref="Save"/>,
-    /// <see cref="Load"/>).
+    /// only ever rising; everything learned, newest first, with the day of its latest news; the
+    /// worlds whose explored map was caught up with; the rules the player chose for the
+    /// compendium and the floor they raised it to; the pairs seen together; the moment each
+    /// thing was first seen and came to be known in play (<see cref="Moment"/>); and the deaths
+    /// each creature dealt the character. Kept from session to session as text
+    /// (<see cref="Save"/>, <see cref="Load"/>).
     /// </summary>
     internal sealed class CompendiumBook
     {
-        /// <summary>How many of the latest learned are kept.</summary>
-        public const int LatelyKept = 50;
-
         private readonly Dictionary<string, KnownLevel> _levels = new Dictionary<string, KnownLevel>(StringComparer.Ordinal);
         private readonly List<string> _lately = new List<string>();
         private readonly HashSet<string> _mapped = new HashSet<string>(StringComparer.Ordinal);
         private int _floor;
         private CompendiumRule _rule;
         private readonly HashSet<(string, string)> _pairs = new HashSet<(string, string)>();
-        private readonly Dictionary<string, (CameBy Way, int Day, string Biome)> _came = new Dictionary<string, (CameBy, int, string)>(StringComparer.Ordinal);
+        private readonly Dictionary<string, (CameBy Way, Moment At)> _came = new Dictionary<string, (CameBy, Moment)>(StringComparer.Ordinal);
+        private readonly Dictionary<string, (Moment At, int Stars)> _seen = new Dictionary<string, (Moment, int)>(StringComparer.Ordinal);
+        private readonly Dictionary<string, (int Count, int LastDay)> _deaths = new Dictionary<string, (int, int)>(StringComparer.Ordinal);
+        private readonly Dictionary<string, int> _newsDay = new Dictionary<string, int>(StringComparer.Ordinal);
 
-        /// <summary>The game's day and the biome the character stands in now, for what it comes to know; none outside a game. Not kept.</summary>
-        public Func<(int Day, string Biome)> Now { get; set; }
+        /// <summary>The moment the character is in now, for what it sees or comes to know; none outside a game. Not kept.</summary>
+        public Func<Moment> Now { get; set; }
 
-        /// <summary>How, on which day and in which biome the character came to know a thing in play; none for one known before the book, or not by a way of its own.</summary>
-        public (CameBy Way, int Day, string Biome)? Came(string key) => !string.IsNullOrEmpty(key) && _came.TryGetValue(key, out var came) ? came : ((CameBy, int, string)?)null;
+        /// <summary>
+        /// Whether what is learned now is caught up from the game's own records rather than met in
+        /// play: they do not say when, so nothing is kept of the moment and the news has no day.
+        /// Not kept.
+        /// </summary>
+        public bool CatchingUp { get; set; }
+
+        /// <summary>How and at which moment the character came to know a thing in play; none for one known before the book, or not by a way of its own.</summary>
+        public (CameBy Way, Moment At)? Came(string key) => !string.IsNullOrEmpty(key) && _came.TryGetValue(key, out var came) ? came : ((CameBy, Moment)?)null;
+
+        /// <summary>The moment the character first saw a thing in play, and a creature's stars then (-1 for none told); none for one known at once, off the map or caught up.</summary>
+        public (Moment At, int Stars)? FirstSeen(string key) => !string.IsNullOrEmpty(key) && _seen.TryGetValue(key, out var seen) ? seen : ((Moment, int)?)null;
+
+        /// <summary>How often a creature killed the character, and the game's day of the last (-1 where none was known); none for one that never did.</summary>
+        public (int Count, int LastDay)? DeathsBy(string key) => !string.IsNullOrEmpty(key) && _deaths.TryGetValue(key, out var deaths) ? deaths : ((int, int)?)null;
+
+        /// <summary>A creature killed the character: counted, with the day.</summary>
+        public void Died(string key)
+        {
+            if (string.IsNullOrEmpty(key)) return;
+            _deaths.TryGetValue(key, out var deaths);
+            _deaths[key] = (deaths.Count + 1, Now?.Invoke().Day ?? -1);
+            Changed = true;
+        }
+
+        /// <summary>
+        /// An entry's latest news (<see cref="BookNews"/>): what was found out of it or the map it
+        /// came off, else known with the way it came, else seen; none for one only heard of or not
+        /// in the book.
+        /// </summary>
+        public BookNews? NewsOf(string key)
+        {
+            var level = Level(key);
+            if (level < KnownLevel.Seen) return null;
+            var day = _newsDay.TryGetValue(key, out var told) ? told : -1;
+            var way = _came.TryGetValue(key, out var came) ? came.Way : (CameBy?)null;
+            var proof = FoundOutOf(key);
+            if (proof == EntryKeys.OnMap) return new BookNews(NewsHow.Map, proof, way, day);
+            if (proof != null) return new BookNews(NewsHow.FoundOut, proof, way, day);
+            return new BookNews(level == KnownLevel.Known ? NewsHow.Known : NewsHow.Seen, null, way, day);
+        }
 
         /// <summary>Counts up with every entry learned more of, so what tells the compendium tells it again.</summary>
         public int Version { get; private set; }
@@ -94,18 +134,19 @@ namespace Scry
         /// <summary>
         /// Learns of an entry up to a level; true when that is more than was known. Quietly, it is
         /// not counted among the latest learned: it was known before, only not yet written down.
-        /// Come to know in play by a way of its own, that way is kept with the day and the biome
-        /// (<see cref="Now"/>), once, as a thing is come to know once.
+        /// Come to know in play by a way of its own, that way is kept with the moment
+        /// (<see cref="Now"/>), once, as a thing is come to know once; first seen in play by sight
+        /// (<paramref name="sighted"/>, not off the map), the moment is kept with a creature's
+        /// <paramref name="stars"/> (-1 for none told). Caught up (<see cref="CatchingUp"/>), no moment is kept.
         /// </summary>
-        public bool Raise(string key, KnownLevel level, bool quietly = false, CameBy? way = null)
+        public bool Raise(string key, KnownLevel level, bool quietly = false, CameBy? way = null, int stars = -1, bool sighted = true)
         {
             if (string.IsNullOrEmpty(key) || level <= Level(key)) return false;
             _levels[key] = level;
-            if (!quietly && level == KnownLevel.Known && way is CameBy by)
-            {
-                var now = Now?.Invoke();
-                _came[key] = (by, now?.Day ?? -1, string.IsNullOrEmpty(now?.Biome) ? null : now?.Biome);
-            }
+            var inPlay = !quietly && !CatchingUp;
+            if (inPlay && level == KnownLevel.Known && way is CameBy by) _came[key] = (by, Now?.Invoke() ?? Moment.None);
+            // A thing is raised to seen once, so this is its first sighting.
+            if (inPlay && sighted && level == KnownLevel.Seen) _seen[key] = (Now?.Invoke() ?? Moment.None, stars);
             if (!quietly)
             {
                 Newest(key);
@@ -237,13 +278,13 @@ namespace Scry
             return true;
         }
 
-        /// <summary>A key learned more of now: counted, and first among the latest learned.</summary>
+        /// <summary>A key learned more of now: counted, first among what was learned, with the day (none while caught up).</summary>
         private void Newest(string key)
         {
             _learnedAt[key] = ++Learned;
             _lately.Remove(key);
             _lately.Insert(0, key);
-            if (_lately.Count > LatelyKept) _lately.RemoveRange(LatelyKept, _lately.Count - LatelyKept);
+            _newsDay[key] = CatchingUp ? -1 : Now?.Invoke().Day ?? -1;
         }
 
         /// <summary>
@@ -273,6 +314,8 @@ namespace Scry
             if (string.IsNullOrEmpty(key) || !_levels.Remove(key)) return false;
             if (!string.IsNullOrEmpty(proof) && _pairs.Remove(Pair(key, proof))) PairsVersion++;
             _came.Remove(key);
+            _seen.Remove(key);
+            _newsDay.Remove(key);
             _found.Remove(key);
             _learnedAt.Remove(key);
             _lately.Remove(key);
@@ -296,7 +339,7 @@ namespace Scry
 
         private readonly Dictionary<string, string> _found = new Dictionary<string, string>(StringComparer.Ordinal);
 
-        /// <summary>The keys learned more of lately, newest first.</summary>
+        /// <summary>The keys learned more of, all of them, newest first.</summary>
         public IEnumerable<string> Lately => _lately;
 
         private readonly Dictionary<string, int> _learnedAt = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -398,6 +441,9 @@ namespace Scry
             var floor = _floor;
             var pairs = _pairs.ToArray();
             var came = _came.ToArray();
+            var seen = _seen.ToArray();
+            var deaths = _deaths.ToArray();
+            var newsDay = new Dictionary<string, int>(_newsDay, StringComparer.Ordinal);
             var found = _found.ToArray();
             var fell = _fell.Save();
             var gave = _gave.Save();
@@ -414,7 +460,12 @@ namespace Scry
                 {
                     text.Append("know\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(Stored.Count((int)pair.Value)).Append('\n');
                 }
-                foreach (var key in lately) text.Append("lately\t").Append(Stored.Escaped(key)).Append('\n');
+                foreach (var key in lately)
+                {
+                    text.Append("lately\t").Append(Stored.Escaped(key));
+                    if (newsDay.TryGetValue(key, out var day) && day >= 0) text.Append('\t').Append(Stored.Count(day));
+                    text.Append('\n');
+                }
                 foreach (var world in mapped.OrderBy(w => w, StringComparer.Ordinal)) text.Append("mapped\t").Append(Stored.Escaped(world)).Append('\n');
                 if (rule != CompendiumRule.Off) text.Append("rule\t").Append(rule).Append('\n');
                 if (floor > 0) text.Append("floor\t").Append(Stored.Count(floor)).Append('\n');
@@ -424,8 +475,19 @@ namespace Scry
                 }
                 foreach (var pair in came.OrderBy(p => p.Key, StringComparer.Ordinal))
                 {
-                    var (way, day, biome) = pair.Value;
-                    text.Append("came\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(way).Append('\t').Append(Stored.Count(day)).Append('\t').Append(Stored.Escaped(biome ?? "")).Append('\n');
+                    text.Append("came\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(pair.Value.Way).Append('\t');
+                    Written(text, pair.Value.At);
+                    text.Append('\n');
+                }
+                foreach (var pair in seen.OrderBy(p => p.Key, StringComparer.Ordinal))
+                {
+                    text.Append("seen\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(Stored.Count(pair.Value.Stars)).Append('\t');
+                    Written(text, pair.Value.At);
+                    text.Append('\n');
+                }
+                foreach (var pair in deaths.OrderBy(p => p.Key, StringComparer.Ordinal))
+                {
+                    text.Append("died\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(Stored.Count(pair.Value.Count)).Append('\t').Append(Stored.Count(pair.Value.LastDay)).Append('\n');
                 }
                 foreach (var pair in found.OrderBy(p => p.Key, StringComparer.Ordinal))
                 {
@@ -453,6 +515,33 @@ namespace Scry
         public static string FileName(string characterFile, string source, long id) => $"{characterFile}-{source}-{Stored.Count(id)}.dat";
 
 
+        /// <summary>A moment as a line's last fields: day, biome, time of day, weather, what was in hand.</summary>
+        private static void Written(StringBuilder text, Moment at)
+        {
+            text.Append(Stored.Count(at.Day)).Append('\t').Append(Stored.Escaped(at.Biome ?? "")).Append('\t').Append(at.Time)
+                .Append('\t').Append(Stored.Escaped(at.Weather ?? "")).Append('\t').Append(Stored.Escaped(at.InHand ?? ""));
+        }
+
+        /// <summary>
+        /// A moment read from a line's fields from <paramref name="from"/> on: the day and biome
+        /// alone as kept before moments were, else all five; false where they cannot be read.
+        /// </summary>
+        private static bool Read(string[] parts, int from, out Moment at)
+        {
+            at = Moment.None;
+            if (parts.Length != from + 2 && parts.Length != from + 5) return false;
+            if (!Stored.TryCount(parts[from], out var day) || !Stored.TryUnescaped(parts[from + 1], out var biome)) return false;
+            if (parts.Length == from + 2)
+            {
+                at = new Moment(day, biome);
+                return true;
+            }
+            if (!Enum.TryParse(parts[from + 2], out DayPart time) || !Enum.IsDefined(typeof(DayPart), time)) return false;
+            if (!Stored.TryUnescaped(parts[from + 3], out var weather) || !Stored.TryUnescaped(parts[from + 4], out var inHand)) return false;
+            at = new Moment(day, biome, time, weather, inHand);
+            return true;
+        }
+
         /// <summary>The line saying the character played with others.</summary>
         private const string WithOthersLine = "with-others";
 
@@ -461,6 +550,7 @@ namespace Scry
         {
             var book = new CompendiumBook();
             if (string.IsNullOrEmpty(text)) return book;
+            var lately = new HashSet<string>(StringComparer.Ordinal);
             // The counts of what fell and was given, each its own text inside the book's.
             var fell = new StringBuilder();
             var gave = new StringBuilder();
@@ -498,8 +588,9 @@ namespace Scry
                     case "know" when parts.Length == 3 && Stored.TryCount(parts[2], out var level) && level > (int)KnownLevel.Unknown && level <= (int)KnownLevel.Known:
                         book._levels[name] = (KnownLevel)level;
                         break;
-                    case "lately" when parts.Length == 2 && !book._lately.Contains(name) && book._lately.Count < LatelyKept:
+                    case "lately" when (parts.Length == 2 || parts.Length == 3) && lately.Add(name):
                         book._lately.Add(name);
+                        if (parts.Length == 3 && Stored.TryCount(parts[2], out var newsDay)) book._newsDay[name] = newsDay;
                         break;
                     case "mapped" when parts.Length == 2:
                         book._mapped.Add(name);
@@ -513,8 +604,14 @@ namespace Scry
                     case "saw" when parts.Length == 3 && Stored.TryUnescaped(parts[2], out var other) && other.Length > 0 && other != name:
                         book._pairs.Add(Pair(name, other));
                         break;
-                    case "came" when parts.Length == 5 && Enum.TryParse(parts[2], out CameBy way) && Enum.IsDefined(typeof(CameBy), way) && Stored.TryCount(parts[3], out var day) && Stored.TryUnescaped(parts[4], out var biome):
-                        book._came[name] = (way, day, biome.Length > 0 ? biome : null);
+                    case "came" when parts.Length >= 5 && Enum.TryParse(parts[2], out CameBy way) && Enum.IsDefined(typeof(CameBy), way) && Read(parts, 3, out var cameAt):
+                        book._came[name] = (way, cameAt);
+                        break;
+                    case "seen" when parts.Length == 8 && Stored.TryCount(parts[2], out var stars) && Read(parts, 3, out var seenAt):
+                        book._seen[name] = (seenAt, stars);
+                        break;
+                    case "died" when parts.Length == 4 && Stored.TryCount(parts[2], out var deaths) && deaths > 0 && Stored.TryCount(parts[3], out var lastDay):
+                        book._deaths[name] = (deaths, lastDay);
                         break;
                 }
             }

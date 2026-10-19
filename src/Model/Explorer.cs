@@ -235,8 +235,21 @@ namespace Scry
         /// <summary>Whether an entry's latest news is what a reading of the explored map brought (<see cref="EntryKeys.OnMap"/>), counted rather than named in the notice.</summary>
         public bool FromMap(Entry entry) => CompendiumOn && entry != null && _view.Book?.FoundOutOf(entry.Key) == EntryKeys.OnMap;
 
-        /// <summary>What was found out of an entry as its latest news (<see cref="CompendiumBook.FoundOutOf"/>), in a few words for its row in the learned list; none with the compendium off.</summary>
-        public string FoundOutNote(Entry entry) => CompendiumOn && entry != null ? CompendiumWords.FoundOutNote(_view.Book?.FoundOutOf(entry.Key)) : null;
+        /// <summary>An entry's latest news in the book (<see cref="CompendiumBook.NewsOf"/>); none with the compendium off or none to tell.</summary>
+        private BookNews? NewsOf(Entry entry) => CompendiumOn && entry != null ? _view.Book?.NewsOf(entry.Key) : null;
+
+        /// <summary>The game's day an entry's latest news came on, for its day in the learned list; -1 for none, caught up or kept before days were.</summary>
+        public int LearnedDay(Entry entry) => NewsOf(entry)?.Day ?? -1;
+
+        /// <summary>How an entry's latest news came, in a few words for its row in the learned list (<see cref="JournalWords.LearnedNote"/>); none with the compendium off.</summary>
+        public string LearnedNote(Entry entry) => NewsOf(entry) is BookNews news ? JournalWords.LearnedNote(news) : null;
+
+        /// <summary>An entry's latest news as a line of the notice, by the name it is shown by; seen for one with none to tell.</summary>
+        public NewsLine NewsLineOf(Entry entry)
+        {
+            var news = NewsOf(entry);
+            return new NewsLine(entry?.ShownName ?? "", news?.How ?? NewsHow.Seen, news?.Proof, news?.Day ?? -1);
+        }
 
         /// <summary>Whether what a link or chip on a page goes to, by its key, shows as known only because of the floor (<see cref="ByFloor"/>), to be marked as its row is.</summary>
         public bool ShownByFloor(string key) => ByFloor(Find(key));
@@ -819,7 +832,10 @@ namespace Scry
             }
             else if (_learnedOnly && _view != null)
             {
+                // Newest first, what has no day (caught up, or kept before days were) after the rest.
                 order = new Dictionary<string, int>();
+                var book = _view.Book;
+                foreach (var key in _view.Lately) if (!order.ContainsKey(key) && (book?.NewsOf(key)?.Day ?? -1) >= 0) order[key] = order.Count;
                 foreach (var key in _view.Lately) if (!order.ContainsKey(key)) order[key] = order.Count;
             }
 

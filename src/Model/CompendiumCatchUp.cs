@@ -75,9 +75,24 @@ namespace Scry
         /// Raises in the book what the records tell, as news; how many entries it learned more of.
         /// On the first reading as a character loads (<paramref name="firstLoad"/>) the records do
         /// not say when or where a thing came to be known, so no such record is kept of it, and
-        /// its kills are news by the creatures learned rather than their health found out as well.
+        /// its kills are news by the creatures learned rather than their health found out as well;
+        /// what it learns is caught up (<see cref="CompendiumBook.CatchingUp"/>), with no moment or day.
         /// </summary>
         public int Fill(CompendiumRecords records, CompendiumBook book, bool firstLoad)
+        {
+            var caught = book.CatchingUp;
+            book.CatchingUp = caught || firstLoad;
+            try
+            {
+                return FillFrom(records, book, firstLoad);
+            }
+            finally
+            {
+                book.CatchingUp = caught;
+            }
+        }
+
+        private int FillFrom(CompendiumRecords records, CompendiumBook book, bool firstLoad)
         {
             // An unlocked recipe's item is known: the crafting menu shows it whole, its look, stats and what it takes.
             var items = Named(records.PickedUp, Kind.Item).Concat(Named(records.Crafted, Kind.Item)).Concat(Named(records.Eaten, Kind.Item)).Concat(Named(records.Recipes, Kind.Item)).ToList();
@@ -199,7 +214,7 @@ namespace Scry
         }
 
         /// <summary>Learns of an entry met in play, by its key, as news; true when that is more than was known. What the catalog has no entry for is passed over.</summary>
-        public bool Met(string key, KnownLevel level, CompendiumBook book, CameBy? way = null) => Lists(key) && book.Raise(key, level, way: way);
+        public bool Met(string key, KnownLevel level, CompendiumBook book, CameBy? way = null, int stars = -1) => Lists(key) && book.Raise(key, level, way: way, stars: stars);
 
         /// <summary>Whether the catalog has an entry by a key, for anything to be learned of it at all.</summary>
         public bool Lists(string key) => _catalog.Find(key) != null;

@@ -653,7 +653,7 @@ namespace Scry.Tests
             var wood = E(Kind.Item, "Wood", "$item_wood");
             var stone = E(Kind.Item, "Stone", "$item_stone");
             var (catchUp, book) = Fresh(wood, stone);
-            book.Now = () => (12, "Meadows");
+            book.Now = () => new Moment(12, "Meadows");
             var records = new CompendiumRecords();
             records.PickedUp.Add("$item_wood");
 
@@ -667,7 +667,7 @@ namespace Scry.Tests
             records.PickedUp.Add("$item_stone");
             catchUp.Fill(records, book, firstLoad: false);
             Assert.Equal(new[] { stone.Key, wood.Key }, book.Lately.ToArray());
-            Assert.Equal((CameBy.Held, 12, "Meadows"), book.Came(stone.Key));
+            Assert.Equal((CameBy.Held, new Moment(12, "Meadows")), book.Came(stone.Key));
         }
 
         [Fact]

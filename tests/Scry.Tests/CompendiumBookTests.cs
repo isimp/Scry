@@ -157,7 +157,7 @@ namespace Scry.Tests
 
             static CompendiumBook Learned()
             {
-                var learned = new CompendiumBook { Now = () => (3, "Meadows") };
+                var learned = new CompendiumBook { Now = () => new Moment(3, "Meadows") };
                 learned.Raise("Boar", KnownLevel.Known, way: CameBy.Killed);
                 learned.Raise("Neck", KnownLevel.Seen);
                 learned.Witness("Boar", "Meadows");
@@ -189,22 +189,22 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void WhatWasLearnedLatelyComesNewestFirstAndOnlyTheLatestAreKept()
+        public void WhatWasLearnedComesNewestFirstAndAllOfItIsKept()
         {
             var book = new CompendiumBook();
-            for (var i = 0; i < CompendiumBook.LatelyKept + 5; i++) book.Raise("Item" + i, KnownLevel.Known);
+            for (var i = 0; i < 55; i++) book.Raise("Item" + i, KnownLevel.Known);
             book.Raise("Item3", KnownLevel.Known);
-            book.Raise("Item" + (CompendiumBook.LatelyKept + 4), KnownLevel.Known);
+            book.Raise("Item54", KnownLevel.Known);
             book.Raise("Troll", KnownLevel.Seen);
             book.Raise("Troll", KnownLevel.Known);
 
             var lately = book.Lately.ToList();
 
-            Assert.Equal(CompendiumBook.LatelyKept, lately.Count);
+            Assert.Equal(56, lately.Count);
             Assert.Equal("Troll", lately[0]);
-            Assert.Equal("Item" + (CompendiumBook.LatelyKept + 4), lately[1]);
+            Assert.Equal("Item54", lately[1]);
             Assert.Single(lately, k => k == "Troll");
-            Assert.DoesNotContain("Item0", lately);
+            Assert.Equal("Item0", lately.Last());
         }
 
         [Fact]
@@ -358,13 +358,13 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void TheLatestReadBackHoldEachEntryOnceAndNoMoreThanAreKept()
+        public void WhatWasLearnedReadBackHoldsEachEntryOnce()
         {
-            var text = "lately\tTroll\nlately\tTroll\n" + string.Concat(Enumerable.Range(0, CompendiumBook.LatelyKept + 10).Select(i => $"lately\tItem{i}\n"));
+            var text = "lately\tTroll\nlately\tTroll\n" + string.Concat(Enumerable.Range(0, 60).Select(i => $"lately\tItem{i}\n"));
 
             var lately = CompendiumBook.Load(text).Lately.ToList();
 
-            Assert.Equal(CompendiumBook.LatelyKept, lately.Count);
+            Assert.Equal(61, lately.Count);
             Assert.Single(lately, k => k == "Troll");
         }
 

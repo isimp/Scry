@@ -230,6 +230,14 @@ namespace Scry
             MetIn(key, creature.transform.position);
         }
 
+        /// <summary>A creature killed the character: counted against it, with the day (<see cref="CompendiumBook.Died"/>); nothing for a player or no attacker.</summary>
+        public static void KilledBy(Character attacker)
+        {
+            if (Into == null || _catchUp == null || attacker == null || attacker.IsPlayer()) return;
+            var key = Utils.GetPrefabName(attacker.gameObject);
+            if (_catchUp.Lists(key)) Into.Died(key);
+        }
+
         /// <summary>A creature's attack hit the character: the two seen together, for the strict rules' attack table.</summary>
         public static void HitBy(Character creature)
         {
@@ -591,17 +599,27 @@ namespace Scry
                 _unreadable = true;
             }
             _reading = null;
-            _book.Now = Moment;
+            _book.Now = Now;
             return true;
         }
 
-        /// <summary>The game's day and the biome the character stands in, for what it comes to know now.</summary>
-        private static (int Day, string Biome) Moment()
+        /// <summary>
+        /// The moment the character is in, for what it sees or comes to know now: the game's day,
+        /// the biome it stands in, the time of day, the weather, and the weapon or tool in its
+        /// hands by its prefab, none bare-handed (the game's own unarmed weapon).
+        /// </summary>
+        private static Moment Now()
         {
             var player = Player.m_localPlayer;
-            var day = EnvMan.instance != null ? EnvMan.instance.GetDay() : -1;
+            var env = EnvMan.instance;
+            var day = env != null ? env.GetDay() : -1;
             var biome = player != null ? Heightmap.FindBiome(player.transform.position) : Heightmap.Biome.None;
-            return (day, biome == Heightmap.Biome.None ? null : biome.ToString());
+            var time = env != null ? Moment.PartOf(env.GetDayFraction()) : DayPart.None;
+            var weather = env != null ? env.GetCurrentEnvironment()?.m_name : null;
+            var weapon = player != null ? player.GetCurrentWeapon() : null;
+            var bare = weapon == null || player.m_unarmedWeapon != null && ReferenceEquals(weapon, player.m_unarmedWeapon.m_itemData);
+            var inHand = bare ? null : weapon.m_dropPrefab != null ? weapon.m_dropPrefab.name : null;
+            return new Moment(day, biome == Heightmap.Biome.None ? null : biome.ToString(), time, weather, inHand);
         }
 
         /// <summary>The book kept for a character; an empty one for a character never kept. On a worker thread.</summary>

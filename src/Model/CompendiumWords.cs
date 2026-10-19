@@ -82,31 +82,6 @@ namespace Scry
         /// <summary>The strip's chip that stops peeking.</summary>
         public const string StopPeeking = "Stop peeking";
 
-        /// <summary>The notice of what the character learned since it was last told: the first three by name, the rest counted.</summary>
-        public static string NewlyLearned(IReadOnlyList<string> names)
-        {
-            var shown = names.Take(3).ToList();
-            var more = names.Count - shown.Count;
-            var listed = more > 0 ? string.Join(", ", shown) + $" and {Numbers.Count(more)} more"
-                : shown.Count == 1 ? shown[0]
-                : string.Join(", ", shown.Take(shown.Count - 1)) + " and " + shown[shown.Count - 1];
-            return "Newly learned: " + listed;
-        }
-
-        /// <summary>
-        /// The notice of what was learned since last told: the things learned named
-        /// (<see cref="NewlyLearned"/>), what a reading of the explored map brought counted, as it
-        /// may be hundreds of places at once.
-        /// </summary>
-        public static string News(IReadOnlyList<string> named, int places, int biomes)
-        {
-            if (places + biomes == 0) return NewlyLearned(named);
-            var counted = places > 0 && biomes > 0 ? $"{Naming.Count(places, "place", "places")} and {Naming.Count(biomes, "biome", "biomes")}"
-                : places > 0 ? Naming.Count(places, "place", "places") : Naming.Count(biomes, "biome", "biomes");
-            var map = "explored map showed " + counted;
-            return named.Count == 0 ? "Your " + map : NewlyLearned(named) + "; your " + map;
-        }
-
         /// <summary>The tip of the notice's cross.</summary>
         public const string PutNewsAway = "Put this away until more is learned";
 
@@ -166,15 +141,24 @@ namespace Scry
         public static string FloorWaits(string boss) => $"The next tier opens once {boss} falls for this character";
 
         /// <summary>
-        /// How the character came to know a thing, on its page: the game's day, the way, and the
-        /// biome it stood in, each where known ("day 12, fighting it in the Black Forest").
+        /// How the character came to know a thing, on its page: the game's day, the time of day
+        /// and the weather, the way, what was in hand where a hand did it (a fight, a kill, a hit),
+        /// and the biome it stood in, each where known ("day 12, at night, fighting it with your
+        /// Flint spear in the Black Forest").
         /// </summary>
-        public static string CameToKnow(CameBy way, int day, string biome)
+        public static string CameToKnow(CameBy way, int day, string biome, DayPart time = DayPart.None, string weather = null, string inHand = null)
         {
             var said = CameWay(way);
+            var handed = way == CameBy.Fought || way == CameBy.Killed || way == CameBy.Hit;
+            if (handed && !string.IsNullOrEmpty(inHand)) said += " with your " + inHand;
             if (!string.IsNullOrEmpty(biome)) said += " in the " + biome;
+            var when = JournalWords.When(time, weather);
+            if (when != null) said = when + ", " + said;
             return day >= 0 ? $"day {Numbers.Count(day)}, {said}" : said;
         }
+
+        /// <summary>How often, as a count reads: "once", "twice", "14 times".</summary>
+        public static string Often(int count) => count == 1 ? "once" : count == 2 ? "twice" : Naming.Count(count, "time", "times");
 
         /// <summary>The way a thing came to be known, as the character did it.</summary>
         private static string CameWay(CameBy way)
@@ -213,30 +197,33 @@ namespace Scry
         public const string KilledLabel = "Killed";
 
         /// <summary>
-        /// That box's lines: the game's counts for the character, each where there is one, how
-        /// often for kills, foods, picks and pieces, how many for things made and picked up; then
-        /// how it came to know it, where told.
+        /// That box's lines: the game's counts for the character, each where there is one, kills
+        /// by how they were dealt (<see cref="JournalWords.Kills"/>), how often a creature killed
+        /// the character, how often for foods, picks and pieces, how many for things made and
+        /// picked up; then when it was first seen and how it came to know it, where told.
         /// </summary>
-        public static List<(string Label, string Value)> You(CharacterCounts counts, string came)
+        public static List<(string Label, string Value)> You(CharacterCounts counts, string came, string firstSeen = null, string killedYou = null)
         {
             var lines = new List<(string, string)>();
+            if (counts != null && counts.Killed > 0) lines.Add((KilledLabel, JournalWords.Kills(counts.Killed, counts.Melee, counts.Ranged, counts.Magic, counts.Unarmed)));
+            if (!string.IsNullOrEmpty(killedYou)) lines.Add(("Killed you", killedYou));
             if (counts != null)
             {
-                void Often(string label, int count)
+                void Times(string label, int count)
                 {
-                    if (count > 0) lines.Add((label, count == 1 ? "once" : Naming.Count(count, "time", "times")));
+                    if (count > 0) lines.Add((label, Often(count)));
                 }
                 void Many(string label, int count)
                 {
                     if (count > 0) lines.Add((label, Numbers.Count(count)));
                 }
-                Often(KilledLabel, counts.Killed);
-                Often("Built", counts.Built);
-                Often("Eaten", counts.Eaten);
-                Often("Picked", counts.Picked);
+                Times("Built", counts.Built);
+                Times("Eaten", counts.Eaten);
+                Times("Picked", counts.Picked);
                 Many("Made", counts.Made);
                 Many("Picked up", counts.PickedUp);
             }
+            if (!string.IsNullOrEmpty(firstSeen)) lines.Add(("First seen", firstSeen));
             if (!string.IsNullOrEmpty(came)) lines.Add(("Came to know it", came));
             return lines;
         }
@@ -246,9 +233,9 @@ namespace Scry
         /// known brought it along, else the floor, else known before the book was kept; none for
         /// one not known.
         /// </summary>
-        public static string CameLine(CameBy? way, int day, string biome, string owner, bool byFloor, bool known)
+        public static string CameLine(CameBy? way, int day, string biome, string owner, bool byFloor, bool known, DayPart time = DayPart.None, string weather = null, string inHand = null)
         {
-            if (way is CameBy by) return CameToKnow(by, day, biome);
+            if (way is CameBy by) return CameToKnow(by, day, biome, time, weather, inHand);
             if (!string.IsNullOrEmpty(owner)) return CameWith(owner);
             if (byFloor) return "shown as known up to its biome";
             return known ? KnownBefore : null;

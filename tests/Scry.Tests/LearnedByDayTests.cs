@@ -1,0 +1,99 @@
+using System.IO;
+using System.Linq;
+using Xunit;
+using static Scry.Tests.TestCatalog;
+
+namespace Scry.Tests
+{
+    public class LearnedByDayTests
+    {
+        // The Learned list holds everything the character learned, newest first, grouped by the
+        // game's day, each row saying how it came; what was learned with no day (caught up from
+        // the game's records, or kept before days were) comes last. The news names it the same way.
+
+        private sealed class World
+        {
+            public readonly Entry Troll = E("Troll", Kind.Creature, "Troll");
+            public readonly Entry Boar = E("Boar", Kind.Creature, "Boar");
+            public readonly Entry Neck = E("Neck", Kind.Creature, "Neck");
+            public readonly Entry Wood = E("Wood", Kind.Item, "Wood");
+            public readonly Explorer Explorer;
+            public readonly CompendiumView View;
+            public readonly CompendiumBook Book = new CompendiumBook();
+
+            public World()
+            {
+                Explorer = new Explorer(new[] { Troll, Boar, Neck, Wood }.ToList(), new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+                View = new CompendiumView(Explorer.Entries);
+            }
+
+            public World Told()
+            {
+                View.Tell(Book, CompendiumRule.Loose);
+                Explorer.Know(View);
+                return this;
+            }
+        }
+
+        private static World Learned()
+        {
+            var world = new World();
+            var book = world.Book;
+            book.Now = () => new Moment(13, "Meadows");
+            book.Raise(world.Boar.Key, KnownLevel.Seen);
+            book.Now = () => new Moment(14, "BlackForest");
+            book.Raise(world.Troll.Key, KnownLevel.Known, way: CameBy.Killed);
+            book.Raise(world.Neck.Key, KnownLevel.Known, way: CameBy.Fought);
+            book.FoundOut(world.Neck.Key, EntryKeys.Damage("fire"));
+            // Caught up last, as a session's first reading of the game's records is.
+            book.CatchingUp = true;
+            book.Raise(world.Wood.Key, KnownLevel.Known);
+            book.CatchingUp = false;
+            return world.Told();
+        }
+
+        [Fact]
+        public void EachRowSaysTheDayAndHowItCame()
+        {
+            var world = Learned();
+            var explorer = world.Explorer;
+
+            Assert.Equal(14, explorer.LearnedDay(world.Troll));
+            Assert.Equal(13, explorer.LearnedDay(world.Boar));
+            Assert.Equal(-1, explorer.LearnedDay(world.Wood));
+            Assert.Equal("killed", explorer.LearnedNote(world.Troll));
+            Assert.Equal("seen", explorer.LearnedNote(world.Boar));
+            Assert.Equal("how fire lands found out", explorer.LearnedNote(world.Neck));
+            Assert.Equal("known", explorer.LearnedNote(world.Wood));
+        }
+
+        [Fact]
+        public void TheListComesNewestFirstWhatHasNoDayLast()
+        {
+            var world = Learned();
+            world.Explorer.LearnedOnly = true;
+
+            Assert.Equal(new[] { world.Neck, world.Troll, world.Boar, world.Wood }, world.Explorer.Results.ToArray());
+            Assert.Equal(4, world.Explorer.LearnedCount);
+        }
+
+        [Fact]
+        public void TheNewsNamesWhatWasLearnedAsTheListDoes()
+        {
+            var world = Learned();
+            var news = new LearnedNotice().New(world.Explorer);
+
+            Assert.Equal(new NewsLine("Troll", NewsHow.Known, null, 14), world.Explorer.NewsLineOf(world.Troll));
+            Assert.Equal("Since day 13: came to know Troll, saw Boar, found out how fire lands on Neck, and read 1 thing from the game's records of this character",
+                JournalWords.News(news.Select(world.Explorer.NewsLineOf).ToList(), 0, 0));
+        }
+
+        [Fact]
+        public void WithTheCompendiumOffNothingIsLearned()
+        {
+            var world = new World();
+            Assert.Equal(-1, world.Explorer.LearnedDay(world.Troll));
+            Assert.Null(world.Explorer.LearnedNote(world.Troll));
+        }
+    }
+}

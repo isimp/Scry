@@ -60,6 +60,16 @@ namespace Scry
                 ElsewhereWatch.KillTold(0L, creature.m_name);
                 ElsewhereWatch.KillTold(ZNet.GetUID(), creature.m_name);
                 p.Check(book.CountElsewhere(Elsewhere.Kill, key) == 1, $"a kill of {key} told by another player's game is counted as run there, those this game ran are not");
+
+                // Killed by it: counted against it. Fought, the moment is kept whole, as play reads it.
+                CompendiumKeeper.KilledBy(creature);
+                p.Check(book.DeathsBy(key)?.Count == 1, $"a death dealt by {key} is counted against it");
+                book.Now = real.Now;
+                CompendiumKeeper.Fought(creature);
+                var came = book.Came(key);
+                p.Note($"fought {key}: " + (came == null ? "nothing kept" : $"day {Numbers.Count(came.Value.At.Day)}, {came.Value.At.Biome}, {came.Value.At.Time}, weather {came.Value.At.Weather ?? "none"}, in hand {came.Value.At.InHand ?? "nothing"}"));
+                p.Check(came != null && came.Value.At.Day >= 0 && came.Value.At.Biome != null && came.Value.At.Time != DayPart.None && came.Value.At.Weather != null,
+                    "coming to know it keeps the day, the biome, the time of day and the weather");
             }
 
             // An armed creature's hit taken: its attack's damage found out.
@@ -260,7 +270,7 @@ namespace Scry
             yield return Until(() => !X.KeepsBack(EntryKeys.Did(Deed.Killed)), 3);
             p.Check(!X.KeepsBack(EntryKeys.Did(Deed.Killed)), "killed, its health shows");
             p.Check(X.StrictAmount(Tally.Fell, troll.Name, hide.Name) == "2 (1 of 1)", "counted, its hide shows how many fell and how often", X.StrictAmount(Tally.Fell, troll.Name, hide.Name));
-            p.Check(X.FoundOutNote(troll) == "its health found out", "and Learned says what was found out", X.FoundOutNote(troll));
+            p.Check(X.LearnedNote(troll) == "its health found out", "and Learned says what was found out", X.LearnedNote(troll));
             p.Check(X.KeepsBack(EntryKeys.Did(Deed.StarredFell)), "what its stars change waits for a starred one to fall");
             yield return PictureOf(p, "overview", "strict Troll, killed");
             yield return PictureOf(p, "fight", "strict Troll's fight, killed");

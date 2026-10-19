@@ -21,6 +21,28 @@ namespace Scry
     {
         public static string Line(string name, WeatherFacts weather) => $"{name}: {Effects(weather)}";
 
+        /// <summary>
+        /// What a weather, by the game's name for it, is to be out in: "in the rain", "in a
+        /// thunderstorm", "in the mist"; none for a clear sky, a dungeon's or a boss's own, or one
+        /// whose name tells nothing of it.
+        /// </summary>
+        public static string During(string weather)
+        {
+            if (string.IsNullOrEmpty(weather)) return null;
+            var name = weather.ToLowerInvariant();
+            if (name.Contains("thunder")) return "in a thunderstorm";
+            if (name.Contains("snowstorm") || name.Contains("snow storm")) return "in a snowstorm";
+            if (name.Contains("cinder")) return "in the cinder rain";
+            if (name.Contains("ashrain") || name.Contains("ash rain")) return "in the ash rain";
+            if (name.Contains("lightrain") || name.Contains("light rain")) return "in light rain";
+            if (name.Contains("rain")) return "in the rain";
+            if (name.Contains("snow")) return "in the snow";
+            if (name.Contains("mist") || name.Contains("fog")) return "in the mist";
+            if (name.Contains("dark")) return "in the dark";
+            if (name.Contains("storm")) return "in a storm";
+            return null;
+        }
+
         public static string Effects(WeatherFacts weather)
         {
             var parts = new List<string>();
