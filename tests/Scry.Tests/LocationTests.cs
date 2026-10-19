@@ -338,6 +338,8 @@ namespace Scry.Tests
         // Nothing but a number left once "new" is dropped: the dungeon's own words stand before it.
         [InlineData("CharredRuins_new01", "Charred ruins 01")]
         [InlineData("FortressRuins_new01", "Fortress ruins 01")]
+        // A word said twice in a row is said once.
+        [InlineData("cave_shrine_shrine02", "Shrine 02")]
         public void AFrostCavesRoomDropsTheWordNewAndSplitsTheWordsItRunsTogether(string prefab, string name)
         {
             // The Frost Caves name every room "new_…" and run words together: "New sloperoom 01" reads "Slope room 01".

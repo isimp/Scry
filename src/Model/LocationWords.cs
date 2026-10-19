@@ -280,9 +280,10 @@ namespace Scry
                 parts[i] = split;
                 apart = true;
             }
-            if (!apart) return words.ToString();
+            // A word said twice in a row ("cave_shrine_shrine02") is said once.
+            if (!apart) return Naming.SaidOnce(words.ToString());
             var named = string.Join(" ", parts);
-            return Naming.Capital(named);
+            return Naming.Capital(Naming.SaidOnce(named));
         }
 
         /// <summary>The game's biomes in the order players meet them; a biome a mod adds comes after.</summary>

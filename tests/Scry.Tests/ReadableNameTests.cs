@@ -19,6 +19,13 @@ namespace Scry.Tests
         [InlineData("RockDolmen_1", "Rock dolmen")]
         [InlineData("Troll(Clone)", "Troll")]
         [InlineData("StoneTower3Ruin", "Stone tower ruin")]
+        // The makers' marks for an effect, a sound and an area of effect.
+        [InlineData("vfx_spawn", "Spawn")]
+        [InlineData("sfx_troll_hit", "Troll hit")]
+        [InlineData("fx_Puke", "Puke")]
+        [InlineData("aoe_nova", "Area nova")]
+        // A word said twice in a row is said once.
+        [InlineData("cave_shrine_shrine02", "Cave shrine")]
         public void ANamelessThingIsNamedByItsPrefabsWords(string prefab, string named)
         {
             Assert.Equal(named, Naming.Readable(prefab));
@@ -34,11 +41,23 @@ namespace Scry.Tests
             Assert.Equal(named, Naming.Readable(given));
         }
 
+        [Theory]
+        [InlineData("GrapplingHook", "Grappling hook")]
+        [InlineData("Troll", "Troll")]
+        [InlineData("Wood RoundWall Odin Window", "Wood RoundWall Odin Window")]
+        [InlineData("BBQ", "BBQ")]
+        public void AGameNameRunTogetherInOneWordReadsAsWords(string given, string named)
+        {
+            // An untranslated name of the game's or a mod's: one word with capitals inside.
+            Assert.Equal(named, Naming.SpacedOut(given));
+        }
+
         [Fact]
         public void ANameOfNothingButNumbersOrTagsStaysAsItIs()
         {
             Assert.Equal("12", Naming.Readable("12"));
             Assert.Equal("frac_01", Naming.Readable("frac_01"));
+            Assert.Equal("vfx", Naming.Readable("vfx"));
             Assert.Equal("", Naming.Readable(null));
             Assert.Equal("", Naming.Readable(""));
         }

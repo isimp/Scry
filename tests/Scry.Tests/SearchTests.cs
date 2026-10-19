@@ -71,9 +71,9 @@ namespace Scry.Tests
         public void NothingTypedListsEverythingByTheNameItShows()
         {
             // The list shows the game's name first, so that is the order it reads in; a prefab
-            // with none shows, and is ordered by, its own name.
+            // with none shows, and is ordered by, its prefab's words (Entry.ShownName).
             var found = Search.Run(Game(), new Query(), new List<string>());
-            string Shown(Entry e) => string.IsNullOrEmpty(e.DisplayName) ? e.Name : e.DisplayName;
+            string Shown(Entry e) => e.ShownName;
 
             Assert.Equal(Game().Count, found.Count);
             Assert.Equal(found.Select(Shown).OrderBy(n => n, System.StringComparer.OrdinalIgnoreCase), found.Select(Shown));

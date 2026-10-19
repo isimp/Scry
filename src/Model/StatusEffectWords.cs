@@ -68,6 +68,17 @@ namespace Scry
             ["m_attributes"] = "Also",
             ["m_effectsOnlyOnPlayer"] = "Shows on",
             ["m_staminaDrainPerSec"] = "Drains stamina",
+            ["m_staminaOverTimeIsFraction"] = "Stamina given as",
+            ["m_absorbDamageWorldLevel"] = "Absorbs more per world level",
+            ["m_absorbDamagePerSkillLevel"] = "Absorbs more per skill level",
+            ["m_levelUpSkillOnBreak"] = "Trains when it breaks",
+            ["m_ttlPerItemLevel"] = "Lasts per quality",
+            ["m_windMovementModifier"] = "Speed with the wind behind",
+            ["m_windRunStaminaModifier"] = "Run stamina with the wind behind",
+            ["m_tickInterval"] = "Ticks every",
+            ["m_healthPerTick"] = "Health each tick",
+            ["m_removeInterval"] = "Throws up a food every",
+            ["m_delay"] = "Takes hold after",
         };
 
         /// <summary>
@@ -109,6 +120,16 @@ namespace Scry
                     return value is bool only && only ? "players only" : shown;
                 case "m_staminaDrainPerSec":
                     return value is float drain ? Numbers.Amount(drain) + " a second" : shown;
+                case "m_staminaOverTimeIsFraction":
+                    return value is bool fraction && fraction ? "a share of your most stamina" : shown;
+                case "m_ttlPerItemLevel":
+                    return value is float lasts ? Numbers.Duration(lasts) : value is int whole ? Numbers.Duration(whole) : shown;
+                case "m_windMovementModifier":
+                case "m_windRunStaminaModifier":
+                    // Full with a wind of full strength straight behind, none against it.
+                    return value is float wind ? $"up to {Numbers.Percent(wind, 0, signed: true)}, the wind full behind you" : shown;
+                case "m_healthPerTick":
+                    return value is float tick ? tick >= 0f ? Numbers.Amount(tick, 1, signed: true) : Numbers.Amount(-tick, 1) + " damage" : shown;
                 default:
                     return shown;
             }

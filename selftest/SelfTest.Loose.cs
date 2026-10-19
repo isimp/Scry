@@ -208,6 +208,13 @@ namespace Scry
             // What the game names nothing goes by its prefab's words, the prefab beside it; a game name starts with a capital.
             var coded = X.Catalog.Where(e => e.Kind != Kind.Mod && (string.IsNullOrEmpty(e.DisplayName) && e.ShownName.IndexOf('_') >= 0 || e.ShownName.Length > 0 && char.IsLower(e.ShownName[0]))).Select(e => e.Kind + " " + e.ShownName).ToList();
             p.Check(coded.Count == 0, "no entry but a mod is listed by a prefab's name or in small letters", Numbers.Count(coded.Count) + ": " + string.Join(", ", coded.Take(12)));
+            // Nor says a word twice in a row ("Shrine shrine 02"), nor runs its words together ("GrapplingHook").
+            bool Twice(string name) { var w = name.Split(' '); for (var i = 1; i < w.Length; i++) if (string.Equals(w[i], w[i - 1], System.StringComparison.OrdinalIgnoreCase)) return true; return false; }
+            bool RunTogether(string name) { if (name.IndexOf(' ') >= 0) return false; for (var i = 1; i < name.Length; i++) if (char.IsUpper(name[i]) && char.IsLower(name[i - 1])) return true; return false; }
+            var awkward = X.Catalog.Where(e => e.Kind != Kind.Mod && (Twice(e.ShownName) || RunTogether(e.ShownName))).Select(e => e.Kind + " " + e.ShownName).ToList();
+            p.Check(awkward.Count == 0, "no entry but a mod says a word twice in a row or runs its words together", Numbers.Count(awkward.Count) + ": " + string.Join(", ", awkward.Take(12)));
+            var nova = X.Catalog.FirstOrDefault(e => e.Name == "aoe_nova");
+            if (nova != null) p.Check(nova.ShownName == "Area nova", "an effect goes by its words without its makers' marks", nova.ShownName);
 
             // A creature's attacks tell whose they are, and are told apart by it rather than only by a count.
             var carried = X.Catalog.Where(e => e.Kind == Kind.Item && e.Group == Groups.CreatureAttacks.Name && e.Links.Any(l => l.Group == LinkWords.CarriedBy && X.Find(l.Target)?.Kind == Kind.Creature)).ToList();

@@ -160,8 +160,11 @@ namespace Scry
             return text.IndexOf('<') < 0 ? text : Markup.Replace(text, "");
         }
 
-        /// <summary>The tags in a prefab's name that tell how it is built, not what it is: left out of its readable name.</summary>
-        private static readonly HashSet<string> BuildTags = new HashSet<string>(StringComparer.Ordinal) { "frac", "clone", "pickable", "test", "prop" };
+        /// <summary>The tags in a prefab's name that tell how it is built, not what it is: left out of its readable name (vfx, sfx and fx mark an effect or a sound).</summary>
+        private static readonly HashSet<string> BuildTags = new HashSet<string>(StringComparer.Ordinal) { "frac", "clone", "pickable", "test", "prop", "vfx", "sfx", "fx" };
+
+        /// <summary>The makers' shorthand in prefab names, in words: "aoe" is an area of effect.</summary>
+        private static readonly Dictionary<string, string> Shorthand = new Dictionary<string, string>(StringComparer.Ordinal) { ["aoe"] = "area" };
 
         /// <summary>The biomes' words as prefabs carry them, "heath" for the Plains and "coast" for the shore among them.</summary>
         private static readonly HashSet<string> BiomeTags = new HashSet<string>(StringComparer.Ordinal)
@@ -172,24 +175,29 @@ namespace Scry
         /// <summary>
         /// A name a player would say for something the game gives no name, or names in its own
         /// shorthand: its words in sentence case, without numbers, its copy number, "(Clone)" or
-        /// the tags telling how it is built: "rock4_heath_frac" as "Rock heath",
-        /// "Pickable_MountainCaveRandom" as "Mountain cave random", "fireballattack" as "Fireball
-        /// attack". A name of nothing else stays as it is.
+        /// the tags telling how it is built, the makers' shorthand in words, a word said twice in
+        /// a row said once: "rock4_heath_frac" as "Rock heath", "Pickable_MountainCaveRandom" as
+        /// "Mountain cave random", "fireballattack" as "Fireball attack", "vfx_spawn" as "Spawn",
+        /// "aoe_nova" as "Area nova". A name of nothing else stays as it is.
         /// </summary>
         public static string Readable(string name)
         {
             if (string.IsNullOrEmpty(name)) return "";
             var words = new List<string>();
+            void Add(string word)
+            {
+                if (words.Count == 0 || !string.Equals(words[words.Count - 1], word, StringComparison.OrdinalIgnoreCase)) words.Add(word);
+            }
             foreach (var word in PrefabWords(name))
             {
                 if (BuildTags.Contains(word) || IsNumber(word)) continue;
                 // The game names some attacks in one word: "fireballattack".
                 if (word.Length > 6 && word.EndsWith("attack", StringComparison.Ordinal))
                 {
-                    words.Add(word.Substring(0, word.Length - 6));
-                    words.Add("attack");
+                    Add(word.Substring(0, word.Length - 6));
+                    Add("attack");
                 }
-                else words.Add(word);
+                else Add(Shorthand.TryGetValue(word, out var said) ? said : word);
             }
             if (words.Count == 0) return name.Trim();
             words[0] = char.ToUpperInvariant(words[0][0]) + words[0].Substring(1);
@@ -262,6 +270,33 @@ namespace Scry
             if (string.IsNullOrEmpty(word)) return false;
             foreach (var c in word) if (!char.IsDigit(c)) return false;
             return true;
+        }
+
+        /// <summary>
+        /// A name given in one run-together word, as an untranslated name of the game's or a
+        /// mod's ("GrapplingHook"), in words: "Grappling hook". One with a space, or no capital
+        /// after a small letter ("Troll", "BBQ"), stays as it is.
+        /// </summary>
+        public static string SpacedOut(string name)
+        {
+            if (string.IsNullOrEmpty(name) || name.IndexOf(' ') >= 0) return name ?? "";
+            for (var i = 1; i < name.Length; i++)
+            {
+                if (char.IsUpper(name[i]) && char.IsLower(name[i - 1])) return Words(name);
+            }
+            return name;
+        }
+
+        /// <summary>Words with any said twice in a row said once, ignoring case: "Shrine shrine 02" as "Shrine 02".</summary>
+        public static string SaidOnce(string words)
+        {
+            if (string.IsNullOrEmpty(words)) return words ?? "";
+            var kept = new List<string>();
+            foreach (var word in words.Split(' '))
+            {
+                if (kept.Count == 0 || !string.Equals(kept[kept.Count - 1], word, StringComparison.OrdinalIgnoreCase)) kept.Add(word);
+            }
+            return string.Join(" ", kept.ToArray());
         }
 
         /// <summary>"healthUpgrade" as "Health upgrade".</summary>

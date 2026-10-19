@@ -46,15 +46,16 @@ namespace Scry
         }
 
         /// <summary>
-        /// The name it is shown by: the game's, starting with a capital, or where the game gives
-        /// none its prefab's words (<see cref="Naming.Readable"/>); a mod's as the mod writes it.
+        /// The name it is shown by: the game's, starting with a capital and in words where it runs
+        /// them together (<see cref="Naming.SpacedOut"/>), or where the game gives none its
+        /// prefab's words (<see cref="Naming.Readable"/>); a mod's as the mod writes it.
         /// </summary>
         public string ShownName => _shownName ?? (_shownName = Shown());
 
         private string Shown()
         {
             if (_kind == Kind.Mod) return string.IsNullOrEmpty(_displayName) ? _name : _displayName;
-            return string.IsNullOrEmpty(_displayName) ? Naming.Readable(_name) : Naming.Capital(_displayName);
+            return string.IsNullOrEmpty(_displayName) ? Naming.Readable(_name) : Naming.Capital(Naming.SpacedOut(_displayName));
         }
 
         /// <summary>

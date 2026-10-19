@@ -32,10 +32,10 @@ namespace Scry.Tests
         [Fact]
         public void ARenamedPrefabGoesByItsNewWords()
         {
-            var entry = new Entry { Name = "vfx_spawn", Kind = Kind.Effect };
-            Assert.Equal("Vfx spawn", entry.ShownName);
-            entry.Name = "sfx_hit";
-            Assert.Equal("Sfx hit", entry.ShownName);
+            var entry = new Entry { Name = "vfx_troll_hit", Kind = Kind.Effect };
+            Assert.Equal("Troll hit", entry.ShownName);
+            entry.Name = "sfx_boar_idle";
+            Assert.Equal("Boar idle", entry.ShownName);
         }
 
         [Fact]
@@ -47,10 +47,18 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AGameNameRunTogetherReadsAsWords()
+        {
+            var entry = new Entry { Name = "GrapplingHook", DisplayName = "GrapplingHook", Kind = Kind.StatusEffect };
+            Assert.Equal("Grappling hook", entry.ShownName);
+        }
+
+        [Fact]
         public void AModGoesByItsNameAsItWritesIt()
         {
             var mod = new Entry { Name = "odinplus", DisplayName = "odinplus", Kind = Kind.Mod };
             Assert.Equal("odinplus", mod.ShownName);
+            Assert.Equal("PlantEverything", new Entry { Name = "PlantEverything", DisplayName = "PlantEverything", Kind = Kind.Mod }.ShownName);
         }
 
         [Fact]

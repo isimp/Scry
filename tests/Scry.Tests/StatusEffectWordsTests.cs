@@ -85,6 +85,17 @@ namespace Scry.Tests
         [InlineData("m_attributes", "Also")]
         [InlineData("m_effectsOnlyOnPlayer", "Shows on")]
         [InlineData("m_staminaDrainPerSec", "Drains stamina")]
+        [InlineData("m_staminaOverTimeIsFraction", "Stamina given as")]
+        [InlineData("m_absorbDamageWorldLevel", "Absorbs more per world level")]
+        [InlineData("m_absorbDamagePerSkillLevel", "Absorbs more per skill level")]
+        [InlineData("m_levelUpSkillOnBreak", "Trains when it breaks")]
+        [InlineData("m_ttlPerItemLevel", "Lasts per quality")]
+        [InlineData("m_windMovementModifier", "Speed with the wind behind")]
+        [InlineData("m_windRunStaminaModifier", "Run stamina with the wind behind")]
+        [InlineData("m_tickInterval", "Ticks every")]
+        [InlineData("m_healthPerTick", "Health each tick")]
+        [InlineData("m_removeInterval", "Throws up a food every")]
+        [InlineData("m_delay", "Takes hold after")]
         // A setting with no words of its own reads as its name in words.
         [InlineData("m_runStaminaUsage", "Run stamina usage")]
         public void ASettingTheGameDoesNotTellReadsInPlayersWords(string field, string label) => Assert.Equal(label, StatusEffectWords.Label(field));
@@ -107,6 +118,14 @@ namespace Scry.Tests
             Assert.Equal("12", StatusEffectWords.Shown("m_health", 12f, "12"));
             Assert.Equal("players only", StatusEffectWords.Shown("m_effectsOnlyOnPlayer", true, "Yes"));
             Assert.Equal("2.5 a second", StatusEffectWords.Shown("m_staminaDrainPerSec", 2.5f, "2.5"));
+            Assert.Equal("a share of your most stamina", StatusEffectWords.Shown("m_staminaOverTimeIsFraction", true, "Yes"));
+            Assert.Equal("60 s", StatusEffectWords.Shown("m_ttlPerItemLevel", 60f, "60"));
+            Assert.Equal("60 s", StatusEffectWords.Shown("m_ttlPerItemLevel", 60, "60"));
+            // Full at a wind of full strength straight behind, none against it (SE_Stats.ModifySpeed, ModifyRunStaminaDrain).
+            Assert.Equal("up to +15%, the wind full behind you", StatusEffectWords.Shown("m_windMovementModifier", 0.15f, "0.15"));
+            Assert.Equal("up to -50%, the wind full behind you", StatusEffectWords.Shown("m_windRunStaminaModifier", -0.5f, "-0.5"));
+            Assert.Equal("+5", StatusEffectWords.Shown("m_healthPerTick", 5f, "5"));
+            Assert.Equal("3 damage", StatusEffectWords.Shown("m_healthPerTick", -3f, "-3"));
         }
 
         [Fact]
