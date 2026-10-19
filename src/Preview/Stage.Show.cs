@@ -229,6 +229,9 @@ namespace Scry
             PlacePerson();
         }
 
+        /// <summary>Whether a status effect's look on the stage's person has played out (<see cref="Looks.LookPlayedOut"/>), a moment after it was put on.</summary>
+        public static bool LookPlayedOut => _subject != null && Time.unscaledTime - _madeAt >= 0.5f && Looks.LookPlayedOut();
+
         /// <summary>
         /// Whether what is on the stage has played out: destroyed by its own timer, or with no
         /// particles alive and no sound playing. Only meaningful for effects.

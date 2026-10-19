@@ -706,32 +706,12 @@ namespace Scry
             Started(list, made);
         }
 
-        /// <summary>
-        /// Copies of an effect list's prefabs placed on you the way the game places them: on the
-        /// named part of the body when there is one, and attached when the list says so.
-        /// </summary>
+        /// <summary>Copies of an effect list's prefabs placed on you the way the game places a status effect's on a character (<see cref="BodyEffects"/>).</summary>
         private static List<GameObject> OnYou(EffectList list)
         {
-            var made = new List<GameObject>();
             var player = Player.m_localPlayer;
-            if (player == null) return made;
-
-            foreach (var data in EffectSlots.Of(list))
-            {
-                if (!EffectSlots.Shows(data)) continue;
-
-                var anchor = player.transform;
-                if (!string.IsNullOrEmpty(data.m_childTransform))
-                {
-                    var child = Utils.FindChild(anchor, data.m_childTransform);
-                    if (child != null) anchor = child;
-                }
-
-                var parent = data.m_attach || data.m_follow ? anchor : null;
-                var copy = Ghost.MakeOn(data.m_prefab, parent, anchor.position, anchor.rotation);
-                if (copy != null) made.Add(copy);
-            }
-            return made;
+            if (player == null) return new List<GameObject>();
+            return BodyEffects.Put(list, player.transform, player.GetCenterPoint(), player.GetRadius(), player.GetPlayerModel());
         }
     }
 }

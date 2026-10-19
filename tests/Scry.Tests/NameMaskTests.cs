@@ -13,6 +13,21 @@ namespace Scry.Tests
             new[] { "Wolf" });
 
         [Fact]
+        public void OnlyANameTheGameGivesAThingOfTheWorldIsKeptBack()
+        {
+            // A name Scry made of a prefab's words (the Swamp's "SwampWell1" goes by "Well") is
+            // no name a text holds: kept back, it would hide a plain word ("feel so well").
+            var well = new Entry { Name = "SwampWell1", DisplayName = "Well", Kind = Kind.Location };
+            Assert.False(NameMask.Keeps(well, byWords: true));
+            Assert.True(NameMask.Keeps(new Entry { Name = "Crypt2", DisplayName = "Burial Chambers", Kind = Kind.Location }, byWords: false));
+            Assert.True(NameMask.Keeps(new Entry { Name = "Troll", DisplayName = "Troll", Kind = Kind.Creature }, byWords: false));
+            // Nothing the game names, nor the parts the game is built of.
+            Assert.False(NameMask.Keeps(new Entry { Name = "rock_mistlands1", Kind = Kind.Resource }, byWords: false));
+            Assert.False(NameMask.Keeps(new Entry { Name = "vfx_fire", DisplayName = "Fire", Kind = Kind.Effect }, byWords: false));
+            Assert.False(NameMask.Keeps(null, byWords: false));
+        }
+
+        [Fact]
         public void AWholeNameNotSeenReadsQuestionMarks()
         {
             Assert.Equal("Dropped by ??? in the Ashlands.", Mask.Apply("Dropped by Fader in the Ashlands."));

@@ -29,6 +29,15 @@ namespace Scry
             }
         }
 
+        /// <summary>
+        /// Whether a thing's shown name may be kept back in a text: a name the game gives a thing
+        /// of the world a player meets. One Scry made of its prefab's words (<paramref name="byWords"/>:
+        /// a dungeon room, a place the game names nothing, or anything the game gives no name) is
+        /// no name a text holds, and kept back it would hide a plain word ("Well" in "feel so well").
+        /// </summary>
+        public static bool Keeps(Entry entry, bool byWords) =>
+            entry != null && !byWords && Kinds.ForPlayers(entry) && !string.IsNullOrEmpty(entry.DisplayName);
+
         /// <summary>The text with each whole name kept back.</summary>
         public string Apply(string text)
         {

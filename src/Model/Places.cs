@@ -61,6 +61,14 @@ namespace Scry
         }
 
         /// <summary>
+        /// Whether a place goes by its prefab's words rather than a name of the game's: a room
+        /// always, a location until read and where neither the game, its altar's boss nor its
+        /// trader names it (<see cref="LocationLabel"/>).
+        /// </summary>
+        public static bool NamedByWords(PlaceContents contents, bool room) =>
+            room || contents == null || string.IsNullOrEmpty(contents.GameName) && string.IsNullOrEmpty(contents.Boss) && string.IsNullOrEmpty(contents.Trader);
+
+        /// <summary>
         /// The places a dungeon room is in: every dungeon here built with its kind of room (the
         /// game's <c>Room.Theme</c> flags against each <c>DungeonGenerator.m_themes</c>), each
         /// once; rooms none is built with are only said to be a dungeon's.

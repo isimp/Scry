@@ -18,6 +18,19 @@ namespace Scry.Tests
             Places.LocationLabel(new PlaceFacts { Prefab = prefab, GameName = game, Boss = boss, Trader = trader, Biome = biome }, Creatures);
 
         [Fact]
+        public void APlaceTheGameNamesNothingIsNamedByItsPrefabsWords()
+        {
+            // Not read yet, nothing names it; read, the game, its altar's boss or its trader may.
+            Assert.True(Places.NamedByWords(null, room: false));
+            Assert.True(Places.NamedByWords(new PlaceContents(), room: false));
+            Assert.False(Places.NamedByWords(new PlaceContents { GameName = "Burial Chambers" }, room: false));
+            Assert.False(Places.NamedByWords(new PlaceContents { Boss = "The Elder" }, room: false));
+            Assert.False(Places.NamedByWords(new PlaceContents { Trader = "Haldor" }, room: false));
+            // A room goes by its prefab's words whatever its dungeon is called.
+            Assert.True(Places.NamedByWords(new PlaceContents { GameName = "Burial Chambers" }, room: true));
+        }
+
+        [Fact]
         public void APlaceTheGameNamesGoesByThatName()
         {
             // The name shown on entering a dungeon or discovering a place.

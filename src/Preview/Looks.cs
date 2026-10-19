@@ -104,11 +104,34 @@ namespace Scry
             return entry?.Source is StatusEffect effect && EffectSlots.ShowsAny(effect.m_startEffects);
         }
 
+        /// <summary>The copies of the look last put on a person (<see cref="Affected"/>), to tell when it has played out.</summary>
+        private static List<GameObject> _look = new List<GameObject>();
+
+        /// <summary>The copies of the look last put on a person, for the self-test.</summary>
+        [Diagnostic]
+        public static IReadOnlyList<GameObject> LookForTest => _look.ToArray();
+
+        /// <summary>
+        /// Whether the look last put on a person has played out: something of it was put on, and
+        /// none of it still shows or sounds. A look that goes on while the effect lasts never does.
+        /// </summary>
+        public static bool LookPlayedOut()
+        {
+            if (_look.Count == 0) return false;
+            foreach (var copy in _look)
+            {
+                if (copy == null) continue;
+                foreach (var particles in copy.GetComponentsInChildren<ParticleSystem>(false)) if (particles.IsAlive(false)) return false;
+                foreach (var source in copy.GetComponentsInChildren<AudioSource>(false)) if (source.isPlaying) return false;
+            }
+            return true;
+        }
+
         /// <summary>
         /// A person with a status effect's look on it: its start effects put where the game puts
-        /// them on a character (<c>EffectList.Create</c> with the character as base: on the named
-        /// part, following it when attached), as "Show it on you" puts them on you. Only the look;
-        /// the effect itself is not there.
+        /// them on a character (<see cref="BodyEffects"/>), as "Show it on you" puts them on you,
+        /// the person's capsule giving its centre and size and its first model the sounds for it.
+        /// Only the look; the effect itself is not there.
         /// </summary>
         private static GameObject Affected(StatusEffect effect, Transform parent, Vector3 position, Quaternion rotation, int layer, string timing)
         {
@@ -120,17 +143,11 @@ namespace Scry
             Step(person, "the person's animation events", () => AnimationEars.Attach(person, copy));
             Step(person, "the look of " + effect.name, () =>
             {
-                foreach (var data in EffectSlots.Of(effect.m_startEffects))
-                {
-                    if (!EffectSlots.Shows(data)) continue;
-                    var anchor = copy.transform;
-                    if (!string.IsNullOrEmpty(data.m_childTransform))
-                    {
-                        var child = Utils.FindChild(anchor, data.m_childTransform);
-                        if (child != null) anchor = child;
-                    }
-                    Ghost.Make(data.m_prefab, anchor, anchor.position, anchor.rotation, layer);
-                }
+                var capsule = person.GetComponent<CapsuleCollider>();
+                var body = copy.transform;
+                var centre = capsule != null ? body.TransformPoint(capsule.center) : body.position + body.up;
+                var radius = capsule != null ? capsule.radius : 0.5f;
+                _look = BodyEffects.Put(effect.m_startEffects, body, centre, radius, model: 0, loose: body, layer: layer);
             });
             if (timing != null) Timing.Add(timing + " dress", started);
             return copy;
@@ -211,13 +228,14 @@ namespace Scry
         }
 
         /// <summary>
-        /// Destroys the levels' materials and forgets what failed, for a world that was left.
-        /// Called once the copies that draw with them are gone.
+        /// Destroys the levels' materials and forgets what failed and the look last put on, for a
+        /// world that was left. Called once the copies that draw with them are gone.
         /// </summary>
         public static void Forget()
         {
             foreach (var material in LevelMaterials.Values) if (material != null) Object.Destroy(material);
             LevelMaterials.Clear();
+            _look = new List<GameObject>();
         }
 
         /// <summary>The level's material, made once per creature and level and reused after.</summary>

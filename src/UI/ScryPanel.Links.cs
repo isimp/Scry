@@ -422,9 +422,8 @@ namespace Scry
                 {
                     // Only the names of the world a player meets: an effect, a sound or a projectile is
                     // never met, and its name ("Fire") is often a plain word of the text ("fires").
-                    if (!Kinds.ForPlayers(entry)) continue;
-                    // A name the game gives none goes by its prefab's words ("Rock heath"), words of no name a text would hold.
-                    if (string.IsNullOrEmpty(entry.DisplayName)) continue;
+                    // A name made of a prefab's words ("Rock heath", the Swamp's "Well") is no name a text holds.
+                    if (!NameMask.Keeps(entry, entry.Source is PlaceSource place && Places.NamedByWords(place.Contents, place.IsRoom))) continue;
                     var met = explorer.LevelOf(entry) >= KnownLevel.Seen;
                     // A skill's name is mostly a word of what one does (run, swim, sneak), so text keeps it; facts naming one not learned are left out instead.
                     if (!met && entry.Kind == Kind.Skill) continue;

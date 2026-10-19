@@ -62,6 +62,7 @@ namespace Scry
             yield return S("made-up events through the real hooks are recorded, the world and the character's book left alone", CompendiumHooksFed, 10, () => CompendiumKeeper.RecordInto(null));
             yield return S("a made-up character's pages read under the strict rules as a player sees them", CompendiumStrictRead, 30, () => { AllKnown(); ResetList(); });
             yield return S("a made-up character's You box tells its moments, Learned goes by day and the notice tells what happened", YouAndLearnedRead, 20, () => { X.LearnedOnly = false; AllKnown(); ResetList(); });
+            yield return S("a status effect's look stands on the person where the game puts it, plays again on a click, and its text keeps plain words", StatusLookRead, 30, () => { AllKnown(); ResetList(); });
             yield return S("under the loose rules a known page names only what the character has met, and the stage stands no creature not met", CompendiumLooseRead, 90, () => { AllKnown(); ResetList(); RoomCardAsItWas(); StageAsItWas(); });
             yield return S("what the game leaves unnamed reads as words, givers alike but for their biome go into one chip, and creatures' attacks say whose they are", ReadableNames, 20, ResetList);
             yield return S("with the compendium on the list holds the world a player meets, names alike say which each is, and no page offers a spawn command", CompendiumPlayerView, 30, () => { AllKnown(); ResetList(); });

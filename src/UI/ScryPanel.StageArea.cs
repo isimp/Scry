@@ -216,8 +216,9 @@ namespace Scry
                     ClickRoom(explorer, into, go);
                 }
 
-                // An effect that has played out plays again on a click of its stage that is not a drag.
-                var playedOut = entry.Kind == Kind.Effect && !Previews.Repeat && Stage.Finished;
+                // An effect, or a status effect's look on the person, that has played out plays again
+                // on a click of its stage that is not a drag.
+                var playedOut = entry.Kind == Kind.Effect && !Previews.Repeat && Stage.Finished || entry.Kind == Kind.StatusEffect && Stage.LookPlayedOut;
                 if (playedOut && e.type == EventType.MouseUp && e.button == 0 && _drag == Drag.Orbit && _dragMoved < U(5f) && rect.Contains(e.mousePosition)) Previews.Replay();
 
                 // The camera's buttons show only while the mouse is on the stage, so the model is not
