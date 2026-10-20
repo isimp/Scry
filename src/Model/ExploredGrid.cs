@@ -221,20 +221,16 @@ namespace Scry
             biomes.Count(biome => Seen(book, EntryKeys.For(Kind.Biome, biome)));
 
         /// <summary>
-        /// Writes the kinds of place as seen, as news off the map, keeps them as found in the
-        /// character's own ground of the world (<see cref="WorldSource.Explored"/>), for how the
-        /// player chose they show, and marks the world caught up; how many were new.
+        /// Keeps the kinds of place as found in the character's own ground of the world (<see
+        /// cref="WorldSource.Explored"/>), shown as the player chose, never written into the book:
+        /// the game explores a ring of 100 m around the character whatever it saw. Marks the world
+        /// caught up; how many kinds were new to its ground.
         /// </summary>
         public static int Apply(CompendiumBook book, string world, IReadOnlyCollection<string> kinds)
         {
-            var raised = 0;
-            foreach (var kind in kinds)
-            {
-                if (Seen(book, EntryKeys.For(Kind.Location, kind))) raised++;
-            }
-            book.FoundIn(world, WorldSource.Explored, kinds);
+            var found = book.FoundIn(world, WorldSource.Explored, kinds);
             book.MarkMapped(world);
-            return raised;
+            return found;
         }
 
         /// <summary>An entry the map shows, as news noted as off the map, no sighting; true when it was new.</summary>

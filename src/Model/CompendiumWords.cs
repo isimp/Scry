@@ -103,8 +103,8 @@ namespace Scry
         public const string MapNoWorld = "the explored map can be read only in a world";
 
         /// <summary>The log's line once the map was read.</summary>
-        public static string MapRead(int kinds, int raised, bool fromServer) =>
-            $"caught up from the explored map{(fromServer ? " with the server's answer" : "")}: {Numbers.Count(kinds)} kinds of place lie in explored ground, {Numbers.Count(raised)} of them new to the compendium";
+        public static string MapRead(int kinds, int found, bool fromServer) =>
+            $"caught up from the explored map{(fromServer ? " with the server's answer" : "")}: {Numbers.Count(kinds)} kinds of place lie in explored ground, {Numbers.Count(found)} of them new to it";
 
         /// <summary>The server's log line on answering a player's map.</summary>
         public static string MapAnswered(int kinds) => $"answered a player's explored map: {Numbers.Count(kinds)} kinds of place lie in it";
@@ -113,13 +113,13 @@ namespace Scry
         public static string MapNoServerScry => "the server did not answer on the explored map (it has no Scry, or one too old): places count as the character meets them";
 
         /// <summary>The line above the Locations tab's list with the compendium on, beside the button reading the explored map again.</summary>
-        public const string MapBar = "Places in the ground this character explored count as seen, read again each session";
+        public const string MapBar = "Places in the ground this character explored show as Ground you explored says, read again each session";
 
         /// <summary>The button reading the explored map again, in the Locations tab's bar.</summary>
         public const string ReadMap = "Look at the map again";
 
         /// <summary>That chip's tip.</summary>
-        public const string ReadMapTip = "Count the kinds of place in the ground this character explored in this world as seen, as on its first visit with Scry";
+        public const string ReadMapTip = "Read again which kinds of place lie in the ground this character explored in this world, as on its first visit with Scry";
 
         /// <summary>The log's line on a dedicated server.</summary>
         public static string ServerPart => "on a dedicated server Scry only answers players' explored maps, the world's census and their Scry's hello, sends the world's settings for the compendium, keeps how far and on which days they walk its dungeons, reads what was left inside them, and runs the self-test's made-up events for the player asking";
@@ -288,7 +288,7 @@ namespace Scry
         {
             switch (source)
             {
-                case WorldSource.Explored: return "The places lying in ground you explored yourself, by your map. Seen as you explore; known, or with their insides, as you choose.";
+                case WorldSource.Explored: return "The places lying in ground you explored yourself, by your map, which reaches 100 m around you whatever you saw. Seen as you explore; known, with their insides, or off, as you choose.";
                 case WorldSource.SharedMaps: return "The places lying in ground from maps you read at a cartography table.";
                 case WorldSource.Marked: return "The places a Vegvisir or a rune stone marked on your map. Seen as they are marked; known, or with their insides, as you choose.";
                 case WorldSource.OnEveryMap: return "The places the game shows on every map: traders, the start, and the places Hildir sends you to.";

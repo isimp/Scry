@@ -158,25 +158,79 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void WhatTheMapTellsIsWrittenAsSeenAsNewsSayingWhereFrom()
+        public void WhatTheMapTellsIsKeptAsYourGroundNeverWrittenIntoTheBook()
         {
-            // Each reading of the map, the first too: what it adds is news in Learned, saying it
-            // came off the explored map; what is known stays known and is no news.
+            // The game explores a ring of 100 m around the character whatever it saw, so the places
+            // in it are kept as found in its own ground, shown as Ground you explored says, and are
+            // no news; the book's seen stays what the character saw. What is known stays known.
             var book = new CompendiumBook();
             book.Raise(EntryKeys.For(Kind.Location, "TrollCave02"), KnownLevel.Known);
             var mark = book.Learned;
 
-            var raised = MapCatchUp.Apply(book, "123", new[] { "Crypt2", "TrollCave02" });
+            var found = MapCatchUp.Apply(book, "123", new[] { "Crypt2", "TrollCave02" });
 
-            Assert.Equal(1, raised);
-            Assert.Equal(KnownLevel.Seen, book.Level(EntryKeys.For(Kind.Location, "Crypt2")));
+            Assert.Equal(2, found);
+            Assert.Equal(KnownLevel.Unknown, book.Level(EntryKeys.For(Kind.Location, "Crypt2")));
             Assert.Equal(KnownLevel.Known, book.Level(EntryKeys.For(Kind.Location, "TrollCave02")));
-            Assert.Equal(new[] { EntryKeys.For(Kind.Location, "Crypt2") }, book.LearnedSince(mark).ToArray());
-            Assert.Equal(EntryKeys.OnMap, book.FoundOutOf(EntryKeys.For(Kind.Location, "Crypt2")));
-            Assert.Null(book.FoundOutOf(EntryKeys.For(Kind.Location, "TrollCave02")));
+            Assert.Empty(book.LearnedSince(mark));
+            Assert.Null(book.FoundOutOf(EntryKeys.For(Kind.Location, "Crypt2")));
+            Assert.Equal(new[] { "Crypt2", "TrollCave02" }, book.Found("123", WorldSource.Explored).OrderBy(k => k, System.StringComparer.Ordinal).ToArray());
+            Assert.Equal(0, MapCatchUp.Apply(book, "123", new[] { "Crypt2" }));
             Assert.True(book.Mapped("123"));
             Assert.False(book.Mapped("456"));
+        }
+
+        [Fact]
+        public void TheBiomesUnderTheMapAreStillWrittenAsSeen()
+        {
+            // A biome a hundred metres off is in sight of its edge: the map's biomes stay seen, as news off the map.
+            var book = new CompendiumBook();
+            Assert.Equal(1, MapCatchUp.ApplyBiomes(book, new[] { "Swamp" }));
+            Assert.Equal(KnownLevel.Seen, book.Level(EntryKeys.For(Kind.Biome, "Swamp")));
+            Assert.Equal(EntryKeys.OnMap, book.FoundOutOf(EntryKeys.For(Kind.Biome, "Swamp")));
             Assert.Equal("seen on your explored map", CompendiumWords.FoundOutNote(EntryKeys.OnMap));
+        }
+
+        [Fact]
+        public void ABookThatTookPlacesOffTheMapGivesThemBackOnce()
+        {
+            // Places only ever seen off the map leave the book and its Learned list, and its worlds
+            // are read again so they come back as found in your ground; a place seen by sight, a
+            // known one and a biome stay. Done once: what is seen off the map later is not undone.
+            var crypt = EntryKeys.For(Kind.Location, "Crypt2");
+            var cave = EntryKeys.For(Kind.Location, "TrollCave02");
+            var camp = EntryKeys.For(Kind.Location, "GoblinCamp2");
+            var swamp = EntryKeys.For(Kind.Biome, "Swamp");
+            var book = new CompendiumBook { Now = () => new Moment(3, "Meadows") };
+            foreach (var key in new[] { crypt, cave, camp, swamp })
+            {
+                book.Raise(key, KnownLevel.Seen, sighted: false);
+                book.NoteNews(key, EntryKeys.OnMap);
+            }
+            book.Raise(EntryKeys.For(Kind.Location, "Seen1"), KnownLevel.Seen);
+            var sighted = EntryKeys.For(Kind.Location, "Sighted2");
+            book.Raise(sighted, KnownLevel.Seen);
+            book.NoteNews(sighted, EntryKeys.OnMap);
+            book.Raise(camp, KnownLevel.Known);
+            book.MarkMapped("123");
+            var old = string.Join("\n", book.Save().Split('\n').Where(line => !line.StartsWith("mapapart", System.StringComparison.Ordinal)));
+
+            var read = CompendiumBook.Load(old);
+            Assert.Equal(KnownLevel.Unknown, read.Level(crypt));
+            Assert.Equal(KnownLevel.Unknown, read.Level(cave));
+            Assert.Equal(KnownLevel.Known, read.Level(camp));
+            Assert.Equal(KnownLevel.Seen, read.Level(swamp));
+            Assert.Equal(KnownLevel.Seen, read.Level(EntryKeys.For(Kind.Location, "Seen1")));
+            Assert.Equal(KnownLevel.Seen, read.Level(sighted));
+            Assert.DoesNotContain(crypt, read.Lately);
+            Assert.Contains(swamp, read.Lately);
+            Assert.False(read.Mapped("123"));
+            Assert.True(read.Changed);
+
+            // Once given back, a place seen off the map again stays as it is saved.
+            read.Raise(crypt, KnownLevel.Seen, sighted: false);
+            read.NoteNews(crypt, EntryKeys.OnMap);
+            Assert.Equal(KnownLevel.Seen, CompendiumBook.Load(read.Save()).Level(crypt));
         }
 
         [Fact]

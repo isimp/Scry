@@ -47,13 +47,16 @@ namespace Scry
         /// <summary>Every source, in the order the box lists them.</summary>
         public static readonly WorldSource[] All = (WorldSource[])Enum.GetValues(typeof(WorldSource));
 
-        /// <summary>
-        /// The level a source starts at and the least it is set to: the character's own ground and
-        /// the places marked for it are written into its book as seen as they come, so they show
-        /// at least that; the others start off.
-        /// </summary>
-        public static SourceLevel Least(WorldSource source) =>
+        /// <summary>The level a source starts at: the character's own ground and the places marked for it seen, the others off.</summary>
+        public static SourceLevel Starts(WorldSource source) =>
             source == WorldSource.Explored || source == WorldSource.Marked ? SourceLevel.Seen : SourceLevel.Off;
+
+        /// <summary>
+        /// The least a source is set to: the places marked for the character are written into its
+        /// book as seen as they come, so they show at least that; the others, its own ground too,
+        /// are never written into it and can be turned off.
+        /// </summary>
+        public static SourceLevel Least(WorldSource source) => source == WorldSource.Marked ? SourceLevel.Seen : SourceLevel.Off;
 
         private static readonly SourceLevel[] Every = (SourceLevel[])Enum.GetValues(typeof(SourceLevel));
         private static readonly SourceLevel[] FromSeen = Array.FindAll(Every, level => level >= SourceLevel.Seen);

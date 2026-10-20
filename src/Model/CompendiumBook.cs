@@ -82,28 +82,31 @@ namespace Scry
         /// apart from what the character knows: what they show as is the player's choice
         /// (<see cref="Shows"/>), laid over the book, never written into it.
         /// </summary>
-        public void FoundIn(string world, WorldSource source, IEnumerable<string> kinds)
+        public int FoundIn(string world, WorldSource source, IEnumerable<string> kinds)
         {
-            if (string.IsNullOrEmpty(world) || kinds == null) return;
+            if (string.IsNullOrEmpty(world) || kinds == null) return 0;
+            var added = 0;
             foreach (var kind in kinds)
             {
                 if (string.IsNullOrEmpty(kind)) continue;
                 if (!_foundIn.TryGetValue((world, source), out var found)) _foundIn[(world, source)] = found = new HashSet<string>(StringComparer.Ordinal);
                 if (!found.Add(kind)) continue;
+                added++;
                 SourcesVersion++;
                 Changed = true;
             }
+            return added;
         }
 
         /// <summary>The kinds of place a source found in a world; none for a world it found none in.</summary>
         public IReadOnlyCollection<string> Found(string world, WorldSource source) =>
             world != null && _foundIn.TryGetValue((world, source), out var found) ? found : (IReadOnlyCollection<string>)NoKinds;
 
-        /// <summary>How a source's places show: as the player chose, else as it starts (<see cref="WorldSources.Least"/>), within what the world allows (<see cref="World"/>).</summary>
+        /// <summary>How a source's places show: as the player chose, else as it starts (<see cref="WorldSources.Starts"/>), within what the world allows (<see cref="World"/>).</summary>
         public SourceLevel Shows(WorldSource source) => World.Capped(source, Chosen(source));
 
         /// <summary>How the player chose a source's places show, whatever the world allows; as it starts where never chosen.</summary>
-        public SourceLevel Chosen(WorldSource source) => _shows.TryGetValue(source, out var level) ? level : WorldSources.Least(source);
+        public SourceLevel Chosen(WorldSource source) => _shows.TryGetValue(source, out var level) ? level : WorldSources.Starts(source);
 
         /// <summary>What the world's server allows (<see cref="WorldRules"/>): the rules, the floor and how sources show are the player's choices within it. Never kept with the book.</summary>
         public WorldRules World { get; private set; } = new WorldRules();
@@ -578,7 +581,8 @@ namespace Scry
             var mapped = _mapped.ToArray();
             var read = _read.ToArray();
             var foundIn = _foundIn.SelectMany(p => p.Value.Select(kind => (p.Key.World, p.Key.Source, Kind: kind))).ToArray();
-            var shows = _shows.Where(p => p.Value != WorldSources.Least(p.Key)).ToArray();
+            var shows = _shows.Where(p => p.Value != WorldSources.Starts(p.Key)).ToArray();
+            var mapApart = _mapApart;
             var marks = _marks.ToArray();
             var rule = _rule;
             var floor = _floor;
@@ -620,6 +624,7 @@ namespace Scry
                 if (rule != CompendiumRule.Off) text.Append("rule\t").Append(rule).Append('\n');
                 if (floor > 0) text.Append("floor\t").Append(Stored.Count(floor)).Append('\n');
                 if (welcomed) text.Append("welcomed\tyes\n");
+                if (mapApart) text.Append("mapapart\tyes\n");
                 foreach (var told in rulesTold.OrderBy(t => t.Key, StringComparer.Ordinal)) text.Append("ruled\t").Append(Stored.Escaped(told.Key)).Append('\t').Append(Stored.Escaped(told.Value)).Append('\n');
                 foreach (var (a, b) in pairs.OrderBy(p => p.Item1, StringComparer.Ordinal).ThenBy(p => p.Item2, StringComparer.Ordinal))
                 {
@@ -699,6 +704,7 @@ namespace Scry
             var book = new CompendiumBook();
             if (string.IsNullOrEmpty(text)) return book;
             var lately = new HashSet<string>(StringComparer.Ordinal);
+            var mapApart = false;
             // The counts of what fell and was given, each its own text inside the book's.
             var fell = new StringBuilder();
             var gave = new StringBuilder();
@@ -755,6 +761,9 @@ namespace Scry
                     case "welcomed" when parts.Length == 2:
                         book._welcomed = true;
                         break;
+                    case "mapapart" when parts.Length == 2:
+                        mapApart = true;
+                        break;
                     case "ruled" when parts.Length == 3 && Stored.TryUnescaped(parts[2], out var ruled) && ruled.Length > 0:
                         book._rulesTold[name] = ruled;
                         break;
@@ -778,7 +787,35 @@ namespace Scry
                         break;
                 }
             }
+            if (!mapApart) book.GiveBackMapPlaces();
             return book;
+        }
+
+        /// <summary>Whether the places this book once took off the explored map were given back (<see cref="GiveBackMapPlaces"/>); a new book has none to give.</summary>
+        private bool _mapApart = true;
+
+        /// <summary>
+        /// Gives back what a book kept off the explored map while the map wrote its places as seen:
+        /// each place only ever seen off it, with no sighting, leaves the book and its Learned list,
+        /// and every world is read again, so they come back as found in the character's ground
+        /// (<see cref="MapCatchUp.Apply"/>). Biomes and places seen, known or met another way stay.
+        /// </summary>
+        private void GiveBackMapPlaces()
+        {
+            _mapApart = true;
+            var given = _levels.Where(p => p.Value == KnownLevel.Seen && p.Key.StartsWith(EntryKeys.Location, StringComparison.Ordinal)
+                                           && !_seen.ContainsKey(p.Key) && FoundOutOf(p.Key) == EntryKeys.OnMap).Select(p => p.Key).ToList();
+            foreach (var key in given)
+            {
+                _levels.Remove(key);
+                _lately.Remove(key);
+                _learnedAt.Remove(key);
+                _newsDay.Remove(key);
+                _found.Remove(key);
+            }
+            _mapped.Clear();
+            Version++;
+            Changed = true;
         }
     }
 }

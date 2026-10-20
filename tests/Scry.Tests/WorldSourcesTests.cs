@@ -95,16 +95,21 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void YourOwnGroundAndMarkedPlacesNeverGoBelowSeen()
+        public void MarkedPlacesNeverGoBelowSeenYourOwnGroundCanBeTurnedOff()
         {
-            // The book holds them as seen already, written as they came: lower would show nothing less.
+            // Marked places are written into the book as seen as they come: lower would show
+            // nothing less. Your own ground is never written into it, so Off takes it back.
             var book = new CompendiumBook();
             book.Show(WorldSource.Explored, SourceLevel.Off);
             book.Show(WorldSource.Marked, SourceLevel.Off);
-            Assert.Equal(SourceLevel.Seen, book.Shows(WorldSource.Explored));
+            Assert.Equal(SourceLevel.Off, book.Shows(WorldSource.Explored));
             Assert.Equal(SourceLevel.Seen, book.Shows(WorldSource.Marked));
+            Assert.Equal(SourceLevel.Off, CompendiumBook.Load(book.Save()).Shows(WorldSource.Explored));
+            book.Show(WorldSource.Explored, SourceLevel.Seen);
+            Assert.DoesNotContain("shows\tExplored", book.Save());
             book.Show(WorldSource.SharedMaps, SourceLevel.Off);
             Assert.Equal(SourceLevel.Off, book.Shows(WorldSource.SharedMaps));
+            Assert.Equal(new[] { SourceLevel.Off, SourceLevel.Seen, SourceLevel.Known, SourceLevel.WithInsides }, WorldSources.Offered(WorldSource.Explored));
         }
 
         [Fact]
@@ -311,20 +316,26 @@ namespace Scry.Tests
         [Fact]
         public void ASavedChoiceBelowWhatASourceAllowsIsReadAsTheLeast()
         {
-            var read = CompendiumBook.Load("shows\tExplored\tOff\nshows\tSharedMaps\tKnown\nshows\tNowhere\tSeen\nshows\tOnEveryMap\tEverything\n");
-            Assert.Equal(SourceLevel.Seen, read.Shows(WorldSource.Explored));
+            var read = CompendiumBook.Load("shows\tMarked\tOff\nshows\tSharedMaps\tKnown\nshows\tNowhere\tSeen\nshows\tOnEveryMap\tEverything\n");
+            Assert.Equal(SourceLevel.Seen, read.Shows(WorldSource.Marked));
             Assert.Equal(SourceLevel.Known, read.Shows(WorldSource.SharedMaps));
             Assert.Equal(SourceLevel.Off, read.Shows(WorldSource.OnEveryMap));
         }
 
         [Fact]
-        public void TheExploredMapKeepsItsPlacesAsYourOwnGround()
+        public void TheExploredMapKeepsItsPlacesAsYourOwnGroundShownAsChosen()
         {
-            // Written as seen as before, and kept as found in this world's ground for the choice laid over it.
-            var book = new CompendiumBook();
-            MapCatchUp.Apply(book, World, new[] { "Crypt2" });
-            Assert.Equal(KnownLevel.Seen, book.Level(EntryKeys.For(Kind.Location, "Crypt2")));
-            Assert.Equal(new[] { "Crypt2" }, Sorted(book.Found(World, WorldSource.Explored)));
+            // Kept as found in this world's ground, never in the book: seen as the source starts,
+            // marked as its, and gone with it off.
+            var s = new Setup();
+            MapCatchUp.Apply(s.Book, World, new[] { "Crypt2" });
+            Assert.Equal(KnownLevel.Unknown, s.Book.Level(s.Crypt.Key));
+            Assert.Equal(new[] { "Crypt2" }, Sorted(s.Book.Found(World, WorldSource.Explored)));
+            s.Tell(CompendiumRule.Loose);
+            Assert.Equal(KnownLevel.Seen, s.View.Of(s.Crypt));
+            Assert.Equal(WorldSource.Explored, s.View.ByWorld(s.Crypt));
+            s.Shows(WorldSource.Explored, SourceLevel.Off);
+            Assert.True(s.View.Of(s.Crypt) < KnownLevel.Seen);
         }
 
         [Fact]
@@ -384,7 +395,7 @@ namespace Scry.Tests
             foreach (SourceLevel level in System.Enum.GetValues(typeof(SourceLevel))) Assert.False(string.IsNullOrEmpty(CompendiumWords.LevelTip(level)));
             Assert.Equal("Known, with what anyone on this server walked inside: those rooms and what they hold. A dungeon nobody walked shows only its entrance.", CompendiumWords.LevelTip(SourceLevel.WithInsides));
             // Your own ground and marked places offer no Off, as they show at least seen.
-            Assert.Equal(new[] { SourceLevel.Seen, SourceLevel.Known, SourceLevel.WithInsides }, WorldSources.Offered(WorldSource.Explored));
+            Assert.Equal(new[] { SourceLevel.Off, SourceLevel.Seen, SourceLevel.Known, SourceLevel.WithInsides }, WorldSources.Offered(WorldSource.Explored));
             Assert.Equal(new[] { SourceLevel.Off, SourceLevel.Seen, SourceLevel.Known, SourceLevel.WithInsides }, WorldSources.Offered(WorldSource.SharedMaps));
         }
 

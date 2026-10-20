@@ -12,7 +12,7 @@ A server with Scry, a dedicated one or a game hosting, can set what the compendi
 
 The rest cap how far each source of the world may show in the compendium's box; a player choosing above the cap gets the cap.
 
-`ExploredUpTo` and `MarkedUpTo`, for *Ground you explored* and *Places marked for you*: `Seen`, `Known` or `WithInsides` (the default).
+`ExploredUpTo`, for *Ground you explored*: `Off`, `Seen`, `Known` or `WithInsides` (the default). `MarkedUpTo`, for *Places marked for you*: `Seen`, `Known` or `WithInsides` (the default).
 
 `SharedMapsUpTo` and `OnEveryMapUpTo`, for *Shared maps* and *Places on every map*: `Off`, `Seen`, `Known` or `WithInsides` (the default).
 

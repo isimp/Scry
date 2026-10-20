@@ -173,12 +173,13 @@ namespace Scry
                 p.Check(book.Witnessed(Utils.GetPrefabName(hive.gameObject), EntryKeys.Did(Deed.Collected)), "collecting from a beehive shows its pace");
             }
 
-            // A map read: what it brings is news noted as off the map.
+            // A map read keeps what it brings as found in the character's ground, never in its book.
             var place = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Location && Places.LabelOf(e) != null);
             if (place != null)
             {
+                var level = book.Level(place.Key);
                 MapCatchUp.Apply(book, "self-test", new[] { place.Name });
-                p.Check(book.FoundOutOf(place.Key) == EntryKeys.OnMap, $"a map read brings {place.Name} as news off the map");
+                p.Check(book.Level(place.Key) == level && book.Found("self-test", WorldSource.Explored).Contains(place.Name), $"a map read keeps {place.Name} as found in your ground, the book as it was", $"{book.Level(place.Key)}");
             }
 
             CompendiumKeeper.RecordInto(null);
@@ -293,14 +294,15 @@ namespace Scry
             }
             else p.Note("no boar whose page tells how long taming takes");
 
-            // A map read brings places as news, counted in the notice rather than named.
-            var place = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Location && Places.LabelOf(e) != null);
+            // A map read shows its places as Ground you explored says, seen as it starts, marked as that source's.
+            var place = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Location && Places.LabelOf(e) != null && view.Of(e) < KnownLevel.Seen);
             if (place != null)
             {
                 MapCatchUp.Apply(book, "self-test", new[] { place.Name });
+                view.InWorld("self-test");
                 view.Tell(book, CompendiumRule.Strict);
-                yield return Until(() => (ScryPanel.NewsLine ?? "").Contains("your explored map showed") || (ScryPanel.NewsLine ?? "").Contains("Your explored map showed"), 3);
-                p.Check((ScryPanel.NewsLine ?? "").IndexOf("explored map showed 1 place", System.StringComparison.OrdinalIgnoreCase) >= 0, "the notice counts what the map brought", ScryPanel.NewsLine);
+                p.Check(view.Of(place) == KnownLevel.Seen && view.ByWorld(place) == WorldSource.Explored && book.Level(place.Key) < KnownLevel.Seen,
+                    "a place the map brings shows as seen from your explored ground, not written into the book", $"{place.Name}: {view.Of(place)}, book {book.Level(place.Key)}");
             }
             Session.ShowKnownInstead(null);
         }

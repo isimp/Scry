@@ -88,13 +88,13 @@ namespace Scry.Tests
         {
             Assert.Equal("the explored map will be read again for this character in this world", CompendiumWords.MapAgain);
             Assert.Equal("the explored map can be read only in a world", CompendiumWords.MapNoWorld);
-            Assert.Equal("caught up from the explored map: 1,200 kinds of place lie in explored ground, 3 of them new to the compendium", CompendiumWords.MapRead(1200, 3, fromServer: false));
-            Assert.Equal("caught up from the explored map with the server's answer: 12 kinds of place lie in explored ground, 0 of them new to the compendium", CompendiumWords.MapRead(12, 0, fromServer: true));
+            Assert.Equal("caught up from the explored map: 1,200 kinds of place lie in explored ground, 3 of them new to it", CompendiumWords.MapRead(1200, 3, fromServer: false));
+            Assert.Equal("caught up from the explored map with the server's answer: 12 kinds of place lie in explored ground, 0 of them new to it", CompendiumWords.MapRead(12, 0, fromServer: true));
             Assert.Equal("answered a player's explored map: 12 kinds of place lie in it", CompendiumWords.MapAnswered(12));
             Assert.Equal("the server did not answer on the explored map (it has no Scry, or one too old): places count as the character meets them", CompendiumWords.MapNoServerScry);
             Assert.Equal("Look at the map again", CompendiumWords.ReadMap);
-            Assert.Equal("Places in the ground this character explored count as seen, read again each session", CompendiumWords.MapBar);
-            Assert.Equal("Count the kinds of place in the ground this character explored in this world as seen, as on its first visit with Scry", CompendiumWords.ReadMapTip);
+            Assert.Equal("Places in the ground this character explored show as Ground you explored says, read again each session", CompendiumWords.MapBar);
+            Assert.Equal("Read again which kinds of place lie in the ground this character explored in this world, as on its first visit with Scry", CompendiumWords.ReadMapTip);
             Assert.Equal("on a dedicated server Scry only answers players' explored maps, the world's census and their Scry's hello, sends the world's settings for the compendium, keeps how far and on which days they walk its dungeons, reads what was left inside them, and runs the self-test's made-up events for the player asking", CompendiumWords.ServerPart);
         }
 

@@ -155,9 +155,9 @@ namespace Scry
         {
             if (book == null || world == null || world != World || book.Mapped(world)) return;
             Counts.Took(WorldSource.Explored, counted, whole: true);
-            var raised = MapCatchUp.Apply(book, world, Kinds(counted));
+            var found = MapCatchUp.Apply(book, world, Kinds(counted));
             CompendiumKeeper.Noted(PlayEvent.MapRead);
-            Log.Report(CompendiumWords.MapRead(counted.Count, raised, fromServer: true));
+            Log.Report(CompendiumWords.MapRead(counted.Count, found, fromServer: true));
         }
 
         /// <summary>Takes in the kinds of place lying in the ground explored since the last ask, and how many, what is new noted as the first reading's is.</summary>
@@ -165,10 +165,10 @@ namespace Scry
         {
             if (book == null || world == null || world != World) return;
             Counts.Took(WorldSource.Explored, counted, whole: false);
-            var raised = MapCatchUp.Apply(book, world, Kinds(counted));
-            if (raised == 0) return;
+            var found = MapCatchUp.Apply(book, world, Kinds(counted));
+            if (found == 0) return;
             CompendiumKeeper.Noted(PlayEvent.MapRead);
-            Log.Report(CompendiumWords.MapRead(counted.Count, raised, fromServer: !ZNet.instance.IsServer()));
+            Log.Report(CompendiumWords.MapRead(counted.Count, found, fromServer: !ZNet.instance.IsServer()));
         }
 
         /// <summary>Takes in the server's census: how many of each kind of place the world holds, every kind kept as the whole world's (<see cref="WorldSource.WholeWorld"/>).</summary>
@@ -405,9 +405,9 @@ namespace Scry
             if (book == null || world != World || book.Mapped(world)) return;
             Asked(world, reading.Result.Grid);
             Counts.Took(WorldSource.Explored, reading.Result.Counted, whole: true);
-            var raised = MapCatchUp.Apply(book, world, Kinds(reading.Result.Counted));
+            var found = MapCatchUp.Apply(book, world, Kinds(reading.Result.Counted));
             CompendiumKeeper.Noted(PlayEvent.MapRead);
-            Log.Report(CompendiumWords.MapRead(reading.Result.Counted.Count, raised, fromServer: false));
+            Log.Report(CompendiumWords.MapRead(reading.Result.Counted.Count, found, fromServer: false));
         }
 
         /// <summary>
