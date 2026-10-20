@@ -7,24 +7,29 @@ namespace Scry
 {
     /// <summary>
     /// How long each part took the last time it ran, kept from run to run beside the log, so a
-    /// run says before it starts about how long it will take; and the names of the parts that
-    /// failed in the last run, for <c>/scry selftest failed</c>.
+    /// run says before it starts about how long it will take, a quick run's times apart from the
+    /// others' as its long parts go through fewer places; and the names of the parts that failed
+    /// in the last run, for <c>/scry selftest failed</c>.
     /// </summary>
     internal sealed class SelfTestTimes
     {
         /// <summary>The seconds counted for a part never timed: about the usual part's.</summary>
         public const double Unknown = 5;
 
+        /// <summary>What a quick run's time of a part is kept under, before the part's name.</summary>
+        private const string QuickMark = "quick: ";
+
         private readonly Dictionary<string, double> _seconds = new Dictionary<string, double>(StringComparer.Ordinal);
 
-        /// <summary>A part's time this run, in place of the one kept.</summary>
-        public void Took(string part, double seconds) => _seconds[part] = seconds;
+        /// <summary>A part's time this run, in place of the one kept for runs of its kind.</summary>
+        public void Took(string part, double seconds, bool quick) => _seconds[quick ? QuickMark + part : part] = seconds;
 
-        /// <summary>About how long the parts take together, by their last times.</summary>
-        public double Estimate(IEnumerable<string> parts) => parts.Sum(p => _seconds.TryGetValue(p, out var s) ? s : Unknown);
+        /// <summary>About how long the parts take together, by their last times in runs of this kind, else in any run.</summary>
+        public double Estimate(IEnumerable<string> parts, bool quick) => parts.Sum(p => Of(p, quick) ?? Unknown);
 
-        /// <summary>The seconds kept for a part; none for one never timed.</summary>
-        public double? Of(string part) => _seconds.TryGetValue(part, out var s) ? s : (double?)null;
+        /// <summary>The seconds kept for a part in runs of this kind, else in any run; none for one never timed.</summary>
+        public double? Of(string part, bool quick) =>
+            quick && _seconds.TryGetValue(QuickMark + part, out var fast) ? fast : _seconds.TryGetValue(part, out var s) ? s : (double?)null;
 
         /// <summary>The times as kept: a part a line, its seconds, a tab and its name.</summary>
         public string Save()

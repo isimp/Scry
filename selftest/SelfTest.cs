@@ -167,7 +167,7 @@ namespace Scry
             _sampled = asked.Sampled;
             _runner = new ScenarioRunner(parts, Write, Finish, AllKnown);
             SelfTestPanel.ShowResult();
-            return SelfTestWords.Started(_runner.Total, asked.Scope, times.Estimate(parts.Select(s => s.Name)));
+            return SelfTestWords.Started(_runner.Total, asked.Scope, times.Estimate(parts.Select(s => s.Name), asked.Sampled));
         }
 
         /// <summary>Writes every part's name to the log, in the order a run takes them, with how long each took last.</summary>
@@ -179,7 +179,7 @@ namespace Scry
             Write($"==== Scry {About.Version} self-test parts, {DateTime.Now:yyyy-MM-dd HH:mm:ss}: /scry selftest and any words of a part's name runs the parts holding them ====");
             for (var i = 0; i < all.Count; i++)
             {
-                var took = times.Of(all[i].Name);
+                var took = times.Of(all[i].Name, quick: false);
                 Write($"{Numbers.Count(i + 1)}. {all[i].Name}{(all[i].Full ? " (full runs only)" : "")}: {(took.HasValue ? SelfTestWords.Duration(took.Value) : "not timed yet")}");
             }
             return SelfTestWords.Listed(all.Count, "BepInEx/Scry-selftest.log");
@@ -195,7 +195,7 @@ namespace Scry
         private static void KeepTimes(IReadOnlyList<ScenarioReport> reports)
         {
             var times = SelfTestTimes.Load(Kept(TimesFile));
-            foreach (var report in reports) times.Took(report.Name, report.Seconds);
+            foreach (var report in reports) times.Took(report.Name, report.Seconds, _sampled);
             var ran = new HashSet<string>(reports.Select(r => r.Name), StringComparer.Ordinal);
             var failed = SelfTestTimes.FailedOf(Kept(FailedFile)).Where(name => !ran.Contains(name)).ToList();
             failed.AddRange(reports.Where(r => r.Result == Result.Fail).Select(r => r.Name));

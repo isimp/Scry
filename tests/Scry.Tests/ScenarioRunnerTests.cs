@@ -67,15 +67,24 @@ namespace Scry.Tests
         public void EachPartsLastTimeIsKeptAndARunsTimeEstimatedFromThem()
         {
             var times = new SelfTestTimes();
-            times.Took("the plan box shows a dungeon", 131.3);
-            times.Took("the panel opens and draws", 0.4);
-            times.Took("the panel opens and draws", 0.6);
+            times.Took("the plan box shows a dungeon", 131.3, quick: false);
+            times.Took("the panel opens and draws", 0.4, quick: false);
+            times.Took("the panel opens and draws", 0.6, quick: false);
             var read = SelfTestTimes.Load(times.Save());
 
-            Assert.Equal(131.9, read.Estimate(new[] { "the plan box shows a dungeon", "the panel opens and draws" }), 3);
+            Assert.Equal(131.9, read.Estimate(new[] { "the plan box shows a dungeon", "the panel opens and draws" }, quick: false), 3);
             // A part never timed counts as a part of the usual length.
-            Assert.Equal(131.3 + SelfTestTimes.Unknown, read.Estimate(new[] { "the plan box shows a dungeon", "a new part" }), 3);
-            Assert.Equal(0.0, SelfTestTimes.Load(null).Estimate(new string[0]), 3);
+            Assert.Equal(131.3 + SelfTestTimes.Unknown, read.Estimate(new[] { "the plan box shows a dungeon", "a new part" }, quick: false), 3);
+            Assert.Equal(0.0, SelfTestTimes.Load(null).Estimate(new string[0], quick: false), 3);
+
+            // A quick run's times are kept apart, as its long parts go through fewer places; until
+            // one ran quick, the time any run took stands in.
+            Assert.Equal(131.3, read.Estimate(new[] { "the plan box shows a dungeon" }, quick: true), 3);
+            read.Took("the plan box shows a dungeon", 26.0, quick: true);
+            var again = SelfTestTimes.Load(read.Save());
+            Assert.Equal(26.0, again.Estimate(new[] { "the plan box shows a dungeon" }, quick: true), 3);
+            Assert.Equal(131.3, again.Estimate(new[] { "the plan box shows a dungeon" }, quick: false), 3);
+            Assert.Equal(131.3, again.Of("the plan box shows a dungeon", quick: false).Value, 3);
         }
 
         [Fact]
