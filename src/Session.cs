@@ -164,6 +164,12 @@ namespace Scry
             if (rule != CompendiumRule.Off) _known.SkillsLearned(YourSkills.Learned, YourSkills.LearnedVersion);
             // Under the strict rules a dungeon's rooms show by their kinds walked.
             if (rule == CompendiumRule.Strict) _known.RoomsWalked(WalkedRooms.Walked, WalkedRooms.Version);
+            // What anyone on this server walked in the dungeons the sources hold, for those shown with insides.
+            if (rule != CompendiumRule.Off)
+            {
+                var walks = SourceWalks.Of(book);
+                _known.WalkedOnServer(walks, SourceWalks.Version);
+            }
             // The places the world's sources found are this world's.
             _known.InWorld(CompendiumMap.World);
             if (!_known.OnlyLearnedSince(book, rule) || Time.unscaledTime - _knownToldAt >= 1f)

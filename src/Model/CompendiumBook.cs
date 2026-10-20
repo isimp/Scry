@@ -115,8 +115,8 @@ namespace Scry
             Changed = true;
         }
 
-        /// <summary>Whether a source's dungeons are marked now: its pin on and its row showing them with insides.</summary>
-        public bool MarksDungeonsNow(WorldSource source) => MarksDungeons(source) && Shows(source) == SourceLevel.WithInsides;
+        /// <summary>Whether a source's dungeons are marked now: its pin on and its row showing anything.</summary>
+        public bool MarksDungeonsNow(WorldSource source) => MarksDungeons(source) && Shows(source) > SourceLevel.Off;
 
         /// <summary>Sets how a source's places show, no lower than the least it allows.</summary>
         public void Show(WorldSource source, SourceLevel level)

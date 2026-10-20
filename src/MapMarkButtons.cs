@@ -10,14 +10,16 @@ namespace Scry
 {
     /// <summary>
     /// While Valheim's large map is open, a mark of Scry's just above the entrance of each dungeon
-    /// the character has been in in the world played (<see cref="DungeonWalks"/>), placed as the game
+    /// the character has been in in the world played (<see cref="DungeonWalks"/>), and of each lying
+    /// in a ground whose pin is on (<see cref="DungeonMarks"/>), placed as the game
     /// places its pins and as big as one (<see cref="MapMarks"/>), on the layer of the pins' names
     /// so no name covers it. The pointer never reaches that layer through the game's event system,
     /// so each mark is a picture taking no clicks of its own: the pointer is read against it as the
     /// game's map and tips read it, with no camera, and the map's own click, made on the map under
     /// it, is handed to the mark under the pointer (<see cref="MapMarkClick"/>), so a click on a mark
     /// never ticks or adds a pin of the player's. A click closes the map and opens Scry on the
-    /// dungeon's page, its map on the stage. Its name and how far it was walked stand under it as
+    /// dungeon's page, its map on the stage where anyone walked it, the page alone for an entrance.
+    /// Its name and who walked it how far stand under it as
     /// the game names a pin, in a copy of the game's pin name, while the pointer rests on it. It is no pin of the game's: nothing is added to
     /// the player's pins, saved with the world or shared. No rooms are drawn on the map.
     /// <c>DungeonMarksOnMap</c> turns the marks off.
@@ -38,8 +40,8 @@ namespace Scry
             public Image Picture;
             public string Id;
 
-            /// <summary>The ground it shows from with its insides, drawn hollow; none for one walked.</summary>
-            public WorldSource? From;
+            /// <summary>How it looks (<see cref="MarkLook"/>), as last drawn.</summary>
+            public MarkLook Look;
 
             /// <summary>Its words as last set, for the self-test.</summary>
             public string Said;
@@ -58,11 +60,15 @@ namespace Scry
         /// <summary>Whether the server was asked for the marked dungeons' records since the map last opened.</summary>
         private static bool _askedServer;
         private static string _keptWorld;
-        private static Sprite _sprite, _hollow;
+        private static Sprite _sprite, _hollow, _entrance;
 
-        /// <summary>How many of the marks shown are of dungeons shown with insides, not walked, for the self-test.</summary>
+        /// <summary>How many of the marks shown are of dungeons walked on this server shown with insides, hollow, for the self-test.</summary>
         [Diagnostic]
         public static int HollowShown { get; private set; }
+
+        /// <summary>How many of the marks shown are of dungeons' entrances alone, for the self-test.</summary>
+        [Diagnostic]
+        public static int EntrancesShown { get; private set; }
 
         /// <summary>A mark's words, for the self-test; none for one not shown.</summary>
         [Diagnostic]
@@ -133,6 +139,7 @@ namespace Scry
             _askedServer = false;
             MarksShown = 0;
             HollowShown = 0;
+            EntrancesShown = 0;
         }
 
         /// <summary>Each frame: the marks placed where the large map shows them while it is open, the words of the one the pointer rests on; put away, and nothing more, while it is not.</summary>
@@ -177,6 +184,7 @@ namespace Scry
             var lift = MapMarks.Lift(map.m_pinSizeLarge);
             var shown = 0;
             var hollow = 0;
+            var entrances = 0;
             foreach (var kept in Kept)
             {
                 if (!MapMarks.Place(kept.Map.Entrance, map.m_pixelSize, map.m_textureSize, (window.xMin, window.yMin, window.width, window.height), (area.width, area.height), out var at)) continue;
@@ -185,20 +193,14 @@ namespace Scry
                 mark.Rect.anchoredPosition = new Vector2(at.X, at.Y + lift);
                 mark.Rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, size);
                 mark.Rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, size);
-                if (kept.From != null) hollow++;
-                if (mark.Id != kept.Id || mark.From != kept.From)
+                if (kept.Look == MarkLook.Server) hollow++;
+                if (kept.Look == MarkLook.Entrance) entrances++;
+                if (mark.Id != kept.Id || mark.Look != kept.Look)
                 {
                     mark.Id = kept.Id;
-                    mark.From = kept.From;
-                    if (mark.Picture != null) mark.Picture.sprite = kept.From == null ? MarkSprite() : HollowSprite();
-                    var colour = ColorUtility.ToHtmlStringRGB(Skin.Accent);
-                    var serverLast = GroupMapsLink.Group.Of(kept.Id)?.LastDay ?? -1;
-                    if (kept.From is WorldSource from) Name(mark, DungeonMapWords.InsidesLabel(Shown(kept.Map.Location), from, colour, serverLast));
-                    else
-                    {
-                        var (walked, rooms) = DungeonMaps.Walked(kept.Map, _ => null);
-                        Name(mark, DungeonMapWords.MarkLabel(Shown(kept.Map.Location), walked, rooms, colour, kept.Map.LastDay, serverLast));
-                    }
+                    mark.Look = kept.Look;
+                    if (mark.Picture != null) mark.Picture.sprite = kept.Look == MarkLook.Yours ? MarkSprite() : kept.Look == MarkLook.Server ? HollowSprite() : EntranceSprite();
+                    Name(mark, Said(kept));
                 }
                 // Its words stand where it stands, as the game's pin names do, the name's own layout putting them under it.
                 if (mark.LabelRect != null) mark.LabelRect.anchoredPosition = mark.Rect.anchoredPosition;
@@ -210,6 +212,7 @@ namespace Scry
             }
             MarksShown = shown;
             HollowShown = hollow;
+            EntrancesShown = entrances;
             _sizeOnScreen = shown > 0 ? ScreenSize(Marks[0].Rect) : 0f;
             if (Input.GetMouseButtonDown(0)) _pressedAt = ZInput.pointerPosition;
             Hover();
@@ -242,6 +245,21 @@ namespace Scry
         {
             if (_hovered?.Label != null) _hovered.Label.SetActive(false);
             _hovered = null;
+        }
+
+        /// <summary>A mark's words, by its look: how far you walked it, how far anyone on this server did, or whether anyone did, with the last days known.</summary>
+        private static string Said(DungeonMark kept)
+        {
+            var name = Shown(kept.Map.Location);
+            var accent = ColorUtility.ToHtmlStringRGB(Skin.Accent);
+            var serverLast = GroupMapsLink.Group.Of(kept.Id)?.LastDay ?? -1;
+            var (walked, rooms) = DungeonMaps.Walked(kept.Map, _ => null);
+            switch (kept.Look)
+            {
+                case MarkLook.Yours: return DungeonMapWords.MarkLabel(name, walked, rooms, accent, kept.Map.LastDay, serverLast);
+                case MarkLook.Server: return DungeonMapWords.ServerLabel(name, walked, rooms, accent, Mathf.Max(serverLast, kept.Map.LastDay));
+                default: return DungeonMapWords.EntranceLabel(name, kept.Map.Walked.Count > 0, ColorUtility.ToHtmlStringRGB(Skin.Faint));
+            }
         }
 
         /// <summary>
@@ -280,7 +298,7 @@ namespace Scry
         {
             var mark = MarkAt(screen);
             if (mark == null || !MapMarks.Clicked((_pressedAt.x, _pressedAt.y), (screen.x, screen.y), _sizeOnScreen)) return false;
-            Open(mark.Id);
+            Open(mark.Id, mark.Look);
             return true;
         }
 
@@ -298,6 +316,7 @@ namespace Scry
         {
             _askedServer = false;
             HollowShown = 0;
+            EntrancesShown = 0;
             if (MarksShown == 0) return;
             HideName();
             foreach (var mark in Marks)
@@ -338,17 +357,17 @@ namespace Scry
             return mark;
         }
 
-        /// <summary>Closes the map and opens Scry on the dungeon's page, its map on the stage.</summary>
-        private static void Open(string id)
+        /// <summary>Closes the map and opens Scry on the dungeon's page, its map on the stage where anyone walked it; for an entrance alone, the page.</summary>
+        private static void Open(string id, MarkLook look)
         {
             var kept = DungeonWalks.Maps.Of(id) ?? DungeonsInGround.MapOf(id);
             if (kept == null) return;
             HideName();
             Minimap.instance.OrNull()?.SetMapMode(Minimap.MapMode.Small);
             Session.Show(null);
-            ExampleLayouts.OpenMapWhenShown(kept.Location, id);
+            if (look != MarkLook.Entrance) ExampleLayouts.OpenMapWhenShown(kept.Location, id);
             Session.Explorer?.Jump(EntryKeys.For(Kind.Location, kept.Location));
-            Stage.Inside = true;
+            if (look != MarkLook.Entrance) Stage.Inside = true;
         }
 
         /// <summary>The mark's picture: an accent disc, outlined dark, with a doorway in it, made once.</summary>
@@ -379,7 +398,37 @@ namespace Scry
             return _sprite;
         }
 
-        /// <summary>The picture of a mark of a dungeon shown with its insides, not walked: a dark disc ringed in the accent, the doorway drawn in its outline, made once.</summary>
+        /// <summary>The picture of a mark of a dungeon's entrance alone: a dark disc ringed faint, the doorway's outline faint in it, made once.</summary>
+        private static Sprite EntranceSprite()
+        {
+            if (_entrance != null) return _entrance;
+            const int side = 64;
+            var texture = Scry.Kept.Add(new Texture2D(side, side, TextureFormat.RGBA32, false) { name = "Scry dungeon mark entrance", filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp });
+            var pixels = new Color32[side * side];
+            var faint = (Color32)Skin.Faint;
+            var ring = (Color32)Skin.Shade(Skin.Faint, 0.55f);
+            var dark = (Color32)Skin.OnAccent;
+            var clear = default(Color32);
+            for (var y = 0; y < side; y++)
+            {
+                for (var x = 0; x < side; x++)
+                {
+                    var dx = x + 0.5f - side / 2f;
+                    var dy = y + 0.5f - side / 2f;
+                    var r = Mathf.Sqrt(dx * dx + dy * dy);
+                    // The same doorway as the others', its outline alone, faint.
+                    var outer = dy > 4f ? Mathf.Sqrt(dx * dx + (dy - 4f) * (dy - 4f)) <= 12f : Mathf.Abs(dx) <= 12f && dy >= -16f;
+                    var inner = dy > 4f ? Mathf.Sqrt(dx * dx + (dy - 4f) * (dy - 4f)) <= 8.5f : Mathf.Abs(dx) <= 8.5f && dy >= -12.5f;
+                    pixels[y * side + x] = r > 31f ? clear : r > 27f ? ring : outer && !inner ? faint : dark;
+                }
+            }
+            texture.SetPixels32(pixels);
+            texture.Apply(false, true);
+            _entrance = Scry.Kept.Add(Sprite.Create(texture, new Rect(0f, 0f, side, side), new Vector2(0.5f, 0.5f)));
+            return _entrance;
+        }
+
+        /// <summary>The picture of a mark of a dungeon walked on this server, shown with insides: a dark disc ringed in the accent, the doorway drawn in its outline, made once.</summary>
         private static Sprite HollowSprite()
         {
             if (_hollow != null) return _hollow;

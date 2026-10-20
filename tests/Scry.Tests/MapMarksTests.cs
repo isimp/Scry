@@ -64,7 +64,7 @@ namespace Scry.Tests
         public void AMarksWordsUnderItNameTheDungeonAndHowFarItWasWalked()
         {
             // As the game names a pin under it, shown while the pointer rests on the mark.
-            Assert.Equal("Burial Chambers\n<size=80%><color=#F5B857>6 of 18 rooms walked</color></size>", DungeonMapWords.MarkLabel("Burial Chambers", 6, 18, "F5B857", -1, -1));
+            Assert.Equal("Burial Chambers\n<size=80%><color=#F5B857>Walked by you: 6 of 18 rooms</color></size>", DungeonMapWords.MarkLabel("Burial Chambers", 6, 18, "F5B857", -1, -1));
         }
     }
 }

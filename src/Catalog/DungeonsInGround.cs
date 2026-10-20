@@ -7,13 +7,17 @@ using UnityEngine;
 namespace Scry
 {
     /// <summary>
-    /// The dungeons lying in each ground whose pin is on while its row shows With insides
-    /// (<see cref="CompendiumBook.MarksDungeonsNow"/>) and whose rooms the world keeps, for their
-    /// marks on Valheim's big map (<see cref="DungeonMarks"/>): worked out by the game running the
-    /// world (<see cref="WorldDungeons.InGround"/>), here where it is this game, else asked of a
-    /// dedicated server's Scry by messages of its own, the ground packed as for the explored map.
-    /// Asked as a pin goes on and again every ten minutes while it is, as the ground grows. A server
-    /// without Scry never answers, and only walked dungeons are marked. Held for the session only.
+    /// The dungeons lying in each ground whose pin is on (<see cref="CompendiumBook.MarksDungeonsNow"/>)
+    /// or whose row shows With insides, for their marks on Valheim's big map (<see cref="DungeonMarks"/>)
+    /// and what the row shows (<see cref="SourceWalks"/>): worked out by the game running the world
+    /// (<see cref="WorldDungeons.InGround"/>), here where it is this game, else asked of a dedicated
+    /// server's Scry by messages of its own, the ground packed as for the explored map and the kinds
+    /// of dungeon named (<see cref="DungeonKinds"/>). Each comes with its rooms where the world keeps
+    /// them and the server's walks on it, anyone's (<see cref="GroupMapsLink.RecordOf"/>), else by
+    /// its entrance alone. Asked as a pin goes on and again every ten minutes while it is, as the
+    /// ground grows; for the single places a row shows with insides, the server's records of their
+    /// kinds of dungeon are asked for. A server without Scry never answers, and only dungeons walked
+    /// by you are marked. Held for the session only.
     /// </summary>
     internal static class DungeonsInGround
     {
@@ -109,7 +113,14 @@ namespace Scry
             if (rpc == null || book == null || world == null || ZNet.instance == null) return;
             foreach (var source in WorldSources.All)
             {
-                if (!WorldSources.HasGround(source) || !book.MarksDungeonsNow(source)) continue;
+                var insides = book.Shows(source) == SourceLevel.WithInsides;
+                if (!WorldSources.HasGround(source))
+                {
+                    // The server's records of the kinds of dungeon a row of single places shows with insides, each asked at most once a minute.
+                    if (insides) foreach (var kind in book.Found(world, source)) if (DungeonKinds.Is(kind)) GroupMapsLink.Ask(kind);
+                    continue;
+                }
+                if (!book.MarksDungeonsNow(source) && !insides) continue;
                 if (AskedAt.TryGetValue(source, out var at) && Time.unscaledTime - at < AskEvery) continue;
                 Ask(rpc, world, source);
             }
@@ -136,28 +147,61 @@ namespace Scry
                 Faults.Tell(Feature.DungeonMaps, "packing the ground for its dungeons", packing.Exception?.GetBaseException());
                 return;
             }
+            var kinds = new HashSet<string>(DungeonKinds.All, System.StringComparer.Ordinal);
             if (ZNet.instance.IsServer())
             {
-                Take(world, source, InGround(world, packing.Result));
+                Take(world, source, InGround(world, packing.Result, kinds));
                 return;
             }
             var package = new ZPackage();
             package.Write(world);
             package.Write((int)source);
             package.Write(Utils.Compress(packing.Result));
+            // The kinds of dungeon after the ground, which a server's older Scry leaves unread.
+            package.Write(kinds.Count);
+            foreach (var kind in kinds) package.Write(kind);
             rpc.InvokeRoutedRPC(AskRpc, package);
         }
 
-        /// <summary>The dungeons the world keeps in a ground packed, as maps none of whose rooms is walked.</summary>
-        private static DungeonMaps InGround(string world, byte[] packed)
+        /// <summary>
+        /// The dungeons lying in a ground packed: those whose rooms the world keeps, with the server's
+        /// record of anyone's walks on each where its rooms are the same, and those of the kinds named
+        /// holding none yet by their entrance alone.
+        /// </summary>
+        private static DungeonMaps InGround(string world, byte[] packed, ICollection<string> kinds)
         {
             var maps = new DungeonMaps();
-            foreach (var dungeon in WorldDungeons.InGround(world, ExploredGrid.Unpack(packed)))
+            var entrances = new List<(string Location, Vector3 At)>();
+            foreach (var dungeon in WorldDungeons.InGround(world, ExploredGrid.Unpack(packed), kinds, entrances))
             {
-                maps.Keep(dungeon.Id, dungeon.Location, dungeon.Saved, dungeon.Entrance, dungeon.Generator, dungeon.Turn);
+                var kept = maps.Keep(dungeon.Id, dungeon.Location, dungeon.Saved, dungeon.Entrance, dungeon.Generator, dungeon.Turn);
+                var record = GroupMapsLink.RecordOf(dungeon.Id);
+                if (record?.Rooms == null || record.Rooms.Count != dungeon.Saved.Count) continue;
+                foreach (var room in record.Walked) maps.Walk(dungeon.Id, room);
+                kept.FirstDay = record.FirstDay;
+                kept.LastDay = record.LastDay;
+            }
+            foreach (var (location, at) in entrances)
+            {
+                var id = DungeonMaps.EntranceIdOf(world, at.x, at.z);
+                if (id != null) maps.Keep(id, location, new List<(int, Vec3, Vec3)>(), new Vec3(at.x, at.y, at.z), default, Quat.Identity);
             }
             return maps;
         }
+
+        /// <summary>The kinds of dungeon a player's game named after its ground; none from an older Scry, which names none.</summary>
+        private static HashSet<string> KindsAsked(ZPackage package)
+        {
+            if (package.GetPos() >= package.Size()) return null;
+            var count = package.ReadInt();
+            if (count < 0 || count > MostKinds) return null;
+            var kinds = new HashSet<string>(System.StringComparer.Ordinal);
+            for (var i = 0; i < count; i++) kinds.Add(package.ReadString());
+            return kinds;
+        }
+
+        /// <summary>The most kinds of dungeon an ask may name.</summary>
+        private const int MostKinds = 4096;
 
         /// <summary>In the game running the world: which dungeons lie in a player's ground, answered to that player's game as the maps' own text.</summary>
         private static void Asked(long sender, ZPackage package)
@@ -165,7 +209,8 @@ namespace Scry
             if (ZNet.instance == null || !ZNet.instance.IsServer()) return;
             var world = package.ReadString();
             var source = package.ReadInt();
-            var maps = InGround(world, Utils.Decompress(package.ReadByteArray()));
+            var ground = Utils.Decompress(package.ReadByteArray());
+            var maps = InGround(world, ground, KindsAsked(package));
             var answer = new ZPackage();
             answer.Write(world);
             answer.Write(source);

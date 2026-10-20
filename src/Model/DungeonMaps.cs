@@ -70,13 +70,18 @@ namespace Scry
         /// <summary>The id a map is kept by: the world's, then its generator's network id (the user who made it and its number); none outside a world.</summary>
         public static string IdOf(string world, long user, uint id) => world != null ? world + ":" + Stored.Count(user) + ":" + Stored.Count(id) : null;
 
+        /// <summary>The id a dungeon known only by its entrance is kept by, its area never loaded: the world's, then where it lies, to the metre; none outside a world.</summary>
+        public static string EntranceIdOf(string world, float x, float z) =>
+            world != null ? world + ":at:" + Stored.Count((int)Math.Round(x)) + ":" + Stored.Count((int)Math.Round(z)) : null;
+
         public DungeonMap Of(string id) => id != null && _maps.TryGetValue(id, out var map) ? map : null;
 
-        /// <summary>How many of a map's rooms were walked, of how many, end caps and dividers left out; a room of a kind not read counted as one.</summary>
+        /// <summary>How many of a map's rooms were walked, of how many, end caps and dividers left out; a room of a kind not read counted as one, a walk past its rooms none.</summary>
         public static (int Walked, int Rooms) Walked(DungeonMap map, Func<int, RoomShape> roomOf)
         {
             bool IsRoom(int at)
             {
+                if (at < 0 || at >= map.Rooms.Count) return false;
                 var shape = roomOf(map.Rooms[at].Hash);
                 return shape == null || !shape.EndCap && !shape.Divider;
             }
@@ -217,7 +222,9 @@ namespace Scry
         /// <summary>
         /// The maps as they are now, to be written out on a worker thread: the text is put together
         /// there from what they hold now, not after. They count as saved from here. A dungeon's days
-        /// go on a line of their own after its own, so an older Scry reads its line as before.
+        /// go on a line of their own after its own, so an older Scry reads its line as before; one
+        /// known only by its entrance, no rooms, goes on a line of its own kind, which an older
+        /// Scry passes over.
         /// </summary>
         public Func<string> ToSave()
         {
@@ -229,6 +236,11 @@ namespace Scry
                 text.Append(FirstLine).Append('\n');
                 foreach (var (id, location, entrance, generator, turn, walked, rooms, days) in held)
                 {
+                    if (rooms == null || rooms.Count == 0)
+                    {
+                        text.Append(EntranceLine).Append('\t').Append(Stored.Escaped(id)).Append('\t').Append(Stored.Escaped(location ?? "")).Append('\t').Append(Point(entrance)).Append('\n');
+                        continue;
+                    }
                     text.Append(Stored.Escaped(id)).Append('\t')
                         .Append(Stored.Escaped(location ?? "")).Append('\t')
                         .Append(Point(entrance)).Append('\t')
@@ -246,6 +258,9 @@ namespace Scry
         /// <summary>How a line of a dungeon's days begins.</summary>
         private const string DaysLine = "days";
 
+        /// <summary>How a line of a dungeon known only by its entrance begins.</summary>
+        private const string EntranceLine = "entrance";
+
         private static string Point(Vec3 p) => Stored.Exact(p.X) + " " + Stored.Exact(p.Y) + " " + Stored.Exact(p.Z);
 
         /// <summary>The maps a file held, with their days; a line that cannot be read is passed over, as are days of a dungeon not held, and none for no text.</summary>
@@ -260,6 +275,12 @@ namespace Scry
                 if (fields.Length == 4 && fields[0] == DaysLine)
                 {
                     if (Stored.TryUnescaped(fields[1], out var of) && Stored.TryCount(fields[2], out var first) && Stored.TryCount(fields[3], out var last)) days.Add((of, first, last));
+                    continue;
+                }
+                if (fields.Length == 4 && fields[0] == EntranceLine)
+                {
+                    if (Stored.TryUnescaped(fields[1], out var at) && at.Length > 0 && !maps._maps.ContainsKey(at) && Stored.TryUnescaped(fields[2], out var place) && TryPoint(fields[3], out var door))
+                        maps.Keep(at, place, new List<(int, Vec3, Vec3)>(), door, default, Quat.Identity);
                     continue;
                 }
                 if (fields.Length != 7 || !Stored.TryUnescaped(fields[0], out var id) || id.Length == 0 || !Stored.TryUnescaped(fields[1], out var location)) continue;
@@ -346,6 +367,9 @@ namespace Scry
 
         private static string RoomsOf(int walked, int rooms) => Numbers.Count(walked) + " of " + Naming.Count(rooms, "room", "rooms");
 
+        /// <summary>How far a mark's dungeon was walked: "4 of 9 rooms", "all 9 rooms" once every one is.</summary>
+        private static string MarkRooms(int walked, int rooms) => walked == rooms && rooms > 1 ? "all " + Naming.Count(rooms, "room", "rooms") : RoomsOf(walked, rooms);
+
         private static string WithDays(int first, int last)
         {
             var days = Days(first, last);
@@ -389,12 +413,20 @@ namespace Scry
         public const string GroupAsked = "the server is asked to forget its records of this world.";
 
         /// <summary>
-        /// The words under a dungeon's mark on Valheim's map, as the game names a pin under it: its
-        /// name, and under it how far it was walked, smaller and in a colour of its own, in the rich
-        /// text the game's pin names write.
+        /// The words under the mark of a dungeon walked by you on Valheim's map, as the game names a
+        /// pin under it: its name, and under it how far you walked it, smaller and in a colour of
+        /// its own, in the rich text the game's pin names write.
         /// </summary>
         public static string MarkLabel(string name, int walked, int rooms, string walkedColour, int yourLast, int serverLast) =>
-            $"{name}\n<size=80%><color=#{walkedColour}>{PlanBoxWords.Walked(walked, rooms)}</color></size>" + LastDays(yourLast, serverLast);
+            $"{name}\n<size=80%><color=#{walkedColour}>Walked by you: {MarkRooms(walked, rooms)}</color></size>" + LastDays(yourLast, serverLast);
+
+        /// <summary>The words under the mark of a dungeon walked on this server, shown with insides: its name, how far anyone walked it, and the last day anyone did.</summary>
+        public static string ServerLabel(string name, int walked, int rooms, string colour, int serverLast) =>
+            $"{name}\n<size=80%><color=#{colour}>Walked on this server: {MarkRooms(walked, rooms)}</color></size>" + LastDays(-1, serverLast);
+
+        /// <summary>The words under the mark of a dungeon's entrance alone: whether anyone on this server walked it, With insides then showing what was walked.</summary>
+        public static string EntranceLabel(string name, bool walkedOnServer, string colour) =>
+            $"{name}\n<size=80%><color=#{colour}>{(walkedOnServer ? "Walked on this server; With insides shows what was walked" : "Nobody on this server walked it")}</color></size>";
 
         /// <summary>A mark's line of the last days walked, yours apart from anyone's on this server, smaller; none where neither is known.</summary>
         private static string LastDays(int yourLast, int serverLast)
@@ -404,10 +436,6 @@ namespace Scry
             if (serverLast >= 0) said.Add("server last day " + Numbers.Count(serverLast));
             return said.Count == 0 ? "" : "\n<size=75%>" + string.Join(" \u00b7 ", said) + "</size>";
         }
-
-        /// <summary>A mark's words for a dungeon shown with its insides and not walked: its name, and the ground it shows from, smaller and in the colour given.</summary>
-        public static string InsidesLabel(string name, WorldSource source, string colour, int serverLast) =>
-            $"{name}\n<size=80%><color=#{colour}>not walked \u00b7 with insides from {CompendiumWords.SourceName(source)}</color></size>" + LastDays(-1, serverLast);
 
         /// <summary>The answer to forgetting the maps of the world played.</summary>
         public static string WorldForgotten(int maps) => maps == 0

@@ -103,6 +103,8 @@ namespace Scry
         private Func<string, bool> _walked;
         private int _walkedVersion = -1;
         private bool _roomsMoved;
+        private ServerWalks _walks = ServerWalks.None;
+        private int _walksVersion = -1;
         private string _world;
         private bool _worldMoved;
         private int _sourcesVersion = -1;
@@ -226,6 +228,21 @@ namespace Scry
         /// <summary>Whether a room is of a kind the character has stood in (<see cref="RoomsWalked"/>).</summary>
         private bool Walked(Entry room) => _walked != null && _walked(room.Name);
 
+        /// <summary>
+        /// What anyone on this server walked inside the dungeons each source holds, and a count that
+        /// moves each time it changes. A source shown with insides brings along the kinds of room
+        /// walked in its dungeons, each naming all it holds, its places naming what those rooms
+        /// hold, and a place one of whose dungeons was walked through whole naming all it holds.
+        /// Told on the next <see cref="Tell"/> when the count moved.
+        /// </summary>
+        public void WalkedOnServer(ServerWalks walks, int version)
+        {
+            if (version == _walksVersion && ReferenceEquals(walks, _walks)) return;
+            _walks = walks ?? ServerWalks.None;
+            _walksVersion = version;
+            _roomsMoved = true;
+        }
+
         /// <summary>Whether the character has learned a skill (<see cref="SkillsLearned"/>).</summary>
         private bool Learned(Entry skill) => _learned != null && skill.Source is SkillSource source && _learned(source.Type);
 
@@ -278,17 +295,27 @@ namespace Scry
         /// <summary>Whether a page shows whole under either rules, as what the player chose to show: by the floor, or by a source of the world.</summary>
         public bool Whole(Entry entry) => BelowFloor(entry) || entry != null && _byWorld.ContainsKey(entry);
 
-        /// <summary>Whether a dungeon shows all of its inside by the player's choice: by the floor, or by a source shown with insides.</summary>
-        public bool InsidesShown(Entry entry) => BelowFloor(entry) || HoldsNamed(entry);
+        /// <summary>Whether a dungeon opens inside by the player's choice, the stage showing what anyone on this server walked of it: by the floor, or by a source shown with insides.</summary>
+        public bool InsidesShown(Entry entry) => BelowFloor(entry) || entry != null && _insidesFrom.Contains(entry);
 
         /// <summary>
-        /// Whether a page names all a place holds by the player's choice: a place a source shows
-        /// with its insides, or a room of its dungeon, whatever the character met of it.
+        /// Whether a page names all a place holds by the player's choice, whatever the character
+        /// met of it: a room walked on this server in a dungeon a source shows with insides, or a
+        /// place one of whose dungeons there was walked through whole (<see cref="ServerWalks"/>).
         /// </summary>
-        public bool HoldsNamed(Entry entry) => entry != null && _insidesShown.Contains(entry);
+        public bool HoldsNamed(Entry entry) => entry != null && _holdsNamed.Contains(entry);
 
-        /// <summary>The places a source shows with insides (<see cref="SourceLevel.WithInsides"/>), and the rooms of their dungeons.</summary>
-        private readonly HashSet<Entry> _insidesShown = new HashSet<Entry>();
+        /// <summary>Whether a place's page names an entry as held by one of its rooms walked on this server, in a dungeon a source shows with insides.</summary>
+        public bool HeldByWalks(Entry place, Entry held) => place != null && held != null && _heldByWalks.TryGetValue(place, out var keys) && keys.Contains(held.Key);
+
+        /// <summary>The places a source shows with insides (<see cref="SourceLevel.WithInsides"/>).</summary>
+        private readonly HashSet<Entry> _insidesFrom = new HashSet<Entry>();
+
+        /// <summary>The rooms and places whose pages name all they hold (<see cref="HoldsNamed"/>).</summary>
+        private readonly HashSet<Entry> _holdsNamed = new HashSet<Entry>();
+
+        /// <summary>What each place's rooms walked on this server hold, by its key (<see cref="HeldByWalks"/>).</summary>
+        private readonly Dictionary<Entry, HashSet<string>> _heldByWalks = new Dictionary<Entry, HashSet<string>>();
 
         /// <summary>The source an entry shows from only, as the player chose how it shows, neither the character meeting it nor anything it knows bringing it along; none for any other.</summary>
         public WorldSource? ByWorld(Entry entry) => entry != null && _byWorld.TryGetValue(entry, out var source) ? source : (WorldSource?)null;
@@ -364,7 +391,9 @@ namespace Scry
             _owns.Clear();
             _byFloor.Clear();
             _byWorld.Clear();
-            _insidesShown.Clear();
+            _insidesFrom.Clear();
+            _holdsNamed.Clear();
+            _heldByWalks.Clear();
             if (rule == CompendiumRule.Off) return;
 
             // What the character knows itself, with all it brings along; then what the floor adds,
@@ -480,7 +509,7 @@ namespace Scry
             while (met.Count > 0)
             {
                 var owner = met.Dequeue();
-                foreach (var owned in Owned(owner, insides))
+                foreach (var owned in Owned(owner, insides ? source : null))
                 {
                     if (byFloor && (AboveFloor(owned) || OnlyGlimpsed(owned))) continue;
                     _owns.Add((owner, owned));
@@ -498,9 +527,10 @@ namespace Scry
         /// What the world's sources show as the player chose (<see cref="CompendiumBook.Shows"/>):
         /// the places each found in this world, the strongest source first, seen or known as chosen
         /// and told apart as that source's (<see cref="ByWorld"/>), a known one bringing along
-        /// what a known place does, with insides every room of a dungeon, walked or not. What the
-        /// character holds itself, or anything brings along already, is left as it is, but a
-        /// dungeon shown with insides adds its rooms not yet shown.
+        /// what a known place does, with insides what anyone on this server walked inside the
+        /// source's dungeons (<see cref="WalkedOnServer"/>). What the character holds itself, or
+        /// anything brings along already, is left as it is, but a dungeon shown with insides adds
+        /// its rooms walked there not yet shown.
         /// </summary>
         private void ShowFromWorld(CompendiumBook book, Queue<Entry> met)
         {
@@ -527,23 +557,40 @@ namespace Scry
                         _byWorld[entry] = source;
                     }
                     else if (level != SourceLevel.WithInsides) continue;
-                    if (level == SourceLevel.WithInsides) ShownWithInsides(entry);
+                    if (level == SourceLevel.WithInsides) ShownWithInsides(entry, source);
                     met.Enqueue(entry);
                 }
                 Spread(met, false, source, level == SourceLevel.WithInsides);
             }
         }
 
-        /// <summary>A place shown with its insides, and every room of its dungeon.</summary>
-        private void ShownWithInsides(Entry place)
+        /// <summary>
+        /// A place a source shows with its insides: its rooms walked on this server in the source's
+        /// dungeons each naming all it holds, the place naming what they hold, and all it holds once
+        /// one of its dungeons there was walked through whole.
+        /// </summary>
+        private void ShownWithInsides(Entry place, WorldSource source)
         {
-            _insidesShown.Add(place);
+            _insidesFrom.Add(place);
+            if (_walks.Whole(source, place.Name)) _holdsNamed.Add(place);
             var label = Places.LabelOf(place);
-            if (label != null && _rooms.TryGetValue(label, out var rooms)) _insidesShown.UnionWith(rooms);
+            if (label == null || !_rooms.TryGetValue(label, out var rooms)) return;
+            foreach (var room in rooms)
+            {
+                if (!_walks.Walked(source, room.Name)) continue;
+                _holdsNamed.Add(room);
+                if (!_heldByWalks.TryGetValue(place, out var held)) _heldByWalks[place] = held = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var link in room.Links) if (!link.Back) held.Add(link.Target);
+            }
         }
 
-        /// <summary>What an entry owns: what it plays, what it leaves behind, a known dungeon's rooms, and what it links to that is not a thing of its own, by its own links, not those back from what links to it.</summary>
-        private IEnumerable<Entry> Owned(Entry owner, bool insides = false)
+        /// <summary>
+        /// What an entry owns: what it plays, what it leaves behind, a known dungeon's rooms, and what
+        /// it links to that is not a thing of its own, by its own links, not those back from what
+        /// links to it. Under the strict rules a dungeon's rooms are those walked, by the character
+        /// or, shown with insides from a source, by anyone on this server in its dungeons.
+        /// </summary>
+        private IEnumerable<Entry> Owned(Entry owner, WorldSource? insides = null)
         {
             if (_played.TryGetValue(owner.Name, out var played)) foreach (var entry in played) yield return entry;
             if (_leftovers.TryGetValue(owner.Name, out var left)) foreach (var entry in left) yield return entry;
@@ -556,8 +603,8 @@ namespace Scry
             var label = Places.LabelOf(owner);
             if (label != null && Of(owner) == KnownLevel.Known && _rooms.TryGetValue(label, out var rooms))
             {
-                // Under the strict rules only the kinds of room walked, unless shown with its insides.
-                foreach (var room in rooms) if (insides || _rule != CompendiumRule.Strict || Walked(room)) yield return room;
+                // Under the strict rules only the kinds of room walked, by the character or on this server where shown with insides.
+                foreach (var room in rooms) if (_rule != CompendiumRule.Strict || Walked(room) || insides is WorldSource from && _walks.Walked(from, room.Name)) yield return room;
             }
             foreach (var link in owner.Links)
             {

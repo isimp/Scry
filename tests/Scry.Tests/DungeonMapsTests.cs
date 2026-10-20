@@ -139,6 +139,33 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ADungeonKnownOnlyByItsEntranceIsKeptOnALineOfItsOwnThatAnOlderReaderPassesOver()
+        {
+            // A dungeon whose area never loaded: where it lies is known, none of its rooms.
+            var id = DungeonMaps.EntranceIdOf("w", 1200.6f, -340.2f);
+            Assert.Equal("w:at:1201:-340", id);
+            var maps = Two();
+            maps.Keep(id, "Crypt2", new List<(int, Vec3, Vec3)>(), new Vec3(1200.6f, 31f, -340.2f), default, Quat.Identity);
+            Assert.False(maps.Walk(id, 0));
+            Assert.Contains(id, maps.OfWorld("w").Select(m => m.Id));
+
+            var text = maps.ToSave()();
+            var line = text.Split('\n').Single(l => l.StartsWith("entrance\t", StringComparison.Ordinal));
+            Assert.Equal(4, line.Split('\t').Length);
+            var back = DungeonMaps.Load(text);
+            var map = back.Of(id);
+            Assert.NotNull(map);
+            Assert.Equal("Crypt2", map.Location);
+            Assert.Empty(map.Rooms);
+            Assert.Equal((1200.6f, 31f, -340.2f), (map.Entrance.X, map.Entrance.Y, map.Entrance.Z));
+            Assert.Equal(new[] { "w:1:2", "v:4:5", id }, back.All.Select(m => m.Id));
+            Assert.Equal((0, 0), DungeonMaps.Walked(map, _ => null));
+
+            // Its four fields are no dungeon's seven, so an older Scry passes the line over; one that cannot be read is passed over.
+            Assert.Empty(DungeonMaps.Load("scry-maps 1\nentrance\tw:at:1:2\tCrypt2\tnot a point").All);
+        }
+
+        [Fact]
         public void WhatIsSavedIsWhatTheMapsHeldWhenAskedNotAfter()
         {
             var maps = Two();

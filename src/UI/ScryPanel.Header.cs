@@ -565,6 +565,7 @@ namespace Scry
                 {
                     foreach (var level in WorldSources.Offered(WorldSources.All[s]))
                     {
+                        if (level == SourceLevel.WithInsides && !OffersInsides(book, WorldSources.All[s])) continue;
                         if (SourceSegments[s][(int)level].Contains(e.mousePosition) && book.Shows(WorldSources.All[s]) != level) ShowSource(WorldSources.All[s], level);
                     }
                     if (SourcePins[s].Contains(e.mousePosition)) MarkDungeons(WorldSources.All[s], !book.MarksDungeons(WorldSources.All[s]));
@@ -626,7 +627,14 @@ namespace Scry
             }
         }
 
-        /// <summary>The box's rows for the world's sources: the caption, each source's name with its levels, the one chosen lit, and the faint line saying what turning one down does; each with its tip.</summary>
+        /// <summary>
+        /// Whether a row offers With insides: some place it found in this world has insides
+        /// (<see cref="DungeonKinds"/>), or no place is read yet to tell; dimmed otherwise.
+        /// </summary>
+        private static bool OffersInsides(CompendiumBook book, WorldSource source) =>
+            DungeonKinds.All.Count == 0 || WorldSources.HasInsides(book.Found(CompendiumMap.World, source), DungeonKinds.Is);
+
+        /// <summary>The box's rows for the world's sources: the caption, each source's name with its levels, the one chosen lit, With insides dimmed where nothing found has insides, and the faint line saying what turning one down does; each with its tip.</summary>
         private static void DrawSources(CompendiumBook book, Vector2 mouse, bool repaint)
         {
             if (!_bookSourcesShown) return;
@@ -645,14 +653,22 @@ namespace Scry
                 foreach (var level in WorldSources.Offered(source))
                 {
                     var at = SourceSegments[s][(int)level];
-                    if (repaint) GUI.Button(at, CompendiumWords.LevelName(level), shows == level ? Skin.SegmentOn : Skin.Segment);
-                    if (at.Contains(mouse)) AskTip("source-level-" + level, CompendiumWords.LevelTip(level));
+                    var dimmed = level == SourceLevel.WithInsides && shows != level && !OffersInsides(book, source);
+                    if (dimmed) CountDrawn(PanelPart.InsidesDimmed);
+                    if (repaint)
+                    {
+                        var was = GUI.enabled;
+                        GUI.enabled = was && !dimmed;
+                        GUI.Button(at, CompendiumWords.LevelName(level), shows == level ? Skin.SegmentOn : Skin.Segment);
+                        GUI.enabled = was;
+                    }
+                    if (at.Contains(mouse)) AskTip("source-level-" + level, dimmed ? CompendiumWords.NoInsides(source) : CompendiumWords.LevelTip(level));
                 }
                 DrawPin(book, source, SourcePins[s], mouse, repaint);
             }
         }
 
-        /// <summary>A ground's pin: the big map's dungeon mark on a segment, in the accent while on, faint while off, saying on hover what it does and whether it marks now.</summary>
+        /// <summary>A ground's pin: the big map's dungeon mark on a segment, in the accent while on, faint while off, saying on hover what it does and whether it is on.</summary>
         private static void DrawPin(CompendiumBook book, WorldSource source, Rect pin, Vector2 mouse, bool repaint)
         {
             if (pin.width <= 0f) return;
@@ -664,7 +680,7 @@ namespace Scry
                 var inset = U(4f);
                 Skin.Icon(new Rect(pin.x + inset, pin.y + inset, pin.width - inset * 2f, pin.height - inset * 2f), Skin.Doorway, on ? Skin.Accent : Skin.Alpha(Skin.Faint, 0.45f));
             }
-            if (pin.Contains(mouse)) AskTip("source-pin-" + source, Naming.Lines(CompendiumWords.PinName, CompendiumWords.PinTip(on, book.Shows(source) == SourceLevel.WithInsides)));
+            if (pin.Contains(mouse)) AskTip("source-pin-" + source, Naming.Lines(CompendiumWords.PinName, CompendiumWords.PinTip(on)));
         }
 
         /// <summary>Turns a ground's pin on or off for the character played and keeps it at once, asking about the ground as it goes on: a choice of the player's. The pin, and the self-test.</summary>

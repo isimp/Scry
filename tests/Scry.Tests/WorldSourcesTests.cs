@@ -10,6 +10,9 @@ namespace Scry.Tests
         // stone marked, and the places every map shows. Each source's places show at the level
         // chosen, laid over the book as the floor is, never written into it: marked as the
         // source's, so turning a source down takes it all back. The places are kept per world.
+        // With insides, a source shows what anyone on this server walked inside its dungeons: the
+        // rooms walked, each naming all it holds, the place naming what they hold, and a dungeon
+        // walked through whole naming all its place holds.
 
         private const string World = "1234";
         private const string OtherWorld = "5678";
@@ -48,7 +51,31 @@ namespace Scry.Tests
                 View.Tell(Book, rule);
                 return this;
             }
+
+            private readonly Dictionary<WorldSource, List<DungeonMap>> _walks = new Dictionary<WorldSource, List<DungeonMap>>();
+            private int _walksVersion;
+
+            /// <summary>A dungeon of the crypt lying in a source's ground, the rooms named walked on this server, handed to the view; told on the next telling.</summary>
+            public Setup WalkedOnServer(WorldSource source, params Entry[] walked)
+            {
+                var rooms = new[] { Walked.Name, NotWalked.Name };
+                var map = new DungeonMap { Location = Crypt.Name, Rooms = new List<(int, Vec3, Vec3)>() };
+                foreach (var room in rooms) map.Rooms.Add((Hash(room), new Vec3(0f, 0f, 0f), new Vec3(0f, 0f, 0f)));
+                foreach (var room in walked) map.Walked.Add(System.Array.IndexOf(rooms, room.Name));
+                if (!_walks.TryGetValue(source, out var held)) _walks[source] = held = new List<DungeonMap>();
+                held.Add(map);
+                View.WalkedOnServer(ServerWalks.Of(s => _walks.TryGetValue(s, out var maps) ? maps : new List<DungeonMap>(), _ => null, Hash), ++_walksVersion);
+                return this;
+            }
+
+            public Setup Tell(CompendiumRule rule = CompendiumRule.Strict)
+            {
+                View.Tell(Book, rule);
+                return this;
+            }
         }
+
+        private static int Hash(string name) => System.StringComparer.Ordinal.GetHashCode(name);
 
         [Fact]
         public void TheBoxsHintSaysTheMarkItDrawsIsWhatASourceShows()
@@ -107,15 +134,53 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void UnderStrictKnownBringsTheRoomsWalkedWithInsidesEveryRoom()
+        public void UnderStrictWithInsidesBringsTheRoomsWalkedOnThisServerInThatSourcesDungeons()
         {
             var s = new Setup().Found(WorldSource.Explored, "Crypt2").Shows(WorldSource.Explored, SourceLevel.Known, CompendiumRule.Strict);
             Assert.Equal(KnownLevel.Known, s.View.Of(s.Walked));
             Assert.True(s.View.Of(s.NotWalked) < KnownLevel.Seen);
 
+            // Nobody on this server walked the room: with insides shows no more of it.
             s.Shows(WorldSource.Explored, SourceLevel.WithInsides, CompendiumRule.Strict);
+            Assert.True(s.View.Of(s.NotWalked) < KnownLevel.Seen);
+
+            // Walked in a dungeon of another source's ground: still nothing here.
+            s.WalkedOnServer(WorldSource.SharedMaps, s.NotWalked).Tell();
+            Assert.True(s.View.Of(s.NotWalked) < KnownLevel.Seen);
+
+            s.WalkedOnServer(WorldSource.Explored, s.NotWalked).Tell();
             Assert.Equal(KnownLevel.Known, s.View.Of(s.NotWalked));
             Assert.Equal(WorldSource.Explored, s.View.ByWorld(s.NotWalked));
+
+            // Below With insides, the walks show nothing more.
+            s.Shows(WorldSource.Explored, SourceLevel.Known, CompendiumRule.Strict);
+            Assert.True(s.View.Of(s.NotWalked) < KnownLevel.Seen);
+        }
+
+        [Fact]
+        public void NewWalksOnThisServerCountTheViewAgain()
+        {
+            var s = new Setup().Found(WorldSource.Explored, "Crypt2").Shows(WorldSource.Explored, SourceLevel.WithInsides, CompendiumRule.Strict);
+            var counts = s.View.WholeCountsOf(WholeCause.Rooms);
+            s.WalkedOnServer(WorldSource.Explored, s.NotWalked).Tell();
+            Assert.Equal(counts + 1, s.View.WholeCountsOf(WholeCause.Rooms));
+            // Handed again unchanged, nothing is counted afresh.
+            s.Tell();
+            Assert.Equal(counts + 1, s.View.WholeCountsOf(WholeCause.Rooms));
+        }
+
+        [Fact]
+        public void WalksHandedAnewUnderTheSameCountAreToldAgain()
+        {
+            // As a view handed walks of its own, its count started afresh.
+            var s = new Setup().Found(WorldSource.Explored, "Crypt2").Shows(WorldSource.Explored, SourceLevel.WithInsides, CompendiumRule.Strict);
+            var map = new DungeonMap { Location = s.Crypt.Name, Rooms = new List<(int, Vec3, Vec3)> { (Hash(s.NotWalked.Name), new Vec3(0f, 0f, 0f), new Vec3(0f, 0f, 0f)) } };
+            s.View.WalkedOnServer(ServerWalks.Of(_ => new DungeonMap[0], _ => null, Hash), 7);
+            s.Tell();
+            map.Walked.Add(0);
+            s.View.WalkedOnServer(ServerWalks.Of(at => at == WorldSource.Explored ? new[] { map } : new DungeonMap[0], _ => null, Hash), 7);
+            s.Tell();
+            Assert.Equal(KnownLevel.Known, s.View.Of(s.NotWalked));
         }
 
         [Fact]
@@ -174,10 +239,11 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void ADungeonTheCharacterKnowsGainsItsRoomsNotWalkedWithInsides()
+        public void ADungeonTheCharacterKnowsGainsTheRoomsWalkedOnThisServerWithInsides()
         {
             var s = new Setup().Found(WorldSource.Explored, "Crypt2");
             s.Book.Raise(s.Crypt.Key, KnownLevel.Known);
+            s.WalkedOnServer(WorldSource.Explored, s.NotWalked);
             s.Shows(WorldSource.Explored, SourceLevel.WithInsides, CompendiumRule.Strict);
             Assert.Null(s.View.ByWorld(s.Crypt));
             Assert.Equal(KnownLevel.Known, s.View.Of(s.NotWalked));
@@ -316,6 +382,7 @@ namespace Scry.Tests
                 System.Array.ConvertAll((SourceLevel[])System.Enum.GetValues(typeof(SourceLevel)), CompendiumWords.LevelName));
             foreach (var source in WorldSources.All) Assert.False(string.IsNullOrEmpty(CompendiumWords.SourceTip(source)));
             foreach (SourceLevel level in System.Enum.GetValues(typeof(SourceLevel))) Assert.False(string.IsNullOrEmpty(CompendiumWords.LevelTip(level)));
+            Assert.Equal("Known, with what anyone on this server walked inside: those rooms and what they hold. A dungeon nobody walked shows only its entrance.", CompendiumWords.LevelTip(SourceLevel.WithInsides));
             // Your own ground and marked places offer no Off, as they show at least seen.
             Assert.Equal(new[] { SourceLevel.Seen, SourceLevel.Known, SourceLevel.WithInsides }, WorldSources.Offered(WorldSource.Explored));
             Assert.Equal(new[] { SourceLevel.Off, SourceLevel.Seen, SourceLevel.Known, SourceLevel.WithInsides }, WorldSources.Offered(WorldSource.SharedMaps));
@@ -336,19 +403,30 @@ namespace Scry.Tests
             Assert.Equal("Goes to Haldor", explorer.ChoiceTip(s.Haldor.Key, "Goes to Haldor"));
         }
 
-        /// <summary>A place holding a creature never met, and a skill never learned, its source shown as given; the explorer handed what it shows.</summary>
-        private static (Explorer Explorer, Setup Setup, Entry Draugr, Entry Skill) Holding(WorldSource source, SourceLevel level)
+        /// <summary>
+        /// A place holding a creature never met, in one of its rooms, a ghost in its own outside, and
+        /// a skill never learned, its source shown as given, the rooms named walked on this server
+        /// in that source's ground; the explorer handed what it shows.
+        /// </summary>
+        private static (Explorer Explorer, Setup Setup, Entry Draugr, Entry Skill) Holding(WorldSource source, SourceLevel level, params string[] walkedOnServer)
         {
             var s = new Setup();
             var draugr = new Entry { Kind = Kind.Creature, Name = "Draugr" };
             var skill = new Entry { Kind = Kind.Skill, Name = "Swords" };
+            var ghost = new Entry { Kind = Kind.Creature, Name = "Ghost" };
             s.Crypt.Links.Add(new Link { Group = "Its spawn points place", Target = draugr.Key });
+            s.Crypt.Links.Add(new Link { Group = "Its spawn points place", Target = ghost.Key });
             s.NotWalked.Links.Add(new Link { Group = "Its spawn points place", Target = draugr.Key });
             s.Crypt.Links.Add(new Link { Group = "Trains", Target = skill.Key });
-            var explorer = new Explorer(new[] { s.Crypt, s.Walked, s.NotWalked, s.Haldor, s.Glow, draugr, skill }, new Favourites(System.IO.Path.Combine(TestCatalog.TempDir(), "favourites.txt")));
+            var explorer = new Explorer(new[] { s.Crypt, s.Walked, s.NotWalked, s.Haldor, s.Glow, draugr, skill, ghost }, new Favourites(System.IO.Path.Combine(TestCatalog.TempDir(), "favourites.txt")));
             var view = new CompendiumView(explorer.Entries);
             view.RoomsWalked(name => name == "sunkencrypt_Room1", 1);
             view.InWorld(World);
+            var rooms = new[] { s.Walked.Name, s.NotWalked.Name };
+            var map = new DungeonMap { Location = s.Crypt.Name, Rooms = new List<(int, Vec3, Vec3)>() };
+            foreach (var room in rooms) map.Rooms.Add((Hash(room), new Vec3(0f, 0f, 0f), new Vec3(0f, 0f, 0f)));
+            foreach (var room in walkedOnServer) map.Walked.Add(System.Array.IndexOf(rooms, room));
+            view.WalkedOnServer(ServerWalks.Of(at => at == source ? new[] { map } : new DungeonMap[0], _ => null, Hash), 1);
             s.Book.FoundIn(World, source, new[] { "Crypt2", "Vendor_BlackForest" });
             s.Book.Show(source, level);
             view.Tell(s.Book, CompendiumRule.Strict);
@@ -356,29 +434,54 @@ namespace Scry.Tests
             return (explorer, s, draugr, skill);
         }
 
+        private const string Ghost = "Ghost";
+
         [Fact]
-        public void APlaceShownWithItsInsidesNamesAllItHoldsOnItsPage()
+        public void APlaceShownWithItsInsidesNamesWhatItsRoomsWalkedOnThisServerHold()
         {
-            var (explorer, s, draugr, skill) = Holding(WorldSource.SharedMaps, SourceLevel.WithInsides);
+            var (explorer, s, draugr, skill) = Holding(WorldSource.SharedMaps, SourceLevel.WithInsides, "sunkencrypt_Room2");
             Assert.True(explorer.LevelOf(draugr) < KnownLevel.Seen);
             explorer.Select(s.Crypt);
             Assert.False(explorer.LeavesOut(draugr.Key));
-            // Its example stands every creature it places.
+            // Its example stands every creature its walked rooms place.
             Assert.False(explorer.NotMet(draugr.Key));
+            // What only its own outside holds waits for the dungeon to be walked through whole.
+            Assert.True(explorer.LeavesOut(EntryKeys.For(Kind.Creature, Ghost)));
             // A skill never learned is named nowhere, all it holds or not.
             Assert.True(explorer.LeavesOut(skill.Key));
             Assert.True(explorer.NotMet(skill.Key));
         }
 
         [Fact]
-        public void EachRoomItBringsNamesAllItHoldsToo()
+        public void APlaceNobodyOnThisServerWalkedNamesOnlyWhatWasMetWithInsides()
         {
             var (explorer, s, draugr, _) = Holding(WorldSource.SharedMaps, SourceLevel.WithInsides);
+            explorer.Select(s.Crypt);
+            Assert.True(explorer.LeavesOut(draugr.Key));
+            Assert.True(explorer.NotMet(draugr.Key));
+        }
+
+        [Fact]
+        public void ARoomWalkedOnThisServerNamesAllItHoldsOneNotWalkedOnlyWhatWasMet()
+        {
+            var (explorer, s, draugr, _) = Holding(WorldSource.SharedMaps, SourceLevel.WithInsides, "sunkencrypt_Room2");
             explorer.Select(s.NotWalked);
             Assert.False(explorer.LeavesOut(draugr.Key));
             Assert.False(explorer.NotMet(draugr.Key));
-            explorer.Select(s.Walked);
+
+            var (other, t, creature, _) = Holding(WorldSource.SharedMaps, SourceLevel.WithInsides, "sunkencrypt_Room1");
+            other.Select(t.NotWalked);
+            Assert.True(other.NotMet(creature.Key));
+        }
+
+        [Fact]
+        public void ADungeonWalkedThroughWholeOnThisServerNamesAllItsPlaceHolds()
+        {
+            var (explorer, s, draugr, skill) = Holding(WorldSource.SharedMaps, SourceLevel.WithInsides, "sunkencrypt_Room1", "sunkencrypt_Room2");
+            explorer.Select(s.Crypt);
+            Assert.False(explorer.LeavesOut(EntryKeys.For(Kind.Creature, Ghost)));
             Assert.False(explorer.LeavesOut(draugr.Key));
+            Assert.True(explorer.LeavesOut(skill.Key));
         }
 
         [Fact]
@@ -407,16 +510,34 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void OnlyASourceShownWithInsidesNamesAllAPlaceHolds()
+        public void OnlyWalksOnThisServerUnderWithInsidesNameAllARoomOrAPlaceHolds()
         {
-            var s = new Setup().Found(WorldSource.SharedMaps, "Crypt2").Shows(WorldSource.SharedMaps, SourceLevel.WithInsides, CompendiumRule.Strict);
-            Assert.True(s.View.HoldsNamed(s.Crypt));
+            var s = new Setup().Found(WorldSource.SharedMaps, "Crypt2");
+            s.WalkedOnServer(WorldSource.SharedMaps, s.NotWalked);
+            s.Shows(WorldSource.SharedMaps, SourceLevel.WithInsides, CompendiumRule.Strict);
             Assert.True(s.View.HoldsNamed(s.NotWalked));
-            Assert.True(s.View.HoldsNamed(s.Walked));
+            Assert.False(s.View.HoldsNamed(s.Walked));
+            Assert.False(s.View.HoldsNamed(s.Crypt));
             Assert.False(s.View.HoldsNamed(s.Haldor));
+            // Every room walked: the dungeon is walked through whole.
+            s.WalkedOnServer(WorldSource.SharedMaps, s.Walked, s.NotWalked).Tell();
+            Assert.True(s.View.HoldsNamed(s.Crypt));
             s.Shows(WorldSource.SharedMaps, SourceLevel.Known, CompendiumRule.Strict);
             Assert.False(s.View.HoldsNamed(s.Crypt));
             Assert.False(s.View.HoldsNamed(s.NotWalked));
+        }
+
+        [Fact]
+        public void WithInsidesIsOfferedOnlyWhereAPlaceFoundHasInsides()
+        {
+            // Dimmed elsewhere, its tip naming what would: a row of traders, altars and the start has none.
+            var dungeons = new HashSet<string> { "Crypt2", "Hildir_cave" };
+            Assert.False(WorldSources.HasInsides(new[] { "Vendor_BlackForest", "StartTemple" }, dungeons.Contains));
+            Assert.True(WorldSources.HasInsides(new[] { "StartTemple", "Hildir_cave" }, dungeons.Contains));
+            Assert.False(WorldSources.HasInsides(new string[0], dungeons.Contains));
+            Assert.Equal("None of the places in this ground has insides yet.", CompendiumWords.NoInsides(WorldSource.Explored));
+            Assert.Equal("None of the places marked for you in this world has insides yet. The Queen's lair and Hildir's crypt, cave and tower would.", CompendiumWords.NoInsides(WorldSource.Marked));
+            Assert.Equal("None of the places every map shows in this world has insides yet. Hildir's crypt, cave and tower show once she sends you to them.", CompendiumWords.NoInsides(WorldSource.OnEveryMap));
         }
 
         private static List<string> Sorted(IEnumerable<string> kinds)

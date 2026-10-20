@@ -137,9 +137,11 @@ namespace Scry
         /// The dungeons lying in explored ground whose rooms the world keeps, as the game running the
         /// world has them: each location placed in the ground, its zone's objects looked through for
         /// a generator standing where the game counts a place as inside (<c>Character.InInterior</c>)
-        /// with rooms saved, the one nearest its entrance; a location whose zone never loaded has none yet.
+        /// with rooms saved, the one nearest its entrance; a location whose zone never loaded has none
+        /// yet. Those of the kinds of dungeon named that hold no rooms yet, placed or not, are told by
+        /// their entrance alone, as the game knows where every location lies.
         /// </summary>
-        public static List<WorldDungeon> InGround(string world, ExploredGrid grid)
+        public static List<WorldDungeon> InGround(string world, ExploredGrid grid, ICollection<string> kinds, List<(string Location, Vector3 At)> entrances)
         {
             var found = new List<WorldDungeon>();
             var zones = ZoneSystem.instance;
@@ -147,9 +149,15 @@ namespace Scry
             if (zones == null || zdos == null || grid == null || world == null) return found;
             foreach (var instance in zones.m_locationInstances.Values)
             {
-                if (!instance.m_placed || instance.m_location == null) continue;
+                if (instance.m_location == null) continue;
                 var at = instance.m_position;
                 if (!grid.Explored(at.x, at.z)) continue;
+                var name = CompendiumMap.NameOf(instance.m_location);
+                if (!instance.m_placed)
+                {
+                    if (kinds != null && kinds.Contains(name)) entrances.Add((name, at));
+                    continue;
+                }
                 InZone.Clear();
                 zdos.FindSectorObjects(ZoneSystem.GetZone(at), OneZone, InZone);
                 ZDO generator = null;
@@ -163,8 +171,9 @@ namespace Scry
                     nearest = apart;
                     generator = zdo;
                 }
-                var dungeon = generator != null ? FromZdo(world, generator, CompendiumMap.NameOf(instance.m_location), at) : null;
+                var dungeon = generator != null ? FromZdo(world, generator, name, at) : null;
                 if (dungeon != null) found.Add(dungeon);
+                else if (kinds != null && kinds.Contains(name)) entrances.Add((name, at));
             }
             return found;
         }

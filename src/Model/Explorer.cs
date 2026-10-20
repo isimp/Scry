@@ -325,8 +325,13 @@ namespace Scry
             return entry != null && _view.Of(entry) < KnownLevel.Seen && !NamesAllHeld(entry);
         }
 
-        /// <summary>Whether the page shown names an entry the character never met as one of all it holds: a place shown with its insides (<see cref="CompendiumView.HoldsNamed"/>); never a skill not learned, named nowhere.</summary>
-        private bool NamesAllHeld(Entry other) => other.Kind != Kind.Skill && _view.HoldsNamed(_selected);
+        /// <summary>
+        /// Whether the page shown names an entry the character never met as one of all it holds: a
+        /// room or place shown with all it holds (<see cref="CompendiumView.HoldsNamed"/>), or a
+        /// place naming what its rooms walked on this server hold (<see cref="CompendiumView.HeldByWalks"/>);
+        /// never a skill not learned, named nowhere.
+        /// </summary>
+        private bool NamesAllHeld(Entry other) => other.Kind != Kind.Skill && (_view.HoldsNamed(_selected) || _view.HeldByWalks(_selected, other));
 
         /// <summary>
         /// The faint line at a section's end telling how many things its page left out, in the

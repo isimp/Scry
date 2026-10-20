@@ -113,6 +113,9 @@ namespace Scry
 
         private static bool IsServer => ZNet.instance != null && ZNet.instance.IsServer();
 
+        /// <summary>The server's record of a dungeon, anyone's walks on it, where this game runs the world and has read its records; none otherwise.</summary>
+        public static DungeonMap RecordOf(string id) => IsServer ? _records?.Of(id) : null;
+
         /// <summary>A dungeon been in, a room newly walked or a new day in it, to be sent with the next walk.</summary>
         public static void Walked(string id) => _toReport = id;
 

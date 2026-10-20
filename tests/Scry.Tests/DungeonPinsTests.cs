@@ -7,13 +7,35 @@ namespace Scry.Tests
     public class DungeonPinsTests
     {
         // A source of ground, the ground you explored or ground from shared maps, has a pin at the
-        // end of its row: on, and while the row shows With insides, each dungeon lying in that
-        // ground whose area has loaded gets a mark of its own on Valheim's big map, hollow where it
-        // was not walked, naming the ground it shows from. A walked dungeon is marked as before,
-        // whatever the pins. The pins are kept with the character, off until turned on.
+        // end of its row: on, and while the row shows anything, each dungeon lying in that ground
+        // gets a mark of its own on Valheim's big map. Below With insides it marks the entrance
+        // alone; with insides, one walked on this server is marked hollow, showing what was walked,
+        // and one nobody walked still marks only its entrance. A dungeon walked by you is marked as
+        // before, whatever the pins. The pins are kept with the character, off until turned on.
 
-        private static DungeonMap Map(string location) =>
-            new DungeonMap { Location = location, Rooms = new List<(int, Vec3, Vec3)>(), Entrance = new Vec3(1f, 2f, 3f) };
+        private static DungeonMap Map(string location, params int[] walked)
+        {
+            var map = new DungeonMap { Location = location, Rooms = Enumerable.Range(0, 4).Select(i => (i, new Vec3(i, 0f, 0f), new Vec3(0f, 0f, 0f))).ToList(), Entrance = new Vec3(1f, 2f, 3f) };
+            foreach (var room in walked) map.Walked.Add(room);
+            return map;
+        }
+
+        /// <summary>A dungeon whose area never loaded: its entrance known, no rooms.</summary>
+        private static DungeonMap Entrance(string location) =>
+            new DungeonMap { Location = location, Rooms = new List<(int, Vec3, Vec3)>(), Entrance = new Vec3(4f, 5f, 6f) };
+
+        private static readonly (string, DungeonMap)[] None = new (string, DungeonMap)[0];
+
+        private static CompendiumBook Pinned(SourceLevel level, params WorldSource[] sources)
+        {
+            var book = new CompendiumBook();
+            foreach (var source in sources)
+            {
+                book.Show(source, level);
+                book.MarkDungeons(source, true);
+            }
+            return book;
+        }
 
         [Fact]
         public void OnlyASourceOfGroundHasAPin()
@@ -53,89 +75,109 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void APinMarksOnlyWhileItsRowShowsWithInsides()
+        public void APinMarksAtEveryLevelItsRowShowsAnything()
         {
             var book = new CompendiumBook();
-            book.MarkDungeons(WorldSource.Explored, true);
-            Assert.False(book.MarksDungeonsNow(WorldSource.Explored));
-            book.Show(WorldSource.Explored, SourceLevel.Known);
-            Assert.False(book.MarksDungeonsNow(WorldSource.Explored));
-            book.Show(WorldSource.Explored, SourceLevel.WithInsides);
-            Assert.True(book.MarksDungeonsNow(WorldSource.Explored));
-            book.MarkDungeons(WorldSource.Explored, false);
-            Assert.False(book.MarksDungeonsNow(WorldSource.Explored));
+            book.MarkDungeons(WorldSource.SharedMaps, true);
+            Assert.False(book.MarksDungeonsNow(WorldSource.SharedMaps));
+            foreach (var level in new[] { SourceLevel.Seen, SourceLevel.Known, SourceLevel.WithInsides })
+            {
+                book.Show(WorldSource.SharedMaps, level);
+                Assert.True(book.MarksDungeonsNow(WorldSource.SharedMaps));
+            }
+            book.MarkDungeons(WorldSource.SharedMaps, false);
+            Assert.False(book.MarksDungeonsNow(WorldSource.SharedMaps));
+
+            // Your own ground shows at least seen, so its pin marks once turned on.
+            var own = new CompendiumBook();
+            Assert.False(own.MarksDungeonsNow(WorldSource.Explored));
+            own.MarkDungeons(WorldSource.Explored, true);
+            Assert.True(own.MarksDungeonsNow(WorldSource.Explored));
         }
 
         [Fact]
-        public void AWalkedDungeonIsMarkedWhateverThePins()
+        public void ADungeonWalkedByYouIsMarkedWhateverThePins()
         {
-            var book = new CompendiumBook();
-            var walked = new[] { ("w:1", Map("Crypt2")) };
-            var marks = DungeonMarks.Of(book, walked, _ => Enumerable.Empty<(string, DungeonMap)>());
+            var walked = new[] { ("w:1", Map("Crypt2", 0)) };
+            var marks = DungeonMarks.Of(new CompendiumBook(), walked, _ => None);
             Assert.Equal(new[] { "w:1" }, marks.Select(m => m.Id));
+            Assert.Equal(MarkLook.Yours, marks[0].Look);
             Assert.Null(marks[0].From);
             // With no character's book read yet, the walked ones alone.
             Assert.Equal(new[] { "w:1" }, DungeonMarks.Of(null, walked, _ => new[] { ("w:2", Map("Crypt2")) }).Select(m => m.Id));
         }
 
         [Fact]
-        public void ADungeonInGroundShownWithInsidesIsMarkedNamingItsGround()
+        public void BelowWithInsidesEveryDungeonInTheGroundIsMarkedByItsEntranceAlone()
         {
-            var book = new CompendiumBook();
-            book.Show(WorldSource.Explored, SourceLevel.WithInsides);
-            book.MarkDungeons(WorldSource.Explored, true);
-            var inGround = new Dictionary<WorldSource, (string, DungeonMap)[]>
+            var inGround = new[] { ("w:2", Map("Crypt2", 1, 2)), ("w:3", Entrance("SunkenCrypt4")) };
+            foreach (var level in new[] { SourceLevel.Seen, SourceLevel.Known })
             {
-                [WorldSource.Explored] = new[] { ("w:2", Map("Crypt2")), ("w:3", Map("SunkenCrypt4")) },
-            };
-            var marks = DungeonMarks.Of(book, new (string, DungeonMap)[0], s => inGround.TryGetValue(s, out var maps) ? maps : new (string, DungeonMap)[0]);
-            Assert.Equal(new[] { "w:2", "w:3" }, marks.Select(m => m.Id));
-            Assert.All(marks, m => Assert.Equal(WorldSource.Explored, m.From));
-        }
-
-        [Fact]
-        public void APinOffOrARowBelowWithInsidesMarksNothingOfItsGround()
-        {
-            var inGround = new[] { ("w:2", Map("Crypt2")) };
-            var pinOff = new CompendiumBook();
-            pinOff.Show(WorldSource.Explored, SourceLevel.WithInsides);
-            Assert.Empty(DungeonMarks.Of(pinOff, new (string, DungeonMap)[0], _ => inGround));
-            var rowKnown = new CompendiumBook();
-            rowKnown.Show(WorldSource.Explored, SourceLevel.Known);
-            rowKnown.MarkDungeons(WorldSource.Explored, true);
-            Assert.Empty(DungeonMarks.Of(rowKnown, new (string, DungeonMap)[0], _ => inGround));
-        }
-
-        [Fact]
-        public void EachDungeonIsMarkedOnceWalkedFirstThenByTheFirstGround()
-        {
-            var book = new CompendiumBook();
-            foreach (var source in new[] { WorldSource.Explored, WorldSource.SharedMaps })
-            {
-                book.Show(source, SourceLevel.WithInsides);
-                book.MarkDungeons(source, true);
+                var marks = DungeonMarks.Of(Pinned(level, WorldSource.Explored), None, s => s == WorldSource.Explored ? inGround : None);
+                Assert.Equal(new[] { "w:2", "w:3" }, marks.Select(m => m.Id));
+                Assert.All(marks, m => Assert.Equal(MarkLook.Entrance, m.Look));
+                Assert.All(marks, m => Assert.Equal(WorldSource.Explored, m.From));
             }
-            var walked = new[] { ("w:1", Map("Crypt2")) };
+        }
+
+        [Fact]
+        public void WithInsidesADungeonWalkedOnThisServerIsMarkedHollowOneNobodyWalkedByItsEntrance()
+        {
+            var inGround = new[] { ("w:2", Map("Crypt2", 1)), ("w:3", Map("Crypt2")), ("w:4", Entrance("SunkenCrypt4")) };
+            var marks = DungeonMarks.Of(Pinned(SourceLevel.WithInsides, WorldSource.Explored), None, s => s == WorldSource.Explored ? inGround : None);
+            Assert.Equal(new[] { "w:2", "w:3", "w:4" }, marks.Select(m => m.Id));
+            Assert.Equal(new[] { MarkLook.Server, MarkLook.Entrance, MarkLook.Entrance }, marks.Select(m => m.Look));
+        }
+
+        [Fact]
+        public void APinOffOrARowOffMarksNothingOfItsGround()
+        {
+            var inGround = new[] { ("w:2", Map("Crypt2", 1)) };
+            var pinOff = new CompendiumBook();
+            pinOff.Show(WorldSource.SharedMaps, SourceLevel.WithInsides);
+            Assert.Empty(DungeonMarks.Of(pinOff, None, _ => inGround));
+            var rowOff = new CompendiumBook();
+            rowOff.MarkDungeons(WorldSource.SharedMaps, true);
+            Assert.Equal(SourceLevel.Off, rowOff.Shows(WorldSource.SharedMaps));
+            Assert.Empty(DungeonMarks.Of(rowOff, None, _ => inGround));
+        }
+
+        [Fact]
+        public void EachDungeonIsMarkedOnceWalkedByYouFirstThenByTheFirstGround()
+        {
+            var book = Pinned(SourceLevel.WithInsides, WorldSource.Explored, WorldSource.SharedMaps);
+            var walked = new[] { ("w:1", Map("Crypt2", 0)) };
             var inGround = new Dictionary<WorldSource, (string, DungeonMap)[]>
             {
-                [WorldSource.Explored] = new[] { ("w:1", Map("Crypt2")), ("w:2", Map("Crypt2")) },
-                [WorldSource.SharedMaps] = new[] { ("w:2", Map("Crypt2")), ("w:3", Map("TrollCave02")) },
+                [WorldSource.Explored] = new[] { ("w:1", Map("Crypt2", 0, 1)), ("w:2", Map("Crypt2")) },
+                [WorldSource.SharedMaps] = new[] { ("w:2", Map("Crypt2", 3)), ("w:3", Map("TrollCave02", 2)) },
             };
-            var marks = DungeonMarks.Of(book, walked, s => inGround.TryGetValue(s, out var maps) ? maps : new (string, DungeonMap)[0]);
+            var marks = DungeonMarks.Of(book, walked, s => inGround.TryGetValue(s, out var maps) ? maps : None);
             Assert.Equal(new[] { "w:1", "w:2", "w:3" }, marks.Select(m => m.Id));
             Assert.Equal(new WorldSource?[] { null, WorldSource.Explored, WorldSource.SharedMaps }, marks.Select(m => m.From));
+            Assert.Equal(new[] { MarkLook.Yours, MarkLook.Entrance, MarkLook.Server }, marks.Select(m => m.Look));
         }
 
         [Fact]
-        public void TheMarksWordsSayWhereTheyShowFrom()
+        public void TheMarksWordsSayWhoWalkedItAndHowFar()
         {
-            Assert.Equal("Burial Chambers\n<size=80%><color=#F5B857>not walked · with insides from Ground you explored</color></size>",
-                DungeonMapWords.InsidesLabel("Burial Chambers", WorldSource.Explored, "F5B857", -1));
+            Assert.Equal("Burial Chambers\n<size=80%><color=#F5B857>Walked by you: 6 of 18 rooms</color></size>", DungeonMapWords.MarkLabel("Burial Chambers", 6, 18, "F5B857", -1, -1));
+            // One room alone, walked, is no "all".
+            Assert.Equal("Tomb\n<size=80%><color=#F5B857>Walked by you: 1 of 1 room</color></size>", DungeonMapWords.MarkLabel("Tomb", 1, 1, "F5B857", -1, -1));
+            Assert.Equal("Sunken Crypt\n<size=80%><color=#F5B857>Walked on this server: all 9 rooms</color></size>\n<size=75%>server last day 245</size>",
+                DungeonMapWords.ServerLabel("Sunken Crypt", 9, 9, "F5B857", 245));
+            Assert.Equal("Sunken Crypt\n<size=80%><color=#F5B857>Walked on this server: 4 of 9 rooms</color></size>", DungeonMapWords.ServerLabel("Sunken Crypt", 4, 9, "F5B857", -1));
+            Assert.Equal("Troll Cave\n<size=80%><color=#B3B4BD>Nobody on this server walked it</color></size>", DungeonMapWords.EntranceLabel("Troll Cave", false, "B3B4BD"));
+            Assert.Equal("Troll Cave\n<size=80%><color=#B3B4BD>Walked on this server; With insides shows what was walked</color></size>", DungeonMapWords.EntranceLabel("Troll Cave", true, "B3B4BD"));
+        }
+
+        [Fact]
+        public void ThePinsTipSaysItMarksEveryEntranceAndWhatWithInsidesAdds()
+        {
             Assert.Equal("Mark dungeons on the big map", CompendiumWords.PinName);
-            Assert.Equal("Marks on Valheim's big map each dungeon in this ground whose area has loaded, hollow where you have not walked it; a click on one shows its own rooms. Dungeons you walked are marked anyway.\nOff. It works while this row shows With insides.",
-                CompendiumWords.PinTip(on: false, insides: false));
-            Assert.EndsWith("\nOn.", CompendiumWords.PinTip(on: true, insides: true));
-            Assert.EndsWith("\nOn, but nothing is marked until this row shows With insides.", CompendiumWords.PinTip(on: true, insides: false));
+            Assert.Equal("Marks every dungeon entrance in this ground on Valheim's big map. With insides, each one walked on this server shows what was walked. A click opens it in Scry. Dungeons you walked are marked anyway.\nOff.",
+                CompendiumWords.PinTip(on: false));
+            Assert.EndsWith("\nOn.", CompendiumWords.PinTip(on: true));
         }
     }
 }

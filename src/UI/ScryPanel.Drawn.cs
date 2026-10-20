@@ -48,6 +48,9 @@ namespace Scry
         /// <summary>The pin at the end of a ground's row in the compendium's box, marking its dungeons on the big map.</summary>
         DungeonPins,
 
+        /// <summary>With insides dimmed on a source's row, none of its places found having insides.</summary>
+        InsidesDimmed,
+
         /// <summary>The notice under the header naming the players whose games lack Scry.</summary>
         PlayingWithNotice,
 

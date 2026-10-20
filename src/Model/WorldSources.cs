@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Scry
 {
@@ -30,7 +31,7 @@ namespace Scry
         /// <summary>Known, bringing along what a known place does.</summary>
         Known,
 
-        /// <summary>Known with every room of a dungeon, walked or not.</summary>
+        /// <summary>Known, with what anyone on this server walked inside its dungeons (<see cref="ServerWalks"/>).</summary>
         WithInsides,
     }
 
@@ -56,5 +57,12 @@ namespace Scry
 
         /// <summary>The levels the box offers a source, the least it allows first.</summary>
         public static SourceLevel[] Offered(WorldSource source) => Least(source) == SourceLevel.Seen ? FromSeen : Every;
+
+        /// <summary>Whether a place a source found has insides to show (<see cref="SourceLevel.WithInsides"/>), by the kinds of place that are dungeons; With insides is dimmed where none has.</summary>
+        public static bool HasInsides(IEnumerable<string> found, Func<string, bool> isDungeon)
+        {
+            foreach (var kind in found) if (isDungeon(kind)) return true;
+            return false;
+        }
     }
 }

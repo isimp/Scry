@@ -281,7 +281,7 @@ namespace Scry
                 case WorldSource.Explored: return "The places lying in ground you explored yourself, by your map. Seen as you explore; known, or with their insides, as you choose.";
                 case WorldSource.SharedMaps: return "The places lying in ground from maps you read at a cartography table.";
                 case WorldSource.Marked: return "The places a Vegvisir or a rune stone marked on your map. Seen as they are marked; known, or with their insides, as you choose.";
-                default: return "The places the game shows on every map: traders, boss altars and the start.";
+                default: return "The places the game shows on every map: traders, the start, and the places Hildir sends you to.";
             }
         }
 
@@ -289,11 +289,21 @@ namespace Scry
         public const string PinName = "Mark dungeons on the big map";
 
         /// <summary>What the pin does.</summary>
-        private const string PinDoes = "Marks on Valheim's big map each dungeon in this ground whose area has loaded, hollow where you have not walked it; a click on one shows its own rooms. Dungeons you walked are marked anyway.";
+        private const string PinDoes = "Marks every dungeon entrance in this ground on Valheim's big map. With insides, each one walked on this server shows what was walked. A click opens it in Scry. Dungeons you walked are marked anyway.";
 
-        /// <summary>The pin's tip: what it does, then whether it is on, and marking while its row shows With insides.</summary>
-        public static string PinTip(bool on, bool insides) =>
-            Naming.Lines(PinDoes, !on ? "Off. It works while this row shows With insides." : insides ? "On." : "On, but nothing is marked until this row shows With insides.");
+        /// <summary>The pin's tip: what it does, then whether it is on.</summary>
+        public static string PinTip(bool on) => Naming.Lines(PinDoes, on ? "On." : "Off.");
+
+        /// <summary>The tip of With insides dimmed on a row none of whose places found in this world has insides: what would have.</summary>
+        public static string NoInsides(WorldSource source)
+        {
+            switch (source)
+            {
+                case WorldSource.Marked: return "None of the places marked for you in this world has insides yet. The Queen's lair and Hildir's crypt, cave and tower would.";
+                case WorldSource.OnEveryMap: return "None of the places every map shows in this world has insides yet. Hildir's crypt, cave and tower show once she sends you to them.";
+                default: return "None of the places in this ground has insides yet.";
+            }
+        }
 
         /// <summary>A level's name on its segment.</summary>
         public static string LevelName(SourceLevel level)
@@ -315,7 +325,7 @@ namespace Scry
                 case SourceLevel.Off: return "Shows nothing of them";
                 case SourceLevel.Seen: return "Listed, their pages closed";
                 case SourceLevel.Known: return "Their pages open, with what a known place brings along";
-                default: return "Known, with every room of a dungeon, walked or not";
+                default: return "Known, with what anyone on this server walked inside: those rooms and what they hold. A dungeon nobody walked shows only its entrance.";
             }
         }
 

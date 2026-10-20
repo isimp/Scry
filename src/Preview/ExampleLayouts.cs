@@ -503,9 +503,9 @@ namespace Scry
             _fogOf = (DungeonWalks.Maps.Stamp, GroupMapsLink.Group.Stamp, _fogged, _peeking, _groupOpen);
             _refoggedAt = Time.unscaledTime;
             _reenter = Stage.RoomGoneInto?.SavedAt ?? -1;
-            // The rooms the character walked, and where the floor opens them, the rooms anyone on the server walked.
+            // The rooms the character walked, and where the floor or a source with insides opens them, the rooms anyone on the server walked.
             var walked = DungeonWalks.Maps.Of(_wholeId)?.Walked;
-            var group = _groupOpen ? GroupMapsLink.Group.Of(_wholeId)?.Walked : null;
+            var group = _groupOpen ? GroupMapsLink.Group.Of(_wholeId)?.Walked ?? DungeonsInGround.MapOf(_wholeId)?.Walked : null;
             bool IsWalked(PlacedRoom room) => walked != null && walked.Contains(room.SavedAt) || group != null && group.Contains(room.SavedAt);
             Example = DungeonFog.Shown(_whole, IsWalked, _fogged, _peeking, out var peeked);
             PeekedAt.Clear();
