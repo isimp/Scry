@@ -36,7 +36,15 @@ namespace Scry
             ScryPanel.Compact = true;
             _gapsBeforeNotices = ScryPanel.GapNoticeForTest(new GapNotice());
             EventLink.PlayingWithForTest(new List<(string Name, PeerScry Scry)> { ("Ana", PeerScry.None) });
+            // The character's own view comes back at the session's next look, the view laid before
+            // the part having the compendium off; peeking is refused until it is set.
+            yield return Until(() => X.CompendiumSet, 5);
             X.Peeking = true;
+            if (!p.Check(X.Peeking, "the character's compendium set again, peeking is on"))
+            {
+                NoticesAsTheyWere();
+                yield break;
+            }
 
             var lines = ScryPanel.Drawn(PanelPart.NoticeLine);
             yield return Until(() => ScryPanel.Drawn(PanelPart.NoticeLine) > lines + 2 && ScryPanel.NoticeLineForTest.Of == 2, 3);
