@@ -11,5 +11,9 @@ namespace Scry
 
         /// <summary>The reply to /scry monitor: whether the resource monitor is now on.</summary>
         public static string Monitor(bool on) => Reply("the resource monitor is " + (on ? "on." : "off."));
+
+        /// <summary>Whether /scry's words ask to forget the server's records of the world's dungeons: "forget server maps", or "forget group maps" as they were first called.</summary>
+        public static bool ForgetsServerMaps(string said) =>
+            string.Equals(said, "forget server maps", System.StringComparison.OrdinalIgnoreCase) || string.Equals(said, "forget group maps", System.StringComparison.OrdinalIgnoreCase);
     }
 }

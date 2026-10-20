@@ -19,5 +19,16 @@ namespace Scry.Tests
             Assert.Equal("Scry: the resource monitor is on.", ConsoleWords.Monitor(on: true));
             Assert.Equal("Scry: the resource monitor is off.", ConsoleWords.Monitor(on: false));
         }
+
+        [Fact]
+        public void ForgettingTheServersMapsGoesByItsNameAndStillByItsFormerOne()
+        {
+            Assert.True(ConsoleWords.ForgetsServerMaps("forget server maps"));
+            Assert.True(ConsoleWords.ForgetsServerMaps("Forget Server Maps"));
+            Assert.True(ConsoleWords.ForgetsServerMaps("forget group maps"));
+            Assert.False(ConsoleWords.ForgetsServerMaps("forget maps"));
+            Assert.False(ConsoleWords.ForgetsServerMaps("forget"));
+            Assert.False(ConsoleWords.ForgetsServerMaps(null));
+        }
     }
 }
