@@ -170,6 +170,31 @@ namespace Scry
             X.Peeking = false;
             yield return Until(() => ExampleLayouts.Example.Rooms.Count == fogged.Rooms.Count, 10);
             p.Check(ExampleLayouts.PeekedRooms == 0 && ExampleLayouts.Example.Rooms.Count == fogged.Rooms.Count, "the peek ended, the fog is back");
+            // Laid out again, the dungeon still switches to its entrance, drawn.
+            yield return Until(() => Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 30);
+            Stage.Inside = false;
+            yield return null;
+            p.Check(Stage.HasOutside && !Stage.ShowsInside && Stage.OutsidePartsDrawn > 0, "after the peek, Outside still shows its entrance", $"has outside {Stage.HasOutside}, {Numbers.Count(Stage.OutsidePartsDrawn)} parts drawn");
+            Stage.Inside = true;
+
+            // A dungeon of the world nobody walked: the fog leaves no room, so its entrance shows,
+            // before a peek and after one, never nothing.
+            DungeonWalks.StandInForTest(null);
+            var none = new DungeonMaps();
+            none.Keep(id, PlaceOf(entry).Prefab, saved, new Vec3(0f, 0f, 0f), rolled.Site.Generator, rolled.Site.Turn);
+            DungeonWalks.MapsInsteadForTest(none);
+            yield return Until(() => ExampleLayouts.ShowsWorlds && ExampleLayouts.Example.Rooms.Count == 0, 15);
+            yield return null;
+            p.Check(ExampleLayouts.Walked == (0, rooms) && ExampleLayouts.Example.Rooms.Count == 0, "with no room walked, the fog leaves none standing", $"{Numbers.Count(ExampleLayouts.Example.Rooms.Count)} standing");
+            p.Check(!Stage.ShowsInside && Stage.OutsidePartsDrawn > 0, "and the stage shows its entrance", $"{Numbers.Count(Stage.OutsidePartsDrawn)} parts drawn");
+            X.Peeking = true;
+            yield return Until(() => ExampleLayouts.PeekedRooms == rooms && Stage.ExampleRoomsTotal == rolled.Rooms.Count && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 60);
+            p.Check(ExampleLayouts.PeekedRooms == rooms && Stage.ShowsInside, "peeking, every room stands inside", $"{Numbers.Count(ExampleLayouts.PeekedRooms)} peeked of {Numbers.Count(rooms)}");
+            X.Peeking = false;
+            yield return Until(() => ExampleLayouts.Example.Rooms.Count == 0, 10);
+            yield return null;
+            p.Check(!Stage.ShowsInside && Stage.OutsidePartsDrawn > 0, "the peek ended, the stage shows its entrance again", $"{Numbers.Count(Stage.OutsidePartsDrawn)} parts drawn");
+            yield return Picture(p, $"fog {entry.Name} nobody walked after peeking");
             DungeonFogAsItWas();
         }
 

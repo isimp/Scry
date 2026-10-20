@@ -965,6 +965,9 @@ namespace Scry
             _toRead.Clear();
             Unfocus();
             Top = float.NaN;
+            // The location's own parts outlive the example: switched back on, so the next one laid
+            // out over the same location finds its entrance to show.
+            foreach (var part in _outside) if (part != null) part.SetActive(true);
             _outside.Clear();
         }
     }

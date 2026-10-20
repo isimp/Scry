@@ -102,6 +102,18 @@ namespace Scry
         /// <summary>What the location draws outside, for the self-test to tell.</summary>
         public static string OutsideTold() => TheExample.OutsideTold();
 
+        /// <summary>How many of the location's own parts are drawn on the stage now, switched on with something to draw, the example left out; for the self-test to tell its entrance shown from nothing.</summary>
+        [Diagnostic]
+        public static int OutsidePartsDrawn
+        {
+            get
+            {
+                if (_subject == null) return 0;
+                var holder = TheExample.Holder != null ? TheExample.Holder.transform : null;
+                return _subject.transform.Cast<Transform>().Count(part => part != holder && part.gameObject.activeInHierarchy && part.GetComponentsInChildren<Renderer>().Any(r => r.enabled));
+            }
+        }
+
         /// <summary>Whether the example is shown, as the stage's chip switches it.</summary>
         public static bool Inside
         {
