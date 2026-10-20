@@ -14,9 +14,28 @@ namespace Scry
         private const string FailMark = "  FAIL ";
         private const string SkipMark = "  SKIP ";
 
-        public static string Started(int parts, bool full) => full
-            ? $"full self-test started: {Numbers.Count(parts)} parts, reading every location again among them, about ten to fifteen minutes. Stand still and leave the panel be; it shows how far the test has got. /scry selftest stop stops it."
-            : $"quick self-test started: {Numbers.Count(parts)} parts, about five minutes. Stand still and leave the panel be; it shows how far the test has got. /scry selftest stop stops it; /scry selftest full also reads every location again.";
+        /// <summary>That a run started: which, how many parts, about how long by the parts' last times, how to stop it, and after a quick run what else there is.</summary>
+        public static string Started(int parts, RunScope scope, double seconds)
+        {
+            var which = scope == RunScope.Full ? "full self-test, reading every location again among its parts"
+                : scope == RunScope.Deep ? "deep self-test, every part through every place it names"
+                : scope == RunScope.Failed ? "self-test of the parts that failed last"
+                : scope == RunScope.Named ? "self-test of the parts named so"
+                : "quick self-test, the long parts through a few of their places";
+            var more = scope == RunScope.Quick ? " /scry selftest deep goes through every place, /scry selftest failed runs again what failed, and other words run the parts whose names hold them." : "";
+            return $"{which} started: {Numbers.Count(parts)} {(parts == 1 ? "part" : "parts")}, {About(seconds)}. Stand still and leave the panel be; it shows how far the test has got. /scry selftest stop stops it.{more}";
+        }
+
+        /// <summary>A run's length ahead: less than a minute, or about so many minutes.</summary>
+        private static string About(double seconds) => seconds < 60 ? "less than a minute" : $"about {Numbers.Count((int)Math.Round(seconds / 60, MidpointRounding.AwayFromZero))} min";
+
+        /// <summary>Why a run asked for has no part to run: no name holds the words, or nothing failed last.</summary>
+        public static string NothingToRun(SelfTestRequest asked) => asked.Scope == RunScope.Failed
+            ? "nothing failed in the last run, so there is nothing to run again."
+            : $"no part's name holds {Naming.Joined(asked.Words.Select(w => "\"" + w + "\"").ToList())}; /scry selftest list writes every part's name to the log.";
+
+        /// <summary>That every part's name was written to the log, with the seconds it took last.</summary>
+        public static string Listed(int parts, string file) => $"{Numbers.Count(parts)} parts listed in {file}, each with how long it took last.";
 
         /// <summary>The line the panel shows while the test runs: the part running now, or how many are done between parts.</summary>
         public static string Progress(int done, int total, string current, int failed)

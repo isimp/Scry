@@ -23,7 +23,7 @@ namespace Scry
         /// </summary>
         private static IEnumerator LevelsTried(Probe p)
         {
-            var places = ReferenceDungeons.Concat(LevelsAlso).Select(n => X.Catalog.FirstOrDefault(e => e.Name == n && PlaceOf(e) != null && !PlaceOf(e).IsRoom)).Where(e => e != null).ToList();
+            var places = Few(AllReferenceDungeons.Concat(LevelsAlso).ToArray(), 1).Select(n => X.Catalog.FirstOrDefault(e => e.Name == n && PlaceOf(e) != null && !PlaceOf(e).IsRoom)).Where(e => e != null).ToList();
             if (places.Count == 0) p.Skip("none of " + string.Join(", ", ReferenceDungeons) + " is in the catalog");
             var wasInside = Stage.Inside;
             Stage.Inside = true;

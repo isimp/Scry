@@ -593,6 +593,9 @@ namespace Scry
             }
         }
 
+        /// <summary>The dungeons opened level by level (<see cref="CaveFloors"/>), the Frost Caves first as telling most.</summary>
+        private static readonly string[] LevelledDungeons = { "MountainCave02", "MorkBorg", "TheHole01", "Hildir_plainsfortress", "SunkenCrypt4", "Crypt2" };
+
         /// <summary>
         /// The dungeons whose rooms are rock or stacked high, the Frost Caves, the M&#xF6;rkhalla ones and
         /// Hildir's sealed tower: each one's example is built and opened level by level, told with
@@ -604,9 +607,10 @@ namespace Scry
         /// </summary>
         private static IEnumerator CaveFloors(Probe p)
         {
-            var named = new[] { "MountainCave02", "MorkBorg", "TheHole01", "Hildir_plainsfortress", "SunkenCrypt4", "Crypt2" };
+            // A quick run takes the Frost Caves alone, laid out once.
+            var named = Few(LevelledDungeons, 1);
             var caves = X.Catalog.Where(e => PlaceOf(e) != null && !PlaceOf(e).IsRoom
-                                             && (named.Contains(e.Name) || e.DisplayName.IndexOf("rkhalla", StringComparison.OrdinalIgnoreCase) >= 0))
+                                             && (named.Contains(e.Name) || !_sampled && e.DisplayName.IndexOf("rkhalla", StringComparison.OrdinalIgnoreCase) >= 0))
                 .OrderBy(e => e.Name, StringComparer.Ordinal).ToList();
             if (caves.Count == 0) p.Skip("none of " + string.Join(", ", named) + " is in the catalog");
             var wasInside = Stage.Inside;
@@ -619,7 +623,7 @@ namespace Scry
             foreach (var entry in caves)
             {
                 Select(entry);
-                for (var example = 0; example < (entry.Name == "MorkBorg" ? 3 : 1); example++)
+                for (var example = 0; example < (entry.Name == "MorkBorg" && !_sampled ? 3 : 1); example++)
                 {
                     if (example > 0)
                     {

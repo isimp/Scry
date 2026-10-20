@@ -19,6 +19,10 @@ namespace Scry
     {
         public string Name;
         public Result Result;
+
+        /// <summary>How long it took, cleanup included.</summary>
+        public double Seconds;
+
         public readonly List<string> Lines = new List<string>();
     }
 
@@ -35,8 +39,26 @@ namespace Scry
         /// <summary>Whether only a full run takes it: a part of minutes, such as reading every place again.</summary>
         public bool Full;
 
-        /// <summary>The scenarios a run takes, in their order: every one in a full run, a quick one leaving out those only a full run takes.</summary>
-        public static List<Scenario> ForRun(IEnumerable<Scenario> all, bool full) => all.Where(s => full || !s.Full).ToList();
+        /// <summary>
+        /// The scenarios a run takes, in their order: every one in a full run; a quick or a deep
+        /// one leaving out those only a full run takes; those that failed last (<paramref name="failed"/>);
+        /// or those whose names hold every word asked for, in any case.
+        /// </summary>
+        public static List<Scenario> ForRun(IEnumerable<Scenario> all, SelfTestRequest asked, IEnumerable<string> failed)
+        {
+            switch (asked.Scope)
+            {
+                case RunScope.Full:
+                    return all.ToList();
+                case RunScope.Failed:
+                    var last = new HashSet<string>(failed ?? Enumerable.Empty<string>(), StringComparer.Ordinal);
+                    return all.Where(s => last.Contains(s.Name)).ToList();
+                case RunScope.Named:
+                    return all.Where(s => asked.Words.All(w => s.Name.IndexOf(w, StringComparison.OrdinalIgnoreCase) >= 0)).ToList();
+                default:
+                    return all.Where(s => !s.Full).ToList();
+            }
+        }
 
         public Scenario(string name, Func<Probe, IEnumerator> body, Action cleanup = null)
         {
@@ -224,6 +246,7 @@ namespace Scry
             }
 
             _report.Result = result;
+            _report.Seconds = now - _startedAt;
             _reports.Add(_report);
             _lastEnd = now;
             _write($"{result.ToString().ToUpperInvariant()} {_current.Name} ({Numbers.Fixed(now - _startedAt, 1)} s)");

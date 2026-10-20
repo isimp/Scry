@@ -567,7 +567,8 @@ namespace Scry
         private static IEnumerator EveryMusic(Probe p)
         {
             if (Locations.Now != Locations.State.Read) p.Skip("the locations are not read");
-            var withMusic = X.Catalog.Where(e => PlaceOf(e)?.Contents?.Music.Count > 0).ToList();
+            // A quick run plays eight of them, spread over the list.
+            var withMusic = Spread(X.Catalog.Where(e => PlaceOf(e)?.Contents?.Music.Count > 0).ToList(), 8);
             if (withMusic.Count == 0) p.Skip("no location or room plays music");
             Previews.PlaceCopiesOffForTest = true;
             var silent = new List<string>();

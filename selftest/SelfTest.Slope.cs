@@ -7,8 +7,8 @@ namespace Scry
 {
     internal static partial class SelfTest
     {
-        /// <summary>The places whose rooms climb with no real floor: The Hole's tubes and the sunken crypts' stairs slope; the caves' holes are shafts.</summary>
-        private static readonly string[] ClimbingPlaces = { "TheHole01", "SunkenCrypt4", "MountainCave02", "Hildir_cave" };
+        /// <summary>The places whose rooms climb with no real floor: The Hole's tubes and the sunken crypts' stairs slope; the caves' holes are shafts. A quick run takes the first two, a slope and a shaft.</summary>
+        private static readonly string[] ClimbingPlaces = { "TheHole01", "MountainCave02", "SunkenCrypt4", "Hildir_cave" };
 
         /// <summary>
         /// A room gone into that has no real floor and climbs more than a storey between its
@@ -20,7 +20,7 @@ namespace Scry
         /// </summary>
         private static IEnumerator SlopeCutShows(Probe p)
         {
-            var places = ClimbingPlaces.Select(n => X.Catalog.FirstOrDefault(e => e.Name == n && PlaceOf(e) != null && !PlaceOf(e).IsRoom)).Where(e => e != null).ToList();
+            var places = Few(ClimbingPlaces, 2).Select(n => X.Catalog.FirstOrDefault(e => e.Name == n && PlaceOf(e) != null && !PlaceOf(e).IsRoom)).Where(e => e != null).ToList();
             if (places.Count == 0) p.Skip("none of " + string.Join(", ", ClimbingPlaces) + " is in the catalog");
             var wasInside = Stage.Inside;
             Stage.Inside = true;

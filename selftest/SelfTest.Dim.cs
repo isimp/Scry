@@ -10,7 +10,10 @@ namespace Scry
     internal static partial class SelfTest
     {
         /// <summary>The dungeons the inside view is judged by: a cave, a stack of tall rooms, a flat crypt and two that wind down.</summary>
-        private static readonly string[] ReferenceDungeons = { "MountainCave02", "MorkBorg", "SunkenCrypt4", "TheHole01", "Hildir_cave" };
+        private static readonly string[] AllReferenceDungeons = { "MountainCave02", "MorkBorg", "SunkenCrypt4", "TheHole01", "Hildir_cave" };
+
+        /// <summary>The reference dungeons a part goes through: all five, or in a quick run the Frost Caves alone, whose crossroads, levels and rooms below tell most.</summary>
+        private static string[] ReferenceDungeons => Few(AllReferenceDungeons, 1);
 
         /// <summary>
         /// Dimmed rooms show darker on the stage. For each reference dungeon, with the roof on, the

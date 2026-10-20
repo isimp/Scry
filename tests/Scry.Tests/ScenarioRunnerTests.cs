@@ -38,8 +38,53 @@ namespace Scry.Tests
             // Reading every place takes minutes: a quick run leaves it to a full one.
             var all = new[] { Passing("a"), new Scenario("every place read", probe => Body(probe, "read", null)) { Full = true }, Passing("c") };
 
-            Assert.Equal(new[] { "a", "c" }, Scenario.ForRun(all, full: false).Select(s => s.Name));
-            Assert.Equal(new[] { "a", "every place read", "c" }, Scenario.ForRun(all, full: true).Select(s => s.Name));
+            Assert.Equal(new[] { "a", "c" }, Scenario.ForRun(all, SelfTestCommand.Of("selftest"), null).Select(s => s.Name));
+            Assert.Equal(new[] { "a", "c" }, Scenario.ForRun(all, SelfTestCommand.Of("selftest deep"), null).Select(s => s.Name));
+            Assert.Equal(new[] { "a", "every place read", "c" }, Scenario.ForRun(all, SelfTestCommand.Of("selftest full"), null).Select(s => s.Name));
+        }
+
+        [Fact]
+        public void APartAskedForByNameRunsWhateverRunItBelongsTo()
+        {
+            // Every word in the part's name, in any case and any order; a full-only part too.
+            var all = new[] { Passing("the plan box shows a dungeon"), new Scenario("reading every location fills their details", probe => Body(probe, "read", null)) { Full = true }, Passing("the compendium's box stands its rows in columns") };
+
+            Assert.Equal(new[] { "the plan box shows a dungeon" }, Scenario.ForRun(all, SelfTestCommand.Of("selftest Plan box"), null).Select(s => s.Name));
+            Assert.Equal(new[] { "the plan box shows a dungeon", "the compendium's box stands its rows in columns" }, Scenario.ForRun(all, SelfTestCommand.Of("selftest box"), null).Select(s => s.Name));
+            Assert.Equal(new[] { "reading every location fills their details" }, Scenario.ForRun(all, SelfTestCommand.Of("selftest every location"), null).Select(s => s.Name));
+            Assert.Empty(Scenario.ForRun(all, SelfTestCommand.Of("selftest troll"), null));
+        }
+
+        [Fact]
+        public void FailedRunsAgainThePartsThatFailedLastInTheirOrder()
+        {
+            var all = new[] { Passing("a"), Passing("b"), Passing("c") };
+            Assert.Equal(new[] { "a", "c" }, Scenario.ForRun(all, SelfTestCommand.Of("selftest failed"), new[] { "c", "a", "gone since" }).Select(s => s.Name));
+            Assert.Empty(Scenario.ForRun(all, SelfTestCommand.Of("selftest failed"), null));
+        }
+
+        [Fact]
+        public void EachPartsLastTimeIsKeptAndARunsTimeEstimatedFromThem()
+        {
+            var times = new SelfTestTimes();
+            times.Took("the plan box shows a dungeon", 131.3);
+            times.Took("the panel opens and draws", 0.4);
+            times.Took("the panel opens and draws", 0.6);
+            var read = SelfTestTimes.Load(times.Save());
+
+            Assert.Equal(131.9, read.Estimate(new[] { "the plan box shows a dungeon", "the panel opens and draws" }), 3);
+            // A part never timed counts as a part of the usual length.
+            Assert.Equal(131.3 + SelfTestTimes.Unknown, read.Estimate(new[] { "the plan box shows a dungeon", "a new part" }), 3);
+            Assert.Equal(0.0, SelfTestTimes.Load(null).Estimate(new string[0]), 3);
+        }
+
+        [Fact]
+        public void TheFailedPartsAreKeptOneALine()
+        {
+            var kept = SelfTestTimes.FailedText(new[] { "a part", "another part" });
+            Assert.Equal(new[] { "a part", "another part" }, SelfTestTimes.FailedOf(kept));
+            Assert.Empty(SelfTestTimes.FailedOf(null));
+            Assert.Empty(SelfTestTimes.FailedOf("\r\n  \n"));
         }
 
         [Fact]
@@ -281,6 +326,9 @@ namespace Scry.Tests
 
             Assert.Contains("PASS slow (2.0 s)", _log);
             Assert.Contains("FAIL bad (0.0 s)", _log);
+            // Kept with the part's report too, for the next run's estimate.
+            Assert.Equal(2.0, runner.Reports[0].Seconds, 3);
+            Assert.Equal(0.0, runner.Reports[1].Seconds, 3);
         }
 
         [Fact]

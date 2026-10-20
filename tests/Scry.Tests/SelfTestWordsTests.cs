@@ -28,17 +28,33 @@ namespace Scry.Tests
         [Fact]
         public void StartingSaysHowLongAndHowToStop()
         {
-            var said = SelfTestWords.Started(60, full: false);
+            var said = SelfTestWords.Started(60, RunScope.Quick, 540);
             Assert.Contains("quick self-test", said);
             Assert.Contains("60 parts", said);
+            Assert.Contains("about 9 min", said);
             Assert.Contains("Stand still", said);
             Assert.Contains("/scry selftest stop", said);
-            Assert.Contains("/scry selftest full", said);
+            Assert.Contains("/scry selftest deep", said);
+            Assert.Contains("/scry selftest failed", said);
 
-            var full = SelfTestWords.Started(70, full: true);
+            var full = SelfTestWords.Started(70, RunScope.Full, 1500);
             Assert.Contains("full self-test", full);
             Assert.Contains("70 parts", full);
-            Assert.DoesNotContain("/scry selftest full", full);
+            Assert.Contains("about 25 min", full);
+            Assert.DoesNotContain("/scry selftest deep", full);
+
+            Assert.Contains("1 part", SelfTestWords.Started(1, RunScope.Named, 20));
+            Assert.Contains("less than a minute", SelfTestWords.Started(1, RunScope.Named, 20));
+            // Only a quick run points to the deeper ones.
+            Assert.DoesNotContain("/scry selftest deep", SelfTestWords.Started(1, RunScope.Named, 20));
+        }
+
+        [Fact]
+        public void NothingToRunSaysWhy()
+        {
+            Assert.Contains("no part's name holds", SelfTestWords.NothingToRun(SelfTestCommand.Of("selftest troll")));
+            Assert.Contains("troll", SelfTestWords.NothingToRun(SelfTestCommand.Of("selftest troll")));
+            Assert.Contains("nothing failed", SelfTestWords.NothingToRun(SelfTestCommand.Of("selftest failed")));
         }
 
         [Fact]

@@ -20,10 +20,13 @@ namespace Scry
     /// and a copy the player had standing in the world is left alone.
     ///
     /// Runs wherever this plugin is installed: it starts with <c>/scry selftest</c>, a quick run
-    /// leaving out the parts of minutes (reading every place again), or <c>/scry selftest full</c>
-    /// with every part, or by itself a few seconds after the catalog is read when the file
-    /// <c>BepInEx/Scry-selftest.run</c> exists, a full run where it says <c>full</c>;
-    /// <c>/scry selftest stop</c> stops it.
+    /// whose long parts go through a few of their places, <c>/scry selftest deep</c> through all
+    /// of them, <c>/scry selftest full</c> also reading every place again, <c>/scry selftest
+    /// failed</c> the parts that failed last, or any other words the parts whose names hold them
+    /// (<see cref="SelfTestCommand"/>); or by itself a few seconds after the catalog is read when
+    /// the file <c>BepInEx/Scry-selftest.run</c> exists, by the words it holds.
+    /// <c>/scry selftest list</c> writes every part's name, <c>/scry selftest stop</c> stops it.
+    /// Each part's last time and the parts that failed last are kept beside the log.
     /// </summary>
     internal static partial class SelfTest
     {
@@ -36,6 +39,19 @@ namespace Scry
 
         public static string ResultFile => Path.Combine(BepInEx.Paths.BepInExRootPath, "Scry-selftest.log");
         public static string MarkerFile => Path.Combine(BepInEx.Paths.BepInExRootPath, "Scry-selftest.run");
+
+        /// <summary>Each part's last time, and the parts that failed in the last run (<see cref="SelfTestTimes"/>).</summary>
+        public static string TimesFile => Path.Combine(BepInEx.Paths.BepInExRootPath, "Scry-selftest.times");
+        public static string FailedFile => Path.Combine(BepInEx.Paths.BepInExRootPath, "Scry-selftest.failed");
+
+        /// <summary>Whether this run's long parts go through a few of their places: a quick run (<see cref="SelfTestRequest.Sampled"/>).</summary>
+        private static bool _sampled;
+
+        /// <summary>The places a long part goes through: the first few in a quick run, which its list names first as telling most, else all.</summary>
+        private static string[] Few(string[] all, int few) => _sampled ? SelfTestSample.First(all, few) : all;
+
+        /// <summary>Some of many, spread over them, in a quick run; all of them otherwise.</summary>
+        private static List<T> Spread<T>(List<T> all, int few) => _sampled ? SelfTestSample.Spread(all.ToArray(), few).ToList() : all;
 
         /// <summary>Scry's share of a frame above which a frame counts as heavy in the notes, in milliseconds.</summary>
         private const double Budget = 16;
@@ -65,11 +81,12 @@ namespace Scry
 
             public string Answer(string typed)
             {
-                switch (SelfTestCommand.Of(typed))
+                var asked = SelfTestCommand.Of(typed);
+                switch (asked.Ask)
                 {
-                    case SelfTestAsk.Start: return SelfTest.Start("it was asked for with /scry selftest", full: false);
-                    case SelfTestAsk.StartFull: return SelfTest.Start("it was asked for with /scry selftest full", full: true);
+                    case SelfTestAsk.Start: return SelfTest.Start("it was asked for with /scry " + string.Join(" ", typed.Split((char[])null, StringSplitOptions.RemoveEmptyEntries)), asked);
                     case SelfTestAsk.Stop: return SelfTest.Stop();
+                    case SelfTestAsk.List: return SelfTest.List();
                     default: return null;
                 }
             }
@@ -110,18 +127,21 @@ namespace Scry
             if (Time.unscaledTime - _readyAt < 5f) return;
             _autoFor = explorer;
             _readyAt = -1f;
-            if (File.Exists(MarkerFile)) Start("the marker file is present", SelfTestCommand.OfMarker(File.ReadAllText(MarkerFile)) == SelfTestAsk.StartFull);
+            if (File.Exists(MarkerFile)) Start("the marker file is present", SelfTestCommand.OfMarker(File.ReadAllText(MarkerFile)));
         }
 
-        /// <summary>Starts a run, a full one with every part or a quick one leaving out those only a full run takes (<see cref="Scenario.Full"/>), and says so.</summary>
-        public static string Start(string why, bool full)
+        /// <summary>Starts a run of the parts asked for (<see cref="Scenario.ForRun"/>), and says so, with about how long it takes by the parts' last times.</summary>
+        public static string Start(string why, SelfTestRequest asked)
         {
             if (_runner != null) return "the self-test is already running.";
             if (Player.m_localPlayer == null) return "the self-test runs in a world.";
             if (Session.Explorer == null) return "the catalog of this world is not read yet; try again in a few seconds.";
+            var parts = Scenario.ForRun(Scenarios(), asked, SelfTestTimes.FailedOf(Kept(FailedFile)));
+            if (parts.Count == 0) return SelfTestWords.NothingToRun(asked);
+            var times = SelfTestTimes.Load(Kept(TimesFile));
 
             Write("");
-            Write($"==== Scry {About.Version} {(full ? "full" : "quick")} self-test, {DateTime.Now:yyyy-MM-dd HH:mm:ss}, started because {why} ====");
+            Write($"==== Scry {About.Version} {asked.Scope.ToString().ToLowerInvariant()} self-test, {DateTime.Now:yyyy-MM-dd HH:mm:ss}, started because {why} ====");
             Write($"World {ZNet.instance.OrNull()?.GetWorldName()}, {Numbers.Count(Session.Explorer.Catalog.Count)} entries, {Numbers.Count(BepInEx.Bootstrap.Chainloader.PluginInfos.Count)} mods loaded, panel {(Session.IsOpen ? "open" : "closed")}" +
                   $"{(ScryPanel.Compact ? " in its compact view" : "")}, locations {Locations.Now}, LogPreviews {(Settings.LogPreviews ? "on" : "off")}, Compendium {CompendiumKeeper.Book?.Rule ?? CompendiumRule.Off} (shown off while the test runs).");
             Write("Each part uses Scry as a player would and checks what it did. START and PASS, FAIL or SKIP frame a part; within it, PASS is a check that held,");
@@ -144,9 +164,43 @@ namespace Scry
             AllKnown();
             Frames.Clear();
             Timing.Measuring = Frames;
-            _runner = new ScenarioRunner(Scenario.ForRun(Scenarios(), full), Write, Finish, AllKnown);
+            _sampled = asked.Sampled;
+            _runner = new ScenarioRunner(parts, Write, Finish, AllKnown);
             SelfTestPanel.ShowResult();
-            return SelfTestWords.Started(_runner.Total, full);
+            return SelfTestWords.Started(_runner.Total, asked.Scope, times.Estimate(parts.Select(s => s.Name)));
+        }
+
+        /// <summary>Writes every part's name to the log, in the order a run takes them, with how long each took last.</summary>
+        public static string List()
+        {
+            var times = SelfTestTimes.Load(Kept(TimesFile));
+            var all = Scenarios().ToList();
+            Write("");
+            Write($"==== Scry {About.Version} self-test parts, {DateTime.Now:yyyy-MM-dd HH:mm:ss}: /scry selftest and any words of a part's name runs the parts holding them ====");
+            for (var i = 0; i < all.Count; i++)
+            {
+                var took = times.Of(all[i].Name);
+                Write($"{Numbers.Count(i + 1)}. {all[i].Name}{(all[i].Full ? " (full runs only)" : "")}: {(took.HasValue ? SelfTestWords.Duration(took.Value) : "not timed yet")}");
+            }
+            return SelfTestWords.Listed(all.Count, "BepInEx/Scry-selftest.log");
+        }
+
+        /// <summary>A file the self-test keeps beside the log; none where it is not there or cannot be read.</summary>
+        private static string Kept(string file) => Steps.Run(() => File.Exists(file) ? File.ReadAllText(file) : null, out var text, null) == null ? text : null;
+
+        /// <summary>
+        /// Keeps each part's time this run in place of its last, and the parts that failed: those
+        /// failed before and not run this time, and those that failed now.
+        /// </summary>
+        private static void KeepTimes(IReadOnlyList<ScenarioReport> reports)
+        {
+            var times = SelfTestTimes.Load(Kept(TimesFile));
+            foreach (var report in reports) times.Took(report.Name, report.Seconds);
+            var ran = new HashSet<string>(reports.Select(r => r.Name), StringComparer.Ordinal);
+            var failed = SelfTestTimes.FailedOf(Kept(FailedFile)).Where(name => !ran.Contains(name)).ToList();
+            failed.AddRange(reports.Where(r => r.Result == Result.Fail).Select(r => r.Name));
+            Steps.Run(() => File.WriteAllText(TimesFile, times.Save()), null);
+            Steps.Run(() => File.WriteAllText(FailedFile, SelfTestTimes.FailedText(failed)), null);
         }
 
         public static string Stop()
@@ -188,6 +242,7 @@ namespace Scry
             LastSummary = SelfTestWords.Summary(reports);
             LastAdvice = SelfTestWords.Advice(reports, "BepInEx/Scry-selftest.log");
             LastFailed = reports.Any(r => r.Result == Result.Fail);
+            KeepTimes(reports);
 
             var readHere = _before != null && _before.LocationsWere != Locations.State.Read && Locations.Now == Locations.State.Read;
             var failure = Steps.Run(PutBack, null);
