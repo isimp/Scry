@@ -10,7 +10,7 @@ using Xunit;
 namespace Scry.Tests
 {
     /// <summary>
-    /// Reads docs/technical.md against the source: every type of Scry's it names in code
+    /// Reads the notes under docs, the player's guide and the release workflow's notes left out, against the source: every type of Scry's it names in code
     /// quotes is there, with the member it names, and every file it names is there. A name
     /// starting with one of the game's, Unity's or BepInEx's types (read from the reference
     /// copies in lib/) is theirs and is left to the startup check; a name that is no one's
@@ -99,7 +99,8 @@ namespace Scry.Tests
             // Every word of Scry's code and project files, for a name the notes quote bare: a method, a setting, a log line's word.
             var projects = Directory.GetFiles(Root(), "*.*proj", SearchOption.AllDirectories).Concat(Directory.GetFiles(Root(), "*.props", SearchOption.TopDirectoryOnly));
             var words = new HashSet<string>(Regex.Matches(code + "\n" + string.Join("\n", projects.Select(File.ReadAllText)), @"\w+").Cast<Match>().Select(m => m.Value), StringComparer.Ordinal);
-            var notes = File.ReadAllText(Path.Combine(Root(), "docs", "technical.md"));
+            var guide = Path.DirectorySeparatorChar + "guide" + Path.DirectorySeparatorChar;
+            var notes = string.Join("\n", Directory.GetFiles(Path.Combine(Root(), "docs"), "*.md", SearchOption.AllDirectories).Where(f => !f.Contains(guide) && Path.GetFileName(f) != "releasing.md").Select(File.ReadAllText));
 
             var missing = new List<string>();
             foreach (var quoted in Regex.Matches(notes, "`([^`]+)`").Cast<Match>().Select(m => m.Groups[1].Value).Distinct())

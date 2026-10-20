@@ -43,7 +43,7 @@ The two stores have different category lists. Hexium takes category names, Thund
 
 ## Install location
 
-Scry runs in each player's game, and a server does not need it. With the same DLL in a dedicated server's plugins, the compendium learns what only the server knows and the server can set the compendium's rules (technical.md, *The compendium*).
+Scry runs in each player's game, and a server does not need it. With the same DLL in a dedicated server's plugins, the compendium learns what only the server knows and the server can set the compendium's rules ([server](server.md), [the world's sources](compendium/sources.md)).
 
 ## How the publish works
 
@@ -66,7 +66,7 @@ python3 tools/publish.py dist/hexium/Scry-0.1.0.zip --check-only   # validate on
 
 ## Before a release
 
-Run the whole test suite locally, timings included (`dotnet test tests/Scry.Tests`), and the startup check's fingerprints against the installed game (`dotnet run --project tools/shapes -c Release -- --check`, see [technical.md](technical.md#game-updates)). Both should pass.
+Run the whole test suite locally, timings included (`dotnet test tests/Scry.Tests`), and the startup check's fingerprints against the installed game (`dotnet run --project tools/shapes -c Release -- --check`, see [game updates](operations/game-updates.md)). Both should pass.
 
 ## After a game update
 
