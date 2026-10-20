@@ -58,6 +58,8 @@ The compact view's header takes three rows however many kinds there are, so the 
 
 A crafting station's page links every upgrade the game counts for it, a mod's piece naming its own copy of the station among them.
 
+A click on a dungeon's mark on the map while Scry is still reading its catalog opens that dungeon's page once the catalog is read.
+
 ## 0.2.0
 
 Locations have a tab of their own: every location and dungeon room the world can place, grouped by biome, each telling where it is placed and what it holds. A location stands on the turntable as a new zone would roll it, its creatures included, and *Roll again* rolls it anew.

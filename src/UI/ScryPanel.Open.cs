@@ -118,6 +118,8 @@ namespace Scry
         /// </summary>
         public static void Update(Explorer explorer, string reading)
         {
+            // The catalog read while the panel is open: the list shows the page it was asked for meanwhile.
+            if (_explorer == null && explorer != null && IsOpen) RevealSelected();
             _explorer = explorer;
             _reading = reading;
             if (explorer != null) Guard.Run(Feature.Panel, "preparing the panel's lookups", Prepare, explorer);

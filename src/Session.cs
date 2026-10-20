@@ -21,7 +21,8 @@ namespace Scry
         private static CatalogJob _job;
         private static float _inWorldSince = -1f;
         private static ZNetScene _failedIn;
-        private static string _pendingSearch;
+        /// <summary>The search and the page asked for before the catalog is read, shown once it is.</summary>
+        private static readonly PendingPage Pending = new PendingPage();
 
         /// <summary>The search and filters of the last world's explorer, carried over to the next.</summary>
         private static (string Text, Kind? Kind, OriginFilter Origin, bool Favourites)? _carried;
@@ -58,15 +59,29 @@ namespace Scry
             if (search != null)
             {
                 if (Explorer != null) Explorer.Text = search;
-                else _pendingSearch = search;
+                else Pending.Ask(search, null);
             }
             if (Explorer == null && ReferenceEquals(_failedIn, ZNetScene.instance)) _failedIn = null;
             if (Explorer != null) Explorer.RecentLimit = Settings.RecentCount;
             ScryPanel.Opened(Explorer, Reading);
         }
 
+        /// <summary>
+        /// Opens the panel on an entry's page, as a click on a dungeon's mark on Valheim's map does:
+        /// at once where the catalog is read, else once it is, unless the panel is closed meanwhile.
+        /// </summary>
+        public static void ShowEntry(string key)
+        {
+            Show(null);
+            if (!IsOpen) return;
+            if (Explorer != null) Explorer.Jump(key);
+            else Pending.Ask(null, key);
+        }
+
         public static void Hide()
         {
+            // Closed before the catalog is read, the page asked for is let go of.
+            Pending.Closed();
             if (!IsOpen) return;
             ScryPanel.Closed();
             Previews.Suspend();
@@ -315,8 +330,9 @@ namespace Scry
                 Explorer.Origin = carried.Origin;
                 Explorer.FavouritesOnly = carried.Favourites;
             }
-            if (_pendingSearch != null) Explorer.Text = _pendingSearch;
-            _pendingSearch = null;
+            var (search, page) = Pending.Take();
+            if (search != null) Explorer.Text = search;
+            if (page != null) Explorer.Jump(page);
             _carried = null;
 
             _scene = scene;

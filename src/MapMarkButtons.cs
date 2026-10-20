@@ -372,11 +372,11 @@ namespace Scry
             if (kept == null) return;
             HideName();
             Minimap.instance.OrNull()?.SetMapMode(Minimap.MapMode.Small);
-            Session.Show(null);
             var laidOut = kept.Rooms != null && kept.Rooms.Count > 0;
             if (laidOut) ExampleLayouts.OpenMapWhenShown(kept.Location, id);
             else ExampleLayouts.StandInFor(kept.Location);
-            Session.Explorer?.Jump(EntryKeys.For(Kind.Location, kept.Location));
+            // Its page at once where the catalog is read, else once it is.
+            Session.ShowEntry(EntryKeys.For(Kind.Location, kept.Location));
             Stage.Inside = true;
             OpenedForTest = (id, look, laidOut);
         }
