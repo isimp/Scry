@@ -311,6 +311,12 @@ namespace Scry
         /// <summary>The places a source shows with insides (<see cref="SourceLevel.WithInsides"/>).</summary>
         private readonly HashSet<Entry> _insidesFrom = new HashSet<Entry>();
 
+        /// <summary>What each room holds by what was read of it, by the prefabs' names; none before told.</summary>
+        private Func<Entry, IEnumerable<string>> _roomHolds;
+
+        /// <summary>What each room holds by what was read of it, its parts and the creatures its spawn points place, by their prefabs' names, for its place to name what its rooms walked on this server hold (<see cref="HeldByWalks"/>).</summary>
+        public void RoomsHold(Func<Entry, IEnumerable<string>> holds) => _roomHolds = holds;
+
         /// <summary>The rooms and places whose pages name all they hold (<see cref="HoldsNamed"/>).</summary>
         private readonly HashSet<Entry> _holdsNamed = new HashSet<Entry>();
 
@@ -589,6 +595,12 @@ namespace Scry
                 _holdsNamed.Add(room);
                 if (!_heldByWalks.TryGetValue(place, out var held)) _heldByWalks[place] = held = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var link in room.Links) if (!link.Back) held.Add(link.Target);
+                if (_roomHolds == null) continue;
+                foreach (var name in _roomHolds(room))
+                {
+                    var thing = _catalog.Find(name);
+                    if (thing != null) held.Add(thing.Key);
+                }
             }
         }
 

@@ -70,6 +70,10 @@ namespace Scry
         [Diagnostic]
         public static int EntrancesShown { get; private set; }
 
+        /// <summary>The dungeon listed first for the marks, as last listed, for the self-test; none.</summary>
+        [Diagnostic]
+        public static string FirstListedForTest => Kept.Count > 0 ? Kept[0].Id : null;
+
         /// <summary>A mark's words, for the self-test; none for one not shown.</summary>
         [Diagnostic]
         public static string SaidForTest(int mark) => mark >= 0 && mark < Marks.Count && Marks[mark].Made.activeSelf ? Marks[mark].Said : null;

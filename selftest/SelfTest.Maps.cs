@@ -254,13 +254,16 @@ namespace Scry
             maps.Keep(id, PlaceOf(entry).Prefab, saved, at, rolled.Site.Generator, rolled.Site.Turn, today);
             maps.Walk(id, 0);
             maps.Keep(DungeonMaps.IdOf("another world", 1L, 12u), PlaceOf(entry).Prefab, saved, at, rolled.Site.Generator, rolled.Site.Turn);
+            // A large map left open, by a part or the player, is put away first, so no mark of before is read.
+            if (Minimap.instance.m_mode == Minimap.MapMode.Large) Minimap.instance.SetMapMode(Minimap.MapMode.Small);
+            yield return Until(() => MapMarkButtons.MarksShown == 0, 3);
             DungeonWalks.MapsInsteadForTest(maps);
             // The dungeons a pinned ground of the player's shows stay off the map meanwhile, so the test's mark stands alone.
             DungeonsInGround.NoneForTest();
             // The panel put away, as it would cover the map; the click opens it again.
             Session.Hide();
             Minimap.instance.SetMapMode(Minimap.MapMode.Large);
-            yield return Until(() => MapMarkButtons.MarksShown > 0, 5);
+            yield return Until(() => MapMarkButtons.MarksShown > 0 && MapMarkButtons.FirstListedForTest == id, 5);
             p.Check(MapMarkButtons.MarksShown == 1, "the large map has a mark for the map of this world alone", $"{Numbers.Count(MapMarkButtons.MarksShown)} marks");
             if (today >= 0) p.Check(MapMarkButtons.SaidForTest(0)?.Contains("you last day " + Numbers.Count(today)) ?? false, "its words say the last day you walked it", MapMarkButtons.SaidForTest(0));
             // The pointer put on it, as a player's: what the game's event system meets there (the map,

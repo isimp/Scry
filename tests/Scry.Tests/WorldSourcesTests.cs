@@ -497,6 +497,32 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatAWalkedRoomHoldsByWhatWasReadOfItIsNamedOnItsPlacesPage()
+        {
+            // A room's creatures and loot come from what was read of it, not from links of its own.
+            var s = new Setup();
+            var draugr = new Entry { Kind = Kind.Creature, Name = "Draugr" };
+            var chest = new Entry { Kind = Kind.Item, Name = "Ruby" };
+            var explorer = new Explorer(new[] { s.Crypt, s.Walked, s.NotWalked, s.Haldor, s.Glow, draugr, chest }, new Favourites(System.IO.Path.Combine(TestCatalog.TempDir(), "favourites.txt")));
+            var view = new CompendiumView(explorer.Entries);
+            view.InWorld(World);
+            view.RoomsHold(room => room == s.NotWalked ? new[] { "Draugr", "Ruby", "nothing_read" } : System.Array.Empty<string>());
+            var rooms = new[] { s.Walked.Name, s.NotWalked.Name };
+            var map = new DungeonMap { Location = s.Crypt.Name, Rooms = new List<(int, Vec3, Vec3)>() };
+            foreach (var room in rooms) map.Rooms.Add((Hash(room), new Vec3(0f, 0f, 0f), new Vec3(0f, 0f, 0f)));
+            map.Walked.Add(1);
+            view.WalkedOnServer(ServerWalks.Of(at => at == WorldSource.SharedMaps ? new[] { map } : new DungeonMap[0], _ => null, Hash), 1);
+            s.Book.FoundIn(World, WorldSource.SharedMaps, new[] { "Crypt2" });
+            s.Book.Show(WorldSource.SharedMaps, SourceLevel.WithInsides);
+            view.Tell(s.Book, CompendiumRule.Loose);
+            explorer.Know(view);
+            explorer.Select(s.Crypt);
+            Assert.False(explorer.LeavesOut(draugr.Key));
+            Assert.False(explorer.LeavesOut(chest.Key));
+            Assert.False(explorer.NotMet(draugr.Key));
+        }
+
+        [Fact]
         public void APlaceNobodyOnThisServerWalkedNamesOnlyWhatWasMetWithInsides()
         {
             var (explorer, s, draugr, _) = Holding(WorldSource.SharedMaps, SourceLevel.WithInsides);

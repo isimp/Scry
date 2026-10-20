@@ -219,12 +219,12 @@ namespace Scry
                 p.Skip("there is no crypt with rooms read, or no world");
                 yield break;
             }
-            // A room placing a creature, and one placing none of the same.
-            Entry Held(Entry room) => room.Links.Where(l => !l.Back).Select(l => X.Find(l.Target)).FirstOrDefault(e => e != null && e.Kind == Kind.Creature);
+            // A room placing a creature, by what was read of it, and one placing none of the same.
+            Entry Held(Entry room) => RoomContents.Of(room).Select(name => X.Find(name)).FirstOrDefault(e => e != null && e.Kind == Kind.Creature);
             var holding = rooms.FirstOrDefault(r => Held(r) != null);
             if (!p.Check(holding != null, "one of the crypt's rooms places a creature", Numbers.Count(rooms.Count) + " rooms")) yield break;
             var creature = Held(holding);
-            var other = rooms.FirstOrDefault(r => r != holding && r.Links.All(l => l.Target != creature.Key));
+            var other = rooms.FirstOrDefault(r => r != holding && RoomContents.Of(r).All(name => name != creature.Name));
 
             var book = new CompendiumBook();
             book.FoundIn(world, WorldSource.Explored, new[] { PlaceOf(entry).Prefab });
@@ -233,6 +233,7 @@ namespace Scry
             map.Walked.Add(rooms.IndexOf(holding));
             var view = new CompendiumView(X.Entries);
             view.InWorld(world);
+            view.RoomsHold(RoomContents.Of);
             view.WalkedOnServer(ServerWalks.Of(s => s == WorldSource.Explored ? new[] { map } : System.Array.Empty<DungeonMap>(), _ => null, name => name.GetStableHashCode()), 1);
             view.Tell(book, CompendiumRule.Loose);
             Session.ShowKnownInstead(view);

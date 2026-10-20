@@ -151,7 +151,11 @@ namespace Scry
         private static void ShowKnown()
         {
             if (Explorer == null || (!IsOpen && _knownInstead == null)) return;
-            if (_known == null || !ReferenceEquals(_known.Catalog, Explorer.Entries)) _known = new CompendiumView(Explorer.Entries);
+            if (_known == null || !ReferenceEquals(_known.Catalog, Explorer.Entries))
+            {
+                _known = new CompendiumView(Explorer.Entries);
+                _known.RoomsHold(RoomContents.Of);
+            }
             // The floor as far as the character's bosses fell; the tiers worked out only once one is set.
             var book = CompendiumKeeper.Book;
             var rule = book?.Rule ?? CompendiumRule.Off;

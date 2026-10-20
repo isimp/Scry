@@ -127,7 +127,8 @@ namespace Scry
             var row = ScryPanel.Drawn(PanelPart.PlayingWithRow);
             ScryPanel.ShowWhoHasScry(true);
             yield return Until(() => ScryPanel.Drawn(PanelPart.PlayingWithRow) > row + 1, 3);
-            p.Check(ScryPanel.Drawn(PanelPart.PlayingWithRow) > row && ScryPanel.PlayingWithRow == "Ana · no Scry, Bjorn · needs updating, Cara · Scry",
+            // The world's server, named first where it is not this game, then the players.
+            p.Check(ScryPanel.Drawn(PanelPart.PlayingWithRow) > row && (ScryPanel.PlayingWithRow ?? "").EndsWith("Ana · no Scry, Bjorn · needs updating, Cara · Scry", System.StringComparison.Ordinal),
                 "its chip opens the compendium's box, listing everyone played with and whether their game has Scry", ScryPanel.PlayingWithRow);
             yield return Picture(p, "compendium box playing with");
 
