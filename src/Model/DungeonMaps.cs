@@ -25,6 +25,16 @@ namespace Scry
         /// <summary>The game's day it was last walked in; -1 where that is not known.</summary>
         public int LastDay = -1;
 
+        /// <summary>
+        /// The rooms what was left inside uncovers (<see cref="DungeonTraces.Uncovered"/>), by their
+        /// place in its rooms: in a server's records apart from the rooms walked; in its answers those
+        /// that came of traces alone, the rest counted among the rooms walked.
+        /// </summary>
+        public readonly SortedSet<int> Traced = new SortedSet<int>();
+
+        /// <summary>What was left inside, for the words; none where nothing was read.</summary>
+        public TraceTally Tally;
+
         /// <summary>The same map as it stands from its generator: its rooms placed and turned from there, the generator at the origin and unturned, no place of the world in it.</summary>
         public DungeonMap FromGenerator()
         {
@@ -35,6 +45,8 @@ namespace Scry
                 Rooms = Rooms.Select(r => (r.Hash, back * (r.Position - Generator), (back * Quat.Euler(r.Angles.X, r.Angles.Y, r.Angles.Z)).ToEuler())).ToList(),
             };
             foreach (var room in Walked) local.Walked.Add(room);
+            foreach (var room in Traced) local.Traced.Add(room);
+            local.Tally = Tally;
             local.FirstDay = FirstDay;
             local.LastDay = LastDay;
             return local;
@@ -108,6 +120,8 @@ namespace Scry
                 kept.FirstDay = map.FirstDay;
                 kept.LastDay = map.LastDay;
                 keyed.Merge(one);
+                // Traces are kept by place already: they stay with the map.
+                if (map.Tally != null) keyed.SetTraced(at, map.Traced, map.Tally);
             }
             foreach (var pair in _forgotten) keyed._forgotten[pair.Key] = pair.Value;
             return keyed;
@@ -248,7 +262,54 @@ namespace Scry
             return walked;
         }
 
-        /// <summary>The maps of a world's dungeons of the locations named, as they stand from their generators (<see cref="DungeonMap.FromGenerator"/>); none outside a world.</summary>
+        /// <summary>Sets the rooms what was left inside a kept dungeon uncovers, and what was left; true where that changed it, false for a dungeon not kept.</summary>
+        public bool SetTraced(string id, IEnumerable<int> rooms, TraceTally tally)
+        {
+            var map = Of(id);
+            if (map == null) return false;
+            var now = new SortedSet<int>(rooms.Where(r => r >= 0 && r < map.Rooms.Count));
+            if (now.SetEquals(map.Traced) && (tally == null ? map.Tally == null : tally.Same(map.Tally))) return false;
+            map.Traced.Clear();
+            map.Traced.UnionWith(now);
+            map.Tally = tally;
+            Stamp++;
+            return true;
+        }
+
+        /// <summary>Takes in a server's answer: each dungeon it holds as it holds it, in place of the copy held before, as a guess round a loop it took back goes with it; the others as they were.</summary>
+        public void Replace(DungeonMaps answer)
+        {
+            foreach (var (id, map) in answer.All.ToList())
+            {
+                var kept = Of(id);
+                if (kept == null)
+                {
+                    kept = Keep(id, map.Location, map.Rooms, map.Entrance, map.Generator, map.Turn);
+                }
+                else
+                {
+                    kept.Location = map.Location;
+                    kept.Rooms = map.Rooms;
+                    kept.Entrance = map.Entrance;
+                    kept.Generator = map.Generator;
+                    kept.Turn = map.Turn;
+                    kept.Walked.Clear();
+                }
+                kept.Walked.UnionWith(map.Walked);
+                kept.Traced.Clear();
+                kept.Traced.UnionWith(map.Traced);
+                kept.Tally = map.Tally;
+                kept.FirstDay = map.FirstDay;
+                kept.LastDay = map.LastDay;
+                Stamp++;
+            }
+        }
+
+        /// <summary>
+        /// The maps of a world's dungeons of the locations named, as they stand from their generators
+        /// (<see cref="DungeonMap.FromGenerator"/>), as a server answers them: the rooms traces
+        /// uncover counted as walked, those that came of traces alone told apart; none outside a world.
+        /// </summary>
         public DungeonMaps Only(string world, IEnumerable<string> locations)
         {
             var named = new HashSet<string>(locations, StringComparer.Ordinal);
@@ -256,13 +317,20 @@ namespace Scry
             foreach (var (id, map) in OfWorld(world))
             {
                 if (!named.Contains(map.Location)) continue;
-                var local = map.FromGenerator();
-                var kept = only.Keep(id, local.Location, local.Rooms, local.Entrance, local.Generator, local.Turn);
-                foreach (var room in local.Walked) only.Walk(id, room);
-                kept.FirstDay = local.FirstDay;
-                kept.LastDay = local.LastDay;
+                only.TakeAnswered(id, map.FromGenerator());
             }
             return only;
+        }
+
+        /// <summary>Keeps a record as a server answers it: its rooms walked and those its traces uncover walked, those of traces alone told apart.</summary>
+        public void TakeAnswered(string id, DungeonMap record)
+        {
+            var kept = Keep(id, record.Location, record.Rooms, record.Entrance, record.Generator, record.Turn);
+            foreach (var room in record.Walked) Walk(id, room);
+            foreach (var room in record.Traced) Walk(id, room);
+            if (record.Tally != null) SetTraced(id, record.Traced.Where(r => !record.Walked.Contains(r)), record.Tally);
+            kept.FirstDay = record.FirstDay;
+            kept.LastDay = record.LastDay;
         }
 
         /// <summary>Forgets one dungeon's map; true when there was one.</summary>
@@ -305,7 +373,7 @@ namespace Scry
         /// </summary>
         public Func<string> ToSave()
         {
-            var held = All.Select(m => (m.Id, m.Map.Location, m.Map.Entrance, m.Map.Generator, m.Map.Turn, Walked: m.Map.Walked.ToArray(), m.Map.Rooms, Days: (m.Map.FirstDay, m.Map.LastDay))).ToList();
+            var held = All.Select(m => (m.Id, m.Map.Location, m.Map.Entrance, m.Map.Generator, m.Map.Turn, Walked: m.Map.Walked.ToArray(), m.Map.Rooms, Days: (m.Map.FirstDay, m.Map.LastDay), Traced: m.Map.Traced.ToArray(), m.Map.Tally)).ToList();
             var forgotten = _forgotten.OrderBy(f => f.Key, StringComparer.Ordinal).ToList();
             _savedStamp = Stamp;
             return () =>
@@ -313,7 +381,7 @@ namespace Scry
                 var text = new StringBuilder();
                 text.Append(FirstLine).Append('\n');
                 foreach (var pair in forgotten) text.Append(ForgottenLine).Append('\t').Append(Stored.Escaped(pair.Key)).Append('\t').Append(Stored.Count(pair.Value)).Append('\n');
-                foreach (var (id, location, entrance, generator, turn, walked, rooms, days) in held)
+                foreach (var (id, location, entrance, generator, turn, walked, rooms, days, traced, tally) in held)
                 {
                     if (rooms == null || rooms.Count == 0)
                     {
@@ -327,8 +395,10 @@ namespace Scry
                         .Append(Stored.Exact(turn.X)).Append(' ').Append(Stored.Exact(turn.Y)).Append(' ').Append(Stored.Exact(turn.Z)).Append(' ').Append(Stored.Exact(turn.W)).Append('\t')
                         .Append(string.Join(",", walked.Select(i => Stored.Count(i)))).Append('\t')
                         .Append(Convert.ToBase64String(SavedRooms.Write(rooms))).Append('\n');
-                    if (days.FirstDay < 0 && days.LastDay < 0) continue;
-                    text.Append(DaysLine).Append('\t').Append(Stored.Escaped(id)).Append('\t').Append(Stored.Count(days.FirstDay)).Append('\t').Append(Stored.Count(days.LastDay)).Append('\n');
+                    if (days.FirstDay >= 0 || days.LastDay >= 0)
+                        text.Append(DaysLine).Append('\t').Append(Stored.Escaped(id)).Append('\t').Append(Stored.Count(days.FirstDay)).Append('\t').Append(Stored.Count(days.LastDay)).Append('\n');
+                    if (tally != null)
+                        text.Append(TracedLine).Append('\t').Append(Stored.Escaped(id)).Append('\t').Append(string.Join(",", traced.Select(i => Stored.Count(i)))).Append('\t').Append(tally.ToField()).Append('\n');
                 }
                 return text.ToString();
             };
@@ -343,6 +413,9 @@ namespace Scry
         /// <summary>How a line of the day a world's records were forgotten on begins.</summary>
         private const string ForgottenLine = "forgotten";
 
+        /// <summary>How a line of the rooms a dungeon's traces uncover begins, after its own, four fields that an older Scry passes over.</summary>
+        private const string TracedLine = "traced";
+
         private static string Point(Vec3 p) => Stored.Exact(p.X) + " " + Stored.Exact(p.Y) + " " + Stored.Exact(p.Z);
 
         /// <summary>The maps a file held, with their days; a line that cannot be read is passed over, as are days of a dungeon not held, and none for no text.</summary>
@@ -351,9 +424,15 @@ namespace Scry
             var maps = new DungeonMaps();
             if (string.IsNullOrEmpty(text)) return maps;
             var days = new List<(string Id, int First, int Last)>();
+            var traces = new List<(string Id, List<int> Rooms, TraceTally Tally)>();
             foreach (var line in text.Split('\n'))
             {
                 var fields = line.TrimEnd('\r').Split('\t');
+                if (fields.Length == 4 && fields[0] == TracedLine)
+                {
+                    if (Stored.TryUnescaped(fields[1], out var of) && TryCounts(fields[2], out var uncovered) && TraceTally.TryField(fields[3], out var tally)) traces.Add((of, uncovered, tally));
+                    continue;
+                }
                 if (fields.Length == 4 && fields[0] == DaysLine)
                 {
                     if (Stored.TryUnescaped(fields[1], out var of) && Stored.TryCount(fields[2], out var first) && Stored.TryCount(fields[3], out var last)) days.Add((of, first, last));
@@ -392,8 +471,21 @@ namespace Scry
                 map.FirstDay = first;
                 map.LastDay = last;
             }
+            foreach (var (id, uncovered, tally) in traces) maps.SetTraced(id, uncovered, tally);
             maps._savedStamp = maps.Stamp;
             return maps;
+        }
+
+        /// <summary>Counts by commas, none for an empty field; false where one cannot be read.</summary>
+        private static bool TryCounts(string field, out List<int> counts)
+        {
+            counts = new List<int>();
+            foreach (var part in field.Split(Comma, StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (!Stored.TryCount(part, out var count)) return false;
+                counts.Add(count);
+            }
+            return true;
         }
 
         private static bool TryPoint(string field, out Vec3 point)
@@ -445,9 +537,64 @@ namespace Scry
         public static string Yours(int index, int count, int walked, int rooms, int first, int last) =>
             "Walked by you" + Numbered(index, count) + ": " + RoomsOf(walked, rooms) + WithDays(first, last);
 
-        /// <summary>The line of the server's record of a dungeon, anyone's walks on it: numbered where the location has more than one, how far, its days, and the tier that opens it.</summary>
-        public static string Server(int index, int count, int walked, int rooms, string floor, int first, int last) =>
-            "Walked on this server" + Numbered(index, count) + ": " + RoomsOf(walked, rooms) + WithDays(first, last) + " \u00b7 opened up to the " + floor + " tier";
+        /// <summary>The line of the server's record of a dungeon, anyone's walks on it: numbered where the location has more than one, how far, how many of those rooms came of traces alone, its days, and the tier that opens it.</summary>
+        public static string Server(int index, int count, int walked, int rooms, string floor, int first, int last, int fromTraces) =>
+            "Walked on this server" + Numbered(index, count) + ": " + RoomsOf(walked, rooms) + FromTraces(walked, fromTraces, " \u00b7 ") + WithDays(first, last) + " \u00b7 opened up to the " + floor + " tier";
+
+        /// <summary>How many rooms walked came of traces alone: "from traces" where all did; none where none did.</summary>
+        private static string FromTraces(int walked, int fromTraces, string before) =>
+            fromTraces <= 0 ? "" : before + (fromTraces >= walked ? "from traces" : Numbers.Count(fromTraces) + " from traces");
+
+        /// <summary>
+        /// What was left inside a dungeon in words, on its line's hover: each kind and how many,
+        /// in how many rooms, the way to them uncovered too, and that who walked it is not known;
+        /// the latest day known; none where nothing was read.
+        /// </summary>
+        public static string TraceTip(TraceTally tally)
+        {
+            if (tally == null) return null;
+            var left = new List<string>();
+            void Add(int count, string one, string many, string done)
+            {
+                if (count > 0) left.Add(Naming.Count(count, one, many) + " " + done);
+            }
+            Add(tally.Chests, "chest", "chests", "emptied");
+            Add(tally.Broken, "thing", "things", "broken");
+            Add(tally.Pickups, "pickup", "pickups", "taken");
+            Add(tally.Mined, "rock", "rocks", "mined");
+            Add(tally.Doors, "door", "doors", "opened");
+            Add(tally.Spawners, "spawn point", "spawn points", "woken");
+            if (left.Count == 0) return null;
+            var said = "Read from what was left inside: " + string.Join(", ", left);
+            if (tally.Rooms > 0) said += ", in " + Naming.Count(tally.Rooms, "room", "rooms") + ", and the rooms on the way to them.";
+            else if (tally.Doors > 0) said += ", and the rooms on the way to them.";
+            else said += ", so someone was inside.";
+            said += " Who walked it is not known.";
+            if (tally.LastDay >= 0) said += " The latest pickup was taken on day " + Numbers.Count(tally.LastDay) + ".";
+            return said;
+        }
+
+        /// <summary>The words on the hover of a server's line: what was left inside, then its days; none where neither is known.</summary>
+        public static string ServerTip(TraceTally tally, int first, int last)
+        {
+            var traces = TraceTip(tally);
+            var days = DaysTip(false, first, last);
+            return traces == null ? days : days == null ? traces : traces + " " + days;
+        }
+
+        /// <summary>The answer to reading the traces in a world's dungeons: in how many, how many rooms they uncover, and how many of those only as the way to a trace.</summary>
+        public static string TracesRead(int dungeons, int rooms, int onTheWay) => dungeons == 0
+            ? "the server found no trace of a visit in the dungeons of this world."
+            : "the server read the traces in " + Naming.Count(dungeons, "dungeon", "dungeons") + " of this world: " + Naming.Count(rooms, "room", "rooms") + " walked, "
+              + (onTheWay == 0 ? "none" : Numbers.Count(onTheWay) + " of them") + " on the way to a trace.";
+
+        public const string TracesRefused = "only an admin of the server can have it read traces.";
+
+        /// <summary>The answer to reading them where this game is the server, which says the rest once done.</summary>
+        public const string TracesReading = "the traces in the dungeons of this world are being read; how many follows once done.";
+
+        /// <summary>The answer to reading them from a game that is not the server, which answers again once done.</summary>
+        public const string TracesAsked = "the server is asked to read the traces in the dungeons of this world.";
 
         /// <summary>A line's number among the location's, "(2 of 3)"; none where it is the only one.</summary>
         private static string Numbered(int index, int count) => count > 1 ? " (" + Numbers.Count(index + 1) + " of " + Numbers.Count(count) + ")" : "";
@@ -507,9 +654,9 @@ namespace Scry
         public static string MarkLabel(string name, int walked, int rooms, string walkedColour, int yourLast, int serverLast) =>
             $"{name}\n<size=80%><color=#{walkedColour}>Walked by you: {MarkRooms(walked, rooms)}</color></size>" + LastDays(yourLast, serverLast);
 
-        /// <summary>The words under the mark of a dungeon walked on this server, shown with insides: its name, how far anyone walked it, and the last day anyone did.</summary>
-        public static string ServerLabel(string name, int walked, int rooms, string colour, int serverLast) =>
-            $"{name}\n<size=80%><color=#{colour}>Walked on this server: {MarkRooms(walked, rooms)}</color></size>" + LastDays(-1, serverLast);
+        /// <summary>The words under the mark of a dungeon walked on this server, shown with insides: its name, how far anyone walked it, how many of those rooms came of traces alone, and the last day anyone did.</summary>
+        public static string ServerLabel(string name, int walked, int rooms, string colour, int serverLast, int fromTraces) =>
+            $"{name}\n<size=80%><color=#{colour}>Walked on this server: {MarkRooms(walked, rooms)}{FromTraces(walked, fromTraces, ", ")}</color></size>" + LastDays(-1, serverLast);
 
         /// <summary>The words under the mark of a dungeon's entrance alone: whether anyone on this server walked it, With insides then showing what was walked.</summary>
         public static string EntranceLabel(string name, bool walkedOnServer, string colour) =>

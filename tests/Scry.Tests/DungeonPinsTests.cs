@@ -165,8 +165,8 @@ namespace Scry.Tests
             // One room alone, walked, is no "all".
             Assert.Equal("Tomb\n<size=80%><color=#F5B857>Walked by you: 1 of 1 room</color></size>", DungeonMapWords.MarkLabel("Tomb", 1, 1, "F5B857", -1, -1));
             Assert.Equal("Sunken Crypt\n<size=80%><color=#F5B857>Walked on this server: all 9 rooms</color></size>\n<size=75%>server last day 245</size>",
-                DungeonMapWords.ServerLabel("Sunken Crypt", 9, 9, "F5B857", 245));
-            Assert.Equal("Sunken Crypt\n<size=80%><color=#F5B857>Walked on this server: 4 of 9 rooms</color></size>", DungeonMapWords.ServerLabel("Sunken Crypt", 4, 9, "F5B857", -1));
+                DungeonMapWords.ServerLabel("Sunken Crypt", 9, 9, "F5B857", 245, 0));
+            Assert.Equal("Sunken Crypt\n<size=80%><color=#F5B857>Walked on this server: 4 of 9 rooms</color></size>", DungeonMapWords.ServerLabel("Sunken Crypt", 4, 9, "F5B857", -1, 0));
             Assert.Equal("Troll Cave\n<size=80%><color=#B3B4BD>Nobody on this server walked it</color></size>", DungeonMapWords.EntranceLabel("Troll Cave", false, "B3B4BD"));
             Assert.Equal("Troll Cave\n<size=80%><color=#B3B4BD>Walked on this server; With insides shows what was walked</color></size>", DungeonMapWords.EntranceLabel("Troll Cave", true, "B3B4BD"));
         }

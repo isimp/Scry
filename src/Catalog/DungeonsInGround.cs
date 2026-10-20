@@ -176,12 +176,14 @@ namespace Scry
             var entrances = new List<(string Location, Vector3 At)>();
             foreach (var dungeon in WorldDungeons.InGround(world, ExploredGrid.Unpack(packed), kinds, entrances))
             {
-                var kept = maps.Keep(dungeon.Id, dungeon.Location, dungeon.Saved, dungeon.Entrance, dungeon.Generator, dungeon.Turn);
                 var record = GroupMapsLink.RecordOf(dungeon.Id);
-                if (record?.Rooms == null || record.Rooms.Count != dungeon.Saved.Count) continue;
-                foreach (var room in record.Walked) maps.Walk(dungeon.Id, room);
-                kept.FirstDay = record.FirstDay;
-                kept.LastDay = record.LastDay;
+                if (record?.Rooms != null && record.Rooms.Count == dungeon.Saved.Count)
+                {
+                    // As the server answers a record: the rooms its traces uncover walked, those of traces alone told apart.
+                    maps.TakeAnswered(dungeon.Id, record);
+                    continue;
+                }
+                maps.Keep(dungeon.Id, dungeon.Location, dungeon.Saved, dungeon.Entrance, dungeon.Generator, dungeon.Turn);
             }
             foreach (var (location, at) in entrances)
             {

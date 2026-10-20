@@ -68,12 +68,13 @@ namespace Scry
             {
                 var (id, map) = GroupShown[i];
                 var (walked, rooms) = ExampleLayouts.Count(map);
-                var said = DungeonMapWords.Server(i, GroupShown.Count, walked, rooms, floor, map.FirstDay, map.LastDay);
+                // The rooms of traces alone are rooms only, as the way between rooms runs through no end cap or divider.
+                var said = DungeonMapWords.Server(i, GroupShown.Count, walked, rooms, floor, map.FirstDay, map.LastDay, map.Traced.Count);
                 var openW = Skin.Width(Skin.Button, DungeonMapWords.Open) + U(12f);
                 var open = new Rect(width - openW, y, openW, rowH);
                 var label = new Rect(0f, y, Mathf.Max(0f, open.x - U(8f)), rowH);
                 GUI.Label(label, said, Skin.Fitted(Skin.DimLabel, label));
-                DaysTip(label, "map:server-days:" + id, DungeonMapWords.DaysTip(false, map.FirstDay, map.LastDay));
+                DaysTip(label, "map:server-days:" + id, DungeonMapWords.ServerTip(map.Tally, map.FirstDay, map.LastDay));
                 var shown = ExampleLayouts.ShownMap == id;
                 if (open.Contains(Event.current.mousePosition)) AskTip("map:group:" + id, DungeonMapWords.GroupOpenTip);
                 if (GUI.Button(open, DungeonMapWords.Open, shown ? Skin.On : Skin.Button) && !shown) OpenMap(id);

@@ -82,6 +82,52 @@ namespace Scry
             else p.Note("the character walked no dungeon of this world, so none was listed on joining");
         }
 
+        /// <summary>
+        /// The server, asked to read what was left inside the world's dungeons, answers once done how
+        /// many held traces, each uncovering a room at least, the way to them among the rooms; and in
+        /// every record it sent, the rooms of traces alone count among the rooms walked, the line
+        /// saying how many came of traces. An admin alone may ask.
+        /// </summary>
+        private static IEnumerator TracesReadOnServer(Probe p)
+        {
+            var world = CompendiumMap.World;
+            if (world == null)
+            {
+                p.Skip("no world is played");
+                yield break;
+            }
+            if (!ZNet.instance.IsServer())
+            {
+                yield return Until(() => EventLink.Server != Scry.ServerScry.Waiting, 15);
+                if (!ServerScries.Answers(EventLink.Server))
+                {
+                    p.Skip("the server runs no Scry of this version, so it reads no traces");
+                    yield break;
+                }
+            }
+            GroupMapsLink.ReadTracesForTest();
+            yield return Until(() => GroupMapsLink.TracesReadForTest != null, 300);
+            var read = GroupMapsLink.TracesReadForTest;
+            if (!p.Check(read != null, "the server answers once it read the traces")) yield break;
+            var (dungeons, rooms, onTheWay) = read.Value;
+            if (dungeons < 0)
+            {
+                p.Skip("this player is no admin of the server, which refused");
+                yield break;
+            }
+            p.Note($"traces in {Numbers.Count(dungeons)} dungeons, {Numbers.Count(rooms)} rooms uncovered, {Numbers.Count(onTheWay)} of them on the way to a trace");
+            p.Check(rooms >= dungeons && onTheWay >= 0 && onTheWay <= rooms, "each dungeon with traces uncovers a room at least, the way to them among the rooms", $"{Numbers.Count(dungeons)} / {Numbers.Count(rooms)} / {Numbers.Count(onTheWay)}");
+            var sent = GroupMapsLink.Group.OfWorld(world).Where(m => m.Map.Tally != null).ToList();
+            p.Note($"{Numbers.Count(sent.Count)} records sent so far hold traces");
+            p.Check(sent.All(m => m.Map.Traced.All(m.Map.Walked.Contains)), "the rooms of traces alone count among the rooms walked", string.Join(", ", sent.Select(m => m.Id).Take(3)));
+            foreach (var (id, map) in sent.Where(m => m.Map.Traced.Count > 0).Take(1))
+            {
+                var said = DungeonMapWords.Server(0, 1, map.Walked.Count, map.Rooms.Count, "Known", map.FirstDay, map.LastDay, map.Traced.Count);
+                p.Check(said.Contains("from traces"), "its line says how many rooms came of traces", said);
+                p.Check(DungeonMapWords.ServerTip(map.Tally, map.FirstDay, map.LastDay)?.StartsWith("Read from what was left inside", System.StringComparison.Ordinal) == true, "and its hover what was left inside", id);
+            }
+        }
+
         /// <summary>The world's server's Scry as the world's again, the box let go.</summary>
         private static void ServerAsItWas()
         {

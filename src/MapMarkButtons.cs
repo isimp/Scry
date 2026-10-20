@@ -261,7 +261,7 @@ namespace Scry
             switch (kept.Look)
             {
                 case MarkLook.Yours: return DungeonMapWords.MarkLabel(name, walked, rooms, accent, kept.Map.LastDay, serverLast);
-                case MarkLook.Server: return DungeonMapWords.ServerLabel(name, walked, rooms, accent, Mathf.Max(serverLast, kept.Map.LastDay));
+                case MarkLook.Server: return DungeonMapWords.ServerLabel(name, walked, rooms, accent, Mathf.Max(serverLast, kept.Map.LastDay), kept.Map.Traced.Count);
                 default: return DungeonMapWords.EntranceLabel(name, kept.Map.Walked.Count > 0, ColorUtility.ToHtmlStringRGB(Skin.Faint));
             }
         }

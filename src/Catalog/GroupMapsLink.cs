@@ -37,6 +37,27 @@ namespace Scry
         public const string ForgotRpc = "Scry_GroupForgot";
         public const string WalksListRpc = "Scry_WalksList";
         public const string WalksWantedRpc = "Scry_WalksWanted";
+        public const string ReadTracesRpc = "Scry_ReadTraces";
+        public const string TracesReadRpc = "Scry_TracesRead";
+
+        /// <summary>The world whose dungeons' traces were set reading once its records were read, this session; none before.</summary>
+        private static string _tracedFor;
+
+        /// <summary>What the server last answered on reading traces, for the self-test: how many dungeons, rooms and rooms on the way, or -1 where it refused; none before an answer.</summary>
+        [Diagnostic]
+        public static (int Dungeons, int Rooms, int OnTheWay)? TracesReadForTest { get; private set; }
+
+        /// <summary>Asks the server to read the traces in the world's dungeons and keeps its answer, nothing said in the chat; for the self-test.</summary>
+        [Diagnostic]
+        public static void ReadTracesForTest()
+        {
+            TracesReadForTest = null;
+            _readQuietly = true;
+            ReadTraces();
+        }
+
+        /// <summary>Whether the next answer on reading traces is only kept for the self-test.</summary>
+        private static bool _readQuietly;
 
         /// <summary>The world the walks were listed to the server for this connection; none before.</summary>
         private static string _listedFor;
@@ -128,6 +149,8 @@ namespace Scry
             _unreadable = false;
             _listedFor = null;
             _listOnlyForTest = false;
+            _tracedFor = null;
+            _readQuietly = false;
         }
 
         /// <summary>Registers the messages on each new connection, sends a walk due, and on a server keeps its records; called each frame, on a dedicated server too.</summary>
@@ -147,6 +170,8 @@ namespace Scry
                     rpc.Register<int>(ForgotRpc, (sender, count) => Guard.Run(Feature.GroupDungeonMaps, "taking the server's answer to forgetting", () => Forgot(count)));
                     rpc.Register<ZPackage>(WalksListRpc, (sender, package) => Guard.Run(Feature.GroupDungeonMaps, "answering a player's list of walks", () => ListAsked(sender, package)));
                     rpc.Register<ZPackage>(WalksWantedRpc, (sender, package) => Guard.Run(Feature.GroupDungeonMaps, "sending the walks the server wants", () => WantedTaken(sender, package)));
+                    rpc.Register<ZPackage>(ReadTracesRpc, (sender, package) => Guard.Run(Feature.GroupDungeonMaps, "reading the traces in the world's dungeons as asked", () => ReadTracesAsked(sender, package)));
+                    rpc.Register<ZPackage>(TracesReadRpc, (sender, package) => Guard.Run(Feature.GroupDungeonMaps, "taking the server's answer on traces read", () => TracesRead(sender, package)));
                 }
                 _listedFor = null;
             }
@@ -273,7 +298,7 @@ namespace Scry
             AskedAt[location] = Time.unscaledTime;
             if (IsServer)
             {
-                if (_records != null) _group.Merge(_records.Only(world, new[] { location }));
+                if (_records != null) _group.Replace(_records.Only(world, new[] { location }));
                 return;
             }
             var rpc = ZRoutedRpc.instance;
@@ -321,7 +346,73 @@ namespace Scry
         {
             if (_records == null) return;
             _records.Merge(walked, world);
+            // The way to a trace goes by the rooms walked: worked out again with them.
+            foreach (var (id, _) in walked.OfWorld(world)) DungeonTraceReader.Again(_records, id);
             Merged++;
+        }
+
+        /// <summary>
+        /// Reads the traces in the world's dungeons: where this game is the server at once, told in
+        /// the chat once done, else by asking the server, which reads them for an admin alone and
+        /// answers once done.
+        /// </summary>
+        public static string ReadTraces()
+        {
+            var world = CompendiumMap.World;
+            if (world == null) return DungeonMapWords.TracesRead(0, 0, 0);
+            if (IsServer)
+            {
+                DungeonTraceReader.Start(world, (dungeons, rooms, onTheWay) => Said(dungeons, rooms, onTheWay));
+                return DungeonMapWords.TracesReading;
+            }
+            var rpc = ZRoutedRpc.instance;
+            if (rpc == null || rpc != _registeredOn) return DungeonMapWords.TracesRead(0, 0, 0);
+            var package = new ZPackage();
+            package.Write(world);
+            rpc.InvokeRoutedRPC(ReadTracesRpc, package);
+            return DungeonMapWords.TracesAsked;
+        }
+
+        /// <summary>The server reads the traces as an admin asks, and answers once done; anyone else is refused.</summary>
+        private static void ReadTracesAsked(long sender, ZPackage package)
+        {
+            if (!IsServer || _records == null) return;
+            var world = package.ReadString();
+            var peer = ZNet.instance.GetPeer(sender);
+            var admin = peer?.m_socket != null && ZNet.instance.IsAdmin(peer.m_socket.GetHostName());
+            if (!admin || world != CompendiumMap.World)
+            {
+                Reply(sender, -1, 0, 0);
+                return;
+            }
+            DungeonTraceReader.Start(world, (dungeons, rooms, onTheWay) => Reply(sender, dungeons, rooms, onTheWay));
+        }
+
+        private static void Reply(long sender, int dungeons, int rooms, int onTheWay)
+        {
+            var reply = new ZPackage();
+            reply.Write(dungeons);
+            reply.Write(rooms);
+            reply.Write(onTheWay);
+            ZRoutedRpc.instance?.InvokeRoutedRPC(sender, TracesReadRpc, reply);
+        }
+
+        /// <summary>The server's answer on reading traces, said in the chat; from any game but the world's server, passed over.</summary>
+        private static void TracesRead(long sender, ZPackage package)
+        {
+            if (sender != EventLink.WorldSession) return;
+            Said(package.ReadInt(), package.ReadInt(), package.ReadInt());
+        }
+
+        private static void Said(int dungeons, int rooms, int onTheWay)
+        {
+            if (_readQuietly)
+            {
+                _readQuietly = false;
+                TracesReadForTest = (dungeons, rooms, onTheWay);
+                return;
+            }
+            Chat.instance.OrNull()?.AddString(ConsoleWords.Reply(dungeons < 0 ? DungeonMapWords.TracesRefused : DungeonMapWords.TracesRead(dungeons, rooms, onTheWay)));
         }
 
         private static void Answer(long sender, ZPackage package)
@@ -376,6 +467,14 @@ namespace Scry
                 }
                 _reading = null;
             }
+            // Once its records are read, a dedicated server reads the traces in the world's dungeons, a
+            // few milliseconds a frame; a game hosting the world only as asked, its player in it.
+            if (_records != null && _tracedFor != world && ZNet.instance.IsDedicated() && ZoneSystem.instance != null && DungeonDB.instance != null)
+            {
+                _tracedFor = world;
+                DungeonTraceReader.Start(world, null);
+            }
+            DungeonTraceReader.Step(_records, world);
             Save();
         }
 
@@ -415,7 +514,8 @@ namespace Scry
             var world = package.ReadString();
             var text = Unpacked(package.ReadByteArray());
             if (world != CompendiumMap.World || text == null) return;
-            _group.Merge(DungeonMaps.Load(text).ByPlace(), world);
+            // The answer stands for each dungeon it holds: the server takes a guess round a loop back as a walk shows the other way.
+            _group.Replace(DungeonMaps.Load(text).ByPlace());
         }
 
         private static void Forgot(int count)

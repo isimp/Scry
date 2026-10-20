@@ -119,9 +119,9 @@ namespace Scry.Tests
             Assert.Equal("Walked by you (2 of 3): 1 of 1 room · days 103–241", DungeonMapWords.Yours(1, 3, 1, 1, 103, 241));
             Assert.Equal("Walked by you: 6 of 18 rooms · day 103", DungeonMapWords.Yours(0, 1, 6, 18, 103, 103));
             Assert.Equal("Walked by you: 6 of 18 rooms · last day 241", DungeonMapWords.Yours(0, 1, 6, 18, -1, 241));
-            Assert.Equal("Walked on this server: 14 of 18 rooms · days 98–245 · opened up to the Mountain tier", DungeonMapWords.Server(0, 1, 14, 18, "Mountain", 98, 245));
-            Assert.Equal("Walked on this server (2 of 2): 1 of 2 rooms · opened up to the Plains tier", DungeonMapWords.Server(1, 2, 1, 2, "Plains", -1, -1));
-            Assert.Equal("Walked on this server: 2 of 2 rooms · days 1,203–1,240 · opened up to the Plains tier", DungeonMapWords.Server(0, 1, 2, 2, "Plains", 1203, 1240));
+            Assert.Equal("Walked on this server: 14 of 18 rooms · days 98–245 · opened up to the Mountain tier", DungeonMapWords.Server(0, 1, 14, 18, "Mountain", 98, 245, 0));
+            Assert.Equal("Walked on this server (2 of 2): 1 of 2 rooms · opened up to the Plains tier", DungeonMapWords.Server(1, 2, 1, 2, "Plains", -1, -1, 0));
+            Assert.Equal("Walked on this server: 2 of 2 rooms · days 1,203–1,240 · opened up to the Plains tier", DungeonMapWords.Server(0, 1, 2, 2, "Plains", 1203, 1240, 0));
         }
 
         [Fact]
@@ -143,8 +143,8 @@ namespace Scry.Tests
             Assert.Equal(Walked + "\n<size=75%>you last day 241</size>", DungeonMapWords.MarkLabel("Sunken Crypts", 7, 12, "F5B857", 241, -1));
             Assert.Equal(Walked, DungeonMapWords.MarkLabel("Sunken Crypts", 7, 12, "F5B857", -1, -1));
             const string Server = "Burial Chambers\n<size=80%><color=#F5B857>Walked on this server: 3 of 12 rooms</color></size>";
-            Assert.Equal(Server + "\n<size=75%>server last day 245</size>", DungeonMapWords.ServerLabel("Burial Chambers", 3, 12, "F5B857", 245));
-            Assert.Equal(Server, DungeonMapWords.ServerLabel("Burial Chambers", 3, 12, "F5B857", -1));
+            Assert.Equal(Server + "\n<size=75%>server last day 245</size>", DungeonMapWords.ServerLabel("Burial Chambers", 3, 12, "F5B857", 245, 0));
+            Assert.Equal(Server, DungeonMapWords.ServerLabel("Burial Chambers", 3, 12, "F5B857", -1, 0));
         }
     }
 }

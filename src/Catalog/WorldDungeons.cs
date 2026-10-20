@@ -159,24 +159,38 @@ namespace Scry
                     if (kinds != null && kinds.Contains(name)) entrances.Add((name, at));
                     continue;
                 }
-                InZone.Clear();
-                zdos.FindSectorObjects(ZoneSystem.GetZone(at), OneZone, InZone);
-                ZDO generator = null;
-                var nearest = float.MaxValue;
-                foreach (var zdo in InZone)
-                {
-                    var p = zdo.GetPosition();
-                    if (!Character.InInterior(p) || !HasRooms(zdo)) continue;
-                    var apart = (p.x - at.x) * (p.x - at.x) + (p.z - at.z) * (p.z - at.z);
-                    if (apart >= nearest) continue;
-                    nearest = apart;
-                    generator = zdo;
-                }
-                var dungeon = generator != null ? FromZdo(world, generator, name, at) : null;
+                var dungeon = Placed(world, instance);
                 if (dungeon != null) found.Add(dungeon);
                 else if (kinds != null && kinds.Contains(name)) entrances.Add((name, at));
             }
             return found;
+        }
+
+        /// <summary>
+        /// The dungeon of a location placed in the world, as the game running the world has it: its
+        /// zone's objects looked through for a generator standing where the game counts a place as
+        /// inside (<c>Character.InInterior</c>) with rooms saved, the one nearest its entrance; none
+        /// for a location with no dungeon, or one whose zone never loaded.
+        /// </summary>
+        public static WorldDungeon Placed(string world, ZoneSystem.LocationInstance instance)
+        {
+            var zdos = ZDOMan.instance;
+            if (zdos == null || world == null || instance.m_location == null || !instance.m_placed) return null;
+            var at = instance.m_position;
+            InZone.Clear();
+            zdos.FindSectorObjects(ZoneSystem.GetZone(at), OneZone, InZone);
+            ZDO generator = null;
+            var nearest = float.MaxValue;
+            foreach (var zdo in InZone)
+            {
+                var p = zdo.GetPosition();
+                if (!Character.InInterior(p) || !HasRooms(zdo)) continue;
+                var apart = (p.x - at.x) * (p.x - at.x) + (p.z - at.z) * (p.z - at.z);
+                if (apart >= nearest) continue;
+                nearest = apart;
+                generator = zdo;
+            }
+            return generator != null ? FromZdo(world, generator, CompendiumMap.NameOf(instance.m_location), at) : null;
         }
 
         /// <summary>Whether a network object holds rooms a generator saved, in either of the game's ways of keeping them.</summary>
