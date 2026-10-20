@@ -2,9 +2,11 @@ using UnityEngine;
 
 namespace Scry
 {
-    /// <summary>A location's runestones under its details: every text each stone can give, with its title; with the compendium on, those the character has read (<see cref="YourTexts"/>), the rest counted.</summary>
+    /// <summary>A location's runestones under its details: every text each stone can give, with its title; with the compendium on, those the character has read (<see cref="TextRead"/>), the rest counted.</summary>
     internal static partial class ScryPanel
     {
+        /// <summary>Whether the character read a text: as the game keeps it (<see cref="YourTexts"/>), only where the text has a label, or as its book does, every one (<see cref="CompendiumBook.ReadText"/>).</summary>
+        private static bool TextRead(Explorer explorer, string text) => YourTexts.HasRead(text) || (explorer.Compendium?.Book?.HasRead(text) ?? false);
 
         /// <summary>Whether the runestones' texts are folded away; setting it is remembered, as clicking its heading is.</summary>
         public static bool RunesFolded
@@ -28,7 +30,7 @@ namespace Scry
                 var anyRead = false;
                 foreach (var text in stone.Texts)
                 {
-                    if (!explorer.CompendiumOn || YourTexts.HasRead(text.Text)) anyRead = true;
+                    if (!explorer.CompendiumOn || TextRead(explorer, text.Text)) anyRead = true;
                     else notRead++;
                 }
                 if (!anyRead) continue;
@@ -41,7 +43,7 @@ namespace Scry
                 }
                 foreach (var text in stone.Texts)
                 {
-                    if (explorer.CompendiumOn && !YourTexts.HasRead(text.Text)) continue;
+                    if (explorer.CompendiumOn && !TextRead(explorer, text.Text)) continue;
                     var title = RuneWords.Title(text, stone.Name);
                     var titleH = Skin.Height(Skin.WrapBold, title, width);
                     GUI.Label(new Rect(0f, y, width, titleH), title, Skin.WrapBold);

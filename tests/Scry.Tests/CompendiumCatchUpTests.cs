@@ -933,6 +933,46 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APlaceStoodInIsPairedWithTheBiomeThere()
+        {
+            // The strict rules show a place's biome once the two were seen together.
+            var dolmen = new Entry { Kind = Kind.Location, Name = "Dolmen01" };
+            var meadows = E(Kind.Biome, "Meadows", "$biome_meadows");
+            var (catchUp, book) = Fresh(dolmen, meadows);
+            Assert.True(catchUp.StoodIn(dolmen.Key, hasInside: false, inside: false, book, meadows.Key));
+            Assert.True(book.Witnessed(dolmen.Key, meadows.Key));
+            // So is a dungeon seen at its entrance.
+            var crypt = new Entry { Kind = Kind.Location, Name = "Crypt2" };
+            var forest = E(Kind.Biome, "BlackForest", "$biome_blackforest");
+            (catchUp, book) = Fresh(crypt, forest);
+            catchUp.StoodIn(crypt.Key, hasInside: true, inside: false, book, forest.Key);
+            Assert.True(book.Witnessed(crypt.Key, forest.Key));
+            // A place the catalog lacks, or a biome not known, pairs nothing.
+            catchUp.StoodIn("loc:ModsPlace", hasInside: false, inside: false, book, forest.Key);
+            Assert.False(book.Witnessed("loc:ModsPlace", forest.Key));
+            catchUp.StoodIn(crypt.Key, hasInside: true, inside: true, book, null);
+            Assert.Equal(1, book.Pairs);
+        }
+
+        [Fact]
+        public void AStationIsPairedWithEachUpgradeStandingNearIt()
+        {
+            // The strict rules show a station's upgrades once the station was seen with them near it.
+            var workbench = E(Kind.Piece, "piece_workbench");
+            var block = E(Kind.Piece, "piece_workbench_ext1");
+            var rack = E(Kind.Piece, "piece_workbench_ext2");
+            var (catchUp, book) = Fresh(workbench, block, rack);
+            catchUp.Upgrades(workbench.Key, new[] { block.Key, rack.Key, "mod_missing" }, book);
+            Assert.True(book.Witnessed(workbench.Key, block.Key));
+            Assert.True(book.Witnessed(workbench.Key, rack.Key));
+            Assert.False(book.Witnessed(workbench.Key, "mod_missing"));
+            Assert.Equal(2, book.Pairs);
+            // A station the catalog lacks pairs nothing.
+            catchUp.Upgrades("mod_station", new[] { block.Key }, book);
+            Assert.Equal(2, book.Pairs);
+        }
+
+        [Fact]
         public void ARaidLivedThroughIsKnownAndPairedWithTheCreaturesItBringsThatWereMet()
         {
             var greydwarf = E(Kind.Creature, "Greydwarf");

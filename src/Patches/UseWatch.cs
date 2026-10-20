@@ -34,11 +34,14 @@ namespace Scry
             });
         }
 
-        /// <summary>A rune stone read that marks a place on the map, as some of the game's do.</summary>
-        public static void Read(RuneStone stone, Humanoid who, bool done)
+        /// <summary>
+        /// A rune stone read (<see cref="CompendiumKeeper.ReadRunes"/>). The game answers false to
+        /// every read (<c>RuneStone.Interact</c>), so nothing waits on its answer; a hold reads nothing.
+        /// </summary>
+        public static void Read(RuneStone stone, Humanoid who, bool hold)
         {
-            if (!done || stone == null || who == null || who != Player.m_localPlayer || string.IsNullOrEmpty(stone.m_locationName)) return;
-            Guard.Run(Feature.CompendiumUse, "noting the place a rune stone marks", () => CompendiumKeeper.Marked(stone.gameObject, stone.m_locationName));
+            if (hold || stone == null || who == null || who != Player.m_localPlayer) return;
+            Guard.Run(Feature.CompendiumUse, "noting a rune stone read", () => CompendiumKeeper.ReadRunes(stone));
         }
     }
 
@@ -57,7 +60,7 @@ namespace Scry
     [HarmonyPatch(typeof(RuneStone), nameof(RuneStone.Interact))]
     internal static class RuneStoneWatched
     {
-        private static void Postfix(RuneStone __instance, Humanoid character, bool __result) => UseWatch.Read(__instance, character, __result);
+        private static void Postfix(RuneStone __instance, Humanoid character, bool hold) => UseWatch.Read(__instance, character, hold);
     }
 
     [HarmonyPatch(typeof(Vegvisir), nameof(Vegvisir.Interact))]

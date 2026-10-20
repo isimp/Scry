@@ -63,6 +63,9 @@ namespace Scry
         private readonly List<string> _lately = new List<string>();
         private readonly HashSet<string> _mapped = new HashSet<string>(StringComparer.Ordinal);
 
+        /// <summary>The texts the character read, as their runestones hold them, whatever the game kept of them (<see cref="ReadText"/>).</summary>
+        private readonly HashSet<string> _read = new HashSet<string>(StringComparer.Ordinal);
+
         /// <summary>The kinds of place each source found in each world (<see cref="FoundIn"/>).</summary>
         private readonly Dictionary<(string World, WorldSource Source), HashSet<string>> _foundIn = new Dictionary<(string, WorldSource), HashSet<string>>();
 
@@ -421,6 +424,21 @@ namespace Scry
         }
 
         /// <summary>
+        /// Notes a text the character read, as its runestone holds it: the game keeps one only
+        /// where it has a label (<c>Player.AddKnownText</c>), the book every one. True when it was
+        /// not noted before.
+        /// </summary>
+        public bool ReadText(string text)
+        {
+            if (string.IsNullOrEmpty(text) || !_read.Add(text)) return false;
+            Changed = true;
+            return true;
+        }
+
+        /// <summary>Whether the book holds a text as read (<see cref="ReadText"/>).</summary>
+        public bool HasRead(string text) => !string.IsNullOrEmpty(text) && _read.Contains(text);
+
+        /// <summary>
         /// The milestone floor the player raised it to: everything of a tier at or below it shows
         /// as known (none at 0), none where the world allows no floor (<see cref="World"/>). It
         /// changes what is shown, never what is known.
@@ -500,6 +518,7 @@ namespace Scry
             var levels = _levels.ToArray();
             var lately = _lately.ToArray();
             var mapped = _mapped.ToArray();
+            var read = _read.ToArray();
             var foundIn = _foundIn.SelectMany(p => p.Value.Select(kind => (p.Key.World, p.Key.Source, Kind: kind))).ToArray();
             var shows = _shows.Where(p => p.Value != WorldSources.Least(p.Key)).ToArray();
             var marks = _marks.ToArray();
@@ -531,6 +550,7 @@ namespace Scry
                     text.Append('\n');
                 }
                 foreach (var world in mapped.OrderBy(w => w, StringComparer.Ordinal)) text.Append("mapped\t").Append(Stored.Escaped(world)).Append('\n');
+                foreach (var said in read.OrderBy(t => t, StringComparer.Ordinal)) text.Append("read\t").Append(Stored.Escaped(said)).Append('\n');
                 foreach (var (world, source, kind) in foundIn.OrderBy(f => f.World, StringComparer.Ordinal).ThenBy(f => f.Source).ThenBy(f => f.Kind, StringComparer.Ordinal))
                 {
                     text.Append("place\t").Append(Stored.Escaped(world)).Append('\t').Append(source).Append('\t').Append(Stored.Escaped(kind)).Append('\n');
@@ -654,6 +674,9 @@ namespace Scry
                         break;
                     case "mapped" when parts.Length == 2:
                         book._mapped.Add(name);
+                        break;
+                    case "read" when parts.Length == 2:
+                        book._read.Add(name);
                         break;
                     case "place" when parts.Length == 4 && Enum.TryParse(parts[2], out WorldSource source) && Enum.IsDefined(typeof(WorldSource), source)
                                       && Stored.TryUnescaped(parts[3], out var kind) && kind.Length > 0:

@@ -384,6 +384,8 @@ namespace Scry
             ("Room", "GetConnections", 0, 0xB3701829, Feature.ExampleDungeonAndCampLayouts),
             ("RuneStone", "GetRandomText", 0, 0x309CE075, Feature.RunestoneTexts),
             ("RuneStone", "Interact", 3, 0xB26864BA, Feature.RunestoneTexts),
+            // The game keeps a text read only where it has a label, so the book keeps every text read too.
+            ("Player", "AddKnownText", 2, 0x237D09AE, Feature.CompendiumTextsRead),
             ("SpawnArea", "Awake", 0, 0xC832E900, Feature.Spawners),
             ("SpawnSystem", "GetLevelUpChance", 2, 0x48618D51, Feature.RaidsStarsOnStage),
             ("SpawnSystem", "Spawn", 3, 0x9994FB4E, Feature.RaidsRolledOnStage),

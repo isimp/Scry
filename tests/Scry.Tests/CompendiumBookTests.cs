@@ -10,6 +10,26 @@ namespace Scry.Tests
         // only ever rising, kept from session to session.
 
         [Fact]
+        public void ATextReadIsKeptInTheBookWhateverItsLabel()
+        {
+            // The game keeps a runestone's text read only where it has a label; the book keeps every one.
+            var book = new CompendiumBook();
+            Assert.False(book.HasRead("$lore_meadows_random01"));
+            book.Save();
+            Assert.True(book.ReadText("$lore_meadows_random01"));
+            Assert.True(book.Changed);
+            Assert.False(book.ReadText("$lore_meadows_random01"));
+            Assert.False(book.ReadText(""));
+            Assert.False(book.ReadText(null));
+            Assert.True(book.HasRead("$lore_meadows_random01"));
+            Assert.False(book.HasRead("$lore_meadows_random02"));
+            Assert.False(book.HasRead(null));
+            var kept = CompendiumBook.Load(book.Save());
+            Assert.True(kept.HasRead("$lore_meadows_random01"));
+            Assert.False(kept.HasRead("$lore_meadows_random02"));
+        }
+
+        [Fact]
         public void WhatWasNeverMetIsUnknown()
         {
             var book = new CompendiumBook();

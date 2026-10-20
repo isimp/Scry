@@ -19,6 +19,29 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AMethodThatCanOnlyAnswerFalseIsTold()
+        {
+            // A hook acting only on the game's true can never act where the game answers false
+            // whatever happens, as RuneStone.Interact does: each of its returns gives false.
+            Assert.True(IlShape.OnlyFalse(new byte[] { 0x16, 0x2A }));
+            // ldarg.1; brtrue.s +2; ldc.i4.0; ret; ldc.i4.0; ret
+            Assert.True(IlShape.OnlyFalse(new byte[] { 0x03, 0x2D, 0x02, 0x16, 0x2A, 0x16, 0x2A }));
+            Assert.False(IlShape.OnlyFalse(new byte[] { 0x17, 0x2A }));
+            Assert.False(IlShape.OnlyFalse(new byte[] { 0x03, 0x2D, 0x02, 0x16, 0x2A, 0x17, 0x2A }));
+            // What it answers through a local is not plain: ldc.i4.0; stloc.0; ldloc.0; ret.
+            Assert.False(IlShape.OnlyFalse(new byte[] { 0x16, 0x0A, 0x06, 0x2A }));
+            // A return jumped to may give what was pushed before the jump: ldarg.1; brtrue.s +1; ldc.i4.0; ret.
+            Assert.False(IlShape.OnlyFalse(new byte[] { 0x03, 0x2D, 0x01, 0x16, 0x2A }));
+            // A long jump and a switch name returns too: ldarg.1; brtrue +1; ldc.i4.0; ret / ldarg.1; switch (1) +1; ldc.i4.0; ret.
+            Assert.False(IlShape.OnlyFalse(new byte[] { 0x03, 0x3A, 0x01, 0x00, 0x00, 0x00, 0x16, 0x2A }));
+            Assert.False(IlShape.OnlyFalse(new byte[] { 0x03, 0x45, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x16, 0x2A }));
+            // No return, or code that cannot be read, tells nothing.
+            Assert.False(IlShape.OnlyFalse(new byte[] { 0x16 }));
+            Assert.False(IlShape.OnlyFalse(null));
+            Assert.False(IlShape.OnlyFalse(new byte[] { 0xFE }));
+        }
+
+        [Fact]
         public void NumbersJumpsAndStringsAreNotNames()
         {
             // ldc.i4 7; ldstr 0x70000001; br.s +0; ldc.r8 1.0; switch (1) +0; ldtoken 0x02000009; ret

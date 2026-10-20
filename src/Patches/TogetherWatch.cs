@@ -143,11 +143,11 @@ namespace Scry
             });
         }
 
-        public static void Placed(Player who, Piece piece)
+        public static void Placed(Player who, Piece piece, Vector3 at)
         {
             if (who == null || who != Player.m_localPlayer || piece == null) return;
             Guard.Run(Feature.CompendiumTogether, "noting what built a piece", () =>
-                CompendiumKeeper.Placed(Utils.GetPrefabName(piece.gameObject), who.GetCurrentWeapon()?.m_dropPrefab.OrNull()?.name));
+                CompendiumKeeper.Placed(piece, at, who.GetCurrentWeapon()?.m_dropPrefab.OrNull()?.name));
         }
 
         public static void Petted(Tameable tameable, Humanoid user)
@@ -220,7 +220,7 @@ namespace Scry
     [HarmonyPatch(typeof(Player), nameof(Player.PlacePiece))]
     internal static class PlacingWatched
     {
-        private static void Postfix(Player __instance, Piece piece) => TogetherWatch.Placed(__instance, piece);
+        private static void Postfix(Player __instance, Piece piece, Vector3 pos) => TogetherWatch.Placed(__instance, piece, pos);
     }
 
     [HarmonyPatch(typeof(Tameable), nameof(Tameable.Interact))]

@@ -253,10 +253,29 @@ namespace Scry
         /// <summary>
         /// The place the character stands in, as news: known, but a place with an inside (a
         /// dungeon, whose rooms come along with it) only once the character is inside it; standing
-        /// at its entrance it is seen. True when it was learned more of.
+        /// at its entrance it is seen. Paired with the biome it stands in, for the strict rules. True
+        /// when it was learned more of.
         /// </summary>
-        public bool StoodIn(string place, bool hasInside, bool inside, CompendiumBook book) =>
-            Met(place, !hasInside || inside ? KnownLevel.Known : KnownLevel.Seen, book, hasInside ? CameBy.WentInside : CameBy.StoodIn);
+        public bool StoodIn(string place, bool hasInside, bool inside, CompendiumBook book, string biome = null)
+        {
+            var learned = Met(place, !hasInside || inside ? KnownLevel.Known : KnownLevel.Seen, book, hasInside ? CameBy.WentInside : CameBy.StoodIn);
+            var entry = _catalog.Find(place);
+            var where = biome != null ? _catalog.Find(biome) : null;
+            if (entry != null && where != null) book.Witness(entry.Key, where.Key);
+            return learned;
+        }
+
+        /// <summary>A crafting station seen with its upgrades standing near it, as the game counts them, each paired with it, for the strict rules; one the catalog lacks pairs nothing.</summary>
+        public void Upgrades(string station, IEnumerable<string> upgrades, CompendiumBook book)
+        {
+            var entry = _catalog.Find(station);
+            if (entry == null) return;
+            foreach (var upgrade in upgrades)
+            {
+                var piece = _catalog.Find(upgrade);
+                if (piece != null) book.Witness(entry.Key, piece.Key);
+            }
+        }
 
         /// <summary>
         /// The raid the character is in, as news: known, and paired with the creatures it brings

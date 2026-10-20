@@ -100,6 +100,71 @@ namespace Scry
             return names;
         }
 
+        /// <summary>
+        /// Whether a method's code can only answer false: each of its returns comes straight after
+        /// pushing a false (<c>ldc.i4.0</c>) and none is jumped to, so a hook acting on its true can
+        /// never act. False where any return may give something else, where it has none, or where
+        /// the code cannot be read.
+        /// </summary>
+        public static bool OnlyFalse(byte[] il)
+        {
+            if (il == null || il.Length == 0) return false;
+            Build();
+
+            var starts = new System.Collections.Generic.List<int>();
+            var steps = new System.Collections.Generic.List<OpCode>();
+            var jumpedTo = new System.Collections.Generic.HashSet<int>();
+            var i = 0;
+            while (i < il.Length)
+            {
+                var at = i;
+                OpCode? op;
+                if (il[i] == 0xFE)
+                {
+                    if (i + 1 >= il.Length) return false;
+                    op = TwoByte[il[i + 1]];
+                    i += 2;
+                }
+                else
+                {
+                    op = OneByte[il[i]];
+                    i += 1;
+                }
+                if (op == null) return false;
+
+                var skip = OperandSize(op.Value, il, i);
+                if (skip < 0 || i + skip > il.Length) return false;
+                var next = i + skip;
+                switch (op.Value.OperandType)
+                {
+                    case OperandType.ShortInlineBrTarget:
+                        jumpedTo.Add(next + (sbyte)il[i]);
+                        break;
+                    case OperandType.InlineBrTarget:
+                        jumpedTo.Add(next + Int32At(il, i));
+                        break;
+                    case OperandType.InlineSwitch:
+                        var count = Int32At(il, i);
+                        for (var k = 0; k < count; k++) jumpedTo.Add(next + Int32At(il, i + 4 + 4 * k));
+                        break;
+                }
+                starts.Add(at);
+                steps.Add(op.Value);
+                i = next;
+            }
+
+            var returns = 0;
+            for (var k = 0; k < steps.Count; k++)
+            {
+                if (steps[k] != OpCodes.Ret) continue;
+                returns++;
+                if (k == 0 || steps[k - 1] != OpCodes.Ldc_I4_0 || jumpedTo.Contains(starts[k])) return false;
+            }
+            return returns > 0;
+        }
+
+        private static int Int32At(byte[] il, int at) => il[at] | (il[at + 1] << 8) | (il[at + 2] << 16) | (il[at + 3] << 24);
+
         private static int OperandSize(OpCode op, byte[] il, int at)
         {
             switch (op.OperandType)

@@ -224,7 +224,14 @@ namespace Scry
             Weather();
             Tamings(player, creature => creature.IsTamed());
             var place = Location.GetLocation(player.transform.position);
-            if (place != null) _catchUp.StoodIn(EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject)), place.m_hasInterior, player.InInterior(), _book);
+            if (place != null) StoodIn(EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject)), place.m_hasInterior, player.InInterior(), player.transform.position);
+            // A station in use, seen with the upgrades standing near it.
+            var station = player.GetCurrentCraftingStation();
+            if (station != _stationInUse)
+            {
+                _stationInUse = station;
+                if (station != null) UsedStation(station);
+            }
             var hovered = player.GetHoverObject();
             var thing = hovered != null ? hovered.GetComponentInParent<ZNetView>() : null;
             if (thing != null)
@@ -275,12 +282,72 @@ namespace Scry
             MetIn(key, resource.transform.position);
         }
 
-        /// <summary>A piece the character placed, as news: known, and paired with the tool in hand that built it.</summary>
-        public static void Placed(string piece, string tool)
+        /// <summary>
+        /// A piece the character placed, as news: known, and paired with the tool in hand that built
+        /// it; an upgrade with the station it upgrades there, a station with the upgrades standing
+        /// in reach of it, as the game counts them (<c>CraftingStation.FindClosestStationInRange</c>,
+        /// <c>StationExtension.FindExtensions</c>), for the strict rules.
+        /// </summary>
+        public static void Placed(Piece piece, Vector3 at, string tool)
         {
-            if (Into == null || _catchUp == null || string.IsNullOrEmpty(piece)) return;
-            _catchUp.Met(piece, KnownLevel.Known, Into, CameBy.Built);
-            if (!string.IsNullOrEmpty(tool)) Into.Witness(piece, tool);
+            if (Into == null || _catchUp == null || piece == null) return;
+            var key = Utils.GetPrefabName(piece.gameObject);
+            _catchUp.Met(key, KnownLevel.Known, Into, CameBy.Built);
+            if (!string.IsNullOrEmpty(tool)) Into.Witness(key, tool);
+            var upgrade = piece.GetComponent<StationExtension>();
+            var upgrades = upgrade != null && upgrade.m_craftingStation != null ? CraftingStation.FindClosestStationInRange(upgrade.m_craftingStation.m_name, at, upgrade.m_maxStationDistance) : null;
+            if (upgrades != null) _catchUp.Upgrades(Utils.GetPrefabName(upgrades.gameObject), new[] { key }, Into);
+            var station = piece.GetComponentInChildren<CraftingStation>();
+            if (station != null) PairUpgrades(station, key, at);
+        }
+
+        /// <summary>The station last seen in use, so it is paired with its upgrades once each time it is opened.</summary>
+        private static CraftingStation _stationInUse;
+
+        private static readonly List<StationExtension> UpgradesNear = new List<StationExtension>();
+
+        /// <summary>A crafting station in use, seen with the upgrades standing in reach of it, as the game counts them (<c>StationExtension.FindExtensions</c>): each paired with it, for the strict rules.</summary>
+        public static void UsedStation(CraftingStation station)
+        {
+            if (Into == null || _catchUp == null || station == null) return;
+            PairUpgrades(station, Utils.GetPrefabName(station.gameObject), station.transform.position);
+        }
+
+        private static void PairUpgrades(CraftingStation station, string key, Vector3 at)
+        {
+            UpgradesNear.Clear();
+            StationExtension.FindExtensions(station, at, UpgradesNear);
+            _catchUp.Upgrades(key, UpgradesNear.Where(e => e != null).Select(e => Utils.GetPrefabName(e.gameObject)), Into);
+        }
+
+        /// <summary>The place the character stands in, known (a dungeon once inside, seen at its entrance) and paired with the biome there, for the strict rules.</summary>
+        public static void StoodIn(string place, bool hasInside, bool inside, Vector3 at)
+        {
+            if (Into == null || _catchUp == null || string.IsNullOrEmpty(place)) return;
+            _catchUp.StoodIn(place, hasInside, inside, Into, BiomeKeyAt(at));
+        }
+
+        /// <summary>The text a rune stone gives to read, as the game picks it (<c>RuneStone.GetRandomText</c>): one of its random texts where it has any, else its own.</summary>
+        private static readonly System.Reflection.MethodInfo RandomText = AccessTools.Method(typeof(RuneStone), "GetRandomText");
+
+        /// <summary>
+        /// A rune stone read: the text it gave kept as read in the book, whatever the game kept of
+        /// it (it keeps one only where the text has a label), the stone met where it stands, and
+        /// the place it marks on the map, as some of the game's do.
+        /// </summary>
+        public static void ReadRunes(RuneStone stone)
+        {
+            if (Into == null || _catchUp == null || stone == null) return;
+            var random = RandomText?.Invoke(stone, null) as RuneStone.RandomRuneText;
+            Into.ReadText(random != null ? random.m_text : stone.m_text);
+            var view = stone.GetComponentInParent<ZNetView>();
+            if (view != null)
+            {
+                var key = Utils.GetPrefabName(view.gameObject);
+                _catchUp.Met(key, KnownLevel.Known, Into, CameBy.Used);
+                MetIn(key, stone.transform.position);
+            }
+            if (!string.IsNullOrEmpty(stone.m_locationName)) Marked(stone.gameObject, stone.m_locationName);
         }
 
         /// <summary>A creature seen tamed near the character, or one it petted, as news: known, and met where it stands; one tamed shows how long taming takes.</summary>

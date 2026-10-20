@@ -69,6 +69,8 @@ namespace Scry
             yield return S("what the character learns waits for the panel to open before it is told again", CompendiumWaitsForPanel, 10, AllKnown);
             yield return S("the compendium watches fights, hits and sight without fault", CompendiumWatched, 10);
             yield return S("made-up events through the real hooks are recorded, the world and the character's book left alone", CompendiumHooksFed, 10, () => CompendiumKeeper.RecordInto(null));
+            yield return S("each way of meeting a place, a rune stone and a station's upgrades makes known what it should, and the strict rules show what went together", LearningPathsTaught, 10, () => CompendiumKeeper.RecordInto(null));
+            yield return S("every hook acting on a game method's answer can see that answer come true", HookGatesCanOpen, 5);
             yield return S("events cross between the players' games through the game running the world, each counted once by the one rule", CompendiumEventsCross, 20, EventsCrossAsItWas);
             yield return S("the players whose games lack Scry are named in a notice, and everyone played with in the compendium's box", PlayingWithShown, 15, PlayingWithAsItWas);
             yield return S("the compendium's box names the world's server by whether it runs Scry, and says what one without it leaves out", ServerNamed, 25, ServerAsItWas);
