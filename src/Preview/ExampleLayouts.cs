@@ -178,8 +178,19 @@ namespace Scry
         /// <summary>The location an example stands in for a dungeon of the world opened from its mark, whose rooms are laid out nowhere yet; none.</summary>
         private static string _standsInFor;
 
-        /// <summary>An example stands in for a dungeon of the world, opened from its mark, whose area never loaded: so its note says, until another place is shown.</summary>
-        public static void StandInFor(string location) => _standsInFor = location;
+        /// <summary>
+        /// An example stands in for a dungeon of the world, opened from its mark, whose area never
+        /// loaded: so its note says, until another place is shown. A map opened before, of another
+        /// dungeon of the same kind, is let go of, so the example takes its place.
+        /// </summary>
+        public static void StandInFor(string location)
+        {
+            _standsInFor = location;
+            _opened = null;
+            _openedWorld = null;
+            _openWhenShown = null;
+            _lookAgain = 0f;
+        }
 
         /// <summary>Whether the example of a location stands in for a dungeon of the world whose rooms are laid out nowhere yet.</summary>
         public static bool StandsIn(string location) => location != null && location == _standsInFor && !ShowsWorlds;
@@ -302,8 +313,10 @@ namespace Scry
             if (ReferenceEquals(found, _world)) return;
             _world = found;
             if (Example != null && found != null && (!ShowsWorlds || _wholeId != found.Id) && !_wantExample) Build();
-            // Its map forgotten and the dungeon not at hand, an example stands in its place.
-            else if (Example != null && found == null && ShowsWorlds && DungeonWalks.Maps.Of(_wholeId) == null && GroupMapsLink.Group.Of(_wholeId) == null && DungeonsInGround.MapOf(_wholeId) == null) Build();
+            // Its map forgotten, or an example asked to stand in for another of its kind, and the
+            // dungeon not at hand: an example stands in its place.
+            else if (Example != null && found == null && ShowsWorlds && (_standsInFor == place.Prefab
+                || DungeonWalks.Maps.Of(_wholeId) == null && GroupMapsLink.Group.Of(_wholeId) == null && DungeonsInGround.MapOf(_wholeId) == null)) Build();
         }
 
         /// <summary>Loads and reads the rooms not read yet, a few milliseconds a frame, one bundle at a time, and lays out the example once all are in.</summary>
