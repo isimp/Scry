@@ -30,6 +30,8 @@ namespace Scry
             _server = SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null;
             if (_server)
             {
+                // The world's settings alone, which the server sends every player connected (ServerSync).
+                Settings.BindWorld(Config);
                 Log.Report(CompendiumWords.ServerPart);
                 return;
             }

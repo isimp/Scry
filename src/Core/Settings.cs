@@ -168,7 +168,7 @@ namespace Scry
         /// it, the player's own kept beneath; players without Scry join as before, and only an
         /// admin changes them in game. Left as they are, every choice is each player's.
         /// </summary>
-        private static void BindWorld(ConfigFile config)
+        public static void BindWorld(ConfigFile config)
         {
             _sync = new ServerSync.ConfigSync(About.Guid) { DisplayName = About.Name, CurrentVersion = About.Version, ModRequired = false, IsLocked = true };
             _worldRules = config.Bind("4 - World", "Rules", WorldRule.PlayersChoose,
