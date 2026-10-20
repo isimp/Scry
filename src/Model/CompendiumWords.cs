@@ -128,7 +128,7 @@ namespace Scry
         public const string FloorCaption = "Known up to";
 
         /// <summary>The milestone floor as stepped: the last tier it shows, by its biome, or none.</summary>
-        public static string FloorName(int floor) => floor > 0 ? BiomeWords.Shown(Tiers.BiomeOf(floor)) : "none";
+        public static string FloorName(int floor) => floor > 0 ? BiomeWords.Shown(Tiers.BiomeOf(floor)) : "No tier";
 
         /// <summary>The tip of the mark on a row, and the line under a page's title, of what shows as known only by the floor, named by its control: "Shown as known up to Black forest".</summary>
         public static string ByFloor(int floor) => $"Shown as {FloorCaption.ToLowerInvariant()} the {FloorName(floor)} tier, not yet come to know by this character";

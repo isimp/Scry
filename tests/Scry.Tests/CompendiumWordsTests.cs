@@ -102,7 +102,8 @@ namespace Scry.Tests
         public void TheFloorSaysHowFarItReachesAndWhatRaisingOrLoweringItDoes()
         {
             // In the title row, a caption and the biome stepped between arrows.
-            Assert.Equal(("Known up to", "none", "Black Forest"), (CompendiumWords.FloorCaption, CompendiumWords.FloorName(0), CompendiumWords.FloorName(2)));
+            // Its lowest value is a label like the others, capitalised as every value in the box is.
+            Assert.Equal(("Known up to", "No tier", "Black Forest"), (CompendiumWords.FloorCaption, CompendiumWords.FloorName(0), CompendiumWords.FloorName(2)));
             // What it shows that the character never came to know is marked, on its row and page, named as the control is.
             Assert.Equal("Shown as known up to the Black Forest tier, not yet come to know by this character", CompendiumWords.ByFloor(2));
             // A link to such a thing says so above where it goes.
