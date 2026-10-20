@@ -43,6 +43,10 @@ namespace Scry
         private static float ToolbarRow => U(24f);
         private static float ToolbarLineGap => U(4f);
 
+        /// <summary>A dungeon's or camp's note under its actions as last told: what its example or the world's own holds; for the self-test.</summary>
+        [Diagnostic]
+        public static string DungeonNoteForTest { get; private set; }
+
         /// <summary>
         /// The entry's action buttons, in the order they stand: measured (their widths into
         /// <see cref="ActionWidths"/>), or drawn at the places the toolbar gave them
@@ -145,9 +149,10 @@ namespace Scry
                         if (Shown("Another example", ActionLook.Plain, example != null, ActionWords.AnotherLayout)) ExampleLayouts.Another();
                         note = example != null
                             ? ExampleLayouts.ShowsWorlds ? DungeonWords.WorldsNote(DungeonWords.Example(example, ExampleLayouts.Failed), ExampleLayouts.Unread,
-                                ExampleLayouts.Fogged ? PlanBoxWords.Walked(ExampleLayouts.Walked.Walked, ExampleLayouts.Walked.Rooms) : null)
-                            : DungeonWords.ExampleNote(DungeonWords.Example(example, ExampleLayouts.Failed), example.Rooms.Count > 0)
+                                ExampleLayouts.Fogged ? DungeonWords.WalkedInYourWorld(ExampleLayouts.Walked.Walked, ExampleLayouts.Walked.Rooms) : null)
+                            : DungeonWords.ExampleNote(DungeonWords.Example(example, ExampleLayouts.Failed), entry.ShownName, example.Rooms.Count > 0, ExampleLayouts.StandsIn(laid.Prefab))
                             : ExampleLayouts.Of(entry) ? DungeonWords.Reading(ExampleLayouts.Read, ExampleLayouts.Total) : null;
+                        if (note != null) DungeonNoteForTest = note;
                     }
                     break;
 

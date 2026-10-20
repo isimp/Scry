@@ -86,6 +86,9 @@ namespace Scry.Tests
         public void TheTagAndTheSwitchSayWhatTheyShow()
         {
             Assert.Equal("In your world", PlanBoxWords.ThisDungeon);
+            // An example is tagged in the same place, so the stage always says which it shows.
+            Assert.Equal("Example", PlanBoxWords.Example);
+            Assert.Equal("Rolled by its kind's own rules: one way it can come out. Each one in your world lays out its own, tagged In your world once walked or opened from the big map.", PlanBoxWords.ExampleTip);
             Assert.Equal("The rooms as they stand in your world", PlanBoxWords.ThisDungeonTip);
             Assert.Equal("Show an example", PlanBoxWords.ShowExample);
             Assert.Equal("Lay out an example in place of your world's, as the game might in another world", PlanBoxWords.ShowExampleTip);

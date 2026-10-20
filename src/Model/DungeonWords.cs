@@ -169,8 +169,20 @@ namespace Scry
         public static string WorldsNote(string holds, int unread, string walked = null) =>
             holds + (unread > 0 ? "; " + Naming.Count(unread, "room not read yet is", "rooms not read yet are") + " left out" : "") + ". This dungeon as it stands in your world" + (walked != null ? ", " + walked : "") + ".";
 
-        /// <summary>What an example holds (<see cref="Example"/>), and that it is one way of many where it has rooms.</summary>
-        public static string ExampleNote(string holds, bool hasRooms) => holds + (hasRooms ? ". One way it can come out; each world lays out its own." : ".");
+        /// <summary>
+        /// What an example holds (<see cref="Example"/>), and where it has rooms that it is an
+        /// example of the place named, one way of many; standing in for a dungeon of your world
+        /// opened from its mark, that its area never loaded, so its rooms are laid out nowhere yet.
+        /// </summary>
+        public static string ExampleNote(string holds, string name, bool hasRooms, bool standsIn) =>
+            holds + (!hasRooms ? "."
+                : standsIn ? ". An example stands in for this one of your world: its area never loaded, so its rooms are laid out nowhere yet."
+                : $". An example: one way {name} can come out. Each one in your world lays out its own.");
+
+        /// <summary>How far a dungeon of your world was walked, as its note says it: "6 of 20 rooms walked", or none and that peeking shows them.</summary>
+        public static string WalkedInYourWorld(int walked, int rooms) =>
+            walked > 0 ? PlanBoxWords.Walked(walked, rooms)
+            : "none of its " + Naming.Count(rooms, "room", "rooms") + " walked yet; peek shows " + (rooms == 1 ? "it" : "them");
 
         /// <summary>How many doorways and of which types, the commonest first.</summary>
         public static string Doorways(RoomShape room)

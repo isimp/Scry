@@ -175,6 +175,15 @@ namespace Scry
         /// <summary>A map to open once its location is shown, as a click on its mark on Valheim's map asks; none waiting.</summary>
         private static (string Location, string Id)? _openWhenShown;
 
+        /// <summary>The location an example stands in for a dungeon of the world opened from its mark, whose rooms are laid out nowhere yet; none.</summary>
+        private static string _standsInFor;
+
+        /// <summary>An example stands in for a dungeon of the world, opened from its mark, whose area never loaded: so its note says, until another place is shown.</summary>
+        public static void StandInFor(string location) => _standsInFor = location;
+
+        /// <summary>Whether the example of a location stands in for a dungeon of the world whose rooms are laid out nowhere yet.</summary>
+        public static bool StandsIn(string location) => location != null && location == _standsInFor && !ShowsWorlds;
+
         /// <summary>Opens a kept map once its location is shown: at once where it is, else as it is selected.</summary>
         public static void OpenMapWhenShown(string location, string id)
         {
@@ -249,6 +258,8 @@ namespace Scry
         {
             var entry = explorer.Shown;
             var place = entry?.Source as PlaceSource;
+            // An example stands in only while its place is shown.
+            if (_standsInFor != null && place?.Prefab != _standsInFor) _standsInFor = null;
             var plan = place != null && !place.IsRoom ? place.Contents?.Dungeon : null;
             if (plan == null)
             {

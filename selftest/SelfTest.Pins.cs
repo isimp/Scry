@@ -23,9 +23,10 @@ namespace Scry
         /// their entrance, each in explored ground. Made-up dungeons where the player stands, one
         /// walked by you, one walked on this server and one known by its entrance alone: at Known,
         /// the one walked by you is marked filled and the others by their entrances, the one walked
-        /// on this server saying With insides shows it; at With insides, that one hollow, saying how
-        /// far it was walked. A click on the entrance opens its page alone, on the hollow one its
-        /// rooms on the stage. What the character chose is put back.
+        /// on this server saying With insides shows it, a click on it opening its own rooms tagged In
+        /// your world; at With insides, that one hollow, saying how far it was walked. A click on the
+        /// entrance whose area never loaded shows an example tagged as one, its note saying it
+        /// stands in; on the hollow one its rooms on the stage. What the character chose is put back.
         /// </summary>
         private static IEnumerator DungeonPins(Probe p)
         {
@@ -122,6 +123,20 @@ namespace Scry
             var saidEntrance = MapMarkButtons.SaidForTest(2);
             p.Check(saidEntrance != null && saidEntrance.Contains("Nobody on this server walked it"), "the entrance alone says nobody on this server walked it", saidEntrance);
 
+            // An entrance whose rooms the world keeps opens as itself, tagged as the world's own.
+            var atKnown = MapMarkButtons.MarkCenterForTest(1);
+            if (atKnown != null && MapMarkButtons.MarkAtForTest(atKnown.Value) == 1 && MapMarkButtons.ClickAtForTest(atKnown.Value))
+            {
+                yield return Until(() => ExampleLayouts.ShownMap == serverId && ScryPanel.TrailTaggedForTest, 60);
+                var opened = MapMarkButtons.OpenedForTest;
+                p.Check(ExampleLayouts.ShownMap == serverId && opened.Look == MarkLook.Entrance && opened.Rooms && ScryPanel.TrailTaggedForTest,
+                    "an entrance whose rooms the world keeps opens its own rooms, tagged In your world", $"shown {ExampleLayouts.ShownMap ?? "an example"}, {opened.Look}");
+                Session.Hide();
+                Minimap.instance.SetMapMode(Minimap.MapMode.Large);
+                yield return Until(() => MapMarkButtons.MarksShown == 3, 5);
+            }
+            else p.Note("the entrance whose rooms the world keeps stands under another mark at this zoom: its click is left out");
+
             ScryPanel.ShowSource(WorldSource.Explored, SourceLevel.WithInsides);
             yield return Until(() => MapMarkButtons.HollowShown == 1, 5);
             p.Check(MapMarkButtons.MarksShown == 3 && MapMarkButtons.HollowShown == 1 && MapMarkButtons.EntrancesShown == 1, "with insides the one walked on this server is marked hollow",
@@ -151,11 +166,14 @@ namespace Scry
                 yield break;
             }
 
-            // A click on the entrance alone opens its page and no map.
+            // A click on the entrance whose area never loaded shows an example standing in, tagged as one.
             p.Check(MapMarkButtons.ClickAtForTest(entranceAt.Value), "a click on the map at the entrance goes to its mark");
-            yield return Until(() => Session.IsOpen && X.Selected == entry, 10);
-            p.Check(Minimap.instance.m_mode != Minimap.MapMode.Large && X.Selected == entry && ExampleLayouts.ShownMap != entranceId,
-                "a click on the entrance closes the map and opens its page, no map of its rooms", $"map {Minimap.instance.m_mode}, selected {X.Selected?.Name}, shown {ExampleLayouts.ShownMap ?? "an example"}");
+            yield return Until(() => Session.IsOpen && X.Selected == entry && ExampleLayouts.Example != null && ScryPanel.ExampleTaggedForTest && (ScryPanel.DungeonNoteForTest ?? "").Contains("stands in for this one"), 30);
+            p.Check(Minimap.instance.m_mode != Minimap.MapMode.Large && X.Selected == entry && ExampleLayouts.ShownMap == null && !MapMarkButtons.OpenedForTest.Rooms,
+                "a click on the entrance whose area never loaded opens its page with an example", $"map {Minimap.instance.m_mode}, selected {X.Selected?.Name}, shown {ExampleLayouts.ShownMap ?? "an example"}");
+            p.Check(ScryPanel.ExampleTaggedForTest, "the example is tagged as one");
+            p.Check((ScryPanel.DungeonNoteForTest ?? "").Contains("An example stands in for this one of your world: its area never loaded"), "its note says it stands in, and why", ScryPanel.DungeonNoteForTest);
+            yield return Picture(p, $"an example standing in for a {entry.Name} whose area never loaded");
 
             // A click on the hollow one shows its rooms on the stage.
             Session.Hide();

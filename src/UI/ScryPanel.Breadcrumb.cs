@@ -28,6 +28,10 @@ namespace Scry
         [Diagnostic]
         public static bool TrailTaggedForTest { get; private set; }
 
+        /// <summary>Whether the breadcrumb was last drawn with the tag of an example, for the self-test.</summary>
+        [Diagnostic]
+        public static bool ExampleTaggedForTest { get; private set; }
+
         /// <summary>Draws the breadcrumb in the stage's top left, taking the room the kind badge would.</summary>
         private static void Breadcrumb(Explorer explorer, Entry entry, Rect rect)
         {
@@ -46,6 +50,7 @@ namespace Scry
             {
                 TrailForTest = trail;
                 TrailTaggedForTest = ExampleLayouts.ShowsWorlds;
+                ExampleTaggedForTest = !ExampleLayouts.ShowsWorlds;
             }
             if (ExampleLayouts.ShowsWorlds)
             {
@@ -54,6 +59,15 @@ namespace Scry
                 if (tag.Contains(e.mousePosition)) AskTip("trail:worlds", ExampleLayouts.Fogged ? PlanBoxWords.ThisDungeonTipFogged : PlanBoxWords.ThisDungeonTip);
                 Skin.PillBox(tag, Skin.Worlds);
                 Skin.LabelIn(tag, PlanBoxWords.ThisDungeon, Skin.Glyph, Skin.Text);
+                x = tag.xMax + U(6f);
+            }
+            else
+            {
+                // An example, tagged in the same place, so the stage always says which it shows.
+                var tag = new Rect(x, y, Skin.Width(Skin.Glyph, PlanBoxWords.Example) + U(20f), h);
+                if (tag.Contains(e.mousePosition)) AskTip("trail:example", PlanBoxWords.ExampleTip);
+                Skin.PillBox(tag, Skin.Raised);
+                Skin.LabelIn(tag, PlanBoxWords.Example, Skin.Glyph, Skin.Dim);
                 x = tag.xMax + U(6f);
             }
             var stepW = Skin.Width(Skin.FaintLabel, PlanBoxWords.TrailStep);

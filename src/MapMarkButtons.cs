@@ -357,7 +357,11 @@ namespace Scry
             return mark;
         }
 
-        /// <summary>Closes the map and opens Scry on the dungeon's page, its map on the stage where anyone walked it; for an entrance alone, the page.</summary>
+        /// <summary>
+        /// Closes the map and opens Scry on the dungeon's page, its own rooms on the stage as far as
+        /// they were walked, every one in the fog where nobody walked it; one whose area never
+        /// loaded has no rooms anywhere yet, so an example stands in for it, its note saying why.
+        /// </summary>
         private static void Open(string id, MarkLook look)
         {
             var kept = DungeonWalks.Maps.Of(id) ?? DungeonsInGround.MapOf(id);
@@ -365,10 +369,17 @@ namespace Scry
             HideName();
             Minimap.instance.OrNull()?.SetMapMode(Minimap.MapMode.Small);
             Session.Show(null);
-            if (look != MarkLook.Entrance) ExampleLayouts.OpenMapWhenShown(kept.Location, id);
+            var laidOut = kept.Rooms != null && kept.Rooms.Count > 0;
+            if (laidOut) ExampleLayouts.OpenMapWhenShown(kept.Location, id);
+            else ExampleLayouts.StandInFor(kept.Location);
             Session.Explorer?.Jump(EntryKeys.For(Kind.Location, kept.Location));
-            if (look != MarkLook.Entrance) Stage.Inside = true;
+            Stage.Inside = true;
+            OpenedForTest = (id, look, laidOut);
         }
+
+        /// <summary>The mark last opened: its dungeon, how it looked and whether its own rooms were opened; for the self-test.</summary>
+        [Diagnostic]
+        public static (string Id, MarkLook Look, bool Rooms) OpenedForTest { get; private set; }
 
         /// <summary>The mark's picture: an accent disc, outlined dark, with a doorway in it, made once.</summary>
         private static Sprite MarkSprite()

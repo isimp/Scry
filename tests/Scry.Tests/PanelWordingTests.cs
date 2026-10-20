@@ -295,8 +295,10 @@ namespace Scry.Tests
         [Fact]
         public void ADungeonsExampleSaysItIsOneOfMany()
         {
-            Assert.Equal("12 rooms. One way it can come out; each world lays out its own.", DungeonWords.ExampleNote("12 rooms", hasRooms: true));
-            Assert.Equal("No rooms.", DungeonWords.ExampleNote("No rooms", hasRooms: false));
+            // An example says it is one, and of what; one standing in for a dungeon of your world says why.
+            Assert.Equal("12 rooms. An example: one way Burial Chambers can come out. Each one in your world lays out its own.", DungeonWords.ExampleNote("12 rooms", "Burial Chambers", hasRooms: true, standsIn: false));
+            Assert.Equal("12 rooms. An example stands in for this one of your world: its area never loaded, so its rooms are laid out nowhere yet.", DungeonWords.ExampleNote("12 rooms", "Burial Chambers", hasRooms: true, standsIn: true));
+            Assert.Equal("No rooms.", DungeonWords.ExampleNote("No rooms", "Burial Chambers", hasRooms: false, standsIn: false));
         }
 
         [Fact]

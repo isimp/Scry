@@ -79,6 +79,12 @@ namespace Scry
         /// <summary>The tag at the head of the breadcrumb over the world's own dungeon, and its tip.</summary>
         public const string ThisDungeon = "In your world";
         public const string ThisDungeonTip = "The rooms as they stand in your world";
+
+        /// <summary>The tag of an example on the stage, where the world's own dungeon is tagged <see cref="ThisDungeon"/>.</summary>
+        public const string Example = "Example";
+
+        /// <summary>The tip of an example's tag.</summary>
+        public const string ExampleTip = "Rolled by its kind's own rules: one way it can come out. Each one in your world lays out its own, tagged In your world once walked or opened from the big map.";
         public const string ThisDungeonTipFogged = "The rooms as they stand in your world, as far as you have walked them";
 
         /// <summary>What marks the room the player stands in on the breadcrumb, and the tip of their room there.</summary>
