@@ -40,8 +40,8 @@ namespace Scry
         /// <summary>How many dungeons the reading passed over as made again of other rooms than those kept.</summary>
         private static int _otherRooms;
 
-        /// <summary>The chests the rooms read were made with, and of those standing how many were filled and how many found empty, for the server's log.</summary>
-        private static int _chestsMade, _chestsStanding, _chestsFilled, _chestsEmpty, _chestsGone;
+        /// <summary>The chests the rooms read were made with, and of those standing how many were filled and how many were taken from, for the server's log.</summary>
+        private static int _chestsMade, _chestsStanding, _chestsFilled, _chestsTaken, _chestsGone;
 
         /// <summary>What each dungeon's traces told, as last read, for working out the way again as a walk comes in.</summary>
         private static readonly Dictionary<string, DungeonTraces> Read = new Dictionary<string, DungeonTraces>(StringComparer.Ordinal);
@@ -86,7 +86,7 @@ namespace Scry
             _rooms = 0;
             _onTheWay = 0;
             _otherRooms = 0;
-            _chestsMade = _chestsStanding = _chestsFilled = _chestsEmpty = _chestsGone = 0;
+            _chestsMade = _chestsStanding = _chestsFilled = _chestsTaken = _chestsGone = 0;
         }
 
         /// <summary>Reads on a few milliseconds' worth, into the server's records; called each frame where this game runs the world.</summary>
@@ -164,7 +164,7 @@ namespace Scry
             foreach (var room in uncovered) if (!found.InRooms.Contains(room) && !found.UpTo.Contains(room)) _onTheWay++;
         }
 
-        /// <summary>The trace an object standing in a dungeon tells by its state: a pickup picked, a chest left empty, a door opened, a spawn point woken; none for anything else.</summary>
+        /// <summary>The trace an object standing in a dungeon tells by its state: a pickup picked, a chest taken from, a door opened, a spawn point woken; none for anything else.</summary>
         private static Trace? Told(ZDO zdo, Vec3 at)
         {
             var prefab = GamePrefabs.Hashed(zdo.GetPrefab());
@@ -181,8 +181,8 @@ namespace Scry
                 case Standing.Chest:
                     _chestsStanding++;
                     if (zdo.GetBool(ZDOVars.s_addedDefaultItems)) _chestsFilled++;
-                    if (!EmptyChest(zdo, prefab.GetComponent<Container>())) return null;
-                    _chestsEmpty++;
+                    if (!TakenFrom(zdo, prefab.GetComponent<Container>())) return null;
+                    _chestsTaken++;
                     return new Trace(TraceKind.Chest, at);
                 case Standing.Door:
                     return zdo.GetInt(ZDOVars.s_state) != 0 ? new Trace(TraceKind.Door, at) : (Trace?)null;
@@ -209,22 +209,22 @@ namespace Scry
             return kind;
         }
 
-        /// <summary>Whether a chest's filling always holds something (<c>Container.AddDefaultItems</c>), so one found empty was emptied.</summary>
+        /// <summary>Whether a chest's filling always holds something (<c>Container.AddDefaultItems</c>), so one found with less than it gives was taken from.</summary>
         private static bool AlwaysFilled(Container chest)
         {
             var table = chest.m_defaultItems;
             return table != null && table.m_drops.Count > 0 && table.m_dropMin > 0 && table.m_dropChance >= 1f;
         }
 
-        /// <summary>Whether a chest was filled and holds nothing now, as its saved inventory has it.</summary>
-        private static bool EmptyChest(ZDO zdo, Container chest)
+        /// <summary>Whether a chest was filled and holds fewer items now than its filling ever gives, as its saved inventory has it (<see cref="DungeonTraces.TakenFrom"/>).</summary>
+        private static bool TakenFrom(ZDO zdo, Container chest)
         {
             if (!zdo.GetBool(ZDOVars.s_addedDefaultItems)) return false;
             var items = zdo.GetString(ZDOVars.s_items);
             if (string.IsNullOrEmpty(items)) return false;
             var inventory = new Inventory("", null, chest.m_width, chest.m_height);
             inventory.Load(new ZPackage(items));
-            return inventory.NrOfItems() == 0;
+            return DungeonTraces.TakenFrom(inventory.NrOfItems(), chest.m_defaultItems.m_dropMin, chest.m_defaultItems.m_oneOfEach);
         }
 
         /// <summary>The trace a part a room made leaves gone: a pickup the game takes away on picking, a chest that goes once empty and is always filled, a rock mined, a thing broken; none for a part that does not keep itself, has a lifetime or walks.</summary>
@@ -355,7 +355,7 @@ namespace Scry
             if (ZNet.instance != null && ZNet.instance.IsDedicated())
             {
                 Log.Report(DungeonMapWords.TracesRead(_dungeons, _rooms, _onTheWay) + DungeonMapWords.OtherRooms(_otherRooms));
-                Log.Report(DungeonMapWords.ChestsRead(_chestsMade, _chestsStanding, _chestsFilled, _chestsEmpty, _chestsGone));
+                Log.Report(DungeonMapWords.ChestsRead(_chestsMade, _chestsStanding, _chestsFilled, _chestsTaken, _chestsGone));
             }
             foreach (var done in Waiting) done(_dungeons, _rooms, _onTheWay);
             Waiting.Clear();

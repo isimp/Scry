@@ -593,7 +593,7 @@ namespace Scry
             {
                 if (count > 0) left.Add(Naming.Count(count, one, many) + " " + done);
             }
-            Add(tally.Chests, "chest", "chests", "emptied");
+            Add(tally.Chests, "chest", "chests", "taken from");
             Add(tally.Broken, "thing", "things", "broken");
             Add(tally.Pickups, "pickup", "pickups", "taken");
             Add(tally.Mined, "rock", "rocks", "mined");
@@ -625,9 +625,9 @@ namespace Scry
 
         public const string TracesRefused = "only an admin of the server can have it read traces.";
 
-        /// <summary>For the server's log, the chests in the rooms a reading went through: how many the rooms were made with, how many stand, were filled and are empty now, and how many are gone.</summary>
-        public static string ChestsRead(int made, int standing, int filled, int empty, int gone) =>
-            "chests in the dungeons read: " + Numbers.Count(made) + " made with their rooms, " + Numbers.Count(standing) + " standing, " + Numbers.Count(filled) + " filled, " + Numbers.Count(empty) + " empty, " + Numbers.Count(gone) + " gone.";
+        /// <summary>For the server's log, the chests in the dungeons a reading went through: how many their rooms were made with, how many stand, were filled and were taken from, and how many are gone.</summary>
+        public static string ChestsRead(int made, int standing, int filled, int takenFrom, int gone) =>
+            "chests in the dungeons read: " + Numbers.Count(made) + " made with their rooms, " + Numbers.Count(standing) + " standing, " + Numbers.Count(filled) + " filled, " + Numbers.Count(takenFrom) + " taken from, " + Numbers.Count(gone) + " gone.";
 
         /// <summary>For the server's log, the dungeons a reading passed over as made again of other rooms than those kept; none where there were none.</summary>
         public static string OtherRooms(int dungeons) => dungeons == 0 ? "" : " " + Naming.Count(dungeons, "dungeon", "dungeons") + " made again of other rooms than those kept " + (dungeons == 1 ? "was" : "were") + " passed over.";

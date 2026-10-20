@@ -10,7 +10,7 @@ namespace Scry
         /// <summary>A pickup taken: picked, or gone where the game takes it away on picking.</summary>
         Pickup,
 
-        /// <summary>A chest emptied, or gone where it takes itself away once empty.</summary>
+        /// <summary>A chest taken from (<see cref="DungeonTraces.TakenFrom"/>), or gone where it takes itself away once empty.</summary>
         Chest,
 
         /// <summary>A thing broken: gone from where its room made it.</summary>
@@ -72,7 +72,7 @@ namespace Scry
 
     /// <summary>
     /// What a dungeon's traces tell of who was in it, though not who (the game keeps no maker of
-    /// what is left): a pickup taken, a chest emptied, a thing broken or a rock mined, the room it
+    /// what is left): a pickup taken, a chest taken from, a thing broken or a rock mined, the room it
     /// lies in; a door opened, the room on its entrance side, whoever opened it having come from
     /// there; a spawn point woken, only that someone was inside, as it wakes for anyone within 60
     /// metres. Every visit starts at the entrance, so the way to each such room was walked too
@@ -275,6 +275,13 @@ namespace Scry
             var at = customInterior ? room - generator : room;
             return unchecked((int)at.X * 4271 + (int)at.Y * 9187 + (int)at.Z * 2134 + baseSeed);
         }
+
+        /// <summary>
+        /// Whether a chest filled was taken from: holding fewer items than its filling ever gives,
+        /// where that gives each item once, as a dungeon chest's does (<c>DropTable.m_oneOfEach</c>),
+        /// so none stacked into another; else only where it is empty.
+        /// </summary>
+        public static bool TakenFrom(int itemsNow, int leastFilled, bool eachOnce) => eachOnce ? itemsNow < leastFilled : itemsNow == 0;
 
         /// <summary>How near a part saved where its room made it stands to that place, in metres: what the traces look for never moves.</summary>
         private const float StillThere = 0.3f;

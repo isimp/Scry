@@ -8,7 +8,7 @@ namespace Scry.Tests
     public class DungeonTracesTests
     {
         // What was left inside a dungeon tells that someone walked it, though not who: a pickup
-        // taken, a chest emptied, a thing broken or a rock mined tells the room it lies in, a door
+        // taken, a chest taken from, a thing broken or a rock mined tells the room it lies in, a door
         // opened the room on its entrance side, a spawn point woken only that someone was inside.
         // Every visit starts at the entrance, so the way to each such room was walked too: the
         // way needing the fewest rooms nobody is known to have walked, of two as good the one
@@ -224,6 +224,20 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AChestHoldingFewerItemsThanItsFillingEverGivesWasTakenFrom()
+        {
+            // A dungeon chest's filling gives each item once, two at the least for a burial chamber's:
+            // one left holding a single item was taken from, though not emptied.
+            Assert.True(DungeonTraces.TakenFrom(1, 2, true));
+            Assert.True(DungeonTraces.TakenFrom(0, 2, true));
+            Assert.False(DungeonTraces.TakenFrom(2, 2, true));
+            Assert.False(DungeonTraces.TakenFrom(4, 2, true));
+            // Where the same item may come twice, two may have stacked into one: only an empty chest tells.
+            Assert.False(DungeonTraces.TakenFrom(1, 2, false));
+            Assert.True(DungeonTraces.TakenFrom(0, 2, false));
+        }
+
+        [Fact]
         public void APartGoneFromWhereItsRoomMadeItIsATraceOneStillStandingIsNot()
         {
             var chest = "TreasureChest_x".GetHashCode();
@@ -381,7 +395,7 @@ namespace Scry.Tests
         [Fact]
         public void TheLinesTipSaysWhatWasLeftInsideAndThatWhoWalkedItIsNotKnown()
         {
-            Assert.Equal("Read from what was left inside: 2 chests emptied, 3 things broken, 1 pickup taken, in 2 rooms, and the rooms on the way to them. Who walked it is not known.",
+            Assert.Equal("Read from what was left inside: 2 chests taken from, 3 things broken, 1 pickup taken, in 2 rooms, and the rooms on the way to them. Who walked it is not known.",
                 DungeonMapWords.TraceTip(new TraceTally { Chests = 2, Broken = 3, Pickups = 1, Rooms = 2 }));
             Assert.Equal("Read from what was left inside: 1 rock mined, 2 doors opened, 4 spawn points woken, in 1 room, and the rooms on the way to them. Who walked it is not known. The latest pickup was taken on day 412.",
                 DungeonMapWords.TraceTip(new TraceTally { Mined = 1, Doors = 2, Spawners = 4, Rooms = 1, LastDay = 412 }));
@@ -392,7 +406,7 @@ namespace Scry.Tests
                 DungeonMapWords.TraceTip(new TraceTally { Spawners = 1 }));
             Assert.Null(DungeonMapWords.TraceTip(null));
             // The line's hover says the traces, then the days anyone walked it.
-            Assert.Equal("Read from what was left inside: 1 chest emptied, in 1 room, and the rooms on the way to them. Who walked it is not known. Anyone on this server last walked it on day 412",
+            Assert.Equal("Read from what was left inside: 1 chest taken from, in 1 room, and the rooms on the way to them. Who walked it is not known. Anyone on this server last walked it on day 412",
                 DungeonMapWords.ServerTip(new TraceTally { Chests = 1, Rooms = 1 }, -1, 412));
             Assert.Equal("Anyone on this server last walked it on day 412", DungeonMapWords.ServerTip(null, -1, 412));
             Assert.Null(DungeonMapWords.ServerTip(null, -1, -1));
@@ -407,7 +421,7 @@ namespace Scry.Tests
             Assert.Equal(" 2 dungeons made again of other rooms than those kept were passed over.", DungeonMapWords.OtherRooms(2));
             Assert.Equal(" 1 dungeon made again of other rooms than those kept was passed over.", DungeonMapWords.OtherRooms(1));
             Assert.Equal("", DungeonMapWords.OtherRooms(0));
-            Assert.Equal("chests in the dungeons read: 120 made with their rooms, 100 standing, 90 filled, 0 empty, 20 gone.", DungeonMapWords.ChestsRead(120, 100, 90, 0, 20));
+            Assert.Equal("chests in the dungeons read: 120 made with their rooms, 100 standing, 90 filled, 3 taken from, 20 gone.", DungeonMapWords.ChestsRead(120, 100, 90, 3, 20));
         }
     }
 }
