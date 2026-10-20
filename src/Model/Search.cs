@@ -588,7 +588,7 @@ namespace Scry
         private static bool AnyPlaceNamed(string[] places, string value)
         {
             if (places == null) return false;
-            foreach (var place in places) if (ContainsLeavingOutSpaces(Places.NameOf(place), value)) return true;
+            foreach (var place in places) if (place != null && ContainsLeavingOutSpaces(place, Places.NameEnd(place), value)) return true;
             return false;
         }
 
@@ -622,17 +622,18 @@ namespace Scry
         /// Whether the text holds the value, whatever the case, once the text's spaces are left
         /// out: "Artisan table" holds "antab". Compared in place, without making the shorter text.
         /// </summary>
-        private static bool ContainsLeavingOutSpaces(string text, string value)
-        {
-            if (string.IsNullOrEmpty(text)) return false;
+        private static bool ContainsLeavingOutSpaces(string text, string value) => text != null && ContainsLeavingOutSpaces(text, text.Length, value);
 
-            for (var start = 0; start < text.Length; start++)
+        /// <summary>Whether the text up to <paramref name="end"/> holds the value, ignoring case and leaving out the text's spaces.</summary>
+        private static bool ContainsLeavingOutSpaces(string text, int end, string value)
+        {
+            for (var start = 0; start < end; start++)
             {
                 if (text[start] == ' ') continue;
 
                 var at = start;
                 var matched = 0;
-                while (matched < value.Length && at < text.Length)
+                while (matched < value.Length && at < end)
                 {
                     if (text[at] == ' ')
                     {

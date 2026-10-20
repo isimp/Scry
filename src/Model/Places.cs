@@ -110,8 +110,15 @@ namespace Scry
         public static string NameOf(string place)
         {
             if (string.IsNullOrEmpty(place)) return "";
+            var end = NameEnd(place);
+            return end < place.Length ? place.Substring(0, end) : place;
+        }
+
+        /// <summary>Where a place's label ends its name (<see cref="NameOf"/>), for reading the name in place without making it.</summary>
+        public static int NameEnd(string place)
+        {
             var mark = place.IndexOf(BiomeMark, StringComparison.Ordinal);
-            return mark > 0 ? place.Substring(0, mark) : place;
+            return mark > 0 ? mark : place.Length;
         }
 
         private static string WordsOf(string prefab, string biome, IReadOnlyDictionary<string, string> creatures)
