@@ -16,7 +16,9 @@ namespace Scry
     /// client gives up on the world for the session at once, its places counting as the character
     /// meets them; an answer lost is given up on after <see cref="AnswerWait"/> seconds. The ground
     /// from shared maps goes by messages of its own, so a server whose Scry knows only the first
-    /// still answers it.
+    /// still answers it. Each answer tells how many of each kind lie in the ground after the kinds,
+    /// which an older Scry leaves unread; the census, how many of each kind the world holds, never
+    /// where, goes by messages of its own, asked once a session while it is shown.
     /// </summary>
     internal static class CompendiumLink
     {
@@ -26,6 +28,11 @@ namespace Scry
         public const string AnswerRpc = "Scry_MapAnswer";
         public const string SharedAskRpc = "Scry_SharedMapAsk";
         public const string SharedAnswerRpc = "Scry_SharedMapAnswer";
+        public const string CensusAskRpc = "Scry_CensusAsk";
+        public const string CensusAnswerRpc = "Scry_CensusAnswer";
+
+        /// <summary>The world the census was asked for this connection; none before.</summary>
+        private static string _censusAskedFor;
         private static Task<byte[]> _packingShared;
         private static string _sharedAskedFor;
 
@@ -67,8 +74,11 @@ namespace Scry
             _packing = null;
             _packingShared = null;
             _sharedAskedFor = null;
+            _censusAskedFor = null;
             _toldNoScry = false;
             if (rpc == null) return;
+            rpc.Register<ZPackage>(CensusAskRpc, (sender, package) => Guard.Run(Feature.CompendiumMap, "answering a player's ask for the world's census", () => AnswerCensus(sender, package)));
+            rpc.Register<ZPackage>(CensusAnswerRpc, (sender, package) => Guard.Run(Feature.CompendiumMap, "taking the server's census of the world", () => TakeCensus(sender, package)));
             rpc.Register<ZPackage>(SharedAskRpc, (sender, package) => Guard.Run(Feature.CompendiumMap, "answering a player's shared ground", () => Answer(sender, package, SharedAnswerRpc)));
             rpc.Register<ZPackage>(SharedAnswerRpc, (sender, package) => Guard.Run(Feature.CompendiumMap, "taking the server's answer on the shared ground", () => TakeShared(package)));
             rpc.Register<ZPackage>(AskRpc, (sender, package) => Guard.Run(Feature.CompendiumMap, "answering a player's explored map", () => Answer(sender, package, AnswerRpc)));
@@ -171,35 +181,99 @@ namespace Scry
             var world = package.ReadString();
             var grid = ExploredGrid.Unpack(Utils.Decompress(package.ReadByteArray()));
             if (grid == null) return;
-            var kinds = MapCatchUp.Kinds(grid, CompendiumMap.Places());
+            var counted = MapCatchUp.Counted(grid, CompendiumMap.Places());
             var reply = new ZPackage();
             reply.Write(world);
-            reply.Write(kinds.Count);
-            foreach (var kind in kinds) reply.Write(kind);
+            reply.Write(counted.Count);
+            foreach (var (kind, _) in counted) reply.Write(kind);
+            // How many of each, after the kinds, so a client's older Scry reads the kinds as before.
+            foreach (var (_, count) in counted) reply.Write(count);
             ZRoutedRpc.instance.InvokeRoutedRPC(sender, answerRpc, reply);
             Answered++;
-            Log.Report(CompendiumWords.MapAnswered(kinds.Count));
+            Log.Report(CompendiumWords.MapAnswered(counted.Count));
         }
+
+        /// <summary>The kinds an answer names, with how many of each where the server's Scry tells it, else one each.</summary>
+        private static List<(string Kind, int Count)> ReadCounted(ZPackage package)
+        {
+            var count = package.ReadInt();
+            if (count < 0 || count > MostKinds) return new List<(string, int)>();
+            var counted = new List<(string Kind, int Count)>(count);
+            for (var i = 0; i < count; i++) counted.Add((package.ReadString(), 1));
+            if (package.GetPos() >= package.Size()) return counted;
+            for (var i = 0; i < count; i++) counted[i] = (counted[i].Kind, package.ReadInt());
+            return counted;
+        }
+
+        /// <summary>The most kinds of place an answer may name.</summary>
+        private const int MostKinds = 100000;
+
+        /// <summary>A client asks the server once a connection for the world's census, how many of each kind of place it holds, once its Scry said hello.</summary>
+        public static void AskCensus(string world)
+        {
+            var rpc = ZRoutedRpc.instance;
+            if (rpc == null || rpc != _registeredOn || _censusAskedFor == world || !ServerScries.Answers(EventLink.Server)) return;
+            _censusAskedFor = world;
+            var package = new ZPackage();
+            package.Write(world);
+            rpc.InvokeRoutedRPC(CensusAskRpc, package);
+        }
+
+        /// <summary>The server answers with how many of each kind of place the world holds, never where.</summary>
+        private static void AnswerCensus(long sender, ZPackage package)
+        {
+            if (ZNet.instance == null || !ZNet.instance.IsServer()) return;
+            var world = package.ReadString();
+            var census = MapCatchUp.Census(CompendiumMap.Places());
+            var reply = new ZPackage();
+            reply.Write(world);
+            reply.Write(census.Count);
+            foreach (var pair in census)
+            {
+                reply.Write(pair.Key);
+                reply.Write(pair.Value);
+            }
+            ZRoutedRpc.instance.InvokeRoutedRPC(sender, CensusAnswerRpc, reply);
+            CensusAnswered++;
+        }
+
+        /// <summary>The client takes the server's census, from the world's server alone.</summary>
+        private static void TakeCensus(long sender, ZPackage package)
+        {
+            if (sender != EventLink.WorldSession) return;
+            var world = package.ReadString();
+            var count = package.ReadInt();
+            if (world != _censusAskedFor || count < 0 || count > MostKinds) return;
+            var census = new Dictionary<string, int>(count, System.StringComparer.Ordinal);
+            for (var i = 0; i < count; i++)
+            {
+                var kind = package.ReadString();
+                census[kind] = package.ReadInt();
+            }
+            CompendiumMap.ToldCensus(CompendiumKeeper.Book, world, census);
+        }
+
+        /// <summary>How many censuses this game answered, as a server; for the self-test.</summary>
+        [Diagnostic]
+        public static int CensusAnswered { get; private set; }
 
         /// <summary>The client takes the server's answer into the book of the character played.</summary>
         private static void Take(ZPackage package)
         {
             var world = package.ReadString();
-            var count = package.ReadInt();
-            var kinds = new List<string>(count);
-            for (var i = 0; i < count; i++) kinds.Add(package.ReadString());
+            var counted = ReadCounted(package);
             if (world == _askedMoreFor && world != _askedFor)
             {
                 _askedMoreFor = null;
                 TakenMore++;
-                CompendiumMap.ToldMore(CompendiumKeeper.Book, world, kinds);
+                CompendiumMap.ToldMore(CompendiumKeeper.Book, world, counted);
                 return;
             }
             if (world != _askedFor) return;
             _askedFor = null;
-            LastTold = kinds.Count;
+            LastTold = counted.Count;
             Taken++;
-            CompendiumMap.Told(CompendiumKeeper.Book, world, kinds);
+            CompendiumMap.Told(CompendiumKeeper.Book, world, counted);
         }
 
         /// <summary>How many answers on the ground new since this game took, as a client; for the self-test.</summary>
@@ -210,18 +284,17 @@ namespace Scry
         private static void TakeShared(ZPackage package)
         {
             var world = package.ReadString();
-            var count = package.ReadInt();
-            var kinds = new List<string>(count);
-            for (var i = 0; i < count; i++) kinds.Add(package.ReadString());
+            var counted = ReadCounted(package);
             if (world != _sharedAskedFor) return;
             _sharedAskedFor = null;
-            CompendiumMap.ToldShared(CompendiumKeeper.Book, world, kinds);
+            CompendiumMap.ToldShared(CompendiumKeeper.Book, world, counted);
         }
 
         private static void Forget()
         {
             _askedFor = null;
             _askedMoreFor = null;
+            _censusAskedFor = null;
             _packing = null;
             _packingShared = null;
             _sharedAskedFor = null;

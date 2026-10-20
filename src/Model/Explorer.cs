@@ -475,8 +475,26 @@ namespace Scry
         /// <summary>How many of a kind the character has met (seen or known), whatever is typed.</summary>
         public int FoundOf(Kind kind) => _found[(int)kind];
 
-        /// <summary>How many of a kind there are in all, whatever is typed.</summary>
+        /// <summary>How many of a kind there are in all, whatever is typed: of places, those the world holds where its census is shown (<see cref="WorldHolds"/>).</summary>
         public int TotalOf(Kind kind) => _total[(int)kind];
+
+        /// <summary>How many of a kind the catalog holds, whatever the world holds.</summary>
+        public int AllOf(Kind kind) => _all[(int)kind];
+
+        private readonly int[] _all = new int[Enum.GetValues(typeof(Kind)).Length];
+
+        /// <summary>The places the world holds, and their rooms, by the census shown; none counts every one.</summary>
+        private HashSet<Entry> _held;
+        private int _heldVersion = -1;
+
+        /// <summary>The places the world holds by its census (<see cref="PlaceCensus.Held"/>), and a count moving each time they change, for the Locations tab to count only those; none counts every place again.</summary>
+        public void WorldHolds(HashSet<Entry> held, int version)
+        {
+            if (version == _heldVersion && ReferenceEquals(held, _held)) return;
+            _held = held;
+            _heldVersion = version;
+            if (CompendiumSet) Retell();
+        }
 
         /// <summary>
         /// Shows what the character knows (<see cref="CompendiumView"/>): the list again, with what
@@ -517,6 +535,7 @@ namespace Scry
             _visible = null;
             Array.Clear(_found, 0, _found.Length);
             Array.Clear(_total, 0, _total.Length);
+            Array.Clear(_all, 0, _all.Length);
             if (CompendiumSet)
             {
                 _visible = new List<Entry>();
@@ -525,8 +544,11 @@ namespace Scry
                     // A creature's body is its leftover, counted and listed nowhere.
                     if (Kinds.IsBody(entry)) continue;
                     var level = _view.Of(entry);
-                    _total[(int)entry.Kind]++;
-                    if (level >= KnownLevel.Seen) _found[(int)entry.Kind]++;
+                    _all[(int)entry.Kind]++;
+                    // With the census shown, places count only where the world holds them.
+                    var counted = entry.Kind != Kind.Location || _held == null || _held.Contains(entry);
+                    if (counted) _total[(int)entry.Kind]++;
+                    if (counted && level >= KnownLevel.Seen) _found[(int)entry.Kind]++;
                     if (level >= KnownLevel.Seen) _visible.Add(entry);
                 }
                 // Steps back and forward lead only to what the character has seen.

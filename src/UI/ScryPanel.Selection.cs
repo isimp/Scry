@@ -278,8 +278,34 @@ namespace Scry
             }
         }
 
-        /// <summary>How tall the name's rows are: the name, the line under it, and the floor's line where the floor shows it.</summary>
-        private static float TitleHeight(Explorer explorer, Entry entry) => U(34f) + U(26f) + (explorer.ByFloor(entry) ? U(24f) : 0f) + U(8f);
+        /// <summary>How tall the name's rows are: the name, the line under it, the line of what shows it by the player's choice, and a place's census line.</summary>
+        private static float TitleHeight(Explorer explorer, Entry entry) =>
+            U(34f) + U(26f) + (ShownBy(explorer, entry) != null ? U(24f) : 0f) + (CensusLine(explorer, entry) != null ? U(24f) : 0f) + U(8f);
+
+        /// <summary>What shows an entry by the player's choice, the floor or a source of the world, as the line under its title says; none for what the character met itself.</summary>
+        private static string ShownBy(Explorer explorer, Entry entry) =>
+            explorer.ByFloor(entry) ? CompendiumWords.ByFloor(explorer.Compendium.Floor)
+            : explorer.ByWorld(entry) is WorldSource source ? CompendiumWords.ByWorld(source, explorer.LevelOf(entry)) : null;
+
+        /// <summary>
+        /// A place's line of how many there are (<see cref="CensusWords.Line"/>), with the compendium
+        /// on: how many this world holds while *The whole world* shows its census, how many lie in
+        /// ground you explored, and in shared maps while that row shows anything; none for a room or
+        /// where nothing is known.
+        /// </summary>
+        private static string CensusLine(Explorer explorer, Entry entry)
+        {
+            var book = CompendiumKeeper.Book;
+            if (!explorer.CompendiumOn || book == null || entry.Kind != Kind.Location || !(entry.Source is PlaceSource place) || place.IsRoom) return null;
+            var counts = CompendiumMap.Counts;
+            var held = book.Shows(WorldSource.WholeWorld) == SourceLevel.Counted ? counts.Held(place.Prefab) : -1;
+            var shared = book.Shows(WorldSource.SharedMaps) > SourceLevel.Off ? counts.In(WorldSource.SharedMaps, place.Prefab) : -1;
+            return CensusWords.Line(held, counts.In(WorldSource.Explored, place.Prefab), shared);
+        }
+
+        /// <summary>A place's census line as last drawn; for the self-test.</summary>
+        [Diagnostic]
+        public static string CensusLineForTest { get; private set; }
 
         /// <summary>Where the header's parts were last drawn, by what each is: the name, copy, star, each action and slider icon, the section line and fold all; for the self-test.</summary>
         [Diagnostic]
@@ -348,8 +374,7 @@ namespace Scry
             }
 
             // Shown only by the player's choice, the compendium's floor or a source of the world: said under the title, with the list's mark.
-            var shownBy = explorer.ByFloor(entry) ? CompendiumWords.ByFloor(explorer.Compendium.Floor)
-                : explorer.ByWorld(entry) is WorldSource source ? CompendiumWords.ByWorld(source, explorer.LevelOf(entry)) : null;
+            var shownBy = ShownBy(explorer, entry);
             if (shownBy != null)
             {
                 var choice = explorer.ByFloor(entry) ? Skin.Steps : Skin.FoldedMap;
@@ -359,6 +384,17 @@ namespace Scry
                 var line = new Rect(mark + U(6f), y, width - mark - U(6f), U(22f));
                 var said = shownBy;
                 if (!FitLabel(line, said, Skin.DimLabel, 10f) && line.Contains(Event.current.mousePosition)) AskTip("floor-line", said);
+                y += U(24f);
+            }
+
+            // A place's census: how many this world holds and how many lie in your ground.
+            var census = CensusLine(explorer, entry);
+            if (census != null)
+            {
+                CountDrawn(PanelPart.CensusLine);
+                CensusLineForTest = census;
+                var line = new Rect(0f, y, width, U(22f));
+                if (!FitLabel(line, census, Skin.FaintLabel, 10f) && line.Contains(Event.current.mousePosition)) AskTip("census-line", census);
                 y += U(24f);
             }
 

@@ -325,7 +325,9 @@ namespace Scry
                 var count = collected ? explorer.FoundOf(kind) : explorer.CountOf(kind);
                 var total = collected ? explorer.TotalOf(kind) : -1;
                 if (count == 0 && explorer.KindFilter != kind) continue;
-                if (Tab(Kinds.Label(kind), count, total, Skin.KindColor(kind), explorer.KindFilter == kind && !learned)) Filter(explorer, kind);
+                // Counted against the world's census, the tab says so on hover.
+                var census = collected && total != explorer.AllOf(kind) ? CensusWords.TabTip(count, total, explorer.AllOf(kind)) : null;
+                if (Tab(Kinds.Label(kind), count, total, Skin.KindColor(kind), explorer.KindFilter == kind && !learned, census != null ? "tab-census" : null, census)) Filter(explorer, kind);
             }
 
             return flow.RowBottom;

@@ -123,7 +123,7 @@ namespace Scry
         {
             var least = WorldSources.Least(source);
             if (level < least) level = least;
-            if (Shows(source) == level) return;
+            if (!WorldSources.Allows(source, level) || Shows(source) == level) return;
             _shows[source] = level;
             SourcesVersion++;
             Changed = true;
@@ -638,7 +638,7 @@ namespace Scry
                         found.Add(kind);
                         break;
                     case "shows" when parts.Length == 3 && Enum.TryParse(name, out WorldSource shown) && Enum.IsDefined(typeof(WorldSource), shown)
-                                      && Enum.TryParse(parts[2], out SourceLevel level) && Enum.IsDefined(typeof(SourceLevel), level) && level >= WorldSources.Least(shown):
+                                      && Enum.TryParse(parts[2], out SourceLevel level) && Enum.IsDefined(typeof(SourceLevel), level) && WorldSources.Allows(shown, level):
                         book._shows[shown] = level;
                         break;
                     case "marks" when parts.Length == 2 && Enum.TryParse(name, out WorldSource marked) && Enum.IsDefined(typeof(WorldSource), marked) && WorldSources.HasGround(marked):

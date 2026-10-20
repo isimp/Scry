@@ -182,6 +182,8 @@ namespace Scry
             }
             step = Timing.Start();
             Explorer.Know(_knownInstead ?? _known);
+            var (held, heldVersion) = CompendiumMap.HeldPlaces(book, Explorer.Entries);
+            Explorer.WorldHolds(held, heldVersion);
             Timing.Add("compendium listed", step);
         }
 

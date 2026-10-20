@@ -44,6 +44,8 @@ namespace Scry
         {
             var held = new DungeonMaps();
             var yours = DungeonWalks.Maps;
+            // The census names kinds alone and shows no insides.
+            if (source == WorldSource.WholeWorld) yield break;
             if (WorldSources.HasGround(source))
             {
                 foreach (var (id, map) in DungeonsInGround.Of(source))

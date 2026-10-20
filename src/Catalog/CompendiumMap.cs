@@ -37,14 +37,14 @@ namespace Scry
 
         /// <summary>The world whose shared maps were asked about this session; none while they are to be asked again.</summary>
         private static string _sharedFor;
-        private static Task<List<string>> _sharing;
+        private static Task<List<(string Kind, int Count)>> _sharing;
         private static string _sharingFor;
 
         /// <summary>How often the places on every map are looked at.</summary>
         private const float IconsEvery = 30f;
         private static float _iconsAt = float.NegativeInfinity;
         private static readonly Dictionary<Vector3, string> Icons = new Dictionary<Vector3, string>();
-        private static Task<(ExploredGrid Grid, List<string> Kinds)> _reading;
+        private static Task<(ExploredGrid Grid, List<(string Kind, int Count)> Counted)> _reading;
         private static string _readingFor;
 
         /// <summary>The explored map last asked about in this world this session, for the ground new since; none before the first ask.</summary>
@@ -55,7 +55,7 @@ namespace Scry
         private static float _grownAt = float.NegativeInfinity;
         private static Task<(ExploredGrid Now, ExploredGrid New, byte[] Packed)> _growing;
         private static string _growingFor;
-        private static Task<List<string>> _growingKinds;
+        private static Task<List<(string Kind, int Count)>> _growingKinds;
         private static string _growingKindsFor;
 
         /// <summary>How many times the ground new since was asked about this session, for the self-test.</summary>
@@ -66,6 +66,32 @@ namespace Scry
         private static float _playerSince;
         private static Task<List<string>> _biomes;
         private static string _biomesFor;
+
+        /// <summary>How many of each kind of place the world holds, by the server's census, and lie in each ground, by its answers; the session's, the world's own.</summary>
+        public static PlaceCounts Counts { get; } = new PlaceCounts();
+
+        /// <summary>The world the census was taken for here, where this game runs it; none before.</summary>
+        private static string _censusFor;
+
+        private static HashSet<Entry> _held;
+        private static int _heldVersion;
+        private static (int, EntryCatalog, int, bool) _heldStamp;
+
+        /// <summary>
+        /// The places the world holds by its census, and their rooms, while *The whole world* shows
+        /// it (<see cref="PlaceCensus.Held"/>), with a count that moves as they change; none
+        /// otherwise. Worked out again only as the census, the catalog or the choice change.
+        /// </summary>
+        public static (HashSet<Entry> Held, int Version) HeldPlaces(CompendiumBook book, EntryCatalog catalog)
+        {
+            var shown = book != null && catalog != null && book.Shows(WorldSource.WholeWorld) == SourceLevel.Counted && Counts.CensusKnown;
+            var stamp = (Counts.Version, catalog, catalog?.Regroups ?? -1, shown);
+            if (stamp.Equals(_heldStamp)) return (_held, _heldVersion);
+            _heldStamp = stamp;
+            _held = shown ? PlaceCensus.Held(catalog.All, kind => Counts.Held(kind) > 0) : null;
+            _heldVersion++;
+            return (_held, _heldVersion);
+        }
 
         /// <summary>The world as the book knows it: its id, as the game keeps the character's map of it; none outside a world.</summary>
         public static string World => ZNet.instance != null ? Stored.Count(ZNet.instance.GetWorldUID()) : null;
@@ -99,6 +125,7 @@ namespace Scry
             UpdateIcons(book, world, settled);
             UpdateShared(book, world, settled);
             UpdateGrowth(book, world, settled);
+            UpdateCensus(book, world, settled);
 
             if (_reading != null)
             {
@@ -123,23 +150,52 @@ namespace Scry
             return CompendiumWords.MapAgain;
         }
 
-        /// <summary>Takes in the kinds of place a server told lie in the explored map.</summary>
-        public static void Told(CompendiumBook book, string world, List<string> kinds)
+        /// <summary>Takes in the kinds of place a server told lie in the explored map, and how many of each.</summary>
+        public static void Told(CompendiumBook book, string world, List<(string Kind, int Count)> counted)
         {
             if (book == null || world == null || world != World || book.Mapped(world)) return;
-            var raised = MapCatchUp.Apply(book, world, kinds);
+            Counts.Took(WorldSource.Explored, counted, whole: true);
+            var raised = MapCatchUp.Apply(book, world, Kinds(counted));
             CompendiumKeeper.Noted(PlayEvent.MapRead);
-            Log.Report(CompendiumWords.MapRead(kinds.Count, raised, fromServer: true));
+            Log.Report(CompendiumWords.MapRead(counted.Count, raised, fromServer: true));
         }
 
-        /// <summary>Takes in the kinds of place lying in the ground explored since the last ask, what is new noted as the first reading's is.</summary>
-        public static void ToldMore(CompendiumBook book, string world, List<string> kinds)
+        /// <summary>Takes in the kinds of place lying in the ground explored since the last ask, and how many, what is new noted as the first reading's is.</summary>
+        public static void ToldMore(CompendiumBook book, string world, List<(string Kind, int Count)> counted)
         {
             if (book == null || world == null || world != World) return;
-            var raised = MapCatchUp.Apply(book, world, kinds);
+            Counts.Took(WorldSource.Explored, counted, whole: false);
+            var raised = MapCatchUp.Apply(book, world, Kinds(counted));
             if (raised == 0) return;
             CompendiumKeeper.Noted(PlayEvent.MapRead);
-            Log.Report(CompendiumWords.MapRead(kinds.Count, raised, fromServer: !ZNet.instance.IsServer()));
+            Log.Report(CompendiumWords.MapRead(counted.Count, raised, fromServer: !ZNet.instance.IsServer()));
+        }
+
+        /// <summary>Takes in the server's census: how many of each kind of place the world holds, every kind kept as the whole world's (<see cref="WorldSource.WholeWorld"/>).</summary>
+        public static void ToldCensus(CompendiumBook book, string world, IReadOnlyDictionary<string, int> census)
+        {
+            if (world == null || world != World) return;
+            Counts.Census(census);
+            book?.FoundIn(world, WorldSource.WholeWorld, Counts.HeldKinds);
+        }
+
+        private static List<string> Kinds(List<(string Kind, int Count)> counted) => counted.ConvertAll(c => c.Kind);
+
+        /// <summary>
+        /// The world's census once a session while *The whole world* shows it, as the world's server
+        /// knows it: here where this game runs the world, else asked of the server's Scry.
+        /// </summary>
+        private static void UpdateCensus(CompendiumBook book, string world, bool settled)
+        {
+            if (book == null || world == null || !settled || book.Shows(WorldSource.WholeWorld) != SourceLevel.Counted || Counts.CensusKnown) return;
+            if (!ZNet.instance.IsServer())
+            {
+                CompendiumLink.AskCensus(world);
+                return;
+            }
+            if (_censusFor == world) return;
+            _censusFor = world;
+            ToldCensus(book, world, MapCatchUp.Census(Places()));
         }
 
         /// <summary>The explored map the server is asked about, kept for the ground new since.</summary>
@@ -189,7 +245,7 @@ namespace Scry
                 {
                     var places = Places();
                     _growingKindsFor = world;
-                    _growingKinds = Task.Run(() => MapCatchUp.Kinds(fresh, places));
+                    _growingKinds = Task.Run(() => MapCatchUp.Counted(fresh, places));
                 }
                 else CompendiumLink.AskMore(world, packed);
                 return;
@@ -210,11 +266,12 @@ namespace Scry
             });
         }
 
-        /// <summary>Takes in the kinds of place a server told lie in the ground from shared maps.</summary>
-        public static void ToldShared(CompendiumBook book, string world, List<string> kinds)
+        /// <summary>Takes in the kinds of place a server told lie in the ground from shared maps, and how many of each.</summary>
+        public static void ToldShared(CompendiumBook book, string world, List<(string Kind, int Count)> counted)
         {
             if (book == null || world == null || world != World) return;
-            book.FoundIn(world, WorldSource.SharedMaps, kinds);
+            Counts.Took(WorldSource.SharedMaps, counted, whole: true);
+            book.FoundIn(world, WorldSource.SharedMaps, Kinds(counted));
         }
 
         /// <summary>A map read at a cartography table: the shared ground is asked about again.</summary>
@@ -257,7 +314,7 @@ namespace Scry
                 if (words == null) return;
                 var places = Places();
                 _sharingFor = world;
-                _sharing = Task.Run(() => MapCatchUp.Kinds(Grid(size, pixel, words), places));
+                _sharing = Task.Run(() => MapCatchUp.Counted(Grid(size, pixel, words), places));
             }
             else if (CompendiumLink.AskShared(world)) _sharedFor = world;
         }
@@ -329,7 +386,7 @@ namespace Scry
             _reading = Task.Run(() =>
             {
                 var grid = Grid(size, pixel, words);
-                return (grid, MapCatchUp.Kinds(grid, places));
+                return (grid, MapCatchUp.Counted(grid, places));
             });
         }
 
@@ -347,9 +404,10 @@ namespace Scry
             }
             if (book == null || world != World || book.Mapped(world)) return;
             Asked(world, reading.Result.Grid);
-            var raised = MapCatchUp.Apply(book, world, reading.Result.Kinds);
+            Counts.Took(WorldSource.Explored, reading.Result.Counted, whole: true);
+            var raised = MapCatchUp.Apply(book, world, Kinds(reading.Result.Counted));
             CompendiumKeeper.Noted(PlayEvent.MapRead);
-            Log.Report(CompendiumWords.MapRead(reading.Result.Kinds.Count, raised, fromServer: false));
+            Log.Report(CompendiumWords.MapRead(reading.Result.Counted.Count, raised, fromServer: false));
         }
 
         /// <summary>
@@ -420,6 +478,11 @@ namespace Scry
             _growingFor = null;
             _growingKinds = null;
             _growingKindsFor = null;
+            _censusFor = null;
+            Counts.Forget();
+            _held = null;
+            _heldStamp = default;
+            _heldVersion++;
             _failedFor = null;
             _player = null;
             _biomes = null;

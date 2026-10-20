@@ -543,6 +543,14 @@ namespace Scry
                     var entry = _catalog.Find(EntryKeys.For(Kind.Location, kind));
                     if (entry == null) continue;
                     var now = Of(entry);
+                    if (level == SourceLevel.Counted)
+                    {
+                        // The census's: a name heard of, bringing nothing along.
+                        if (now >= KnownLevel.HeardOf) continue;
+                        _levels[entry] = KnownLevel.HeardOf;
+                        _byWorld[entry] = source;
+                        continue;
+                    }
                     if (level == SourceLevel.Seen)
                     {
                         if (now >= KnownLevel.Seen) continue;

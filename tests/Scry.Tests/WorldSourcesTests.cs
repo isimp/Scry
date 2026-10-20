@@ -376,9 +376,9 @@ namespace Scry.Tests
         [Fact]
         public void TheBoxNamesEachSourceAndWhatEachLevelDoes()
         {
-            Assert.Equal(new[] { "Ground you explored", "Shared maps", "Places marked for you", "Places on every map" },
+            Assert.Equal(new[] { "Ground you explored", "Shared maps", "Places marked for you", "Places on every map", "The whole world" },
                 System.Array.ConvertAll(WorldSources.All, CompendiumWords.SourceName));
-            Assert.Equal(new[] { "Off", "Seen", "Known", "With insides" },
+            Assert.Equal(new[] { "Off", "Counted", "Seen", "Known", "With insides" },
                 System.Array.ConvertAll((SourceLevel[])System.Enum.GetValues(typeof(SourceLevel)), CompendiumWords.LevelName));
             foreach (var source in WorldSources.All) Assert.False(string.IsNullOrEmpty(CompendiumWords.SourceTip(source)));
             foreach (SourceLevel level in System.Enum.GetValues(typeof(SourceLevel))) Assert.False(string.IsNullOrEmpty(CompendiumWords.LevelTip(level)));
@@ -386,6 +386,50 @@ namespace Scry.Tests
             // Your own ground and marked places offer no Off, as they show at least seen.
             Assert.Equal(new[] { SourceLevel.Seen, SourceLevel.Known, SourceLevel.WithInsides }, WorldSources.Offered(WorldSource.Explored));
             Assert.Equal(new[] { SourceLevel.Off, SourceLevel.Seen, SourceLevel.Known, SourceLevel.WithInsides }, WorldSources.Offered(WorldSource.SharedMaps));
+        }
+
+        [Fact]
+        public void TheWholeWorldIsOffOrCountedAndNoOtherSourceIsCounted()
+        {
+            Assert.Equal(new[] { SourceLevel.Off, SourceLevel.Counted }, WorldSources.Offered(WorldSource.WholeWorld));
+            Assert.Equal(new[] { SourceLevel.Seen, SourceLevel.Known, SourceLevel.WithInsides }, WorldSources.Offered(WorldSource.Marked));
+            Assert.Equal(new[] { SourceLevel.Off, SourceLevel.Seen, SourceLevel.Known, SourceLevel.WithInsides }, WorldSources.Offered(WorldSource.OnEveryMap));
+            Assert.False(WorldSources.HasGround(WorldSource.WholeWorld));
+            var book = new CompendiumBook();
+            Assert.Equal(SourceLevel.Off, book.Shows(WorldSource.WholeWorld));
+            book.Show(WorldSource.WholeWorld, SourceLevel.Known);
+            Assert.Equal(SourceLevel.Off, book.Shows(WorldSource.WholeWorld));
+            book.Show(WorldSource.SharedMaps, SourceLevel.Counted);
+            Assert.Equal(SourceLevel.Off, book.Shows(WorldSource.SharedMaps));
+            book.Show(WorldSource.WholeWorld, SourceLevel.Counted);
+            Assert.Equal(SourceLevel.Counted, CompendiumBook.Load(book.Save()).Shows(WorldSource.WholeWorld));
+            // A level a source does not offer, as written by hand, is read as its least.
+            var read = CompendiumBook.Load("shows\tSharedMaps\tCounted\nshows\tWholeWorld\tWithInsides\n");
+            Assert.Equal(SourceLevel.Off, read.Shows(WorldSource.SharedMaps));
+            Assert.Equal(SourceLevel.Off, read.Shows(WorldSource.WholeWorld));
+            Assert.Equal("Every kind of place this world holds is heard of, with how many there are; none is seen until you find it.", CompendiumWords.LevelTip(SourceLevel.Counted));
+            Assert.Equal("Every kind of place this world holds, by the server's census of it: how many of each there are, never where.", CompendiumWords.SourceTip(WorldSource.WholeWorld));
+        }
+
+        [Fact]
+        public void CountedMakesEveryKindTheWorldHoldsHeardOfMarkedAsTheCensus()
+        {
+            var s = new Setup().Found(WorldSource.WholeWorld, "Crypt2").Shows(WorldSource.WholeWorld, SourceLevel.Counted);
+            Assert.Equal(KnownLevel.HeardOf, s.View.Of(s.Crypt));
+            Assert.Equal(WorldSource.WholeWorld, s.View.ByWorld(s.Crypt));
+            Assert.Equal(KnownLevel.Unknown, s.Book.Level(s.Crypt.Key));
+            // Nothing it brings along: heard of is no more than a name.
+            Assert.True(s.View.Of(s.Glow) < KnownLevel.HeardOf || s.View.ByWorld(s.Glow) == null);
+            Assert.Equal("Heard of from this world's census, not yet met by this character", CompendiumWords.ByWorld(WorldSource.WholeWorld, KnownLevel.HeardOf));
+
+            // Seen for real, or shown seen by another source, it stays so and is not the census's.
+            var t = new Setup().Found(WorldSource.WholeWorld, "Crypt2").Found(WorldSource.SharedMaps, "Crypt2");
+            t.Book.Show(WorldSource.SharedMaps, SourceLevel.Seen);
+            t.Shows(WorldSource.WholeWorld, SourceLevel.Counted);
+            Assert.Equal(KnownLevel.Seen, t.View.Of(t.Crypt));
+            Assert.Equal(WorldSource.SharedMaps, t.View.ByWorld(t.Crypt));
+            t.Shows(WorldSource.WholeWorld, SourceLevel.Off);
+            Assert.Equal(KnownLevel.Seen, t.View.Of(t.Crypt));
         }
 
         [Fact]

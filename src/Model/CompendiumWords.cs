@@ -257,7 +257,8 @@ namespace Scry
                 case WorldSource.Explored: return "Ground you explored";
                 case WorldSource.SharedMaps: return "Shared maps";
                 case WorldSource.Marked: return "Places marked for you";
-                default: return "Places on every map";
+                case WorldSource.OnEveryMap: return "Places on every map";
+                default: return "The whole world";
             }
         }
 
@@ -269,7 +270,8 @@ namespace Scry
                 case WorldSource.Explored: return "your explored ground";
                 case WorldSource.SharedMaps: return "shared maps";
                 case WorldSource.Marked: return "the places marked for you";
-                default: return "the places every map shows";
+                case WorldSource.OnEveryMap: return "the places every map shows";
+                default: return "this world's census";
             }
         }
 
@@ -281,7 +283,8 @@ namespace Scry
                 case WorldSource.Explored: return "The places lying in ground you explored yourself, by your map. Seen as you explore; known, or with their insides, as you choose.";
                 case WorldSource.SharedMaps: return "The places lying in ground from maps you read at a cartography table.";
                 case WorldSource.Marked: return "The places a Vegvisir or a rune stone marked on your map. Seen as they are marked; known, or with their insides, as you choose.";
-                default: return "The places the game shows on every map: traders, the start, and the places Hildir sends you to.";
+                case WorldSource.OnEveryMap: return "The places the game shows on every map: traders, the start, and the places Hildir sends you to.";
+                default: return "Every kind of place this world holds, by the server's census of it: how many of each there are, never where.";
             }
         }
 
@@ -311,6 +314,7 @@ namespace Scry
             switch (level)
             {
                 case SourceLevel.Off: return "Off";
+                case SourceLevel.Counted: return "Counted";
                 case SourceLevel.Seen: return "Seen";
                 case SourceLevel.Known: return "Known";
                 default: return "With insides";
@@ -323,6 +327,7 @@ namespace Scry
             switch (level)
             {
                 case SourceLevel.Off: return "Shows nothing of them";
+                case SourceLevel.Counted: return "Every kind of place this world holds is heard of, with how many there are; none is seen until you find it.";
                 case SourceLevel.Seen: return "Listed, their pages closed";
                 case SourceLevel.Known: return "Their pages open, with what a known place brings along";
                 default: return "Known, with what anyone on this server walked inside: those rooms and what they hold. A dungeon nobody walked shows only its entrance.";
@@ -331,7 +336,8 @@ namespace Scry
 
         /// <summary>The tip on what a source shows: from where, and as what (<see cref="CompendiumView.ByWorld"/>).</summary>
         public static string ByWorld(WorldSource source, KnownLevel shown) =>
-            $"Shown as {(shown == KnownLevel.Known ? "known" : "seen")} from {SourcePhrase(source)}, not yet met by this character";
+            shown < KnownLevel.Seen ? $"Heard of from {SourcePhrase(source)}, not yet met by this character"
+            : $"Shown as {(shown == KnownLevel.Known ? "known" : "seen")} from {SourcePhrase(source)}, not yet met by this character";
 
         /// <summary>A tip on a chip or link to what a source shows, its own tip under it.</summary>
         public static string WorldTip(WorldSource source, KnownLevel shown, string tip) => Naming.Lines(ByWorld(source, shown), tip);

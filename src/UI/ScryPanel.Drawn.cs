@@ -51,6 +51,9 @@ namespace Scry
         /// <summary>With insides dimmed on a source's row, none of its places found having insides.</summary>
         InsidesDimmed,
 
+        /// <summary>A place's line under its title of how many the world holds and lie in your ground.</summary>
+        CensusLine,
+
         /// <summary>The notice under the header naming the players whose games lack Scry.</summary>
         PlayingWithNotice,
 

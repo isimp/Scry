@@ -161,17 +161,36 @@ namespace Scry
     internal static class MapCatchUp
     {
         /// <summary>The kinds of place with one at least whose centre lies in explored ground, each once, in the order first found.</summary>
-        public static List<string> Kinds(ExploredGrid grid, IEnumerable<(string Kind, float X, float Z)> places)
+        public static List<string> Kinds(ExploredGrid grid, IEnumerable<(string Kind, float X, float Z)> places) => Counted(grid, places).Select(c => c.Kind).ToList();
+
+        /// <summary>The kinds of place with one at least whose centre lies in explored ground, with how many, in the order first found.</summary>
+        public static List<(string Kind, int Count)> Counted(ExploredGrid grid, IEnumerable<(string Kind, float X, float Z)> places)
         {
-            var kinds = new List<string>();
-            var told = new HashSet<string>(StringComparer.Ordinal);
+            var counted = new List<(string Kind, int Count)>();
+            var at = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (var (kind, x, z) in places)
             {
-                if (string.IsNullOrEmpty(kind) || told.Contains(kind) || !grid.Explored(x, z)) continue;
-                told.Add(kind);
-                kinds.Add(kind);
+                if (string.IsNullOrEmpty(kind) || !grid.Explored(x, z)) continue;
+                if (at.TryGetValue(kind, out var i)) counted[i] = (kind, counted[i].Count + 1);
+                else
+                {
+                    at[kind] = counted.Count;
+                    counted.Add((kind, 1));
+                }
             }
-            return kinds;
+            return counted;
+        }
+
+        /// <summary>How many of each kind of place the world holds, planned or built, as only its server knows: the census, never where.</summary>
+        public static Dictionary<string, int> Census(IEnumerable<(string Kind, float X, float Z)> places)
+        {
+            var census = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var (kind, _, _) in places)
+            {
+                if (string.IsNullOrEmpty(kind)) continue;
+                census[kind] = census.TryGetValue(kind, out var n) ? n + 1 : 1;
+            }
+            return census;
         }
 
         /// <summary>

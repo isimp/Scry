@@ -79,6 +79,7 @@ namespace Scry
             yield return S("with a ground shown with insides, a dungeon's page names what its rooms walked on this server hold", InsidesFromWalks, 30, () => { AllKnown(); ResetList(); });
             yield return S("a dungeon's page is told again quickly, however many parts its rooms hold", DungeonPagesQuick, 20);
             yield return S("the explored map tells which kinds of place were seen", CompendiumMapRead, 30);
+            yield return S("with the whole world counted, the server's census tells how many of each kind this world holds, on a place's page and in the Locations tab", WorldCensus, 40, () => { CensusAsItWas(); AllKnown(); ResetList(); });
             yield return S("each boss's fall opens its tier, worked out from how things are come by", CompendiumTierRead, 30, () => { AllKnown(); ResetList(); });
             yield return S("every mod has a page of what it adds and changes", ModPages, 10);
             yield return S("a mod's page tells what its package says and how it ties to other mods", ModPackages, 10);

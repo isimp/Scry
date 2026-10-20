@@ -15,8 +15,11 @@ namespace Scry
         /// <summary>Places a Vegvisir or a rune stone marked on the character's map.</summary>
         Marked,
 
-        /// <summary>The places with a map icon, which the game shows on every map: traders, boss altars, the start.</summary>
+        /// <summary>The places with a map icon, which the game shows on every map: traders, the start, the places Hildir sends you to.</summary>
         OnEveryMap,
+
+        /// <summary>Every kind of place the world holds, by the server's census of it (<see cref="PlaceCounts"/>).</summary>
+        WholeWorld,
     }
 
     /// <summary>How a source's places show, as the player chose (<see cref="CompendiumBook.Shows"/>).</summary>
@@ -24,6 +27,9 @@ namespace Scry
     {
         /// <summary>Not at all.</summary>
         Off,
+
+        /// <summary>Heard of, with how many there are: the census's alone (<see cref="WorldSource.WholeWorld"/>).</summary>
+        Counted,
 
         /// <summary>Seen: listed, their pages closed.</summary>
         Seen,
@@ -51,12 +57,18 @@ namespace Scry
 
         private static readonly SourceLevel[] Every = (SourceLevel[])Enum.GetValues(typeof(SourceLevel));
         private static readonly SourceLevel[] FromSeen = Array.FindAll(Every, level => level >= SourceLevel.Seen);
+        private static readonly SourceLevel[] OffOrShown = Array.FindAll(Every, level => level != SourceLevel.Counted);
+        private static readonly SourceLevel[] OffOrCounted = { SourceLevel.Off, SourceLevel.Counted };
 
         /// <summary>Whether a source is ground rather than single places: the ground explored and ground from shared maps, whose dungeons can be marked on Valheim's big map (<see cref="DungeonMarks"/>).</summary>
         public static bool HasGround(WorldSource source) => source == WorldSource.Explored || source == WorldSource.SharedMaps;
 
-        /// <summary>The levels the box offers a source, the least it allows first.</summary>
-        public static SourceLevel[] Offered(WorldSource source) => Least(source) == SourceLevel.Seen ? FromSeen : Every;
+        /// <summary>The levels the box offers a source, the least it allows first: the whole world only off or counted, no other counted.</summary>
+        public static SourceLevel[] Offered(WorldSource source) =>
+            source == WorldSource.WholeWorld ? OffOrCounted : Least(source) == SourceLevel.Seen ? FromSeen : OffOrShown;
+
+        /// <summary>Whether the box offers a source a level.</summary>
+        public static bool Allows(WorldSource source, SourceLevel level) => Array.IndexOf(Offered(source), level) >= 0;
 
         /// <summary>Whether a place a source found has insides to show (<see cref="SourceLevel.WithInsides"/>), by the kinds of place that are dungeons; With insides is dimmed where none has.</summary>
         public static bool HasInsides(IEnumerable<string> found, Func<string, bool> isDungeon)
