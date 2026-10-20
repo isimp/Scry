@@ -154,6 +154,34 @@ namespace Scry
             kind == Kind.Creature || kind == Kind.Trader || kind == Kind.Item || kind == Kind.Piece || kind == Kind.Resource || kind == Kind.Spawner
             || kind == Kind.StatusEffect || kind == Kind.Location || kind == Kind.Raid || kind == Kind.Biome;
 
+        /// <summary>The day the character's world is on now, for <see cref="Is"/>; none before a book is told, or where it cannot tell.</summary>
+        public int Today => _book?.Now != null ? _book.Now().Day : -1;
+
+        /// <summary>
+        /// Whether an entry answers a word of an is: term asking what the character met (<see
+        /// cref="Search.MineWords"/>): new, seen or come to know on the day given; seen, seen but not
+        /// known; walked, a dungeon's room the character walked, or a place one of whose rooms it
+        /// walked.
+        /// </summary>
+        public bool Is(Entry entry, string word, int today)
+        {
+            if (entry == null || _book == null) return false;
+            switch (word)
+            {
+                case "new":
+                    return today >= 0 && (_book.Came(entry.Key)?.At.Day == today || _book.FirstSeen(entry.Key)?.At.Day == today);
+                case "seen":
+                    return Of(entry) == KnownLevel.Seen;
+                case "walked":
+                    if (entry.Kind != Kind.Location) return false;
+                    if (Walked(entry)) return true;
+                    var label = Places.LabelOf(entry);
+                    return label != null && _rooms.TryGetValue(label, out var rooms) && rooms.Exists(Walked);
+                default:
+                    return false;
+            }
+        }
+
         /// <summary>How much the character knows of an entry under the rule last told.</summary>
         public KnownLevel Of(Entry entry)
         {

@@ -70,14 +70,30 @@ namespace Scry
         public readonly List<string> Names;
         public readonly List<string> NotNames;
 
+        /// <summary>
+        /// The is: terms asking what the character met rather than what a thing is (<see
+        /// cref="Search.MineWords"/>), each its words, any of which may match; answered by the
+        /// compendium (<see cref="CompendiumView.Is"/>), not the catalog's words.
+        /// </summary>
+        public readonly List<string[]> Mine = new List<string[]>();
+        public readonly List<string[]> NotMine = new List<string[]>();
+
         public Matcher(ParsedSearch search)
         {
             Names = search.Names;
             NotNames = search.NotNames;
             foreach (var word in search.Words) Words.Add(word.ToUpperInvariant());
             foreach (var word in search.NotWords) NotWords.Add(word.ToUpperInvariant());
-            foreach (var term in search.Terms) Terms.Add(new Term(term.Key, term.Value));
-            foreach (var term in search.NotTerms) NotTerms.Add(new Term(term.Key, term.Value));
+            foreach (var term in search.Terms)
+            {
+                if (Search.AsksMine(term.Key, term.Value, out var mine)) Mine.Add(mine);
+                else Terms.Add(new Term(term.Key, term.Value));
+            }
+            foreach (var term in search.NotTerms)
+            {
+                if (Search.AsksMine(term.Key, term.Value, out var mine)) NotMine.Add(mine);
+                else NotTerms.Add(new Term(term.Key, term.Value));
+            }
         }
     }
 
@@ -122,6 +138,28 @@ namespace Scry
 
         /// <summary>The keys whose values are words the catalog reads into each entry (<see cref="Entry.TermWords"/>), each matched by its start.</summary>
         public static readonly string[] WordKeys = { "is", "weak", "resists", "immune", "damage", "skill" };
+
+        /// <summary>
+        /// The words of an is: term asking what the character met rather than what a thing is:
+        /// new, learned more of today; seen, seen but not known; walked, a dungeon's room walked or
+        /// a dungeon one of whose rooms was. Matched only whole, as is:w could be a weapon.
+        /// </summary>
+        public static readonly string[] MineWords = { "new", "seen", "walked" };
+
+        /// <summary>Whether a term asks what the character met: an is: term each of whose values is one of <see cref="MineWords"/>, which it gives.</summary>
+        public static bool AsksMine(string key, string value, out string[] words)
+        {
+            words = null;
+            if (key != "is") return false;
+            var values = Values(value);
+            for (var i = 0; i < values.Length; i++)
+            {
+                values[i] = values[i].ToLowerInvariant();
+                if (Array.IndexOf(MineWords, values[i]) < 0) return false;
+            }
+            words = values;
+            return true;
+        }
 
         /// <summary>Whether a key's values tell how something takes or deals a damage type, which the strict rules keep back until hits tell them.</summary>
         public static bool FightWord(string key) => key == "weak" || key == "resists" || key == "immune" || key == "damage";
@@ -183,7 +221,8 @@ namespace Scry
 
         public static bool Matches(Entry entry, ParsedSearch search)
         {
-            return Score(entry, search.Matcher) != Miss;
+            // Without a compendium nothing was met: what asks for it matches nothing.
+            return Score(entry, search.Matcher) != Miss && MineMatches(entry, search.Matcher, null, -1);
         }
 
         /// <summary>The entries that match, best match first.</summary>
@@ -205,12 +244,14 @@ namespace Scry
         /// the character has met, and under the strict rules above the milestone floor only through
         /// what it saw go together with it as well, as its page shows. While
         /// <paramref name="peeking"/>, a thing the character has not met is found only by its whole
-        /// name in quotes, every name in quotes its own.
+        /// name in quotes, every name in quotes its own. What the character met (is:new, is:seen,
+        /// is:walked) is asked of the compendium, and with it off matches nothing.
         /// </summary>
         public static List<Entry> Run(IReadOnlyList<Entry> all, Query query, ICollection<string> favourites,
             ICollection<string> only, int[] kindCounts, CompendiumView view = null, bool peeking = false)
         {
             var search = Parse(query.Text).Matcher;
+            var today = view != null && search.Mine.Count + search.NotMine.Count > 0 ? view.Today : -1;
             var loosely = view != null ? new Guarded(view, false) : null;
             var strictly = view != null ? new Guarded(view, true) : null;
             var found = new List<Entry>();
@@ -236,7 +277,7 @@ namespace Scry
                 var guard = view == null || level != KnownLevel.Known ? null
                     : view.Rule == CompendiumRule.Strict && !view.Whole(entry) ? strictly : loosely;
                 var score = Score(entry, search, level == KnownLevel.Known, guard);
-                if (score == Miss) continue;
+                if (score == Miss || !MineMatches(entry, search, view, today)) continue;
 
                 if (kindCounts != null) kindCounts[(int)entry.Kind]++;
                 if (query.Kind.HasValue && entry.Kind != query.Kind.Value) continue;
@@ -259,6 +300,21 @@ namespace Scry
             for (var i = 0; i < entries.Length; i++) keys[i] = SortKey(scores[i], ranked ? entries[i].Name.Length : 0, entries[i].NameOrder);
             Array.Sort(keys, entries);
             return new List<Entry>(entries);
+        }
+
+        /// <summary>Whether an entry answers every is: term asking what the character met, and none left out with a minus; with no compendium, nothing does.</summary>
+        private static bool MineMatches(Entry entry, Matcher search, CompendiumView view, int today)
+        {
+            foreach (var words in search.Mine) if (!AnyMine(entry, words, view, today)) return false;
+            foreach (var words in search.NotMine) if (AnyMine(entry, words, view, today)) return false;
+            return true;
+        }
+
+        private static bool AnyMine(Entry entry, string[] words, CompendiumView view, int today)
+        {
+            if (view == null) return false;
+            foreach (var word in words) if (view.Is(entry, word, today)) return true;
+            return false;
         }
 
         /// <summary>

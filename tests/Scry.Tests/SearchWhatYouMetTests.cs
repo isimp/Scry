@@ -1,0 +1,117 @@
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Xunit;
+using static Scry.Tests.TestCatalog;
+
+namespace Scry.Tests
+{
+    /// <summary>
+    /// With the compendium on, the search asks what the character met: is:new what it learned
+    /// today, is:seen what it has only seen, is:walked the dungeons and rooms it walked; each can be
+    /// left out with a minus and joined with a comma. With the compendium off nothing was met.
+    /// </summary>
+    public class SearchWhatYouMetTests
+    {
+        private sealed class World
+        {
+            public readonly Entry Troll = E("Troll", Kind.Creature);
+            public readonly Entry Boar = E("Boar", Kind.Creature);
+            public readonly Entry Neck = E("Neck", Kind.Creature);
+            public readonly Entry Crypt = new Entry { Kind = Kind.Location, Name = "Crypt2", Components = new[] { "Location" }, FoundIn = new[] { "Burial chambers" } };
+            public readonly Entry Walked = new Entry { Kind = Kind.Location, Name = "sunkencrypt_Room1", Components = new[] { "Room" }, FoundIn = new[] { "Burial chambers" } };
+            public readonly Entry NotWalked = new Entry { Kind = Kind.Location, Name = "sunkencrypt_Room2", Components = new[] { "Room" }, FoundIn = new[] { "Burial chambers" } };
+            public readonly Explorer Explorer;
+            public readonly CompendiumView View;
+            public readonly CompendiumBook Book = new CompendiumBook();
+            public int Day = 3;
+
+            public World()
+            {
+                foreach (var creature in new[] { Troll, Boar, Neck }) creature.Components = new[] { "Character" };
+                Explorer = new Explorer(new[] { Troll, Boar, Neck, Crypt, Walked, NotWalked }.ToList(), new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+                View = new CompendiumView(Explorer.Entries);
+                Book.Now = () => new Moment(Day, "Meadows");
+                Book.Raise(Troll.Key, KnownLevel.Known);
+                Book.Raise(Crypt.Key, KnownLevel.Known);
+                Day = 4;
+                Book.Raise(Boar.Key, KnownLevel.Seen);
+                var stood = new HashSet<string> { Walked.Name };
+                View.RoomsWalked(stood.Contains, 1);
+            }
+
+            public World Rule(CompendiumRule rule)
+            {
+                View.Tell(Book, rule);
+                Explorer.Know(View);
+                return this;
+            }
+
+            public Entry[] Found(string text)
+            {
+                Explorer.Text = text;
+                return Explorer.Results.OrderBy(e => e.Name, System.StringComparer.Ordinal).ToArray();
+            }
+        }
+
+        [Fact]
+        public void IsNewFindsWhatTheCharacterLearnedToday()
+        {
+            var world = new World().Rule(CompendiumRule.Loose);
+            Assert.Equal(new[] { world.Boar }, world.Found("is:new"));
+            Assert.DoesNotContain(world.Boar, world.Found("-is:new"));
+            Assert.Contains(world.Troll, world.Found("-is:new"));
+
+            // The next day, nothing learned is new.
+            world.Day = 5;
+            Assert.Empty(world.Found("is:new"));
+        }
+
+        [Fact]
+        public void IsSeenFindsWhatTheCharacterHasOnlySeen()
+        {
+            var world = new World().Rule(CompendiumRule.Loose);
+            Assert.Equal(new[] { world.Boar }, world.Found("is:seen"));
+            Assert.Equal(new[] { world.Troll }, world.Found("kind:creature -is:seen"));
+        }
+
+        [Fact]
+        public void IsWalkedFindsTheRoomsWalkedAndTheDungeonsHoldingThem()
+        {
+            var world = new World().Rule(CompendiumRule.Strict);
+            Assert.Equal(new[] { world.Crypt, world.Walked }.OrderBy(e => e.Name, System.StringComparer.Ordinal), world.Found("is:walked"));
+            Assert.DoesNotContain(world.NotWalked, world.Found("is:walked"));
+        }
+
+        [Fact]
+        public void ACommaJoinsTheWordsAsOr()
+        {
+            var world = new World().Rule(CompendiumRule.Strict);
+            var found = world.Found("is:seen,walked");
+            Assert.Contains(world.Boar, found);
+            Assert.Contains(world.Walked, found);
+            Assert.DoesNotContain(world.Troll, found);
+        }
+
+        [Fact]
+        public void WithTheCompendiumOffNothingWasMet()
+        {
+            var world = new World().Rule(CompendiumRule.Off);
+            Assert.Empty(world.Found("is:new"));
+            Assert.Empty(world.Found("is:seen"));
+            Assert.Equal(6, world.Found("-is:walked").Length);
+            Assert.False(Search.Matches(world.Boar, "is:seen"));
+        }
+
+        [Fact]
+        public void OnlyTheWholeWordAsksWhatWasMet()
+        {
+            // is:w could be a weapon or wearable: a word cut short stays the catalog's.
+            Assert.False(Search.AsksMine("is", "w", out _));
+            Assert.False(Search.AsksMine("is", "new,boss", out _));
+            Assert.True(Search.AsksMine("is", "New,seen", out var words));
+            Assert.Equal(new[] { "new", "seen" }, words);
+            Assert.False(Search.AsksMine("kind", "new", out _));
+        }
+    }
+}
