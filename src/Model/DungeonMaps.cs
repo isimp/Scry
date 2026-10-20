@@ -245,6 +245,28 @@ namespace Scry
         /// <summary>Takes in other maps: each kept as first read, its rooms walked added, the earliest first day and the latest last day kept; how many rooms were walked anew.</summary>
         public int Merge(DungeonMaps other) => Merge(other.All);
 
+        /// <summary>
+        /// What a server keeps of the maps a player's game sent (<c>GroupMapsLink</c>): each of a
+        /// location the world places where its id says, of that location (<paramref name="placed"/>,
+        /// each id to the name of the location placed there), with the rooms walked that its rooms
+        /// hold, and no day later than the world's <paramref name="today"/> (none before the world's
+        /// clock runs, -1). A map of a place the world holds nothing at, or of another location there,
+        /// is left out.
+        /// </summary>
+        public DungeonMaps HeldBy(IReadOnlyDictionary<string, string> placed, int today)
+        {
+            var held = new DungeonMaps();
+            foreach (var (id, map) in All)
+            {
+                if (!placed.TryGetValue(id, out var name) || !string.Equals(name, map.Location, StringComparison.Ordinal)) continue;
+                var kept = held.Keep(id, map.Location, map.Rooms, map.Entrance, map.Generator, map.Turn);
+                foreach (var room in map.Walked) held.Walk(id, room);
+                kept.FirstDay = today >= 0 && map.FirstDay > today ? today : map.FirstDay;
+                kept.LastDay = today >= 0 && map.LastDay > today ? today : map.LastDay;
+            }
+            return held;
+        }
+
         /// <summary>Takes in the other maps of one world alone, as a server does those its players send; none outside a world.</summary>
         public int Merge(DungeonMaps other, string world) => Merge(other.OfWorld(world));
 

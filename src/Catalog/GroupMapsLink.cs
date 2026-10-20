@@ -156,6 +156,8 @@ namespace Scry
             _readQuietly = false;
             AdminAsksOn.Clear();
             _peersLookedAt = float.NegativeInfinity;
+            _placed = null;
+            _placedFor = null;
         }
 
         /// <summary>Registers the messages on each new connection, sends a walk due, and on a server keeps its records; called each frame, on a dedicated server too.</summary>
@@ -347,7 +349,26 @@ namespace Scry
             var text = Unpacked(package.ReadByteArray());
             if (world != CompendiumMap.World || text == null) return;
             // A client's older Scry names its dungeons by their generators' numbers: re-keyed by place.
-            MergeIn(DungeonMaps.Load(text).ByPlace(), world);
+            // Only walks of locations the world places where they say are taken in (DungeonMaps.HeldBy).
+            MergeIn(DungeonMaps.Load(text).ByPlace().HeldBy(Placed(world), Today()), world);
+        }
+
+        /// <summary>The locations the world places, by the id a dungeon of each is kept by, each to its name; made once a world, again while the world places none yet.</summary>
+        private static Dictionary<string, string> _placed;
+        private static string _placedFor;
+
+        private static Dictionary<string, string> Placed(string world)
+        {
+            if (_placedFor == world && _placed != null && _placed.Count > 0) return _placed;
+            var placed = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var (kind, x, z) in CompendiumMap.Places())
+            {
+                var id = DungeonMaps.EntranceIdOf(world, x, z);
+                if (id != null) placed[id] = kind;
+            }
+            _placed = placed;
+            _placedFor = world;
+            return placed;
         }
 
         private static void MergeIn(DungeonMaps walked, string world)
