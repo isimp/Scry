@@ -94,6 +94,12 @@ namespace Scry
         TrailMenu,
         MapLine,
         Command,
+
+        /// <summary>The compact view's box of every kind, opened from its kind pill.</summary>
+        KindMenu,
+
+        /// <summary>The compact view's box of where the list is taken from, opened from its chip.</summary>
+        OriginMenu,
     }
 
     internal static partial class ScryPanel

@@ -120,6 +120,12 @@ namespace Scry.Tests
         public void TheListsControlsSayWhatTheyShow()
         {
             Assert.Equal("Showing only favourites", ListWords.FavouritesTip(on: true));
+            // The compact view's header names the kind picked and where the list is taken from, each with a mark that opens the choice.
+            Assert.Equal("Creatures  <color=#aabbcc>211</color>  ▾", ListWords.KindPill(ListWords.Tab("Creatures", 211, "aabbcc"), open: false));
+            Assert.Equal("Creatures  <color=#aabbcc>211</color>  ▴", ListWords.KindPill(ListWords.Tab("Creatures", 211, "aabbcc"), open: true));
+            Assert.Equal("Pick the kind the list shows", ListWords.KindPillTip);
+            Assert.Equal("From Mods  ▾", ListWords.OriginChip("Mods", open: false));
+            Assert.Equal("From All  ▴", ListWords.OriginChip("All", open: true));
             Assert.Equal("Show only favourites", ListWords.FavouritesTip(on: false));
             Assert.Equal("Showing what you looked at last, newest first", ListWords.RecentTip(on: true));
             Assert.Equal("Show what you looked at last, newest first", ListWords.RecentTip(on: false));

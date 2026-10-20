@@ -52,44 +52,34 @@ namespace Scry
 
         /// <summary>
         /// The search box, then which list is shown (help, favourites, recent), then apart from
-        /// those the origin switch, labelled so its "All" is not taken for the kind tabs' own.
+        /// those the origin switch, labelled so its "All" is not taken for the kind tabs' own; in
+        /// the compact view its row alone (<see cref="CompactControls"/>).
         /// </summary>
         private static float Controls(Explorer explorer, Rect rect)
         {
-            var names = OriginNames;
-            var widths = names.Select(n => Skin.Width(Skin.Segment, n) + U(6f)).ToArray();
-            const string fromText = "From";
-            var fromW = Skin.Width(Skin.FaintLabel, fromText) + U(8f);
-            var originW = fromW + widths.Sum() + U(4f) * (names.Length - 1);
+            if (_compact) return CompactControls(explorer, rect);
+            var originW = OriginSwitchWidth();
             var starW = rect.height;
             var gap = U(8f);
-            var recentW = starW;
-
-            // In the compact view the search has the whole first row and the buttons go below it.
-            var row = rect.y;
-            var navW = starW * 3f + U(4f) * 2f + gap;
-            Rect search;
-            if (_compact)
-            {
-                search = new Rect(rect.x + navW, rect.y, rect.width - navW, rect.height);
-                row = rect.yMax + U(8f);
-            }
-            else
-            {
-                search = new Rect(rect.x + navW, rect.y, rect.width - navW - originW - starW * 2f - recentW - gap * 5f, rect.height);
-            }
-            ListButton(new Rect(rect.x, rect.y, starW, rect.height));
-            var navX = rect.x + starW + U(4f);
-            BackAndForward(explorer, new Rect(navX, rect.y, starW, rect.height), new Rect(navX + starW + U(4f), rect.y, starW, rect.height));
+            var navW = NavWidth(starW) + gap;
+            var search = new Rect(rect.x + navW, rect.y, rect.width - navW - originW - starW * 3f - gap * 5f, rect.height);
+            Nav(explorer, rect.x, rect.y, starW);
             Search(explorer, search);
-            var startX = _compact ? rect.x - gap : search.xMax;
+            SearchButtons(explorer, search.xMax + gap, rect.y, starW, gap);
+            var originX = HeaderLayout.OriginSwitch(originW, rect.xMax);
+            OriginSegments(explorer, originX, rect.y, rect.height, choose: true);
+            if (new Rect(originX, rect.y, originW, rect.height).Contains(Event.current.mousePosition)) AskTip("origin", ListWords.OriginTip);
+            return rect.yMax;
+        }
 
-            // Help for the search terms.
-            var help = new Rect(startX + gap, row, starW, rect.height);
+        /// <summary>The search's help, favourites and recent from a point of its row, a gap apart.</summary>
+        private static void SearchButtons(Explorer explorer, float x, float y, float size, float gap)
+        {
+            var help = new Rect(x, y, size, size);
             if (GUI.Button(help, "?", _card == ListCard.Help ? Skin.On : Skin.IconButton)) ToggleCard(ListCard.Help);
             if (help.Contains(Event.current.mousePosition)) AskTip("help", "How to search");
 
-            var star = new Rect(help.xMax + gap, row, starW, rect.height);
+            var star = new Rect(help.xMax + gap, y, size, size);
             if (GUI.Button(star, GUIContent.none, explorer.FavouritesOnly ? Skin.On : Skin.IconButton))
             {
                 explorer.FavouritesOnly = !explorer.FavouritesOnly;
@@ -99,7 +89,7 @@ namespace Scry
             Skin.Icon(icon, explorer.FavouritesOnly ? Skin.Star : Skin.StarHollow, explorer.FavouritesOnly ? Skin.Accent : Skin.Dim);
             if (star.Contains(Event.current.mousePosition)) AskTip("fav", ListWords.FavouritesTip(explorer.FavouritesOnly));
 
-            var recent = new Rect(star.xMax + gap, row, recentW, rect.height);
+            var recent = new Rect(star.xMax + gap, y, size, size);
             if (GUI.Button(recent, GUIContent.none, explorer.RecentOnly ? Skin.On : Skin.IconButton))
             {
                 explorer.RecentOnly = !explorer.RecentOnly;
@@ -108,26 +98,46 @@ namespace Scry
             var clock = new Rect(recent.x + recent.width * 0.22f, recent.y + recent.height * 0.22f, recent.width * 0.56f, recent.height * 0.56f);
             Skin.Icon(clock, Skin.Clock, explorer.RecentOnly ? Skin.Accent : Skin.Dim);
             if (recent.Contains(Event.current.mousePosition)) AskTip("recent", ListWords.RecentTip(explorer.RecentOnly));
+        }
 
-            var (originX, nextRow) = HeaderLayout.OriginSwitch(_compact, recent.xMax + gap * 2f, originW, rect.x, rect.xMax);
-            var originRow = nextRow ? row + rect.height + U(6f) : row;
+        private const string FromText = "From";
 
-            GUI.Label(new Rect(originX, originRow, fromW, rect.height), fromText, Skin.FaintLabel);
-            var x = originX + fromW;
-            for (var i = 0; i < names.Length; i++)
+        /// <summary>Where each segment of the origin switch last stood, with the origin it picks.</summary>
+        private static readonly List<(Rect At, int Choice)> OriginAt = new List<(Rect, int)>();
+
+        /// <summary>How wide the origin switch is: its label, then a segment for each of all, the game's own and mods'.</summary>
+        private static float OriginSwitchWidth()
+        {
+            var width = Skin.Width(Skin.FaintLabel, FromText) + U(8f);
+            for (var i = 0; i < OriginNames.Length; i++) width += Skin.Width(Skin.Segment, OriginNames[i]) + U(6f);
+            return width + U(4f) * (OriginNames.Length - 1);
+        }
+
+        /// <summary>
+        /// The origin switch from a point of a row, its label then its segments, the one shown lit;
+        /// a click on one picks it where <paramref name="choose"/>, else the box it stands in takes
+        /// the press. Where each segment stands.
+        /// </summary>
+        private static List<(Rect At, int Choice)> OriginSegments(Explorer explorer, float x, float y, float height, bool choose)
+        {
+            OriginAt.Clear();
+            var fromW = Skin.Width(Skin.FaintLabel, FromText) + U(8f);
+            GUI.Label(new Rect(x, y, fromW, height), FromText, Skin.FaintLabel);
+            x += fromW;
+            for (var i = 0; i < OriginNames.Length; i++)
             {
+                var width = Skin.Width(Skin.Segment, OriginNames[i]) + U(6f);
+                var at = new Rect(x, y, width, height);
                 var on = (int)explorer.Origin == i;
-                if (GUI.Button(new Rect(x, originRow, widths[i], rect.height), names[i], on ? Skin.SegmentOn : Skin.Segment))
+                if (GUI.Button(at, OriginNames[i], on ? Skin.SegmentOn : Skin.Segment) && choose)
                 {
                     explorer.Origin = (OriginFilter)i;
                     ListFiltered();
                 }
-                x += widths[i] + U(4f);
+                OriginAt.Add((at, i));
+                x += width + U(4f);
             }
-            var originRect = new Rect(originX, originRow, originW, rect.height);
-            if (originRect.Contains(Event.current.mousePosition)) AskTip("origin", "Everything, only the game's own, or only what mods added");
-
-            return originRow + rect.height;
+            return OriginAt;
         }
 
         /// <summary>Folds the list away or brings it back; lit while it is folded, so the way back is plain.</summary>
@@ -277,48 +287,47 @@ namespace Scry
         [Diagnostic]
         public static List<Rect> TabsDrawnForTest { get; } = new List<Rect>();
 
-        /// <summary>
-        /// One tab per kind with what the search holds of it, wrapping when the row is full; each as
-        /// wide as it is picked, its words bold, whether picked or not, so picking one leaves every
-        /// tab where it stood.
-        /// </summary>
-        private static float Tabs(Explorer explorer, Rect rect)
+        /// <summary>A tab's width: as wide as it is picked, its words bold, whether picked or not, so picking it leaves every tab where it stood.</summary>
+        private static float TabWidth(string label, int count, int total) => Skin.Width(Skin.TabOn, TabText(label, count, total, true)) + U(2f);
+
+        /// <summary>Draws a tab with its dot, lit where picked, its tip on hover; true when clicked.</summary>
+        private static bool DrawTab(Rect tab, string label, int count, int total, Color dot, bool on, string tipKey, string tip)
         {
-            var flow = new ChipFlow(rect.x, rect.xMax, rect.y, rect.height, U(4f), U(4f));
-            var repaint = Event.current.type == EventType.Repaint;
-            if (repaint) TabsDrawnForTest.Clear();
+            var clicked = GUI.Button(tab, TabText(label, count, total, on), Skin.Fitted(on ? Skin.TabOn : Skin.Tab, tab));
+            var size = U(8f);
+            Skin.Icon(new Rect(tab.x + U(10f), tab.y + (tab.height - size) / 2f, size, size), Skin.Circle, on ? Skin.OnAccent : dot);
+            if (tip != null && tab.Contains(Event.current.mousePosition)) AskTip(tipKey, tip);
+            return clicked;
+        }
 
-            bool Tab(string label, int count, int total, Color dot, bool on, string tipKey = null, string tip = null)
-            {
-                var style = on ? Skin.TabOn : Skin.Tab;
-                var text = TabText(label, count, total, on);
-                var width = Skin.Width(Skin.TabOn, TabText(label, count, total, true)) + U(2f);
-                var at = flow.Place(width);
-                var tab = new Rect(at.X, at.Y, width, flow.RowHeight);
-                if (repaint) TabsDrawnForTest.Add(tab);
-                var clicked = GUI.Button(tab, text, Skin.Fitted(style, tab));
-                var size = U(8f);
-                Skin.Icon(new Rect(tab.x + U(10f), tab.y + (tab.height - size) / 2f, size, size), Skin.Circle, on ? Skin.OnAccent : dot);
-                if (tip != null && tab.Contains(Event.current.mousePosition)) AskTip(tipKey, tip);
-                return clicked;
-            }
+        /// <summary>A tab of All or a kind as the tabs show it: what it says, its dot, whether it is picked, its kind (none for All) and, counted against the world's census, its tip.</summary>
+        private struct KindTabRow
+        {
+            public string Label;
+            public int Count;
+            public int Total;
+            public Color Dot;
+            public bool On;
+            public Kind? Kind;
+            public string Census;
+        }
 
-            // The learned list is a tab of its own after All, with the compendium on and while it
-            // holds anything: picking it, or All or a kind, leaves the others.
+        private static readonly List<KindTabRow> KindRows = new List<KindTabRow>();
+
+        /// <summary>
+        /// Whether a kind counted so tells what was found of all there is: with the compendium set,
+        /// peeking or not, and nothing narrowing the list.
+        /// </summary>
+        private static bool Collecting(Explorer explorer) =>
+            explorer.CompendiumSet && string.IsNullOrEmpty(explorer.Text) && !explorer.FavouritesOnly && !explorer.RecentOnly && !explorer.LearnedOnly && explorer.Origin == OriginFilter.All;
+
+        /// <summary>All, then each kind the search holds something of, or picked, in the kinds' order.</summary>
+        private static List<KindTabRow> KindTabRows(Explorer explorer)
+        {
+            KindRows.Clear();
             var learned = explorer.LearnedOnly;
-            if (Tab("All", explorer.CountAll, -1, Skin.Text, explorer.KindFilter == null && !learned)) Filter(explorer, null);
-            if (explorer.CompendiumSet && (explorer.LearnedCount > 0 || learned))
-            {
-                CountDrawn(PanelPart.LearnedTab);
-                if (Tab(CompendiumWords.LearnedTab, explorer.LearnedCount, -1, Skin.Accent, learned, "learned", CompendiumWords.LearnedTip(learned)) && !learned)
-                {
-                    explorer.KindFilter = null;
-                    ShowLearned(explorer, true);
-                }
-            }
-            // With the compendium set, peeking or not, and nothing narrowing the list, a kind counted so tells what
-            // was found of all there is.
-            var collecting = explorer.CompendiumSet && string.IsNullOrEmpty(explorer.Text) && !explorer.FavouritesOnly && !explorer.RecentOnly && !learned && explorer.Origin == OriginFilter.All;
+            KindRows.Add(new KindTabRow { Label = "All", Count = explorer.CountAll, Total = -1, Dot = Skin.Text, On = explorer.KindFilter == null && !learned });
+            var collecting = Collecting(explorer);
             foreach (var kind in EveryKind)
             {
                 var collected = collecting && CompendiumView.Counted(kind);
@@ -327,9 +336,53 @@ namespace Scry
                 if (count == 0 && explorer.KindFilter != kind) continue;
                 // Counted against the world's census, the tab says so on hover.
                 var census = collected && total != explorer.AllOf(kind) ? CensusWords.TabTip(count, total, explorer.AllOf(kind)) : null;
-                if (Tab(Kinds.Label(kind), count, total, Skin.KindColor(kind), explorer.KindFilter == kind && !learned, census != null ? "tab-census" : null, census)) Filter(explorer, kind);
+                KindRows.Add(new KindTabRow { Label = Kinds.Label(kind), Count = count, Total = total, Dot = Skin.KindColor(kind), On = explorer.KindFilter == kind && !learned, Kind = kind, Census = census });
+            }
+            return KindRows;
+        }
+
+        /// <summary>
+        /// One tab per kind with what the search holds of it, wrapping when the row is full, each
+        /// as wide as it is picked (<see cref="TabWidth"/>); in the compact view the kind picked
+        /// alone, opening the others (<see cref="CompactTabs"/>).
+        /// </summary>
+        private static float Tabs(Explorer explorer, Rect rect)
+        {
+            var repaint = Event.current.type == EventType.Repaint;
+            if (repaint) TabsDrawnForTest.Clear();
+            if (_compact) return CompactTabs(explorer, rect);
+            var flow = new ChipFlow(rect.x, rect.xMax, rect.y, rect.height, U(4f), U(4f));
+
+            Rect Place(string label, int count, int total)
+            {
+                var width = TabWidth(label, count, total);
+                var at = flow.Place(width);
+                var tab = new Rect(at.X, at.Y, width, flow.RowHeight);
+                if (repaint) TabsDrawnForTest.Add(tab);
+                return tab;
             }
 
+            var rows = KindTabRows(explorer);
+            var all = rows[0];
+            if (DrawTab(Place(all.Label, all.Count, all.Total), all.Label, all.Count, all.Total, all.Dot, all.On, null, null)) Filter(explorer, null);
+            // The learned list is a tab of its own after All, with the compendium on and while it
+            // holds anything: picking it, or All or a kind, leaves the others.
+            var learned = explorer.LearnedOnly;
+            if (explorer.CompendiumSet && (explorer.LearnedCount > 0 || learned))
+            {
+                CountDrawn(PanelPart.LearnedTab);
+                var tab = Place(CompendiumWords.LearnedTab, explorer.LearnedCount, -1);
+                if (DrawTab(tab, CompendiumWords.LearnedTab, explorer.LearnedCount, -1, Skin.Accent, learned, "learned", CompendiumWords.LearnedTip(learned)) && !learned)
+                {
+                    explorer.KindFilter = null;
+                    ShowLearned(explorer, true);
+                }
+            }
+            for (var i = 1; i < rows.Count; i++)
+            {
+                var row = rows[i];
+                if (DrawTab(Place(row.Label, row.Count, row.Total), row.Label, row.Count, row.Total, row.Dot, row.On, row.Census != null ? "tab-census" : null, row.Census)) Filter(explorer, row.Kind);
+            }
             return flow.RowBottom;
         }
 

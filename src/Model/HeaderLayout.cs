@@ -7,20 +7,41 @@ namespace Scry
         private const float Slack = 0.5f;
 
         /// <summary>
-        /// Where the origin switch (all, the game's, mods') stands: in the full view at the end of
-        /// the first row, where the search leaves room for it, so rounding in the sums before it
-        /// never pushes it down; in the compact view after the buttons under the search, or at
-        /// the row's start a row lower where it does not fit beside them.
+        /// Where the full view's origin switch (all, the game's, mods') stands: at the end of the
+        /// first row, where the search leaves room for it, so rounding in the sums of the buttons
+        /// before it never pushes it down. The compact view has it as a chip (<see cref="CompactKindRow"/>).
         /// </summary>
-        /// <param name="compact">Whether the panel is in its compact view.</param>
-        /// <param name="afterButtons">Where it would start, after the buttons before it and their gap.</param>
-        /// <param name="width">How wide it is.</param>
-        /// <param name="rowLeft">Where its row starts.</param>
-        /// <param name="rowRight">Where its row ends.</param>
-        public static (float X, bool NextRow) OriginSwitch(bool compact, float afterButtons, float width, float rowLeft, float rowRight)
+        public static float OriginSwitch(float width, float rowRight) => rowRight - width;
+
+        /// <summary>
+        /// Whether the compact view's list button and way back and forward stand in the title row
+        /// after the name: where they end by <paramref name="before"/>, the buttons at the row's
+        /// right and their gap; else they start the search row, as the full view has them.
+        /// </summary>
+        public static bool NavInTitleRow(float afterName, float navWidth, float before) => afterName + navWidth <= before + Slack;
+
+        /// <summary>
+        /// The compact view's search row: the search from the row's start, or after the list button
+        /// and the way back where they start it, up to its help, favourites and recent at the row's end.
+        /// </summary>
+        public static (float SearchX, float SearchWidth, float ButtonsX) CompactSearchRow(float left, float right, float navWidth, float buttonsWidth, float gap)
         {
-            if (!compact) return (rowRight - width, false);
-            return afterButtons + width <= rowRight + Slack ? (afterButtons, false) : (rowLeft, true);
+            var buttons = right - buttonsWidth;
+            var search = navWidth > 0f ? left + navWidth + gap : left;
+            return (search, buttons - gap - search, buttons);
+        }
+
+        /// <summary>
+        /// The compact view's kind row: the pill of the kind picked at its start, Learned after it
+        /// while it holds news (none where <paramref name="learnedWidth"/> is 0), and the chip of
+        /// where the list is taken from at its end; a long pill gives way to them.
+        /// </summary>
+        public static (float PillX, float PillWidth, float LearnedX, float OriginX) CompactKindRow(float left, float right, float pillWidth, float learnedWidth, float originWidth, float gap)
+        {
+            var origin = right - originWidth;
+            var room = origin - gap - (learnedWidth > 0f ? learnedWidth + gap : 0f) - left;
+            var pill = pillWidth < room ? pillWidth : room;
+            return (left, pill, left + pill + gap, origin);
         }
     }
 }

@@ -32,6 +32,11 @@ namespace Scry
             yield return S("the View box and the sliders open, draw, and close on another selection", BoxesOpen, 10, ScryPanel.CloseBoxes);
             yield return S("the line under a page's title names its sections and goes to each", SectionLineGoes, 10);
             yield return S("each page's header stands the same in the full view and the compact one", HeaderLaidOut, 90, () => ScryPanel.Compact = _before?.Compact ?? ScryPanel.Compact);
+            yield return S("the compact view's header is three rows, the kinds and where the list is taken from each one chip opening a box", CompactHeader, 30, () =>
+            {
+                ScryPanel.OpenHeaderMenuForTest(ScryPanel.HeaderMenu.None);
+                ScryPanel.Compact = _before?.Compact ?? ScryPanel.Compact;
+            });
             yield return S("the catalog is sound: keys, names, groups and counts", CatalogSound, 10);
             yield return S("every search is quick enough to run as you type", SearchSpeed, 10, ResetList);
 

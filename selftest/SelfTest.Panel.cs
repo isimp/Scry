@@ -188,6 +188,80 @@ namespace Scry
             p.Check(looked > 0 && wrong.Count == 0, "each page's header stands the same in both views: the name with copy and star at its end, the actions joined from the left under it and the slider icons at that line's end, the line of sections with fold all at its end, none over another", string.Join("; ", wrong.Take(6)));
         }
 
+        /// <summary>The parts of the compact view's header, as it notes where each was drawn.</summary>
+        private static readonly string[] CompactHeaderParts = { "nav", "search", "buttons", "pill", "origin" };
+
+        /// <summary>
+        /// The compact view's header in three rows however many kinds the list holds: the list
+        /// button and the way back after the name where the title row has room, the search with
+        /// its buttons under it, then the kind picked as a pill and where the list is taken from as
+        /// a chip at the row's end, none over another; the pill's box holds All and every kind
+        /// with something and picks one, closing; the chip's box picks where the list is taken
+        /// from. Pictured, each box open.
+        /// </summary>
+        private static IEnumerator CompactHeader(Probe p)
+        {
+            KeepView();
+            var was = (X.KindFilter, X.Origin, X.LearnedOnly);
+            ScryPanel.Compact = true;
+            X.LearnedOnly = false;
+            X.KindFilter = null;
+            X.Origin = OriginFilter.All;
+            var from = ScryPanel.Repaints;
+            yield return Until(() => ScryPanel.Repaints >= from + 3, 5);
+            var parts = ScryPanel.CompactHeaderForTest.ToList();
+            Rect? Of(string part) => parts.Any(q => q.Part == part) ? parts.First(q => q.Part == part).At : (Rect?)null;
+            var drawnAll = CompactHeaderParts.All(part => Of(part) != null);
+            var nav = Of("nav") ?? default;
+            var search = Of("search") ?? default;
+            var pill = Of("pill") ?? default;
+            var origin = Of("origin") ?? default;
+            if (!p.Check(drawnAll, "the compact header draws the way back, the search, its buttons, the kind pill and the origin chip", string.Join(", ", parts.Select(q => q.Part))))
+            {
+                ScryPanel.Compact = false;
+                yield break;
+            }
+            var width = ScryPanel.PanelDrawnForTest.width;
+            if (Previews.OutLines > 0) p.Note("Clear world stands in the title row: the way back may start the search row");
+            else p.Check(nav.yMax <= search.y, "the list button and the way back stand in the title row, over the search", $"way back {Said(nav)}, search {Said(search)}");
+            p.Check(pill.y >= search.yMax && pill.y - search.yMax < search.height && Mathf.Abs(origin.y - pill.y) < 0.5f && origin.xMax <= width + 0.5f && origin.x > pill.xMax,
+                "the kind pill stands the row under the search, the origin chip at its end", $"pill {Said(pill)}, origin {Said(origin)}, panel {Numbers.Fixed(width, 0)} wide");
+            var over = new List<string>();
+            for (var i = 0; i < parts.Count; i++)
+                for (var j = i + 1; j < parts.Count; j++)
+                    if (parts[i].At.Overlaps(parts[j].At)) over.Add($"{parts[i].Part} and {parts[j].Part}");
+            p.Check(over.Count == 0 && parts.All(q => q.At.x >= 0f && q.At.xMax <= width + 0.5f), "none of the compact header's parts stands over another or past the panel", string.Join("; ", over));
+            yield return Picture(p, "compact header");
+
+            var drawn = ScryPanel.Drawn(PanelPart.KindMenu);
+            ScryPanel.OpenHeaderMenuForTest(ScryPanel.HeaderMenu.Kinds);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.KindMenu) > drawn + 2, 5);
+            var (box, choices) = ScryPanel.HeaderMenuForTest;
+            var panel = ScryPanel.PanelDrawnForTest;
+            var kinds = 1 + System.Enum.GetValues(typeof(Kind)).Cast<Kind>().Count(k => X.CountOf(k) > 0);
+            p.Check(choices == kinds && ScryPanel.TabsDrawnForTest.Count == choices, "the kind pill's box holds All and every kind the list holds something of, as tabs", $"{Numbers.Count(choices)} in the box, {Numbers.Count(kinds)} with something");
+            p.Check(box.x >= panel.x - 0.5f && box.xMax <= panel.xMax + 0.5f && box.y >= panel.y + pill.yMax && box.yMax <= panel.yMax, "the box stands under the pill, inside the panel", $"box {Said(box)}, panel {Said(panel)}");
+            yield return Picture(p, "compact header kind box");
+            ScryPanel.ChooseHeaderMenuForTest((int)Kind.Creature);
+            from = ScryPanel.Repaints;
+            yield return Until(() => ScryPanel.Repaints >= from + 3, 5);
+            p.Check(X.KindFilter == Kind.Creature && ScryPanel.HeaderMenuOpen == ScryPanel.HeaderMenu.None && X.Results.Count > 0 && X.Results.All(e => e.Kind == Kind.Creature),
+                "a kind picked in the box shows that kind alone, the box closed", $"{X.KindFilter}, {ScryPanel.HeaderMenuOpen}, {Numbers.Count(X.Results.Count)} listed");
+
+            drawn = ScryPanel.Drawn(PanelPart.OriginMenu);
+            ScryPanel.OpenHeaderMenuForTest(ScryPanel.HeaderMenu.Origin);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.OriginMenu) > drawn + 2, 5);
+            (box, choices) = ScryPanel.HeaderMenuForTest;
+            p.Check(choices == 3 && box.xMax <= panel.xMax + 0.5f, "the origin chip's box holds all, the game's own and mods'", $"{Numbers.Count(choices)} choices, box {Said(box)}");
+            yield return Picture(p, "compact header origin box");
+            ScryPanel.ChooseHeaderMenuForTest((int)OriginFilter.Vanilla);
+            from = ScryPanel.Repaints;
+            yield return Until(() => ScryPanel.Repaints >= from + 3, 5);
+            p.Check(X.Origin == OriginFilter.Vanilla && ScryPanel.HeaderMenuOpen == ScryPanel.HeaderMenu.None && X.Results.All(e => e.Origin == Origin.Vanilla),
+                "the game's own picked in the box lists only those, the box closed", $"{X.Origin}, {Numbers.Count(X.Results.Count)} listed");
+            (X.KindFilter, X.Origin, X.LearnedOnly) = was;
+        }
+
         /// <summary>What is wrong with where the page's header was last drawn (<see cref="HeaderLaidOut"/>).</summary>
         private static List<string> HeaderWrong(string name)
         {

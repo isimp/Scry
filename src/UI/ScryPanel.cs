@@ -103,6 +103,7 @@ namespace Scry
             ForgetSlide();
             ForgetViewMenu();
             ForgetTrailMenu();
+            ForgetHeaderMenu();
 
             // The search help's index holds the whole catalog.
             Assist.Forget();
@@ -163,7 +164,7 @@ namespace Scry
             var explorer = _explorer;
 
             // A header slider's box, or the stage's View box, takes the mouse over it before anything under it does.
-            if (SlideInput(explorer) || ViewInput(explorer) || TrailMenuInput(explorer)) return;
+            if (SlideInput(explorer) || ViewInput(explorer) || TrailMenuInput(explorer) || HeaderMenuInput(explorer)) return;
 
             // A click anywhere lets go of the keyboard; a click on a text box takes it straight
             // back. So clicking the list or a button after typing hands the keys back to walking.
@@ -191,6 +192,7 @@ namespace Scry
             SlideDraw(explorer);
             ViewDraw();
             TrailMenuDraw();
+            HeaderMenuDraw(explorer);
             Tooltip();
             PointerNote();
 
@@ -290,10 +292,17 @@ namespace Scry
             var locText = reading ? LocationWords.StopReading(Locations.Done, Locations.Total) : LocationsButtonText;
             var locW = Skin.Width(Skin.Button, reading ? "Stop reading  000 of 000" : LocationsButtonText) + U(10f);
             var locRect = new Rect(clearRect.x - U(8f) - locW, clearRect.y, locW, clearRect.height);
-            var showLoc = Locations.Now != Locations.State.Read && locRect.x > pad + U(98f);
+            // In the compact view the list button and the way back follow the name, where the
+            // buttons at the row's right leave room for them; the locations' button only after them.
+            var afterName = pad + U(98f);
+            var navSize = viewRect.height;
+            var navInTitle = PlaceNav(afterName, navSize, clearRect.x - U(8f));
+            var leftmost = navInTitle ? afterName + NavWidth(navSize) + U(8f) : afterName;
+            var showLoc = Locations.Now != Locations.State.Read && locRect.x > leftmost;
 
             var header = new Rect(0f, 0f, (showLoc ? locRect.x : clearRect.x) - U(8f), U(52f));
             GUI.Label(new Rect(pad, U(10f), U(90f), U(34f)), "Scry", Skin.Title);
+            if (navInTitle) Nav(explorer, afterName, viewRect.y, navSize);
 
             if (showLoc)
             {

@@ -18,6 +18,18 @@ namespace Scry
         /// <summary>A kind's tab: its label and, in the colour given, how many it holds.</summary>
         public static string Tab(string label, int count, string colour) => $"{label}  <color=#{colour}>{Numbers.Count(count)}</color>";
 
+        /// <summary>The compact view's pill of the kind picked: its tab, and a mark that opens the others or closes them.</summary>
+        public static string KindPill(string tab, bool open) => tab + (open ? "  ▴" : "  ▾");
+
+        /// <summary>The kind pill's tip.</summary>
+        public const string KindPillTip = "Pick the kind the list shows";
+
+        /// <summary>The compact view's chip of where the list is taken from (all, the game's own, mods'), and a mark that opens the choice or closes it.</summary>
+        public static string OriginChip(string name, bool open) => "From " + name + (open ? "  ▴" : "  ▾");
+
+        /// <summary>The origin switch's tip, and its chip's in the compact view.</summary>
+        public const string OriginTip = "Everything, only the game's own, or only what mods added";
+
         /// <summary>The favourites filter's tip.</summary>
         public static string FavouritesTip(bool on) => on ? "Showing only favourites" : "Show only favourites";
 
