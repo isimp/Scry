@@ -61,7 +61,8 @@ $sources = @(
     (Join-Path $managed "UnityEngine.AssetBundleModule.dll"),
     (Join-Path $managed "UnityEngine.TextRenderingModule.dll"),
     (Join-Path $managed "UnityEngine.UIModule.dll"),
-    (Join-Path $managed "UnityEngine.UI.dll")
+    (Join-Path $managed "UnityEngine.UI.dll"),
+    (Join-Path $managed "Unity.TextMeshPro.dll")
 )
 
 Add-Type -Path $cecil

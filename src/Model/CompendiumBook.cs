@@ -96,8 +96,23 @@ namespace Scry
         public IReadOnlyCollection<string> Found(string world, WorldSource source) =>
             world != null && _foundIn.TryGetValue((world, source), out var found) ? found : (IReadOnlyCollection<string>)NoKinds;
 
-        /// <summary>How a source's places show: as the player chose, else as it starts (<see cref="WorldSources.Least"/>).</summary>
-        public SourceLevel Shows(WorldSource source) => _shows.TryGetValue(source, out var level) ? level : WorldSources.Least(source);
+        /// <summary>How a source's places show: as the player chose, else as it starts (<see cref="WorldSources.Least"/>), within what the world allows (<see cref="World"/>).</summary>
+        public SourceLevel Shows(WorldSource source) => World.Capped(source, Chosen(source));
+
+        /// <summary>How the player chose a source's places show, whatever the world allows; as it starts where never chosen.</summary>
+        public SourceLevel Chosen(WorldSource source) => _shows.TryGetValue(source, out var level) ? level : WorldSources.Least(source);
+
+        /// <summary>What the world's server allows (<see cref="WorldRules"/>): the rules, the floor and how sources show are the player's choices within it. Never kept with the book.</summary>
+        public WorldRules World { get; private set; } = new WorldRules();
+
+        /// <summary>Plays under what a world's server allows, a copy kept; the sources counted again where it changed.</summary>
+        public void Under(WorldRules rules)
+        {
+            rules = rules ?? new WorldRules();
+            if (rules.SameAs(World)) return;
+            World = rules.Copy();
+            SourcesVersion++;
+        }
 
         /// <summary>The sources of ground whose pin is on, their dungeons marked on Valheim's big map (<see cref="DungeonMarks"/>).</summary>
         private readonly HashSet<WorldSource> _marks = new HashSet<WorldSource>();
@@ -407,11 +422,12 @@ namespace Scry
 
         /// <summary>
         /// The milestone floor the player raised it to: everything of a tier at or below it shows
-        /// as known (none at 0). It changes what is shown, never what is known.
+        /// as known (none at 0), none where the world allows no floor (<see cref="World"/>). It
+        /// changes what is shown, never what is known.
         /// </summary>
         public int Floor
         {
-            get => _floor;
+            get => World.FloorAllowed ? _floor : 0;
             set
             {
                 var floor = Math.Max(0, Math.Min(Tiers.Last, value));
@@ -421,13 +437,17 @@ namespace Scry
             }
         }
 
+        /// <summary>The floor as the player raised it, whatever the world allows.</summary>
+        public int ChosenFloor => _floor;
+
         /// <summary>
-        /// The rules the player chose in the panel for this character's compendium; off, the
-        /// panel shows everything. It changes what is shown, never what is known.
+        /// The rules this character's compendium follows: as the world sets them for everyone, else
+        /// as the player chose in the panel (<see cref="World"/>); off, the panel shows everything.
+        /// Set, it is the player's choice. It changes what is shown, never what is known.
         /// </summary>
         public CompendiumRule Rule
         {
-            get => _rule;
+            get => World.Rule ?? _rule;
             set
             {
                 if (value == _rule || !Enum.IsDefined(typeof(CompendiumRule), value)) return;
@@ -435,6 +455,9 @@ namespace Scry
                 Changed = true;
             }
         }
+
+        /// <summary>The rules as the player chose them, whatever the world sets.</summary>
+        public CompendiumRule ChosenRule => _rule;
 
         /// <summary>
         /// Notes that the character saw two entries go together, either way round: a drop fall

@@ -56,6 +56,14 @@
     <Reference Include="UnityEngine.TextRenderingModule"><HintPath>$(ManagedDir)/UnityEngine.TextRenderingModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.UIModule"><HintPath>$(ManagedDir)/UnityEngine.UIModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.UI"><HintPath>$(ManagedDir)/UnityEngine.UI.dll</HintPath><Private>false</Private></Reference>
+
+    <!-- ServerSync only: it rewrites the connect-error screen, which is TextMeshPro. -->
+    <Reference Include="Unity.TextMeshPro"><HintPath>$(ManagedDir)/Unity.TextMeshPro.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+
+  <!-- ServerSync compresses its config payloads. -->
+  <ItemGroup>
+    <Reference Include="System.IO.Compression" />
   </ItemGroup>
 
 </Project>

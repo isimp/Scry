@@ -14,7 +14,9 @@ namespace Scry.Tests
     /// file under selftest/ as the self-test beside it, against the reference copies in lib/ and
     /// the .NET Framework 4.7.2 reference assemblies. The standards tests read both with the
     /// compiler's own types, so a rule about numbers or strings sees an implicit conversion as
-    /// surely as a written one. Compiled once per test run.
+    /// surely as a written one. blaxxun's ServerSync under src/ServerSync/ is compiled in as a
+    /// library of its own beside them, so Scry's source sees its types as the build does, but no
+    /// standard reads it: it is not ours to restyle. Compiled once per test run.
     /// </summary>
     internal static class ScrySource
     {
@@ -118,12 +120,33 @@ namespace Scry.Tests
                 .Select(path => CSharpSyntaxTree.ParseText(File.ReadAllText(path), Parse, path))
                 .ToList();
 
+        /// <summary>The folder of the source compiled in unchanged, which no standard reads.</summary>
+        private static readonly string Vendored = Path.DirectorySeparatorChar + "src" + Path.DirectorySeparatorChar + "ServerSync" + Path.DirectorySeparatorChar;
+
         private static CSharpCompilation Build()
         {
-            var trees = Trees("src");
+            var all = Trees("src");
+            var trees = all.Where(t => !t.FilePath.Contains(Vendored)).ToList();
             // What Scry.csproj grants the self-test, which the build writes as an attribute of its own.
             trees.Add(CSharpSyntaxTree.ParseText("[assembly: System.Runtime.CompilerServices.InternalsVisibleTo(\"Scry.SelfTest\")]", Parse));
-            return CSharpCompilation.Create("Scry", trees, References(), new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            var references = References().ToList();
+            var vendored = all.Where(t => t.FilePath.Contains(Vendored)).ToList();
+            if (vendored.Count > 0) references.Add(Library("Scry.ServerSync", vendored, references));
+            return CSharpCompilation.Create("Scry", trees, references, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        }
+
+        /// <summary>Source compiled in unchanged, built as a library of its own for Scry's source to reference; its nullable annotations read as the build reads them.</summary>
+        private static MetadataReference Library(string name, IEnumerable<SyntaxTree> trees, IEnumerable<MetadataReference> references)
+        {
+            var library = CSharpCompilation.Create(name, trees, references,
+                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Annotations));
+            using (var image = new MemoryStream())
+            {
+                var emitted = library.Emit(image);
+                if (!emitted.Success)
+                    throw new InvalidOperationException(name + " does not compile: " + string.Join("; ", emitted.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).Take(5)));
+                return MetadataReference.CreateFromImage(image.ToArray());
+            }
         }
 
         private static CSharpCompilation BuildSelfTest() =>

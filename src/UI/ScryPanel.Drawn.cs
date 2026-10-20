@@ -54,6 +54,9 @@ namespace Scry
         /// <summary>A place's line under its title of how many the world holds and lie in your ground.</summary>
         CensusLine,
 
+        /// <summary>A lock or a dimmed choice in the compendium's box of what the world's server sets.</summary>
+        WorldLocked,
+
         /// <summary>The notice under the header naming the players whose games lack Scry.</summary>
         PlayingWithNotice,
 

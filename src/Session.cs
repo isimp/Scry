@@ -184,6 +184,8 @@ namespace Scry
             Explorer.Know(_knownInstead ?? _known);
             var (held, heldVersion) = CompendiumMap.HeldPlaces(book, Explorer.Entries);
             Explorer.WorldHolds(held, heldVersion);
+            // A world's server allowing no peeking ends one.
+            if (book != null && !book.World.Peeking && Explorer.Peeking) Explorer.Peeking = false;
             Timing.Add("compendium listed", step);
         }
 

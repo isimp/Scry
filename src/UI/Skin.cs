@@ -87,7 +87,7 @@ namespace Scry
         /// <summary>The halves of two icon buttons joined into one piece, each rounded only at the piece's own end: off and on, left and right.</summary>
         public static GUIStyle JoinedLeft, JoinedRight, JoinedLeftOn, JoinedRightOn;
 
-        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize, Roof, Speed, Repeat, Steps, Eye, Up, Down, Compass, Doorway, FoldedMap;
+        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize, Roof, Speed, Repeat, Steps, Eye, Up, Down, Compass, Doorway, FoldedMap, Lock;
 
         /// <summary>A rounded box's shape rounded only at its left, or only at its right, for joined buttons; a chevron pointing down, for folding away.</summary>
         public static Texture2D RoundedLeft, RoundedRight, FoldDown;
@@ -818,6 +818,7 @@ namespace Scry
             Compass = Shape(32, 32, CompassCoverage);
             Doorway = Shape(32, 32, DoorwayCoverage);
             FoldedMap = Shape(32, 32, FoldedMapCoverage);
+            Lock = Shape(32, 32, LockCoverage);
             Up = Shape(32, 32, (x, y) => y >= 6f && y <= 26f && Mathf.Abs(x - 16f) <= (26f - y) * 0.6f);
             Down = Shape(32, 32, (x, y) => y >= 6f && y <= 26f && Mathf.Abs(x - 16f) <= (y - 6f) * 0.6f);
             RoundedLeft = Shape(32, 32, (x, y) => x >= 16f || RoundedCoverage(x, y, 32, 32, 8f));
@@ -897,6 +898,16 @@ namespace Scry
             if (dx * dx + dy * dy > 15f * 15f) return false;
             var doorway = dy > 2f ? Mathf.Sqrt(dx * dx + (dy - 2f) * (dy - 2f)) <= 6f : Mathf.Abs(dx) <= 6f && dy >= -8f;
             return !doorway;
+        }
+
+        /// <summary>A padlock: its body, and the shackle over it, the mark of what the world's server sets.</summary>
+        private static bool LockCoverage(float x, float y)
+        {
+            if (x >= 7f && x <= 25f && y >= 4f && y <= 16f) return true;
+            var dx = x - 16f;
+            var dy = y - 17f;
+            var r = Mathf.Sqrt(dx * dx + dy * dy);
+            return y >= 15f && r >= 5f && r <= 8.5f;
         }
 
         /// <summary>The corners of a map folded in three, in turn round its edge: the mark of what a source of the world shows.</summary>

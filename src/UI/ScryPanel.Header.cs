@@ -426,14 +426,19 @@ namespace Scry
             return button.x;
         }
 
-        /// <summary>The eye beside the compendium's button while it is on, peeking at everything for now, lit while it does.</summary>
+        /// <summary>The eye beside the compendium's button while it is on, peeking at everything for now, lit while it does; dimmed where the world's server allows no peeking.</summary>
         private static void PeekButton(Explorer explorer, Rect rect)
         {
             CountDrawn(PanelPart.PeekButton);
-            if (GUI.Button(rect, GUIContent.none, explorer.Peeking ? Skin.On : Skin.IconButton)) Peek(explorer, !explorer.Peeking);
+            var allowed = CompendiumKeeper.Book?.World.Peeking ?? true;
+            if (!allowed) CountDrawn(PanelPart.WorldLocked);
+            var was = GUI.enabled;
+            GUI.enabled = was && allowed;
+            if (GUI.Button(rect, GUIContent.none, explorer.Peeking ? Skin.On : Skin.IconButton) && allowed) Peek(explorer, !explorer.Peeking);
+            GUI.enabled = was;
             var icon = new Rect(rect.x + rect.width * 0.2f, rect.y + rect.height * 0.2f, rect.width * 0.6f, rect.height * 0.6f);
-            Skin.Icon(icon, Skin.Eye, explorer.Peeking ? Skin.Accent : Skin.Dim);
-            if (rect.Contains(Event.current.mousePosition)) AskTip("peek", CompendiumWords.PeekTip(explorer.Peeking));
+            Skin.Icon(icon, Skin.Eye, explorer.Peeking ? Skin.Accent : allowed ? Skin.Dim : Skin.Alpha(Skin.Faint, 0.45f));
+            if (rect.Contains(Event.current.mousePosition)) AskTip("peek", allowed ? CompendiumWords.PeekTip(explorer.Peeking) : WorldRulesWords.NoPeeking);
         }
 
         /// <summary>
@@ -452,7 +457,9 @@ namespace Scry
             _bookSourcesShown = book.Rule != CompendiumRule.Off;
             ReadPlayingWith();
             _bookWithShown = _bookSourcesShown && _withRow != null;
-            _bookCaptionW = Mathf.Max(Skin.Width(Skin.FaintLabel, CompendiumWords.RulesCaption), Skin.Width(Skin.FaintLabel, CompendiumWords.FloorCaption) + U(18f));
+            // Room after the captions for their marks: the floor's stairs, and the lock of what the world's server sets.
+            _bookCaptionW = Mathf.Max(Skin.Width(Skin.FaintLabel, CompendiumWords.RulesCaption) + (book.World.RulesSet ? U(18f) : 0f),
+                Skin.Width(Skin.FaintLabel, CompendiumWords.FloorCaption) + U(18f) + (book.World.FloorAllowed ? 0f : U(18f)));
             if (_bookWithShown) _bookCaptionW = Mathf.Max(_bookCaptionW, Skin.Width(Skin.FaintLabel, PlayingWithWords.RowCaption));
             var sourcesW = 0f;
             if (_bookSourcesShown)
@@ -546,8 +553,16 @@ namespace Scry
             _bookOpen = _bookHeld || _bookPinned || on;
         }
 
-        /// <summary>Whether the floor can be raised from where it is, as far as the bosses that fell in a row reach (<see cref="CompendiumKeeper.Ceiling"/>).</summary>
-        private static bool CanRaise(int floor) => floor < CompendiumKeeper.Ceiling && floor < Tiers.Last;
+        /// <summary>Whether the floor can be raised from where it is, as far as the bosses that fell in a row reach (<see cref="CompendiumKeeper.Ceiling"/>), where the world's server allows it.</summary>
+        private static bool CanRaise(int floor) => floor < CompendiumKeeper.Ceiling && floor < Tiers.Last && (CompendiumKeeper.Book?.World.FloorAllowed ?? true);
+
+        /// <summary>The lock after a caption of what the world's server sets, faint.</summary>
+        private static void WorldLock(float x, Rect row)
+        {
+            CountDrawn(PanelPart.WorldLocked);
+            var size = U(12f);
+            Skin.Icon(new Rect(x, row.y + (row.height - size) / 2f, size, size), Skin.Lock, Skin.Faint);
+        }
 
         /// <summary>Before anything under the box is drawn: a click on one of its rules, or on the floor's arrows.</summary>
         private static void CompendiumBoxClicks(Event e)
@@ -556,18 +571,18 @@ namespace Scry
             if (!_bookOpen || book == null || e.type != EventType.MouseDown || !_bookBox.Contains(e.mousePosition)) return;
             if (e.button == 0)
             {
-                for (var i = 0; i < CompendiumWords.Rules.Count; i++)
+                for (var i = 0; i < CompendiumWords.Rules.Count && !book.World.RulesSet; i++)
                 {
                     var rule = CompendiumWords.Rules[i];
                     if (BookSegments[i].Contains(e.mousePosition) && book.Rule != rule) Choose(rule);
                 }
-                if (_bookFloorShown && _bookLower.Contains(e.mousePosition) && book.Floor > 0) SetFloor(book, book.Floor - 1);
+                if (_bookFloorShown && _bookLower.Contains(e.mousePosition) && book.Floor > 0 && book.World.FloorAllowed) SetFloor(book, book.Floor - 1);
                 else if (_bookFloorShown && _bookRaise.Contains(e.mousePosition) && CanRaise(book.Floor)) SetFloor(book, book.Floor + 1);
                 for (var s = 0; _bookSourcesShown && s < WorldSources.All.Length; s++)
                 {
                     foreach (var level in WorldSources.Offered(WorldSources.All[s]))
                     {
-                        if (level == SourceLevel.WithInsides && !OffersInsides(book, WorldSources.All[s])) continue;
+                        if (level == SourceLevel.WithInsides && !OffersInsides(book, WorldSources.All[s]) || !book.World.Allows(WorldSources.All[s], level)) continue;
                         if (SourceSegments[s][(int)level].Contains(e.mousePosition) && book.Shows(WorldSources.All[s]) != level) ShowSource(WorldSources.All[s], level);
                     }
                     if (SourcePins[s].Contains(e.mousePosition)) MarkDungeons(WorldSources.All[s], !book.MarksDungeons(WorldSources.All[s]));
@@ -594,12 +609,21 @@ namespace Scry
                 Skin.Box(_bookBox, Skin.Backdrop, Skin.Outline);
                 GUI.Label(new Rect(_bookBox.x + pad, _bookBox.y + pad, _bookBox.width - pad * 2f, U(20f)), CompendiumWords.BoxCaption, Skin.FaintLabel);
                 GUI.Label(new Rect(_bookBox.x + pad, BookSegments[0].y, _bookCaptionW, BookSegments[0].height), CompendiumWords.RulesCaption, Skin.FaintLabel);
+                if (book.World.RulesSet) WorldLock(_bookBox.x + pad + Skin.Width(Skin.FaintLabel, CompendiumWords.RulesCaption) + U(5f), BookSegments[0]);
             }
+            // Set by the world's server, the rules it sets stand lit, the others dimmed, each saying so.
+            var rulesSet = book.World.RulesSet;
             for (var i = 0; i < CompendiumWords.Rules.Count; i++)
             {
                 var rule = CompendiumWords.Rules[i];
-                if (repaint) GUI.Button(BookSegments[i], CompendiumWords.RuleName(rule), book.Rule == rule ? Skin.SegmentOn : Skin.Segment);
-                if (BookSegments[i].Contains(mouse)) AskTip("mode-" + CompendiumWords.RuleName(rule), CompendiumWords.StepTip(rule));
+                if (repaint)
+                {
+                    var was = GUI.enabled;
+                    GUI.enabled = was && (!rulesSet || book.Rule == rule);
+                    GUI.Button(BookSegments[i], CompendiumWords.RuleName(rule), book.Rule == rule ? Skin.SegmentOn : Skin.Segment);
+                    GUI.enabled = was;
+                }
+                if (BookSegments[i].Contains(mouse)) AskTip("mode-" + CompendiumWords.RuleName(rule), rulesSet ? WorldRulesWords.RulesSet(book.Rule) : CompendiumWords.StepTip(rule));
             }
             DrawSources(book, mouse, repaint);
             DrawPlayingWith(repaint);
@@ -613,6 +637,7 @@ namespace Scry
                 // The floor's own mark after its caption, as what it shows is marked.
                 var stairs = U(13f);
                 Skin.Icon(new Rect(_bookBox.x + pad + Skin.Width(Skin.FaintLabel, CompendiumWords.FloorCaption) + U(5f), _bookLower.y + (_bookLower.height - stairs) / 2f, stairs, stairs), Skin.Steps, Skin.Faint);
+                if (!book.World.FloorAllowed) WorldLock(_bookBox.x + pad + Skin.Width(Skin.FaintLabel, CompendiumWords.FloorCaption) + U(5f) + stairs + U(5f), _bookLower);
                 var was = GUI.enabled;
                 GUI.enabled = was && floor > 0;
                 GUI.Button(_bookLower, "\u2039", Skin.IconButton);
@@ -620,6 +645,11 @@ namespace Scry
                 GUI.Button(_bookRaise, "\u203A", Skin.IconButton);
                 GUI.enabled = was;
                 GUI.Label(_bookValue, CompendiumWords.FloorName(floor), Skin.Button);
+            }
+            if (!book.World.FloorAllowed)
+            {
+                if (_bookLower.Contains(mouse) || _bookRaise.Contains(mouse) || _bookValue.Contains(mouse)) AskTip("floor-locked", WorldRulesWords.NoFloor);
+                return;
             }
             if (floor > 0 && _bookLower.Contains(mouse)) AskTip("floor-down", CompendiumWords.LowerFloor(floor - 1));
             if (floor < Tiers.Last && (_bookRaise.Contains(mouse) || _bookValue.Contains(mouse)))
@@ -655,8 +685,11 @@ namespace Scry
                 foreach (var level in WorldSources.Offered(source))
                 {
                     var at = SourceSegments[s][(int)level];
-                    var dimmed = level == SourceLevel.WithInsides && shows != level && !OffersInsides(book, source);
-                    if (dimmed) CountDrawn(PanelPart.InsidesDimmed);
+                    // Above what the world's server allows, dimmed and saying so; With insides dimmed too where nothing found has insides.
+                    var capped = !book.World.Allows(source, level);
+                    if (capped) CountDrawn(PanelPart.WorldLocked);
+                    var dimmed = capped || level == SourceLevel.WithInsides && shows != level && !OffersInsides(book, source);
+                    if (dimmed && !capped) CountDrawn(PanelPart.InsidesDimmed);
                     if (repaint)
                     {
                         var was = GUI.enabled;
@@ -664,7 +697,7 @@ namespace Scry
                         GUI.Button(at, CompendiumWords.LevelName(level), shows == level ? Skin.SegmentOn : Skin.Segment);
                         GUI.enabled = was;
                     }
-                    if (at.Contains(mouse)) AskTip("source-level-" + level, dimmed ? CompendiumWords.NoInsides(source) : CompendiumWords.LevelTip(level));
+                    if (at.Contains(mouse)) AskTip("source-level-" + level, capped ? WorldRulesWords.UpTo(source, book.World.Highest(source)) : dimmed ? CompendiumWords.NoInsides(source) : CompendiumWords.LevelTip(level));
                 }
                 DrawPin(book, source, SourcePins[s], mouse, repaint);
             }

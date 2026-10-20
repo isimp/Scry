@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using BepInEx;
 using BepInEx.Configuration;
@@ -103,9 +104,25 @@ namespace Scry
         /// </summary>
         public static string CacheFolder => Path.Combine(Paths.CachePath, About.Guid);
 
+        /// <summary>What the world's server allows the compendium, synced to every player by ServerSync (see src/ServerSync/README.md).</summary>
+        private static ConfigEntry<WorldRule> _worldRules;
+        private static ConfigEntry<bool> _worldPeeking, _worldFloor;
+        private static readonly Dictionary<WorldSource, ConfigEntry<SourceLevel>> WorldUpTo = new Dictionary<WorldSource, ConfigEntry<SourceLevel>>();
+        private static ServerSync.ConfigSync _sync;
+
+        /// <summary>Whether the world's settings are the server's, synced to this game, rather than its own; for the self-test.</summary>
+        [Diagnostic]
+        public static bool WorldFromServer => _sync != null && !_sync.IsSourceOfTruth;
+
+        /// <summary>The world's rules (<see cref="WorldRules"/>): as the server's Scry sets them while connected to it, else as this game's own settings, which a game running the world sets for those joining it.</summary>
+        public static WorldRules World() =>
+            _worldRules == null ? WorldRules.Open
+            : WorldRules.From(_worldRules.Value, _worldPeeking.Value, _worldFloor.Value, source => WorldUpTo.TryGetValue(source, out var entry) ? entry.Value : SourceLevel.WithInsides);
+
         /// <summary>Binds every setting to BepInEx's config file, with its section, default, range and description.</summary>
         public static void Bind(ConfigFile config)
         {
+            BindWorld(config);
             _openKey = config.Bind("1 - General", "OpenKey", KeyCode.F7,
                 "Opens and closes the Scry panel. /scry in the chat does the same.");
             _uiScale = config.Bind("1 - General", "PanelScale", 1f,
@@ -144,5 +161,34 @@ namespace Scry
             _showMonitor = config.Bind("3 - Diagnostics", "ResourceMonitor", false,
                 "Shows a small box in the screen's corner, also with the panel closed, telling what Scry costs and holds: its own time each frame with a graph of the last ten seconds and its parts, what it allocates, the bundles, copies, textures and meshes it holds, beside the game's memory. /scry monitor switches it. For finding faults, not for play.");
         }
+
+        /// <summary>
+        /// The world's settings, in a section of their own, each synced to every player by
+        /// ServerSync: set on the world's server, its values win while a player is connected to
+        /// it, the player's own kept beneath; players without Scry join as before, and only an
+        /// admin changes them in game. Left as they are, every choice is each player's.
+        /// </summary>
+        private static void BindWorld(ConfigFile config)
+        {
+            _sync = new ServerSync.ConfigSync(About.Guid) { DisplayName = About.Name, CurrentVersion = About.Version, ModRequired = false, IsLocked = true };
+            _worldRules = config.Bind("4 - World", "Rules", WorldRule.PlayersChoose,
+                "The compendium's rules everyone in this world plays by: Off, Loose or Strict; PlayersChoose leaves them to each player. Set on the server, it holds for every player connected to it.");
+            _worldPeeking = config.Bind("4 - World", "Peeking", true,
+                "Whether players may peek, each page showing whole until the panel closes.");
+            _worldFloor = config.Bind("4 - World", "KnownUpTo", true,
+                "Whether players may raise Known up to, showing everything of the tiers below as known.");
+            Sync(_worldRules);
+            Sync(_worldPeeking);
+            Sync(_worldFloor);
+            foreach (var source in WorldSources.All)
+            {
+                var offered = WorldSources.Offered(source);
+                var entry = config.Bind("4 - World", source + "UpTo", offered[offered.Length - 1], WorldRulesWords.UpToSetting(source));
+                WorldUpTo[source] = entry;
+                Sync(entry);
+            }
+        }
+
+        private static void Sync<T>(ConfigEntry<T> entry) => _sync.AddConfigEntry(entry).SynchronizedConfig = true;
     }
 }

@@ -86,6 +86,17 @@ namespace Scry
         /// <summary>The name of the file of the character whose book is held or being read, which their dungeon maps are kept under too; none before a character plays.</summary>
         public static string CharacterFile => _file;
 
+        /// <summary>Made-up rules of the world's in place of its server's, or the server's again (null); for the self-test.</summary>
+        private static WorldRules _worldForTest;
+
+        /// <summary>Plays the character's book under made-up rules of the world's at once, or the server's again (null); for the self-test.</summary>
+        [Diagnostic]
+        public static void WorldForTest(WorldRules rules)
+        {
+            _worldForTest = rules;
+            _book?.Under(rules ?? Settings.World());
+        }
+
         /// <summary>Reads, catches up and writes as due; called each frame.</summary>
         public static void Update()
         {
@@ -116,6 +127,8 @@ namespace Scry
             if (Time.unscaledTime - _lookedAt >= 1f)
             {
                 _lookedAt = Time.unscaledTime;
+                // What the world's server allows, the character's choices kept beneath it.
+                _book?.Under(_worldForTest ?? Settings.World());
                 var records = Timing.Start();
                 var size = CharacterRecords.Size(player, profile);
                 var power = CharacterRecords.Power(player);
