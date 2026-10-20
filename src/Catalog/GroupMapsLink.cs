@@ -468,7 +468,8 @@ namespace Scry
                 _reading = null;
             }
             // Once its records are read, a dedicated server reads the traces in the world's dungeons, a
-            // few milliseconds a frame; a game hosting the world only as asked, its player in it.
+            // few milliseconds a frame; a game hosting the world reads them only on the command, its
+            // player playing in it.
             if (_records != null && _tracedFor != world && ZNet.instance.IsDedicated() && ZoneSystem.instance != null && DungeonDB.instance != null)
             {
                 _tracedFor = world;
