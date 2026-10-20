@@ -140,10 +140,11 @@ namespace Scry
             ScryPanel.PlanNamesShown = true;
             // Only where the test points the mouse lights a room, wherever the player's own stands.
             ScryPanel.MouseAwayForTest(true);
+            _allKnown = null;
             AllKnown();
             Frames.Clear();
             Timing.Measuring = Frames;
-            _runner = new ScenarioRunner(Scenario.ForRun(Scenarios(), full), Write, Finish);
+            _runner = new ScenarioRunner(Scenario.ForRun(Scenarios(), full), Write, Finish, AllKnown);
             SelfTestPanel.ShowResult();
             return SelfTestWords.Started(_runner.Total, full);
         }
@@ -251,17 +252,25 @@ namespace Scry
             };
         }
 
+        /// <summary>Everything known, shown while the test runs; made again only for a new catalog.</summary>
+        private static CompendiumView _allKnown;
+
         /// <summary>
         /// Shows everything as known while the test runs, whatever the Compendium setting, so every
         /// part sees the whole catalog; the parts that check the compendium show a made-up
-        /// character's knowledge and come back to this. Putting back shows the played one again.
+        /// character's knowledge or the played one, and the runner comes back to this before each
+        /// part, whatever the one before left. Putting back shows the played one again.
         /// </summary>
         private static void AllKnown()
         {
-            var view = new CompendiumView(Session.Explorer.Entries);
-            view.Tell(null, CompendiumRule.Off);
-            Session.ShowKnownInstead(view);
-            Session.Explorer.Know(view);
+            var explorer = Session.Explorer;
+            if (_allKnown == null || !ReferenceEquals(_allKnown.Catalog, explorer.Entries))
+            {
+                _allKnown = new CompendiumView(explorer.Entries);
+                _allKnown.Tell(null, CompendiumRule.Off);
+            }
+            Session.ShowKnownInstead(_allKnown);
+            if (!ReferenceEquals(explorer.Compendium, _allKnown)) explorer.Know(_allKnown);
         }
 
         /// <summary>Remembers the view the panel is in, once, the first time the test has it open.</summary>

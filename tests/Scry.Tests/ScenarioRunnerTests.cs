@@ -123,6 +123,43 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void EveryPartStartsFromWhatTheRunLaysWhateverThePartBeforeItLeft()
+        {
+            // A part that shows something of its own and leaves it so must not reach the next one.
+            var events = new List<string>();
+            var ground = "";
+            var runner = new ScenarioRunner(new[]
+            {
+                new Scenario("messy", p => { events.Add("messy saw " + ground); ground = "left over"; return Body(p, "messy", null); }),
+                new Scenario("next", p => { events.Add("next saw " + ground); return Body(p, "next", null); }),
+            }, _log.Add, null, () => { events.Add("laid"); ground = "everything known"; });
+            RunToEnd(runner);
+
+            Assert.Equal(new[] { "laid", "messy saw everything known", "laid", "next saw everything known" }, events);
+            Assert.All(runner.Reports, r => Assert.Equal(Result.Pass, r.Result));
+        }
+
+        [Fact]
+        public void APartWhoseStartCannotBeLaidFailsWithTheErrorUnrunAndTheRunGoesOn()
+        {
+            var ran = new List<string>();
+            var cleaned = new List<string>();
+            var lays = 0;
+            var runner = new ScenarioRunner(new[]
+            {
+                new Scenario("first", p => { ran.Add("first"); return Body(p, "first", null); }, () => cleaned.Add("first")),
+                new Scenario("second", p => { ran.Add("second"); return Body(p, "second", null); }, () => cleaned.Add("second")),
+            }, _log.Add, null, () => { if (lays++ == 0) throw new InvalidOperationException("no catalog"); });
+            RunToEnd(runner);
+
+            Assert.Equal(new[] { "second" }, ran);
+            Assert.Equal(Result.Fail, runner.Reports[0].Result);
+            Assert.Contains(runner.Reports[0].Lines, l => l.Contains("FAIL") && l.Contains("no catalog"));
+            Assert.Equal(Result.Pass, runner.Reports[1].Result);
+            Assert.Equal(new[] { "first", "second" }, cleaned);
+        }
+
+        [Fact]
         public void ACleanupThatThrowsIsReportedAndDoesNotStopTheRun()
         {
             var runner = Runner(new Scenario("messy", p => Body(p, "messy", null), () => throw new Exception("cleanup broke")), Passing("next"));

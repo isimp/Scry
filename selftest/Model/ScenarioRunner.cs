@@ -93,13 +93,16 @@ namespace Scry
     /// Plays scenarios one after another on a clock it is given, so the same runner serves the
     /// game (real time) and the tests (a made-up clock). A failed check, an exception or a
     /// scenario that never finishes fails that scenario only; its cleanup always runs, and the
-    /// run goes on. When all are done, the finishing step runs once and a summary is written.
+    /// run goes on. Before each scenario the run lays what every one starts from, so what one
+    /// leaves behind cannot reach the next; one whose start cannot be laid fails unrun. When all
+    /// are done, the finishing step runs once and a summary is written.
     /// </summary>
     internal sealed class ScenarioRunner
     {
         private readonly Queue<Scenario> _pending;
         private readonly Action<string> _write;
         private readonly Action _finally;
+        private readonly Action _start;
         private readonly List<ScenarioReport> _reports = new List<ScenarioReport>();
 
         private Scenario _current;
@@ -129,12 +132,13 @@ namespace Scry
             $"{Numbers.Count(_reports.Count(r => r.Result == Result.Fail))} failed, " +
             $"{Numbers.Count(_reports.Count(r => r.Result == Result.Skip))} skipped";
 
-        public ScenarioRunner(IEnumerable<Scenario> scenarios, Action<string> write, Action finish = null)
+        public ScenarioRunner(IEnumerable<Scenario> scenarios, Action<string> write, Action finish = null, Action start = null)
         {
             _pending = new Queue<Scenario>(scenarios ?? Enumerable.Empty<Scenario>());
             Total = _pending.Count;
             _write = write ?? (_ => { });
             _finally = finish;
+            _start = start;
         }
 
         /// <summary>Advances to the given time. True while there is more to run.</summary>
@@ -191,7 +195,8 @@ namespace Scry
             _waitUntil = now;
 
             _write($"START {_current.Name}");
-            var failure = Steps.Run(() => _current.Body(_probe), out _body, null);
+            var failure = Steps.Run(() => _start?.Invoke(), null);
+            if (failure == null) failure = Steps.Run(() => _current.Body(_probe), out _body, null);
             if (failure != null)
             {
                 _body = Empty();
