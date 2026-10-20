@@ -364,6 +364,54 @@ namespace Scry
         // ----- What Scry costs -----
 
         /// <summary>
+        /// What Scry's own work costs while the panel stands open and nothing is touched: a
+        /// creature's page on the stage, then a dungeon's example with its plan box, each held four
+        /// seconds; each notes its time a frame and what it allocated a frame, by part, the parts
+        /// allocating most first, as frequent allocation brings the game's memory cleanups. Notes
+        /// only, to find what to make allocate less.
+        /// </summary>
+        private static IEnumerator OpenCost(Probe p)
+        {
+            if (!Session.IsOpen) Session.Show(null);
+            KeepView();
+            ScryPanel.Compact = false;
+            var creature = Pick(Kind.Creature, "Troll", "Greydwarf");
+            var dungeon = LocationNamed("MountainCave02", "Crypt2");
+            if (creature == null && dungeon == null) p.Skip("neither a troll nor a dungeon is in the catalog");
+            var wasInside = Stage.Inside;
+            Stage.Inside = true;
+            foreach (var (entry, what) in new[] { (creature, "a creature's page"), (dungeon, "a dungeon's example with its plan box") })
+            {
+                if (entry == null) continue;
+                Select(entry);
+                yield return Until(() => CopyOf(entry) != null && (entry.Kind != Kind.Location || Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.ExampleFloorsToRead == 0), 60);
+                // A moment for what follows a selection (its page told, its warm-up) to settle.
+                yield return new Wait(1);
+                var first = Timing.Measuring?.Frames ?? 0;
+                var bytes = Timing.ScryBytes;
+                var frames = Time.frameCount;
+                Timing.ForgetBytesByPart();
+                var others = new OtherThreads(() => GC.GetTotalMemory(false), () => GC.CollectionCount(0), () => System.Diagnostics.Stopwatch.GetTimestamp() * 1000.0 / System.Diagnostics.Stopwatch.Frequency);
+                var until = Time.unscaledTime + 4f;
+                while (Time.unscaledTime < until)
+                {
+                    if (!Timing.CountsPerThread && Timing.Measuring != null) others.Wait(Timing.Measuring.Last);
+                    yield return null;
+                }
+                var held = Timing.Measuring?.Since(first);
+                var count = Math.Max(1, Time.frameCount - frames);
+                var allocated = Timing.ScryBytes - bytes;
+                var own = Timing.CountsPerThread ? allocated : Math.Max(0, allocated - others.Bytes);
+                p.Note(held != null
+                    ? $"{what} ({entry.Name}), {Numbers.Count(held.Frames)} frames: Scry's own work {Numbers.Fixed(held.Mean, 2)} ms a frame on average, {Numbers.Fixed(held.Percentile(0.95), 2)} ms at the 95th percentile; it allocated about {Numbers.Count(own / count)} bytes a frame{(Timing.CountsPerThread ? "" : ", other threads' left out")}"
+                    : $"{what}: frames were not measured");
+                p.Note($"{what}, by part: " + Timing.BytesByPartTold(10));
+            }
+            Stage.Inside = wasInside;
+            p.Check(true, "the panel stood open on each and was measured");
+        }
+
+        /// <summary>
         /// What Scry costs idling with the panel closed, as between looks: its own work each frame
         /// and what it allocates over five seconds, and what it keeps, the textures, render
         /// textures and meshes it made, beside the game's whole managed memory for scale. Where
