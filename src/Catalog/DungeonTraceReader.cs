@@ -220,8 +220,9 @@ namespace Scry
         private static bool TakenFrom(ZDO zdo, Container chest)
         {
             if (!zdo.GetBool(ZDOVars.s_addedDefaultItems)) return false;
-            var items = zdo.GetString(ZDOVars.s_items);
-            if (string.IsNullOrEmpty(items)) return false;
+            // Kept as bytes, as the game reads a chest's items back.
+            var items = zdo.GetByteArray(ZDOVars.s_items);
+            if (items == null || items.Length == 0) return false;
             var inventory = new Inventory("", null, chest.m_width, chest.m_height);
             inventory.Load(new ZPackage(items));
             return DungeonTraces.TakenFrom(inventory.NrOfItems(), chest.m_defaultItems.m_dropMin, chest.m_defaultItems.m_oneOfEach);
