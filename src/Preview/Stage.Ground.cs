@@ -92,7 +92,12 @@ namespace Scry
             TheGround.Lay(groundY, _lastShown, sky, _frameRadius, clear, Origin, edge, _root, _layer);
         }
 
-        private static void DrawGrass() => TheGround.DrawGrass(_camera, _layer);
+        private static void DrawGrass()
+        {
+            // A fast stage leaves its grass out.
+            if (Settings.StageQuality == StageQuality.Fast) return;
+            TheGround.DrawGrass(_camera, _layer);
+        }
 
         /// <summary>Takes a copy's paints on its ground, once it stands.</summary>
         private static void TakeGroundPaints(List<GroundPaintAt> paints, GameObject room) => TheGround.TakePaints(paints, room);

@@ -416,7 +416,7 @@ namespace Scry
         /// <summary>Follows the setting: as it changes, the dimmed rooms' lights go off or on again.</summary>
         private void KeepDimmedLights()
         {
-            var kept = Settings.LightDimmedRooms;
+            var kept = Settings.LightDimmedRooms && Settings.StageQuality == StageQuality.Full;
             if (kept == _lightsKept) return;
             _lightsKept = kept;
             foreach (var room in _dimmed.Keys)

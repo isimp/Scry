@@ -216,7 +216,10 @@ namespace Scry
         }
 
         /// <summary>The compendium's strip under the header: a warning while peeking, else what was newly learned; none otherwise.</summary>
-        private static float CompendiumStripHeight(Explorer explorer) => explorer.Peeking || LearnedNews.New(explorer).Count > 0 ? U(32f) : 0f;
+        private static float CompendiumStripHeight(Explorer explorer) => explorer.Peeking || NewsUp(explorer) ? U(32f) : 0f;
+
+        /// <summary>Whether the notice tells what was newly learned: news there is, and the notice tells it (<see cref="Settings.NewsNotice"/>), else the Learned tab alone does.</summary>
+        private static bool NewsUp(Explorer explorer) => Settings.NewsNotice && LearnedNews.New(explorer).Count > 0;
 
         /// <summary>
         /// Warns that everything shows while peeking, with a chip that stops it; else names what
@@ -369,7 +372,7 @@ namespace Scry
             if (OffNoticeHeight() > 0f) NoticesUp.Add(Notice.Off);
             if (explorer.Peeking) NoticesUp.Add(Notice.Peeking);
             if (PlayingWithNoticeHeight() > 0f) NoticesUp.Add(Notice.PlayingWith);
-            if (!explorer.Peeking && LearnedNews.New(explorer).Count > 0) NoticesUp.Add(Notice.Learned);
+            if (!explorer.Peeking && NewsUp(explorer)) NoticesUp.Add(Notice.Learned);
             return NoticesUp;
         }
 

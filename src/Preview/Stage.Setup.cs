@@ -154,9 +154,13 @@ namespace Scry
 
         private static void EnsureTexture()
         {
+            // A fast stage is filmed at half the size, drawn stretched to the stage's.
+            var fast = Settings.StageQuality == StageQuality.Fast;
+            var width = fast ? Mathf.Max(32, _width / 2) : _width;
+            var height = fast ? Mathf.Max(32, _height / 2) : _height;
             if (_texture != null)
             {
-                if (_texture.width == _width && _texture.height == _height) return;
+                if (_texture.width == width && _texture.height == height) return;
 
                 // While the panel or the stage is being resized the size changes on every frame;
                 // the texture there is drawn stretched until the size holds still, rather than one
@@ -168,9 +172,9 @@ namespace Scry
                 Object.Destroy(_texture);
             }
 
-            _texture = Kept.Add(new RenderTexture(_width, _height, 24, RenderTextureFormat.ARGB32)
+            _texture = Kept.Add(new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32)
             {
-                antiAliasing = 4,
+                antiAliasing = fast ? 1 : 4,
                 name = "Scry stage",
             });
             _texture.Create();

@@ -29,18 +29,24 @@ namespace Scry
         private static ConfigEntry<float> _spinSpeed;
         private static ConfigEntry<bool> _readLocations;
         private static ConfigEntry<bool> _dungeonMarks;
+        private static ConfigEntry<StageQuality> _stageQuality;
+        private static ConfigEntry<bool> _newsNotice;
 
         /// <summary>
         /// The key that opens the panel. One the game or the panel already uses for something
         /// else (a click, Escape, the mouse's back and forward buttons) would open and close it
-        /// by accident, so F7 stands in for it, and the log says so once.
+        /// by accident, so F7 stands in for it, and the log says so once. The settings box sets it.
         /// </summary>
         public static KeyCode OpenKey
         {
+            set
+            {
+                if (_openKey != null && OpensPanel(value)) _openKey.Value = value;
+            }
             get
             {
                 var key = _openKey?.Value ?? KeyCode.F7;
-                if (key != KeyCode.Mouse0 && key != KeyCode.Mouse1 && key != KeyCode.Escape && key != KeyCode.Mouse3 && key != KeyCode.Mouse4) return key;
+                if (OpensPanel(key)) return key;
                 if (_toldKey != key)
                 {
                     _toldKey = key;
@@ -52,6 +58,10 @@ namespace Scry
 
         private static KeyCode _toldKey = KeyCode.None;
 
+        /// <summary>Whether a key may open the panel: none the game or the panel already uses for something else.</summary>
+        public static bool OpensPanel(KeyCode key) =>
+            key != KeyCode.None && key != KeyCode.Mouse0 && key != KeyCode.Mouse1 && key != KeyCode.Escape && key != KeyCode.Mouse3 && key != KeyCode.Mouse4;
+
         /// <summary>Whether the model turns by itself; the View box's Spin switches it, kept in the config file.</summary>
         public static bool AutoSpin
         {
@@ -61,19 +71,32 @@ namespace Scry
                 if (_autoSpin != null) _autoSpin.Value = value;
             }
         }
-        public static bool PlayOnSelect => _playOnSelect?.Value ?? true;
-        public static float UiScale => _uiScale?.Value ?? 1f;
-        public static bool FocusSearchOnOpen => _focusSearch?.Value ?? true;
+        // What the settings box and the boxes beside what they change set; each kept in the config file.
+        public static bool PlayOnSelect { get => _playOnSelect?.Value ?? true; set => Set(_playOnSelect, value); }
+        public static float UiScale { get => _uiScale?.Value ?? 1f; set => Set(_uiScale, Mathf.Clamp(value, 0.6f, 2f)); }
+        public static bool FocusSearchOnOpen { get => _focusSearch?.Value ?? true; set => Set(_focusSearch, value); }
         public static float CatalogDelay => Mathf.Clamp(_catalogDelay?.Value ?? 10f, 0f, 120f);
-        public static bool WalkWhileOpen => _walkWhileOpen?.Value ?? true;
-        public static bool LookWithRightMouse => _lookWithRightMouse?.Value ?? true;
-        public static float TooltipDelay => Mathf.Clamp(_tooltipDelay?.Value ?? 0.35f, 0f, 3f);
+        public static bool WalkWhileOpen { get => _walkWhileOpen?.Value ?? true; set => Set(_walkWhileOpen, value); }
+        public static bool LookWithRightMouse { get => _lookWithRightMouse?.Value ?? true; set => Set(_lookWithRightMouse, value); }
+        public static float TooltipDelay { get => Mathf.Clamp(_tooltipDelay?.Value ?? 0.35f, 0f, 3f); set => Set(_tooltipDelay, Mathf.Clamp(value, 0f, 3f)); }
         public static int RecentCount => _recentCount?.Value ?? 30;
-        public static float SpinSpeed => Mathf.Clamp(_spinSpeed?.Value ?? 14f, 1f, 90f);
-        public static bool ReadLocationsAutomatically => _readLocations?.Value ?? false;
+        public static float SpinSpeed { get => Mathf.Clamp(_spinSpeed?.Value ?? 14f, 1f, 90f); set => Set(_spinSpeed, Mathf.Clamp(value, 1f, 90f)); }
+        public static bool ReadLocationsAutomatically { get => _readLocations?.Value ?? false; set => Set(_readLocations, value); }
 
         /// <summary>Whether each dungeon been in is marked on Valheim's large map.</summary>
-        public static bool DungeonMarksOnMap => _dungeonMarks?.Value ?? true;
+        public static bool DungeonMarksOnMap { get => _dungeonMarks?.Value ?? true; set => Set(_dungeonMarks, value); }
+
+        /// <summary>How the stage is filmed: whole, or faster for a weaker machine (<see cref="Scry.StageQuality"/>).</summary>
+        public static StageQuality StageQuality { get => _stageQuality?.Value ?? StageQuality.Full; set => Set(_stageQuality, value); }
+
+        /// <summary>Whether the notice under the header tells what the character learned, else the Learned tab alone does.</summary>
+        public static bool NewsNotice { get => _newsNotice?.Value ?? true; set => Set(_newsNotice, value); }
+
+        /// <summary>A setting's new value, kept in the config file; nothing before the settings are bound.</summary>
+        private static void Set<T>(ConfigEntry<T> entry, T value)
+        {
+            if (entry != null) entry.Value = value;
+        }
 
         /// <summary>Whether the log tells what previews play and what Scry saw of each prefab, for finding out why something looks or sounds wrong.</summary>
         public static bool LogPreviews => _logPreviews?.Value ?? false;
@@ -155,6 +178,8 @@ namespace Scry
                 "Reads where things are found in each world's locations and dungeons by itself, in the background once the prefabs are read, taking a few minutes. Off, they are read only when asked, with Find where things are or /scry locations.");
             _dungeonMarks = config.Bind("1 - General", "DungeonMarksOnMap", true,
                 "Marks each dungeon you have been in on Valheim's large map, just above its entrance, telling how much of it you walked; a click on a mark opens its map in Scry. Off, the map shows nothing of Scry's.");
+            _newsNotice = config.Bind("1 - General", "NewsNotice", true,
+                "The notice under the header tells what the character learned, as it learns it. Off, the Learned tab alone tells it.");
             _autoSpin = config.Bind("2 - Preview", "AutoSpin", true,
                 "Turns the model in the preview slowly while you are not dragging it. The View box's Spin switches it.");
             _spinSpeed = config.Bind("2 - Preview", "SpinSpeed", 14f,
@@ -162,6 +187,8 @@ namespace Scry
                     new AcceptableValueRange<float>(1f, 90f)));
             _playOnSelect = config.Bind("2 - Preview", "PlayOnSelect", true,
                 "Plays a sound as soon as it is selected, so the list can be auditioned with the arrow keys.");
+            _stageQuality = config.Bind("2 - Preview", "StageQuality", StageQuality.Full,
+                "How the stage is filmed. Full films it at the panel's own size with its grass and the lights below a dungeon's cut as LightDimmedRooms says. Fast films it at half the size, without grass or those lights, for a big dungeon on a weaker machine.");
             _lightDimmedRooms = config.Bind("2 - Preview", "LightDimmedRooms", false,
                 "Lets the rooms shown dimmed below a dungeon's opened floor keep their own lights, as the game lights them. Off, only the stage's light reaches them, and a big dungeon is filmed in about half the time.");
             _logPreviews = config.Bind("3 - Diagnostics", "LogPreviews", false,
