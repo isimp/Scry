@@ -4,96 +4,180 @@ using UnityEngine;
 namespace Scry
 {
     /// <summary>
-    /// The maps kept of a dungeon location's dungeons in the world played, under its stage's
-    /// buttons (<see cref="DungeonWalks"/>): a line each with a room walked saying how far, with
-    /// <i>Open map</i>, which shows it on the stage wherever the player is, and <i>Forget</i>; then,
-    /// where the compendium's floor opens them, a line for each of the server's records it sent,
-    /// anyone's walks on this server (<see cref="GroupMapsLink"/>), with <i>Open map</i>. No world
-    /// position is shown.
+    /// The dungeons of a dungeon location walked in the world played, under its stage's buttons,
+    /// a line each (<see cref="WalkLines"/>): where it lies from where you stand, or that it lies
+    /// outside what you know, its place kept hidden; how far you walked it (<see cref="DungeonWalks"/>)
+    /// and, where the compendium opens the server's records, how far anyone on this server did
+    /// (<see cref="GroupMapsLink"/>); its days and what was left inside on hover. Each has
+    /// <i>On the map</i> where you know where it lies, which opens Valheim's large map there
+    /// (<c>Minimap.ShowPointOnMap</c>), <i>Show it</i>, which shows it on the stage wherever you
+    /// are, and <i>Forget</i> for a walk of yours. Those you know stand nearest first, the rest
+    /// after; past four the rest fold behind one chip.
     /// </summary>
     internal static partial class ScryPanel
     {
-        private static readonly List<(string Id, DungeonMap Map, int Walked, int Rooms)> MapsShown = new List<(string, DungeonMap, int, int)>();
-        private static readonly List<(string Id, DungeonMap Map)> GroupShown = new List<(string, DungeonMap)>();
+        /// <summary>The lines last built, with their words and hover, and what they were built for: rebuilt as any of it changes, and each second for rooms read since.</summary>
+        private static readonly List<WalkLine> WalkLinesBuilt = new List<WalkLine>();
+        private static readonly List<(string Said, string Tip)> WalkLineWords = new List<(string, string)>();
+        private static (Entry Entry, string World, int Mine, int Group, int Ground, bool Open, int X, int Z) _walkLinesOf;
+        private static float _walkLinesAt = float.NegativeInfinity;
+        private static string _walkHeading;
 
-        /// <summary>How many of the server's lines were last drawn, for the self-test.</summary>
+        /// <summary>How often the lines are built again while nothing else changed, for the rooms of the example read meanwhile, in seconds.</summary>
+        private const float WalkLinesEvery = 1f;
+
+        /// <summary>How many server's lines were last drawn, for the self-test: lines with a walk on this server.</summary>
         [Diagnostic]
         public static int GroupLinesDrawn { get; private set; }
 
-        /// <summary>How many map lines were last drawn, for the self-test.</summary>
+        /// <summary>How many map lines were last drawn, for the self-test: lines with a walk of yours.</summary>
         [Diagnostic]
         public static int MapLinesDrawn { get; private set; }
+
+        /// <summary>The lines last built, in the order drawn, for the self-test.</summary>
+        [Diagnostic]
+        public static IReadOnlyList<WalkLine> WalkLinesForTest => WalkLinesBuilt;
+
+        /// <summary>The heading over the lines as last drawn, for the self-test; none where none was.</summary>
+        [Diagnostic]
+        public static string WalkHeadingForTest { get; private set; }
 
         /// <summary>Opens a kept map as its button does, for the self-test.</summary>
         [Diagnostic]
         public static void OpenMapForTest(string id) => OpenMap(id);
 
-        /// <summary>The map lines of a dungeon location, under the stage's buttons; where it is none, or none is kept, nothing.</summary>
+        /// <summary>Opens Valheim's large map where a line's dungeon lies, as its <i>On the map</i> does, for the self-test.</summary>
+        [Diagnostic]
+        public static void ShowOnTheMapForTest(string id)
+        {
+            foreach (var line in WalkLinesBuilt)
+            {
+                if (line.Id == id) ShowOnTheMap(line.Entrance);
+            }
+        }
+
+        /// <summary>The lines of a dungeon location, under the stage's buttons; where it is none, or none of its dungeons is walked, nothing.</summary>
         private static float MapLines(Entry entry, float width, float y)
         {
             MapLinesDrawn = 0;
             GroupLinesDrawn = 0;
+            WalkHeadingForTest = null;
             if (!(entry.Source is PlaceSource place) || place.IsRoom || place.Contents?.Dungeon?.Algorithm != "Dungeon") return y;
-            MapsShown.Clear();
-            // A walk with no room walked shows nothing; /scry forget maps still clears it.
-            var example = ExampleLayouts.Of(entry);
-            MapsShown.AddRange(DungeonWalks.Maps.WalkedOf(CompendiumMap.World, place.Prefab, map => example ? ExampleLayouts.Count(map) : DungeonMaps.Walked(map, _ => null)));
-            GroupShown.Clear();
-            if (ExampleLayouts.Of(entry) && ExampleLayouts.GroupOpen) foreach (var map in GroupMapsLink.Group.OfLocation(CompendiumMap.World, place.Prefab)) GroupShown.Add(map);
-            if (MapsShown.Count == 0 && GroupShown.Count == 0) return y;
-            var rowH = U(26f);
+            BuildWalkLines(entry, place);
+            if (WalkLinesBuilt.Count == 0) return y;
+            var e = Event.current;
             y += U(6f);
-            for (var i = 0; i < MapsShown.Count; i++)
+            GUI.Label(new Rect(0f, y, width, U(20f)), _walkHeading, Skin.DimLabel);
+            WalkHeadingForTest = _walkHeading;
+            y += U(24f);
+            var rowH = U(26f);
+            var key = "walks:" + place.Prefab;
+            var shown = ShownOf(key, WalkLinesBuilt.Count, WalkLines.FirstShown);
+            var mapW = Skin.Width(Skin.Button, DungeonMapWords.OnTheMap) + U(12f);
+            var showW = Mathf.Max(Skin.Width(Skin.Button, DungeonMapWords.Open), Skin.Width(Skin.On, DungeonMapWords.Shown)) + U(12f);
+            var forgetW = Skin.Width(Skin.Button, DungeonMapWords.Forget) + U(12f);
+            for (var i = 0; i < shown; i++)
             {
-                var (id, map, walked, rooms) = MapsShown[i];
-                var said = DungeonMapWords.Yours(i, MapsShown.Count, walked, rooms, map.FirstDay, map.LastDay);
-                if (i == 0) FirstMapLineForTest = said;
-                var forgetW = Skin.Width(Skin.Button, DungeonMapWords.Forget) + U(12f);
-                var openW = Skin.Width(Skin.Button, DungeonMapWords.Open) + U(12f);
-                var forget = new Rect(width - forgetW, y, forgetW, rowH);
-                var open = new Rect(forget.x - U(6f) - openW, y, openW, rowH);
-                var line = new Rect(0f, y, Mathf.Max(0f, open.x - U(8f)), rowH);
-                GUI.Label(line, said, Skin.Fitted(Skin.DimLabel, line));
-                DaysTip(line, "map:days:" + id, DungeonMapWords.DaysTip(true, map.FirstDay, map.LastDay));
-                var shown = ExampleLayouts.ShownMap == id;
-                if (open.Contains(Event.current.mousePosition)) AskTip("map:open:" + id, DungeonMapWords.OpenTip);
-                if (GUI.Button(open, DungeonMapWords.Open, shown ? Skin.On : Skin.Button) && !shown) OpenMap(id);
-                if (forget.Contains(Event.current.mousePosition)) AskTip("map:forget:" + id, DungeonMapWords.ForgetTip);
-                if (GUI.Button(forget, DungeonMapWords.Forget, Skin.Button)) DungeonWalks.ForgetMap(id);
+                var line = WalkLinesBuilt[i];
+                var (said, tip) = WalkLineWords[i];
+                // From the right: Forget for a walk of yours, Show it, On the map where you know where it lies.
+                var x = width;
+                if (line.Yours.HasValue)
+                {
+                    x -= forgetW;
+                    var forget = new Rect(x, y, forgetW, rowH);
+                    if (forget.Contains(e.mousePosition)) AskTip("map:forget:" + line.Id, DungeonMapWords.ForgetTip);
+                    if (GUI.Button(forget, DungeonMapWords.Forget, Skin.Button)) DungeonWalks.ForgetMap(line.Id);
+                    x -= U(6f);
+                }
+                x -= showW;
+                var show = new Rect(x, y, showW, rowH);
+                var onStage = ExampleLayouts.ShownMap == line.Id;
+                if (show.Contains(e.mousePosition)) AskTip("map:open:" + line.Id, line.Yours.HasValue ? line.Server.HasValue ? DungeonMapWords.BothOpenTip : DungeonMapWords.OpenTip : DungeonMapWords.GroupOpenTip);
+                if (GUI.Button(show, onStage ? DungeonMapWords.Shown : DungeonMapWords.Open, onStage ? Skin.On : Skin.Button) && !onStage) OpenMap(line.Id);
+                if (line.Found)
+                {
+                    x -= U(6f) + mapW;
+                    var onMap = new Rect(x, y, mapW, rowH);
+                    if (onMap.Contains(e.mousePosition)) AskTip("map:on-the-map:" + line.Id, DungeonMapWords.OnTheMapTip);
+                    if (GUI.Button(onMap, DungeonMapWords.OnTheMap, Skin.Button)) ShowOnTheMap(line.Entrance);
+                }
+
+                // The dot: a walk of yours, one on this server alone, or one lying outside what you know.
+                var size = U(8f);
+                var dot = line.Yours.HasValue ? Skin.Accent : line.Found ? Skin.Alpha(Skin.Accent, 0.45f) : Skin.Alpha(Skin.Faint, 0.45f);
+                Skin.Icon(new Rect(U(2f), y + (rowH - size) / 2f, size, size), Skin.Circle, dot);
+                var text = new Rect(U(16f), y, Mathf.Max(0f, x - U(24f)), rowH);
+                GUI.Label(text, said, Skin.Fitted(Skin.DimLabel, text));
+                if (tip != null && text.Contains(e.mousePosition)) AskTip("map:line:" + line.Id, tip);
+                if (i == 0)
+                {
+                    FirstMapLineForTest = said;
+                    FirstMapTipForTest = tip;
+                }
                 y += rowH + U(4f);
-                MapLinesDrawn++;
+                if (line.Yours.HasValue) MapLinesDrawn++;
+                if (line.Server.HasValue) GroupLinesDrawn++;
             }
-            var floor = CompendiumWords.FloorName(_explorer?.Compendium?.Floor ?? 0);
-            for (var i = 0; i < GroupShown.Count; i++)
-            {
-                var (id, map) = GroupShown[i];
-                var (walked, rooms) = ExampleLayouts.Count(map);
-                // The rooms of traces alone are rooms only, as the way between rooms runs through no end cap or divider.
-                var said = DungeonMapWords.Server(i, GroupShown.Count, walked, rooms, floor, map.FirstDay, map.LastDay, map.Traced.Count);
-                var openW = Skin.Width(Skin.Button, DungeonMapWords.Open) + U(12f);
-                var open = new Rect(width - openW, y, openW, rowH);
-                var label = new Rect(0f, y, Mathf.Max(0f, open.x - U(8f)), rowH);
-                GUI.Label(label, said, Skin.Fitted(Skin.DimLabel, label));
-                DaysTip(label, "map:server-days:" + id, DungeonMapWords.ServerTip(map.Tally, map.FirstDay, map.LastDay));
-                var shown = ExampleLayouts.ShownMap == id;
-                if (open.Contains(Event.current.mousePosition)) AskTip("map:group:" + id, DungeonMapWords.GroupOpenTip);
-                if (GUI.Button(open, DungeonMapWords.Open, shown ? Skin.On : Skin.Button) && !shown) OpenMap(id);
-                y += rowH + U(4f);
-                GroupLinesDrawn++;
-            }
+            var flow = new ChipFlow(0f, width, y, U(26f), U(5f), U(5f));
+            MoreChip(key, WalkLinesBuilt.Count, WalkLines.FirstShown, width, ref flow);
+            if (flow.InRow) y = flow.Below + U(4f);
             CountDrawn(PanelPart.MapLine);
             return y;
         }
 
-        /// <summary>The days a walk's line spans in words, on its hover; none where it has none.</summary>
-        private static void DaysTip(Rect line, string key, string tip)
+        /// <summary>
+        /// The location's lines, built again where what they show changed: yours, the server's records
+        /// where the compendium opens them, which dungeons lie in ground you know, or where you stand,
+        /// to ten metres; and each second, for rooms of the example read meanwhile.
+        /// </summary>
+        private static void BuildWalkLines(Entry entry, PlaceSource place)
         {
-            if (tip != null && line.Contains(Event.current.mousePosition)) AskTip(key, tip);
+            var world = CompendiumMap.World;
+            var example = ExampleLayouts.Of(entry);
+            var open = example && ExampleLayouts.GroupOpen;
+            var at = Player.m_localPlayer != null ? Player.m_localPlayer.transform.position : Vector3.zero;
+            var of = (entry, world, DungeonWalks.Maps.Stamp, GroupMapsLink.Group.Stamp, DungeonsInGround.Stamp, open, Mathf.RoundToInt(at.x / 10f), Mathf.RoundToInt(at.z / 10f));
+            if (of == _walkLinesOf && Time.unscaledTime - _walkLinesAt < WalkLinesEvery) return;
+            _walkLinesOf = of;
+            _walkLinesAt = Time.unscaledTime;
+            var yours = DungeonWalks.Maps.WalkedOf(world, place.Prefab, map => example ? ExampleLayouts.Count(map) : DungeonMaps.Walked(map, _ => null));
+            var server = new List<(string, DungeonMap, int, int)>();
+            if (open)
+            {
+                foreach (var (id, map) in GroupMapsLink.Group.OfLocation(world, place.Prefab))
+                {
+                    var (walked, rooms) = ExampleLayouts.Count(map);
+                    server.Add((id, map, walked, rooms));
+                }
+            }
+            // The server's records carry no place: one lies where the ground you know holds it.
+            var lines = WalkLines.Of(yours, server, id => DungeonsInGround.MapOf(id) is DungeonMap held ? held.Entrance : (Vec3?)null, new Vec3(at.x, at.y, at.z));
+            WalkLinesBuilt.Clear();
+            WalkLinesBuilt.AddRange(lines);
+            WalkLineWords.Clear();
+            foreach (var line in lines) WalkLineWords.Add((DungeonMapWords.Line(line), DungeonMapWords.LineTip(line)));
+            _walkHeading = DungeonMapWords.Heading(lines.Count);
         }
 
-        /// <summary>The first line of the character's walks as last drawn, for the self-test.</summary>
+        /// <summary>
+        /// Opens Valheim's large map where a dungeon lies, the panel put away as its close button
+        /// does so the map is seen: the game's own way to show a point on it (<c>Minimap.ShowPointOnMap</c>).
+        /// </summary>
+        private static void ShowOnTheMap(Vec3 at)
+        {
+            var map = Minimap.instance;
+            if (map == null) return;
+            AskClose();
+            map.ShowPointOnMap(new Vector3(at.X, at.Y, at.Z));
+        }
+
+        /// <summary>The first line as last drawn, and its hover, for the self-test.</summary>
         [Diagnostic]
         public static string FirstMapLineForTest { get; private set; }
+
+        [Diagnostic]
+        public static string FirstMapTipForTest { get; private set; }
 
         /// <summary>Shows a kept map on the stage, its inside.</summary>
         private static void OpenMap(string id)

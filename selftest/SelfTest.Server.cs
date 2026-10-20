@@ -122,7 +122,7 @@ namespace Scry
             p.Check(sent.All(m => m.Map.Traced.All(m.Map.Walked.Contains)), "the rooms of traces alone count among the rooms walked", string.Join(", ", sent.Select(m => m.Id).Take(3)));
             foreach (var (id, map) in sent.Where(m => m.Map.Traced.Count > 0).Take(1))
             {
-                var said = DungeonMapWords.Server(0, 1, map.Walked.Count, map.Rooms.Count, "Known", map.FirstDay, map.LastDay, map.Traced.Count);
+                var said = DungeonMapWords.Line(new WalkLine { Server = (map.Walked.Count, map.Rooms.Count, map.Traced.Count) });
                 p.Check(said.Contains("from traces"), "its line says how many rooms came of traces", said);
                 p.Check(DungeonMapWords.ServerTip(map.Tally, map.FirstDay, map.LastDay)?.StartsWith("Read from what was left inside", System.StringComparison.Ordinal) == true, "and its hover what was left inside", id);
             }

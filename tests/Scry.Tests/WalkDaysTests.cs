@@ -113,15 +113,13 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void ThePagesLinesSayTheDaysYoursApartFromTheServers()
+        public void ThePagesLineTellsTheDaysOnHoverYoursApartFromTheServers()
         {
-            Assert.Equal("Walked by you: 6 of 18 rooms", DungeonMapWords.Yours(0, 1, 6, 18, -1, -1));
-            Assert.Equal("Walked by you (2 of 3): 1 of 1 room · days 103–241", DungeonMapWords.Yours(1, 3, 1, 1, 103, 241));
-            Assert.Equal("Walked by you: 6 of 18 rooms · day 103", DungeonMapWords.Yours(0, 1, 6, 18, 103, 103));
-            Assert.Equal("Walked by you: 6 of 18 rooms · last day 241", DungeonMapWords.Yours(0, 1, 6, 18, -1, 241));
-            Assert.Equal("Walked on this server: 14 of 18 rooms · days 98–245 · opened up to the Mountain tier", DungeonMapWords.Server(0, 1, 14, 18, "Mountain", 98, 245, 0));
-            Assert.Equal("Walked on this server (2 of 2): 1 of 2 rooms · opened up to the Plains tier", DungeonMapWords.Server(1, 2, 1, 2, "Plains", -1, -1, 0));
-            Assert.Equal("Walked on this server: 2 of 2 rooms · days 1,203–1,240 · opened up to the Plains tier", DungeonMapWords.Server(0, 1, 2, 2, "Plains", 1203, 1240, 0));
+            // The line says where it lies and how far it was walked; its days are on its hover.
+            var line = new WalkLine { Yours = (6, 18), YourFirst = 103, YourLast = 241, Server = (14, 18, 0), ServerFirst = 1203, ServerLast = 1240, Found = true, Distance = 500f };
+            Assert.Equal("500 m north · you 6 of 18 rooms · on this server 14 of 18 rooms", DungeonMapWords.Line(line));
+            Assert.Equal(Naming.Lines("You first walked it on day 103, last on day 241", "Anyone on this server first walked it on day 1,203, last on day 1,240"), DungeonMapWords.LineTip(line));
+            Assert.Equal("Where you stand · you 1 of 1 room", DungeonMapWords.Line(new WalkLine { Yours = (1, 1), Found = true }));
         }
 
         [Fact]

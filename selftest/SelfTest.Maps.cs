@@ -199,9 +199,11 @@ namespace Scry
         }
 
         /// <summary>
-        /// Maps of a crypt kept in the world played, on maps of the self-test's own: the crypt's page
-        /// has a line for each with a room walked, how far it was walked, Open map showing it on the
-        /// stage though the player stands nowhere near, and Forget taking it away, an example in its place.
+        /// Maps of a crypt kept in the world played, on maps of the self-test's own, lying at two
+        /// distances from the player: the crypt's page has a heading and a line for each with a room
+        /// walked, the nearer first, each saying where it lies and how far it was walked; Show it shows
+        /// one on the stage though the player stands nowhere near, Forget takes it away, an example in
+        /// its place, and On the map opens Valheim's large map where the other lies.
         /// </summary>
         private static IEnumerator MapsKept(Probe p)
         {
@@ -222,8 +224,10 @@ namespace Scry
             var saved = SavedAsTheGameSaves(rolled);
             var first = DungeonMaps.IdOf(world, 1L, 1u);
             var second = DungeonMaps.IdOf(world, 1L, 2u);
-            maps.Keep(first, PlaceOf(entry).Prefab, saved, new Vec3(0f, 0f, 0f), rolled.Site.Generator, rolled.Site.Turn);
-            maps.Keep(second, PlaceOf(entry).Prefab, saved, new Vec3(0f, 0f, 0f), rolled.Site.Generator, rolled.Site.Turn);
+            // The first far off, the second nearer, so the second's line stands first.
+            var here = Player.m_localPlayer != null ? Player.m_localPlayer.transform.position : Vector3.zero;
+            maps.Keep(first, PlaceOf(entry).Prefab, saved, new Vec3(here.x + 1500f, here.y, here.z), rolled.Site.Generator, rolled.Site.Turn);
+            maps.Keep(second, PlaceOf(entry).Prefab, saved, new Vec3(here.x, here.y, here.z - 300f), rolled.Site.Generator, rolled.Site.Turn);
             maps.Walk(second, 0);
             for (var room = 0; room < 3; room++) maps.Walk(first, room);
             // A third with no room walked holds nothing to show, and has no line.
@@ -233,7 +237,12 @@ namespace Scry
             var lines = ScryPanel.Drawn(PanelPart.MapLine);
             yield return Until(() => ScryPanel.Drawn(PanelPart.MapLine) > lines + 1, 5);
             p.Check(ScryPanel.MapLinesDrawn == 2, "its page has a line for each map of this world with a room walked", $"{Numbers.Count(ScryPanel.MapLinesDrawn)} lines");
-            yield return Picture(p, $"maps of {entry.Name} on its page");
+            var built = ScryPanel.WalkLinesForTest.Select(l => l.Id).ToList();
+            p.Check(ScryPanel.WalkHeadingForTest == DungeonMapWords.Heading(2) && built.SequenceEqual(new[] { second, first }),
+                "under a heading, the nearer stands first", $"{ScryPanel.WalkHeadingForTest}: {string.Join(", ", built)}");
+            p.Check((ScryPanel.FirstMapLineForTest ?? "").StartsWith(DungeonMapWords.Where(300f, 4), System.StringComparison.Ordinal),
+                "its line says where it lies from the player", ScryPanel.FirstMapLineForTest);
+            yield return Picture(p, $"walks of {entry.Name} on its page");
 
             ScryPanel.OpenMapForTest(second);
             yield return Until(() => ExampleLayouts.ShownMap == second && Stage.ExampleRoomsTotal == rolled.Rooms.Count && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 60);
@@ -245,6 +254,18 @@ namespace Scry
             yield return Until(() => ScryPanel.Drawn(PanelPart.MapLine) > lines + 1, 5);
             p.Check(!ExampleLayouts.ShowsWorlds && ScryPanel.MapLinesDrawn == 1 && maps.Of(second) == null, "Forget takes the map away, an example in its place", $"{Numbers.Count(ScryPanel.MapLinesDrawn)} lines");
             p.Check(maps.All.Count() == 3, "the map of another world and the one not walked stay");
+
+            // On the map opens Valheim's large map where it lies, the panel put away; put back after.
+            if (Minimap.instance != null && !Game.m_noMap)
+            {
+                ScryPanel.ShowOnTheMapForTest(first);
+                yield return Until(() => Minimap.instance.m_mode == Minimap.MapMode.Large, 3);
+                p.Check(Minimap.instance.m_mode == Minimap.MapMode.Large && !Session.IsOpen, "On the map opens Valheim's large map where it lies, the panel put away", Minimap.instance.m_mode.ToString());
+                yield return Picture(p, $"the large map where a walked {entry.Name} lies");
+                Minimap.instance.SetMapMode(Minimap.MapMode.Small);
+                Session.Show(null);
+            }
+            else p.Note("this world has no map: On the map is left out");
             DungeonFogAsItWas();
         }
 
@@ -324,9 +345,10 @@ namespace Scry
             if (today >= 0)
             {
                 var said = "day " + Numbers.Count(today);
-                yield return Until(() => ScryPanel.FirstMapLineForTest?.EndsWith(said, System.StringComparison.Ordinal) ?? false, 3);
-                p.Check((ScryPanel.FirstMapLineForTest?.StartsWith("Walked by you", System.StringComparison.Ordinal) ?? false) && ScryPanel.FirstMapLineForTest.EndsWith(said, System.StringComparison.Ordinal),
-                    "its page's line says how far you walked it and the day", ScryPanel.FirstMapLineForTest);
+                yield return Until(() => ScryPanel.FirstMapTipForTest?.Contains(said) ?? false, 3);
+                p.Check((ScryPanel.FirstMapLineForTest?.StartsWith(DungeonMapWords.Where(0f, 0), System.StringComparison.Ordinal) ?? false) && ScryPanel.FirstMapLineForTest.Contains(" \u00b7 you ")
+                    && (ScryPanel.FirstMapTipForTest?.Contains(said) ?? false),
+                    "its page's line says it lies where you stand and how far you walked it, its hover the day", $"{ScryPanel.FirstMapLineForTest} / {ScryPanel.FirstMapTipForTest}");
             }
             MarksAsTheyWere();
         }

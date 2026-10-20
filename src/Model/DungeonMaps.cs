@@ -568,13 +568,57 @@ namespace Scry
     /// <summary>What the page of a dungeon been in says of its maps, and the reset's answer.</summary>
     internal static class DungeonMapWords
     {
-        /// <summary>A walk of yours as the page lines it: numbered where the location has more than one, how far, and its days.</summary>
-        public static string Yours(int index, int count, int walked, int rooms, int first, int last) =>
-            "Walked by you" + Numbered(index, count) + ": " + RoomsOf(walked, rooms) + WithDays(first, last);
+        /// <summary>
+        /// A dungeon's line on its location's page (<see cref="WalkLines"/>): where it lies from
+        /// where you stand, or that it lies outside what you know, then how far you walked it and
+        /// how far anyone on this server did, with how many of those rooms came of traces alone.
+        /// </summary>
+        public static string Line(WalkLine line)
+        {
+            var said = line.Found ? Where(line.Distance, line.Direction) : NotFound;
+            if (line.Yours is (int walked, int rooms)) said += " \u00b7 you " + RoomsOf(walked, rooms);
+            if (line.Server is (int serverWalked, int serverRooms, int fromTraces)) said += " \u00b7 on this server " + RoomsOf(serverWalked, serverRooms) + FromTraces(serverWalked, fromTraces, ", ");
+            return said;
+        }
 
-        /// <summary>The line of the server's record of a dungeon, anyone's walks on it: numbered where the location has more than one, how far, how many of those rooms came of traces alone, its days, and the tier that opens it.</summary>
-        public static string Server(int index, int count, int walked, int rooms, string floor, int first, int last, int fromTraces) =>
-            "Walked on this server" + Numbered(index, count) + ": " + RoomsOf(walked, rooms) + FromTraces(walked, fromTraces, " \u00b7 ") + WithDays(first, last) + " \u00b7 opened up to the " + floor + " tier";
+        /// <summary>A line's hover: the days you walked it, then what was left inside and the days anyone on this server did, one under the other; none where nothing is known.</summary>
+        public static string LineTip(WalkLine line)
+        {
+            var yours = line.Yours.HasValue ? DaysTip(true, line.YourFirst, line.YourLast) : null;
+            // A line with no walk on this server knows no day nor trace of one, and says none.
+            var server = ServerTip(line.Tally, line.ServerFirst, line.ServerLast);
+            if (yours == null) return server;
+            return server == null ? yours : Naming.Lines(yours, server);
+        }
+
+        /// <summary>The heading over a location's lines, with how many dungeons of it were walked in this world.</summary>
+        public static string Heading(int count) => Naming.Counted("Walked in this world", count);
+
+        /// <summary>The line of a dungeon lying outside what you know, its place kept hidden.</summary>
+        public const string NotFound = "One you have not found";
+
+        private static readonly string[] Directions = { "north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west" };
+
+        /// <summary>
+        /// Where a dungeon lies from where you stand: its way and how far, to ten metres under a
+        /// kilometre, to a tenth of one under ten, then in whole ones; where you stand within thirty metres.
+        /// </summary>
+        public static string Where(float metres, int direction)
+        {
+            if (metres < 30f) return "Where you stand";
+            var way = " " + Directions[direction];
+            var tens = (int)Math.Round(metres / 10f, MidpointRounding.AwayFromZero) * 10;
+            if (tens < 1000) return Numbers.Count(tens) + " m" + way;
+            var km = metres / 1000f;
+            return (km >= 9.95f ? Numbers.Count((int)Math.Round(km, MidpointRounding.AwayFromZero)) : Numbers.Fixed(km, 1)) + " km" + way;
+        }
+
+        public const string OnTheMap = "On the map";
+        public const string OnTheMapTip = "Open Valheim's large map where this dungeon lies";
+
+        /// <summary>The button of the dungeon the stage shows now.</summary>
+        public const string Shown = "Shown";
+        public const string BothOpenTip = "Show this dungeon on the stage as far as you and anyone on this server walked it";
 
         /// <summary>How many rooms walked came of traces alone: "from traces" where all did; none where none did.</summary>
         private static string FromTraces(int walked, int fromTraces, string before) =>
@@ -638,19 +682,10 @@ namespace Scry
         /// <summary>The answer to reading them from a game that is not the server, which answers again once done.</summary>
         public const string TracesAsked = "the server is asked to read the traces in the dungeons of this world.";
 
-        /// <summary>A line's number among the location's, "(2 of 3)"; none where it is the only one.</summary>
-        private static string Numbered(int index, int count) => count > 1 ? " (" + Numbers.Count(index + 1) + " of " + Numbers.Count(count) + ")" : "";
-
         private static string RoomsOf(int walked, int rooms) => Numbers.Count(walked) + " of " + Naming.Count(rooms, "room", "rooms");
 
         /// <summary>How far a mark's dungeon was walked: "4 of 9 rooms", "all 9 rooms" once every one is.</summary>
         private static string MarkRooms(int walked, int rooms) => walked == rooms && rooms > 1 ? "all " + Naming.Count(rooms, "room", "rooms") : RoomsOf(walked, rooms);
-
-        private static string WithDays(int first, int last)
-        {
-            var days = Days(first, last);
-            return days == null ? "" : " \u00b7 " + days;
-        }
 
         /// <summary>The game's days a walk spans: "days 103–241", "day 103" for one day, "last day 241" where its first is not known; none where its last is not.</summary>
         public static string Days(int first, int last)

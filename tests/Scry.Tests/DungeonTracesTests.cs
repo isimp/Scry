@@ -384,9 +384,9 @@ namespace Scry.Tests
         [Fact]
         public void ThePageAndTheMarkSayHowManyRoomsCameOfTraces()
         {
-            Assert.Equal("Walked on this server: 7 of 12 rooms · from traces · opened up to the Known tier", DungeonMapWords.Server(0, 1, 7, 12, "Known", -1, -1, 7));
-            Assert.Equal("Walked on this server: 9 of 12 rooms · 7 from traces · last day 412 · opened up to the Known tier", DungeonMapWords.Server(0, 1, 9, 12, "Known", -1, 412, 7));
-            Assert.Equal("Walked on this server: 9 of 12 rooms · last day 412 · opened up to the Known tier", DungeonMapWords.Server(0, 1, 9, 12, "Known", -1, 412, 0));
+            Assert.Equal("One you have not found · on this server 7 of 12 rooms, from traces", DungeonMapWords.Line(new WalkLine { Server = (7, 12, 7) }));
+            Assert.Equal("One you have not found · on this server 9 of 12 rooms, 7 from traces", DungeonMapWords.Line(new WalkLine { Server = (9, 12, 7) }));
+            Assert.Equal("One you have not found · on this server 9 of 12 rooms", DungeonMapWords.Line(new WalkLine { Server = (9, 12, 0) }));
             Assert.Equal("Frost Caves\n<size=80%><color=#abc>Walked on this server: 7 of 12 rooms, from traces</color></size>", DungeonMapWords.ServerLabel("Frost Caves", 7, 12, "abc", -1, 7));
             Assert.Equal("Frost Caves\n<size=80%><color=#abc>Walked on this server: 9 of 12 rooms, 7 from traces</color></size>", DungeonMapWords.ServerLabel("Frost Caves", 9, 12, "abc", -1, 7));
             Assert.Equal("Frost Caves\n<size=80%><color=#abc>Walked on this server: 9 of 12 rooms</color></size>", DungeonMapWords.ServerLabel("Frost Caves", 9, 12, "abc", -1, 0));
