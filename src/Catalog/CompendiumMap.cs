@@ -490,13 +490,17 @@ namespace Scry
         }
     }
 
-    /// <summary>A map read at a cartography table brings shared ground to ask about (<see cref="CompendiumMap.MapTableRead"/>).</summary>
+    /// <summary>
+    /// A map read at a cartography table brings shared ground to ask about (<see cref="CompendiumMap.MapTableRead"/>),
+    /// also as a map is written there, which reads the table's map first. The game answers false to
+    /// every read (<c>MapTable.OnRead</c>), so the hook goes by what the game reads on: no item held out.
+    /// </summary>
     [HarmonyPatch(typeof(MapTable), "OnRead", typeof(Switch), typeof(Humanoid), typeof(ItemDrop.ItemData), typeof(bool))]
     internal static class MapTableRead
     {
-        private static void Postfix(bool __result)
+        private static void Postfix(ItemDrop.ItemData item)
         {
-            if (__result) Guard.Run(Feature.CompendiumMap, "noting a shared map read", CompendiumMap.MapTableRead);
+            if (item == null) Guard.Run(Feature.CompendiumMap, "noting a shared map read", CompendiumMap.MapTableRead);
         }
     }
 }

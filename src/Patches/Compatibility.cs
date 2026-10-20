@@ -386,6 +386,8 @@ namespace Scry
             ("RuneStone", "Interact", 3, 0xB26864BA, Feature.RunestoneTexts),
             // The game keeps a text read only where it has a label, so the book keeps every text read too.
             ("Player", "AddKnownText", 2, 0x237D09AE, Feature.CompendiumTextsRead),
+            // A map read or written at a cartography table, which the game answers false to every time.
+            ("MapTable", "OnRead", 4, 0x90776229, Feature.CompendiumMap),
             ("SpawnArea", "Awake", 0, 0xC832E900, Feature.Spawners),
             ("SpawnSystem", "GetLevelUpChance", 2, 0x48618D51, Feature.RaidsStarsOnStage),
             ("SpawnSystem", "Spawn", 3, 0x9994FB4E, Feature.RaidsRolledOnStage),

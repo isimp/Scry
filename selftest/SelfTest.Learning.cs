@@ -78,14 +78,17 @@ namespace Scry
             else p.Note("no rune stone loaded or among the prefabs: reading one untried");
 
             // A station and its upgrades: in use, an upgrade built near it, it built near them.
-            var near = new List<StationExtension>();
-            var station = Object.FindObjectsByType<CraftingStation>(FindObjectsSortMode.None).OrderBy(s => (s.transform.position - at).sqrMagnitude).FirstOrDefault(s =>
+            // Each station loaded with its own upgrades, the nearest with any taken.
+            var stations = new List<(CraftingStation Station, List<StationExtension> Upgrades)>();
+            foreach (var each in Object.FindObjectsByType<CraftingStation>(FindObjectsSortMode.None))
             {
-                near.Clear();
-                StationExtension.FindExtensions(s, s.transform.position, near);
-                return near.Count > 0;
-            });
-            if (station != null)
+                if (each == null) continue;
+                var found = new List<StationExtension>();
+                StationExtension.FindExtensions(each, each.transform.position, found);
+                if (found.Count > 0) stations.Add((each, found));
+            }
+            var (station, near) = stations.OrderBy(t => (t.Station.transform.position - at).sqrMagnitude).FirstOrDefault();
+            if (station != null && near != null && near.Count > 0)
             {
                 var stationEntry = X.Find(Utils.GetPrefabName(station.gameObject));
                 var upgrade = near[0];
@@ -116,8 +119,9 @@ namespace Scry
 
         /// <summary>
         /// Every hook of Scry's acting on a game method's answer can see that answer come true: none
-        /// hooks a method whose code answers only false (<see cref="IlShape.OnlyFalse"/>), as a hook
-        /// on RuneStone.Interact once did, which never acted. The hooks are told.
+        /// hooks a method whose code answers only false (<see cref="IlShape.OnlyFalse"/>), as hooks on
+        /// RuneStone.Interact and MapTable.OnRead once did, which never acted. The hooks are told,
+        /// and how those two read now.
         /// </summary>
         private static IEnumerator HookGatesCanOpen(Probe p)
         {
@@ -138,9 +142,13 @@ namespace Scry
             }
             p.Note("hooks acting on the game's answer: " + string.Join(", ", looked));
             var interact = AccessTools.Method(typeof(RuneStone), nameof(RuneStone.Interact));
-            p.Note(IlShape.OnlyFalse(interact?.GetMethodBody()?.GetILAsByteArray())
-                ? "RuneStone.Interact is read as answering only false: a hook acting on its answer would never act"
-                : "RuneStone.Interact can answer true now");
+            var read = AccessTools.Method(typeof(MapTable), "OnRead", new[] { typeof(Switch), typeof(Humanoid), typeof(ItemDrop.ItemData), typeof(bool) });
+            foreach (var (name, game) in new[] { ("RuneStone.Interact", interact), ("MapTable.OnRead", read) })
+            {
+                p.Note(IlShape.OnlyFalse(game?.GetMethodBody()?.GetILAsByteArray())
+                    ? name + " is read as answering only false: a hook acting on its answer would never act"
+                    : name + " can answer true now");
+            }
             p.Check(looked.Count > 0 && dead.Count == 0, "every hook acting on a game method's answer can see it come true", string.Join(", ", dead));
             yield break;
         }

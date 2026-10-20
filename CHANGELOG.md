@@ -62,6 +62,8 @@ A click on a dungeon's mark on the map while Scry is still reading its catalog o
 
 Under the strict rules a place you stood in shows its biome, a rune stone you read shows its text whatever the game kept of it, and a station shows the upgrades you built near it or saw near it in use.
 
+A map read or written at a cartography table counts the places on the ground it shares at once, not only after the world is loaded again.
+
 ## 0.2.0
 
 Locations have a tab of their own: every location and dungeon room the world can place, grouped by biome, each telling where it is placed and what it holds. A location stands on the turntable as a new zone would roll it, its creatures included, and *Roll again* rolls it anew.
