@@ -494,6 +494,37 @@ namespace Scry
             if (rect.Contains(Event.current.mousePosition)) AskTip("peek", allowed ? CompendiumWords.PeekTip(explorer.Peeking) : WorldRulesWords.NoPeeking);
         }
 
+        /// <summary>The box's columns' widths, worked out with it each event, and what stands in them (<see cref="BookColumns"/>).</summary>
+        private static readonly float[] BookColumnWidths = new float[BookColumns.Count];
+        private static readonly List<(int First, int Last, float Width)> BookCells = new List<(int, int, float)>();
+
+        private static void AddBookCell((int First, int Last) cell, float width) => BookCells.Add((cell.First, cell.Last, width));
+
+        /// <summary>How wide a segment of the box is: as its words are drawn lit, bold, so the one chosen is never clipped.</summary>
+        private static float SegmentWidth(string text) => Skin.Width(Skin.SegmentOn, text) + U(6f);
+
+        /// <summary>A segment of the box that cannot be chosen: its box and words faint, so its row keeps its shape.</summary>
+        private static void DimSegment(Rect at, string text)
+        {
+            var was = GUI.color;
+            GUI.color = Skin.Alpha(was, was.a * 0.45f);
+            GUI.Label(at, text, Skin.Segment);
+            GUI.color = was;
+        }
+
+        /// <summary>Where each part of the box was last drawn, by its row and words, its column (-1 for a pin), whether it is lit and whether its words fit drawn lit; for the self-test.</summary>
+        [Diagnostic]
+        public static List<(string Row, string Label, int Column, Rect At, bool Lit, bool Fits)> BookCellsForTest { get; } = new List<(string, string, int, Rect, bool, bool)>();
+
+        /// <summary>Where the box was last laid out, for the self-test.</summary>
+        [Diagnostic]
+        public static Rect CompendiumBoxForTest => _bookBox;
+
+        private static void NoteBookCell(string row, string label, int column, Rect at, bool lit, bool words)
+        {
+            if (Event.current.type == EventType.Repaint) BookCellsForTest.Add((row, label, column, at, lit, !words || SegmentWidth(label) <= at.width + 0.5f));
+        }
+
         /// <summary>
         /// Where the box and its controls stand under the button, kept inside the panel: its
         /// caption, the rules' segments and, while the compendium is on and a floor can be set,
@@ -514,24 +545,32 @@ namespace Scry
             _bookCaptionW = Mathf.Max(Skin.Width(Skin.FaintLabel, CompendiumWords.RulesCaption) + (book.World.RulesSet ? U(18f) : 0f),
                 Skin.Width(Skin.FaintLabel, CompendiumWords.FloorCaption) + U(18f) + (book.World.FloorAllowed ? 0f : U(18f)));
             if (_bookWithShown) _bookCaptionW = Mathf.Max(_bookCaptionW, Skin.Width(Skin.FaintLabel, PlayingWithWords.RowCaption));
-            var sourcesW = 0f;
+            // Each rule, the floor and each source's levels in their columns, each as wide as it is
+            // drawn lit, so the one chosen is never clipped (BookColumns).
+            BookCells.Clear();
+            foreach (var rule in CompendiumWords.Rules) AddBookCell(BookColumns.Of(rule), SegmentWidth(CompendiumWords.RuleName(rule)));
+            if (_bookFloorShown)
+            {
+                AddBookCell(BookColumns.FloorLower, height);
+                AddBookCell(BookColumns.FloorValue, _floorValueW);
+                AddBookCell(BookColumns.FloorRaise, height);
+            }
+            var anyGround = false;
             if (_bookSourcesShown)
             {
                 foreach (var source in WorldSources.All)
                 {
                     _bookCaptionW = Mathf.Max(_bookCaptionW, Skin.Width(Skin.FaintLabel, CompendiumWords.SourceName(source)));
-                    var levelsW = 0f;
-                    foreach (var level in WorldSources.Offered(source)) levelsW += Skin.Width(Skin.Segment, CompendiumWords.LevelName(level)) + U(6f) + (levelsW > 0f ? gap : 0f);
-                    if (WorldSources.HasGround(source)) levelsW += gap + height;
-                    sourcesW = Mathf.Max(sourcesW, levelsW);
+                    foreach (var level in WorldSources.Offered(source)) AddBookCell(BookColumns.Of(level), SegmentWidth(CompendiumWords.LevelName(level)));
+                    anyGround |= WorldSources.HasGround(source);
                 }
             }
+            BookColumns.Widths(BookColumnWidths, BookCells, gap);
             _bookCaptionW += U(10f);
-            var segmentsW = 0f;
-            for (var i = 0; i < CompendiumWords.Rules.Count; i++) segmentsW += Skin.Width(Skin.Segment, CompendiumWords.RuleName(CompendiumWords.Rules[i])) + U(6f) + (i > 0 ? gap : 0f);
-            var floorW = _bookFloorShown ? height * 2f + _floorValueW + gap * 2f : 0f;
+            // Every ground's pin in a column of its own after the levels.
+            var gridW = BookColumns.Width(BookColumnWidths, gap) + (anyGround ? gap + height : 0f);
             var captionsW = Mathf.Max(Skin.Width(Skin.FaintLabel, CompendiumWords.BoxCaption), _bookSourcesShown ? Skin.Width(Skin.FaintLabel, CompendiumWords.SourcesCaption) : 0f);
-            var width = Mathf.Min(room.width, Mathf.Max(captionsW, _bookCaptionW + Mathf.Max(segmentsW, Mathf.Max(floorW, sourcesW))) + pad * 2f);
+            var width = Mathf.Min(room.width, Mathf.Max(captionsW, _bookCaptionW + gridW) + pad * 2f);
             var rows = _bookFloorShown ? 2 : 1;
             var x = Mathf.Clamp(button.xMax - width, room.x, room.xMax - width);
             var sourcesH = 0f;
@@ -553,17 +592,19 @@ namespace Scry
             _bookBox = new Rect(x, button.yMax + gap, width, pad + U(26f) + rows * height + (rows - 1) * U(6f) + sourcesH + withH + pad);
 
             var rowY = _bookBox.y + pad + U(26f);
-            var sx = _bookBox.x + pad + _bookCaptionW;
-            for (var i = 0; i < CompendiumWords.Rules.Count; i++)
+            var columnsLeft = _bookBox.x + pad + _bookCaptionW;
+            Rect CellAt((int First, int Last) cell, float y)
             {
-                var w = Skin.Width(Skin.Segment, CompendiumWords.RuleName(CompendiumWords.Rules[i])) + U(6f);
-                BookSegments[i] = new Rect(sx, rowY, w, height);
-                sx += w + gap;
+                var (cx, cw) = BookColumns.Cell(BookColumnWidths, columnsLeft, gap, cell.First, cell.Last);
+                return new Rect(cx, y, cw, height);
             }
+            for (var i = 0; i < CompendiumWords.Rules.Count; i++) BookSegments[i] = CellAt(BookColumns.Of(CompendiumWords.Rules[i]), rowY);
             var floorY = rowY + height + U(6f);
-            _bookLower = new Rect(_bookBox.x + pad + _bookCaptionW, floorY, height, height);
-            _bookValue = new Rect(_bookLower.xMax + gap, floorY, _floorValueW, height);
-            _bookRaise = new Rect(_bookValue.xMax + gap, floorY, height, height);
+            // The arrows square at the starts of their columns, the biome across the two between.
+            _bookLower = new Rect(CellAt(BookColumns.FloorLower, floorY).x, floorY, height, height);
+            _bookValue = CellAt(BookColumns.FloorValue, floorY);
+            _bookRaise = new Rect(CellAt(BookColumns.FloorRaise, floorY).x, floorY, height, height);
+            var pinX = columnsLeft + BookColumns.Width(BookColumnWidths, gap) + gap;
             if (_bookSourcesShown)
             {
                 var sourceY = rowY + rows * height + (rows - 1) * U(6f) + U(14f);
@@ -572,15 +613,9 @@ namespace Scry
                 for (var s = 0; s < WorldSources.All.Length; s++)
                 {
                     SourceNames[s] = new Rect(_bookBox.x + pad, sourceY, _bookCaptionW, height);
-                    var lx = _bookBox.x + pad + _bookCaptionW;
                     for (var l = 0; l < SourceSegments[s].Length; l++) SourceSegments[s][l] = Rect.zero;
-                    foreach (var level in WorldSources.Offered(WorldSources.All[s]))
-                    {
-                        var w = Skin.Width(Skin.Segment, CompendiumWords.LevelName(level)) + U(6f);
-                        SourceSegments[s][(int)level] = new Rect(lx, sourceY, w, height);
-                        lx += w + gap;
-                    }
-                    SourcePins[s] = WorldSources.HasGround(WorldSources.All[s]) ? new Rect(lx, sourceY, height, height) : Rect.zero;
+                    foreach (var level in WorldSources.Offered(WorldSources.All[s])) SourceSegments[s][(int)level] = CellAt(BookColumns.Of(level), sourceY);
+                    SourcePins[s] = WorldSources.HasGround(WorldSources.All[s]) ? new Rect(pinX, sourceY, height, height) : Rect.zero;
                     sourceY += height + U(6f);
                 }
                 _sourcesHint = new Rect(_bookBox.x + pad, sourceY, _bookBox.width - pad * 2f, hintH);
@@ -658,6 +693,7 @@ namespace Scry
             var repaint = Event.current.type == EventType.Repaint;
             if (repaint)
             {
+                BookCellsForTest.Clear();
                 CountDrawn(PanelPart.CompendiumBox);
                 Skin.Box(_bookBox, Skin.Backdrop, Skin.Outline);
                 GUI.Label(new Rect(_bookBox.x + pad, _bookBox.y + pad, _bookBox.width - pad * 2f, U(20f)), CompendiumWords.BoxCaption, Skin.FaintLabel);
@@ -669,13 +705,13 @@ namespace Scry
             for (var i = 0; i < CompendiumWords.Rules.Count; i++)
             {
                 var rule = CompendiumWords.Rules[i];
+                var name = CompendiumWords.RuleName(rule);
                 if (repaint)
                 {
-                    var was = GUI.enabled;
-                    GUI.enabled = was && (!rulesSet || book.Rule == rule);
-                    GUI.Button(BookSegments[i], CompendiumWords.RuleName(rule), book.Rule == rule ? Skin.SegmentOn : Skin.Segment);
-                    GUI.enabled = was;
+                    if (rulesSet && book.Rule != rule) DimSegment(BookSegments[i], name);
+                    else GUI.Button(BookSegments[i], name, book.Rule == rule ? Skin.SegmentOn : Skin.Segment);
                 }
+                NoteBookCell("rules", name, BookColumns.Of(rule).First, BookSegments[i], book.Rule == rule, words: true);
                 if (BookSegments[i].Contains(mouse)) AskTip("mode-" + CompendiumWords.RuleName(rule), rulesSet ? WorldRulesWords.RulesSet(book.Rule) : CompendiumWords.StepTip(rule));
             }
             DrawSources(book, mouse, repaint);
@@ -699,6 +735,9 @@ namespace Scry
                 GUI.enabled = was;
                 GUI.Label(_bookValue, CompendiumWords.FloorName(floor), Skin.Button);
             }
+            NoteBookCell("floor", "lower", BookColumns.FloorLower.First, _bookLower, false, words: false);
+            NoteBookCell("floor", CompendiumWords.FloorName(floor), BookColumns.FloorValue.First, _bookValue, false, words: false);
+            NoteBookCell("floor", "raise", BookColumns.FloorRaise.First, _bookRaise, false, words: false);
             if (!book.World.FloorAllowed)
             {
                 if (_bookLower.Contains(mouse) || _bookRaise.Contains(mouse) || _bookValue.Contains(mouse)) AskTip("floor-locked", WorldRulesWords.NoFloor);
@@ -743,13 +782,13 @@ namespace Scry
                     if (capped) CountDrawn(PanelPart.WorldLocked);
                     var dimmed = capped || level == SourceLevel.WithInsides && shows != level && !OffersInsides(book, source);
                     if (dimmed && !capped) CountDrawn(PanelPart.InsidesDimmed);
+                    var name = CompendiumWords.LevelName(level);
                     if (repaint)
                     {
-                        var was = GUI.enabled;
-                        GUI.enabled = was && !dimmed;
-                        GUI.Button(at, CompendiumWords.LevelName(level), shows == level ? Skin.SegmentOn : Skin.Segment);
-                        GUI.enabled = was;
+                        if (dimmed) DimSegment(at, name);
+                        else GUI.Button(at, name, shows == level ? Skin.SegmentOn : Skin.Segment);
                     }
+                    NoteBookCell(CompendiumWords.SourceName(source), name, BookColumns.Of(level).First, at, shows == level, words: true);
                     if (at.Contains(mouse)) AskTip("source-level-" + level, capped ? WorldRulesWords.UpTo(source, book.World.Highest(source)) : dimmed ? CompendiumWords.NoInsides(source) : CompendiumWords.LevelTip(level));
                 }
                 DrawPin(book, source, SourcePins[s], mouse, repaint);
@@ -769,6 +808,7 @@ namespace Scry
                 Skin.Icon(new Rect(pin.x + inset, pin.y + inset, pin.width - inset * 2f, pin.height - inset * 2f), Skin.Doorway, on ? Skin.Accent : Skin.Alpha(Skin.Faint, 0.45f));
             }
             if (pin.Contains(mouse)) AskTip("source-pin-" + source, Naming.Lines(CompendiumWords.PinName, CompendiumWords.PinTip(on)));
+            NoteBookCell(CompendiumWords.SourceName(source), "pin", -1, pin, on, words: false);
         }
 
         /// <summary>Turns a ground's pin on or off for the character played and keeps it at once, asking about the ground as it goes on: a choice of the player's. The pin, and the self-test.</summary>
