@@ -213,7 +213,8 @@ namespace Scry
             if (ZNet.instance == null || !ZNet.instance.IsServer()) return;
             var world = package.ReadString();
             var source = package.ReadInt();
-            var ground = Utils.Decompress(package.ReadByteArray());
+            var ground = Packed.Unpack(package.ReadByteArray(), ExploredGrid.MostSent);
+            if (ground == null) return;
             var maps = InGround(world, ground, KindsAsked(package));
             var answer = new ZPackage();
             answer.Write(world);
@@ -230,8 +231,13 @@ namespace Scry
             var source = (WorldSource)package.ReadInt();
             if (!System.Enum.IsDefined(typeof(WorldSource), source)) return;
             // A server's older Scry names its dungeons by their generators' numbers: re-keyed by place.
-            Take(world, source, DungeonMaps.Load(Encoding.UTF8.GetString(Utils.Decompress(package.ReadByteArray()))).ByPlace());
+            var text = Packed.Unpack(package.ReadByteArray(), MostAnswered);
+            if (text == null) return;
+            Take(world, source, DungeonMaps.Load(Encoding.UTF8.GetString(text)).ByPlace());
         }
+
+        /// <summary>The most text of maps the server's answer may unpack to: every dungeon of a ground the size of a world, with its rooms.</summary>
+        private const int MostAnswered = 16 << 20;
 
         private static void Take(string world, WorldSource source, DungeonMaps maps)
         {

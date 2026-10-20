@@ -80,9 +80,9 @@ namespace Scry
             rpc.Register<ZPackage>(CensusAskRpc, (sender, package) => Guard.Run(Feature.CompendiumMap, "answering a player's ask for the world's census", () => AnswerCensus(sender, package)));
             rpc.Register<ZPackage>(CensusAnswerRpc, (sender, package) => Guard.Run(Feature.CompendiumMap, "taking the server's census of the world", () => TakeCensus(sender, package)));
             rpc.Register<ZPackage>(SharedAskRpc, (sender, package) => Guard.Run(Feature.CompendiumMap, "answering a player's shared ground", () => Answer(sender, package, SharedAnswerRpc)));
-            rpc.Register<ZPackage>(SharedAnswerRpc, (sender, package) => Guard.Run(Feature.CompendiumMap, "taking the server's answer on the shared ground", () => TakeShared(package)));
+            rpc.Register<ZPackage>(SharedAnswerRpc, (sender, package) => Guard.Run(Feature.CompendiumMap, "taking the server's answer on the shared ground", () => TakeShared(sender, package)));
             rpc.Register<ZPackage>(AskRpc, (sender, package) => Guard.Run(Feature.CompendiumMap, "answering a player's explored map", () => Answer(sender, package, AnswerRpc)));
-            rpc.Register<ZPackage>(AnswerRpc, (sender, package) => Guard.Run(Feature.CompendiumMap, "taking the server's answer on the explored map", () => Take(package)));
+            rpc.Register<ZPackage>(AnswerRpc, (sender, package) => Guard.Run(Feature.CompendiumMap, "taking the server's answer on the explored map", () => Take(sender, package)));
         }
 
         /// <summary>Whether the server's Scry is missing, the world given up on for the session and said once; false while its hello is waited for or heard.</summary>
@@ -179,7 +179,7 @@ namespace Scry
         {
             if (ZNet.instance == null || !ZNet.instance.IsServer()) return;
             var world = package.ReadString();
-            var grid = ExploredGrid.Unpack(Utils.Decompress(package.ReadByteArray()));
+            var grid = ExploredGrid.Unpack(Packed.Unpack(package.ReadByteArray(), ExploredGrid.MostSent));
             if (grid == null) return;
             var counted = MapCatchUp.Counted(grid, CompendiumMap.Places());
             var reply = new ZPackage();
@@ -257,9 +257,10 @@ namespace Scry
         [Diagnostic]
         public static int CensusAnswered { get; private set; }
 
-        /// <summary>The client takes the server's answer into the book of the character played.</summary>
-        private static void Take(ZPackage package)
+        /// <summary>The client takes the server's answer into the book of the character played; from any game but the world's server, passed over.</summary>
+        private static void Take(long sender, ZPackage package)
         {
+            if (sender != EventLink.WorldSession) return;
             var world = package.ReadString();
             var counted = ReadCounted(package);
             if (world == _askedMoreFor && world != _askedFor)
@@ -280,9 +281,10 @@ namespace Scry
         [Diagnostic]
         public static int TakenMore { get; private set; }
 
-        /// <summary>The client keeps what the server told lies in its ground from shared maps.</summary>
-        private static void TakeShared(ZPackage package)
+        /// <summary>The client keeps what the server told lies in its ground from shared maps; from any game but the world's server, passed over.</summary>
+        private static void TakeShared(long sender, ZPackage package)
         {
+            if (sender != EventLink.WorldSession) return;
             var world = package.ReadString();
             var counted = ReadCounted(package);
             if (world != _sharedAskedFor) return;

@@ -24,7 +24,10 @@ namespace Scry
     /// older day of, and the client sends just those, so walks made before the server kept them, or
     /// lost from it, come in. Every map that comes in is re-keyed by place (<see cref="DungeonMaps.ByPlace"/>).
     /// The messages are registered on each new connection, as the game makes its routed messages
-    /// anew for each.
+    /// anew for each. What only an admin may ask, forgetting the records and reading the traces,
+    /// comes by the player's own connection to the server (<see cref="AdminAsksOn"/>): a routed
+    /// message names its sender as the sending game wrote it, which the server passes on as it is
+    /// (<c>ZRoutedRpc.RouteRPC</c>), so any game could name an admin's.
     /// </summary>
     internal static class GroupMapsLink
     {
@@ -91,7 +94,7 @@ namespace Scry
         /// <summary>How often a client sends its walk, and asks again for a location's records, in seconds.</summary>
         private const float ReportEvery = 10f, AskEvery = 60f;
 
-        /// <summary>The most text of maps a message may carry, unpacked.</summary>
+        /// <summary>The most a message of maps or of walks listed may unpack to (<see cref="Packed"/>).</summary>
         private const int MostText = 1 << 20;
 
         private const int QuitWaitMs = 2000;
@@ -151,6 +154,8 @@ namespace Scry
             _listOnlyForTest = false;
             _tracedFor = null;
             _readQuietly = false;
+            AdminAsksOn.Clear();
+            _peersLookedAt = float.NegativeInfinity;
         }
 
         /// <summary>Registers the messages on each new connection, sends a walk due, and on a server keeps its records; called each frame, on a dedicated server too.</summary>
@@ -165,17 +170,20 @@ namespace Scry
                 {
                     rpc.Register<ZPackage>(WalkedRpc, (sender, package) => Guard.Run(Feature.GroupDungeonMaps, "taking in a player's dungeon walk", () => TakeWalk(package)));
                     rpc.Register<ZPackage>(AskRpc, (sender, package) => Guard.Run(Feature.GroupDungeonMaps, "answering a player's ask for dungeon records", () => Answer(sender, package)));
-                    rpc.Register<ZPackage>(AnswerRpc, (sender, package) => Guard.Run(Feature.GroupDungeonMaps, "taking the server's dungeon records", () => Take(package)));
-                    rpc.Register<ZPackage>(ForgetRpc, (sender, package) => Guard.Run(Feature.GroupDungeonMaps, "forgetting the world's dungeon records", () => ForgetAsked(sender, package)));
-                    rpc.Register<int>(ForgotRpc, (sender, count) => Guard.Run(Feature.GroupDungeonMaps, "taking the server's answer to forgetting", () => Forgot(count)));
+                    rpc.Register<ZPackage>(AnswerRpc, (sender, package) => Guard.Run(Feature.GroupDungeonMaps, "taking the server's dungeon records", () => Take(sender, package)));
+                    rpc.Register<int>(ForgotRpc, (sender, count) => Guard.Run(Feature.GroupDungeonMaps, "taking the server's answer to forgetting", () => Forgot(sender, count)));
                     rpc.Register<ZPackage>(WalksListRpc, (sender, package) => Guard.Run(Feature.GroupDungeonMaps, "answering a player's list of walks", () => ListAsked(sender, package)));
                     rpc.Register<ZPackage>(WalksWantedRpc, (sender, package) => Guard.Run(Feature.GroupDungeonMaps, "sending the walks the server wants", () => WantedTaken(sender, package)));
-                    rpc.Register<ZPackage>(ReadTracesRpc, (sender, package) => Guard.Run(Feature.GroupDungeonMaps, "reading the traces in the world's dungeons as asked", () => ReadTracesAsked(sender, package)));
                     rpc.Register<ZPackage>(TracesReadRpc, (sender, package) => Guard.Run(Feature.GroupDungeonMaps, "taking the server's answer on traces read", () => TracesRead(sender, package)));
                 }
                 _listedFor = null;
+                AdminAsksOn.Clear();
             }
-            if (IsServer) KeepRecords();
+            if (IsServer)
+            {
+                KeepRecords();
+                RegisterAdminAsks();
+            }
             if (_toReport != null && Time.unscaledTime - _reportedAt >= ReportEvery) SendWalk();
             ListWalks();
         }
@@ -213,7 +221,7 @@ namespace Scry
             if (!IsServer || _records == null) return;
             var world = package.ReadString();
             var packed = package.ReadByteArray();
-            var listed = packed != null ? WalkList.Read(Utils.Decompress(packed)) : null;
+            var listed = WalkList.Read(Packed.Unpack(packed, MostText));
             if (world != CompendiumMap.World || listed == null) return;
             var wanted = WalkList.Wanted(_records, listed, _records.ForgottenDay(world));
             var reply = new ZPackage();
@@ -322,11 +330,11 @@ namespace Scry
                 Save(now: true);
                 return DungeonMapWords.GroupForgotten(forgotten);
             }
-            var rpc = ZRoutedRpc.instance;
-            if (rpc == null || rpc != _registeredOn) return DungeonMapWords.GroupForgotten(0);
+            var server = ZNet.instance != null ? ZNet.instance.GetServerRPC() : null;
+            if (server == null || ZRoutedRpc.instance != _registeredOn) return DungeonMapWords.GroupForgotten(0);
             var package = new ZPackage();
             package.Write(world);
-            rpc.InvokeRoutedRPC(ForgetRpc, package);
+            server.Invoke(ForgetRpc, package);
             return DungeonMapWords.GroupAsked;
         }
 
@@ -365,22 +373,21 @@ namespace Scry
                 DungeonTraceReader.Start(world, (dungeons, rooms, onTheWay) => Said(dungeons, rooms, onTheWay));
                 return DungeonMapWords.TracesReading;
             }
-            var rpc = ZRoutedRpc.instance;
-            if (rpc == null || rpc != _registeredOn) return DungeonMapWords.TracesRead(0, 0, 0);
+            var server = ZNet.instance != null ? ZNet.instance.GetServerRPC() : null;
+            if (server == null || ZRoutedRpc.instance != _registeredOn) return DungeonMapWords.TracesRead(0, 0, 0);
             var package = new ZPackage();
             package.Write(world);
-            rpc.InvokeRoutedRPC(ReadTracesRpc, package);
+            server.Invoke(ReadTracesRpc, package);
             return DungeonMapWords.TracesAsked;
         }
 
-        /// <summary>The server reads the traces as an admin asks, and answers once done; anyone else is refused.</summary>
-        private static void ReadTracesAsked(long sender, ZPackage package)
+        /// <summary>The server reads the traces as an admin asks by its own connection, and answers once done; anyone else is refused.</summary>
+        private static void ReadTracesAsked(ZNetPeer peer, ZPackage package)
         {
             if (!IsServer || _records == null) return;
             var world = package.ReadString();
-            var peer = ZNet.instance.GetPeer(sender);
-            var admin = peer?.m_socket != null && ZNet.instance.IsAdmin(peer.m_socket.GetHostName());
-            if (!admin || world != CompendiumMap.World)
+            var sender = peer.m_uid;
+            if (!IsAdmin(peer) || world != CompendiumMap.World)
             {
                 Reply(sender, -1, 0, 0);
                 return;
@@ -428,17 +435,41 @@ namespace Scry
             Answered++;
         }
 
-        private static void ForgetAsked(long sender, ZPackage package)
+        /// <summary>The server forgets the world's records as an admin asks by its own connection, and answers how many it forgot; anyone else is refused.</summary>
+        private static void ForgetAsked(ZNetPeer peer, ZPackage package)
         {
             if (!IsServer || _records == null) return;
             var world = package.ReadString();
-            var peer = ZNet.instance.GetPeer(sender);
-            var admin = peer?.m_socket != null && ZNet.instance.IsAdmin(peer.m_socket.GetHostName());
-            var forgotten = admin && world == CompendiumMap.World ? _records.ForgetWorld(world) : -1;
+            var sender = peer.m_uid;
+            var forgotten = IsAdmin(peer) && world == CompendiumMap.World ? _records.ForgetWorld(world) : -1;
             // The day noted, so the walks players list later are not taken back from before it.
             if (forgotten >= 0) _records.NoteForgotten(world, Today());
             if (forgotten >= 0) Save(now: true);
             ZRoutedRpc.instance.InvokeRoutedRPC(sender, ForgotRpc, forgotten);
+        }
+
+        /// <summary>Whether a player's connection is an admin's, by the server's admin list.</summary>
+        private static bool IsAdmin(ZNetPeer peer) => peer.m_socket != null && ZNet.instance.IsAdmin(peer.m_socket.GetHostName());
+
+        /// <summary>The players' connections the admin asks are registered on, those gone let go of each time the peers are looked at.</summary>
+        private static readonly HashSet<ZRpc> AdminAsksOn = new HashSet<ZRpc>();
+
+        private static float _peersLookedAt = float.NegativeInfinity;
+
+        /// <summary>Registers the admin asks on each player's connection to this server, looked at each second: a request then comes with the connection it came by.</summary>
+        private static void RegisterAdminAsks()
+        {
+            if (ZNet.instance == null || Time.unscaledTime - _peersLookedAt < 1f) return;
+            _peersLookedAt = Time.unscaledTime;
+            var peers = ZNet.instance.GetPeers();
+            AdminAsksOn.RemoveWhere(rpc => !peers.Exists(peer => peer.m_rpc == rpc));
+            foreach (var peer in peers)
+            {
+                if (peer?.m_rpc == null || !AdminAsksOn.Add(peer.m_rpc)) continue;
+                var from = peer;
+                peer.m_rpc.Register<ZPackage>(ForgetRpc, (rpc, package) => Guard.Run(Feature.GroupDungeonMaps, "forgetting the world's dungeon records", () => ForgetAsked(from, package)));
+                peer.m_rpc.Register<ZPackage>(ReadTracesRpc, (rpc, package) => Guard.Run(Feature.GroupDungeonMaps, "reading the traces in the world's dungeons as asked", () => ReadTracesAsked(from, package)));
+            }
         }
 
         /// <summary>Reads the world's records once it runs, and writes them as they change, at most every half minute.</summary>
@@ -510,8 +541,10 @@ namespace Scry
 
         // ----- A client's side -----
 
-        private static void Take(ZPackage package)
+        /// <summary>The server's records of a location's dungeons; from any game but the world's server, passed over.</summary>
+        private static void Take(long sender, ZPackage package)
         {
+            if (sender != EventLink.WorldSession) return;
             var world = package.ReadString();
             var text = Unpacked(package.ReadByteArray());
             if (world != CompendiumMap.World || text == null) return;
@@ -519,8 +552,10 @@ namespace Scry
             _group.Replace(DungeonMaps.Load(text).ByPlace());
         }
 
-        private static void Forgot(int count)
+        /// <summary>The server's answer to forgetting the world's records, said in the chat; from any game but the world's server, passed over.</summary>
+        private static void Forgot(long sender, int count)
         {
+            if (sender != EventLink.WorldSession) return;
             Chat.instance.OrNull()?.AddString(ConsoleWords.Reply(count < 0 ? DungeonMapWords.GroupForgetRefused : DungeonMapWords.GroupForgotten(count)));
             if (count > 0) _group.ForgetWorld(CompendiumMap.World);
         }
@@ -528,9 +563,8 @@ namespace Scry
         /// <summary>The text a message carries, none where it is too much or no text.</summary>
         private static string Unpacked(byte[] packed)
         {
-            if (packed == null) return null;
-            var bytes = Utils.Decompress(packed);
-            return bytes != null && bytes.Length <= MostText ? Encoding.UTF8.GetString(bytes) : null;
+            var bytes = Packed.Unpack(packed, MostText);
+            return bytes != null ? Encoding.UTF8.GetString(bytes) : null;
         }
     }
 }

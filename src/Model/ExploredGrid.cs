@@ -25,6 +25,9 @@ namespace Scry
 
         private const int Magic = 0x53435259;
 
+        /// <summary>The most bytes a packed grid another game sends may unpack to (<see cref="Packed"/>): a map of 8,192 pixels a side at a bit each, four times the game's own, as mods may make it bigger.</summary>
+        public const int MostSent = 16 + 8192 * 8192 / 8;
+
         /// <summary>A bit a cell, the cell at y times the side plus x.</summary>
         private readonly byte[] _bits;
 
