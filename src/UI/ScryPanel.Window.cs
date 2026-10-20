@@ -267,6 +267,7 @@ namespace Scry
             if (place.Ground != null) Stage.GroundChoice = place.Ground;
             if (place.Person.HasValue) Stage.ShowPerson = place.Person.Value;
             if (place.Worn.HasValue) Looks.OnPerson = place.Worn.Value;
+            // A file written before Spin was kept in the settings sets them once; it is written without it.
             if (place.Spin.HasValue) Stage.Spin = place.Spin.Value;
             if (place.Creatures.HasValue) Stage.CreaturesShown = place.Creatures.Value;
             if (place.Folded != null) FoldOnly(place.Folded);
@@ -292,7 +293,6 @@ namespace Scry
                 Ground = Stage.GroundChoice,
                 Person = Stage.ShowPerson,
                 Worn = Looks.OnPerson,
-                Spin = Stage.Spin,
                 Creatures = Stage.CreaturesShown,
                 Folded = Folded.ToArray(),
                 StageScale = _stageScale,

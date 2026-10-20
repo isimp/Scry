@@ -6,7 +6,7 @@ namespace Scry
 {
     /// <summary>
     /// Where the panel was left and how its stage was seen, as kept in <c>panel.txt</c>: one
-    /// setting a line, its name and then its value ("full 10 20 900 600", "light 2", "spin 1").
+    /// setting a line, its name and then its value ("full 10 20 900 600", "light 2", "person 1").
     /// A setting the file does not hold, or holds in a way it cannot be read, is null and left
     /// as the panel has it; one bad line costs only itself.
     /// </summary>
@@ -99,7 +99,6 @@ namespace Scry
             if (Ground != null) yield return "ground " + Ground;
             if (Person.HasValue) yield return "person " + Flag(Person.Value);
             if (Worn.HasValue) yield return "worn " + Flag(Worn.Value);
-            if (Spin.HasValue) yield return "spin " + Flag(Spin.Value);
             if (Creatures.HasValue) yield return "creatures " + Flag(Creatures.Value);
             if (Folded != null) yield return "folded " + string.Join(" ", Folded);
             if (StageScale.HasValue) yield return "stage " + Stored.Number(StageScale.Value);

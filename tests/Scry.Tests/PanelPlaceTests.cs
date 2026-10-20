@@ -70,7 +70,6 @@ namespace Scry.Tests
             Assert.Equal(all.Ground, read.Ground);
             Assert.Equal(all.Person, read.Person);
             Assert.Equal(all.Worn, read.Worn);
-            Assert.Equal(all.Spin, read.Spin);
             Assert.Equal(all.Creatures, read.Creatures);
             Assert.Equal(all.Folded, read.Folded);
             Assert.Equal(all.StageScale, read.StageScale);
@@ -78,6 +77,15 @@ namespace Scry.Tests
             Assert.Equal(all.ListHiddenFull, read.ListHiddenFull);
             Assert.Equal(all.ListShareCompact, read.ListShareCompact);
             Assert.Equal(all.ListHiddenCompact, read.ListHiddenCompact);
+        }
+
+        [Fact]
+        public void SpinIsKeptInTheSettingsNotInTheFile()
+        {
+            // The View box's Spin writes AutoSpin; a file written before keeps its line, read once to set it.
+            Assert.DoesNotContain(Everything().Lines(), l => l.StartsWith("spin", System.StringComparison.Ordinal));
+            Assert.True(PanelPlace.Read(new[] { "spin 1" }).Spin);
+            Assert.False(PanelPlace.Read(new[] { "spin 0" }).Spin);
         }
 
         [Fact]

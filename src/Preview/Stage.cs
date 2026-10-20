@@ -92,8 +92,12 @@ namespace Scry
 
         public static Texture Texture => _texture;
 
-        /// <summary>Whether the model turns on its own; starts as the config says.</summary>
-        public static bool Spin { get; set; } = Settings.AutoSpin;
+        /// <summary>Whether the model turns on its own: the config's AutoSpin, which the View box switches.</summary>
+        public static bool Spin
+        {
+            get => Settings.AutoSpin;
+            set => Settings.AutoSpin = value;
+        }
 
         /// <summary>Whether the floor ruled in metres is showing.</summary>
         public static bool ShowsGrid => _grid != null && _grid.activeSelf;

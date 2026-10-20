@@ -52,7 +52,15 @@ namespace Scry
 
         private static KeyCode _toldKey = KeyCode.None;
 
-        public static bool AutoSpin => _autoSpin?.Value ?? true;
+        /// <summary>Whether the model turns by itself; the View box's Spin switches it, kept in the config file.</summary>
+        public static bool AutoSpin
+        {
+            get => _autoSpin?.Value ?? true;
+            set
+            {
+                if (_autoSpin != null) _autoSpin.Value = value;
+            }
+        }
         public static bool PlayOnSelect => _playOnSelect?.Value ?? true;
         public static float UiScale => _uiScale?.Value ?? 1f;
         public static bool FocusSearchOnOpen => _focusSearch?.Value ?? true;
@@ -148,7 +156,7 @@ namespace Scry
             _dungeonMarks = config.Bind("1 - General", "DungeonMarksOnMap", true,
                 "Marks each dungeon you have been in on Valheim's large map, just above its entrance, telling how much of it you walked; a click on a mark opens its map in Scry. Off, the map shows nothing of Scry's.");
             _autoSpin = config.Bind("2 - Preview", "AutoSpin", true,
-                "Turns the model in the preview slowly while you are not dragging it.");
+                "Turns the model in the preview slowly while you are not dragging it. The View box's Spin switches it.");
             _spinSpeed = config.Bind("2 - Preview", "SpinSpeed", 14f,
                 new ConfigDescription("How fast the model turns by itself, in degrees a second, while AutoSpin is on.",
                     new AcceptableValueRange<float>(1f, 90f)));
