@@ -204,11 +204,13 @@ namespace Scry
             {
                 var location = instance.m_location;
                 if (location == null) continue;
-                var name = string.IsNullOrEmpty(location.m_prefabName) ? location.m_prefab.Name : location.m_prefabName;
-                places.Add((name, instance.m_position.x, instance.m_position.z));
+                places.Add((NameOf(location), instance.m_position.x, instance.m_position.z));
             }
             return places;
         }
+
+        /// <summary>A placed location's prefab name, as its kind goes by.</summary>
+        public static string NameOf(ZoneSystem.ZoneLocation location) => string.IsNullOrEmpty(location.m_prefabName) ? location.m_prefab.Name : location.m_prefabName;
 
         /// <summary>Works out on a worker thread which kinds of place lie in the explored map.</summary>
         private static void Start(string world, List<(string Kind, float X, float Z)> places)

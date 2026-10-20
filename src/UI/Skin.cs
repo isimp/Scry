@@ -87,7 +87,7 @@ namespace Scry
         /// <summary>The halves of two icon buttons joined into one piece, each rounded only at the piece's own end: off and on, left and right.</summary>
         public static GUIStyle JoinedLeft, JoinedRight, JoinedLeftOn, JoinedRightOn;
 
-        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize, Roof, Speed, Repeat, Steps, Eye, Up, Down, Compass;
+        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize, Roof, Speed, Repeat, Steps, Eye, Up, Down, Compass, Doorway;
 
         /// <summary>A rounded box's shape rounded only at its left, or only at its right, for joined buttons; a chevron pointing down, for folding away.</summary>
         public static Texture2D RoundedLeft, RoundedRight, FoldDown;
@@ -816,6 +816,7 @@ namespace Scry
             Steps = Shape(32, 32, StepsCoverage);
             Eye = Shape(32, 32, EyeCoverage);
             Compass = Shape(32, 32, CompassCoverage);
+            Doorway = Shape(32, 32, DoorwayCoverage);
             Up = Shape(32, 32, (x, y) => y >= 6f && y <= 26f && Mathf.Abs(x - 16f) <= (26f - y) * 0.6f);
             Down = Shape(32, 32, (x, y) => y >= 6f && y <= 26f && Mathf.Abs(x - 16f) <= (y - 6f) * 0.6f);
             RoundedLeft = Shape(32, 32, (x, y) => x >= 16f || RoundedCoverage(x, y, 32, 32, 8f));
@@ -885,6 +886,16 @@ namespace Scry
             if (t <= -1f || t >= 1f) return false;
             var outer = 10f * (1f - t * t);
             return dy <= outer && dy >= outer - 2.8f;
+        }
+
+        /// <summary>A disc with a rounded doorway in it, as Scry marks a dungeon on Valheim's big map: the pin marking a ground's dungeons.</summary>
+        private static bool DoorwayCoverage(float x, float y)
+        {
+            var dx = x - 16f;
+            var dy = y - 16f;
+            if (dx * dx + dy * dy > 15f * 15f) return false;
+            var doorway = dy > 2f ? Mathf.Sqrt(dx * dx + (dy - 2f) * (dy - 2f)) <= 6f : Mathf.Abs(dx) <= 6f && dy >= -8f;
+            return !doorway;
         }
 
         /// <summary>A compass: a ring round a needle pointing up and down, what is still to find on a page.</summary>

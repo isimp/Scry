@@ -42,6 +42,9 @@ namespace Scry
         /// <summary>The world's sources and their levels in the compendium's box.</summary>
         SourcesControl,
 
+        /// <summary>The pin at the end of a ground's row in the compendium's box, marking its dungeons on the big map.</summary>
+        DungeonPins,
+
         /// <summary>The notice under the header naming the players whose games lack Scry.</summary>
         PlayingWithNotice,
 

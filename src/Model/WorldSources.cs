@@ -51,6 +51,9 @@ namespace Scry
         private static readonly SourceLevel[] Every = (SourceLevel[])Enum.GetValues(typeof(SourceLevel));
         private static readonly SourceLevel[] FromSeen = Array.FindAll(Every, level => level >= SourceLevel.Seen);
 
+        /// <summary>Whether a source is ground rather than single places: the ground explored and ground from shared maps, whose dungeons can be marked on Valheim's big map (<see cref="DungeonMarks"/>).</summary>
+        public static bool HasGround(WorldSource source) => source == WorldSource.Explored || source == WorldSource.SharedMaps;
+
         /// <summary>The levels the box offers a source, the least it allows first.</summary>
         public static SourceLevel[] Offered(WorldSource source) => Least(source) == SourceLevel.Seen ? FromSeen : Every;
     }

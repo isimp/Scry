@@ -85,12 +85,21 @@ namespace Scry
             return _read;
         }
 
-        /// <summary>The rooms a generator saved (<c>DungeonGenerator.Load</c> reads them back the same way, the older keys too); null before its network object has any.</summary>
+        /// <summary>The dungeon of a generator standing in the world, as its network object keeps it; null before it has any rooms.</summary>
         private static WorldDungeon Read(DungeonGenerator generator, Location place)
         {
             var view = generator.GetComponent<ZNetView>();
             var zdo = view != null ? view.GetZDO() : null;
-            if (zdo == null) return null;
+            return zdo != null ? FromZdo(CompendiumMap.World, zdo, Utils.GetPrefabName(place.gameObject), place.transform.position) : null;
+        }
+
+        /// <summary>
+        /// A dungeon as its generator's network object keeps it, of the location named whose entrance
+        /// is given: the rooms it saved (<c>DungeonGenerator.Load</c> reads them back the same way,
+        /// the older keys too), where it stands and how it is turned; null where it has no rooms saved.
+        /// </summary>
+        private static WorldDungeon FromZdo(string world, ZDO zdo, string location, Vector3 entrance)
+        {
             List<(int, Vec3, Vec3)> saved;
             if (zdo.GetByteArray(ZDOVars.s_roomData, out var data)) saved = SavedRooms.Read(data);
             else
@@ -106,19 +115,62 @@ namespace Scry
                 }
             }
             if (saved.Count == 0) return null;
-            var at = generator.transform.position;
-            var turn = generator.transform.rotation;
-            var entrance = place.transform.position;
+            var at = zdo.GetPosition();
+            var turn = zdo.GetRotation();
             return new WorldDungeon
             {
                 Saved = saved,
                 Generator = new Vec3(at.x, at.y, at.z),
                 Turn = new Quat(turn.x, turn.y, turn.z, turn.w),
-                Id = DungeonMaps.IdOf(CompendiumMap.World, zdo.m_uid.UserID, zdo.m_uid.ID),
-                Location = Utils.GetPrefabName(place.gameObject),
+                Id = DungeonMaps.IdOf(world, zdo.m_uid.UserID, zdo.m_uid.ID),
+                Location = location,
                 Entrance = new Vec3(entrance.x, entrance.y, entrance.z),
             };
         }
+
+        /// <summary>No zone around a place's own, for looking through the objects of one zone.</summary>
+        private static readonly SimulationDistance OneZone = new SimulationDistance(0, 0);
+
+        private static readonly List<ZDO> InZone = new List<ZDO>();
+
+        /// <summary>
+        /// The dungeons lying in explored ground whose rooms the world keeps, as the game running the
+        /// world has them: each location placed in the ground, its zone's objects looked through for
+        /// a generator standing where the game counts a place as inside (<c>Character.InInterior</c>)
+        /// with rooms saved, the one nearest its entrance; a location whose zone never loaded has none yet.
+        /// </summary>
+        public static List<WorldDungeon> InGround(string world, ExploredGrid grid)
+        {
+            var found = new List<WorldDungeon>();
+            var zones = ZoneSystem.instance;
+            var zdos = ZDOMan.instance;
+            if (zones == null || zdos == null || grid == null || world == null) return found;
+            foreach (var instance in zones.m_locationInstances.Values)
+            {
+                if (!instance.m_placed || instance.m_location == null) continue;
+                var at = instance.m_position;
+                if (!grid.Explored(at.x, at.z)) continue;
+                InZone.Clear();
+                zdos.FindSectorObjects(ZoneSystem.GetZone(at), OneZone, InZone);
+                ZDO generator = null;
+                var nearest = float.MaxValue;
+                foreach (var zdo in InZone)
+                {
+                    var p = zdo.GetPosition();
+                    if (!Character.InInterior(p) || !HasRooms(zdo)) continue;
+                    var apart = (p.x - at.x) * (p.x - at.x) + (p.z - at.z) * (p.z - at.z);
+                    if (apart >= nearest) continue;
+                    nearest = apart;
+                    generator = zdo;
+                }
+                var dungeon = generator != null ? FromZdo(world, generator, CompendiumMap.NameOf(instance.m_location), at) : null;
+                if (dungeon != null) found.Add(dungeon);
+            }
+            return found;
+        }
+
+        /// <summary>Whether a network object holds rooms a generator saved, in either of the game's ways of keeping them.</summary>
+        private static bool HasRooms(ZDO zdo) => zdo.GetByteArray(ZDOVars.s_roomData, out _) || zdo.GetInt(ZDOVars.s_rooms) > 0;
 
         /// <summary>The size of each kind of room standing under the generator, as the game places it (<c>DungeonGenerator.PlaceRoom</c> makes each room under it).</summary>
         private static void Measure(DungeonGenerator generator, WorldDungeon dungeon)

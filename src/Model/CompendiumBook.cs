@@ -99,6 +99,25 @@ namespace Scry
         /// <summary>How a source's places show: as the player chose, else as it starts (<see cref="WorldSources.Least"/>).</summary>
         public SourceLevel Shows(WorldSource source) => _shows.TryGetValue(source, out var level) ? level : WorldSources.Least(source);
 
+        /// <summary>The sources of ground whose pin is on, their dungeons marked on Valheim's big map (<see cref="DungeonMarks"/>).</summary>
+        private readonly HashSet<WorldSource> _marks = new HashSet<WorldSource>();
+
+        /// <summary>Whether a source of ground has its pin on.</summary>
+        public bool MarksDungeons(WorldSource source) => _marks.Contains(source);
+
+        /// <summary>Turns a source of ground's pin on or off: a choice of the player's; a source without ground has none.</summary>
+        public void MarkDungeons(WorldSource source, bool on)
+        {
+            if (!WorldSources.HasGround(source) || MarksDungeons(source) == on) return;
+            if (on) _marks.Add(source);
+            else _marks.Remove(source);
+            SourcesVersion++;
+            Changed = true;
+        }
+
+        /// <summary>Whether a source's dungeons are marked now: its pin on and its row showing them with insides.</summary>
+        public bool MarksDungeonsNow(WorldSource source) => MarksDungeons(source) && Shows(source) == SourceLevel.WithInsides;
+
         /// <summary>Sets how a source's places show, no lower than the least it allows.</summary>
         public void Show(WorldSource source, SourceLevel level)
         {
@@ -460,6 +479,7 @@ namespace Scry
             var mapped = _mapped.ToArray();
             var foundIn = _foundIn.SelectMany(p => p.Value.Select(kind => (p.Key.World, p.Key.Source, Kind: kind))).ToArray();
             var shows = _shows.Where(p => p.Value != WorldSources.Least(p.Key)).ToArray();
+            var marks = _marks.ToArray();
             var rule = _rule;
             var floor = _floor;
             var pairs = _pairs.ToArray();
@@ -493,6 +513,7 @@ namespace Scry
                     text.Append("place\t").Append(Stored.Escaped(world)).Append('\t').Append(source).Append('\t').Append(Stored.Escaped(kind)).Append('\n');
                 }
                 foreach (var pair in shows.OrderBy(p => p.Key)) text.Append("shows\t").Append(pair.Key).Append('\t').Append(pair.Value).Append('\n');
+                foreach (var source in marks.OrderBy(s => s)) text.Append("marks\t").Append(source).Append('\n');
                 if (rule != CompendiumRule.Off) text.Append("rule\t").Append(rule).Append('\n');
                 if (floor > 0) text.Append("floor\t").Append(Stored.Count(floor)).Append('\n');
                 foreach (var (a, b) in pairs.OrderBy(p => p.Item1, StringComparer.Ordinal).ThenBy(p => p.Item2, StringComparer.Ordinal))
@@ -619,6 +640,9 @@ namespace Scry
                     case "shows" when parts.Length == 3 && Enum.TryParse(name, out WorldSource shown) && Enum.IsDefined(typeof(WorldSource), shown)
                                       && Enum.TryParse(parts[2], out SourceLevel level) && Enum.IsDefined(typeof(SourceLevel), level) && level >= WorldSources.Least(shown):
                         book._shows[shown] = level;
+                        break;
+                    case "marks" when parts.Length == 2 && Enum.TryParse(name, out WorldSource marked) && Enum.IsDefined(typeof(WorldSource), marked) && WorldSources.HasGround(marked):
+                        book._marks.Add(marked);
                         break;
                     case "rule" when parts.Length == 2 && (name == nameof(CompendiumRule.Loose) || name == nameof(CompendiumRule.Strict)):
                         book._rule = name == nameof(CompendiumRule.Loose) ? CompendiumRule.Loose : CompendiumRule.Strict;

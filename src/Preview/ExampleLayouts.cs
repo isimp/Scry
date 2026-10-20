@@ -189,7 +189,7 @@ namespace Scry
         /// <summary>The map opened as a dungeon of the world, the same each time; none where it is not of the location shown or was forgotten.</summary>
         private static WorldDungeon Opened(string location)
         {
-            var map = DungeonWalks.Maps.Of(_opened) ?? (_groupOpen ? GroupMapsLink.Group.Of(_opened) : null);
+            var map = DungeonWalks.Maps.Of(_opened) ?? (_groupOpen ? GroupMapsLink.Group.Of(_opened) : null) ?? DungeonsInGround.MapOf(_opened);
             if (map == null || map.Location != location) return null;
             return _openedWorld ?? (_openedWorld = new WorldDungeon { Saved = map.Rooms, Generator = map.Generator, Turn = map.Turn, Id = _opened, Location = map.Location, Entrance = map.Entrance });
         }
@@ -292,7 +292,7 @@ namespace Scry
             _world = found;
             if (Example != null && found != null && (!ShowsWorlds || _wholeId != found.Id) && !_wantExample) Build();
             // Its map forgotten and the dungeon not at hand, an example stands in its place.
-            else if (Example != null && found == null && ShowsWorlds && DungeonWalks.Maps.Of(_wholeId) == null && GroupMapsLink.Group.Of(_wholeId) == null) Build();
+            else if (Example != null && found == null && ShowsWorlds && DungeonWalks.Maps.Of(_wholeId) == null && GroupMapsLink.Group.Of(_wholeId) == null && DungeonsInGround.MapOf(_wholeId) == null) Build();
         }
 
         /// <summary>Loads and reads the rooms not read yet, a few milliseconds a frame, one bundle at a time, and lays out the example once all are in.</summary>

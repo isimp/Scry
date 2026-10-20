@@ -317,6 +317,10 @@ namespace Scry
         public static string MarkLabel(string name, int walked, int rooms, string walkedColour) =>
             $"{name}\n<size=80%><color=#{walkedColour}>{PlanBoxWords.Walked(walked, rooms)}</color></size>";
 
+        /// <summary>A mark's words for a dungeon shown with its insides and not walked: its name, and the ground it shows from, smaller and in the colour given.</summary>
+        public static string InsidesLabel(string name, WorldSource source, string colour) =>
+            $"{name}\n<size=80%><color=#{colour}>not walked · with insides from {CompendiumWords.SourceName(source)}</color></size>";
+
         /// <summary>The answer to forgetting the maps of the world played.</summary>
         public static string WorldForgotten(int maps) => maps == 0
             ? "there is no map of a dungeon of this world to forget."

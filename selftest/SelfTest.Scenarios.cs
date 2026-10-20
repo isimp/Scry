@@ -152,6 +152,7 @@ namespace Scry
             yield return S("with the compendium on, the dungeon the player is in shows as walked, where they stand marked, peek showing the rest", DungeonFogShows, 240, () => { DungeonFogAsItWas(); StageAsItWas(); }, bearsSkips: true);
             yield return S("a dungeon's maps kept are on its page, open from anywhere and are forgotten", MapsKept, 200, () => { DungeonFogAsItWas(); StageAsItWas(); }, bearsSkips: true);
             yield return S("Valheim's large map marks the dungeons been in, a click opening the map in Scry", MarksOnTheMap, 200, () => { MarksAsTheyWere(); StageAsItWas(); }, bearsSkips: true);
+            yield return S("a ground's pin marks the dungeons it shows with insides on Valheim's large map, hollow where not walked", DungeonPins, 240, () => { PinsAsTheyWere(); StageAsItWas(); });
             yield return S("the group's record of a dungeon opens by the floor, showing what the group walked, peek the rest", GroupRecords, 240, () => { GroupRecordsAsTheyWere(); StageAsItWas(); }, bearsSkips: true);
             yield return S("the cave and tower dungeons open level by level with rooms on each", CaveFloors, 300, StageAsItWas, bearsSkips: true);
             yield return S("dimmed rooms show darker on the stage, and what the rooms are drawn with is told", DimShows, 300, () => { LookAsItWas(); StageAsItWas(); }, bearsSkips: true);

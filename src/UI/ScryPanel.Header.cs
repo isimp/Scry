@@ -349,6 +349,9 @@ namespace Scry
         /// <summary>Where each source's levels stand in the box, by source and level, and its caption and hint.</summary>
         private static readonly Rect[][] SourceSegments = Array.ConvertAll(WorldSources.All, _ => new Rect[Enum.GetValues(typeof(SourceLevel)).Length]);
         private static readonly Rect[] SourceNames = new Rect[WorldSources.All.Length];
+
+        /// <summary>Where each ground's pin stands at its row's end (<see cref="CompendiumBook.MarksDungeons"/>); none for a source without ground.</summary>
+        private static readonly Rect[] SourcePins = new Rect[WorldSources.All.Length];
         private static Rect _sourcesCaption, _sourcesHint;
 
         /// <summary>Holds the compendium's box open, or lets it close again; for the self-test.</summary>
@@ -457,6 +460,7 @@ namespace Scry
                     _bookCaptionW = Mathf.Max(_bookCaptionW, Skin.Width(Skin.FaintLabel, CompendiumWords.SourceName(source)));
                     var levelsW = 0f;
                     foreach (var level in WorldSources.Offered(source)) levelsW += Skin.Width(Skin.Segment, CompendiumWords.LevelName(level)) + U(6f) + (levelsW > 0f ? gap : 0f);
+                    if (WorldSources.HasGround(source)) levelsW += gap + height;
                     sourcesW = Mathf.Max(sourcesW, levelsW);
                 }
             }
@@ -514,6 +518,7 @@ namespace Scry
                         SourceSegments[s][(int)level] = new Rect(lx, sourceY, w, height);
                         lx += w + gap;
                     }
+                    SourcePins[s] = WorldSources.HasGround(WorldSources.All[s]) ? new Rect(lx, sourceY, height, height) : Rect.zero;
                     sourceY += height + U(6f);
                 }
                 _sourcesHint = new Rect(_bookBox.x + pad, sourceY, _bookBox.width - pad * 2f, hintH);
@@ -562,6 +567,7 @@ namespace Scry
                     {
                         if (SourceSegments[s][(int)level].Contains(e.mousePosition) && book.Shows(WorldSources.All[s]) != level) ShowSource(WorldSources.All[s], level);
                     }
+                    if (SourcePins[s].Contains(e.mousePosition)) MarkDungeons(WorldSources.All[s], !book.MarksDungeons(WorldSources.All[s]));
                 }
             }
             e.Use();
@@ -639,7 +645,33 @@ namespace Scry
                     if (repaint) GUI.Button(at, CompendiumWords.LevelName(level), shows == level ? Skin.SegmentOn : Skin.Segment);
                     if (at.Contains(mouse)) AskTip("source-level-" + level, CompendiumWords.LevelTip(level));
                 }
+                DrawPin(book, source, SourcePins[s], mouse, repaint);
             }
+        }
+
+        /// <summary>A ground's pin: the big map's dungeon mark on a segment, in the accent while on, faint while off, saying on hover what it does and whether it marks now.</summary>
+        private static void DrawPin(CompendiumBook book, WorldSource source, Rect pin, Vector2 mouse, bool repaint)
+        {
+            if (pin.width <= 0f) return;
+            CountDrawn(PanelPart.DungeonPins);
+            var on = book.MarksDungeons(source);
+            if (repaint)
+            {
+                GUI.Button(pin, GUIContent.none, Skin.Segment);
+                var inset = U(4f);
+                Skin.Icon(new Rect(pin.x + inset, pin.y + inset, pin.width - inset * 2f, pin.height - inset * 2f), Skin.Doorway, on ? Skin.Accent : Skin.Alpha(Skin.Faint, 0.45f));
+            }
+            if (pin.Contains(mouse)) AskTip("source-pin-" + source, Naming.Lines(CompendiumWords.PinName, CompendiumWords.PinTip(on, book.Shows(source) == SourceLevel.WithInsides)));
+        }
+
+        /// <summary>Turns a ground's pin on or off for the character played and keeps it at once, asking about the ground as it goes on: a choice of the player's. The pin, and the self-test.</summary>
+        public static void MarkDungeons(WorldSource source, bool on)
+        {
+            var book = CompendiumKeeper.Book;
+            if (book == null) return;
+            book.MarkDungeons(source, on);
+            CompendiumKeeper.Save(now: true);
+            if (on) DungeonsInGround.AskNow(source);
         }
 
         /// <summary>A line in the box as a page's hint line: the accent bar and the compass, its words a step brighter.</summary>

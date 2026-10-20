@@ -285,6 +285,16 @@ namespace Scry
             }
         }
 
+        /// <summary>The pin at the end of a ground's row, as its tip is headed.</summary>
+        public const string PinName = "Mark dungeons on the big map";
+
+        /// <summary>What the pin does.</summary>
+        private const string PinDoes = "Marks on Valheim's big map each dungeon in this ground whose area has loaded, hollow where you have not walked it; a click on one shows its own rooms. Dungeons you walked are marked anyway.";
+
+        /// <summary>The pin's tip: what it does, then whether it is on, and marking while its row shows With insides.</summary>
+        public static string PinTip(bool on, bool insides) =>
+            Naming.Lines(PinDoes, !on ? "Off. It works while this row shows With insides." : insides ? "On." : "On, but nothing is marked until this row shows With insides.");
+
         /// <summary>A level's name on its segment.</summary>
         public static string LevelName(SourceLevel level)
         {

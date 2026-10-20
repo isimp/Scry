@@ -264,8 +264,7 @@ namespace Scry
             if (!p.Check(center != null, "the mark stands on the screen")) yield break;
             p.Note($"the game's event system at the mark's middle first meets: {MapMarkButtons.RaycastForTest(0) ?? "no event system"}");
             p.Check(MapMarkButtons.MarkAtForTest(center.Value) == 0, "the pointer at the mark's middle is read as on it, as the game's map and tips read it");
-            _pointerBeforeMarks = ZInput.pointerPosition;
-            ZInput.SetMousePosition(center.Value);
+            PointerTo(center.Value);
             bool Arrived() => ((Vector2)ZInput.pointerPosition - center.Value).sqrMagnitude < 4f;
             yield return Until(Arrived, 3);
             bool clicked;
@@ -363,6 +362,13 @@ namespace Scry
 
         /// <summary>Where the player's pointer stood before the self-test put it on a mark; none once put back.</summary>
         private static Vector2? _pointerBeforeMarks;
+
+        /// <summary>Puts the pointer on a mark, as a player's, keeping where it stood to put it back (<see cref="MarksAsTheyWere"/>).</summary>
+        private static void PointerTo(Vector2 at)
+        {
+            _pointerBeforeMarks = ZInput.pointerPosition;
+            ZInput.SetMousePosition(at);
+        }
 
         /// <summary>Closes the large map the self-test opened, puts the player's pointer back where it stood and ends the fog's stand-ins.</summary>
         private static void MarksAsTheyWere()
