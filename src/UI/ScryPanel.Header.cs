@@ -396,7 +396,7 @@ namespace Scry
         private static bool _bookHeld;
 
         /// <summary>Where the box and its controls stand, worked out with the title row each event, for its clicks taken early and its drawing last.</summary>
-        private static Rect _bookBox, _bookLower, _bookValue, _bookRaise;
+        private static Rect _bookBox, _bookLower, _bookValue, _bookRaise, _bookGuide;
         private static readonly Rect[] BookSegments = new Rect[CompendiumWords.Rules.Count];
         private static bool _bookFloorShown;
         private static float _bookCaptionW;
@@ -411,6 +411,9 @@ namespace Scry
         /// <summary>Where each ground's pin stands at its row's end (<see cref="CompendiumBook.MarksDungeons"/>); none for a source without ground.</summary>
         private static readonly Rect[] SourcePins = new Rect[WorldSources.All.Length];
         private static Rect _sourcesCaption, _sourcesHint;
+
+        /// <summary>Where the row turning every mark on the big map on or off stands: its caption and its two choices; none without a ground's pin.</summary>
+        private static Rect _marksCaption, _marksOn, _marksOff;
 
         /// <summary>Holds the compendium's box open, or lets it close again; for the self-test.</summary>
         internal static void HoldCompendiumBox(bool open) => _bookHeld = open;
@@ -537,6 +540,9 @@ namespace Scry
         /// <summary>The column noted for the floor's arrows, which stand beside its biome rather than at their columns' starts (<see cref="BookColumns.Arrows"/>); a pin's is -1.</summary>
         public const int BesideBiome = -2;
 
+        /// <summary>The column noted for the choices of a row standing on its own, outside the levels' columns: whether the big map shows Scry's marks.</summary>
+        public const int OwnRow = -3;
+
         private static void NoteBookCell(string row, string label, int column, Rect at, bool lit, bool words)
         {
             if (Event.current.type == EventType.Repaint) BookCellsForTest.Add((row, label, column, at, lit, !words || SegmentWidth(label) <= at.width + 0.5f));
@@ -583,6 +589,7 @@ namespace Scry
                     anyGround |= WorldSources.HasGround(source);
                 }
             }
+            if (anyGround) _bookCaptionW = Mathf.Max(_bookCaptionW, Skin.Width(Skin.FaintLabel, CompendiumWords.MarksCaption));
             BookColumns.Widths(BookColumnWidths, BookCells, gap);
             _bookCaptionW += U(10f);
             // Every ground's pin in a column of its own after the levels.
@@ -600,7 +607,7 @@ namespace Scry
             if (_bookSourcesShown)
             {
                 hintH = Skin.DimWrap.CalcHeight(new GUIContent(CompendiumWords.SourcesHint), width - pad * 2f - U(30f));
-                sourcesH = U(14f) + U(22f) + WorldSources.All.Length * (height + U(6f)) + hintH;
+                sourcesH = U(14f) + U(22f) + (WorldSources.All.Length + (anyGround ? 1 : 0)) * (height + U(6f)) + hintH;
             }
             var withH = 0f;
             var rowH = 0f;
@@ -613,6 +620,7 @@ namespace Scry
             }
             _bookBox = new Rect(x, button.yMax + gap, width, pad + U(26f) + rows * height + (rows - 1) * U(6f) + sourcesH + withH + pad);
 
+            _bookGuide = new Rect(_bookBox.xMax - pad - U(20f), _bookBox.y + pad - U(1f), U(20f), U(20f));
             var rowY = _bookBox.y + pad + U(26f);
             var columnsLeft = _bookBox.x + pad + _bookCaptionW;
             Rect CellAt((int First, int Last) cell, float y)
@@ -641,6 +649,15 @@ namespace Scry
                     SourcePins[s] = WorldSources.HasGround(WorldSources.All[s]) ? new Rect(pinX, sourceY, height, height) : Rect.zero;
                     sourceY += height + U(6f);
                 }
+                // Under the grounds' pins, whether the big map shows any mark of Scry's.
+                if (anyGround)
+                {
+                    _marksCaption = new Rect(_bookBox.x + pad, sourceY, _bookCaptionW, height);
+                    _marksOn = new Rect(columnsLeft, sourceY, SegmentWidth(PanelWords.OnOff(true)), height);
+                    _marksOff = new Rect(_marksOn.xMax + gap, sourceY, SegmentWidth(PanelWords.OnOff(false)), height);
+                    sourceY += height + U(6f);
+                }
+                else _marksCaption = _marksOn = _marksOff = Rect.zero;
                 _sourcesHint = new Rect(_bookBox.x + pad, sourceY, _bookBox.width - pad * 2f, hintH);
             }
             if (_bookWithShown)
@@ -686,6 +703,7 @@ namespace Scry
             if (!_bookOpen || book == null || e.type != EventType.MouseDown || !_bookBox.Contains(e.mousePosition)) return;
             if (e.button == 0)
             {
+                if (_bookGuide.Contains(e.mousePosition)) ShowGuide(!GuideShown);
                 for (var i = 0; i < CompendiumWords.Rules.Count && !book.World.RulesSet; i++)
                 {
                     var rule = CompendiumWords.Rules[i];
@@ -702,6 +720,8 @@ namespace Scry
                     }
                     if (SourcePins[s].Contains(e.mousePosition)) MarkDungeons(WorldSources.All[s], !book.MarksDungeons(WorldSources.All[s]));
                 }
+                if (_bookSourcesShown && _marksOn.Contains(e.mousePosition)) Settings.DungeonMarksOnMap = true;
+                if (_bookSourcesShown && _marksOff.Contains(e.mousePosition)) Settings.DungeonMarksOnMap = false;
             }
             e.Use();
         }
@@ -724,10 +744,16 @@ namespace Scry
                 CountDrawn(PanelPart.CompendiumBox);
                 Skin.Box(_bookBox, Skin.Backdrop, Skin.Outline);
                 GUI.Label(new Rect(_bookBox.x + pad, _bookBox.y + pad, _bookBox.width - pad * 2f, U(20f)), CompendiumWords.BoxCaption, Skin.FaintLabel);
+                // The guide's ?, bare until the mouse is over it, lit while the guide is shown.
+                CountDrawn(PanelPart.GuideButton);
+                if (GuideShown) Skin.Box(_bookGuide, Skin.Alpha(Skin.Accent, 0.18f));
+                else if (_bookGuide.Contains(mouse)) Skin.Box(_bookGuide, Skin.Hover);
+                GUI.Label(_bookGuide, "?", GuideShown ? Skin.Center : Skin.CenterDim);
                 var rules = Caption(CompendiumWords.RulesCaption, book.World.RulesSet ? U(18f) : 0f);
                 GUI.Label(new Rect(_bookBox.x + pad, BookSegments[0].y, _bookCaptionW, BookSegments[0].height), rules, Skin.FaintLabel);
                 if (book.World.RulesSet) WorldLock(_bookBox.x + pad + Skin.Width(Skin.FaintLabel, rules) + U(5f), BookSegments[0]);
             }
+            if (_bookGuide.Contains(mouse)) AskTip("book-guide", SettingsWords.GuideTip);
             // Set by the world's server, the rules it sets stand lit, the others dimmed, each saying so.
             var rulesSet = book.World.RulesSet;
             for (var i = 0; i < CompendiumWords.Rules.Count; i++)
@@ -832,6 +858,17 @@ namespace Scry
                 }
                 DrawPin(book, source, SourcePins[s], mouse, repaint);
             }
+            if (_marksOn.width <= 0f) return;
+            var marks = Settings.DungeonMarksOnMap;
+            if (repaint)
+            {
+                GUI.Label(_marksCaption, Caption(CompendiumWords.MarksCaption, 0f), Skin.FaintLabel);
+                GUI.Button(Joined(_marksOn, false), PanelWords.OnOff(true), Skin.Choice(0, 2, marks));
+                GUI.Button(Joined(_marksOff, true), PanelWords.OnOff(false), Skin.Choice(1, 2, !marks));
+            }
+            NoteBookCell(CompendiumWords.MarksCaption, PanelWords.OnOff(true), OwnRow, _marksOn, marks, words: true);
+            NoteBookCell(CompendiumWords.MarksCaption, PanelWords.OnOff(false), OwnRow, _marksOff, !marks, words: true);
+            if (_marksCaption.Contains(mouse) || _marksOn.Contains(mouse) || _marksOff.Contains(mouse)) AskTip("book-marks", CompendiumWords.MarksTip(marks));
         }
 
         /// <summary>A ground's pin: the big map's dungeon mark on a segment, in the accent while on, faint while off, saying on hover what it does and whether it is on.</summary>

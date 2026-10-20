@@ -102,6 +102,36 @@ namespace Scry
     /// <summary>What the compendium's box says of what the world's server sets.</summary>
     internal static class WorldRulesWords
     {
+        /// <summary>
+        /// The line told once on joining a world whose server sets any of the compendium's rules:
+        /// the rules it plays by, what it keeps off, and whether it limits what its world shows as
+        /// known; none where it sets nothing.
+        /// </summary>
+        public static string Notice(WorldRules rules)
+        {
+            var off = new List<string>();
+            if (!rules.Peeking) off.Add("peeking");
+            if (!rules.FloorAllowed) off.Add(CompendiumWords.FloorCaption);
+            var limits = false;
+            foreach (var source in WorldSources.All)
+            {
+                var offered = WorldSources.Offered(source);
+                if (rules.Highest(source) < offered[offered.Length - 1]) limits = true;
+            }
+            if (!rules.RulesSet && off.Count == 0 && !limits) return null;
+            var said = rules.RulesSet ? "This server plays " + CompendiumWords.RuleName(rules.Rule.Value) : "This server";
+            if (off.Count > 0) said += rules.RulesSet ? "; " + Naming.Joined(off) + (off.Count == 1 ? " is off" : " are off") : " keeps " + Naming.Joined(off) + " off";
+            if (limits) said += off.Count > 0 ? (rules.RulesSet ? ", and it limits" : ", and limits") : rules.RulesSet ? "; it limits" : " limits";
+            if (limits) said += " what its world shows as known";
+            return said + ".";
+        }
+
+        /// <summary>The notice's button, opening the compendium's guide.</summary>
+        public const string ShowRules = "Show the rules";
+
+        /// <summary>The tip of the notice's cross.</summary>
+        public const string PutAway = "Put this away until the server's rules change; the box keeps showing them locked";
+
         /// <summary>The tip of the rules the server sets.</summary>
         public static string RulesSet(CompendiumRule rule) => $"This server sets the rules: {CompendiumWords.RuleName(rule)}. An admin changes it in the server's Scry config.";
 

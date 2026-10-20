@@ -1070,18 +1070,52 @@ namespace Scry
         private const string ReadAgainText = "Look again";
         private const string ReadAgainTip = "Forget what was read of every location and room and read them afresh, for when one seems wrong";
 
-        /// <summary>Above the Locations tab's list once the places are known: that they are kept, or how far reading them again has got, and Look again.</summary>
+        /// <summary>
+        /// Above the Locations tab's list: until the places are known, Find where things are (Stop
+        /// reading while it reads), and Every world beside it; once known, that they are kept, or
+        /// how far reading them again has got, Every world, and Look again.
+        /// </summary>
         private static Rect PlacesBar(Rect inner)
         {
             CountDrawn(PanelPart.PlacesBar);
             var barH = U(30f);
-            var w = Skin.Width(Skin.Chip, ReadAgainText) + U(12f);
-            GUI.Label(new Rect(inner.x + U(10f), inner.y + U(2f), inner.width - w - U(24f), U(24f)),
-                LocationWords.PlacesBar(Locations.Reading, Locations.Done, Locations.Total), Skin.DimLabel);
-            var button = new Rect(inner.xMax - w - U(6f), inner.y, w, U(26f));
-            if (GUI.Button(button, ReadAgainText, Skin.Fitted(Skin.Chip, button))) ReadPlacesAgain();
-            if (button.Contains(Event.current.mousePosition)) AskTip("read-again", ReadAgainTip);
+            var mouse = Event.current.mousePosition;
+            var everyW = Skin.Width(Skin.SegmentOn, LocationWords.EveryWorld) + U(12f);
+            Rect every;
+            if (Locations.Now == Locations.State.Read)
+            {
+                var w = Skin.Width(Skin.Chip, ReadAgainText) + U(12f);
+                var button = new Rect(inner.xMax - w - U(6f), inner.y, w, U(26f));
+                every = new Rect(button.x - U(8f) - everyW, inner.y, everyW, U(26f));
+                GUI.Label(new Rect(inner.x + U(10f), inner.y + U(2f), every.x - inner.x - U(18f), U(24f)),
+                    LocationWords.PlacesBar(Locations.Reading, Locations.Done, Locations.Total), Skin.DimLabel);
+                if (GUI.Button(button, ReadAgainText, Skin.Fitted(Skin.Chip, button))) ReadPlacesAgain();
+                if (button.Contains(mouse)) AskTip("read-again", ReadAgainTip);
+            }
+            else
+            {
+                var reading = Locations.Now == Locations.State.Reading;
+                var label = reading ? "Stop reading" : LocationsButtonText;
+                var button = new Rect(inner.x + U(6f), inner.y, Skin.Width(Skin.Button, label) + U(10f), U(26f));
+                if (GUI.Button(button, label, Skin.Button))
+                {
+                    if (reading) StopReadingLocations();
+                    else StartReadingLocations();
+                }
+                if (button.Contains(mouse)) AskTip("locations-bar", reading ? "Stop reading the locations and dungeons; nothing read so far is kept" : LocationsButtonTip);
+                every = new Rect(button.xMax + U(8f), inner.y, everyW, U(26f));
+            }
+            var auto = Settings.ReadLocationsAutomatically;
+            if (GUI.Button(every, LocationWords.EveryWorld, Skin.Choice(0, 1, auto))) EveryWorld(!auto);
+            if (every.Contains(mouse)) AskTip("read-every-world", LocationWords.EveryWorldTip(auto));
             return new Rect(inner.x, inner.y + barH, inner.width, inner.height - barH);
+        }
+
+        /// <summary>Reads where things are by itself in every world, or only when asked, kept in the config file; turned on, it starts here at once. The switch, and the self-test.</summary>
+        internal static void EveryWorld(bool on)
+        {
+            Settings.ReadLocationsAutomatically = on;
+            if (on && Locations.Now == Locations.State.NotRead) StartReadingLocations();
         }
 
         /// <summary>Above the Locations tab's list with the compendium on: that the explored map counts, and reading it again.</summary>

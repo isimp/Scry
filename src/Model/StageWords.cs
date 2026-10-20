@@ -106,6 +106,20 @@ namespace Scry
         /// <summary>The spin's tip.</summary>
         public static string SpinTip(bool spinning) => spinning ? "Hold it still" : "Turn it";
 
+        /// <summary>The View box's speeds of the model's turning, in degrees a second; a click goes on to the next.</summary>
+        public static readonly float[] SpinSpeeds = { 7f, 14f, 28f, 56f };
+
+        /// <summary>A speed as the View box says it, in degrees a second.</summary>
+        public static string SpinSpeedName(float speed) => Numbers.Count((int)System.Math.Round(speed)) + "\u00B0/s";
+
+        public const string SpinSpeedTip = "How fast it turns by itself; a click goes on to the next speed";
+
+        /// <summary>The View box's row of the lights of the rooms dimmed below a dungeon's opened floor, and its two values.</summary>
+        public const string LightsBelow = "Lights below";
+        public const string LightsKept = "Kept";
+        public const string StageLight = "Stage light";
+        public const string LightsBelowTip = "Whether the rooms dimmed below the floor opened keep their own lights, as the game lights them; with the stage's light alone a big dungeon is filmed in about half the time";
+
         /// <summary>What an effect's stage says once it has played out, its stage left standing.</summary>
         public const string PlayedOut = "It has played out: click the stage to play it again";
     }

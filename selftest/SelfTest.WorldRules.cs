@@ -9,8 +9,9 @@ namespace Scry
         /// What the world's server allows, made up in place of its settings: the strict rules for
         /// everyone, no peeking, no *Known up to*, shared maps up to seen. The character's book
         /// follows them while its own choices stay beneath, a peek ends, and the compendium's box
-        /// shows what the server sets locked and dimmed; put back, the choices are the
-        /// character's again. The server's own settings are told as they stand.
+        /// shows what the server sets locked and dimmed, and a notice says what it sets until it
+        /// is put away; put back, the choices are the character's again and the notice told as it
+        /// was. The server's own settings are told as they stand.
         /// </summary>
         private static IEnumerator WorldRulesShown(Probe p)
         {
@@ -43,17 +44,34 @@ namespace Scry
             yield return Until(() => ScryPanel.Drawn(PanelPart.WorldLocked) > locked + 2, 3);
             p.Check(ScryPanel.Drawn(PanelPart.WorldLocked) > locked, "the box shows what the server sets locked and dimmed");
             yield return Picture(p, "compendium box under the server's rules");
+            ScryPanel.HoldCompendiumBox(false);
+
+            // The notice says what the server sets, once: put away, it stays away in this world.
+            var world = CompendiumMap.World;
+            _rulesToldBefore = (world, book.RulesTold(world));
+            var said = WorldRulesWords.Notice(made);
+            var notices = ScryPanel.Drawn(PanelPart.RulesNotice);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.RulesNotice) > notices, 3);
+            p.Check(ScryPanel.Drawn(PanelPart.RulesNotice) > notices && ScryPanel.RulesNoticeLine == said, "a notice says what the server sets", ScryPanel.RulesNoticeLine ?? "no notice");
+            yield return Picture(p, "notice of the server's rules");
+            ScryPanel.TellRules();
+            p.Check(ScryPanel.RulesNoticeLine == null && book.ToldRules(world, said), "put away, it stays away in this world", book.RulesTold(world) ?? "never told");
 
             WorldRulesAsTheyWere();
             p.Check(book.Rule == chosenRule && book.Shows(WorldSource.SharedMaps) == chosenShared, "put back, the choices are the character's again");
         }
 
-        /// <summary>The world's own rules again, the box let go and no peek.</summary>
+        /// <summary>What the world's notice of its server's rules said as last told before the made-up rules were, to put back.</summary>
+        private static (string World, string Said)? _rulesToldBefore;
+
+        /// <summary>The world's own rules again, the box let go, no peek, and the notice told as it was.</summary>
         private static void WorldRulesAsTheyWere()
         {
             CompendiumKeeper.WorldForTest(null);
             ScryPanel.HoldCompendiumBox(false);
             X.Peeking = false;
+            if (_rulesToldBefore is (string world, string said)) CompendiumKeeper.Book?.RulesToldAgain(world, said);
+            _rulesToldBefore = null;
         }
     }
 }

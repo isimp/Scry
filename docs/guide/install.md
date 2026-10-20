@@ -4,7 +4,9 @@
 
 Install Scry from a mod manager, or put `Scry.dll` in `BepInEx/plugins`. Press F7 or type /scry in the chat to open it. Scry spawns nothing, saves nothing into the world and shows nothing to other players, so it works on any server whether the server has it or not.
 
-A new character starts with the compendium off, and Scry is then a lookup of everything in the game. To keep a compendium for the character, open *Compendium* at the top of the panel and choose *Loose* or *Strict* ([the compendium's rules](rules.md)). Each character keeps its own choice and its own knowledge.
+A new character starts with the compendium off, and Scry is then a lookup of everything in the game. The first time the panel opens for it, Scry asks whether to keep a compendium: *Loose*, *Strict* or *Not now* ([the compendium's rules](rules.md)). The choice can be changed any time under *Compendium* at the top of the panel. Each character keeps its own choice and its own knowledge.
+
+The gear beside *Compendium* holds the panel's settings: its size, the key opening it, walking and looking while it is open, sounds, tips, and *Stage* set to *Fast* for a big dungeon on a weaker machine. They are kept in `BepInEx/config/isimp.Scry.cfg` with the rest, which a mod manager's config editor shows too.
 
 ## Playing with friends
 

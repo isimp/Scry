@@ -28,6 +28,9 @@ namespace Scry
             yield return S("both views draw, and /scry searches", PanelViews, 10);
             yield return S("the arrow keys move, Game and Mods filter, and an empty tab shows every kind", ListKeysAndFilters, 10, ResetList);
             yield return S("the search's help opens and closes", HelpOpens, 5, () => ScryPanel.ShowHelp(false));
+            yield return S("the gear opens the settings card, a fast stage is filmed at half the size, and the View box's speed steps", SettingsCardShown, 20, SettingsAsTheyWere);
+            yield return S("the compendium's box shows its guide's ?, and the guide opens in the list's place", GuideShown, 10, () => { ScryPanel.ShowGuide(false); ScryPanel.HoldCompendiumBox(false); });
+            yield return S("the question of keeping a compendium draws, the book left as it was", WelcomeShown, 10, () => ScryPanel.AskWelcomeForTest(false));
             yield return S("an example of the search's help is tried with a click", HelpExamplesTried, 5, () => { ScryPanel.ShowHelp(false); X.SearchEverything(""); });
             yield return S("the View box and the sliders open, draw, and close on another selection", BoxesOpen, 10, ScryPanel.CloseBoxes);
             yield return S("the line under a page's title names its sections and goes to each", SectionLineGoes, 10);
@@ -74,7 +77,7 @@ namespace Scry
             yield return S("events cross between the players' games through the game running the world, each counted once by the one rule", CompendiumEventsCross, 20, EventsCrossAsItWas);
             yield return S("the players whose games lack Scry are named in a notice, and everyone played with in the compendium's box", PlayingWithShown, 15, PlayingWithAsItWas);
             yield return S("the compendium's box names the world's server by whether it runs Scry, and says what one without it leaves out", ServerNamed, 25, ServerAsItWas);
-            yield return S("what the world's server allows the compendium holds over the character's choices, kept beneath, and the box shows it locked", WorldRulesShown, 20, WorldRulesAsTheyWere);
+            yield return S("what the world's server allows the compendium holds over the character's choices, kept beneath, the box shows it locked, and a notice says it once", WorldRulesShown, 20, WorldRulesAsTheyWere);
             yield return S("the character's walks are kept by where each dungeon lies, and the server, sent a list of them, wants just those it lacks", WalksToServer, 20);
             yield return S("the server reads what was left inside the world's dungeons, and the rooms of traces alone count among the rooms walked", TracesReadOnServer, 330);
             yield return S("the server's game runs made-up events as a friend's would, choosing who gets them by the rules for every event", CompendiumEventsRunByWorld, 20, EventsCrossAsItWas);

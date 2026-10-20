@@ -2,13 +2,15 @@
 
 What the compendium is, the book each character keeps, the tiers and the floor (Known up to), and what it costs a frame.
 
-Code: `src/Model/CompendiumBook.cs`, `src/Model/CompendiumView.cs`, `src/Model/Explorer.cs`, `src/Catalog/CompendiumKeeper.cs`, `src/Catalog/CompendiumTiers.cs`, `src/Model/ButtonSize.cs`, `src/Patches/DeathWatch.cs`, `src/Model/Moment.cs`.
+Code: `src/Model/CompendiumBook.cs`, `src/Model/CompendiumView.cs`, `src/Model/Explorer.cs`, `src/UI/ScryPanel.Settings.cs`, `src/Model/SettingsWords.cs`, `src/Catalog/CompendiumKeeper.cs`, `src/Catalog/CompendiumTiers.cs`, `src/Model/ButtonSize.cs`, `src/Patches/DeathWatch.cs`, `src/Model/Moment.cs`.
 
 See also: [learning](learning.md), [showing](showing.md), [sources](sources.md); all notes in [the index](../index.md).
 
 ## The compendium
 
 With the compendium on, the panel shows only what the character playing has come to know (`CompendiumView`, `Explorer.Know`). Its rules are chosen in a box under the *Compendium* button in the title row, which names the rules chosen and opens its box while the mouse is on it, as *Clear world* opens its list, as wide as its label drawn bold while the box is open, so it neither clips nor changes width (`ButtonSize`): *Off*, *Loose* or *Strict* (`CompendiumRule`), the floor under them while it is on, and the eye that peeks beside the button while it is on, and kept in the character's own book rather than in the settings, so a profile's sync never carries one player's choice to another; a new character starts *Off*. What a character learns is collected whatever the rules, so turning the compendium on later shows everything met meanwhile.
+
+A character whose compendium is off is asked once, in the list's place, whether to keep one: *Loose*, *Strict* or *Not now*, each with a line on what it means (`ScryPanel.WelcomeCard`). Any answer, or rules chosen in the box, keeps it asked (`CompendiumBook.Welcomed`), and none is asked where the world's server sets the rules (`CompendiumBook.WelcomeDue`) or while the self-test's strip shows. The *?* in the compendium's box opens its guide in the list's place: a few paragraphs on the rules, *Known up to*, peeking, *Learned* and *You*, what a world shows as known, the pins and playing together (`SettingsWords.Guide`).
 
 ## The book
 

@@ -8,6 +8,9 @@ namespace Scry
         /// <summary>Part of Scry is off until it is updated.</summary>
         Off,
 
+        /// <summary>The world's server sets some of the compendium's rules, told once a world.</summary>
+        Rules,
+
         /// <summary>Every page shows whole while peeking.</summary>
         Peeking,
 

@@ -43,6 +43,8 @@ namespace Scry
             p.Check(ragged.Count == 0, "each level stands at one place down the box, the rules and the floor in the same columns", string.Join("; ", ragged.Take(3)));
             var pins = cells.Where(c => c.Column == -1).ToList();
             p.Check(pins.Count == 0 || pins.Max(c => c.At.x) - pins.Min(c => c.At.x) <= 0.5f, "every ground's pin stands in one column", string.Join(", ", pins.Select(c => $"{c.Row} at {Numbers.Fixed(c.At.x, 0)}")));
+            var marks = cells.Where(c => c.Row == CompendiumWords.MarksCaption).ToList();
+            p.Check(pins.Count == 0 || marks.Count == 2 && marks.Count(c => c.Lit) == 1, "under the pins, whether the big map shows Scry's marks, one of its two choices lit", string.Join(", ", marks.Select(c => $"{c.Label}{(c.Lit ? " lit" : "")}")));
             var lower = cells.FirstOrDefault(c => c.Row == "floor" && c.Label == "lower");
             var raise = cells.FirstOrDefault(c => c.Row == "floor" && c.Label == "raise");
             var biome = cells.FirstOrDefault(c => c.Row == "floor" && c.Column >= 0);

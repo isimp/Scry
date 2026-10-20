@@ -16,8 +16,8 @@ namespace Scry
         /// <summary>Whether the list scrolls the selected entry into sight at its next repaint.</summary>
         private static bool _reveal;
 
-        /// <summary>A card shown in the list's place: the search's help, the mod report or what is off.</summary>
-        private enum ListCard { None, Help, ModReport, Off }
+        /// <summary>A card shown in the list's place: the search's help, the mod report, what is off, the settings or the compendium's guide.</summary>
+        private enum ListCard { None, Help, ModReport, Off, Settings, Guide }
 
         private static ListCard _card;
 
@@ -172,6 +172,21 @@ namespace Scry
                 OffCard(rect);
                 return;
             }
+            if (_card == ListCard.Settings)
+            {
+                SettingsCard(rect);
+                return;
+            }
+            if (_card == ListCard.Guide)
+            {
+                GuideCard(rect);
+                return;
+            }
+            if (WelcomeDue())
+            {
+                WelcomeCard(rect);
+                return;
+            }
 
             Skin.Box(rect, Skin.Panel);
             var inner = new Rect(rect.x + U(4f), rect.y + U(6f), rect.width - U(8f), rect.height - U(12f));
@@ -199,8 +214,8 @@ namespace Scry
                 _rowsInView = Mathf.Max(1, Mathf.FloorToInt(inner.height / rowH));
             }
 
-            // The places, once known: that they are kept, and reading them afresh.
-            if (explorer.KindFilter == Kind.Location && Locations.Now == Locations.State.Read)
+            // The places: finding them, or once known that they are kept and reading them afresh; and whether every world reads them.
+            if (explorer.KindFilter == Kind.Location)
             {
                 inner = PlacesBar(inner);
                 _rowsInView = Mathf.Max(1, Mathf.FloorToInt(inner.height / rowH));

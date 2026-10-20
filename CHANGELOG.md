@@ -2,7 +2,7 @@
 
 ## 0.3.0
 
-Scry keeps a compendium for each character, chosen at the top of the panel. *Loose* shows only what the character has met; *Strict* also keeps back how things connect, and the numbers the game never shows, until the character found them out.
+Scry keeps a compendium for each character, chosen at the top of the panel and offered once on a new character. *Loose* shows only what the character has met; *Strict* also keeps back how things connect, and the numbers the game never shows, until the character found them out. The *?* in the compendium's box explains it in the game, and `is:new`, `is:seen` and `is:walked` search what the character met.
 
 A page's *You* box tells when the character first saw a thing and came to know it, and how its fights went. *Learned* lists what it learned day by day, and *Known up to* opens every tier below the bosses it has beaten.
 
@@ -10,7 +10,9 @@ A character played before is caught up from what the game keeps of it and from i
 
 Where friends have Scry, what their game runs near you counts for you as it would alone, and a notice names those whose games lack it.
 
-Each world can show more as known, source by source in the compendium's box: explored ground, shared maps, marked places, places on every map. With Scry on the server, the compendium also learns what only the server knows, and the server can set its rules for everyone.
+Each world can show more as known, source by source in the compendium's box: explored ground, shared maps, marked places, places on every map. With Scry on the server, the compendium also learns what only the server knows, and the server can set its rules for everyone, which a notice tells once on joining.
+
+The gear in the title row holds the panel's settings, written to the config file as they are chosen, among them *Stage* set to *Fast* for big dungeons on weaker machines. The spin's speed and the lights below a dungeon's cut are in the View box, reading locations in every world is beside *Find where things are*, and the map's marks are in the compendium's box.
 
 Dungeons are laid out room by room, with a plan to go into each room. The dungeon you are in shows as it was saved, your walks are kept and marked on the large map, and a server reads what was left inside dungeons walked before Scry.
 

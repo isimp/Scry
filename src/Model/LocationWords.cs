@@ -369,6 +369,14 @@ namespace Scry
             ? $"Reading them again, {Numbers.Count(done)} of {Numbers.Count(total)}; what was known shows until then."
             : "What every location and dungeon room holds is known, and kept for next time.";
 
+        /// <summary>The Locations tab's switch reading where things are by itself in every world.</summary>
+        public const string EveryWorld = "Every world";
+
+        /// <summary>The switch's tip: what it does, then whether it is on.</summary>
+        public static string EveryWorldTip(bool on) => Naming.Lines(
+            "Reads where things are by itself in every world, in the background once the prefabs are read, taking a few minutes; turned on, it starts here at once",
+            on ? "On." : "Off.");
+
         /// <summary>How far reading the locations has got, where something waits on it (<see cref="CatalogWords.Progress(string, int, int)"/>).</summary>
         public static string ReadingProgress(int done, int total) => CatalogWords.Progress("Reading locations and dungeons", done, total);
 

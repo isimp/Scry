@@ -305,6 +305,14 @@ namespace Scry
         /// <summary>The pin's tip: what it does, then whether it is on.</summary>
         public static string PinTip(bool on) => Naming.Lines(PinDoes, on ? "On." : "Off.");
 
+        /// <summary>The caption of the box's row turning every mark of Scry's on the big map on or off.</summary>
+        public const string MarksCaption = "Marks on the map";
+
+        /// <summary>The row's tip: what it does, then whether it is on.</summary>
+        public static string MarksTip(bool on) => Naming.Lines(
+            "Whether Valheim's big map shows Scry's marks at all: those the pins ask for and those of the dungeons you walked, for every character",
+            on ? "On." : "Off.");
+
         /// <summary>The tip of With insides dimmed on a row none of whose places found in this world has insides: what would have.</summary>
         public static string NoInsides(WorldSource source)
         {

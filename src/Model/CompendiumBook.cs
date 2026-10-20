@@ -271,6 +271,48 @@ namespace Scry
             }
         }
 
+        /// <summary>Whether the character was asked whether to keep a compendium, or chose its rules before, which is as good.</summary>
+        public bool Welcomed => _welcomed || _rule != CompendiumRule.Off;
+
+        /// <summary>Whether the character is to be asked whether to keep a compendium: never asked, and its world's server setting no rules, as it then has no choice.</summary>
+        public bool WelcomeDue => !Welcomed && !World.RulesSet;
+
+        private bool _welcomed;
+
+        /// <summary>The character was asked whether to keep a compendium, whatever it answered.</summary>
+        public void Welcome()
+        {
+            if (_welcomed) return;
+            _welcomed = true;
+            Changed = true;
+        }
+
+        /// <summary>What each world's server was last told to set, by world, so its notice is told once until the rules change.</summary>
+        private readonly Dictionary<string, string> _rulesTold = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        /// <summary>Whether a world's notice of its server's rules was told as it reads now.</summary>
+        public bool ToldRules(string world, string said) => world != null && _rulesTold.TryGetValue(world, out var told) && told == said;
+
+        /// <summary>What a world's notice of its server's rules said as last told; none where it was never told.</summary>
+        public string RulesTold(string world) => world != null && _rulesTold.TryGetValue(world, out var told) ? told : null;
+
+        /// <summary>Puts back what a world's notice said as last told, none forgetting it: the self-test tells a notice of rules it made up.</summary>
+        public void RulesToldAgain(string world, string said)
+        {
+            if (world == null || RulesTold(world) == said) return;
+            if (said == null) _rulesTold.Remove(world);
+            else _rulesTold[world] = said;
+            Changed = true;
+        }
+
+        /// <summary>A world's notice of its server's rules was told.</summary>
+        public void TellRules(string world, string said)
+        {
+            if (world == null || said == null || ToldRules(world, said)) return;
+            _rulesTold[world] = said;
+            Changed = true;
+        }
+
         /// <summary>The chests the character opened, by an id of each in its world, so each is counted only the first time.</summary>
         private readonly HashSet<string> _opened = new HashSet<string>(StringComparer.Ordinal);
 
@@ -551,6 +593,8 @@ namespace Scry
             var held = _held.Save();
             var weathers = _weathers.Save();
             var opened = _opened.ToArray();
+            var welcomed = _welcomed;
+            var rulesTold = _rulesTold.ToArray();
             Changed = false;
             return () =>
             {
@@ -575,6 +619,8 @@ namespace Scry
                 foreach (var source in marks.OrderBy(s => s)) text.Append("marks\t").Append(source).Append('\n');
                 if (rule != CompendiumRule.Off) text.Append("rule\t").Append(rule).Append('\n');
                 if (floor > 0) text.Append("floor\t").Append(Stored.Count(floor)).Append('\n');
+                if (welcomed) text.Append("welcomed\tyes\n");
+                foreach (var told in rulesTold.OrderBy(t => t.Key, StringComparer.Ordinal)) text.Append("ruled\t").Append(Stored.Escaped(told.Key)).Append('\t').Append(Stored.Escaped(told.Value)).Append('\n');
                 foreach (var (a, b) in pairs.OrderBy(p => p.Item1, StringComparer.Ordinal).ThenBy(p => p.Item2, StringComparer.Ordinal))
                 {
                     text.Append("saw\t").Append(Stored.Escaped(a)).Append('\t').Append(Stored.Escaped(b)).Append('\n');
@@ -705,6 +751,12 @@ namespace Scry
                         break;
                     case "marks" when parts.Length == 2 && Enum.TryParse(name, out WorldSource marked) && Enum.IsDefined(typeof(WorldSource), marked) && WorldSources.HasGround(marked):
                         book._marks.Add(marked);
+                        break;
+                    case "welcomed" when parts.Length == 2:
+                        book._welcomed = true;
+                        break;
+                    case "ruled" when parts.Length == 3 && Stored.TryUnescaped(parts[2], out var ruled) && ruled.Length > 0:
+                        book._rulesTold[name] = ruled;
                         break;
                     case "rule" when parts.Length == 2 && (name == nameof(CompendiumRule.Loose) || name == nameof(CompendiumRule.Strict)):
                         book._rule = name == nameof(CompendiumRule.Loose) ? CompendiumRule.Loose : CompendiumRule.Strict;

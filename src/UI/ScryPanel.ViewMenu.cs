@@ -4,11 +4,13 @@ using UnityEngine;
 namespace Scry
 {
     /// <summary>
-    /// How the stage is seen, set and mostly left: whether the model turns, the backdrop, the
-    /// lighting, with a biome's ground which biome's, and a person beside it for size, in a box opened from the stage's View chip. A
-    /// row is clicked to switch it, a backdrop or lighting row going on to the next. The box takes
-    /// the mouse before anything under it and is drawn over everything; Escape, a click elsewhere
-    /// or another selection closes it.
+    /// How the stage is seen, set and mostly left: whether the model turns and how fast, the
+    /// backdrop, the lighting, with a biome's ground which biome's, a person beside it for size,
+    /// and in a dungeon whether the rooms below the floor opened keep their lights, in a box opened
+    /// from the stage's View chip. A row is clicked to switch it, a backdrop, lighting or speed row
+    /// going on to the next; the spin, its speed and the lights are kept in the config file. The
+    /// box takes the mouse before anything under it and is drawn over everything; Escape, a click
+    /// elsewhere or another selection closes it.
     /// </summary>
     internal static partial class ScryPanel
     {
@@ -36,6 +38,7 @@ namespace Scry
             var rows = new List<(string, string, bool, string, System.Action)>
             {
                 ("Spin", PanelWords.OnOff(Stage.Spin), Stage.Spin, StageWords.SpinTip(Stage.Spin), () => Stage.Spin = !Stage.Spin),
+                ("Speed", StageWords.SpinSpeedName(Settings.SpinSpeed), false, StageWords.SpinSpeedTip, NextSpinSpeed),
                 ("Backdrop", Stage.BackdropNames[Stage.BackdropIndex], false, "Next backdrop", () => Stage.BackdropIndex = (Stage.BackdropIndex + 1) % Stage.BackdropNames.Length),
                 ("Light", Stage.LightingNames[Stage.LightingIndex], false, "Next lighting", () => Stage.LightingIndex = (Stage.LightingIndex + 1) % Stage.LightingNames.Length),
             };
@@ -46,7 +49,26 @@ namespace Scry
                     () => Stage.GroundChoice = StageGround.Next(Stage.GroundChoice)));
             }
             if (!Looks.IsWorn(entry)) rows.Add(("Person", PanelWords.OnOff(Stage.ShowPerson), Stage.ShowPerson, "A person beside it, to judge its size", () => Stage.ShowPerson = !Stage.ShowPerson));
+            // In a dungeon filmed in full, whether the rooms below the floor opened keep their lights; filmed fast they never do.
+            if (Stage.HasFloors && Settings.StageQuality == StageQuality.Full)
+            {
+                var kept = Settings.LightDimmedRooms;
+                rows.Add((StageWords.LightsBelow, kept ? StageWords.LightsKept : StageWords.StageLight, kept, StageWords.LightsBelowTip, () => Settings.LightDimmedRooms = !kept));
+            }
             return rows;
+        }
+
+        /// <summary>The View box's rows for an entry, by name, for the self-test.</summary>
+        internal static List<string> ViewRowsForTest(Entry entry) => ViewRows(entry).ConvertAll(row => row.Name);
+
+        /// <summary>Goes on to the next speed, as a click on the View box's Speed row does; for the self-test.</summary>
+        internal static void NextSpinSpeedForTest() => NextSpinSpeed();
+
+        /// <summary>Goes on to the next of the View box's speeds from the one nearest the speed set.</summary>
+        private static void NextSpinSpeed()
+        {
+            var speeds = StageWords.SpinSpeeds;
+            Settings.SpinSpeed = speeds[(SettingsWords.Nearest(speeds, Settings.SpinSpeed) + 1) % speeds.Length];
         }
 
         private static float ViewRowHeight => U(28f);
@@ -83,7 +105,7 @@ namespace Scry
         private static float ViewNameWidth()
         {
             var most = 0f;
-            foreach (var name in new[] { "Spin", "Backdrop", "Light", "Ground", "Person" }) most = Mathf.Max(most, Skin.Width(Skin.Label, name));
+            foreach (var name in new[] { "Spin", "Speed", "Backdrop", "Light", "Ground", "Person", StageWords.LightsBelow }) most = Mathf.Max(most, Skin.Width(Skin.Label, name));
             return most;
         }
 
@@ -93,6 +115,8 @@ namespace Scry
             foreach (var value in Stage.BackdropNames) most = Mathf.Max(most, Skin.Width(Skin.Chip, value));
             foreach (var value in Stage.LightingNames) most = Mathf.Max(most, Skin.Width(Skin.Chip, value));
             foreach (var choice in StageGround.Choices) most = Mathf.Max(most, Skin.Width(Skin.Chip, GroundLabel(choice)));
+            foreach (var speed in StageWords.SpinSpeeds) most = Mathf.Max(most, Skin.Width(Skin.Chip, StageWords.SpinSpeedName(speed)));
+            most = Mathf.Max(most, Mathf.Max(Skin.Width(Skin.ChipOn, StageWords.LightsKept), Skin.Width(Skin.Chip, StageWords.StageLight)));
             return most + U(4f);
         }
 
@@ -148,8 +172,10 @@ namespace Scry
         {
             if (!_viewOpen || _viewFor == null) return;
             var e = Event.current;
-            var box = Here(_viewBox);
             var rows = ViewRows(_viewFor);
+            // As tall as its rows now, as a dungeon's floors may be found while it is open.
+            _viewBox.height = rows.Count * ViewRowHeight + U(8f);
+            var box = Here(_viewBox);
             if (e.type == EventType.Repaint) Skin.Box(box, Skin.Panel, Skin.Outline);
             for (var i = 0; i < rows.Count; i++)
             {

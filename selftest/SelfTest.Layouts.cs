@@ -23,6 +23,8 @@ namespace Scry
             Select(room);
             yield return Until(() => CopyOf(room) != null && Stage.HasFloors, 20);
             if (!p.Check(Stage.Cutting, $"{room.Name} opens cut", Stage.CutLabel)) yield break;
+            var viewRows = ScryPanel.ViewRowsForTest(room);
+            p.Check(Settings.StageQuality == StageQuality.Fast || viewRows.Contains(StageWords.LightsBelow), "while floors stand, the View box offers the lights of the rooms below", string.Join(", ", viewRows));
             var at = Stage.CutAt;
             Stage.CutBy(1f);
             p.Check(Mathf.Abs(Stage.CutAt - (at + 1f)) < 0.01f, "Shift and the wheel move the cut up", $"{Numbers.Fixed(at, 1)} to {Numbers.Fixed(Stage.CutAt, 1)} m");

@@ -281,8 +281,9 @@ namespace Scry
             var clearText = ClearText(outLines);
             var clearW = outLines > 0 ? Skin.Width(Skin.Button, clearText) + U(10f) : 0f;
             var viewRect = new Rect(w - pad - U(40f) - viewW, U(15f), viewW, U(28f));
-            // The compendium's button beside the view button, its box under it, what else the row holds to their left.
-            var front = CompendiumFront(explorer, viewRect.x, viewRect.y, viewRect.height, pad + U(98f), new Rect(pad, 0f, w - pad * 2f, h - pad));
+            var gearRect = new Rect(viewRect.x - U(6f) - viewRect.height, viewRect.y, viewRect.height, viewRect.height);
+            // The compendium's button beside the gear, its box under it, what else the row holds to their left.
+            var front = CompendiumFront(explorer, gearRect.x, viewRect.y, viewRect.height, pad + U(98f), new Rect(pad, 0f, w - pad * 2f, h - pad));
             var clearRect = new Rect(front - (outLines > 0 ? U(8f) + clearW : 0f), viewRect.y, clearW, viewRect.height);
 
             // Reading the locations completes what the search and the details know, so it is
@@ -322,6 +323,7 @@ namespace Scry
             OutClicks(explorer, e);
             CompendiumBoxClicks(e);
 
+            SettingsGear(gearRect);
             if (GUI.Button(viewRect, viewText, Skin.Button)) ToggleCompact();
             if (_compact)
             {
@@ -363,6 +365,9 @@ namespace Scry
                 var offH = OffNoticeHeight();
                 if (offH > 0f) OffNotice(new Rect(pad, U(54f) + noticeH, w - pad * 2f, offH - U(4f)));
                 noticeH += offH;
+                var rulesH = RulesNoticeHeight();
+                if (rulesH > 0f) RulesNotice(new Rect(pad, U(54f) + noticeH, w - pad * 2f, rulesH - U(4f)));
+                noticeH += rulesH;
                 var knownH = CompendiumStripHeight(explorer);
                 if (knownH > 0f) CompendiumStrip(explorer, new Rect(pad, U(54f) + noticeH, w - pad * 2f, knownH - U(4f)));
                 noticeH += knownH;

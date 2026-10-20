@@ -221,6 +221,56 @@ namespace Scry
             return clicked;
         }
 
+        // ----- The notice of what the world's server sets -----
+
+        private static WorldRules _rulesFor;
+        private static string _rulesLine;
+
+        /// <summary>The notice's line for the rules given, made again only when they change.</summary>
+        private static string RulesLine(WorldRules rules)
+        {
+            if (ReferenceEquals(rules, _rulesFor)) return _rulesLine;
+            _rulesFor = rules;
+            return _rulesLine = WorldRulesWords.Notice(rules);
+        }
+
+        /// <summary>The notice of what the world's server sets as it shows now; none while it is not up. For the self-test.</summary>
+        internal static string RulesNoticeLine => RulesNoticeHeight() > 0f ? _rulesLine : null;
+
+        /// <summary>How tall the notice of what the world's server sets is: none where it sets nothing, or where the notice as it reads now was told in this world.</summary>
+        private static float RulesNoticeHeight()
+        {
+            var book = CompendiumKeeper.Book;
+            if (book == null) return 0f;
+            var line = RulesLine(book.World);
+            return line != null && !book.ToldRules(CompendiumMap.World, line) ? U(32f) : 0f;
+        }
+
+        /// <summary>
+        /// A strip under the header told once on joining a world whose server sets any of the
+        /// compendium's rules, as the box's locks alone are easy to miss: what it sets in a line,
+        /// Show the rules opening the compendium's guide, and a cross putting it away; either keeps
+        /// it told in this world until the server's rules change. The compact view's step at its
+        /// end where given. What was clicked.
+        /// </summary>
+        private static StripClick RulesNotice(Rect rect, string step = null)
+        {
+            CountDrawn(PanelPart.RulesNotice);
+            var clicked = NoticeStrip(rect, Skin.Accent, _rulesLine, Skin.Label, false, WorldRulesWords.ShowRules, GuideShown, true, crossTip: WorldRulesWords.PutAway, step: step);
+            if (clicked == StripClick.Chip) ShowGuide(true);
+            if (clicked == StripClick.Chip || clicked == StripClick.Cross) TellRules();
+            return clicked;
+        }
+
+        /// <summary>Keeps the notice of what the world's server sets told in this world: its chip and cross, and the self-test.</summary>
+        internal static void TellRules()
+        {
+            var book = CompendiumKeeper.Book;
+            if (book == null || _rulesLine == null) return;
+            book.TellRules(CompendiumMap.World, _rulesLine);
+            CompendiumKeeper.Save();
+        }
+
         /// <summary>What the character learned since the panel last told of it (<see cref="LearnedNotice"/>).</summary>
         private static readonly LearnedNotice LearnedNews = new LearnedNotice();
 
@@ -392,6 +442,7 @@ namespace Scry
         {
             NoticesUp.Clear();
             if (OffNoticeHeight() > 0f) NoticesUp.Add(Notice.Off);
+            if (RulesNoticeHeight() > 0f) NoticesUp.Add(Notice.Rules);
             if (explorer.Peeking) NoticesUp.Add(Notice.Peeking);
             if (PlayingWithNoticeHeight() > 0f) NoticesUp.Add(Notice.PlayingWith);
             if (!explorer.Peeking && NewsUp(explorer)) NoticesUp.Add(Notice.Learned);
@@ -420,6 +471,9 @@ namespace Scry
             {
                 case Notice.Off:
                     clicked = OffNotice(rect, step);
+                    break;
+                case Notice.Rules:
+                    clicked = RulesNotice(rect, step);
                     break;
                 case Notice.PlayingWith:
                     clicked = PlayingWithNotice(rect, step);

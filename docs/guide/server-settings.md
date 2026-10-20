@@ -26,6 +26,6 @@ For a relaxed group that shares what it finds: leave `Rules` at `PlayersChoose` 
 
 ## What players see
 
-The compendium's box shows a rule or a level the server set locked, with a lock after its caption and a tip saying the server keeps it so; levels above a cap are dimmed. Players without Scry join and play as before.
+On joining, a notice under the panel's header says once what the server sets, such as "This server plays Strict; peeking and Known up to are off.", with *Show the rules* opening the compendium's guide; it is told again only when the server's settings change. The compendium's box shows a rule or a level the server set locked, with a lock after its caption and a tip saying the server keeps it so; levels above a cap are dimmed. Players without Scry join and play as before.
 
 More: https://github.com/isimp/Scry

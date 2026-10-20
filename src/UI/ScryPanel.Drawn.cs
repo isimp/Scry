@@ -103,6 +103,24 @@ namespace Scry
 
         /// <summary>The compact view's one notice strip, the notices up sharing it.</summary>
         NoticeLine,
+
+        /// <summary>The gear in the title row opening the settings card.</summary>
+        SettingsGear,
+
+        /// <summary>The settings card, in the list's place.</summary>
+        SettingsCard,
+
+        /// <summary>The compendium's guide, in the list's place.</summary>
+        GuideCard,
+
+        /// <summary>The ? in the compendium's box opening its guide.</summary>
+        GuideButton,
+
+        /// <summary>The question asked once of a character whose compendium is off, in the list's place.</summary>
+        WelcomeCard,
+
+        /// <summary>The notice told once on joining a world whose server sets any of the compendium's rules.</summary>
+        RulesNotice,
     }
 
     internal static partial class ScryPanel
