@@ -27,6 +27,9 @@ namespace Scry
 
         private static readonly List<Collider> Colliders = new List<Collider>();
 
+        /// <summary>How many rays a reading casts between its pauses (<see cref="Reading"/>): each a fraction of a millisecond.</summary>
+        private const int RaysASlice = 32;
+
         /// <summary>How many surfaces one ray goes through at the most; it goes on <see cref="FloorRecord.Past"/> past each.</summary>
         private const int MostSurfaces = 48;
 
@@ -90,7 +93,28 @@ namespace Scry
         public static float Read(GameObject copy, Transform space, int layer, List<FloorHit> hits, int patch, string prefab, bool room, PlaceRoll roll,
             List<string> names = null, Action wake = null, Action sleep = null, FloorWalk.Start start = null, Action<float> top = null)
         {
-            if (copy == null) return 0f;
+            var ground = 0f;
+            using (var steps = Reading(copy, space, layer, hits, patch, prefab, room, roll, names, wake, sleep, start, top).GetEnumerator())
+            {
+                while (steps.MoveNext()) if (steps.Current.HasValue) ground = steps.Current.Value;
+            }
+            return ground;
+        }
+
+        /// <summary>
+        /// The copy's floors read as <see cref="Read"/> reads them, one ray at a time: none between
+        /// rays, then the ground the rays were cast over, so a place too big to read in one frame
+        /// is read a few milliseconds a frame. The copy must stand as it is until the reading is
+        /// done; its colliders go once it is, or once the reading is let go of unfinished.
+        /// </summary>
+        public static IEnumerable<float?> Reading(GameObject copy, Transform space, int layer, List<FloorHit> hits, int patch, string prefab, bool room, PlaceRoll roll,
+            List<string> names = null, Action wake = null, Action sleep = null, FloorWalk.Start start = null, Action<float> top = null)
+        {
+            if (copy == null)
+            {
+                yield return 0f;
+                yield break;
+            }
             var root = copy.transform;
             try
             {
@@ -113,7 +137,8 @@ namespace Scry
                     timed = Timing.Start();
                     Tell(kept, present, root, space, patch, hits, names, placed, keys, start, top);
                     Timing.Add("floor probe kept", timed);
-                    return kept.Ground;
+                    yield return kept.Ground;
+                    yield break;
                 }
 
                 wake?.Invoke();
@@ -123,25 +148,46 @@ namespace Scry
                     // Made and moved this frame: physics learns where its colliders are before they are measured.
                     Physics.SyncTransforms();
                     Timing.Add("floor probe sync", timed);
-                    if (!upright) return ByStageGrid(copy, space, layer, hits, patch, names, placed, roll.NotSolid);
+                    if (!upright)
+                    {
+                        yield return ByStageGrid(copy, space, layer, hits, patch, names, placed, roll.NotSolid);
+                        yield break;
+                    }
 
                     timed = Timing.Start();
                     var record = kept ?? New(prefab, room, stamp, root, transforms, parts);
-                    if (record == null) return 0f;
+                    if (record == null)
+                    {
+                        yield return 0f;
+                        yield break;
+                    }
                     var met = covered && Checked != null ? new Dictionary<int, List<(float Height, int Part)>>() : null;
-                    var seen = Cast(record, root, layer, transforms, present, placed, keys, met);
+                    ProbeSeen seen = null;
+                    foreach (var cast in Cast(record, root, layer, transforms, present, placed, keys, met))
+                    {
+                        if (cast != null)
+                        {
+                            seen = cast;
+                            continue;
+                        }
+                        // Between rays: the time so far counted, and counted again from the next.
+                        Timing.Add("floor probe rays", timed);
+                        yield return null;
+                        timed = Timing.Start();
+                    }
                     Probed++;
                     Timing.Add("floor probe rays", timed);
                     if (covered)
                     {
                         Checked?.Invoke(kept, FloorRecord.New(prefab, room, stamp, kept.MinX, kept.MaxX, kept.MinZ, kept.MaxZ, kept.Top, kept.Bottom, parts).With(seen), present, keys, met, root);
                         Tell(kept, present, root, space, patch, hits, names, placed, keys, start, top);
-                        return kept.Ground;
+                        yield return kept.Ground;
+                        yield break;
                     }
                     var grown = record.With(seen);
                     FloorRecords.Put(grown);
                     Tell(grown, present, root, space, patch, hits, names, placed, keys, start, top);
-                    return grown.Ground;
+                    yield return grown.Ground;
                 }
                 finally
                 {
@@ -289,9 +335,10 @@ namespace Scry
         /// a part each meets or passes just under one, in the copy's own frame; into <paramref name="met"/>, when given,
         /// every part each of the record's rays met. The rays pass through other copies on the
         /// stage (<see cref="OwnDown"/>), so what is kept of a kind of place is the same whatever
-        /// stood beside the copy it was probed on.
+        /// stood beside the copy it was probed on. None after each slice of rays
+        /// (<see cref="RaysASlice"/>), what was seen last, so a reading can pause between slices.
         /// </summary>
-        private static ProbeSeen Cast(FloorRecord record, Transform root, int layer, List<Transform> transforms, HashSet<int> present, List<Stage.SpawnHere> placed, List<string> keys,
+        private static IEnumerable<ProbeSeen> Cast(FloorRecord record, Transform root, int layer, List<Transform> transforms, HashSet<int> present, List<Stage.SpawnHere> placed, List<string> keys,
             Dictionary<int, List<(float Height, int Part)>> met = null)
         {
             var seen = new ProbeSeen();
@@ -321,9 +368,10 @@ namespace Scry
                 var all = met != null ? met[ray] = new List<(float Height, int Part)>() : null;
                 var surfaces = Surfaces(root.TransformPoint(new Vector3(grid[ray].X, record.Top, grid[ray].Z)), record.Top - record.Bottom, all);
                 if (surfaces.Count > 0) seen.Rays[ray] = surfaces;
+                if (ray % RaysASlice == RaysASlice - 1) yield return null;
             }
             for (var i = 0; i < placed.Count; i++) seen.Spawns[keys[i]] = Surfaces(placed[i].At.position + Vector3.up, FloorBelow);
-            return seen;
+            yield return seen;
         }
 
         /// <summary>

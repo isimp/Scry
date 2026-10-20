@@ -31,7 +31,8 @@ namespace Scry
         /// <summary>Takes the copy shown off the stage, with what plays on it and a place still being built.</summary>
         public static void ClearSubject()
         {
-            // A place made but still waiting for what is kept of its floors was never handed over.
+            // A place made but still waiting for what is kept of its floors, or for its rays, was never handed over.
+            StopFloors();
             if (_building?.Result != null) Object.Destroy(_building.Result);
             _building?.Cancel();
             _buildingRoll = null;
@@ -98,6 +99,8 @@ namespace Scry
                 FloorRecords.Want(place.Prefab, place.IsRoom);
                 _buildingRoll = new PlaceRoll();
                 _buildingPaints = new List<GroundPaintAt>();
+                // A reading of the floors of a place made before is let go, as a new one is made.
+                StopFloors();
                 _building = PlaceCopy.Begin(asset, _root.transform, Origin, Quaternion.identity, _layer, keepColliders: true, roll: _buildingRoll, paints: _buildingPaints);
                 _buildingWith = modifiers;
                 StepBuild();
@@ -193,15 +196,23 @@ namespace Scry
         /// <summary>
         /// Goes on making the location or room shown, a few milliseconds a frame, and shows it
         /// once all of it is awake and what is kept of its floors is found, with its floors read
-        /// from its colliders.
+        /// from its colliders, a slice of rays a frame where they are not kept.
         /// </summary>
         public static void StepBuild()
         {
             if (_building == null || _builtInFrame == Time.frameCount) return;
             _builtInFrame = Time.frameCount;
-            if (!_building.Go(BuildBudgetMs)) return;
-            // Its floors are read once what is kept of them is found, waited for over frames.
-            if (_building.Result != null && _lastShown?.Source is PlaceSource waiting && !FloorRecords.Ready(waiting.Prefab, waiting.IsRoom)) return;
+            if (_floorReading == null)
+            {
+                if (!_building.Go(BuildBudgetMs)) return;
+                // Its floors are read once what is kept of them is found, waited for over frames.
+                if (_building.Result != null && _lastShown?.Source is PlaceSource waiting && !FloorRecords.Ready(waiting.Prefab, waiting.IsRoom)) return;
+                if (_building.Result != null && _lastShown?.Source is PlaceSource reading) BeginFloors(_building.Result, reading, _buildingRoll);
+            }
+            var probed = Timing.Start();
+            var read = ReadFloors(BuildBudgetMs);
+            Timing.Add("selection floors", probed);
+            if (!read) return;
 
             var built = _building;
             var modifiers = _buildingWith;
@@ -212,9 +223,7 @@ namespace Scry
             _subject = built.Result;
             if (_subject == null || !(_lastShown?.Source is PlaceSource place)) return;
 
-            var probed = Timing.Start();
-            _placeFloors = FloorsOf(_subject, place, _buildingRoll);
-            Timing.Add("selection floors", probed);
+            _placeFloors = FloorsFound(place);
             Present(_lastShown, modifiers);
             Populate(_buildingRoll.Spawns, null);
             _buildingRoll = null;

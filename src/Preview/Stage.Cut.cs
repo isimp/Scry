@@ -155,17 +155,50 @@ namespace Scry
         /// <summary>What each floor of the location or room shown stands on, from its rays, for the self-test to tell (<see cref="FloorMakers"/>).</summary>
         public static List<string> FloorMakersNow() => FloorMakers.Tell(_floorHits.Select(h => h.Height).ToList(), _floorNames, Floors);
 
-        private static List<float> FloorsOf(GameObject copy, PlaceSource place, PlaceRoll roll)
+        /// <summary>A place's floors being read, a slice of rays a frame (<see cref="FloorProbe.Reading"/>), and the ground its rays were cast over so far; none while none is read.</summary>
+        private static IEnumerator<float?> _floorReading;
+        private static float _floorGround;
+
+        /// <summary>Starts reading the floors of a place made, its rays cast a slice at a time by <see cref="ReadFloors"/>.</summary>
+        private static void BeginFloors(GameObject copy, PlaceSource place, PlaceRoll roll)
         {
-            var hits = new List<FloorHit>();
-            var names = new List<string>();
+            StopFloors();
+            _floorHits = new List<FloorHit>();
+            _floorNames = new List<string>();
+            _floorGround = 0f;
             // A room is walked into by its doorways, a location from its ground and the open sky.
             var doorways = place.Contents?.Room?.Doorways;
             var start = !place.IsRoom ? FloorWalk.Start.Outdoors : doorways != null && doorways.Count > 0 ? FloorWalk.Start.At(doorways.Select(d => d.Position)) : null;
             _placeTop = float.NaN;
-            var found = FloorFinder.Floors(hits, FloorProbe.Read(copy, copy.transform, _layer, hits, 0, place.Prefab, place.IsRoom, roll, names, start: start, top: t => _placeTop = t));
-            _floorHits = hits;
-            _floorNames = names;
+            _floorReading = FloorProbe.Reading(copy, copy.transform, _layer, _floorHits, 0, place.Prefab, place.IsRoom, roll, _floorNames, start: start, top: t => _placeTop = t).GetEnumerator();
+        }
+
+        /// <summary>Casts the floors' rays for up to so many milliseconds; whether they are all cast.</summary>
+        private static bool ReadFloors(double budgetMs)
+        {
+            if (_floorReading == null) return true;
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            while (_floorReading.MoveNext())
+            {
+                if (_floorReading.Current.HasValue) _floorGround = _floorReading.Current.Value;
+                else if (watch.Elapsed.TotalMilliseconds >= budgetMs) return false;
+            }
+            StopFloors();
+            return true;
+        }
+
+        /// <summary>Lets go of a reading of floors, done or not: its copy's colliders go with it.</summary>
+        private static void StopFloors()
+        {
+            _floorReading?.Dispose();
+            _floorReading = null;
+        }
+
+        /// <summary>The floors found by the reading done: a room's own where its rays found none, a location's where something covers them.</summary>
+        private static List<float> FloorsFound(PlaceSource place)
+        {
+            var hits = _floorHits;
+            var found = FloorFinder.Floors(hits, _floorGround);
             if (place.IsRoom) return found.Count > 0 ? found : PlaceView.RoomFloors(place.Contents?.Room);
             return PlaceView.LocationFloors(found, floor => FloorFinder.Covered(hits, floor));
         }
