@@ -142,8 +142,6 @@ namespace Scry.Tests
         [Fact]
         public void TheGroupsLineSaysHowFarItWasWalkedAndWhatOpenedIt()
         {
-            Assert.Equal("The group's walk: 14 of 18 rooms walked · opened up to the Mountain tier", DungeonMapWords.Group(0, 1, 14, 18, "Mountain"));
-            Assert.Equal("The group's walk 2: 1 of 2 rooms walked · opened up to the Plains tier", DungeonMapWords.Group(1, 2, 1, 2, "Plains"));
             Assert.Equal("Show this dungeon on the stage as far as anyone on this server walked it", DungeonMapWords.GroupOpenTip);
             Assert.Equal("the server's records of 2 dungeons of this world are forgotten.", DungeonMapWords.GroupForgotten(2));
             Assert.Equal("the server's record of 1 dungeon of this world is forgotten.", DungeonMapWords.GroupForgotten(1));

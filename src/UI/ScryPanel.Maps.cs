@@ -44,13 +44,16 @@ namespace Scry
             y += U(6f);
             for (var i = 0; i < MapsShown.Count; i++)
             {
-                var (id, _, walked, rooms) = MapsShown[i];
-                var said = DungeonMapWords.Yours(i, MapsShown.Count, walked, rooms);
+                var (id, map, walked, rooms) = MapsShown[i];
+                var said = DungeonMapWords.Yours(i, MapsShown.Count, walked, rooms, map.FirstDay, map.LastDay);
+                if (i == 0) FirstMapLineForTest = said;
                 var forgetW = Skin.Width(Skin.Button, DungeonMapWords.Forget) + U(12f);
                 var openW = Skin.Width(Skin.Button, DungeonMapWords.Open) + U(12f);
                 var forget = new Rect(width - forgetW, y, forgetW, rowH);
                 var open = new Rect(forget.x - U(6f) - openW, y, openW, rowH);
-                GUI.Label(new Rect(0f, y, Mathf.Max(0f, open.x - U(8f)), rowH), said, Skin.Fitted(Skin.DimLabel, new Rect(0f, y, Mathf.Max(0f, open.x - U(8f)), rowH)));
+                var line = new Rect(0f, y, Mathf.Max(0f, open.x - U(8f)), rowH);
+                GUI.Label(line, said, Skin.Fitted(Skin.DimLabel, line));
+                DaysTip(line, "map:days:" + id, DungeonMapWords.DaysTip(true, map.FirstDay, map.LastDay));
                 var shown = ExampleLayouts.ShownMap == id;
                 if (open.Contains(Event.current.mousePosition)) AskTip("map:open:" + id, DungeonMapWords.OpenTip);
                 if (GUI.Button(open, DungeonMapWords.Open, shown ? Skin.On : Skin.Button) && !shown) OpenMap(id);
@@ -64,11 +67,12 @@ namespace Scry
             {
                 var (id, map) = GroupShown[i];
                 var (walked, rooms) = ExampleLayouts.Count(map);
-                var said = DungeonMapWords.Group(i, GroupShown.Count, walked, rooms, floor);
+                var said = DungeonMapWords.Server(i, GroupShown.Count, walked, rooms, floor, map.FirstDay, map.LastDay);
                 var openW = Skin.Width(Skin.Button, DungeonMapWords.Open) + U(12f);
                 var open = new Rect(width - openW, y, openW, rowH);
                 var label = new Rect(0f, y, Mathf.Max(0f, open.x - U(8f)), rowH);
                 GUI.Label(label, said, Skin.Fitted(Skin.DimLabel, label));
+                DaysTip(label, "map:server-days:" + id, DungeonMapWords.DaysTip(false, map.FirstDay, map.LastDay));
                 var shown = ExampleLayouts.ShownMap == id;
                 if (open.Contains(Event.current.mousePosition)) AskTip("map:group:" + id, DungeonMapWords.GroupOpenTip);
                 if (GUI.Button(open, DungeonMapWords.Open, shown ? Skin.On : Skin.Button) && !shown) OpenMap(id);
@@ -78,6 +82,16 @@ namespace Scry
             CountDrawn(PanelPart.MapLine);
             return y;
         }
+
+        /// <summary>The days a walk's line spans in words, on its hover; none where it has none.</summary>
+        private static void DaysTip(Rect line, string key, string tip)
+        {
+            if (tip != null && line.Contains(Event.current.mousePosition)) AskTip(key, tip);
+        }
+
+        /// <summary>The first line of the character's walks as last drawn, for the self-test.</summary>
+        [Diagnostic]
+        public static string FirstMapLineForTest { get; private set; }
 
         /// <summary>Shows a kept map on the stage, its inside.</summary>
         private static void OpenMap(string id)

@@ -53,7 +53,10 @@ namespace Scry
 
         /// <summary>The layer the marks stand on, and the stamps of what they were last listed from.</summary>
         private static RectTransform _layer;
-        private static (int Walked, int InGround, int Sources) _keptStamp = (-1, -1, -1);
+        private static (int Walked, int InGround, int Sources, int Server) _keptStamp = (-1, -1, -1, -1);
+
+        /// <summary>Whether the server was asked for the marked dungeons' records since the map last opened.</summary>
+        private static bool _askedServer;
         private static string _keptWorld;
         private static Sprite _sprite, _hollow;
 
@@ -125,8 +128,9 @@ namespace Scry
             Marks.Clear();
             Kept.Clear();
             _layer = null;
-            _keptStamp = (-1, -1, -1);
+            _keptStamp = (-1, -1, -1, -1);
             _keptWorld = null;
+            _askedServer = false;
             MarksShown = 0;
             HollowShown = 0;
         }
@@ -149,13 +153,21 @@ namespace Scry
             }
             var maps = DungeonWalks.Maps;
             var book = CompendiumKeeper.Book;
-            var stamp = (maps.Stamp, DungeonsInGround.Stamp, book != null ? book.SourcesVersion : -1);
+            var stamp = (maps.Stamp, DungeonsInGround.Stamp, book != null ? book.SourcesVersion : -1, GroupMapsLink.Group.Stamp);
             if (_keptStamp != stamp || _keptWorld != world)
             {
                 Kept.Clear();
                 Kept.AddRange(DungeonMarks.Of(book, maps.OfWorld(world), DungeonsInGround.Of));
                 _keptStamp = stamp;
                 _keptWorld = world;
+                // Their words told afresh, as the days in them may have moved.
+                foreach (var mark in Marks) mark.Id = null;
+            }
+            // As the map opens, the server is asked for the records of the dungeons marked, for the last day anyone walked each.
+            if (!_askedServer)
+            {
+                _askedServer = true;
+                foreach (var location in Kept.Select(k => k.Map.Location).Distinct()) GroupMapsLink.Ask(location);
             }
 
             var image = map.m_mapImageLarge;
@@ -180,11 +192,12 @@ namespace Scry
                     mark.From = kept.From;
                     if (mark.Picture != null) mark.Picture.sprite = kept.From == null ? MarkSprite() : HollowSprite();
                     var colour = ColorUtility.ToHtmlStringRGB(Skin.Accent);
-                    if (kept.From is WorldSource from) Name(mark, DungeonMapWords.InsidesLabel(Shown(kept.Map.Location), from, colour));
+                    var serverLast = GroupMapsLink.Group.Of(kept.Id)?.LastDay ?? -1;
+                    if (kept.From is WorldSource from) Name(mark, DungeonMapWords.InsidesLabel(Shown(kept.Map.Location), from, colour, serverLast));
                     else
                     {
                         var (walked, rooms) = DungeonMaps.Walked(kept.Map, _ => null);
-                        Name(mark, DungeonMapWords.MarkLabel(Shown(kept.Map.Location), walked, rooms, colour));
+                        Name(mark, DungeonMapWords.MarkLabel(Shown(kept.Map.Location), walked, rooms, colour, kept.Map.LastDay, serverLast));
                     }
                 }
                 // Its words stand where it stands, as the game's pin names do, the name's own layout putting them under it.
@@ -283,6 +296,7 @@ namespace Scry
 
         private static void PutAway()
         {
+            _askedServer = false;
             if (MarksShown == 0) return;
             HideName();
             foreach (var mark in Marks)

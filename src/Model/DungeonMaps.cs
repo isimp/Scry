@@ -7,8 +7,8 @@ namespace Scry
 {
     /// <summary>
     /// A dungeon a character has been in: its rooms as the world saved them, where its location
-    /// stands and where its generator stands and how it is turned, and the rooms stood in by their
-    /// place in that list.
+    /// stands and where its generator stands and how it is turned, the rooms stood in by their
+    /// place in that list, and the game's days it was first and last walked in.
     /// </summary>
     internal sealed class DungeonMap
     {
@@ -18,6 +18,12 @@ namespace Scry
         public Vec3 Generator;
         public Quat Turn = Quat.Identity;
         public readonly SortedSet<int> Walked = new SortedSet<int>();
+
+        /// <summary>The game's day it was first walked in; -1 where that is not known, as for a walk kept before days were.</summary>
+        public int FirstDay = -1;
+
+        /// <summary>The game's day it was last walked in; -1 where that is not known.</summary>
+        public int LastDay = -1;
 
         /// <summary>The same map as it stands from its generator: its rooms placed and turned from there, the generator at the origin and unturned, no place of the world in it.</summary>
         public DungeonMap FromGenerator()
@@ -29,6 +35,8 @@ namespace Scry
                 Rooms = Rooms.Select(r => (r.Hash, back * (r.Position - Generator), (back * Quat.Euler(r.Angles.X, r.Angles.Y, r.Angles.Z)).ToEuler())).ToList(),
             };
             foreach (var room in Walked) local.Walked.Add(room);
+            local.FirstDay = FirstDay;
+            local.LastDay = LastDay;
             return local;
         }
     }
@@ -101,15 +109,25 @@ namespace Scry
 
         private static bool InWorld(string id, string world) => id.StartsWith(world + ":", StringComparison.Ordinal);
 
-        /// <summary>Keeps a dungeon been in, as first read; one kept already stays as it was.</summary>
-        public DungeonMap Keep(string id, string location, List<(int Hash, Vec3 Position, Vec3 Angles)> rooms, Vec3 entrance, Vec3 generator, Quat turn)
+        /// <summary>Keeps a dungeon been in, as first read, on the game's day given as its first and last walked (-1 for none); one kept already stays as it was.</summary>
+        public DungeonMap Keep(string id, string location, List<(int Hash, Vec3 Position, Vec3 Angles)> rooms, Vec3 entrance, Vec3 generator, Quat turn, int day = -1)
         {
             if (_maps.TryGetValue(id, out var kept)) return kept;
-            var map = new DungeonMap { Location = location, Rooms = rooms, Entrance = entrance, Generator = generator, Turn = turn };
+            var map = new DungeonMap { Location = location, Rooms = rooms, Entrance = entrance, Generator = generator, Turn = turn, FirstDay = day, LastDay = day };
             _maps[id] = map;
             _order.Add(id);
             Stamp++;
             return map;
+        }
+
+        /// <summary>A kept dungeon stood in on a game's day: its last day moved on to it, never back, its first left as it is; true when it moved.</summary>
+        public bool Visit(string id, int day)
+        {
+            var map = Of(id);
+            if (map == null || day < 0 || day <= map.LastDay) return false;
+            map.LastDay = day;
+            Stamp++;
+            return true;
         }
 
         /// <summary>A room of a kept dungeon stood in, by its place in its rooms; true when it was not walked before.</summary>
@@ -121,7 +139,7 @@ namespace Scry
             return true;
         }
 
-        /// <summary>Takes in other maps: each kept as first read, its rooms walked added; how many rooms were walked anew.</summary>
+        /// <summary>Takes in other maps: each kept as first read, its rooms walked added, the earliest first day and the latest last day kept; how many rooms were walked anew.</summary>
         public int Merge(DungeonMaps other) => Merge(other.All);
 
         /// <summary>Takes in the other maps of one world alone, as a server does those its players send; none outside a world.</summary>
@@ -132,8 +150,18 @@ namespace Scry
             var walked = 0;
             foreach (var (id, map) in maps.ToList())
             {
-                Keep(id, map.Location, map.Rooms, map.Entrance, map.Generator, map.Turn);
+                var kept = Keep(id, map.Location, map.Rooms, map.Entrance, map.Generator, map.Turn);
                 foreach (var room in map.Walked) if (Walk(id, room)) walked++;
+                if (map.FirstDay >= 0 && (kept.FirstDay < 0 || map.FirstDay < kept.FirstDay))
+                {
+                    kept.FirstDay = map.FirstDay;
+                    Stamp++;
+                }
+                if (map.LastDay > kept.LastDay)
+                {
+                    kept.LastDay = map.LastDay;
+                    Stamp++;
+                }
             }
             return walked;
         }
@@ -147,8 +175,10 @@ namespace Scry
             {
                 if (!named.Contains(map.Location)) continue;
                 var local = map.FromGenerator();
-                only.Keep(id, local.Location, local.Rooms, local.Entrance, local.Generator, local.Turn);
+                var kept = only.Keep(id, local.Location, local.Rooms, local.Entrance, local.Generator, local.Turn);
                 foreach (var room in local.Walked) only.Walk(id, room);
+                kept.FirstDay = local.FirstDay;
+                kept.LastDay = local.LastDay;
             }
             return only;
         }
@@ -186,17 +216,18 @@ namespace Scry
 
         /// <summary>
         /// The maps as they are now, to be written out on a worker thread: the text is put together
-        /// there from what they hold now, not after. They count as saved from here.
+        /// there from what they hold now, not after. They count as saved from here. A dungeon's days
+        /// go on a line of their own after its own, so an older Scry reads its line as before.
         /// </summary>
         public Func<string> ToSave()
         {
-            var held = All.Select(m => (m.Id, m.Map.Location, m.Map.Entrance, m.Map.Generator, m.Map.Turn, Walked: m.Map.Walked.ToArray(), m.Map.Rooms)).ToList();
+            var held = All.Select(m => (m.Id, m.Map.Location, m.Map.Entrance, m.Map.Generator, m.Map.Turn, Walked: m.Map.Walked.ToArray(), m.Map.Rooms, Days: (m.Map.FirstDay, m.Map.LastDay))).ToList();
             _savedStamp = Stamp;
             return () =>
             {
                 var text = new StringBuilder();
                 text.Append(FirstLine).Append('\n');
-                foreach (var (id, location, entrance, generator, turn, walked, rooms) in held)
+                foreach (var (id, location, entrance, generator, turn, walked, rooms, days) in held)
                 {
                     text.Append(Stored.Escaped(id)).Append('\t')
                         .Append(Stored.Escaped(location ?? "")).Append('\t')
@@ -205,21 +236,32 @@ namespace Scry
                         .Append(Stored.Exact(turn.X)).Append(' ').Append(Stored.Exact(turn.Y)).Append(' ').Append(Stored.Exact(turn.Z)).Append(' ').Append(Stored.Exact(turn.W)).Append('\t')
                         .Append(string.Join(",", walked.Select(i => Stored.Count(i)))).Append('\t')
                         .Append(Convert.ToBase64String(SavedRooms.Write(rooms))).Append('\n');
+                    if (days.FirstDay < 0 && days.LastDay < 0) continue;
+                    text.Append(DaysLine).Append('\t').Append(Stored.Escaped(id)).Append('\t').Append(Stored.Count(days.FirstDay)).Append('\t').Append(Stored.Count(days.LastDay)).Append('\n');
                 }
                 return text.ToString();
             };
         }
 
+        /// <summary>How a line of a dungeon's days begins.</summary>
+        private const string DaysLine = "days";
+
         private static string Point(Vec3 p) => Stored.Exact(p.X) + " " + Stored.Exact(p.Y) + " " + Stored.Exact(p.Z);
 
-        /// <summary>The maps a file held; a line that cannot be read is passed over, and none for no text.</summary>
+        /// <summary>The maps a file held, with their days; a line that cannot be read is passed over, as are days of a dungeon not held, and none for no text.</summary>
         public static DungeonMaps Load(string text)
         {
             var maps = new DungeonMaps();
             if (string.IsNullOrEmpty(text)) return maps;
+            var days = new List<(string Id, int First, int Last)>();
             foreach (var line in text.Split('\n'))
             {
                 var fields = line.TrimEnd('\r').Split('\t');
+                if (fields.Length == 4 && fields[0] == DaysLine)
+                {
+                    if (Stored.TryUnescaped(fields[1], out var of) && Stored.TryCount(fields[2], out var first) && Stored.TryCount(fields[3], out var last)) days.Add((of, first, last));
+                    continue;
+                }
                 if (fields.Length != 7 || !Stored.TryUnescaped(fields[0], out var id) || id.Length == 0 || !Stored.TryUnescaped(fields[1], out var location)) continue;
                 if (!TryPoint(fields[2], out var entrance) || !TryPoint(fields[3], out var generator) || !TryTurn(fields[4], out var turn)) continue;
                 var rooms = TryRooms(fields[6]);
@@ -234,6 +276,13 @@ namespace Scry
                 if (!readable || maps._maps.ContainsKey(id)) continue;
                 maps.Keep(id, location, rooms, entrance, generator, turn);
                 foreach (var room in walked) maps.Walk(id, room);
+            }
+            foreach (var (id, first, last) in days)
+            {
+                var map = maps.Of(id);
+                if (map == null) continue;
+                map.FirstDay = first;
+                map.LastDay = last;
             }
             maps._savedStamp = maps.Stamp;
             return maps;
@@ -284,18 +333,48 @@ namespace Scry
     /// <summary>What the page of a dungeon been in says of its maps, and the reset's answer.</summary>
     internal static class DungeonMapWords
     {
-        /// <summary>A map's line: numbered where the location has more than one.</summary>
-        public static string Yours(int index, int count, int walked, int rooms) =>
-            (count > 1 ? "Your walk " + Numbers.Count(index + 1) : "Your walk") + ": " + PlanBoxWords.Walked(walked, rooms);
+        /// <summary>A walk of yours as the page lines it: numbered where the location has more than one, how far, and its days.</summary>
+        public static string Yours(int index, int count, int walked, int rooms, int first, int last) =>
+            "Walked by you" + Numbered(index, count) + ": " + RoomsOf(walked, rooms) + WithDays(first, last);
+
+        /// <summary>The line of the server's record of a dungeon, anyone's walks on it: numbered where the location has more than one, how far, its days, and the tier that opens it.</summary>
+        public static string Server(int index, int count, int walked, int rooms, string floor, int first, int last) =>
+            "Walked on this server" + Numbered(index, count) + ": " + RoomsOf(walked, rooms) + WithDays(first, last) + " \u00b7 opened up to the " + floor + " tier";
+
+        /// <summary>A line's number among the location's, "(2 of 3)"; none where it is the only one.</summary>
+        private static string Numbered(int index, int count) => count > 1 ? " (" + Numbers.Count(index + 1) + " of " + Numbers.Count(count) + ")" : "";
+
+        private static string RoomsOf(int walked, int rooms) => Numbers.Count(walked) + " of " + Naming.Count(rooms, "room", "rooms");
+
+        private static string WithDays(int first, int last)
+        {
+            var days = Days(first, last);
+            return days == null ? "" : " \u00b7 " + days;
+        }
+
+        /// <summary>The game's days a walk spans: "days 103–241", "day 103" for one day, "last day 241" where its first is not known; none where its last is not.</summary>
+        public static string Days(int first, int last)
+        {
+            if (last < 0) return null;
+            if (first < 0) return "last day " + Numbers.Count(last);
+            return first == last ? "day " + Numbers.Count(first) : "days " + Numbers.Count(first) + "\u2013" + Numbers.Count(last);
+        }
+
+        /// <summary>The days a walk spans in words, on the line's hover: yours, or anyone's on this server; none where its last is not known.</summary>
+        public static string DaysTip(bool byYou, int first, int last)
+        {
+            if (last < 0) return null;
+            var who = byYou ? "You" : "Anyone on this server";
+            if (first < 0) return who + " last walked it on day " + Numbers.Count(last);
+            return first == last ? who + " walked it on day " + Numbers.Count(first) : who + " first walked it on day " + Numbers.Count(first) + ", last on day " + Numbers.Count(last);
+        }
 
         public const string Open = "Show it";
         public const string OpenTip = "Show this dungeon on the stage as far as you walked it, wherever you are";
         public const string Forget = "Forget";
         public const string ForgetTip = "Forget this walk: its rooms show again only as you walk them";
 
-        /// <summary>The line of a record the server gathered of a dungeon, numbered where the location has more than one, and the tier that opens it.</summary>
-        public static string Group(int index, int count, int walked, int rooms, string floor) =>
-            (count > 1 ? "The group's walk " + Numbers.Count(index + 1) : "The group's walk") + ": " + PlanBoxWords.Walked(walked, rooms) + " · opened up to the " + floor + " tier";
+
 
         public const string GroupOpenTip = "Show this dungeon on the stage as far as anyone on this server walked it";
 
@@ -314,12 +393,21 @@ namespace Scry
         /// name, and under it how far it was walked, smaller and in a colour of its own, in the rich
         /// text the game's pin names write.
         /// </summary>
-        public static string MarkLabel(string name, int walked, int rooms, string walkedColour) =>
-            $"{name}\n<size=80%><color=#{walkedColour}>{PlanBoxWords.Walked(walked, rooms)}</color></size>";
+        public static string MarkLabel(string name, int walked, int rooms, string walkedColour, int yourLast, int serverLast) =>
+            $"{name}\n<size=80%><color=#{walkedColour}>{PlanBoxWords.Walked(walked, rooms)}</color></size>" + LastDays(yourLast, serverLast);
+
+        /// <summary>A mark's line of the last days walked, yours apart from anyone's on this server, smaller; none where neither is known.</summary>
+        private static string LastDays(int yourLast, int serverLast)
+        {
+            var said = new List<string>();
+            if (yourLast >= 0) said.Add("you last day " + Numbers.Count(yourLast));
+            if (serverLast >= 0) said.Add("server last day " + Numbers.Count(serverLast));
+            return said.Count == 0 ? "" : "\n<size=75%>" + string.Join(" \u00b7 ", said) + "</size>";
+        }
 
         /// <summary>A mark's words for a dungeon shown with its insides and not walked: its name, and the ground it shows from, smaller and in the colour given.</summary>
-        public static string InsidesLabel(string name, WorldSource source, string colour) =>
-            $"{name}\n<size=80%><color=#{colour}>not walked · with insides from {CompendiumWords.SourceName(source)}</color></size>";
+        public static string InsidesLabel(string name, WorldSource source, string colour, int serverLast) =>
+            $"{name}\n<size=80%><color=#{colour}>not walked \u00b7 with insides from {CompendiumWords.SourceName(source)}</color></size>" + LastDays(-1, serverLast);
 
         /// <summary>The answer to forgetting the maps of the world played.</summary>
         public static string WorldForgotten(int maps) => maps == 0

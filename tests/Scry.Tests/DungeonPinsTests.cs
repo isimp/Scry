@@ -130,7 +130,7 @@ namespace Scry.Tests
         public void TheMarksWordsSayWhereTheyShowFrom()
         {
             Assert.Equal("Burial Chambers\n<size=80%><color=#F5B857>not walked · with insides from Ground you explored</color></size>",
-                DungeonMapWords.InsidesLabel("Burial Chambers", WorldSource.Explored, "F5B857"));
+                DungeonMapWords.InsidesLabel("Burial Chambers", WorldSource.Explored, "F5B857", -1));
             Assert.Equal("Mark dungeons on the big map", CompendiumWords.PinName);
             Assert.Equal("Marks on Valheim's big map each dungeon in this ground whose area has loaded, hollow where you have not walked it; a click on one shows its own rooms. Dungeons you walked are marked anyway.\nOff. It works while this row shows With insides.",
                 CompendiumWords.PinTip(on: false, insides: false));

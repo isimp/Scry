@@ -123,11 +123,17 @@ namespace Scry
                 YouAt = -1;
                 return;
             }
-            Maps.Keep(world.Id, world.Location, world.Saved, world.Entrance, world.Generator, world.Turn);
+            // Today, as the game counts its days: the dungeon's first day where it is kept anew, its last day while in it.
+            var day = EnvMan.instance != null ? EnvMan.instance.GetDay() : -1;
+            var entered = YouIn != world.Id;
+            Maps.Keep(world.Id, world.Location, world.Saved, world.Entrance, world.Generator, world.Turn, day);
+            var newDay = Maps.Visit(world.Id, day);
             var at = player.transform.position;
             YouIn = world.Id;
             YouAt = SavedRooms.Holding(world.Saved, world.SizeOf, new Vec3(at.x, at.y, at.z));
-            if (YouAt >= 0 && Maps.Walk(world.Id, YouAt)) GroupMapsLink.Walked(world.Id);
+            // The server hears of each visit and each new day in it, so its last day moves as anyone walks it, as well as of each room new to this walk.
+            var walked = YouAt >= 0 && Maps.Walk(world.Id, YouAt);
+            if (walked || entered || newDay) GroupMapsLink.Walked(world.Id);
         }
 
         /// <summary>Writes the maps once they changed, at most every half minute unless asked to now, on a worker thread.</summary>

@@ -225,8 +225,9 @@ namespace Scry
 
         /// <summary>
         /// A map of a crypt kept in the world played and one of another world, both where the player
-        /// stands: the large map open, a mark stands for the one of this world alone; a click on it
-        /// closes the map and opens Scry on the crypt's page, its map on the stage.
+        /// stands, walked today: the large map open, a mark stands for the one of this world alone, its
+        /// words saying the last day you walked it; a click on it closes the map and opens Scry on the
+        /// crypt's page, its map on the stage, its line saying the day walked.
         /// </summary>
         private static IEnumerator MarksOnTheMap(Probe p)
         {
@@ -249,7 +250,9 @@ namespace Scry
             var maps = new DungeonMaps();
             var saved = SavedAsTheGameSaves(rolled);
             var id = DungeonMaps.IdOf(world, 1L, 11u);
-            maps.Keep(id, PlaceOf(entry).Prefab, saved, at, rolled.Site.Generator, rolled.Site.Turn);
+            var today = EnvMan.instance != null ? EnvMan.instance.GetDay() : -1;
+            maps.Keep(id, PlaceOf(entry).Prefab, saved, at, rolled.Site.Generator, rolled.Site.Turn, today);
+            maps.Walk(id, 0);
             maps.Keep(DungeonMaps.IdOf("another world", 1L, 12u), PlaceOf(entry).Prefab, saved, at, rolled.Site.Generator, rolled.Site.Turn);
             DungeonWalks.MapsInsteadForTest(maps);
             // The panel put away, as it would cover the map; the click opens it again.
@@ -257,6 +260,7 @@ namespace Scry
             Minimap.instance.SetMapMode(Minimap.MapMode.Large);
             yield return Until(() => MapMarkButtons.MarksShown > 0, 5);
             p.Check(MapMarkButtons.MarksShown == 1, "the large map has a mark for the map of this world alone", $"{Numbers.Count(MapMarkButtons.MarksShown)} marks");
+            if (today >= 0) p.Check(MapMarkButtons.SaidForTest(0)?.Contains("you last day " + Numbers.Count(today)) ?? false, "its words say the last day you walked it", MapMarkButtons.SaidForTest(0));
             // The pointer put on it, as a player's: what the game's event system meets there (the map,
             // which takes the click to hand on), the mark found there as the pointer is read, the
             // game's tip shown, a click taken.
@@ -287,6 +291,13 @@ namespace Scry
             yield return Until(() => ExampleLayouts.ShownMap == id && Stage.ExampleRoomsTotal == rolled.Rooms.Count, 60);
             p.Check(Minimap.instance.m_mode != Minimap.MapMode.Large && Session.IsOpen && X.Selected == entry && ExampleLayouts.ShownMap == id,
                 "a click on it closes the map and opens Scry on its page, its map on the stage", $"map {Minimap.instance.m_mode}, selected {X.Selected?.Name}, shown {ExampleLayouts.ShownMap ?? "an example"}");
+            if (today >= 0)
+            {
+                var said = "day " + Numbers.Count(today);
+                yield return Until(() => ScryPanel.FirstMapLineForTest?.EndsWith(said, System.StringComparison.Ordinal) ?? false, 3);
+                p.Check((ScryPanel.FirstMapLineForTest?.StartsWith("Walked by you", System.StringComparison.Ordinal) ?? false) && ScryPanel.FirstMapLineForTest.EndsWith(said, System.StringComparison.Ordinal),
+                    "its page's line says how far you walked it and the day", ScryPanel.FirstMapLineForTest);
+            }
             MarksAsTheyWere();
         }
 

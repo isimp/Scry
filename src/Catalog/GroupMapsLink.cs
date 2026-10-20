@@ -7,11 +7,12 @@ using UnityEngine;
 namespace Scry
 {
     /// <summary>
-    /// The group's records of a world's dungeons, gathered by Scry's copy on the world's server (a
-    /// dedicated one or a game hosting): each client sends the record of the dungeon it walks in, at
-    /// most every ten seconds, and the server keeps one record a dungeon, its rooms as the first
-    /// player sent them and every room any player stood in, not who stood there
-    /// (<see cref="DungeonMaps.Merge(DungeonMaps, string)"/>), in a file of the world's own under the
+    /// The server's records of a world's dungeons, anyone's walks on them, gathered by Scry's copy on
+    /// the world's server (a dedicated one or a game hosting): each client sends the record of the
+    /// dungeon it walks in, at most every ten seconds, on each visit, each new day in it and each
+    /// room new to it, and the server keeps one record a dungeon, its rooms as the first player sent
+    /// them, every room any player stood in and the earliest first and latest last day walked, not
+    /// who stood there (<see cref="DungeonMaps.Merge(DungeonMaps, string)"/>), in a file of the world's own under the
     /// cache. A client asks for the records of the locations its compendium floor opens, at most once
     /// a minute each, and gets them as they stand from their generators, no place of the world in
     /// them (<see cref="DungeonMaps.Only"/>); a server without Scry never answers. An admin forgets
@@ -112,7 +113,7 @@ namespace Scry
 
         private static bool IsServer => ZNet.instance != null && ZNet.instance.IsServer();
 
-        /// <summary>A room newly walked in a dungeon, to be sent with the next walk.</summary>
+        /// <summary>A dungeon been in, a room newly walked or a new day in it, to be sent with the next walk.</summary>
         public static void Walked(string id) => _toReport = id;
 
         /// <summary>Sends the record of the dungeon walked to the server; a game that is the server takes it in itself.</summary>
@@ -125,8 +126,10 @@ namespace Scry
             var world = CompendiumMap.World;
             if (map == null || world == null) return;
             var one = new DungeonMaps();
-            one.Keep(id, map.Location, map.Rooms, map.Entrance, map.Generator, map.Turn);
+            var sent = one.Keep(id, map.Location, map.Rooms, map.Entrance, map.Generator, map.Turn);
             foreach (var room in map.Walked) one.Walk(id, room);
+            sent.FirstDay = map.FirstDay;
+            sent.LastDay = map.LastDay;
             if (IsServer)
             {
                 MergeIn(one, world);
