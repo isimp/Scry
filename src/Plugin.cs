@@ -10,8 +10,10 @@ namespace Scry
     /// <summary>
     /// What BepInEx loads: it gives the log and the settings to the layers below, patches the
     /// game, registers the command, and hands each frame, its drawing and its end to the session
-    /// and the panel. On a dedicated server (no graphics) it does none of that and only answers
-    /// players' explored maps (<see cref="CompendiumLink"/>).
+    /// and the panel. On a dedicated server (no graphics) it does none of that: it binds the world's
+    /// settings and runs only the server's side of Scry's messages with the players' games
+    /// (<see cref="CompendiumLink"/>, <see cref="GroupMapsLink"/>, <see cref="EventLink"/>,
+    /// <see cref="DungeonsInGround"/>).
     /// </summary>
     [BepInPlugin(About.Guid, About.Name, About.Version)]
     [BepInProcess("valheim.exe")]
@@ -21,7 +23,7 @@ namespace Scry
     {
         private Harmony _harmony;
 
-        /// <summary>Whether this is a dedicated server, where Scry only answers players' explored maps and keeps the server's records of the dungeons walked.</summary>
+        /// <summary>Whether this is a dedicated server, where Scry runs only its messages with the players' games and keeps the server's records.</summary>
         private bool _server;
 
         private void Awake()

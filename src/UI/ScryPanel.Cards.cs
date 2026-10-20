@@ -57,7 +57,7 @@ namespace Scry
             return button.x > rect.x + U(8f) && GUI.Button(button, text, Skin.Button);
         }
 
-        /// <summary>While the locations are not read, Read all locations at a card's foot beside Close, with its tip.</summary>
+        /// <summary>While the locations are not read, Find where things are at a card's foot beside Close, with its tip.</summary>
         private static void ReadLocationsButton(Rect rect, Rect close, string tipKey)
         {
             if (Locations.Now != Locations.State.NotRead) return;

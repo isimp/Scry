@@ -139,6 +139,42 @@ namespace Scry.Tests
             Assert.True(missing.Count == 0, "Named in the notes but not in the source: " + string.Join(", ", missing));
         }
 
+        /// <summary>
+        /// Every label the docs set in italics is one Scry shows, by the text of a string in its
+        /// source or the self-test's, case aside as a heading is drawn in capitals: a button, a tab
+        /// or a heading renamed is renamed in the README, the newest changelog entry and every note
+        /// under docs too. Older changelog entries keep the labels of their own release.
+        /// </summary>
+        [Fact]
+        public void EveryLabelTheDocsSetInItalicsIsOneScryShows()
+        {
+            var root = Root();
+            var strings = new List<string>();
+            foreach (var file in new[] { "src", "selftest" }.SelectMany(d => Directory.GetFiles(Path.Combine(root, d), "*.cs", SearchOption.AllDirectories)))
+            {
+                // Quotes in a comment are no label shown.
+                var code = Regex.Replace(File.ReadAllText(file), @"(?m)^\s*//.*$", "");
+                strings.AddRange(Regex.Matches(code, @"""((?:\\.|[^""\\])*)""").Cast<Match>().Select(m => m.Groups[1].Value.ToLowerInvariant()));
+            }
+            // A label is a whole string, or starts or ends one with a count or a mark beside it ("Learned (3)").
+            bool Shown(string label) => strings.Any(s => s == label || s.StartsWith(label, StringComparison.Ordinal) && !char.IsLetterOrDigit(s[label.Length])
+                                                       || s.EndsWith(label, StringComparison.Ordinal) && !char.IsLetterOrDigit(s[s.Length - label.Length - 1]));
+            var changelog = File.ReadAllText(Path.Combine(root, "CHANGELOG.md"));
+            var newest = Regex.Split(changelog, @"(?m)^## ").Skip(1).FirstOrDefault() ?? "";
+            var docs = new List<(string Name, string Text)> { ("README.md", File.ReadAllText(Path.Combine(root, "README.md"))), ("CHANGELOG.md", newest) };
+            docs.AddRange(Directory.GetFiles(Path.Combine(root, "docs"), "*.md", SearchOption.AllDirectories).Select(f => (Path.GetFileName(f), File.ReadAllText(f))));
+
+            var missing = new List<string>();
+            foreach (var (name, text) in docs)
+            {
+                foreach (var label in Regex.Matches(text, @"(?<![\*\w])\*([^\*\n]+?)\*(?![\*\w])").Cast<Match>().Select(m => m.Groups[1].Value).Distinct())
+                {
+                    if (!Shown(label.ToLowerInvariant().TrimEnd('.'))) missing.Add($"{name}: {label}");
+                }
+            }
+            Assert.True(missing.Count == 0, "Set in italics as a label but shown nowhere: " + string.Join(", ", missing));
+        }
+
         [Fact]
         public void TheReadmesSearchExamplesAreTermsTheSearchKnows()
         {

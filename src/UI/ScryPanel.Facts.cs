@@ -1070,7 +1070,7 @@ namespace Scry
         private const string ReadAgainText = "Look again";
         private const string ReadAgainTip = "Forget what was read of every location and room and read them afresh, for when one seems wrong";
 
-        /// <summary>Above the Locations tab's list once the places are known: that they are kept, or how far reading them again has got, and Read again.</summary>
+        /// <summary>Above the Locations tab's list once the places are known: that they are kept, or how far reading them again has got, and Look again.</summary>
         private static Rect PlacesBar(Rect inner)
         {
             CountDrawn(PanelPart.PlacesBar);
@@ -1097,7 +1097,7 @@ namespace Scry
             return new Rect(inner.x, inner.y + barH, inner.width, inner.height - barH);
         }
 
-        /// <summary>Forgets what was kept of the places and reads them afresh, as Read again does, and says so.</summary>
+        /// <summary>Forgets what was kept of the places and reads them afresh, as Look again does, and says so.</summary>
         internal static void ReadPlacesAgain()
         {
             var said = Locations.ForgetKept();

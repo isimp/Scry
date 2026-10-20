@@ -43,7 +43,7 @@ The two stores have different category lists. Hexium takes category names, Thund
 
 ## Install location
 
-Scry is client-side only. Servers do not need it.
+Scry runs in each player's game, and a server does not need it. With the same DLL in a dedicated server's plugins, the compendium learns what only the server knows and the server can set the compendium's rules (technical.md, *The compendium*).
 
 ## How the publish works
 

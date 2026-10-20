@@ -18,7 +18,7 @@ namespace Scry
     /// kept from one session to the next in BepInEx's cache folder (<see cref="PlaceRecords"/>). On
     /// entering a world what was kept is shown at once and only what may have changed is read again
     /// (<see cref="PlacePlan"/>); with nothing kept, the places are read when asked (the panel's
-    /// "Read all locations" buttons, or <c>/scry locations</c>) or by themselves with
+    /// "Find where things are" button, or <c>/scry locations</c>) or by themselves with
     /// <c>ReadLocationsAutomatically</c>. What each names (placed there, in its fields, in its
     /// effect lists) is put on the catalog's entries (<see cref="Places"/>), for the world being played.
     /// </summary>

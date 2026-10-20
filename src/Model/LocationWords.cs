@@ -359,7 +359,7 @@ namespace Scry
         /// <summary>Reading places again that are known already, kept from before or read: what is known stays shown meanwhile.</summary>
         public static string ReadingAgain(int queued) => $"reading {Numbers.Count(queued)} locations and dungeon rooms again in the background; what is known of them stays shown until then.";
 
-        /// <summary>What was kept of the places forgotten (<c>/scry forget</c>, <i>Read again</i>): every one read afresh, shown as never read until then.</summary>
+        /// <summary>What was kept of the places forgotten (<c>/scry forget</c>, <i>Look again</i>): every one read afresh, shown as never read until then.</summary>
         public static string ReadingAfresh(int queued) => queued > 0
             ? $"forgot what was kept of the locations, dungeon rooms and their floors; reading {Numbers.Count(queued)} of them afresh in the background."
             : "forgot what was kept of the locations, dungeon rooms and their floors; this world has none to read.";
