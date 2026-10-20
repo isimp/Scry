@@ -151,6 +151,9 @@ namespace Scry
 
         private static int _steppedFrame = -1;
 
+        private const string BackTip = "Back out of the room you went into, or to the page shown before (Alt+\u2190 or the mouse's back button)";
+        private const string ForwardTip = "Forward again, into a room come out of or to an entry (Alt+\u2192 or the mouse's forward button)";
+
         /// <summary>Back to the entry shown before, and forward again, as in a browser.</summary>
         private static void BackAndForward(Explorer explorer, Rect back, Rect forward)
         {
@@ -160,8 +163,8 @@ namespace Scry
             GUI.enabled = was && (explorer.CanGoForward || Stage.CanStepForward);
             if (GUI.Button(forward, "\u203A", Skin.IconButton)) Step(explorer, false);
             GUI.enabled = was;
-            if (back.Contains(Event.current.mousePosition)) AskTip("back", "Back out of the room you went into, or to the page shown before (Alt+← or the mouse's back button)");
-            if (forward.Contains(Event.current.mousePosition)) AskTip("forward", "Forward again, into a room come out of or to an entry (Alt+→ or the mouse's forward button)");
+            if (back.Contains(Event.current.mousePosition)) AskTip("back", BackTip);
+            if (forward.Contains(Event.current.mousePosition)) AskTip("forward", ForwardTip);
         }
 
         /// <summary>Goes back or forward, and shows where it lands.</summary>
@@ -449,7 +452,12 @@ namespace Scry
             if (book == null || _compact)
             {
                 _bookOpen = false;
-                return right;
+                // The compact view keeps only the eye, beside the view button, with the compendium on.
+                if (book == null || !explorer.CompendiumSet) return right;
+                var eye = new Rect(right - U(8f) - height, y, height, height);
+                PeekButton(explorer, eye);
+                NoteCompactPart("eye", eye);
+                return eye.x;
             }
             if (_frontScale != U(1f))
             {

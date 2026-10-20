@@ -294,7 +294,9 @@ namespace Scry
             var locRect = new Rect(clearRect.x - U(8f) - locW, clearRect.y, locW, clearRect.height);
             // In the compact view the list button and the way back follow the name, where the
             // buttons at the row's right leave room for them; the locations' button only after them.
-            var afterName = pad + U(98f);
+            // The compact view's group follows the name as drawn; the full view keeps the name's slot.
+            var nameW = Skin.Width(Skin.Title, "Scry");
+            var afterName = _compact ? HeaderLayout.AfterName(pad, nameW, U(12f)) : pad + U(98f);
             var navSize = viewRect.height;
             var navInTitle = PlaceNav(afterName, navSize, clearRect.x - U(8f));
             var leftmost = navInTitle ? afterName + NavWidth(navSize) + U(8f) : afterName;
@@ -321,6 +323,11 @@ namespace Scry
             CompendiumBoxClicks(e);
 
             if (GUI.Button(viewRect, viewText, Skin.Button)) ToggleCompact();
+            if (_compact)
+            {
+                NoteCompactPart("view", viewRect);
+                NoteCompactPart("name", new Rect(pad, U(10f), nameW, U(34f)));
+            }
             if (GUI.Button(new Rect(w - pad - U(32f), U(12f), U(32f), U(32f)), "×", Skin.Close)) AskClose();
             if (e.type == EventType.MouseDown && e.button == 0 && header.Contains(e.mousePosition))
             {

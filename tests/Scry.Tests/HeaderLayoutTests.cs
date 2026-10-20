@@ -31,6 +31,17 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheWayBackStandsAGapAfterTheNameAsDrawnJoinedAsOneGroup()
+        {
+            // The name's slot is wider than the name: the group follows the name itself.
+            Assert.Equal(69f, HeaderLayout.AfterName(left: 16f, nameWidth: 41f, gap: 12f));
+            // The list button, back and forward as one group, a seam between each.
+            Assert.Equal(86f, HeaderLayout.JoinedWidth(pieces: 3, size: 28f, seam: 1f));
+            Assert.Equal(28f, HeaderLayout.JoinedWidth(1, 28f, 1f));
+            Assert.Equal(0f, HeaderLayout.JoinedWidth(0, 28f, 1f));
+        }
+
+        [Fact]
         public void TheSearchFillsItsRowUpToItsHelpFavouritesAndRecent()
         {
             var row = HeaderLayout.CompactSearchRow(left: 16f, right: 404f, navWidth: 0f, buttonsWidth: 124f, gap: 8f);

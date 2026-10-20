@@ -13,6 +13,12 @@ namespace Scry
         /// </summary>
         public static float OriginSwitch(float width, float rowRight) => rowRight - width;
 
+        /// <summary>Where what follows the name starts: a gap after the name as drawn, not after the slot it is given.</summary>
+        public static float AfterName(float left, float nameWidth, float gap) => left + nameWidth + gap;
+
+        /// <summary>How wide buttons joined as one group are: each a size, a seam between each two.</summary>
+        public static float JoinedWidth(int pieces, float size, float seam) => pieces <= 0 ? 0f : pieces * size + (pieces - 1) * seam;
+
         /// <summary>
         /// Whether the compact view's list button and way back and forward stand in the title row
         /// after the name: where they end by <paramref name="before"/>, the buttons at the row's

@@ -231,7 +231,32 @@ namespace Scry
                 for (var j = i + 1; j < parts.Count; j++)
                     if (parts[i].At.Overlaps(parts[j].At)) over.Add($"{parts[i].Part} and {parts[j].Part}");
             p.Check(over.Count == 0 && parts.All(q => q.At.x >= 0f && q.At.xMax <= width + 0.5f), "none of the compact header's parts stands over another or past the panel", string.Join("; ", over));
+
+            // The way back follows the name as drawn, joined; every title button as tall as the
+            // view button; the eye beside it while the compendium is on.
+            var name = Of("name");
+            var view = Of("view");
+            var eye = Of("eye");
+            if (name is Rect drawnName && view is Rect viewButton)
+            {
+                if (nav.yMax <= search.y)
+                    p.Check(nav.x > drawnName.xMax && nav.x - drawnName.xMax < viewButton.height, "the way back follows the name as drawn, a gap after it", $"name ends at {Numbers.Fixed(drawnName.xMax, 0)}, the group starts at {Numbers.Fixed(nav.x, 0)}");
+                p.Check(Mathf.Abs(nav.height - viewButton.height) < 0.5f && (!(eye is Rect drawnEye) || Mathf.Abs(drawnEye.height - viewButton.height) < 0.5f),
+                    "every button of the title row is as tall as the view button", $"group {Numbers.Fixed(nav.height, 0)}, view {Numbers.Fixed(viewButton.height, 0)}, eye {(eye is Rect seen ? Numbers.Fixed(seen.height, 0) : "none")}");
+                if (X.CompendiumSet)
+                    p.Check(eye is Rect shownEye && shownEye.xMax <= viewButton.x && viewButton.x - shownEye.xMax < viewButton.height, "with the compendium on, the eye stands beside the view button", eye is Rect where ? Said(where) : "no eye");
+                else p.Check(eye == null, "with the compendium off, the title row holds no eye", Said(eye ?? default));
+            }
+            else p.Check(false, "the title row's name and view button are drawn", string.Join(", ", parts.Select(q => q.Part)));
             yield return Picture(p, "compact header");
+            if (X.CompendiumSet)
+            {
+                X.Peeking = true;
+                var peekFrom = ScryPanel.Repaints;
+                yield return Until(() => ScryPanel.Repaints >= peekFrom + 3, 5);
+                yield return Picture(p, "compact header peeking");
+                X.Peeking = false;
+            }
 
             var drawn = ScryPanel.Drawn(PanelPart.KindMenu);
             ScryPanel.OpenHeaderMenuForTest(ScryPanel.HeaderMenu.Kinds);

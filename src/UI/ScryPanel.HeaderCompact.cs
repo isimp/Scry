@@ -76,13 +76,44 @@ namespace Scry
             CompactHeaderForTest.Add((part, at));
         }
 
-        /// <summary>The list button, then back and forward, from a point of a row, each a button as tall as the row.</summary>
+        /// <summary>
+        /// The list button, then back and forward, from a point of a row, each a button as tall as
+        /// the row: in the compact view joined as one group, as the stage's chips are, back or
+        /// forward faint where there is nowhere to go; in the full view apart.
+        /// </summary>
         private static void Nav(Explorer explorer, float x, float y, float size)
         {
-            ListButton(new Rect(x, y, size, size));
-            var navX = x + size + U(4f);
-            BackAndForward(explorer, new Rect(navX, y, size, size), new Rect(navX + size + U(4f), y, size, size));
-            if (_compact) NoteCompactPart("nav", new Rect(x, y, size * 3f + U(4f) * 2f, size));
+            if (!_compact)
+            {
+                ListButton(new Rect(x, y, size, size));
+                var navX = x + size + U(4f);
+                BackAndForward(explorer, new Rect(navX, y, size, size), new Rect(navX + size + U(4f), y, size, size));
+                return;
+            }
+            var seam = U(1f);
+            var list = new Rect(x, y, size, size);
+            var back = new Rect(list.xMax + seam, y, size, size);
+            var forward = new Rect(back.xMax + seam, y, size, size);
+            if (NavPiece(list, ListHidden, true, false, null, Skin.ListMark, true, "list-button", ListWords.ListButtonTip(ListHidden))) ToggleList();
+            if (NavPiece(back, false, false, false, "\u2039", null, explorer.CanGoBack || Stage.CanStepBack, "back", BackTip)) Step(explorer, true);
+            if (NavPiece(forward, false, false, true, "\u203A", null, explorer.CanGoForward || Stage.CanStepForward, "forward", ForwardTip)) Step(explorer, false);
+            NoteCompactPart("nav", new Rect(x, y, HeaderLayout.JoinedWidth(3, size, seam), size));
+        }
+
+        /// <summary>A piece of the joined group: its icon or words dark on the accent while on, faint where it cannot be used; true when clicked.</summary>
+        private static bool NavPiece(Rect part, bool on, bool first, bool last, string text, Texture2D icon, bool usable, string tipKey, string tip)
+        {
+            var e = Event.current;
+            var hover = usable && part.Contains(e.mousePosition);
+            if (e.type == EventType.Repaint)
+            {
+                Skin.PillPiece(part, on ? Skin.Accent : hover ? Skin.RaisedHover : Skin.Raised, first, last);
+                var ink = on ? Skin.OnAccent : usable ? Skin.Dim : Skin.Alpha(Skin.Faint, 0.45f);
+                if (icon != null) Skin.Icon(new Rect(part.x + part.width * 0.24f, part.y + part.height * 0.24f, part.width * 0.52f, part.height * 0.52f), icon, ink);
+                else Skin.LabelIn(part, text, Skin.SmallCenter, ink);
+            }
+            if (part.Contains(e.mousePosition)) AskTip(tipKey, tip);
+            return usable && GUI.Button(part, GUIContent.none, GUIStyle.none);
         }
 
         /// <summary>Whether the list button and the way back stand in the title row, after the name, at a size, ending before a point; only in the compact view (<see cref="HeaderLayout.NavInTitleRow"/>).</summary>
@@ -94,8 +125,8 @@ namespace Scry
             return _navInTitle;
         }
 
-        /// <summary>How wide the list button and the way back are, with their gaps, at a size.</summary>
-        private static float NavWidth(float size) => size * 3f + U(4f) * 2f;
+        /// <summary>How wide the list button and the way back are at a size: joined in the compact view, apart with their gaps in the full view.</summary>
+        private static float NavWidth(float size) => _compact ? HeaderLayout.JoinedWidth(3, size, U(1f)) : size * 3f + U(4f) * 2f;
 
         /// <summary>The compact view's search row: the search, after the list button and the way back where the title row has no room for them, with its help, favourites and recent at the row's end.</summary>
         private static float CompactControls(Explorer explorer, Rect rect)
