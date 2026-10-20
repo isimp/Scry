@@ -1,0 +1,33 @@
+# The compendium's rules
+
+The compendium shows only what the character you play has come to know, and grows as you play. It is chosen for each character in the *Compendium* box at the top of the panel.
+
+## Off, Loose and Strict
+
+*Off* shows everything the game holds, as a lookup.
+
+*Loose* shows a thing you know with its whole page, but names only what your character has met: a creature once fought, an item once held or made, a place once stepped into. The rest of a page is left out, each section saying how many more are not yet met, and a name never met reads ??? in a page's text. What you have only seen stands on the stage with its page closed, saying how to come to know it.
+
+*Strict* also keeps back how things connect until your character saw them go together: the drops it saw fall, where it met a creature, what it made at a station. Numbers the game never shows wait until you found them out: an attack's damage until it hit you, a creature's health until you killed one, a tree's health until you broke one. Each says what shows it. Drops show what your character saw fall and how often, not the game's chances.
+
+## Known up to, peeking and Learned
+
+*Known up to* shows everything of the biomes whose bosses your character has beaten as known, tier by tier, marked with stairs wherever it shows something, and can be lowered again.
+
+The eye beside the compendium's button peeks: every page shows whole until the panel closes.
+
+*Learned* lists what your character learned, newest first, day by day, and a page's *You* box tells when it first saw the thing and came to know it, in what weather and with what in hand, and how its kills went.
+
+## What a world shows as known
+
+The compendium's box also chooses what the world itself may show as known, source by source. *Ground you explored* and *Places marked for you* (a Vegvisir or a rune stone) start at *Seen*; *Shared maps* (a cartography table), *Places on every map* (traders, the start, Hildir's places) and *The whole world* start off. Each can be raised to *Known*, or *With insides* to show the dungeons in it with whatever anyone on the server walked inside them; *The whole world* is *Counted*, making every kind of place the world holds heard of. What shows so is marked with a folded map, and your book keeps only what you met yourself, so turning a source down takes it all back.
+
+The pin at the end of *Ground you explored* and *Shared maps* marks every dungeon entrance lying in that ground on Valheim's large map: solid where you walked it, hollow where someone on the server did, plain for an entrance alone. A click on a mark shows that dungeon in Scry.
+
+## Playing together
+
+Where your friends have Scry, what their game runs near you, a kill or a drop or a pick, counts for you as it would alone, if you did it or stood within 30 m. What runs in a game without Scry counts nothing, and a notice names those players.
+
+A server can set the rules for everyone and cap each source ([server settings](server-settings.md)); the box then shows the server's choice locked, your own kept beneath it.
+
+More: https://github.com/isimp/Scry

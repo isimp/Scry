@@ -1,6 +1,6 @@
 # Scry
 
-Look up anything in Valheim and see it, without spawning a thing. Press F7 or type /scry in chat, search for a creature, item, piece, sound, effect or location, and it appears on a turntable inside the panel.
+A compendium of Valheim that grows with your character. Every creature, item, piece, place and dungeon you meet gets a page, told by the game's own data and rules, while the rest stays unknown until you find it. Press F7 or type /scry in the chat to open it. Nothing is ever spawned.
 
 ![A camp on the Scry stage with its plan and what its rooms hold](https://raw.githubusercontent.com/isimp/Scry/main/docs/images/screenshot.webp)
 
@@ -8,28 +8,28 @@ Look up anything in Valheim and see it, without spawning a thing. Press F7 or ty
 
 Most of Scry was written by Claude Code (Anthropic), which did the heavy lifting on implementation and design. Heads-up so you can judge for yourself.
 
-## What it does
+## The compendium
 
-Creatures can be shown at every star level, in any of their animations and with the gear they can roll, and they attack with their own sounds and effects. Trees can be felled, pieces shown new, worn or broken, sounds and effects played, and projectiles fired where you look. Any model can also be placed in the world in front of you and pinned there to compare with others.
+Turn it on for a character with *Compendium* at the top of the panel. A creature becomes known once fought or tamed, an item once held or made, a place once stepped into, a dungeon once entered; what was only seen stands on the stage with its page closed, telling how to come to know it. *Loose* shows a known page whole but names only what your character has met. *Strict* also keeps back how things connect until your character saw them go together, and the numbers the game never shows until it found them out, such as an attack's damage until it hit you. A page's *You* box tells when your character first saw the thing and came to know it, and how its fights went; *Learned* lists what it learned, day by day; *Known up to* opens every tier below the bosses it has beaten. A character played before is caught up from what the game keeps of it and from its explored map.
 
-Locations and dungeon rooms stand on the stage as a new zone would roll them, their creatures included, and *Roll again* rolls them anew. A dungeon or camp is built as an example layout with its floor plan in the corner, and places can be cut open floor by floor. Raids, biomes, skills and mods have tabs of their own: what a raid brings and for whom, a biome's weathers, music and what lives there, what each skill changes at no skill, at your level and at the top, and what each mod adds.
+## Exploring
 
-Below the preview, Scry tells what the game knows about it: an item's stats and recipe, a creature's health, attacks and drops, what a station makes, where things spawn and what drops them, where the world places a location and what it holds, which mod added them, and which mods hook into what drops or spawns. Wherever your skills change a figure, what it comes to at your level shows faint under it, such as a weapon's hits and their stamina, a bow's draw, a creature's sight while you sneak or a workbench's making time. Almost everything named there can be clicked to go to it. Every mod has a page of its own in the *Mods* tab, and with the list showing only what mods added, *Open the mod report* sums them all up: what it adds, what Scry links for its stations and tools, and what it could not place. *Find where things are* reads what every dungeon and other location holds, so things tell where they are found, which takes a few minutes in the background. Scry keeps what it read, so the next time it is known at once, and only what an update changed is read again; *Look again* on the Locations tab starts afresh.
+Dungeons you walk are kept as you walked them, room by room, and marked on Valheim's large map; a click on a mark shows the dungeon in Scry, its rooms on a plan you can go into. Each world can show more as known, source by source: the ground you explored, maps shared at a cartography table, places a Vegvisir or a rune stone marked, the places every map shows. Places tell where they lie in your ground and what they hold.
 
-The compendium, switched on with *Compendium* in the title row, shows only what the character you play has come to know: a creature once fought or tamed, an item once held, made, eaten, its recipe unlocked or its card shown, anything once used, a place once stepped into and a dungeon once entered. What was only seen stands on the turntable with its page closed. *Loose* shows a known page whole, naming only what your character has met, while *Strict* shows of how a thing connects only what your character saw, such as the drops it saw fall or the ore it put into a smelter, and keeps back the numbers the game never shows until your character found them out, such as an attack's damage until it hit you or a creature's health until you killed one. A page opens with what your character did with the thing: when it first saw it and came to know it, in what weather and with what in hand, how its kills went and how often it killed you. *Known up to* shows everything of the biomes whose bosses your character has beaten as known, *Learned* lists what your character learned day by day, and the eye shows everything until the panel closes. A character played before is caught up from what the game keeps of it and from its explored map. Each character keeps its own choice and its own knowledge, in `BepInEx/cache/isimp.Scry/compendium`.
+## Playing together
 
-Everything Scry shows stays on your own screen. Nothing is spawned or saved into the world, and nothing is seen by other players. It works on any server, and servers do not need it. With Scry on a dedicated server too, the compendium learns what only the server knows, such as which places lie in your explored ground and which dungeons others walked, and the server can set the compendium's rules for everyone. *Clear world* at the top of the panel takes back whatever you placed.
+Where your friends have Scry, what their game runs near you, a kill, a drop or a pick, counts for you as it would alone. With Scry on the server too, the compendium learns what only the server knows, such as how many of each place the world holds and which dungeons anyone on the server walked, and the server can set the compendium's rules for everyone.
 
-## Using it
+## Looking things up
 
-The arrow keys move through the list and Enter plays the selection. The search suggests terms such as `kind:creature`, `biome:swamp` and `station:forge` as you type, and the ? button beside it explains them all. Star an entry to keep it in your favourites, or click the copy mark beside its name to paste its prefab name into another mod's settings.
+Anything can also be looked at on the stage inside the panel: creatures at every star level, in any animation, with their gear and their attacks' sounds and effects; trees felled, pieces worn or broken, projectiles fired; locations and example dungeons as a new zone would roll them, cut open level by level. Every figure tells the game's rules behind it, what your skills make of it, which mods add or change it, and almost everything named can be clicked to go to it. The search takes terms such as `kind:creature`, `biome:swamp` and `station:forge`, and the ? beside it explains them all. With the compendium off, Scry is a lookup of everything the game and its mods hold.
 
-*Compact* moves the panel to the side of the screen, so you can walk and watch a preview in the world. Hold the right mouse button outside the panel to look around.
+## Installing
+
+Install from a mod manager. A server does not need Scry; with the same package in a dedicated server's plugins, or a player hosting the world, it does the server's part. How to set up a server, the compendium's rules in full and the server's settings are at https://github.com/isimp/Scry/blob/main/docs/guide/install.md
 
 ## Settings
 
-All settings are in `BepInEx/config/isimp.Scry.cfg`, each with a description. They include the key, the panel's size, walking and looking around while it is open, and reading locations by itself in every world. Favourites and the panel's layout are kept in `BepInEx/config/isimp.Scry`.
+Settings are in `BepInEx/config/isimp.Scry.cfg`, each with a description; a server's are in its section *4 - World*. Favourites and the panel's layout are kept in `BepInEx/config/isimp.Scry`, each character's knowledge in `BepInEx/cache/isimp.Scry/compendium`.
 
-## More
-
-Technical notes and build instructions are on GitHub at https://github.com/isimp/Scry
+More, with technical notes and build instructions: https://github.com/isimp/Scry
