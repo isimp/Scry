@@ -802,21 +802,6 @@ namespace Scry
             return drawn.Count == 0 ? "nothing" : $"{Numbers.Count(drawn.Count)} parts: {string.Join(", ", drawn.Take(6))}";
         }
 
-        /// <summary>Each room read so far with the floors found in it alone, for the self-test to tell.</summary>
-        [Diagnostic]
-        public List<string> RoomFloorsTold()
-        {
-            var told = new List<string>();
-            if (Placed == null) return told;
-            foreach (var room in Placed.Rooms)
-            {
-                if (!_roomGround.TryGetValue(room, out var ground)) continue;
-                var alone = FloorFinder.RoomFloors(new[] { ground });
-                told.Add($"{room.Room.Name} at {Numbers.Fixed(room.Position.Y, 1)} m: {(alone.Count > 0 ? string.Join(", ", alone.Select(f => Numbers.Fixed(f, 1))) : "none")}");
-            }
-            return told;
-        }
-
         /// <summary>
         /// Each room read so far as the floors are found from it: the height its box stands over,
         /// its doorways' heights, the ground its own rays found (each height with its square

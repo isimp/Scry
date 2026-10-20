@@ -12,6 +12,9 @@
     <IsTestProject>true</IsTestProject>
     <RootNamespace>Scry.Tests</RootNamespace>
     <LangVersion>latest</LangVersion>
+    <!-- Fields of the model that the layers reading the game fill (src/Catalog, src/Preview) look
+         never set here, where only the model is compiled. -->
+    <NoWarn>$(NoWarn);CS0649</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

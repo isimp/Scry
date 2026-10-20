@@ -158,9 +158,6 @@ namespace Scry
             return Math.Max(1, (int)Math.Ceiling(left / each - 0.0001f));
         }
 
-        /// <summary>How much of a level a death takes (<c>Skills.LowerAllSkills</c>): its share of it.</summary>
-        public static float DeathLoss(float level, float share) => level * share;
-
         private static float Clamp01(float value) => value < 0f ? 0f : value > 1f ? 1f : value;
 
         private static float Lerp(float from, float to, float share) => from + (to - from) * Clamp01(share);

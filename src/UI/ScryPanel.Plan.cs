@@ -42,12 +42,6 @@ namespace Scry
         /// <summary>How many rooms the plan outlines in dashes, standing on the floor under the one opened; for the self-test.</summary>
         public static int PlanTilesBelow { get; private set; }
 
-        /// <summary>Whether the plan was drawn for an example with a floor opened (its count from the top, the floors' count with the roof on), for the self-test to wait on what it worked out.</summary>
-        public static bool PlanDrawnFor(DungeonExample example, int level) => example != null && ReferenceEquals(example, _marksOf) && level == _marksLevel;
-
-        /// <summary>Whether the plan tiles a room with the floor last drawn opened, for the self-test.</summary>
-        public static bool PlanTilesRoom(PlacedRoom room) => OnPlan(room);
-
         /// <summary>Whether the plan is put away, by the fold on it, and brought back by its tab; remembered.</summary>
         public static bool PlanFolded
         {

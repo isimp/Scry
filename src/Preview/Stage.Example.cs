@@ -268,9 +268,6 @@ namespace Scry
         /// <summary>The lights switched on in the example's rooms dimmed below the floor opened, for the self-test.</summary>
         public static List<Light> DimmedLights() => TheExample.DimmedLights();
 
-        /// <summary>Each room of the example read so far with the floors found in it alone, for the self-test to tell.</summary>
-        public static List<string> ExampleRoomFloorsTold() => TheExample.RoomFloorsTold();
-
         /// <summary>Each room of the example read so far with its box, doorways, ground and the floors it stands on, for the self-test to tell.</summary>
         public static List<string> ExampleRoomGroundTold() => TheExample.RoomGroundTold(FloorHeights);
 

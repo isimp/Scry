@@ -226,13 +226,5 @@ namespace Scry.Tests
             Assert.Equal(0, SkillMath.RisesToNext(100f, 0f, 1.5f));
             Assert.Equal(0, SkillMath.RisesToNext(34f, 0f, 0f));
         }
-
-        [Fact]
-        public void ADeathTakesAShareOfTheLevel()
-        {
-            // Skills.LowerAllSkills: the level less its share.
-            Assert.Equal(2.05f, SkillMath.DeathLoss(41f, 0.05f), 3);
-            Assert.Equal(0f, SkillMath.DeathLoss(0f, 0.05f), 3);
-        }
     }
 }

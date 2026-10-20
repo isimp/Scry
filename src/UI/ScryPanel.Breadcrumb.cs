@@ -141,10 +141,6 @@ namespace Scry
 
         private static float TrailMenuRowHeight => U(26f);
 
-        /// <summary>Whether the menu beside the dungeon is open, for the self-test.</summary>
-        [Diagnostic]
-        public static bool TrailMenuOpen => _trailMenuOpen;
-
         /// <summary>The menu's rows (<see cref="DungeonTrail.MenuRows"/>): what each says, its tip, and what it does, none where there is nothing to do.</summary>
         private static (string Name, string Tip, Action Do)[] TrailMenuRows() =>
             DungeonTrail.MenuRows(ExampleLayouts.ShowsWorlds, ExampleLayouts.WorldsAtHand).Select(TrailMenuRowOf).ToArray();
