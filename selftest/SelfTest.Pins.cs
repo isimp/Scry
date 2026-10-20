@@ -144,6 +144,7 @@ namespace Scry
             var saidHollow = MapMarkButtons.SaidForTest(1);
             p.Check(saidHollow != null && saidHollow.Contains("Walked on this server: 2 of"), "its words say how far anyone on this server walked it", saidHollow);
             p.Check((MapMarkButtons.SaidForTest(0) ?? "").Contains("Walked by you: 1 of"), "the one walked by you says how far you walked it", MapMarkButtons.SaidForTest(0));
+            p.Check((MapMarkButtons.SaidForTest(0) ?? "").EndsWith(DungeonMapWords.MarkLegend, System.StringComparison.Ordinal), "and its words end saying what each look of mark means", MapMarkButtons.SaidForTest(0));
 
             var hollowAt = MapMarkButtons.MarkCenterForTest(1);
             var entranceAt = MapMarkButtons.MarkCenterForTest(2);

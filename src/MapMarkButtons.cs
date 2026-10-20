@@ -251,8 +251,10 @@ namespace Scry
             _hovered = null;
         }
 
-        /// <summary>A mark's words, by its look: how far you walked it, how far anyone on this server did, or whether anyone did, with the last days known.</summary>
-        private static string Said(DungeonMark kept)
+        /// <summary>A mark's words, by its look: how far you walked it, how far anyone on this server did, or whether anyone did, with the last days known; then what each look means.</summary>
+        private static string Said(DungeonMark kept) => DungeonMapWords.WithLegend(SaidOf(kept));
+
+        private static string SaidOf(DungeonMark kept)
         {
             var name = Shown(kept.Map.Location);
             var accent = ColorUtility.ToHtmlStringRGB(Skin.Accent);

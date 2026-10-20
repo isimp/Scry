@@ -63,6 +63,9 @@ namespace Scry.Tests
         [Fact]
         public void AMarksWordsUnderItNameTheDungeonAndHowFarItWasWalked()
         {
+            // Every mark's words end saying what each look of mark means, as the map shows all three side by side.
+            Assert.Equal("\n<size=70%>solid: walked by you \u00b7 hollow: walked on this server \u00b7 plain: its entrance alone; a click shows it in Scry</size>", DungeonMapWords.MarkLegend);
+            Assert.Equal("Tomb" + DungeonMapWords.MarkLegend, DungeonMapWords.WithLegend("Tomb"));
             // As the game names a pin under it, shown while the pointer rests on the mark.
             Assert.Equal("Burial Chambers\n<size=80%><color=#F5B857>Walked by you: 6 of 18 rooms</color></size>", DungeonMapWords.MarkLabel("Burial Chambers", 6, 18, "F5B857", -1, -1));
         }

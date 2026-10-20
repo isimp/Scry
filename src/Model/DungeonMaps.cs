@@ -739,6 +739,12 @@ namespace Scry
         public static string EntranceLabel(string name, bool walkedOnServer, string colour) =>
             $"{name}\n<size=80%><color=#{colour}>{(walkedOnServer ? "Walked on this server; With insides shows what was walked" : "Nobody on this server walked it")}</color></size>";
 
+        /// <summary>The line every mark's words end with, smallest: what each look of mark means, and what a click does.</summary>
+        public const string MarkLegend = "\n<size=70%>solid: walked by you \u00b7 hollow: walked on this server \u00b7 plain: its entrance alone; a click shows it in Scry</size>";
+
+        /// <summary>A mark's words with the legend after them (<see cref="MarkLegend"/>).</summary>
+        public static string WithLegend(string said) => said + MarkLegend;
+
         /// <summary>A mark's line of the last days walked, yours apart from anyone's on this server, smaller; none where neither is known.</summary>
         private static string LastDays(int yourLast, int serverLast)
         {
