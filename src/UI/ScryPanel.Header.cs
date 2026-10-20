@@ -581,7 +581,11 @@ namespace Scry
             // Every ground's pin in a column of its own after the levels.
             var gridW = BookColumns.Width(BookColumnWidths, gap) + (anyGround ? gap + height : 0f);
             var captionsW = Mathf.Max(Skin.Width(Skin.FaintLabel, CompendiumWords.BoxCaption), _bookSourcesShown ? Skin.Width(Skin.FaintLabel, CompendiumWords.SourcesCaption) : 0f);
-            var width = Mathf.Min(room.width, Mathf.Max(captionsW, _bookCaptionW + gridW) + pad * 2f);
+            // Narrower than the panel allows, the captions' column gives way first, each caption cut
+            // to fit with its whole name on hover, so the levels stay in the box.
+            var over = _bookCaptionW + gridW + pad * 2f - room.width;
+            if (over > 0f) _bookCaptionW = Mathf.Max(U(56f), _bookCaptionW - over);
+            var width = Mathf.Min(room.width, Mathf.Max(Mathf.Min(captionsW, room.width - pad * 2f), _bookCaptionW + gridW) + pad * 2f);
             var rows = _bookFloorShown ? 2 : 1;
             var x = Mathf.Clamp(button.xMax - width, room.x, room.xMax - width);
             var sourcesH = 0f;
@@ -657,6 +661,9 @@ namespace Scry
         /// <summary>Whether the floor can be raised from where it is, as far as the bosses that fell in a row reach (<see cref="CompendiumKeeper.Ceiling"/>), where the world's server allows it.</summary>
         private static bool CanRaise(int floor) => floor < CompendiumKeeper.Ceiling && floor < Tiers.Last && (CompendiumKeeper.Book?.World.FloorAllowed ?? true);
 
+        /// <summary>A caption of the box as it fits its column, the room given kept for the marks after it; cut with an ellipsis where the panel left the column narrow.</summary>
+        private static string Caption(string text, float marks) => Skin.Fit(Skin.FaintLabel, text, _bookCaptionW - U(10f) - marks);
+
         /// <summary>The lock after a caption of what the world's server sets, faint.</summary>
         private static void WorldLock(float x, Rect row)
         {
@@ -710,8 +717,9 @@ namespace Scry
                 CountDrawn(PanelPart.CompendiumBox);
                 Skin.Box(_bookBox, Skin.Backdrop, Skin.Outline);
                 GUI.Label(new Rect(_bookBox.x + pad, _bookBox.y + pad, _bookBox.width - pad * 2f, U(20f)), CompendiumWords.BoxCaption, Skin.FaintLabel);
-                GUI.Label(new Rect(_bookBox.x + pad, BookSegments[0].y, _bookCaptionW, BookSegments[0].height), CompendiumWords.RulesCaption, Skin.FaintLabel);
-                if (book.World.RulesSet) WorldLock(_bookBox.x + pad + Skin.Width(Skin.FaintLabel, CompendiumWords.RulesCaption) + U(5f), BookSegments[0]);
+                var rules = Caption(CompendiumWords.RulesCaption, book.World.RulesSet ? U(18f) : 0f);
+                GUI.Label(new Rect(_bookBox.x + pad, BookSegments[0].y, _bookCaptionW, BookSegments[0].height), rules, Skin.FaintLabel);
+                if (book.World.RulesSet) WorldLock(_bookBox.x + pad + Skin.Width(Skin.FaintLabel, rules) + U(5f), BookSegments[0]);
             }
             // Set by the world's server, the rules it sets stand lit, the others dimmed, each saying so.
             var rulesSet = book.World.RulesSet;
@@ -735,11 +743,13 @@ namespace Scry
             var canRaise = CanRaise(floor);
             if (repaint)
             {
-                GUI.Label(new Rect(_bookBox.x + pad, _bookLower.y, _bookCaptionW, _bookLower.height), CompendiumWords.FloorCaption, Skin.FaintLabel);
-                // The floor's own mark after its caption, as what it shows is marked.
                 var stairs = U(13f);
-                Skin.Icon(new Rect(_bookBox.x + pad + Skin.Width(Skin.FaintLabel, CompendiumWords.FloorCaption) + U(5f), _bookLower.y + (_bookLower.height - stairs) / 2f, stairs, stairs), Skin.Steps, Skin.Faint);
-                if (!book.World.FloorAllowed) WorldLock(_bookBox.x + pad + Skin.Width(Skin.FaintLabel, CompendiumWords.FloorCaption) + U(5f) + stairs + U(5f), _bookLower);
+                var floorCaption = Caption(CompendiumWords.FloorCaption, U(18f) + (book.World.FloorAllowed ? 0f : U(18f)));
+                GUI.Label(new Rect(_bookBox.x + pad, _bookLower.y, _bookCaptionW, _bookLower.height), floorCaption, Skin.FaintLabel);
+                // The floor's own mark after its caption, as what it shows is marked.
+                var captionEnd = _bookBox.x + pad + Skin.Width(Skin.FaintLabel, floorCaption);
+                Skin.Icon(new Rect(captionEnd + U(5f), _bookLower.y + (_bookLower.height - stairs) / 2f, stairs, stairs), Skin.Steps, Skin.Faint);
+                if (!book.World.FloorAllowed) WorldLock(captionEnd + U(5f) + stairs + U(5f), _bookLower);
                 var was = GUI.enabled;
                 GUI.enabled = was && floor > 0;
                 GUI.Button(_bookLower, "\u2039", Skin.IconButton);
@@ -784,8 +794,11 @@ namespace Scry
             for (var s = 0; s < WorldSources.All.Length; s++)
             {
                 var source = WorldSources.All[s];
-                if (repaint) GUI.Label(SourceNames[s], CompendiumWords.SourceName(source), Skin.FaintLabel);
-                if (SourceNames[s].Contains(mouse)) AskTip("source-" + source, CompendiumWords.SourceTip(source));
+                var sourceName = CompendiumWords.SourceName(source);
+                var caption = Caption(sourceName, 0f);
+                if (repaint) GUI.Label(SourceNames[s], caption, Skin.FaintLabel);
+                // A caption cut to fit names itself whole on hover.
+                if (SourceNames[s].Contains(mouse)) AskTip("source-" + source, caption == sourceName ? CompendiumWords.SourceTip(source) : Naming.Lines(sourceName, CompendiumWords.SourceTip(source)));
                 var shows = book.Shows(source);
                 foreach (var level in WorldSources.Offered(source))
                 {
@@ -848,7 +861,7 @@ namespace Scry
             if (!_bookWithShown) return;
             CountDrawn(PanelPart.PlayingWithRow);
             if (!repaint) return;
-            GUI.Label(_withCaption, PlayingWithWords.RowCaption, Skin.FaintLabel);
+            GUI.Label(_withCaption, Caption(PlayingWithWords.RowCaption, 0f), Skin.FaintLabel);
             GUI.Label(_withValue, _withRow, Skin.Wrap);
             BoxHint(_withHint, _withHintSaid, Skin.Compass);
         }
