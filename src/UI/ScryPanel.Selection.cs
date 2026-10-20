@@ -352,9 +352,10 @@ namespace Scry
                 : explorer.ByWorld(entry) is WorldSource source ? CompendiumWords.ByWorld(source, explorer.LevelOf(entry)) : null;
             if (shownBy != null)
             {
-                CountDrawn(PanelPart.FloorLine);
+                var choice = explorer.ByFloor(entry) ? Skin.Steps : Skin.FoldedMap;
+                CountMark(choice, PanelPart.FloorLine);
                 var mark = U(16f);
-                Skin.Icon(new Rect(0f, y + (U(22f) - mark) / 2f, mark, mark), Skin.Steps, Skin.Faint);
+                Skin.Icon(new Rect(0f, y + (U(22f) - mark) / 2f, mark, mark), choice, Skin.Faint);
                 var line = new Rect(mark + U(6f), y, width - mark - U(6f), U(22f));
                 var said = shownBy;
                 if (!FitLabel(line, said, Skin.DimLabel, 10f) && line.Contains(Event.current.mousePosition)) AskTip("floor-line", said);

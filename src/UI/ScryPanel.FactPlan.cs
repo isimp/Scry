@@ -386,7 +386,8 @@ namespace Scry
                         else if (c == 0 && !string.IsNullOrEmpty(link) && Goes(explorer, link))
                         {
                             LinkLabel(cell, cells[c], Skin.SmallWrap, LinkText(KindOf(explorer, link), false));
-                            if (explorer.ShownByChoice(link)) FloorMark(FloorMarkX(cell, cells[c]), cell);
+                            var linkMark = ChoiceMark(explorer, link);
+                            if (linkMark != null) FloorMark(FloorMarkX(cell, cells[c]), cell, linkMark);
                             if (cell.Contains(Event.current.mousePosition)) AskTip("table:" + link, FloorTip(explorer, link, PanelWords.GoTo(cells[c])));
                             if (GUI.Button(cell, GUIContent.none, GUIStyle.none)) Go(explorer, link);
                         }
@@ -411,7 +412,8 @@ namespace Scry
                         else if (c > 0 && row.CellLinks.TryGetValue((l, c), out var to) && Goes(explorer, to))
                         {
                             LinkLabel(cell, cells[c], Skin.SmallWrap, LinkText(KindOf(explorer, to), false));
-                            if (explorer.ShownByChoice(to)) FloorMark(FloorMarkX(cell, cells[c]), cell);
+                            var toMark = ChoiceMark(explorer, to);
+                            if (toMark != null) FloorMark(FloorMarkX(cell, cells[c]), cell, toMark);
                             if (cell.Contains(Event.current.mousePosition)) AskTip("table:" + to, FloorTip(explorer, to, PanelWords.GoTo(cells[c])));
                             if (GUI.Button(cell, GUIContent.none, GUIStyle.none)) Go(explorer, to);
                         }

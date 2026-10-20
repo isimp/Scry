@@ -37,15 +37,16 @@ namespace Scry
         /// kind of entry it goes to, with an arrow. Brighter while what it names is playing. One
         /// that goes nowhere (the entry itself, or something not in the catalog) is plain.
         /// </summary>
-        private static bool LinkChip(Rect rect, string text, Kind? kind, bool lit, bool go, bool floor = false)
+        private static bool LinkChip(Rect rect, string text, Kind? kind, bool lit, bool go, Texture2D mark = null)
         {
+            var floor = mark != null;
             var hover = go && rect.Contains(Event.current.mousePosition);
             Skin.PillBox(rect, go || lit ? LinkFill(kind, hover, lit) : Skin.Unlinked);
 
             // One going to what only the floor shows keeps the floor's mark at its end.
             var label = floor ? new Rect(rect.x, rect.y, rect.width - FloorRoom, rect.height) : rect;
             Skin.LabelIn(label, go ? GoText(text) : text, Skin.SmallCenter, go || lit ? LinkText(kind, hover || lit) : Skin.Dim);
-            if (floor) PlateFloorMark(rect);
+            if (floor) PlateFloorMark(rect, mark);
 
             return go && GUI.Button(rect, GUIContent.none, GUIStyle.none);
         }
@@ -53,15 +54,29 @@ namespace Scry
         /// <summary>The room the floor's mark takes at the end of a chip or after a link (<see cref="FloorMark"/>).</summary>
         private static float FloorRoom => U(18f);
 
-        /// <summary>
-        /// The floor's mark, faint, as on a list row and under a page's title: what a chip or link
-        /// goes to shows as known only because of the floor (<see cref="Explorer.ShownByFloor"/>).
-        /// </summary>
-        private static void FloorMark(float x, Rect line)
+        /// <summary>The mark of what shows only by the player's choice: the floor's stairs, or a folded map for what a source of the world shows; none for anything else.</summary>
+        private static Texture2D ChoiceMark(Explorer explorer, Entry entry) =>
+            entry == null ? null : explorer.ByFloor(entry) ? Skin.Steps : explorer.ByWorld(entry) != null ? Skin.FoldedMap : null;
+
+        /// <summary>The mark of what a key goes to, as <see cref="ChoiceMark(Explorer, Entry)"/>.</summary>
+        private static Texture2D ChoiceMark(Explorer explorer, string key) => ChoiceMark(explorer, explorer.Find(key));
+
+        /// <summary>Counts a mark drawn: the floor's and a source's alike as marks of the player's choice, a source's also as its own.</summary>
+        private static void CountMark(Texture2D mark, PanelPart part)
         {
-            CountDrawn(PanelPart.FloorLink);
+            CountDrawn(part);
+            if (mark == Skin.FoldedMap) CountDrawn(PanelPart.SourceMark);
+        }
+
+        /// <summary>
+        /// The mark of the player's choice, faint, as on a list row and under a page's title, after
+        /// a chip or link to what shows as known only because of it (<see cref="ChoiceMark(Explorer, Entry)"/>).
+        /// </summary>
+        private static void FloorMark(float x, Rect line, Texture2D mark)
+        {
+            CountMark(mark, PanelPart.FloorLink);
             var size = U(14f);
-            Skin.Icon(new Rect(x, line.y + (Mathf.Min(line.height, U(26f)) - size) / 2f, size, size), Skin.Steps, Skin.Faint);
+            Skin.Icon(new Rect(x, line.y + (Mathf.Min(line.height, U(26f)) - size) / 2f, size, size), mark, Skin.Faint);
         }
 
         /// <summary>
@@ -69,11 +84,11 @@ namespace Scry
         /// icon and words are, however many lines it has, and as far in from its end as the icon
         /// is from its start.
         /// </summary>
-        private static void PlateFloorMark(Rect plate)
+        private static void PlateFloorMark(Rect plate, Texture2D mark)
         {
-            CountDrawn(PanelPart.FloorLink);
+            CountMark(mark, PanelPart.FloorLink);
             var size = U(14f);
-            Skin.Icon(new Rect(plate.xMax - U(6f) - size, plate.y + (plate.height - size) / 2f, size, size), Skin.Steps, Skin.Faint);
+            Skin.Icon(new Rect(plate.xMax - U(6f) - size, plate.y + (plate.height - size) / 2f, size, size), mark, Skin.Faint);
         }
 
         /// <summary>A chip's or link's tip, the floor's or the source's line above it where what it goes to shows only by the player's choice (<see cref="Explorer.ChoiceTip"/>).</summary>
@@ -147,12 +162,12 @@ namespace Scry
             {
                 var item = all[i];
                 var go = !Unseen(explorer, item.Key);
-                var floor = go && explorer.ShownByChoice(item.Key);
-                var w = Mathf.Min(width, LinkChipWidth(item.Text, go, floor));
+                var mark = go ? ChoiceMark(explorer, item.Key) : null;
+                var w = Mathf.Min(width, LinkChipWidth(item.Text, go, mark != null));
                 var at = flow.Place(w);
                 var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
                 if (OutOfSight(chip)) continue;
-                if (LinkChip(chip, item.Text, go ? KindOf(explorer, item.Key) : null, false, go, floor)) item.Click();
+                if (LinkChip(chip, item.Text, go ? KindOf(explorer, item.Key) : null, false, go, mark)) item.Click();
                 if (go && chip.Contains(Event.current.mousePosition)) AskTip("link:" + title + item.Key + item.Text, FloorTip(explorer, item.Key, item.Tip ?? PanelWords.GoTo(item.Text)));
             }
             MoreChip(key, all.Count, FirstChips, width, ref flow);

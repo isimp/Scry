@@ -51,6 +51,13 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheBoxsHintSaysTheMarkItDrawsIsWhatASourceShows()
+        {
+            // Drawn with the source's own mark, a folded map, rather than the hint's compass.
+            Assert.Equal("What these show is marked with this on its row and page; your book keeps only what you met, so turning one down takes it all back.", CompendiumWords.SourcesHint);
+        }
+
+        [Fact]
         public void YourOwnGroundAndMarkedPlacesStartSeenTheNewSourcesOff()
         {
             var book = new CompendiumBook();

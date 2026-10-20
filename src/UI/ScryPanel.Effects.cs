@@ -171,13 +171,13 @@ namespace Scry
             {
                 var member = members[i];
                 var go = member != self && Goes(explorer, member);
-                var floor = go && explorer.ShownByChoice(member);
-                var w = Mathf.Min(width, LinkChipWidth(member, go, floor));
+                var mark = go ? ChoiceMark(explorer, member) : null;
+                var w = Mathf.Min(width, LinkChipWidth(member, go, mark != null));
                 var at = flow.Place(w);
                 var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
                 if (OutOfSight(chip)) continue;
                 var lit = Previews.Playing.IsPlaying(list, member);
-                if (LinkChip(chip, member, KindOf(explorer, member), lit, go, floor)) Go(explorer, member);
+                if (LinkChip(chip, member, KindOf(explorer, member), lit, go, mark)) Go(explorer, member);
                 if (go && chip.Contains(Event.current.mousePosition)) AskTip("member:" + member, FloorTip(explorer, member, PanelWords.GoTo(member, lit)));
             }
             MoreChip(key, members.Count, FirstChips, width, ref flow);
@@ -315,12 +315,12 @@ namespace Scry
                     var owner = row.Owners[o];
                     var shown = row.Names != null && o < row.Names.Length ? row.Names[o] : ShownName(explorer, owner.Key, owner.Shown);
                     var go = owner.Key != null && Goes(explorer, owner.Key);
-                    var floor = go && explorer.ShownByChoice(owner.Key);
-                    var w = Mathf.Min(width, LinkChipWidth(shown, go, floor));
+                    var mark = go ? ChoiceMark(explorer, owner.Key) : null;
+                    var w = Mathf.Min(width, LinkChipWidth(shown, go, mark != null));
                     var at = owners.Place(w);
                     var chip = new Rect(at.X, at.Y, w, rowH);
                     var kind = KindOf(explorer, owner.Key);
-                    if (LinkChip(chip, shown, kind, false, go, floor)) Go(explorer, owner.Key);
+                    if (LinkChip(chip, shown, kind, false, go, mark)) Go(explorer, owner.Key);
                     if (go && chip.Contains(Event.current.mousePosition)) AskTip("owner:" + owner.Key, FloorTip(explorer, owner.Key, PanelWords.GoTo(shown)));
                 }
                 MoreChip(ownersKey, KeptOwners.Count, firstOwners, width, ref owners);

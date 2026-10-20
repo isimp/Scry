@@ -42,6 +42,9 @@ namespace Scry
         /// <summary>The world's sources and their levels in the compendium's box.</summary>
         SourcesControl,
 
+        /// <summary>The mark of what a source of the world shows, a folded map, on a row, under a title or after a chip or link.</summary>
+        SourceMark,
+
         /// <summary>The pin at the end of a ground's row in the compendium's box, marking its dungeons on the big map.</summary>
         DungeonPins,
 

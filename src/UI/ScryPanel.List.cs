@@ -450,19 +450,19 @@ namespace Scry
             else if (hover) Skin.Icon(star, Skin.StarHollow, star.Contains(e.mousePosition) ? Skin.Accent : Skin.Faint);
 
             // Shown only by the player's choice, the compendium's floor or a source of the world: a mark before the star.
-            var byFloor = explorer.ByChoice(entry);
+            var choice = ChoiceMark(explorer, entry);
             var floorMark = new Rect(star.x - U(22f), star.y, star.width, star.height);
-            if (byFloor)
+            if (choice != null)
             {
-                CountDrawn(PanelPart.FloorMark);
-                Skin.Icon(floorMark, Skin.Steps, Skin.Faint);
+                CountMark(choice, PanelPart.FloorMark);
+                Skin.Icon(floorMark, choice, Skin.Faint);
             }
 
             var named = Timing.Start();
             var textX = oneKind && !_listHasIcons ? inner.x + U(12f) : icon.xMax + U(10f);
             // A room sits indented under its dungeon in its dungeon's group.
             if ((entry.Indent || explorer.UnderOwner(entry)) && oneKind) textX += U(20f);
-            var textW = (byFloor ? floorMark.x : star.x) - U(8f) - textX;
+            var textW = (choice != null ? floorMark.x : star.x) - U(8f) - textX;
             var primary = entry.ShownName;
             // In the learned list, how its latest news came (killed, seen, what was found out). With the
             // compendium on, no prefab name, a place's tag holding one too: which of several going by
@@ -504,7 +504,12 @@ namespace Scry
             }
 
             // A cut name shows whole on hover, and a faint row says why it is faint.
-            if (hover && byFloor && floorMark.Contains(e.mousePosition)) AskTip("floor-mark", CompendiumWords.ByFloor(explorer.Compendium.Floor));
+            if (hover && choice != null && floorMark.Contains(e.mousePosition))
+            {
+                AskTip("choice-mark:" + entry.Key, explorer.ByFloor(entry) || !(explorer.ByWorld(entry) is WorldSource from)
+                    ? CompendiumWords.ByFloor(explorer.Compendium.Floor)
+                    : CompendiumWords.ByWorld(from, explorer.LevelOf(entry)));
+            }
             else if (hover && (cut || entry.Empty) && !star.Contains(e.mousePosition))
             {
                 AskTip(entry.Key, Naming.Lines(primary, secondary, entry.Empty ? ListWords.Silent : null));

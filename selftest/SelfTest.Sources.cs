@@ -66,9 +66,11 @@ namespace Scry
             yield return Until(() => ReferenceEquals(X.Compendium, view), 3);
             p.Check(view.Of(place) == KnownLevel.Known && view.ByWorld(place) == WorldSource.SharedMaps, $"{place.ShownName} found on shared maps shows known, as the source's");
             var marks = ScryPanel.Drawn(PanelPart.FloorLine);
+            var mapMarks = ScryPanel.Drawn(PanelPart.SourceMark);
             X.Select(place);
-            yield return Until(() => ScryPanel.Drawn(PanelPart.FloorLine) > marks, 3);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.FloorLine) > marks && ScryPanel.Drawn(PanelPart.SourceMark) > mapMarks, 3);
             p.Check(ScryPanel.Drawn(PanelPart.FloorLine) > marks, "its page says under the title where it is shown from");
+            p.Check(ScryPanel.Drawn(PanelPart.SourceMark) > mapMarks, "with the source's own mark, a folded map, not the floor's stairs");
             yield return PictureOf(p, "facts", "source shared maps known place");
 
             // Shown with its insides: its page names all it holds, met or not, nothing of it seen elsewhere.

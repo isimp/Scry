@@ -247,7 +247,7 @@ namespace Scry
         public const string SourcesCaption = "What this world shows as known";
 
         /// <summary>The faint line under the sources, saying what turning one down does.</summary>
-        public const string SourcesHint = "What these show is marked on its row and page; your book keeps only what you met, so turning one down takes it all back.";
+        public const string SourcesHint = "What these show is marked with this on its row and page; your book keeps only what you met, so turning one down takes it all back.";
 
         /// <summary>A source's name in the box.</summary>
         public static string SourceName(WorldSource source)

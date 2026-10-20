@@ -140,12 +140,12 @@ namespace Scry
             if (LeftOut(explorer, entry.Key)) return y;
             var rowH = U(26f);
             var go = Goes(explorer, entry.Key);
-            var floor = go && explorer.ShownByChoice(entry.Key);
-            var w = Mathf.Min(width * 0.5f, LinkChipWidth(entry.Shown, go, floor));
+            var mark = go ? ChoiceMark(explorer, entry.Key) : null;
+            var w = Mathf.Min(width * 0.5f, LinkChipWidth(entry.Shown, go, mark != null));
             var chip = new Rect(x, y, w, rowH);
             if (!OutOfSight(chip, visible))
             {
-                if (LinkChip(chip, entry.Shown, go ? entry.Kind : (Kind?)null, false, go, floor)) Go(explorer, entry.Key);
+                if (LinkChip(chip, entry.Shown, go ? entry.Kind : (Kind?)null, false, go, mark)) Go(explorer, entry.Key);
                 if (go && chip.Contains(Event.current.mousePosition)) AskTip("mods-go:" + entry.Key, FloorTip(explorer, entry.Key, PanelWords.GoTo(entry.Shown)));
                 GUI.Label(new Rect(x + w + U(8f), y + U(3f), width - w - U(8f), U(22f)), told, Skin.DimLabel);
             }
@@ -170,12 +170,12 @@ namespace Scry
             {
                 var entry = entries[i];
                 var go = Goes(explorer, entry.Key);
-                var floor = go && explorer.ShownByChoice(entry.Key);
-                var w = Mathf.Min(width, LinkChipWidth(entry.Shown, go, floor));
+                var mark = go ? ChoiceMark(explorer, entry.Key) : null;
+                var w = Mathf.Min(width, LinkChipWidth(entry.Shown, go, mark != null));
                 var at = flow.Place(w);
                 var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
                 if (OutOfSight(chip, visible)) continue;
-                if (LinkChip(chip, entry.Shown, go ? entry.Kind : (Kind?)null, false, go, floor)) Go(explorer, entry.Key);
+                if (LinkChip(chip, entry.Shown, go ? entry.Kind : (Kind?)null, false, go, mark)) Go(explorer, entry.Key);
                 if (go && chip.Contains(Event.current.mousePosition)) AskTip("mods-go:" + entry.Key, FloorTip(explorer, entry.Key, PanelWords.GoTo(entry.Shown)));
             }
             // The rest behind a chip of their own, as the details' long rows have, against the

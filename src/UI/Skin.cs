@@ -87,7 +87,7 @@ namespace Scry
         /// <summary>The halves of two icon buttons joined into one piece, each rounded only at the piece's own end: off and on, left and right.</summary>
         public static GUIStyle JoinedLeft, JoinedRight, JoinedLeftOn, JoinedRightOn;
 
-        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize, Roof, Speed, Repeat, Steps, Eye, Up, Down, Compass, Doorway;
+        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize, Roof, Speed, Repeat, Steps, Eye, Up, Down, Compass, Doorway, FoldedMap;
 
         /// <summary>A rounded box's shape rounded only at its left, or only at its right, for joined buttons; a chevron pointing down, for folding away.</summary>
         public static Texture2D RoundedLeft, RoundedRight, FoldDown;
@@ -817,6 +817,7 @@ namespace Scry
             Eye = Shape(32, 32, EyeCoverage);
             Compass = Shape(32, 32, CompassCoverage);
             Doorway = Shape(32, 32, DoorwayCoverage);
+            FoldedMap = Shape(32, 32, FoldedMapCoverage);
             Up = Shape(32, 32, (x, y) => y >= 6f && y <= 26f && Mathf.Abs(x - 16f) <= (26f - y) * 0.6f);
             Down = Shape(32, 32, (x, y) => y >= 6f && y <= 26f && Mathf.Abs(x - 16f) <= (y - 6f) * 0.6f);
             RoundedLeft = Shape(32, 32, (x, y) => x >= 16f || RoundedCoverage(x, y, 32, 32, 8f));
@@ -896,6 +897,36 @@ namespace Scry
             if (dx * dx + dy * dy > 15f * 15f) return false;
             var doorway = dy > 2f ? Mathf.Sqrt(dx * dx + (dy - 2f) * (dy - 2f)) <= 6f : Mathf.Abs(dx) <= 6f && dy >= -8f;
             return !doorway;
+        }
+
+        /// <summary>The corners of a map folded in three, in turn round its edge: the mark of what a source of the world shows.</summary>
+        private static readonly (float X, float Y)[] MapEdge = { (4f, 24f), (12f, 27f), (20f, 24f), (28f, 27f), (28f, 7f), (20f, 4f), (12f, 7f), (4f, 4f) };
+
+        /// <summary>
+        /// A map folded in three, drawn in outline with its two folds: what shows as known only
+        /// because a source of the world found it, apart from the floor's stairs.
+        /// </summary>
+        private static bool FoldedMapCoverage(float x, float y)
+        {
+            const float half = 1.9f;
+            for (var i = 0; i < MapEdge.Length; i++)
+            {
+                var a = MapEdge[i];
+                var b = MapEdge[(i + 1) % MapEdge.Length];
+                if (NearSegment(x, y, a.X, a.Y, b.X, b.Y, half)) return true;
+            }
+            return NearSegment(x, y, 12f, 27f, 12f, 7f, half) || NearSegment(x, y, 20f, 24f, 20f, 4f, half);
+        }
+
+        /// <summary>Whether a point lies within so far of a line from one point to another.</summary>
+        private static bool NearSegment(float x, float y, float ax, float ay, float bx, float by, float within)
+        {
+            var dx = bx - ax;
+            var dy = by - ay;
+            var t = Mathf.Clamp01(((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy));
+            var px = ax + t * dx - x;
+            var py = ay + t * dy - y;
+            return px * px + py * py <= within * within;
         }
 
         /// <summary>A compass: a ring round a needle pointing up and down, what is still to find on a page.</summary>

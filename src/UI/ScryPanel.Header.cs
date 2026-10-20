@@ -450,7 +450,7 @@ namespace Scry
             _bookSourcesShown = book.Rule != CompendiumRule.Off;
             ReadPlayingWith();
             _bookWithShown = _bookSourcesShown && _withRow != null;
-            _bookCaptionW = Mathf.Max(Skin.Width(Skin.FaintLabel, CompendiumWords.RulesCaption), Skin.Width(Skin.FaintLabel, CompendiumWords.FloorCaption));
+            _bookCaptionW = Mathf.Max(Skin.Width(Skin.FaintLabel, CompendiumWords.RulesCaption), Skin.Width(Skin.FaintLabel, CompendiumWords.FloorCaption) + U(18f));
             if (_bookWithShown) _bookCaptionW = Mathf.Max(_bookCaptionW, Skin.Width(Skin.FaintLabel, PlayingWithWords.RowCaption));
             var sourcesW = 0f;
             if (_bookSourcesShown)
@@ -607,6 +607,9 @@ namespace Scry
             if (repaint)
             {
                 GUI.Label(new Rect(_bookBox.x + pad, _bookLower.y, _bookCaptionW, _bookLower.height), CompendiumWords.FloorCaption, Skin.FaintLabel);
+                // The floor's own mark after its caption, as what it shows is marked.
+                var stairs = U(13f);
+                Skin.Icon(new Rect(_bookBox.x + pad + Skin.Width(Skin.FaintLabel, CompendiumWords.FloorCaption) + U(5f), _bookLower.y + (_bookLower.height - stairs) / 2f, stairs, stairs), Skin.Steps, Skin.Faint);
                 var was = GUI.enabled;
                 GUI.enabled = was && floor > 0;
                 GUI.Button(_bookLower, "\u2039", Skin.IconButton);
@@ -631,7 +634,7 @@ namespace Scry
             if (repaint)
             {
                 GUI.Label(_sourcesCaption, CompendiumWords.SourcesCaption, Skin.FaintLabel);
-                BoxHint(_sourcesHint, CompendiumWords.SourcesHint);
+                BoxHint(_sourcesHint, CompendiumWords.SourcesHint, Skin.FoldedMap);
             }
             for (var s = 0; s < WorldSources.All.Length; s++)
             {
@@ -674,11 +677,11 @@ namespace Scry
             if (on) DungeonsInGround.AskNow(source);
         }
 
-        /// <summary>A line in the box as a page's hint line: the accent bar and the compass, its words a step brighter.</summary>
-        private static void BoxHint(Rect rect, string said)
+        /// <summary>A line in the box as a page's hint line: the accent bar and its mark, the compass or the mark it speaks of, its words a step brighter.</summary>
+        private static void BoxHint(Rect rect, string said, Texture2D mark)
         {
             Skin.Fill(new Rect(rect.x + U(6f), rect.y + U(2f), U(2f), rect.height - U(4f)), Skin.Accent);
-            Skin.Icon(new Rect(rect.x + U(12f), rect.y + U(3f), U(14f), U(14f)), Skin.Compass, Skin.Accent);
+            Skin.Icon(new Rect(rect.x + U(12f), rect.y + U(3f), U(14f), U(14f)), mark, Skin.Accent);
             GUI.Label(new Rect(rect.x + U(30f), rect.y, rect.width - U(30f), rect.height), said, Skin.DimWrap);
         }
 
@@ -690,7 +693,7 @@ namespace Scry
             if (!repaint) return;
             GUI.Label(_withCaption, PlayingWithWords.RowCaption, Skin.FaintLabel);
             GUI.Label(_withValue, _withRow, Skin.Wrap);
-            BoxHint(_withHint, PlayingWithWords.RowHint);
+            BoxHint(_withHint, PlayingWithWords.RowHint, Skin.Compass);
         }
 
         /// <summary>Sets how a source of the world shows for the character played and keeps it at once: a choice of the player's. The box, and the self-test.</summary>
