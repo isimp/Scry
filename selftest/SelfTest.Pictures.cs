@@ -8,13 +8,29 @@ namespace Scry
 {
     /// <summary>
     /// Pictures the self-test takes of what it shows, to be looked at after a run: the screen as
-    /// the player sees it, saved by name under Scry's cache folder, each run's over the last's.
-    /// The log names each picture a run took.
+    /// the player sees it, saved by name under Scry's cache folder. A quick, deep or full run
+    /// first moves the last run's pictures into <c>previous</c> under it, those there before
+    /// let go, so the folder holds only pictures of views that still are; a run of a few parts
+    /// takes its pictures over those in place. The log names each picture a run took.
     /// </summary>
     internal static partial class SelfTest
     {
         /// <summary>Where the pictures go.</summary>
         internal static string PictureFolder => Path.Combine(Settings.CacheFolder, "selftest-pictures");
+
+        /// <summary>Moves the last run's pictures into <c>previous</c>, letting go of those there before; told in the log.</summary>
+        private static void PicturesAside()
+        {
+            var aside = Path.Combine(PictureFolder, "previous");
+            var failure = Steps.Run(() =>
+            {
+                if (!Directory.Exists(PictureFolder)) return;
+                if (Directory.Exists(aside)) Directory.Delete(aside, true);
+                Directory.CreateDirectory(aside);
+                foreach (var file in Directory.GetFiles(PictureFolder, "*.png")) File.Move(file, Path.Combine(aside, Path.GetFileName(file)));
+            }, null);
+            Write(failure == null ? "The last run's pictures are in selftest-pictures/previous." : $"The last run's pictures could not be moved aside: {failure.Message}");
+        }
 
         private static MethodInfo _capture;
         private static bool _lookedForCapture;

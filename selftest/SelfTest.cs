@@ -165,6 +165,7 @@ namespace Scry
             Frames.Clear();
             Timing.Measuring = Frames;
             _sampled = asked.Sampled;
+            if (asked.Scope == RunScope.Quick || asked.Scope == RunScope.Deep || asked.Scope == RunScope.Full) PicturesAside();
             _runner = new ScenarioRunner(parts, Write, Finish, AllKnown);
             SelfTestPanel.ShowResult();
             return SelfTestWords.Started(_runner.Total, asked.Scope, times.Estimate(parts.Select(s => s.Name), asked.Sampled));
