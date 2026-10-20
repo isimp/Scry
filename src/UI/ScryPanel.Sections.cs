@@ -260,6 +260,20 @@ namespace Scry
         private static int _withVersion = -1;
         private static string _withLine;
         private static string _withRow;
+
+        /// <summary>The faint line under the row: what a game without Scry means, and what the server's lacking leaves out where it lacks it.</summary>
+        private static string _withHintSaid = PlayingWithWords.RowHint;
+
+        /// <summary>The compendium box's row of the server and players played with, and its faint line, as last read; for the self-test.</summary>
+        [Diagnostic]
+        public static (string Row, string Hint) PlayingWithForTest
+        {
+            get
+            {
+                ReadPlayingWith();
+                return (_withRow, _withHintSaid);
+            }
+        }
         private static List<string> _lacking = new List<string>();
 
         /// <summary>The notice's line and the box's row as last told, for the self-test.</summary>
@@ -282,7 +296,8 @@ namespace Scry
             _withVersion = EventLink.PlayingWithVersion;
             var players = EventLink.PlayingWith;
             _withLine = PlayingWithWords.Notice(players);
-            _withRow = PlayingWithWords.Row(players);
+            _withRow = PlayingWithWords.Row(players, EventLink.Server);
+            _withHintSaid = PlayingWithWords.Hint(EventLink.Server);
             _lacking = PlayingWithWords.Lacking(players);
         }
 

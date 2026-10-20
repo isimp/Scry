@@ -237,6 +237,14 @@ namespace Scry
             if (!p.Check(packed != null, "its explored map is read")) yield break;
             var grid = ExploredGrid.Unpack(packed);
             p.Check(grid != null && grid.Explored(player.transform.position.x, player.transform.position.z), "the ground it stands on is explored", grid != null ? $"cells of {Numbers.Count(grid.Factor)} pixels a side" : null);
+            // Places are told by the map's own pixels; sent packed, small enough for one of the game's messages.
+            p.Check(grid != null && grid.Factor == 1, "places are told by cells of one map pixel", grid != null ? $"{Numbers.Amount(grid.PixelSize * grid.Factor, 0)} m a cell, {Numbers.Count(grid.Count)} explored" : null);
+            var sent = Utils.Compress(packed);
+            p.Note($"the explored map goes to the server as {Numbers.Count(sent.Length / 1024)} KB, {Numbers.Count(packed.Length / 1024)} KB before the game's compression");
+            p.Check(sent.Length < 256 * 1024, "packed, it is well under a quarter of a megabyte", $"{Numbers.Count(sent.Length / 1024)} KB");
+            p.Note($"asked about again as it grew {Numbers.Count(CompendiumMap.AskedMore)} times this session, {Numbers.Count(CompendiumLink.TakenMore)} answers taken");
+            // The biomes are read from coarser cells, which need no finer.
+            grid = ExploredGrid.Unpack(CompendiumMap.PackedMap(ExploredGrid.BiomeCellMetres)) ?? grid;
             var world = CompendiumMap.World;
             var book = CompendiumKeeper.Book;
             // Read again each session, so ground explored since counts, as news.
@@ -259,6 +267,14 @@ namespace Scry
 
             if (!ZNet.instance.IsServer())
             {
+                // Whether the server runs Scry is known from its hello, a moment after joining.
+                yield return Until(() => EventLink.Server != Scry.ServerScry.Waiting, 15);
+                p.Check(EventLink.Server != Scry.ServerScry.Waiting, "the server's hello, or its silence, told whether it runs Scry", EventLink.Server.ToString());
+                if (ServerScries.GivesUp(EventLink.Server))
+                {
+                    p.Note("the server runs no Scry, or one of other messages: nothing of the explored map is asked");
+                    yield break;
+                }
                 // A client asks the Scry on its world's server, which tells only which kinds of place lie in the map.
                 p.Note(book != null && book.Mapped(world) ? "a server world, caught up with its server's answer on entering it" : "a server world not caught up on entering it");
                 var taken = CompendiumLink.Taken;

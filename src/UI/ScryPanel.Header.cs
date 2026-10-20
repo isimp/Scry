@@ -485,7 +485,7 @@ namespace Scry
             if (_bookWithShown)
             {
                 rowH = Mathf.Max(height, Skin.Wrap.CalcHeight(new GUIContent(_withRow), width - pad * 2f - _bookCaptionW));
-                withHintH = Skin.DimWrap.CalcHeight(new GUIContent(PlayingWithWords.RowHint), width - pad * 2f - U(30f));
+                withHintH = Skin.DimWrap.CalcHeight(new GUIContent(_withHintSaid), width - pad * 2f - U(30f));
                 withH = U(14f) + rowH + U(6f) + withHintH;
             }
             _bookBox = new Rect(x, button.yMax + gap, width, pad + U(26f) + rows * height + (rows - 1) * U(6f) + sourcesH + withH + pad);
@@ -709,7 +709,7 @@ namespace Scry
             if (!repaint) return;
             GUI.Label(_withCaption, PlayingWithWords.RowCaption, Skin.FaintLabel);
             GUI.Label(_withValue, _withRow, Skin.Wrap);
-            BoxHint(_withHint, PlayingWithWords.RowHint, Skin.Compass);
+            BoxHint(_withHint, _withHintSaid, Skin.Compass);
         }
 
         /// <summary>Sets how a source of the world shows for the character played and keeps it at once: a choice of the player's. The box, and the self-test.</summary>

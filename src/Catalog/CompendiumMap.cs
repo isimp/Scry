@@ -8,8 +8,10 @@ using UnityEngine;
 namespace Scry
 {
     /// <summary>
-    /// Catches a character's book up from its explored map once per world (<see cref="MapCatchUp"/>):
-    /// the kinds of place lying where it explored count as seen. Where this game is the world's
+    /// Catches a character's book up from its explored map once per world each session
+    /// (<see cref="MapCatchUp"/>), and again with the ground new since each minute it grew by
+    /// enough (<see cref="MapGrowth"/>): the kinds of place lying where it explored count as seen,
+    /// by cells of the map's own pixels, about 12 m. Where this game is the world's
     /// server (single player, or hosting) it holds where every place is
     /// (<c>ZoneSystem.m_locationInstances</c>); a dedicated server's client asks the server's Scry
     /// (<see cref="CompendiumLink"/>), which never sends positions back. The character's own
@@ -42,8 +44,23 @@ namespace Scry
         private const float IconsEvery = 30f;
         private static float _iconsAt = float.NegativeInfinity;
         private static readonly Dictionary<Vector3, string> Icons = new Dictionary<Vector3, string>();
-        private static Task<List<string>> _reading;
+        private static Task<(ExploredGrid Grid, List<string> Kinds)> _reading;
         private static string _readingFor;
+
+        /// <summary>The explored map last asked about in this world this session, for the ground new since; none before the first ask.</summary>
+        private static ExploredGrid _askedGrid;
+        private static string _askedGridFor;
+
+        /// <summary>When the map was last looked at for new ground, and the looking under way on a worker thread: the map now, the ground new since and it packed for the server.</summary>
+        private static float _grownAt = float.NegativeInfinity;
+        private static Task<(ExploredGrid Now, ExploredGrid New, byte[] Packed)> _growing;
+        private static string _growingFor;
+        private static Task<List<string>> _growingKinds;
+        private static string _growingKindsFor;
+
+        /// <summary>How many times the ground new since was asked about this session, for the self-test.</summary>
+        [Diagnostic]
+        public static int AskedMore { get; private set; }
         private static string _failedFor;
         private static Player _player;
         private static float _playerSince;
@@ -81,6 +98,7 @@ namespace Scry
             UpdateBiomes(book, world, settled);
             UpdateIcons(book, world, settled);
             UpdateShared(book, world, settled);
+            UpdateGrowth(book, world, settled);
 
             if (_reading != null)
             {
@@ -112,6 +130,84 @@ namespace Scry
             var raised = MapCatchUp.Apply(book, world, kinds);
             CompendiumKeeper.Noted(PlayEvent.MapRead);
             Log.Report(CompendiumWords.MapRead(kinds.Count, raised, fromServer: true));
+        }
+
+        /// <summary>Takes in the kinds of place lying in the ground explored since the last ask, what is new noted as the first reading's is.</summary>
+        public static void ToldMore(CompendiumBook book, string world, List<string> kinds)
+        {
+            if (book == null || world == null || world != World) return;
+            var raised = MapCatchUp.Apply(book, world, kinds);
+            if (raised == 0) return;
+            CompendiumKeeper.Noted(PlayEvent.MapRead);
+            Log.Report(CompendiumWords.MapRead(kinds.Count, raised, fromServer: !ZNet.instance.IsServer()));
+        }
+
+        /// <summary>The explored map the server is asked about, kept for the ground new since.</summary>
+        public static void Asked(string world, ExploredGrid grid)
+        {
+            _askedGrid = grid;
+            _askedGridFor = world;
+            _grownAt = Time.unscaledTime;
+        }
+
+        /// <summary>
+        /// Once the map was caught up with this session: once a minute the map is looked at on a
+        /// worker thread for the ground new since the last ask, and where enough is (<see cref="MapGrowth.Due"/>)
+        /// its kinds of place are worked out here where this game is the world's server, else asked
+        /// of the server's Scry with the new ground alone; a server without Scry is not asked.
+        /// </summary>
+        private static void UpdateGrowth(CompendiumBook book, string world, bool settled)
+        {
+            if (_growingKinds != null)
+            {
+                if (!_growingKinds.IsCompleted) return;
+                var done = _growingKinds;
+                var doneFor = _growingKindsFor;
+                _growingKinds = null;
+                _growingKindsFor = null;
+                if (done.Status != TaskStatus.RanToCompletion) Faults.Tell(Feature.CompendiumMap, "reading the ground explored since", done.Exception?.GetBaseException());
+                else ToldMore(book, doneFor, done.Result);
+                return;
+            }
+            if (_growing != null)
+            {
+                if (!_growing.IsCompleted) return;
+                var done = _growing;
+                var doneFor = _growingFor;
+                _growing = null;
+                _growingFor = null;
+                if (done.Status != TaskStatus.RanToCompletion)
+                {
+                    Faults.Tell(Feature.CompendiumMap, "looking at the ground explored since", done.Exception?.GetBaseException());
+                    return;
+                }
+                var (now, fresh, packed) = done.Result;
+                if (doneFor != world || doneFor != _askedGridFor || !MapGrowth.Due(fresh.Count, MapGrowth.Every)) return;
+                Asked(world, now);
+                AskedMore++;
+                if (ZNet.instance.IsServer())
+                {
+                    var places = Places();
+                    _growingKindsFor = world;
+                    _growingKinds = Task.Run(() => MapCatchUp.Kinds(fresh, places));
+                }
+                else CompendiumLink.AskMore(world, packed);
+                return;
+            }
+            if (book == null || world == null || !settled || !book.Mapped(world) || world != _askedGridFor || _askedGrid == null) return;
+            if (Time.unscaledTime - _grownAt < MapGrowth.Every || CompendiumLink.AskingMore) return;
+            if (!ZNet.instance.IsServer() && !ServerScries.Answers(EventLink.Server)) return;
+            var (size, pixel, words) = Copy();
+            if (words == null) return;
+            var before = _askedGrid;
+            _grownAt = Time.unscaledTime;
+            _growingFor = world;
+            _growing = Task.Run(() =>
+            {
+                var grid = Grid(size, pixel, words);
+                var since = grid.NewSince(before);
+                return (grid, since, since.Count >= MapGrowth.FewestNew ? Utils.Compress(since.Pack()) : null);
+            });
         }
 
         /// <summary>Takes in the kinds of place a server told lie in the ground from shared maps.</summary>
@@ -180,6 +276,18 @@ namespace Scry
         /// <summary>Gives up on this world for the session, as when its server has no Scry to ask.</summary>
         public static void GiveUp(string world) => _failedFor = world;
 
+        /// <summary>The explored map of the character played, read and packed for the server on a worker thread from a copy taken now; none before it is in.</summary>
+        public static Task<(ExploredGrid Grid, byte[] Packed)> GridOnWorker()
+        {
+            var (size, pixel, words) = Copy();
+            if (words == null) return null;
+            return Task.Run(() =>
+            {
+                var grid = Grid(size, pixel, words);
+                return (grid, Utils.Compress(grid.Pack()));
+            });
+        }
+
         /// <summary>The explored map of the character played, packed on a worker thread from a copy taken now; none before it is in.</summary>
         public static Task<byte[]> PackOnWorker()
         {
@@ -187,11 +295,11 @@ namespace Scry
             return words == null ? null : Task.Run(() => Grid(size, pixel, words).Pack());
         }
 
-        /// <summary>The explored map of the character played, packed; none before it is in.</summary>
-        public static byte[] PackedMap()
+        /// <summary>The explored map of the character played, packed in cells about as wide as given, the places' own by default; none before it is in.</summary>
+        public static byte[] PackedMap(float cellMetres = ExploredGrid.PlaceCellMetres)
         {
             var (size, pixel, words) = Copy();
-            return words == null ? null : Grid(size, pixel, words).Pack();
+            return words == null ? null : Grid(size, pixel, words, cellMetres).Pack();
         }
 
         /// <summary>Where every place this game holds is, by its kind: only a world's server holds them all.</summary>
@@ -218,7 +326,11 @@ namespace Scry
             var (size, pixel, words) = Copy();
             if (words == null) return;
             _readingFor = world;
-            _reading = Task.Run(() => MapCatchUp.Kinds(Grid(size, pixel, words), places));
+            _reading = Task.Run(() =>
+            {
+                var grid = Grid(size, pixel, words);
+                return (grid, MapCatchUp.Kinds(grid, places));
+            });
         }
 
         private static void Take(CompendiumBook book)
@@ -234,9 +346,10 @@ namespace Scry
                 return;
             }
             if (book == null || world != World || book.Mapped(world)) return;
-            var raised = MapCatchUp.Apply(book, world, reading.Result);
+            Asked(world, reading.Result.Grid);
+            var raised = MapCatchUp.Apply(book, world, reading.Result.Kinds);
             CompendiumKeeper.Noted(PlayEvent.MapRead);
-            Log.Report(CompendiumWords.MapRead(reading.Result.Count, raised, fromServer: false));
+            Log.Report(CompendiumWords.MapRead(reading.Result.Kinds.Count, raised, fromServer: false));
         }
 
         /// <summary>
@@ -265,7 +378,8 @@ namespace Scry
             var (size, pixel, words) = Copy();
             if (words == null) return;
             _biomesFor = world;
-            _biomes = Task.Run(() => MapCatchUp.Biomes(Grid(size, pixel, words), (x, z) => generator.GetBiome(x, z).ToString()));
+            // Coarser cells for the biomes, which need no finer and ask the generator once a cell.
+            _biomes = Task.Run(() => MapCatchUp.Biomes(Grid(size, pixel, words, ExploredGrid.BiomeCellMetres), (x, z) => generator.GetBiome(x, z).ToString()));
         }
 
         /// <summary>
@@ -287,8 +401,8 @@ namespace Scry
             return Array.TrueForAll(words, w => w == 0) ? (0, 0f, null) : (size, map.m_pixelSize, words);
         }
 
-        private static ExploredGrid Grid(int size, float pixel, int[] words) =>
-            ExploredGrid.FromMap(size, pixel, i => (words[i >> 5] & (1 << (i & 31))) != 0);
+        private static ExploredGrid Grid(int size, float pixel, int[] words, float cellMetres = ExploredGrid.PlaceCellMetres) =>
+            ExploredGrid.FromMap(size, pixel, i => (words[i >> 5] & (1 << (i & 31))) != 0, cellMetres);
 
         private static void Forget()
         {
@@ -299,6 +413,13 @@ namespace Scry
             Icons.Clear();
             _reading = null;
             _readingFor = null;
+            _askedGrid = null;
+            _askedGridFor = null;
+            _grownAt = float.NegativeInfinity;
+            _growing = null;
+            _growingFor = null;
+            _growingKinds = null;
+            _growingKindsFor = null;
             _failedFor = null;
             _player = null;
             _biomes = null;

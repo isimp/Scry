@@ -6,29 +6,38 @@ using System.Linq;
 namespace Scry
 {
     /// <summary>
-    /// Where a character explored a world, coarser than the game's explored map: each cell covers
-    /// <see cref="Factor"/> by <see cref="Factor"/> of the map's pixels, about 48 m a side, and
-    /// counts as explored where any of them is. Made from the game's map as the minimap keeps it
-    /// (pixels per side, metres per pixel, a pixel's bit at y times the side plus x), so a world
-    /// position falls in the pixel the game would mark for it; packed to bytes for the server
-    /// that knows where the world's places are, which never sends them back.
+    /// Where a character explored a world, by cells of the game's explored map: each cell covers
+    /// <see cref="Factor"/> by <see cref="Factor"/> of the map's pixels and counts as explored
+    /// where any of them is; one pixel, about 12 m, as places are told (<see cref="PlaceCellMetres"/>),
+    /// four, about 48 m, for the biomes under the ground and as an older Scry sends it. Made from
+    /// the game's map as the minimap keeps it (pixels per side, metres per pixel, a pixel's bit at
+    /// y times the side plus x), so a world position falls in the pixel the game would mark for
+    /// it; held and packed as a bit a cell for the server that knows where the world's places
+    /// are, which never sends them back, and reads the cells' size from what it is sent.
     /// </summary>
     internal sealed class ExploredGrid
     {
-        /// <summary>About how wide a cell is, in metres: places are compared with it, never drawn.</summary>
-        private const float CellMetres = 48f;
+        /// <summary>About how wide a cell is as places are told, in metres: one pixel of the game's map.</summary>
+        public const float PlaceCellMetres = 12f;
+
+        /// <summary>About how wide a cell is for the biomes under the ground, which need no finer, and as a Scry before 12 m cells sends it.</summary>
+        public const float BiomeCellMetres = 48f;
 
         private const int Magic = 0x53435259;
 
-        private readonly bool[] _cells;
+        /// <summary>A bit a cell, the cell at y times the side plus x.</summary>
+        private readonly byte[] _bits;
 
-        private ExploredGrid(int mapSize, float pixelSize, int factor, bool[] cells)
+        private ExploredGrid(int mapSize, float pixelSize, int factor, byte[] bits)
         {
             MapSize = mapSize;
             PixelSize = pixelSize;
             Factor = factor;
             Side = (mapSize + factor - 1) / factor;
-            _cells = cells;
+            _bits = bits;
+            var count = 0;
+            foreach (var b in bits) for (var v = b; v != 0; v &= (byte)(v - 1)) count++;
+            Count = count;
         }
 
         /// <summary>The game's map: pixels per side.</summary>
@@ -43,20 +52,29 @@ namespace Scry
         /// <summary>Cells per side.</summary>
         public int Side { get; }
 
-        /// <summary>Reads the game's explored map, given its size, its pixels' width and whether the pixel at an index was explored.</summary>
-        public static ExploredGrid FromMap(int mapSize, float pixelSize, Func<int, bool> explored)
+        /// <summary>How many cells were explored.</summary>
+        public int Count { get; }
+
+        private static int Bytes(int side) => (side * side + 7) / 8;
+
+        private bool Cell(int i) => (_bits[i >> 3] & (1 << (i & 7))) != 0;
+
+        /// <summary>Reads the game's explored map, given its size, its pixels' width and whether the pixel at an index was explored, in cells about the width given.</summary>
+        public static ExploredGrid FromMap(int mapSize, float pixelSize, Func<int, bool> explored, float cellMetres = PlaceCellMetres)
         {
-            var factor = Math.Max(1, (int)Math.Round(CellMetres / pixelSize));
+            var factor = Math.Max(1, (int)Math.Round(cellMetres / pixelSize));
             var side = (mapSize + factor - 1) / factor;
-            var cells = new bool[side * side];
+            var bits = new byte[Bytes(side)];
             for (var y = 0; y < mapSize; y++)
             {
                 for (var x = 0; x < mapSize; x++)
                 {
-                    if (explored(y * mapSize + x)) cells[y / factor * side + x / factor] = true;
+                    if (!explored(y * mapSize + x)) continue;
+                    var i = y / factor * side + x / factor;
+                    bits[i >> 3] |= (byte)(1 << (i & 7));
                 }
             }
-            return new ExploredGrid(mapSize, pixelSize, factor, cells);
+            return new ExploredGrid(mapSize, pixelSize, factor, bits);
         }
 
         /// <summary>Whether the ground at a world position was explored, by the pixel the game maps it to; nothing off the map was.</summary>
@@ -65,15 +83,24 @@ namespace Scry
             var px = (int)Math.Round(x / PixelSize + MapSize / 2);
             var py = (int)Math.Round(z / PixelSize + MapSize / 2);
             if (px < 0 || px >= MapSize || py < 0 || py >= MapSize) return false;
-            return _cells[py / Factor * Side + px / Factor];
+            return Cell(py / Factor * Side + px / Factor);
+        }
+
+        /// <summary>The ground explored here and not in an earlier grid of the same map, as a grid of its own; all of it against none, or one of another map or cells.</summary>
+        public ExploredGrid NewSince(ExploredGrid before)
+        {
+            if (before == null || before.MapSize != MapSize || before.Factor != Factor || before.PixelSize != PixelSize) return this;
+            var bits = new byte[_bits.Length];
+            for (var i = 0; i < bits.Length; i++) bits[i] = (byte)(_bits[i] & ~before._bits[i]);
+            return new ExploredGrid(MapSize, PixelSize, Factor, bits);
         }
 
         /// <summary>A world position in each explored cell, its middle, as <see cref="Explored"/> reads it back.</summary>
         public IEnumerable<(float X, float Z)> ExploredCentres()
         {
-            for (var i = 0; i < _cells.Length; i++)
+            for (var i = 0; i < Side * Side; i++)
             {
-                if (!_cells[i]) continue;
+                if (!Cell(i)) continue;
                 var px = Math.Min(MapSize - 1, i % Side * Factor + Factor / 2);
                 var py = Math.Min(MapSize - 1, i / Side * Factor + Factor / 2);
                 yield return ((px - MapSize / 2) * PixelSize, (py - MapSize / 2) * PixelSize);
@@ -90,15 +117,13 @@ namespace Scry
                 writer.Write(MapSize);
                 writer.Write(PixelSize);
                 writer.Write(Factor);
-                var bytes = new byte[(_cells.Length + 7) / 8];
-                for (var i = 0; i < _cells.Length; i++) if (_cells[i]) bytes[i / 8] |= (byte)(1 << (i % 8));
-                writer.Write(bytes);
+                writer.Write(_bits);
                 writer.Flush();
                 return stream.ToArray();
             }
         }
 
-        /// <summary>A grid read back from <see cref="Pack"/>; none from bytes that are not one whole.</summary>
+        /// <summary>A grid read back from <see cref="Pack"/>, of whatever cells it was packed in; none from bytes that are not one whole.</summary>
         public static ExploredGrid Unpack(byte[] data)
         {
             if (data == null || data.Length < 16) return null;
@@ -110,13 +135,23 @@ namespace Scry
                 var factor = reader.ReadInt32();
                 if (mapSize <= 0 || mapSize > 1 << 14 || factor <= 0 || factor > mapSize || !(pixelSize > 0f)) return null;
                 var side = (mapSize + factor - 1) / factor;
-                var cells = new bool[side * side];
-                if (data.Length - 16 != (cells.Length + 7) / 8) return null;
-                var bytes = reader.ReadBytes((cells.Length + 7) / 8);
-                for (var i = 0; i < cells.Length; i++) cells[i] = (bytes[i / 8] & (1 << (i % 8))) != 0;
-                return new ExploredGrid(mapSize, pixelSize, factor, cells);
+                if (data.Length - 16 != Bytes(side)) return null;
+                return new ExploredGrid(mapSize, pixelSize, factor, reader.ReadBytes(Bytes(side)));
             }
         }
+    }
+
+    /// <summary>When the explored map is asked about again as it grows: once enough new ground is explored, at most once a minute.</summary>
+    internal static class MapGrowth
+    {
+        /// <summary>The least time between two asks, in seconds.</summary>
+        public const float Every = 60f;
+
+        /// <summary>The fewest new cells worth an ask, some 3,600 m² at 12 m.</summary>
+        public const int FewestNew = 25;
+
+        /// <summary>Whether the map is asked about again: enough new cells, long enough since the last ask.</summary>
+        public static bool Due(int newCells, float sinceAsked) => newCells >= FewestNew && sinceAsked >= Every;
     }
 
     /// <summary>

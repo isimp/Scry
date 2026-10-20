@@ -39,6 +39,22 @@ namespace Scry
         private static bool _saidHello;
         private static float _lookedAt;
         private static List<(string Name, PeerScry Scry)> _playingWith = new List<(string, PeerScry)>();
+
+        /// <summary>When this game said hello this connection, for how long the server's has been waited for.</summary>
+        private static float _saidAt;
+
+        private static ServerScry _server = ServerScry.Waiting;
+        private static ServerScry? _serverForTest;
+
+        /// <summary>Whether the world's server runs Scry, by its hello (<see cref="ServerScries.Of"/>), looked at each second; as the self-test sets it while it does.</summary>
+        public static ServerScry Server => _serverForTest ?? _server;
+
+        /// <summary>A made-up state of the server's Scry in place of the world's, or the world's again (null); for the self-test.</summary>
+        internal static void ServerForTest(ServerScry? server)
+        {
+            _serverForTest = server;
+            PlayingWithVersion++;
+        }
         private static List<(string Name, PeerScry Scry)> _playingWithForTest;
         private static List<(long Session, string Name)> _alsoListedForTest;
         private static int _alsoWithoutCharacterForTest;
@@ -120,6 +136,7 @@ namespace Scry
             {
                 _registeredOn = rpc;
                 _saidHello = false;
+                _server = ServerScry.Waiting;
                 if (rpc == null) return;
                 rpc.Register<ZPackage>(HelloRpc, (sender, package) => Guard.Run(Feature.CompendiumTogether, "hearing another player's Scry say hello", () => Heard(sender, package)));
                 rpc.Register<ZPackage>(EventRpc, (sender, package) => Guard.Run(Feature.CompendiumTogether, "taking an event another player's game ran", () => Take(sender, package)));
@@ -133,6 +150,7 @@ namespace Scry
             if (!_saidHello && Player.m_localPlayer != null)
             {
                 _saidHello = true;
+                _saidAt = Time.unscaledTime;
                 rpc.InvokeRoutedRPC(ZRoutedRpc.Everybody, HelloRpc, HelloPackage(asking: true));
             }
             if (Time.unscaledTime - _lookedAt >= LookEvery) Look();
@@ -161,8 +179,12 @@ namespace Scry
             var now = Time.unscaledTimeAsDouble;
             Peers.InWorld(players, withoutCharacter, now);
             var with = Peers.PlayingWith(ZNet.GetUID(), now);
-            if (Same(with, _playingWith)) return;
+            // The server's own hello, its wait counted from this game's, as a hello asks for one back.
+            var world = WorldSession;
+            var server = ServerScries.Of(ZNet.instance.IsServer(), Peers.Has(world), Peers.Outdated(world), _saidHello ? Time.unscaledTime - _saidAt : 0.0);
+            if (Same(with, _playingWith) && server == _server) return;
             _playingWith = with;
+            _server = server;
             PlayingWithVersion++;
         }
 

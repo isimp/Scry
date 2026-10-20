@@ -85,13 +85,34 @@ namespace Scry
         }
 
         /// <summary>The players played with and whether each one's game has Scry, "Ana · no Scry, Cara · Scry"; none with no one else in the world.</summary>
-        public static string Row(IReadOnlyList<(string Name, PeerScry Scry)> players)
+        public static string Row(IReadOnlyList<(string Name, PeerScry Scry)> players) => Row(players, ServerScry.Here);
+
+        /// <summary>
+        /// The server and the players played with, whether each runs Scry: "The server · Scry, Ana ·
+        /// no Scry"; the server named once its hello was waited for, and not where this game runs
+        /// the world; none with no one to name.
+        /// </summary>
+        public static string Row(IReadOnlyList<(string Name, PeerScry Scry)> players, ServerScry server)
         {
-            if (players.Count == 0) return null;
             var each = new List<string>();
+            if (server == ServerScry.Scry) each.Add(ServerName + " · " + Said(PeerScry.Scry));
+            else if (server == ServerScry.None) each.Add(ServerName + " · " + Said(PeerScry.None));
+            else if (server == ServerScry.Outdated) each.Add(ServerName + " · " + Said(PeerScry.Outdated));
             foreach (var (name, scry) in players) each.Add(name + " · " + Said(scry));
-            return string.Join(", ", each);
+            return each.Count == 0 ? null : string.Join(", ", each);
         }
+
+        /// <summary>The server as the row names it.</summary>
+        private const string ServerName = "The server";
+
+        /// <summary>What a server without Scry, or Scry of other messages, leaves out.</summary>
+        private const string ServerLeavesOut = ": what your explored and shared maps show, the world's census and the server's dungeon records are left out, and places count as you meet them. ";
+
+        /// <summary>The faint line under the row: what a game without Scry means, first what the server's lacking leaves out where it lacks it.</summary>
+        public static string Hint(ServerScry server) =>
+            server == ServerScry.None ? "The server runs no Scry" + ServerLeavesOut + RowHint
+            : server == ServerScry.Outdated ? "The server's Scry needs updating" + ServerLeavesOut + RowHint
+            : RowHint;
     }
 
     /// <summary>When the notice naming players without Scry shows: while one is in the world, until closed, and again once another joins.</summary>

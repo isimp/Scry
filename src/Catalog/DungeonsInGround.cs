@@ -111,6 +111,8 @@ namespace Scry
             }
             var book = CompendiumKeeper.Book;
             if (rpc == null || book == null || world == null || ZNet.instance == null) return;
+            // A server whose Scry is missing, or not heard yet, is asked nothing.
+            if (!ServerScries.Answers(EventLink.Server)) return;
             foreach (var source in WorldSources.All)
             {
                 var insides = book.Shows(source) == SourceLevel.WithInsides;

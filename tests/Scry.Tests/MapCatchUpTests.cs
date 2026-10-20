@@ -6,8 +6,9 @@ namespace Scry.Tests
     public class MapCatchUpTests
     {
         // A character met before the compendium kept a book has explored much of its world: the
-        // places in the ground it explored count as seen, once per world. The game's map is a
-        // square of pixels, each so many metres wide, the world's centre in its middle.
+        // places in the ground it explored count as seen, once per world, and again as it explores
+        // more. The game's map is a square of pixels, each so many metres wide, the world's centre
+        // in its middle; places are told by the map's own pixels, about 12 m.
 
         private const int MapSize = 64;
         private const float PixelSize = 12f;
@@ -23,14 +24,15 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void APlaceCountsWhereTheGroundAroundItWasExplored()
+        public void APlaceCountsOnlyWhereTheGroundAtItWasExplored()
         {
-            // Cells of about 48 m: four pixels of 12 m a side, any of them explored marks the cell.
+            // Cells of one map pixel, 12 m a side: the pixel next to an explored one is not.
             var grid = Explored((5, 5));
-            Assert.Equal(4, grid.Factor);
+            Assert.Equal(1, grid.Factor);
 
             Assert.True(grid.Explored(At(5, 5).X, At(5, 5).Z));
-            Assert.True(grid.Explored(At(6, 7).X, At(6, 7).Z));
+            Assert.False(grid.Explored(At(6, 5).X, At(6, 5).Z));
+            Assert.False(grid.Explored(At(6, 7).X, At(6, 7).Z));
             Assert.False(grid.Explored(At(8, 5).X, At(8, 5).Z));
             Assert.False(grid.Explored(At(30, 30).X, At(30, 30).Z));
             Assert.False(grid.Explored(1e6f, 0f));
@@ -44,7 +46,9 @@ namespace Scry.Tests
             var grid = Explored((8, 8));
             var x = (7.6f - MapSize / 2) * PixelSize;
             Assert.True(grid.Explored(x, x));
-            Assert.Equal(5, ExploredGrid.FromMap(10, 10f, _ => false).Factor);
+            Assert.False(grid.Explored(x - PixelSize, x));
+            Assert.Equal(1, ExploredGrid.FromMap(10, 10f, _ => false).Factor);
+            Assert.Equal(5, ExploredGrid.FromMap(10, 10f, _ => false, ExploredGrid.BiomeCellMetres).Factor);
         }
 
         [Fact]
@@ -79,6 +83,53 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AGridOfCoarserCellsAsAnOlderScrySendsItIsReadAsSent()
+        {
+            // Cells of about 48 m, four pixels a side, any of them explored marking the cell: what a
+            // client's older Scry sends, which the server still answers.
+            var bits = new bool[MapSize * MapSize];
+            bits[5 * MapSize + 5] = true;
+            var coarse = ExploredGrid.FromMap(MapSize, PixelSize, i => bits[i], ExploredGrid.BiomeCellMetres);
+            Assert.Equal(4, coarse.Factor);
+            var back = ExploredGrid.Unpack(coarse.Pack());
+            Assert.Equal(4, back.Factor);
+            Assert.True(back.Explored(At(6, 7).X, At(6, 7).Z));
+            Assert.False(back.Explored(At(8, 5).X, At(8, 5).Z));
+            Assert.Equal(1, back.Count);
+        }
+
+        [Fact]
+        public void TheGroundNewSinceTheLastAskIsAGridOfItsOwn()
+        {
+            // Asked again as the map grows, only the ground explored since goes, its places' kinds alone answered.
+            var before = Explored((5, 5), (6, 5));
+            var now = Explored((5, 5), (6, 5), (40, 40), (41, 41));
+            var fresh = now.NewSince(before);
+            Assert.Equal(2, fresh.Count);
+            Assert.False(fresh.Explored(At(5, 5).X, At(5, 5).Z));
+            Assert.True(fresh.Explored(At(40, 40).X, At(40, 40).Z));
+            Assert.Equal(4, now.Count);
+            var places = new[] { ("Crypt2", At(5, 5).X, At(5, 5).Z), ("TrollCave02", At(41, 41).X, At(41, 41).Z) };
+            Assert.Equal(new[] { "TrollCave02" }, MapCatchUp.Kinds(fresh, places));
+
+            // Against nothing asked before, or a grid of another map, all of it is new.
+            Assert.Equal(4, now.NewSince(null).Count);
+            var other = ExploredGrid.FromMap(32, PixelSize, i => i == 0);
+            Assert.Equal(4, now.NewSince(other).Count);
+            Assert.Equal(0, now.NewSince(now).Count);
+        }
+
+        [Fact]
+        public void TheMapIsAskedAgainOnceItGrewByEnoughAtMostOnceAMinute()
+        {
+            Assert.False(MapGrowth.Due(MapGrowth.FewestNew - 1, 600f));
+            Assert.False(MapGrowth.Due(MapGrowth.FewestNew, MapGrowth.Every - 1f));
+            Assert.True(MapGrowth.Due(MapGrowth.FewestNew, MapGrowth.Every));
+            Assert.Equal(60f, MapGrowth.Every);
+            Assert.Equal(25, MapGrowth.FewestNew);
+        }
+
+        [Fact]
         public void BytesThatAreNoGridReadAsNone()
         {
             Assert.Null(ExploredGrid.Unpack(null));
@@ -92,15 +143,17 @@ namespace Scry.Tests
         [Fact]
         public void TheKindsOfPlaceInExploredGroundAreEachToldOnce()
         {
-            var grid = Explored((5, 5), (40, 40));
+            var grid = Explored((5, 5), (40, 40), (41, 41));
             var places = new[]
             {
                 ("Crypt2", At(5, 5).X, At(5, 5).Z),
                 ("Crypt2", At(40, 40).X, At(40, 40).Z),
                 ("TrollCave02", At(41, 41).X, At(41, 41).Z),
                 ("Dragonqueen", At(20, 50).X, At(20, 50).Z),
+                ("Eikthyrnir", At(42, 41).X, At(42, 41).Z),
             };
 
+            // The altar a pixel past explored ground is not told.
             Assert.Equal(new[] { "Crypt2", "TrollCave02" }, MapCatchUp.Kinds(grid, places));
         }
 
