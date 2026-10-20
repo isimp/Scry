@@ -15,7 +15,7 @@ namespace Scry
     /// each room's own place as the game rolls them (<c>DungeonGenerator.PlaceRoom</c>), against the
     /// objects standing there now (<see cref="DungeonTraces.Gone"/>), and what stands told by its
     /// state; then the rooms that tells, and the way to them, go into the server's record of it
-    /// (<see cref="DungeonMaps.SetTraced"/>), apart from the rooms walked, and are worked out again
+    /// (<see cref="DungeonMaps.SetTraced(string, IEnumerable{int}, TraceTally, IEnumerable{int}, IEnumerable{int})"/>), apart from the rooms walked, and are worked out again
     /// as a walk comes in. Only what never moves and leaves no trace by itself counts: a loose item
     /// on the floor vanishes by itself after an hour with nobody near, as the game has it, a part
     /// with a lifetime goes by itself, and a creature walks off.
@@ -36,6 +36,12 @@ namespace Scry
         private static string _world;
         private static readonly List<Action<int, int, int>> Waiting = new List<Action<int, int, int>>();
         private static int _dungeons, _rooms, _onTheWay;
+
+        /// <summary>How many dungeons the reading passed over as made again of other rooms than those kept.</summary>
+        private static int _otherRooms;
+
+        /// <summary>The chests the rooms read were made with, and of those standing how many were filled and how many found empty, for the server's log.</summary>
+        private static int _chestsMade, _chestsStanding, _chestsFilled, _chestsEmpty, _chestsGone;
 
         /// <summary>What each dungeon's traces told, as last read, for working out the way again as a walk comes in.</summary>
         private static readonly Dictionary<string, DungeonTraces> Read = new Dictionary<string, DungeonTraces>(StringComparer.Ordinal);
@@ -79,6 +85,8 @@ namespace Scry
             _dungeons = 0;
             _rooms = 0;
             _onTheWay = 0;
+            _otherRooms = 0;
+            _chestsMade = _chestsStanding = _chestsFilled = _chestsEmpty = _chestsGone = 0;
         }
 
         /// <summary>Reads on a few milliseconds' worth, into the server's records; called each frame where this game runs the world.</summary>
@@ -108,7 +116,7 @@ namespace Scry
         {
             if (records == null || id == null || !Read.TryGetValue(id, out var traces)) return;
             var record = records.Of(id);
-            if (record != null) records.SetTraced(id, traces.Uncovered(record.Walked), traces.Tally);
+            if (record != null) records.SetTraced(id, traces.Uncovered(record.Walked), traces.Tally, traces.InRooms, traces.UpTo);
         }
 
         private static void ReadOne(DungeonMaps records, string world, ZoneSystem.LocationInstance instance, WorldDungeon dungeon)
@@ -116,7 +124,8 @@ namespace Scry
             var kind = Kind(instance.m_location);
             if (kind == null) return;
             var made = new List<(int, Vec3, TraceKind)>();
-            foreach (var room in dungeon.Saved) MadeIn(room, dungeon, kind.Value, made);
+            var chests = new List<(int, Vec3, TraceKind)>();
+            foreach (var room in dungeon.Saved) MadeIn(room, dungeon, kind.Value, made, chests);
             var standing = new List<(int, Vec3)>();
             var traces = new List<Trace>();
             Near.Clear();
@@ -131,20 +140,25 @@ namespace Scry
                 if (told.HasValue) traces.Add(told.Value);
             }
             traces.AddRange(DungeonTraces.Gone(made, standing));
+            _chestsMade += chests.Count;
+            _chestsGone += DungeonTraces.Gone(chests, standing).Count;
 
-            var placed = RealDungeon.Of(dungeon.Saved, ShapeOf, dungeon.Generator, dungeon.Turn, out _);
-            var found = DungeonTraces.Of(DungeonWays.Of(placed.Rooms), traces, records.ForgottenDay(world));
             var record = records.Of(dungeon.Id);
-            if (!found.Inside)
+            // Made again of other rooms, as a mod raising their number may when it resets a dungeon, it is not the dungeon kept.
+            if (record != null && record.Rooms.Count > 0 && !record.SameRooms(dungeon.Saved))
             {
-                Read.Remove(dungeon.Id);
-                if (record?.Tally != null) records.SetTraced(dungeon.Id, Array.Empty<int>(), null);
+                _otherRooms++;
                 return;
             }
+            var placed = RealDungeon.Of(dungeon.Saved, ShapeOf, dungeon.Generator, dungeon.Turn, out _);
+            var found = DungeonTraces.Of(DungeonWays.Of(placed.Rooms), traces, records.ForgottenDay(world));
+            // What was read before stays, though a mod resetting dungeons made all in it again since.
+            found.Keep(record);
+            if (!found.Inside) return;
             Read[dungeon.Id] = found;
             record = record ?? records.Keep(dungeon.Id, dungeon.Location, dungeon.Saved, dungeon.Entrance, dungeon.Generator, dungeon.Turn);
             var uncovered = found.Uncovered(record.Walked);
-            records.SetTraced(dungeon.Id, uncovered, found.Tally);
+            records.SetTraced(dungeon.Id, uncovered, found.Tally, found.InRooms, found.UpTo);
             _dungeons++;
             _rooms += uncovered.Count;
             foreach (var room in uncovered) if (!found.InRooms.Contains(room) && !found.UpTo.Contains(room)) _onTheWay++;
@@ -165,7 +179,11 @@ namespace Scry
                     if (zdo.GetBool(ZDOVars.s_picked, pickable.m_defaultPicked) || day >= 0) return new Trace(TraceKind.Pickup, at, day);
                     return null;
                 case Standing.Chest:
-                    return EmptyChest(zdo, prefab.GetComponent<Container>()) ? new Trace(TraceKind.Chest, at) : (Trace?)null;
+                    _chestsStanding++;
+                    if (zdo.GetBool(ZDOVars.s_addedDefaultItems)) _chestsFilled++;
+                    if (!EmptyChest(zdo, prefab.GetComponent<Container>())) return null;
+                    _chestsEmpty++;
+                    return new Trace(TraceKind.Chest, at);
                 case Standing.Door:
                     return zdo.GetInt(ZDOVars.s_state) != 0 ? new Trace(TraceKind.Door, at) : (Trace?)null;
                 case Standing.Spawner:
@@ -232,7 +250,7 @@ namespace Scry
         /// room's prefab set back as it was, as the game sets it back. A generator that adds its own
         /// seed to the roll is not rolled again: only the parts no roll decides count there.
         /// </summary>
-        private static void MadeIn((int Hash, Vec3 Position, Vec3 Angles) saved, WorldDungeon dungeon, (DungeonGenerator Generator, bool Rolls) kind, List<(int, Vec3, TraceKind)> made)
+        private static void MadeIn((int Hash, Vec3 Position, Vec3 Angles) saved, WorldDungeon dungeon, (DungeonGenerator Generator, bool Rolls) kind, List<(int, Vec3, TraceKind)> made, List<(int, Vec3, TraceKind)> chests)
         {
             var prefab = RoomPrefab(saved.Hash);
             if (prefab == null) return;
@@ -261,10 +279,12 @@ namespace Scry
                     if (!view.gameObject.activeSelf) continue;
                     // Without the roll, a part a roll decides may never have been made.
                     if (!kind.Rolls && RolledOver(view.transform, prefab.transform)) continue;
+                    var at = Placed(view.transform);
+                    var part = (Utils.GetPrefabName(view.gameObject).GetStableHashCode(), new Vec3(at.x, at.y, at.z), TraceKind.Chest);
+                    if (view.m_persistent && view.GetComponent<Container>() != null) chests.Add(part);
                     var gone = GoneAs(view);
                     if (!gone.HasValue) continue;
-                    var at = Placed(view.transform);
-                    made.Add((Utils.GetPrefabName(view.gameObject).GetStableHashCode(), new Vec3(at.x, at.y, at.z), gone.Value));
+                    made.Add((part.Item1, part.Item2, gone.Value));
                 }
             }
             finally
@@ -332,7 +352,11 @@ namespace Scry
             _queue = null;
             LastFound = _dungeons;
             // What a dedicated server read is in its log, as nobody there reads the chat.
-            if (ZNet.instance != null && ZNet.instance.IsDedicated()) Log.Report(DungeonMapWords.TracesRead(_dungeons, _rooms, _onTheWay));
+            if (ZNet.instance != null && ZNet.instance.IsDedicated())
+            {
+                Log.Report(DungeonMapWords.TracesRead(_dungeons, _rooms, _onTheWay) + DungeonMapWords.OtherRooms(_otherRooms));
+                Log.Report(DungeonMapWords.ChestsRead(_chestsMade, _chestsStanding, _chestsFilled, _chestsEmpty, _chestsGone));
+            }
             foreach (var done in Waiting) done(_dungeons, _rooms, _onTheWay);
             Waiting.Clear();
             LetGo();

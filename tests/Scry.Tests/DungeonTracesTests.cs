@@ -172,6 +172,58 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatWasReadStaysThoughTheDungeonIsMadeAgainAndItsTracesAreGone()
+        {
+            // A mod that resets dungeons makes all in one again, chests filled and pots whole; in a
+            // world without one nothing goes. Either way what was read before stays.
+            var record = new DungeonMaps();
+            record.Keep("w:at:0:0", "Crypt2", Rooms(12), default, default, Quat.Identity);
+            var first = DungeonTraces.Of(Dungeon(), new[] { new Trace(TraceKind.Chest, In(40f, -10f)), new Trace(TraceKind.Broken, In(40f, -11f)), new Trace(TraceKind.Door, new Vec3(30f, Up, -5f)) }, -1);
+            record.SetTraced("w:at:0:0", first.Uncovered(new int[0]), first.Tally, first.InRooms, first.UpTo);
+            var kept = record.Of("w:at:0:0");
+            Assert.Equal(new[] { 8 }, kept.TraceRooms);
+            Assert.Equal(new[] { 5 }, kept.TraceDoors);
+
+            // Reset since: only a pot broken after it is left to read.
+            var after = DungeonTraces.Of(Dungeon(), new[] { new Trace(TraceKind.Broken, In(20f, 20f)) }, -1);
+            after.Keep(kept);
+            Assert.Equal(new[] { 8, 11 }, after.InRooms.OrderBy(i => i));
+            Assert.Equal(new[] { 5 }, after.UpTo);
+            Assert.True(after.Inside);
+            Assert.Equal(new[] { 0, 1, 2, 5, 6, 8, 10, 11 }, after.Uncovered(new int[0]));
+            // Each kind as much as was ever read at once, the rooms all that held one.
+            Assert.Equal((1, 1, 1, 2), (after.Tally.Chests, after.Tally.Broken, after.Tally.Doors, after.Tally.Rooms));
+            // Every kind and the latest day kept as read before.
+            var rich = DungeonTraces.Of(Dungeon(), new Trace[0], -1);
+            rich.Keep(new DungeonMap { Rooms = Rooms(12), Tally = new TraceTally { Pickups = 3, Mined = 2, Spawners = 4, Broken = 5, LastDay = 9 } });
+            Assert.Equal((3, 2, 4, 5, 9), (rich.Tally.Pickups, rich.Tally.Mined, rich.Tally.Spawners, rich.Tally.Broken, rich.Tally.LastDay));
+            // Kept from nothing read, nothing changes.
+            var none = DungeonTraces.Of(Dungeon(), new Trace[0], -1);
+            none.Keep(new DungeonMap { Rooms = Rooms(12) });
+            Assert.False(none.Inside);
+            var only = DungeonTraces.Of(Dungeon(), new Trace[0], -1);
+            only.Keep(kept);
+            Assert.True(only.Inside);
+            Assert.Equal(first.Uncovered(new int[0]), only.Uncovered(new int[0]));
+        }
+
+        [Fact]
+        public void AReadingTellsADungeonMadeAgainOfOtherRoomsFromTheOneKept()
+        {
+            // Made again with more rooms, as a mod raising their number may, the rooms read are not the ones kept.
+            var map = new DungeonMap { Rooms = Rooms(12) };
+            Assert.True(map.SameRooms(Rooms(12)));
+            Assert.False(map.SameRooms(Rooms(13)));
+            var turned = Rooms(12);
+            turned[4] = (99, turned[4].Item2, turned[4].Item3);
+            Assert.False(map.SameRooms(turned));
+            var moved = Rooms(12);
+            moved[4] = (moved[4].Item1, moved[4].Item2 + new Vec3(0f, 0f, 1f), moved[4].Item3);
+            Assert.False(map.SameRooms(moved));
+            Assert.False(new DungeonMap { Rooms = new List<(int, Vec3, Vec3)>() }.SameRooms(Rooms(12)));
+        }
+
+        [Fact]
         public void APartGoneFromWhereItsRoomMadeItIsATraceOneStillStandingIsNot()
         {
             var chest = "TreasureChest_x".GetHashCode();
@@ -230,14 +282,21 @@ namespace Scry.Tests
             Assert.True(maps.SetTraced("w:at:1:1", new[] { 0, 1, 2, 5, 6, 8 }, Tally(2, 3, 2, 412)));
             Assert.True(maps.SetTraced("w:at:1:1", new[] { 0, 1, 2, 5, 6, 8 }, Tally(1, 3, 2, 412)));
 
+            maps.SetTraced("w:at:1:1", new[] { 0, 1, 2, 5, 6, 8 }, Tally(1, 3, 2, 412), new[] { 6, 8 }, new[] { 5 });
             var text = maps.ToSave()();
             var line = text.Split('\n').Single(l => l.StartsWith("traced\t", StringComparison.Ordinal));
-            Assert.Equal(4, line.Split('\t').Length);
+            Assert.Equal(6, line.Split('\t').Length);
             var back = DungeonMaps.Load(text).Of("w:at:1:1");
             Assert.Equal(new[] { 0 }, back.Walked);
             Assert.Equal(new[] { 0, 1, 2, 5, 6, 8 }, back.Traced);
             Assert.Equal((1, 3, 2, 412), (back.Tally.Chests, back.Tally.Broken, back.Tally.Rooms, back.Tally.LastDay));
-            // Four fields are no dungeon's seven, so an older Scry passes the line over; one that cannot be read is passed over.
+            Assert.Equal(new[] { 6, 8 }, back.TraceRooms);
+            Assert.Equal(new[] { 5 }, back.TraceDoors);
+            // A line of four fields, without the rooms that held traces, still reads.
+            var four = DungeonMaps.Load("scry-maps 1\n" + text.Split('\n')[1] + "\ntraced\tw:at:1:1\t0,1\t1,0,0,0,0,0,1,-1").Of("w:at:1:1");
+            Assert.Equal(new[] { 0, 1 }, four.Traced);
+            Assert.Empty(four.TraceRooms);
+            // Six fields are no dungeon's seven, so an older Scry passes the line over; one that cannot be read is passed over.
             Assert.Empty(DungeonMaps.Load("scry-maps 1\n" + text.Split('\n')[1] + "\ntraced\tw:at:1:1\tnot rooms\t1,2").Of("w:at:1:1").Traced);
             Assert.Empty(DungeonMaps.Load("scry-maps 1\n" + text.Split('\n')[1] + "\ntraced\tw:at:1:1\t0,1\t1,2,3,4,5,6,7").Of("w:at:1:1").Traced);
         }
@@ -277,13 +336,14 @@ namespace Scry.Tests
             var answer = new DungeonMaps();
             answer.Keep("w:at:1:1", "MountainCave02", Rooms(12), new Vec3(1f, 2f, 3f), default, Quat.Identity, 50);
             foreach (var room in new[] { 0, 1, 2, 5, 7, 8 }) answer.Walk("w:at:1:1", room);
-            answer.SetTraced("w:at:1:1", new[] { 8 }, Tally(1, 0, 1));
+            answer.SetTraced("w:at:1:1", new[] { 8 }, Tally(1, 0, 1), new[] { 8 }, new int[0]);
             copy.ToSave();
             copy.Replace(answer);
 
             var map = copy.Of("w:at:1:1");
             Assert.Equal(new[] { 0, 1, 2, 5, 7, 8 }, map.Walked);
             Assert.Equal(new[] { 8 }, map.Traced);
+            Assert.Equal(new[] { 8 }, map.TraceRooms);
             Assert.Equal(50, map.LastDay);
             Assert.True(copy.Changed);
             // A dungeon the answer does not hold stays as it was.
@@ -295,7 +355,7 @@ namespace Scry.Tests
         {
             var maps = new DungeonMaps();
             maps.Keep("w:at:10:0", "MountainCave02", Rooms(12), new Vec3(10f, 30f, 0f), default, Quat.Identity);
-            maps.SetTraced("w:at:10:0", new[] { 0, 3 }, Tally(0, 1, 1));
+            maps.SetTraced("w:at:10:0", new[] { 0, 3 }, Tally(0, 1, 1), new[] { 3 }, new[] { 2 });
             // The same cave walked under its generator's old number.
             maps.Keep("w:1:369448", "MountainCave02", Rooms(12), new Vec3(10f, 30f, 0f), default, Quat.Identity);
             maps.Walk("w:1:369448", 4);
@@ -303,6 +363,8 @@ namespace Scry.Tests
             Assert.Equal(new[] { 4 }, map.Walked);
             Assert.Equal(new[] { 0, 3 }, map.Traced);
             Assert.Equal(1, map.Tally.Broken);
+            Assert.Equal(new[] { 3 }, map.TraceRooms);
+            Assert.Equal(new[] { 2 }, map.TraceDoors);
         }
 
         [Fact]
@@ -342,6 +404,10 @@ namespace Scry.Tests
             Assert.Equal("the server read the traces in 38 dungeons of this world: 214 rooms walked, 96 of them on the way to a trace.", DungeonMapWords.TracesRead(38, 214, 96));
             Assert.Equal("the server read the traces in 1 dungeon of this world: 1 room walked, none on the way to a trace.", DungeonMapWords.TracesRead(1, 1, 0));
             Assert.Equal("the server found no trace of a visit in the dungeons of this world.", DungeonMapWords.TracesRead(0, 0, 0));
+            Assert.Equal(" 2 dungeons made again of other rooms than those kept were passed over.", DungeonMapWords.OtherRooms(2));
+            Assert.Equal(" 1 dungeon made again of other rooms than those kept was passed over.", DungeonMapWords.OtherRooms(1));
+            Assert.Equal("", DungeonMapWords.OtherRooms(0));
+            Assert.Equal("chests in the dungeons read: 120 made with their rooms, 100 standing, 90 filled, 0 empty, 20 gone.", DungeonMapWords.ChestsRead(120, 100, 90, 0, 20));
         }
     }
 }

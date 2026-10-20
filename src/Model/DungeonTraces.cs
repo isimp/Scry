@@ -137,6 +137,29 @@ namespace Scry
             return found;
         }
 
+        /// <summary>
+        /// Takes in what was read of the dungeon before, kept in its record: the rooms that held
+        /// traces and those doors opened lead on from, and of each kind as much as was ever read at
+        /// once. A mod that resets dungeons makes all in one again, chests filled and pots whole, so
+        /// what was read before stays though its traces are gone; without one, nothing goes.
+        /// </summary>
+        public void Keep(DungeonMap record)
+        {
+            if (record?.Tally == null) return;
+            _inRooms.UnionWith(record.TraceRooms);
+            _upTo.UnionWith(record.TraceDoors);
+            Inside = true;
+            var kept = record.Tally;
+            Tally.Pickups = Math.Max(Tally.Pickups, kept.Pickups);
+            Tally.Chests = Math.Max(Tally.Chests, kept.Chests);
+            Tally.Broken = Math.Max(Tally.Broken, kept.Broken);
+            Tally.Mined = Math.Max(Tally.Mined, kept.Mined);
+            Tally.Doors = Math.Max(Tally.Doors, kept.Doors);
+            Tally.Spawners = Math.Max(Tally.Spawners, kept.Spawners);
+            Tally.LastDay = Math.Max(Tally.LastDay, kept.LastDay);
+            Tally.Rooms = _inRooms.Count;
+        }
+
         private void Count(TraceKind kind)
         {
             if (kind == TraceKind.Pickup) Tally.Pickups++;
