@@ -38,6 +38,53 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ALastingFileKeepsTheOneBeforeItBesideIt()
+        {
+            var path = Path.Combine(_folder, "book.txt");
+            FileSwap.Write(path, aside => File.WriteAllText(aside, "day 3"), lasting: true);
+            FileSwap.Write(path, aside => File.WriteAllText(aside, "day 4"), lasting: true);
+
+            Assert.Equal("day 4", File.ReadAllText(FileSwap.ToRead(path)));
+            Assert.Equal("day 3", File.ReadAllText(path + ".bak"));
+        }
+
+        [Fact]
+        public void ALastingFileLeftAsZerosByAPowerCutIsReadFromTheOneBefore()
+        {
+            // A power cut after the swap can leave the file's length on the disk with its bytes never written.
+            var path = Path.Combine(_folder, "book.txt");
+            FileSwap.Write(path, aside => File.WriteAllText(aside, "day 3"), lasting: true);
+            FileSwap.Write(path, aside => File.WriteAllText(aside, "day 4"), lasting: true);
+            File.WriteAllBytes(path, new byte[64]);
+
+            Assert.Equal("day 3", File.ReadAllText(FileSwap.ToRead(path)));
+        }
+
+        [Fact]
+        public void AnEmptyFileIsReadAsItIs()
+        {
+            // Empty is a file with nothing in it, such as no favourites, never a lost one.
+            var path = Path.Combine(_folder, "favourites.txt");
+            FileSwap.Write(path, aside => File.WriteAllText(aside, "Troll"), lasting: true);
+            FileSwap.Write(path, aside => File.WriteAllText(aside, ""), lasting: true);
+
+            Assert.Equal("", File.ReadAllText(FileSwap.ToRead(path)));
+        }
+
+        [Fact]
+        public void AFileRemovedTakesTheOneBeforeItAlong()
+        {
+            var path = Path.Combine(_folder, "places.dat");
+            FileSwap.Write(path, aside => File.WriteAllText(aside, "first"), lasting: true);
+            FileSwap.Write(path, aside => File.WriteAllText(aside, "second"), lasting: true);
+
+            FileSwap.Remove(path);
+
+            Assert.Null(FileSwap.ToRead(path));
+            Assert.Empty(Directory.GetFiles(_folder));
+        }
+
+        [Fact]
         public void OnlyACopyWrittenAsideIsRemovedToo()
         {
             var path = Path.Combine(_folder, "places.dat");

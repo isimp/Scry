@@ -552,7 +552,7 @@ namespace Scry
             _savedAt = Time.unscaledTime;
             var text = _book.ToSave();
             var path = PathOf(_file);
-            Files.Then("keeping what the character knows", () => FileSwap.Write(path, aside => File.WriteAllText(aside, text())));
+            Files.Then("keeping what the character knows", () => FileSwap.Write(path, aside => File.WriteAllText(aside, text()), lasting: true));
         }
 
         /// <summary>Done once every write of the book asked for before it is, for what reads the file back.</summary>

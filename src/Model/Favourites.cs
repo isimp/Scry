@@ -61,7 +61,7 @@ namespace Scry
         {
             var keys = new List<string>(_keys);
             keys.Sort(StringComparer.OrdinalIgnoreCase);
-            FileSwap.Write(_path, aside => File.WriteAllLines(aside, keys));
+            FileSwap.Write(_path, aside => File.WriteAllLines(aside, keys), lasting: true);
         }
     }
 }

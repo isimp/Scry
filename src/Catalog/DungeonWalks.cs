@@ -149,7 +149,7 @@ namespace Scry
             Files.Then("keeping the maps of the dungeons walked", () =>
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
-                FileSwap.Write(path, aside => File.WriteAllText(aside, text()));
+                FileSwap.Write(path, aside => File.WriteAllText(aside, text()), lasting: true);
             });
         }
 

@@ -489,7 +489,7 @@ namespace Scry
             Files.Then("keeping the world's dungeon records", () =>
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
-                FileSwap.Write(path, aside => File.WriteAllText(aside, text()));
+                FileSwap.Write(path, aside => File.WriteAllText(aside, text()), lasting: true);
             });
         }
 
