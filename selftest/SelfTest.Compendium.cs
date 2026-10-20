@@ -507,7 +507,7 @@ namespace Scry
                 (typeof(Procreation), "Procreate"), (typeof(Growup), "GrowUpdate"), (typeof(Pickable), "SetPicked"), (typeof(TreeBase), "RPC_Damage"), (typeof(TreeLog), "Destroy"),
                 (typeof(MineRock), "RPC_Hit"), (typeof(MineRock5), "DamageArea"), (typeof(DropOnDestroyed), "OnDestroyed"),
                 (typeof(Pickable), "RPC_Pick"), (typeof(SpawnArea), "SpawnOne"), (typeof(Beehive), "Interact"), (typeof(SapCollector), "Interact"), (typeof(InventoryGui), "Show"),
-                (typeof(Game), "RPC_RegisterKill"), (typeof(Pickable), "Interact"), (typeof(ZNetScene), "OnZDODestroyed") })
+                (typeof(Destructible), "Destroy"), (typeof(WearNTear), "Destroy") })
             {
                 var method = AccessTools.DeclaredMethod(type, name);
                 p.Check(method != null && Harmony.GetPatchInfo(method)?.Owners.Contains(About.Guid) == true, $"{type.Name}.{name} is watched");
