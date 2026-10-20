@@ -68,6 +68,11 @@ namespace Scry.Tests
             Assert.Equal("Peeking: pages show whole until the panel closes", CompendiumWords.Peeking);
             Assert.Equal("Each page shows whole, its links lead anywhere and a whole name in quotes finds what this character has not met; the list stays as it knows it", CompendiumWords.PeekingTip);
             Assert.Equal("Stop peeking", CompendiumWords.StopPeeking);
+            // The compact view's strip says it short enough not to slide; how long it lasts moves to the tip.
+            Assert.Equal(CompendiumWords.Peeking, CompendiumWords.PeekingLine(compact: false));
+            Assert.Equal("Peeking: pages show whole", CompendiumWords.PeekingLine(compact: true));
+            Assert.Equal(CompendiumWords.PeekingTip, CompendiumWords.PeekingLineTip(compact: false));
+            Assert.Equal("Until the panel closes, each page shows whole, its links lead anywhere and a whole name in quotes finds what this character has not met; the list stays as it knows it", CompendiumWords.PeekingLineTip(compact: true));
         }
 
         [Fact]

@@ -229,7 +229,8 @@ namespace Scry
             if (explorer.Peeking)
             {
                 CountDrawn(PanelPart.PeekStrip);
-                var peeked = NoticeStrip(rect, Skin.Warn, CompendiumWords.Peeking, Skin.WarnLabel, true, CompendiumWords.StopPeeking, false, false, lineTip: CompendiumWords.PeekingTip, step: step);
+                var peeked = NoticeStrip(rect, Skin.Warn, CompendiumWords.PeekingLine(_compact), Skin.WarnLabel, true, CompendiumWords.StopPeeking, false, false, lineTip: CompendiumWords.PeekingLineTip(_compact), step: step);
+                PeekLineFitsForTest = _stripLineFits;
                 if (peeked == StripClick.Chip) Peek(explorer, false);
                 return peeked;
             }
@@ -446,6 +447,12 @@ namespace Scry
             Step,
         }
 
+        /// <summary>Whether the last strip's line fitted it, or slid; and whether the peeking strip's did, for the self-test.</summary>
+        private static bool _stripLineFits;
+
+        [Diagnostic]
+        public static bool PeekLineFitsForTest { get; private set; }
+
         /// <summary>
         /// A notice under the header (the self-test's, what is off): tinted in its tone with a bar
         /// at its left, a mark where it warns, its line sliding where it is longer than the strip
@@ -476,6 +483,7 @@ namespace Scry
             var chipW = Skin.Width(Skin.Chip, chip) + U(12f);
             var button = new Rect((cross ? away.x - U(6f) : right - U(4f)) - chipW, rect.y + (rect.height - chipH) / 2f, chipW, chipH);
             var lineRect = new Rect(left, rect.y, button.x - left - U(8f), rect.height);
+            _stripLineFits = Skin.Width(lineStyle, line) <= lineRect.width;
             Ticker(lineRect, line, lineStyle);
             if (lineTip != null && lineRect.Contains(Event.current.mousePosition)) AskTip("strip-line:" + chip, lineTip);
 

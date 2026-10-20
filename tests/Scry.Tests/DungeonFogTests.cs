@@ -176,6 +176,9 @@ namespace Scry.Tests
             // Nobody walked it: it opens as itself, every room in the fog, saying so.
             Assert.Equal("12 rooms. This dungeon as it stands in your world, none of its 12 rooms walked yet; peek shows them.", DungeonWords.WorldsNote("12 rooms", 0, DungeonWords.WalkedInYourWorld(0, 12)));
             Assert.Equal("none of its 1 room walked yet; peek shows it", DungeonWords.WalkedInYourWorld(0, 1));
+            // With no room shown in the fog, nothing is said of what is laid out: the dungeon is said first.
+            Assert.Equal("This dungeon as it stands in your world, none of its 19 rooms walked yet; peek shows them.", DungeonWords.WorldsNote(null, 0, DungeonWords.WalkedInYourWorld(0, 19)));
+            Assert.Equal("2 rooms not read yet are left out. This dungeon as it stands in your world.", DungeonWords.WorldsNote(null, 2));
             Assert.Equal("A way on to a room not walked yet", PlanBoxWords.OpenWayTip);
         }
 

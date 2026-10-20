@@ -148,7 +148,8 @@ namespace Scry
                         var example = ExampleOf(entry);
                         if (Shown("Another example", ActionLook.Plain, example != null, ActionWords.AnotherLayout)) ExampleLayouts.Another();
                         note = example != null
-                            ? ExampleLayouts.ShowsWorlds ? DungeonWords.WorldsNote(DungeonWords.Example(example, ExampleLayouts.Failed), ExampleLayouts.Unread,
+                            // The world's own dungeon with no room shown in the fog says nothing of what is laid out.
+                            ? ExampleLayouts.ShowsWorlds ? DungeonWords.WorldsNote(example.Rooms.Count > 0 ? DungeonWords.Example(example, ExampleLayouts.Failed) : null, ExampleLayouts.Unread,
                                 ExampleLayouts.Fogged ? DungeonWords.WalkedInYourWorld(ExampleLayouts.Walked.Walked, ExampleLayouts.Walked.Rooms) : null)
                             : DungeonWords.ExampleNote(DungeonWords.Example(example, ExampleLayouts.Failed), entry.ShownName, example.Rooms.Count > 0, ExampleLayouts.StandsIn(laid.Prefab))
                             : ExampleLayouts.Of(entry) ? DungeonWords.Reading(ExampleLayouts.Read, ExampleLayouts.Total) : null;

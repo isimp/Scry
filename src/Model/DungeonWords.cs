@@ -165,9 +165,17 @@ namespace Scry
             return text;
         }
 
-        /// <summary>The note under the world's own dungeon: what it holds, the rooms of kinds Scry has not read left out, and how much of it is walked where the compendium hides the rest.</summary>
-        public static string WorldsNote(string holds, int unread, string walked = null) =>
-            holds + (unread > 0 ? "; " + Naming.Count(unread, "room not read yet is", "rooms not read yet are") + " left out" : "") + ". This dungeon as it stands in your world" + (walked != null ? ", " + walked : "") + ".";
+        /// <summary>
+        /// The note under the world's own dungeon: what it holds, none where the fog shows no room
+        /// of it, the rooms of kinds Scry has not read left out, and how much of it is walked where
+        /// the compendium hides the rest.
+        /// </summary>
+        public static string WorldsNote(string holds, int unread, string walked = null)
+        {
+            var said = holds ?? "";
+            if (unread > 0) said += (said.Length > 0 ? "; " : "") + Naming.Count(unread, "room not read yet is", "rooms not read yet are") + " left out";
+            return (said.Length > 0 ? said + ". " : "") + "This dungeon as it stands in your world" + (walked != null ? ", " + walked : "") + ".";
+        }
 
         /// <summary>
         /// What an example holds (<see cref="Example"/>), and where it has rooms that it is an

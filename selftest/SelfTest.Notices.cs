@@ -53,6 +53,7 @@ namespace Scry
             for (var i = 0; i < 3; i++) yield return null;
             p.Check(ScryPanel.NoticeLineForTest == (Notice.Peeking, 1, 2) && ScryPanel.Drawn(PanelPart.PeekStrip) > peeks && ScryPanel.Drawn(PanelPart.PlayingWithNotice) == players,
                 "peeking and a player without Scry share one strip, the warning first, the players' notice not drawn meanwhile", ScryPanel.NoticeLineForTest.ToString());
+            p.Check(ScryPanel.PeekLineFitsForTest, "the peeking line fits the compact strip, sliding nowhere", CompendiumWords.PeekingLine(compact: true));
             yield return Picture(p, "compact notices one strip");
 
             ScryPanel.StepNoticeForTest();

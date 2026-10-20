@@ -79,6 +79,14 @@ namespace Scry
         public const string Peeking = "Peeking: pages show whole until the panel closes";
         public const string PeekingTip = "Each page shows whole, its links lead anywhere and a whole name in quotes finds what this character has not met; the list stays as it knows it";
 
+        /// <summary>The peeking strip's line: in the compact view short enough for its strip not to slide, how long it lasts moved to the tip (<see cref="PeekingLineTip"/>).</summary>
+        public static string PeekingLine(bool compact) => compact ? "Peeking: pages show whole" : Peeking;
+
+        /// <summary>The peeking strip's tip: in the compact view saying too how long it lasts, as its line does not.</summary>
+        public static string PeekingLineTip(bool compact) => compact
+            ? "Until the panel closes, each page shows whole, its links lead anywhere and a whole name in quotes finds what this character has not met; the list stays as it knows it"
+            : PeekingTip;
+
         /// <summary>The strip's chip that stops peeking.</summary>
         public const string StopPeeking = "Stop peeking";
 
