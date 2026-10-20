@@ -13,37 +13,37 @@ Each note covers one area, starts with what it covers, names the source files it
 
 ## Every note
 
-| Note | Covers | Words |
-|---|---|---|
-| [architecture.md](architecture.md) | layers, failures, caches, ownership | 1,205 |
-| [standards.md](standards.md) | wording, numbers, skin, doc and source tests | 517 |
-| [catalog.md](catalog.md) | reading the game, kinds, groups, names | 1,835 |
-| [search.md](search.md) | search terms, suggestions, help, header, keys | 1,523 |
-| [previews.md](previews.md) | copies, looks, gear, animations, attacks, effects | 2,057 |
-| [stage.md](stage.md) | the stage, backdrops, biome ground, in the world | 1,684 |
-| [details/pages.md](details/pages.md) | page layout, topics, header, links, leftovers | 3,015 |
-| [details/game-rules.md](details/game-rules.md) | the game's rules pages follow, raids, biomes | 2,230 |
-| [details/skills.md](details/skills.md) | the skills tab and skill lines | 1,022 |
-| [details/sources-and-mods.md](details/sources-and-mods.md) | where things come from, mods, the mod report | 2,355 |
-| [locations/reading.md](locations/reading.md) | reading places, their creatures, runestones, music | 2,515 |
-| [locations/floors.md](locations/floors.md) | floors found and kept, the cut | 2,388 |
-| [locations/examples.md](locations/examples.md) | example dungeons, plan, floors and levels, building | 2,109 |
-| [locations/plan-box.md](locations/plan-box.md) | the plan box, rooms peeked and gone into, the room card | 3,746 |
-| [locations/this-dungeon.md](locations/this-dungeon.md) | the dungeon one is in, walks, fog, maps kept | 1,469 |
-| [locations/dungeon-records.md](locations/dungeon-records.md) | marks on the map, the server's records, traces | 2,040 |
-| [compendium/book.md](compendium/book.md) | the book, tiers and the floor, cost | 1,253 |
-| [compendium/learning.md](compendium/learning.md) | watchers, catch-up, the explored map | 1,779 |
-| [compendium/together.md](compendium/together.md) | events between games, who one plays with | 877 |
-| [compendium/sources.md](compendium/sources.md) | what a world shows as known, the server's rules | 1,256 |
-| [compendium/showing.md](compendium/showing.md) | Loose and Strict, what is kept back, tallies | 3,637 |
-| [network.md](network.md) | every message, who sends it, what is checked | 887 |
-| [server.md](server.md) | alone, hosting, dedicated, what the server keeps | 490 |
-| [operations/files-and-settings.md](operations/files-and-settings.md) | files, settings, log, resource monitor | 768 |
-| [operations/game-updates.md](operations/game-updates.md) | the startup check, shapes, stubs | 731 |
-| [operations/selftest.md](operations/selftest.md) | runs and their picks, parts, pictures | 2,597 |
-| [operations/limits.md](operations/limits.md) | what Scry knowingly leaves out | 262 |
-| [operations/building.md](operations/building.md) | building | 100 |
-| [releasing.md](releasing.md) | releases and the stores | 711 |
+| Note | Covers |
+|---|---|
+| [architecture.md](architecture.md) | layers, failures, caches, ownership |
+| [standards.md](standards.md) | wording, numbers, skin, doc and source tests |
+| [catalog.md](catalog.md) | reading the game, kinds, groups, names |
+| [search.md](search.md) | search terms, suggestions, help, header, keys |
+| [previews.md](previews.md) | copies, looks, gear, animations, attacks, effects |
+| [stage.md](stage.md) | the stage, backdrops, biome ground, in the world |
+| [details/pages.md](details/pages.md) | page layout, topics, header, links, leftovers |
+| [details/game-rules.md](details/game-rules.md) | the game's rules pages follow, raids, biomes |
+| [details/skills.md](details/skills.md) | the skills tab and skill lines |
+| [details/sources-and-mods.md](details/sources-and-mods.md) | where things come from, mods, the mod report |
+| [locations/reading.md](locations/reading.md) | reading places, their creatures, runestones, music |
+| [locations/floors.md](locations/floors.md) | floors found and kept, the cut |
+| [locations/examples.md](locations/examples.md) | example dungeons, plan, floors and levels, building |
+| [locations/plan-box.md](locations/plan-box.md) | the plan box, rooms peeked and gone into, the room card |
+| [locations/this-dungeon.md](locations/this-dungeon.md) | the dungeon one is in, walks, fog, maps kept |
+| [locations/dungeon-records.md](locations/dungeon-records.md) | marks on the map, the server's records, traces |
+| [compendium/book.md](compendium/book.md) | the book, tiers and the floor, cost |
+| [compendium/learning.md](compendium/learning.md) | watchers, catch-up, the explored map |
+| [compendium/together.md](compendium/together.md) | events between games, who one plays with |
+| [compendium/sources.md](compendium/sources.md) | what a world shows as known, the server's rules |
+| [compendium/showing.md](compendium/showing.md) | Loose and Strict, what is kept back, tallies |
+| [network.md](network.md) | every message, who sends it, what is checked |
+| [server.md](server.md) | alone, hosting, dedicated, what the server keeps |
+| [operations/files-and-settings.md](operations/files-and-settings.md) | files, settings, log, resource monitor |
+| [operations/game-updates.md](operations/game-updates.md) | the startup check, shapes, stubs |
+| [operations/selftest.md](operations/selftest.md) | runs and their picks, parts, pictures |
+| [operations/limits.md](operations/limits.md) | what Scry knowingly leaves out |
+| [operations/building.md](operations/building.md) | building |
+| [releasing.md](releasing.md) | releases and the stores |
 
 ## To do something
 
