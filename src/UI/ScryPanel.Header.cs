@@ -508,15 +508,21 @@ namespace Scry
 
         private static void AddBookCell((int First, int Last) cell, float width) => BookCells.Add((cell.First, cell.Last, width));
 
+        /// <summary>The gap between the box's columns, as last laid out.</summary>
+        private static float _bookGap;
+
+        /// <summary>Where a choice of a row's joined group is drawn: across the gap to the next, a hair's seam kept, but the last.</summary>
+        private static Rect Joined(Rect at, bool last) => last ? at : new Rect(at.x, at.y, at.width + _bookGap - 1f, at.height);
+
         /// <summary>How wide a segment of the box is: as its words are drawn lit, bold, so the one chosen is never clipped.</summary>
         private static float SegmentWidth(string text) => Skin.Width(Skin.SegmentOn, text) + U(6f);
 
         /// <summary>A segment of the box that cannot be chosen: its box and words faint, so its row keeps its shape.</summary>
-        private static void DimSegment(Rect at, string text)
+        private static void DimSegment(Rect at, string text, GUIStyle style)
         {
             var was = GUI.color;
             GUI.color = Skin.Alpha(was, was.a * 0.45f);
-            GUI.Label(at, text, Skin.Segment);
+            GUI.Label(at, text, style);
             GUI.color = was;
         }
 
@@ -548,6 +554,7 @@ namespace Scry
         {
             var pad = U(10f);
             var gap = U(4f);
+            _bookGap = gap;
             _bookFloorShown = book.Rule != CompendiumRule.Off && (CompendiumKeeper.Ceiling > 0 || book.Floor > 0);
             _bookSourcesShown = book.Rule != CompendiumRule.Off;
             ReadPlayingWith();
@@ -729,8 +736,10 @@ namespace Scry
                 var name = CompendiumWords.RuleName(rule);
                 if (repaint)
                 {
-                    if (rulesSet && book.Rule != rule) DimSegment(BookSegments[i], name);
-                    else GUI.Button(BookSegments[i], name, book.Rule == rule ? Skin.SegmentOn : Skin.Segment);
+                    var last = i == CompendiumWords.Rules.Count - 1;
+                    var style = Skin.Choice(i, CompendiumWords.Rules.Count, book.Rule == rule);
+                    if (rulesSet && book.Rule != rule) DimSegment(Joined(BookSegments[i], last), name, style);
+                    else GUI.Button(Joined(BookSegments[i], last), name, style);
                 }
                 NoteBookCell("rules", name, BookColumns.Of(rule).First, BookSegments[i], book.Rule == rule, words: true);
                 if (BookSegments[i].Contains(mouse)) AskTip("mode-" + CompendiumWords.RuleName(rule), rulesSet ? WorldRulesWords.RulesSet(book.Rule) : CompendiumWords.StepTip(rule));
@@ -756,7 +765,7 @@ namespace Scry
                 GUI.enabled = was && canRaise;
                 GUI.Button(_bookRaise, "\u203A", Skin.IconButton);
                 GUI.enabled = was;
-                GUI.Label(_bookValue, CompendiumWords.FloorName(floor), Skin.Button);
+                GUI.Label(_bookValue, CompendiumWords.FloorName(floor), Skin.Value);
             }
             NoteBookCell("floor", "lower", BesideBiome, _bookLower, false, words: false);
             NoteBookCell("floor", CompendiumWords.FloorName(floor), BookColumns.FloorValue.First, _bookValue, false, words: false);
@@ -800,8 +809,10 @@ namespace Scry
                 // A caption cut to fit names itself whole on hover.
                 if (SourceNames[s].Contains(mouse)) AskTip("source-" + source, caption == sourceName ? CompendiumWords.SourceTip(source) : Naming.Lines(sourceName, CompendiumWords.SourceTip(source)));
                 var shows = book.Shows(source);
-                foreach (var level in WorldSources.Offered(source))
+                var offered = WorldSources.Offered(source);
+                for (var o = 0; o < offered.Length; o++)
                 {
+                    var level = offered[o];
                     var at = SourceSegments[s][(int)level];
                     // Above what the world's server allows, dimmed and saying so; With insides dimmed too where nothing found has insides.
                     var capped = !book.World.Allows(source, level);
@@ -811,8 +822,10 @@ namespace Scry
                     var name = CompendiumWords.LevelName(level);
                     if (repaint)
                     {
-                        if (dimmed) DimSegment(at, name);
-                        else GUI.Button(at, name, shows == level ? Skin.SegmentOn : Skin.Segment);
+                        var style = Skin.Choice(o, offered.Length, shows == level);
+                        var drawnAt = Joined(at, o == offered.Length - 1);
+                        if (dimmed) DimSegment(drawnAt, name, style);
+                        else GUI.Button(drawnAt, name, style);
                     }
                     NoteBookCell(CompendiumWords.SourceName(source), name, BookColumns.Of(level).First, at, shows == level, words: true);
                     if (at.Contains(mouse)) AskTip("source-level-" + level, capped ? WorldRulesWords.UpTo(source, book.World.Highest(source)) : dimmed ? CompendiumWords.NoInsides(source) : CompendiumWords.LevelTip(level));
@@ -829,7 +842,8 @@ namespace Scry
             var on = book.MarksDungeons(source);
             if (repaint)
             {
-                GUI.Button(pin, GUIContent.none, Skin.Segment);
+                // A switch on or off: its mark alone, bare, a faint ground under the mouse.
+                if (pin.Contains(mouse)) Skin.Box(pin, Skin.Hover);
                 var inset = U(4f);
                 Skin.Icon(new Rect(pin.x + inset, pin.y + inset, pin.width - inset * 2f, pin.height - inset * 2f), Skin.Doorway, on ? Skin.Accent : Skin.Alpha(Skin.Faint, 0.45f));
             }

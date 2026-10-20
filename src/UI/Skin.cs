@@ -87,7 +87,16 @@ namespace Scry
         /// <summary>The halves of two icon buttons joined into one piece, each rounded only at the piece's own end: off and on, left and right.</summary>
         public static GUIStyle JoinedLeft, JoinedRight, JoinedLeftOn, JoinedRightOn;
 
+        /// <summary>The choices of one row joined into one group (<see cref="Choice"/>): the first rounded at its left, the last at its right, those between square; off and on.</summary>
+        public static GUIStyle ChoiceFirst, ChoiceMiddle, ChoiceLast, ChoiceFirstOn, ChoiceMiddleOn, ChoiceLastOn;
+
+        /// <summary>A value shown, not a control: sunken into the panel rather than raised, as a value read is told apart from a button pressed.</summary>
+        public static GUIStyle Value;
+
         public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize, Roof, Speed, Repeat, Steps, Eye, Up, Down, Compass, Doorway, FoldedMap, Lock;
+
+        /// <summary>A plain square, for the pieces between a joined group's ends; a gear, for the settings box.</summary>
+        public static Texture2D Square, Gear;
 
         /// <summary>A rounded box's shape rounded only at its left, or only at its right, for joined buttons; a chevron pointing down, for folding away.</summary>
         public static Texture2D RoundedLeft, RoundedRight, FoldDown;
@@ -462,6 +471,8 @@ namespace Scry
             CellValue = Style(12f, Skin.Text, FontStyle.Bold, TextAnchor.LowerCenter);
 
             Button = Boxed(Style(13f, Skin.Text, FontStyle.Normal, TextAnchor.MiddleCenter), Raised, RaisedHover, Shade(Raised, 1.35f), Rounded, scale);
+            // A button does something: raised a step above a choice and edged, as a choice of a row lies flat in its group.
+            Edged(Button);
             Primary = Boxed(Style(13f, OnAccent, FontStyle.Bold, TextAnchor.MiddleCenter), Accent, Shade(Accent, 1.08f), Shade(Accent, 0.85f), Rounded, scale);
             On = Boxed(Style(13f, Accent, FontStyle.Bold, TextAnchor.MiddleCenter), Alpha(Accent, 0.20f), Alpha(Accent, 0.28f), Alpha(Accent, 0.36f), Rounded, scale);
             Chip = Boxed(Style(12f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), Raised, RaisedHover, Shade(Raised, 1.35f), Pill, scale);
@@ -478,6 +489,14 @@ namespace Scry
             Cross.clipping = TextClipping.Overflow;
             IconButton = Boxed(Style(13f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), Raised, RaisedHover, Shade(Raised, 1.35f), Rounded, scale);
             IconButton.padding = new RectOffset(0, 0, 0, 0);
+            Edged(IconButton);
+            ChoiceFirst = Boxed(Style(12f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), Raised, RaisedHover, Shade(Raised, 1.35f), RoundedLeft, scale);
+            ChoiceMiddle = Boxed(Style(12f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), Raised, RaisedHover, Shade(Raised, 1.35f), Square, scale);
+            ChoiceLast = Boxed(Style(12f, Dim, FontStyle.Normal, TextAnchor.MiddleCenter), Raised, RaisedHover, Shade(Raised, 1.35f), RoundedRight, scale);
+            ChoiceFirstOn = Boxed(Style(12f, OnAccent, FontStyle.Bold, TextAnchor.MiddleCenter), Accent, Shade(Accent, 1.08f), Shade(Accent, 0.85f), RoundedLeft, scale);
+            ChoiceMiddleOn = Boxed(Style(12f, OnAccent, FontStyle.Bold, TextAnchor.MiddleCenter), Accent, Shade(Accent, 1.08f), Shade(Accent, 0.85f), Square, scale);
+            ChoiceLastOn = Boxed(Style(12f, OnAccent, FontStyle.Bold, TextAnchor.MiddleCenter), Accent, Shade(Accent, 1.08f), Shade(Accent, 0.85f), RoundedRight, scale);
+            Value = Boxed(Style(13f, Skin.Text, FontStyle.Normal, TextAnchor.MiddleCenter), Sunken, Sunken, Sunken, Rounded, scale);
             SegmentTight = new GUIStyle(Segment) { padding = new RectOffset(Px(7f), Px(7f), Segment.padding.top, Segment.padding.bottom) };
             SegmentOnTight = new GUIStyle(SegmentOn) { padding = new RectOffset(Px(7f), Px(7f), SegmentOn.padding.top, SegmentOn.padding.bottom) };
             // Two icon buttons joined into one piece, as the plan's own switches: off as an icon button, on as On.
@@ -819,6 +838,8 @@ namespace Scry
             Doorway = Shape(32, 32, DoorwayCoverage);
             FoldedMap = Shape(32, 32, FoldedMapCoverage);
             Lock = Shape(32, 32, LockCoverage);
+            Square = Shape(32, 32, (x, y) => true);
+            Gear = Shape(32, 32, GearCoverage);
             Up = Shape(32, 32, (x, y) => y >= 6f && y <= 26f && Mathf.Abs(x - 16f) <= (26f - y) * 0.6f);
             Down = Shape(32, 32, (x, y) => y >= 6f && y <= 26f && Mathf.Abs(x - 16f) <= (y - 6f) * 0.6f);
             RoundedLeft = Shape(32, 32, (x, y) => x >= 16f || RoundedCoverage(x, y, 32, 32, 8f));
@@ -829,6 +850,36 @@ namespace Scry
             CopyMark = Shape(32, 32, CopyCoverage);
             FoldAllMark = Shape(32, 32, (x, y) => Chevrons(x, y, up: true));
             OpenAllMark = Shape(32, 32, (x, y) => Chevrons(x, y, up: false));
+        }
+
+        /// <summary>A gear: a ring with eight teeth round a hole.</summary>
+        private static bool GearCoverage(float x, float y)
+        {
+            var dx = x - 16f;
+            var dy = y - 16f;
+            var r = Mathf.Sqrt(dx * dx + dy * dy);
+            if (r < 4.5f) return false;
+            if (r <= 10.5f) return true;
+            // Eight teeth round the turn: where the angle falls near one, the ring reaches out to 14.
+            var turn = (Mathf.Atan2(dy, dx) / (2f * Mathf.PI) + 1f) * 8f;
+            return r <= 14f && Mathf.Abs(turn - Mathf.Round(turn)) <= 0.22f;
+        }
+
+        /// <summary>The style for one choice of a row's joined group (<see cref="ChoiceFirst"/>): a lone one as a segment, the first, a middle one or the last; lit where chosen.</summary>
+        public static GUIStyle Choice(int index, int count, bool on)
+        {
+            if (count <= 1) return on ? SegmentOn : Segment;
+            if (index == 0) return on ? ChoiceFirstOn : ChoiceFirst;
+            if (index == count - 1) return on ? ChoiceLastOn : ChoiceLast;
+            return on ? ChoiceMiddleOn : ChoiceMiddle;
+        }
+
+        /// <summary>Gives a button style an edge a step lighter than its fill, in each of its states.</summary>
+        private static void Edged(GUIStyle style)
+        {
+            style.normal.background = Tint(Rounded, RaisedHover, Light(0.18f));
+            style.hover.background = Tint(Rounded, Shade(RaisedHover, 1.15f), Light(0.26f));
+            style.active.background = Tint(Rounded, Shade(Raised, 1.35f), Light(0.26f));
         }
 
         /// <summary>Two sheets: the one behind at the top left, the one in front at the bottom right over it, each an outline.</summary>

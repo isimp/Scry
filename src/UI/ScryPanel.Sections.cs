@@ -120,9 +120,31 @@ namespace Scry
         /// </summary>
         private static int SegmentRow(string label, List<string> names, int selected, Func<int, bool> on, float width, float labelW, ref float y)
         {
-            var flow = new ChipFlow(labelW, width, y, U(28f), U(4f), U(4f));
-            RowLabel(label, labelW, y, flow.RowHeight);
+            var rowH = U(28f);
+            RowLabel(label, labelW, y, rowH);
             var clicked = -1;
+            // Fitting on one line, the choices stand joined as one group, a hair's seam between them;
+            // else each wraps as a segment of its own.
+            var widths = new float[names.Count];
+            var whole = 0f;
+            for (var i = 0; i < names.Count; i++)
+            {
+                widths[i] = Skin.Width(Skin.SegmentOn, names[i]) + U(10f);
+                whole += widths[i] + 1f;
+            }
+            if (labelW + whole <= width)
+            {
+                var x = labelW;
+                for (var i = 0; i < names.Count; i++)
+                {
+                    var lit = on != null ? on(i) : i == selected;
+                    if (GUI.Button(new Rect(x, y, widths[i], rowH), names[i], Skin.Choice(i, names.Count, lit))) clicked = i;
+                    x += widths[i] + 1f;
+                }
+                y += rowH + U(8f);
+                return clicked;
+            }
+            var flow = new ChipFlow(labelW, width, y, rowH, U(4f), U(4f));
             for (var i = 0; i < names.Count; i++)
             {
                 var lit = on != null ? on(i) : i == selected;
