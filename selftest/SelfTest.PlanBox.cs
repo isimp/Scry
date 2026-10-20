@@ -382,9 +382,12 @@ namespace Scry
                 // its marks a notch each, past its top putting its roof on and bringing the rooms above
                 // back, and a notch down from there cut at its top mark again; the roof button too;
                 // none of it leaves the room.
-                if (Stage.RoomGoneInto == deepest && Stage.RoomRulerNow is RoomRuler ruler)
+                if (Stage.RoomGoneInto == deepest && Stage.RoomRulerNow is RoomRuler first)
                 {
                     roomRulerTried++;
+                    // The ruler gains marks as more of the example's floors are read: stepped once all are.
+                    yield return Until(() => Stage.ExampleFloorsToRead == 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 10);
+                    var ruler = Stage.RoomRulerNow ?? first;
                     var aboveRooms = ways.Rooms.Where(r => Stage.ExampleRoomLook(r) == RoomLook.Away).ToList();
                     Stage.OpenRoomTick(0);
                     var rulerDrawn = ScryPanel.Drawn(PanelPart.Ruler);

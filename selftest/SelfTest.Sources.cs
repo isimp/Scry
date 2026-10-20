@@ -40,7 +40,10 @@ namespace Scry
             yield return Picture(p, "compendium box sources");
 
             // Shared maps raised a step is kept in the book at once; the levels it had come back after.
-            var raised = book.Shows(WorldSource.SharedMaps) == SourceLevel.WithInsides ? SourceLevel.Known : book.Shows(WorldSource.SharedMaps) + 1;
+            // A step to a level the source offers: the next one up, or the one below at its top.
+            var offered = WorldSources.Offered(WorldSource.SharedMaps);
+            var at = System.Math.Max(0, System.Array.IndexOf(offered, book.Shows(WorldSource.SharedMaps)));
+            var raised = offered[at + 1 < offered.Length ? at + 1 : at - 1];
             ScryPanel.ShowSource(WorldSource.SharedMaps, raised);
             yield return Until(() => KeptSources(CompendiumKeeper.FilePath).Contains("shows\tSharedMaps\t" + raised), 3);
             p.Check(book.Shows(WorldSource.SharedMaps) == raised && KeptSources(CompendiumKeeper.FilePath).Contains("shows\tSharedMaps\t" + raised),
