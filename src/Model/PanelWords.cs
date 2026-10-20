@@ -18,6 +18,12 @@ namespace Scry
         /// <summary>A chip's text with the arrow of one that goes somewhere.</summary>
         public static string GoArrow(string text) => text + "  \u203A";
 
+        /// <summary>The compact view's notice strip's step: where the notice shown stands among those up, with the arrow on to the next.</summary>
+        public static string NoticeStep(int which, int of) => GoArrow(ListWords.OneOf(which, of));
+
+        /// <summary>The notice strip's step's tip.</summary>
+        public const string NoticeStepTip = "The next notice";
+
         /// <summary>A section's or group's heading with how many it holds: "EFFECTS  3".</summary>
         public static string Heading(string title, int count) => $"{title}  {Numbers.Count(count)}";
 

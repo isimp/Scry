@@ -126,6 +126,9 @@ namespace Scry.Tests
             Assert.Equal("Pick the kind the list shows", ListWords.KindPillTip);
             Assert.Equal("From Mods  ▾", ListWords.OriginChip("Mods", open: false));
             Assert.Equal("From All  ▴", ListWords.OriginChip("All", open: true));
+            // The compact view's one notice strip says where the notice shown stands among those up, and steps on.
+            Assert.Equal("1 of 3  ›", PanelWords.NoticeStep(1, 3));
+            Assert.Equal("The next notice", PanelWords.NoticeStepTip);
             Assert.Equal("Show only favourites", ListWords.FavouritesTip(on: false));
             Assert.Equal("Showing what you looked at last, newest first", ListWords.RecentTip(on: true));
             Assert.Equal("Show what you looked at last, newest first", ListWords.RecentTip(on: false));

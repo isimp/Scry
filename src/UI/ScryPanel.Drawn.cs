@@ -100,6 +100,9 @@ namespace Scry
 
         /// <summary>The compact view's box of where the list is taken from, opened from its chip.</summary>
         OriginMenu,
+
+        /// <summary>The compact view's one notice strip, the notices up sharing it.</summary>
+        NoticeLine,
     }
 
     internal static partial class ScryPanel

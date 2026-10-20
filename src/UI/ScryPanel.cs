@@ -343,15 +343,26 @@ namespace Scry
                 CountDrawn(PanelPart.TestNotice);
                 SelfTestHost.DrawStrip(new Rect(pad, U(54f), w - pad * 2f, testH - U(4f)));
             }
-            var noticeH = OffNoticeHeight();
-            if (noticeH > 0f) OffNotice(new Rect(pad, U(54f) + testH, w - pad * 2f, noticeH - U(4f)));
-            noticeH += testH;
-            var knownH = CompendiumStripHeight(explorer);
-            if (knownH > 0f) CompendiumStrip(explorer, new Rect(pad, U(54f) + noticeH, w - pad * 2f, knownH - U(4f)));
-            noticeH += knownH;
-            var withH = PlayingWithNoticeHeight();
-            if (withH > 0f) PlayingWithNotice(new Rect(pad, U(54f) + noticeH, w - pad * 2f, withH - U(4f)));
-            noticeH += withH;
+            var noticeH = testH;
+            if (_compact)
+            {
+                // In the compact view the notices share one strip, the most pressing first.
+                var lineH = NoticeLineHeight(explorer);
+                if (lineH > 0f) NoticeLineStrip(explorer, new Rect(pad, U(54f) + noticeH, w - pad * 2f, lineH - U(4f)));
+                noticeH += lineH;
+            }
+            else
+            {
+                var offH = OffNoticeHeight();
+                if (offH > 0f) OffNotice(new Rect(pad, U(54f) + noticeH, w - pad * 2f, offH - U(4f)));
+                noticeH += offH;
+                var knownH = CompendiumStripHeight(explorer);
+                if (knownH > 0f) CompendiumStrip(explorer, new Rect(pad, U(54f) + noticeH, w - pad * 2f, knownH - U(4f)));
+                noticeH += knownH;
+                var withH = PlayingWithNoticeHeight();
+                if (withH > 0f) PlayingWithNotice(new Rect(pad, U(54f) + noticeH, w - pad * 2f, withH - U(4f)));
+                noticeH += withH;
+            }
 
             var controls = Timing.Start();
             var y = Controls(explorer, new Rect(pad, U(56f) + noticeH, w - pad * 2f, U(36f)));

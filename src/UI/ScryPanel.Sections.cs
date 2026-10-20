@@ -179,12 +179,14 @@ namespace Scry
         /// <summary>
         /// A strip under the header while part of Scry is off, so nothing fails quietly: what is
         /// off in a line, sliding when it is longer than the strip, details in the list's place,
-        /// and a cross that puts it away until more goes off.
+        /// and a cross that puts it away until more goes off; the compact view's step at its end
+        /// where given. What was clicked.
         /// </summary>
-        private static void OffNotice(Rect rect)
+        private static StripClick OffNotice(Rect rect, string step = null)
         {
-            if (_offLine == null) return;
-            switch (NoticeStrip(rect, Skin.Warn, _offLine, Skin.WarnLabel, true, "Details", _card == ListCard.Off, true, crossTip: "Put this away until more of Scry goes off"))
+            if (_offLine == null) return StripClick.None;
+            var clicked = NoticeStrip(rect, Skin.Warn, _offLine, Skin.WarnLabel, true, "Details", _card == ListCard.Off, true, crossTip: "Put this away until more of Scry goes off", step: step);
+            switch (clicked)
             {
                 case StripClick.Chip:
                     ToggleCard(ListCard.Off);
@@ -194,6 +196,7 @@ namespace Scry
                     CloseCard(ListCard.Off);
                     break;
             }
+            return clicked;
         }
 
         /// <summary>What the character learned since the panel last told of it (<see cref="LearnedNotice"/>).</summary>
@@ -218,15 +221,17 @@ namespace Scry
         /// <summary>
         /// Warns that everything shows while peeking, with a chip that stops it; else names what
         /// the character learned since last told, with a chip listing what it learned lately and
-        /// a cross putting the notice away until it learns more.
+        /// a cross putting the notice away until it learns more; the compact view's step at its
+        /// end where given. What was clicked.
         /// </summary>
-        private static void CompendiumStrip(Explorer explorer, Rect rect)
+        private static StripClick CompendiumStrip(Explorer explorer, Rect rect, string step = null)
         {
             if (explorer.Peeking)
             {
                 CountDrawn(PanelPart.PeekStrip);
-                if (NoticeStrip(rect, Skin.Warn, CompendiumWords.Peeking, Skin.WarnLabel, true, CompendiumWords.StopPeeking, false, false, lineTip: CompendiumWords.PeekingTip) == StripClick.Chip) Peek(explorer, false);
-                return;
+                var peeked = NoticeStrip(rect, Skin.Warn, CompendiumWords.Peeking, Skin.WarnLabel, true, CompendiumWords.StopPeeking, false, false, lineTip: CompendiumWords.PeekingTip, step: step);
+                if (peeked == StripClick.Chip) Peek(explorer, false);
+                return peeked;
             }
 
             var news = LearnedNews.New(explorer);
@@ -239,8 +244,9 @@ namespace Scry
                     news.Count(e => explorer.FromMap(e) && e.Kind != Kind.Biome), news.Count(e => explorer.FromMap(e) && e.Kind == Kind.Biome));
             }
             CountDrawn(PanelPart.LearnedStrip);
-            switch (NoticeStrip(rect, Skin.Accent, _newsLine, Skin.Label, false, CompendiumWords.ShowLearned, explorer.LearnedOnly, true,
-                chipTip: CompendiumWords.LearnedTip(false), crossTip: CompendiumWords.PutNewsAway))
+            var clicked = NoticeStrip(rect, Skin.Accent, _newsLine, Skin.Label, false, CompendiumWords.ShowLearned, explorer.LearnedOnly, true,
+                chipTip: CompendiumWords.LearnedTip(false), crossTip: CompendiumWords.PutNewsAway, step: step);
+            switch (clicked)
             {
                 case StripClick.Chip:
                     LearnedNews.Told();
@@ -250,6 +256,7 @@ namespace Scry
                     LearnedNews.Told();
                     break;
             }
+            return clicked;
         }
 
         // ----- Who plays with Scry -----
@@ -314,12 +321,13 @@ namespace Scry
         /// A strip under the header naming the players whose games lack Scry, as what runs in
         /// their games counts nothing for the character: a chip opening the compendium's box,
         /// which lists everyone played with, and a cross putting it away until another such
-        /// player joins.
+        /// player joins; the compact view's step at its end where given. What was clicked.
         /// </summary>
-        private static void PlayingWithNotice(Rect rect)
+        private static StripClick PlayingWithNotice(Rect rect, string step = null)
         {
             CountDrawn(PanelPart.PlayingWithNotice);
-            switch (NoticeStrip(rect, Skin.Accent, _withLine, Skin.Label, false, PlayingWithWords.WhoHasScry, _bookPinned, true, crossTip: PlayingWithWords.PutAway))
+            var clicked = NoticeStrip(rect, Skin.Accent, _withLine, Skin.Label, false, PlayingWithWords.WhoHasScry, _bookPinned, true, crossTip: PlayingWithWords.PutAway, step: step);
+            switch (clicked)
             {
                 case StripClick.Chip:
                     ShowWhoHasScry(!_bookPinned);
@@ -328,6 +336,74 @@ namespace Scry
                     PutPlayingWithAway();
                     break;
             }
+            return clicked;
+        }
+
+        // ----- The compact view's one notice strip -----
+
+        /// <summary>Which notice the compact view's one strip shows (<see cref="NoticeLine"/>).</summary>
+        private static readonly NoticeLine Notices = new NoticeLine();
+
+        /// <summary>The notices up now, made again each time they are asked for in this one list.</summary>
+        private static readonly List<Notice> NoticesUp = new List<Notice>();
+
+        /// <summary>The step's words as last made, kept while where the notice stands is the same.</summary>
+        private static (int Which, int Of, string Said) _noticeStep;
+
+        /// <summary>The notice the strip last showed, where it stood among those up and how many were; for the self-test.</summary>
+        [Diagnostic]
+        public static (Notice? Shown, int Which, int Of) NoticeLineForTest { get; private set; }
+
+        /// <summary>Steps the compact view's strip on to the next notice, as its step does; for the self-test.</summary>
+        [Diagnostic]
+        public static void StepNoticeForTest()
+        {
+            if (_explorer != null) Notices.Step(NoticesUp.Count > 0 ? NoticesUp : NoticesUpNow(_explorer));
+        }
+
+        /// <summary>The notices up now, in the order of how pressing each is (<see cref="Notice"/>): peeking keeps the news back, as the full view's strip does.</summary>
+        private static List<Notice> NoticesUpNow(Explorer explorer)
+        {
+            NoticesUp.Clear();
+            if (OffNoticeHeight() > 0f) NoticesUp.Add(Notice.Off);
+            if (explorer.Peeking) NoticesUp.Add(Notice.Peeking);
+            if (PlayingWithNoticeHeight() > 0f) NoticesUp.Add(Notice.PlayingWith);
+            if (!explorer.Peeking && LearnedNews.New(explorer).Count > 0) NoticesUp.Add(Notice.Learned);
+            return NoticesUp;
+        }
+
+        /// <summary>How tall the compact view's notices are: one strip while any is up.</summary>
+        private static float NoticeLineHeight(Explorer explorer) => NoticesUpNow(explorer).Count > 0 ? U(32f) : 0f;
+
+        /// <summary>
+        /// The compact view's one notice strip: the notice shown drawn as its own strip is in the
+        /// full view, with where it stands among those up and a step on to the next at its end
+        /// while more than one is up.
+        /// </summary>
+        private static void NoticeLineStrip(Explorer explorer, Rect rect)
+        {
+            var up = NoticesUpNow(explorer);
+            var shown = Notices.Shown(up);
+            var (which, of) = Notices.Place(up);
+            NoticeLineForTest = (shown, which, of);
+            if (shown == null) return;
+            if (of > 1 && (_noticeStep.Which != which || _noticeStep.Of != of)) _noticeStep = (which, of, PanelWords.NoticeStep(which, of));
+            var step = of > 1 ? _noticeStep.Said : null;
+            StripClick clicked;
+            switch (shown.Value)
+            {
+                case Notice.Off:
+                    clicked = OffNotice(rect, step);
+                    break;
+                case Notice.PlayingWith:
+                    clicked = PlayingWithNotice(rect, step);
+                    break;
+                default:
+                    clicked = CompendiumStrip(explorer, rect, step);
+                    break;
+            }
+            if (clicked == StripClick.Step) Notices.Step(up);
+            CountDrawn(PanelPart.NoticeLine);
         }
 
         /// <summary>Opens the compendium's box with whom the character plays with, in the full view, or lets it close: the notice's chip, and the self-test.</summary>
@@ -365,15 +441,19 @@ namespace Scry
             None,
             Chip,
             Cross,
+
+            /// <summary>The compact view's step on to the next notice.</summary>
+            Step,
         }
 
         /// <summary>
         /// A notice under the header (the self-test's, what is off): tinted in its tone with a bar
         /// at its left, a mark where it warns, its line sliding where it is longer than the strip
-        /// and the rest of what it says in the line's tip where it has one, a chip, and a cross
-        /// that puts it away where it can be. Returns what was clicked.
+        /// and the rest of what it says in the line's tip where it has one, a chip, a cross that
+        /// puts it away where it can be, and where given the compact view's step on to the next
+        /// notice at its end, in the line's colour and lit under the mouse. Returns what was clicked.
         /// </summary>
-        internal static StripClick NoticeStrip(Rect rect, Color tone, string line, GUIStyle lineStyle, bool mark, string chip, bool chipOn, bool cross, string chipTip = null, string crossTip = null, string lineTip = null)
+        internal static StripClick NoticeStrip(Rect rect, Color tone, string line, GUIStyle lineStyle, bool mark, string chip, bool chipOn, bool cross, string chipTip = null, string crossTip = null, string lineTip = null, string step = null)
         {
             Skin.Fill(rect, Skin.Alpha(tone, 0.13f));
             Skin.Fill(new Rect(rect.x, rect.y, U(3f), rect.height), tone);
@@ -387,11 +467,14 @@ namespace Scry
                 left = markRect.xMax + U(10f);
             }
 
-            var crossW = U(24f);
-            var away = new Rect(rect.xMax - crossW - U(4f), rect.y + (rect.height - crossW) / 2f, crossW, crossW);
-            var chipW = Skin.Width(Skin.Chip, chip) + U(12f);
             var chipH = U(24f);
-            var button = new Rect((cross ? away.x - U(6f) : rect.xMax - U(4f)) - chipW, rect.y + (rect.height - chipH) / 2f, chipW, chipH);
+            var stepW = step != null ? Skin.Width(lineStyle, step) + U(12f) : 0f;
+            var stepAt = new Rect(rect.xMax - U(4f) - stepW, rect.y + (rect.height - chipH) / 2f, stepW, chipH);
+            var right = step != null ? stepAt.x - U(2f) : rect.xMax;
+            var crossW = U(24f);
+            var away = new Rect(right - crossW - U(4f), rect.y + (rect.height - crossW) / 2f, crossW, crossW);
+            var chipW = Skin.Width(Skin.Chip, chip) + U(12f);
+            var button = new Rect((cross ? away.x - U(6f) : right - U(4f)) - chipW, rect.y + (rect.height - chipH) / 2f, chipW, chipH);
             var lineRect = new Rect(left, rect.y, button.x - left - U(8f), rect.height);
             Ticker(lineRect, line, lineStyle);
             if (lineTip != null && lineRect.Contains(Event.current.mousePosition)) AskTip("strip-line:" + chip, lineTip);
@@ -399,6 +482,16 @@ namespace Scry
             var clicked = StripClick.None;
             if (GUI.Button(button, chip, Skin.Fitted(chipOn ? Skin.ChipOn : Skin.Chip, button))) clicked = StripClick.Chip;
             if (chipTip != null && button.Contains(Event.current.mousePosition)) AskTip("strip:" + chip, chipTip);
+            if (step != null)
+            {
+                if (stepAt.Contains(Event.current.mousePosition))
+                {
+                    if (Event.current.type == EventType.Repaint) Skin.Fill(stepAt, Skin.Alpha(Skin.Text, 0.08f));
+                    AskTip("strip-step", PanelWords.NoticeStepTip);
+                }
+                GUI.Label(new Rect(stepAt.x + U(6f), stepAt.y, stepAt.width - U(12f), stepAt.height), step, lineStyle);
+                if (GUI.Button(stepAt, GUIContent.none, GUIStyle.none)) clicked = StripClick.Step;
+            }
             if (!cross) return clicked;
             if (GUI.Button(away, "\u00D7", Skin.Close)) clicked = StripClick.Cross;
             if (crossTip != null && away.Contains(Event.current.mousePosition)) AskTip("strip-away:" + chip, crossTip);

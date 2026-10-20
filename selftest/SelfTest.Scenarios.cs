@@ -37,6 +37,7 @@ namespace Scry
                 ScryPanel.OpenHeaderMenuForTest(ScryPanel.HeaderMenu.None);
                 ScryPanel.Compact = _before?.Compact ?? ScryPanel.Compact;
             });
+            yield return S("in the compact view the notices share one strip, the most pressing first, its step going to the next", NoticesShareOneStrip, 20, NoticesAsTheyWere);
             yield return S("the catalog is sound: keys, names, groups and counts", CatalogSound, 10);
             yield return S("every search is quick enough to run as you type", SearchSpeed, 10, ResetList);
 
