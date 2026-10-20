@@ -404,8 +404,10 @@ namespace Scry
         {
             if (Into == null || container == null || container.m_defaultItems?.m_drops == null || container.m_defaultItems.m_drops.Count == 0) return;
             var zdo = container.GetComponent<ZNetView>().OrNull()?.GetZDO();
-            if (zdo == null || !Into.FirstOpen(CompendiumBook.ChestId(CompendiumMap.World, zdo.m_uid.ToString()))) return;
+            if (zdo == null) return;
             var chest = Utils.GetPrefabName(container.gameObject);
+            var at = zdo.GetPosition();
+            if (!Into.FirstOpen(CompendiumBook.ChestId(CompendiumMap.World, chest, at.x, at.y, at.z))) return;
             var loot = new Dictionary<string, int>(System.StringComparer.Ordinal);
             foreach (var held in container.GetInventory().GetAllItems())
             {

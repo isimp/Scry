@@ -274,8 +274,24 @@ namespace Scry
         /// <summary>The chests the character opened, by an id of each in its world, so each is counted only the first time.</summary>
         private readonly HashSet<string> _opened = new HashSet<string>(StringComparer.Ordinal);
 
-        /// <summary>A chest's id for <see cref="FirstOpen"/>: its world's and its own in that world.</summary>
-        public static string ChestId(string world, string chest) => world + "/" + chest;
+        /// <summary>
+        /// A chest's id for <see cref="FirstOpen"/>: its world's, its prefab's and where it stands,
+        /// to a tenth of a metre. The game gives its objects new numbers each time a world loads,
+        /// so a chest the world filled goes by its place, which never changes.
+        /// </summary>
+        public static string ChestId(string world, string prefab, float x, float y, float z) =>
+            world + "/" + prefab + "@" + Tenths(x) + ":" + Tenths(y) + ":" + Tenths(z);
+
+        private static string Tenths(float value) => Stored.Count((long)Math.Round(value * 10.0));
+
+        /// <summary>Whether a chest's id is of the older form, by the number the game gave it for one load ("world/2318823923:41"), which never matches again.</summary>
+        private static bool ChestByNumber(string id)
+        {
+            var slash = id.LastIndexOf('/');
+            if (slash < 0) return false;
+            var colon = id.IndexOf(':', slash);
+            return colon > slash + 1 && Stored.TryLong(id.Substring(slash + 1, colon - slash - 1), out _) && Stored.TryLong(id.Substring(colon + 1), out var number) && number >= 0;
+        }
 
         /// <summary>Whether this is the first time the character opens a chest, by its id; it is the last time it is.</summary>
         public bool FirstOpen(string id)
@@ -659,7 +675,7 @@ namespace Scry
                 if (parts.Length < 2 || !Stored.TryUnescaped(parts[1], out var name) || name.Length == 0) continue;
                 switch (parts[0])
                 {
-                    case "opened" when parts.Length == 2:
+                    case "opened" when parts.Length == 2 && !ChestByNumber(name):
                         book._opened.Add(name);
                         break;
                     case "found" when parts.Length == 3 && Stored.TryUnescaped(parts[2], out var proof) && proof.Length > 0:

@@ -319,6 +319,32 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AChestOpenedOnceIsNotCountedAgainAfterTheWorldLoadsAnew()
+        {
+            // The game numbers its objects anew on each load, so a chest goes by where it stands.
+            var book = new CompendiumBook();
+            Assert.True(book.FirstOpen(CompendiumBook.ChestId("world", "TreasureChest_forestcrypt", 120.04f, 5021.5f, -33.26f)));
+            var read = CompendiumBook.Load(book.Save());
+            Assert.False(read.FirstOpen(CompendiumBook.ChestId("world", "TreasureChest_forestcrypt", 120.04f, 5021.5f, -33.26f)));
+            Assert.True(read.FirstOpen(CompendiumBook.ChestId("world", "TreasureChest_forestcrypt", 120.04f, 5024.5f, -33.26f)));
+            Assert.True(read.FirstOpen(CompendiumBook.ChestId("world", "TreasureChest_forestcrypt", 125.04f, 5021.5f, -33.26f)));
+            Assert.True(read.FirstOpen(CompendiumBook.ChestId("other", "TreasureChest_forestcrypt", 120.04f, 5021.5f, -33.26f)));
+            Assert.True(read.FirstOpen(CompendiumBook.ChestId("world", "TreasureChest_mountaincave", 120.04f, 5021.5f, -33.26f)));
+        }
+
+        [Fact]
+        public void ChestsKeptByTheGamesPassingNumbersAreLetGoAsTheBookIsRead()
+        {
+            // Kept by a number the game gives anew on each load, such an id never matches again.
+            var book = new CompendiumBook();
+            book.FirstOpen("world/2318823923:41");
+            book.FirstOpen(CompendiumBook.ChestId("world", "TreasureChest_heath", 10f, 30f, 20f));
+            var text = CompendiumBook.Load(book.Save()).Save();
+            Assert.DoesNotContain("2318823923:41", text);
+            Assert.Contains("TreasureChest_heath", text);
+        }
+
+        [Fact]
         public void TheWeathersOfABiomeAreCountedAsTheCharacterSeesThem()
         {
             var world = new World();
