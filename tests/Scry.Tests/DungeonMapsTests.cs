@@ -139,6 +139,24 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheKindsOfRoomWalkedAreThoseOfEveryWorldsMaps()
+        {
+            // Under the strict rules a kind of room walked once counts in every world, as all else the character met does.
+            var maps = new DungeonMaps();
+            var rooms = Rooms(3);
+            maps.Keep("w:1:1", "Crypt2", rooms, new Vec3(0f, 0f, 0f), default, Quat.Identity);
+            maps.Keep("v:1:1", "Crypt2", rooms, new Vec3(0f, 0f, 0f), default, Quat.Identity);
+            maps.Walk("w:1:1", 0);
+            maps.Walk("v:1:1", 2);
+            maps.Of("v:1:1").Walked.Add(7);
+            Assert.Equal(new[] { rooms[0].Hash, rooms[2].Hash }.OrderBy(h => h), maps.RoomsWalked().OrderBy(h => h));
+
+            // A map forgotten takes its rooms with it.
+            maps.Forget("v:1:1");
+            Assert.Equal(new[] { rooms[0].Hash }, maps.RoomsWalked());
+        }
+
+        [Fact]
         public void ADungeonKnownOnlyByItsEntranceIsKeptOnALineOfItsOwnThatAnOlderReaderPassesOver()
         {
             // A dungeon whose area never loaded: where it lies is known, none of its rooms.

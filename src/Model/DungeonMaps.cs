@@ -90,6 +90,18 @@ namespace Scry
             return (map.Walked.Count(IsRoom), rooms);
         }
 
+        /// <summary>The kinds of room walked in every world's maps, by the hash the game saves a room under; a walk past a map's rooms passed over.</summary>
+        public HashSet<int> RoomsWalked()
+        {
+            var walked = new HashSet<int>();
+            foreach (var map in _maps.Values)
+            {
+                if (map.Rooms == null) continue;
+                foreach (var at in map.Walked) if (at >= 0 && at < map.Rooms.Count) walked.Add(map.Rooms[at].Hash);
+            }
+            return walked;
+        }
+
         /// <summary>The maps of a location's dungeons in a world, in the order kept; none outside a world.</summary>
         public IEnumerable<(string Id, DungeonMap Map)> OfLocation(string world, string location) =>
             OfWorld(world).Where(m => m.Map.Location == location);
