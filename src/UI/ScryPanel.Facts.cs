@@ -788,14 +788,19 @@ namespace Scry
             return false;
         }
 
-        /// <summary>A chain's steps, an arrow between each, the page's own lit and each other one going to its page.</summary>
+        /// <summary>Each chain as last drawn, by its title: its steps' keys in turn, and whether each read ??? as not met; for the self-test.</summary>
+        [Diagnostic]
+        public static Dictionary<string, List<(string Key, bool Unmet)>> ChainsDrawnForTest { get; } = new Dictionary<string, List<(string, bool)>>();
+
+        /// <summary>
+        /// A chain's steps, an arrow between each, the page's own lit and each other one going to its
+        /// page; with the compendium on, a step not met reads ???, going nowhere, so the chain stands
+        /// whole whatever the character met of it.
+        /// </summary>
         private static float ChainRow(Explorer explorer, Facts.Row row, float width, float y)
         {
-            if (explorer.NamesOnlyMet && row.Chain.Steps.Any(step => step.Any(explorer.LeavesOut)))
-            {
-                StrictLeft(1);
-                return y;
-            }
+            if (!ChainsDrawnForTest.TryGetValue(row.Title, out var drawn)) ChainsDrawnForTest[row.Title] = drawn = new List<(string, bool)>();
+            drawn.Clear();
             y += U(6f);
             GUI.Label(new Rect(0f, y, width, U(20f)), Masked(explorer, row.Title), Skin.DimLabel);
             y += U(24f);
@@ -811,8 +816,18 @@ namespace Scry
                 }
                 foreach (var key in row.Chain.Steps[s])
                 {
-                    var name = ShownName(explorer, key, key);
                     var here = shown != null && (shown.Name == key || shown.Key == key);
+                    var unmet = !here && explorer.NamesOnlyMet && explorer.LeavesOut(key);
+                    drawn.Add((key, unmet));
+                    if (unmet)
+                    {
+                        var hiddenW = Mathf.Min(width, LinkChipWidth(CompendiumWords.Hidden, false, false));
+                        var hiddenAt = flow.Place(hiddenW);
+                        var hidden = new Rect(hiddenAt.X, hiddenAt.Y, hiddenW, flow.RowHeight);
+                        if (!OutOfSight(hidden)) LinkChip(hidden, CompendiumWords.Hidden, null, false, false);
+                        continue;
+                    }
+                    var name = ShownName(explorer, key, key);
                     var mark = !here ? ChoiceMark(explorer, key) : null;
                     var w = Mathf.Min(width, LinkChipWidth(name, true, mark != null));
                     var at = flow.Place(w);
