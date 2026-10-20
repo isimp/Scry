@@ -110,6 +110,7 @@ namespace Scry
             yield return S("a status effect's page says how you get it, and Linked does not say it again", HowYouGetIt, 10);
             yield return S("the effects damage puts on you say what they do", DamageEffects, 10);
             yield return S("a set piece shows the set's other pieces under its set bonus", SetPieces, 10);
+            yield return S("each crafting station links every upgrade the game counts for it, by the station's name", StationUpgradesLinked, 10);
             yield return S("a rock and a tree say what breaks them, by tier and by the damage they take", WhatBreaksIt, 10);
             yield return S("breeding, planting and summoning show whole on each page of them", ChainsShown, 10);
             yield return S("with the compendium on, a chain stands whole, a step not met reading ???", ChainsWithStepsNotMet, 15, () => Session.ShowKnownInstead(null));

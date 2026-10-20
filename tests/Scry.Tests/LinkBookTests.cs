@@ -49,6 +49,41 @@ namespace Scry.Tests
             catalog.SelectMany(e => e.Links.Select(l => $"{e.Key} {l.Group} {l.Target} [{string.Join(",", l.Notes)}]")).ToList();
 
         [Fact]
+        public void AStationsUpgradesAreThePiecesNamingAnyStationOfItsNameAsTheGameCountsThem()
+        {
+            // The game counts a piece as an upgrade of every station going by the name its own
+            // station goes by (StationExtension.FindExtensions compares the names), whichever prefab it names.
+            var catalog = Game();
+            foreach (var key in new[] { "piece_workbench", "piece_workbench_ext1", "mod_workbench", "mod_toolrack", "forge", "forge_ext1", "gone_station", "lost_ext", "unnamed", "other_unnamed", "odd_ext", "null_ext" })
+                catalog.Add(E(key, Kind.Piece));
+            var book = new LinkBook();
+            book.AddUpgrades(
+                new[]
+                {
+                    ("piece_workbench_ext1", "piece_workbench", "$piece_workbench"),
+                    // A mod's piece naming its own copy of the workbench upgrades the game's too.
+                    ("mod_toolrack", "mod_workbench", "$piece_workbench"),
+                    ("forge_ext1", "forge", "$piece_forge"),
+                    // One naming a station no prefab of the catalog goes by is linked to the station it names, as before.
+                    ("lost_ext", "gone_station", "$piece_gone"),
+                    // So is one whose station has no name: no name is matched.
+                    ("odd_ext", "unnamed", ""),
+                    ("null_ext", "unnamed", null),
+                    // Named twice, shown once, as every link is.
+                    ("piece_workbench_ext1", "piece_workbench", "$piece_workbench"),
+                },
+                new[] { ("piece_workbench", "$piece_workbench"), ("forge", "$piece_forge"), ("mod_workbench", "$piece_workbench"), ("unnamed", ""), ("other_unnamed", ""), ("null_station", null) });
+            book.Apply(catalog);
+            Assert.Equal(new[] { "piece_workbench_ext1", "mod_toolrack" }, Targets(Find(catalog, "piece_workbench"), LinkWords.Upgrades));
+            Assert.Equal(new[] { "piece_workbench_ext1", "mod_toolrack" }, Targets(Find(catalog, "mod_workbench"), LinkWords.Upgrades));
+            Assert.Equal(new[] { "forge_ext1" }, Targets(Find(catalog, "forge"), LinkWords.Upgrades));
+            Assert.Equal(new[] { "piece_workbench", "mod_workbench" }, Targets(Find(catalog, "mod_toolrack"), LinkWords.UpgradeOf));
+            Assert.Equal(new[] { "lost_ext" }, Targets(Find(catalog, "gone_station"), LinkWords.Upgrades));
+            Assert.Equal(new[] { "odd_ext", "null_ext" }, Targets(Find(catalog, "unnamed"), LinkWords.Upgrades));
+            Assert.Empty(Targets(Find(catalog, "other_unnamed"), LinkWords.Upgrades));
+        }
+
+        [Fact]
         public void LinksPutOnAFewAtATimeComeOutAsWhenPutOnAtOnce()
         {
             // Reading the catalog is spread over frames; linking its entries is too.

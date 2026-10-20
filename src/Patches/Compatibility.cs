@@ -259,6 +259,8 @@ namespace Scry
             ("Player", "HaveRequirementItems", 4, 0xB9AF033A, Feature.UpgradeKitsApart),
             ("InventoryGui", "SetupRequirementList", 4, 0xB8443C09, Feature.UpgradeKitsApart),
             ("InventoryGui", "UpdateRecipeList", 1, 0xC89F3E86, Feature.WhatUpgradeStationDoes),
+            // A piece upgrades every station going by the name its own station goes by, which a station's links follow.
+            ("StationExtension", "FindExtensions", 3, 0x9458005F, Feature.WhichPiecesUpgradeAStation),
             ("InventoryGui", "CanRepair", 1, 0xD57710C7, Feature.WhereItemsAreRepaired),
             ("Recipe", "GetRequiredStationLevel", 1, 0x7AD112DA, Feature.StationLevelsForUpgrades),
             ("ItemDrop+ItemData", "GetTooltip", 6, 0xE717E1A4, Feature.ItemStats),

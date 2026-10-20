@@ -88,6 +88,30 @@ namespace Scry
         }
 
         /// <summary>
+        /// Links each crafting station to its upgrades as the game counts them: every piece whose own
+        /// station goes by the station's name (<c>StationExtension.FindExtensions</c> compares the
+        /// names), so a piece naming another prefab of the station, as a mod's copy of it, upgrades
+        /// it too. A piece naming a station no prefab of the catalog goes by, or one of no name, is
+        /// linked to the station it names.
+        /// </summary>
+        public void AddUpgrades(IEnumerable<(string Upgrade, string Station, string StationName)> upgrades, IEnumerable<(string Station, string Name)> stations)
+        {
+            // A station of no name is matched by none, as no upgrade looks for it by name.
+            var byName = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            foreach (var (station, name) in stations)
+            {
+                if (string.IsNullOrEmpty(name)) continue;
+                if (!byName.TryGetValue(name, out var named)) byName[name] = named = new List<string>();
+                named.Add(station);
+            }
+            foreach (var (upgrade, station, name) in upgrades)
+            {
+                if (byName.TryGetValue(name ?? "", out var named)) foreach (var each in named) Add(each, LinkWords.Upgrades, upgrade, LinkWords.UpgradeOf);
+                else Add(station, LinkWords.Upgrades, upgrade, LinkWords.UpgradeOf);
+            }
+        }
+
+        /// <summary>
         /// Puts the links on the entries at both of their ends. A copy of a set piece is left out
         /// of a heading where the piece it copies is listed already, so the piece shows once.
         /// </summary>

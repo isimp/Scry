@@ -27,6 +27,7 @@ namespace Scry
         public static readonly Feature WhatRaidsBring = Listed("what raids bring, in the details");
         public static readonly Feature DamageWithStars = Listed("damage with stars in the details");
         public static readonly Feature WhatUpgradeStationDoes = Listed("what an upgrade station does, in the details");
+        public static readonly Feature WhichPiecesUpgradeAStation = Listed("which pieces upgrade a crafting station, in its links");
         public static readonly Feature WhereItemsAreRepaired = Listed("where items are repaired, in the details");
         public static readonly Feature StationLevelsForUpgrades = Listed("station levels for upgrades in the details");
         public static readonly Feature ItemStats = Listed("item stats in the details");

@@ -56,6 +56,8 @@ What the game names nothing, such as an effect or a projectile, goes by its pref
 
 The compact view's header takes three rows however many kinds there are, so the list keeps its room: the list button and the way back and forward follow the name, the search has a row of its own with its help, favourites and recent at its end, and under it the kind shown is one pill whose click opens every kind in a box over the list, *Learned* beside it while it has news, and where the list is taken from is one chip at the row's end. Its notices share one strip, the most pressing first, with "1 of 3 ›" at its end stepping to the next. The compendium's box stands each level at one place down its rows, every pin in one column, and a level chosen is never clipped; one that cannot be chosen keeps its box, faint.
 
+A crafting station's page links every upgrade the game counts for it, a mod's piece naming its own copy of the station among them.
+
 ## 0.2.0
 
 Locations have a tab of their own: every location and dungeon room the world can place, grouped by biome, each telling where it is placed and what it holds. A location stands on the turntable as a new zone would roll it, its creatures included, and *Roll again* rolls it anew.

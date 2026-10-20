@@ -43,6 +43,13 @@ namespace Scry
         private static LinkBook _book = new LinkBook();
         private static readonly List<(string, string, string, bool)> Sets = new List<(string, string, string, bool)>();
         private static readonly List<(string, string, bool)> Ammo = new List<(string, string, bool)>();
+
+        /// <summary>The station upgrades read, each with the station it names and that station's name (<see cref="Upgrade"/>).</summary>
+        private static readonly List<(string Upgrade, string Station, string StationName)> Upgraded = new List<(string, string, string)>();
+
+        /// <summary>The crafting stations read, each with its name, which upgrades are counted by.</summary>
+        private static readonly List<(string Station, string Name)> Stations = new List<(string, string)>();
+
         private static readonly HashSet<string> Made = new HashSet<string>(StringComparer.Ordinal);
 
         /// <summary>The registered prefabs' names: a prefab a field names that is none of them is followed as a helper of its user.</summary>
@@ -78,6 +85,8 @@ namespace Scry
             _book = new LinkBook();
             Sets.Clear();
             Ammo.Clear();
+            Upgraded.Clear();
+            Stations.Clear();
             Made.Clear();
             Registered.Clear();
             Helpers.Clear();
@@ -90,6 +99,8 @@ namespace Scry
             _book = new LinkBook();
             Sets.Clear();
             Ammo.Clear();
+            Upgraded.Clear();
+            Stations.Clear();
             Made.Clear();
             Registered.Clear();
             Registered.UnionWith(registered);
@@ -117,7 +128,7 @@ namespace Scry
             Part("links of footsteps", () => Steps(prefab, _book));
             Part("links of carried items", () => Carried(prefab, _book));
             Part("links of named prefabs and items", () => Fields(prefab, components, _book));
-            Part("links of station upgrades", () => Upgrade(prefab, _book));
+            Part("links of station upgrades", () => Upgrade(prefab));
             Part("links of status effects damage causes", () =>
             {
                 var aoe = prefab.GetComponent<Aoe>();
@@ -162,6 +173,7 @@ namespace Scry
             _book = new LinkBook();
             book.AddSets(Sets);
             book.AddAmmo(Ammo);
+            book.AddUpgrades(Upgraded, Stations);
             foreach (var giver in Knowledge.Givers())
             {
                 // What an item gives when worn, used, as a set or on hit is in its own facts already.
@@ -170,6 +182,8 @@ namespace Scry
             }
             Sets.Clear();
             Ammo.Clear();
+            Upgraded.Clear();
+            Stations.Clear();
             return book;
         }
 
@@ -190,12 +204,18 @@ namespace Scry
             }
         }
 
-        /// <summary>A crafting station's upgrades: the pieces that raise its level while built near it.</summary>
-        private static void Upgrade(GameObject prefab, LinkBook book)
+        /// <summary>
+        /// The pieces that raise a crafting station's level while built near it, each with the station
+        /// it names and that station's name, and each crafting station with its name; linked once
+        /// every prefab is read, as the game counts them, by name (<see cref="LinkBook.AddUpgrades"/>).
+        /// </summary>
+        private static void Upgrade(GameObject prefab)
         {
             var extension = prefab.GetComponent<StationExtension>();
             var station = extension != null ? extension.m_craftingStation : null;
-            if (station != null) book.Add(station.transform.root.name, Upgrades, prefab.name, UpgradeOf);
+            if (station != null) Upgraded.Add((prefab.name, station.transform.root.name, station.m_name));
+            var own = prefab.GetComponent<CraftingStation>();
+            if (own != null) Stations.Add((prefab.name, own.m_name));
         }
 
         /// <summary>What a creature's clips name themselves to play or hold, by clip.</summary>
