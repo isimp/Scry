@@ -622,7 +622,7 @@ namespace Scry
                     here = new[] { label };
                     foreach (var altar in record.Altars)
                     {
-                        var summon = new Summon { Boss = altar.Boss, Item = altar.Item.Length > 0 ? altar.Item : null, Count = altar.Count, OnStands = altar.OnStands, Place = label };
+                        var summon = new Summon { Boss = altar.Boss, Item = altar.Item.Length > 0 ? altar.Item : null, Count = altar.Count, OnStands = altar.OnStands, Place = label, PlacePrefab = EntryKeys.For(Kind.Location, record.Prefab) };
                         if (!summons.Exists(s => s.Boss == summon.Boss && s.Item == summon.Item && s.Place == summon.Place)) summons.Add(summon);
                     }
                 }

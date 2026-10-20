@@ -255,6 +255,8 @@ namespace Scry
             maps.Walk(id, 0);
             maps.Keep(DungeonMaps.IdOf("another world", 1L, 12u), PlaceOf(entry).Prefab, saved, at, rolled.Site.Generator, rolled.Site.Turn);
             DungeonWalks.MapsInsteadForTest(maps);
+            // The dungeons a pinned ground of the player's shows stay off the map meanwhile, so the test's mark stands alone.
+            DungeonsInGround.NoneForTest();
             // The panel put away, as it would cover the map; the click opens it again.
             Session.Hide();
             Minimap.instance.SetMapMode(Minimap.MapMode.Large);
@@ -385,6 +387,7 @@ namespace Scry
         private static void MarksAsTheyWere()
         {
             if (Minimap.instance != null && Minimap.instance.m_mode == Minimap.MapMode.Large) Minimap.instance.SetMapMode(Minimap.MapMode.Small);
+            DungeonsInGround.WorldAgainForTest();
             if (!Session.IsOpen) Session.Show(null);
             if (_pointerBeforeMarks is Vector2 was && Cursor.lockState != CursorLockMode.Locked) ZInput.SetMousePosition(was);
             _pointerBeforeMarks = null;

@@ -85,7 +85,7 @@ namespace Scry
             var id = DungeonMaps.IdOf(world, 1L, 31u);
             made.Keep(id, PlaceOf(entry).Prefab, SavedAsTheGameSaves(rolled), new Vec3(here.x, here.y, here.z), rolled.Site.Generator, rolled.Site.Turn);
             DungeonWalks.MapsInsteadForTest(new DungeonMaps());
-            DungeonsInGround.ForTest(WorldSource.Explored, made);
+            DungeonsInGround.InsteadForTest(WorldSource.Explored, made);
             Session.Hide();
             Minimap.instance.SetMapMode(Minimap.MapMode.Large);
             yield return Until(() => MapMarkButtons.HollowShown > 0, 5);
@@ -117,7 +117,6 @@ namespace Scry
         /// <summary>Puts back how the explored ground showed and its pin, the made-up crypt, the large map and the pointer, should the part have stopped before it did.</summary>
         private static void PinsAsTheyWere()
         {
-            DungeonsInGround.ForTest(WorldSource.Explored, null);
             MarksAsTheyWere();
             ScryPanel.HoldCompendiumBox(false);
             if (_pinBefore is (SourceLevel shows, bool pin))

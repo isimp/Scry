@@ -578,6 +578,8 @@ namespace Scry
                 p.Note($"{entry.Name}: {string.Join(" > ", row.Chain.Steps.Select(s => string.Join("/", s)))}");
                 var pageless = row.Chain.Steps.SelectMany(s => s).Where(k => X.Find(k) == null).ToList();
                 p.Check(pageless.Count == 0, $"every step of {entry.Name}'s chain has a page", string.Join(", ", pageless));
+                if (title == ChainWords.Summoning)
+                    p.Check(row.Chain.Steps.SelectMany(s => s).Any(k => X.Find(k)?.Kind == Kind.Location), $"{entry.Name}'s chain goes through its altar's place");
             }
             yield break;
         }

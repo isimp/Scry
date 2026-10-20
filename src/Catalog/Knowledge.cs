@@ -38,7 +38,8 @@ namespace Scry
     /// An altar's offering: the boss it summons (<c>OfferingBowl.m_bossPrefab</c>), the item and
     /// how many of it are offered (<c>m_bossItem</c>, <c>m_bossItems</c>), or for an altar that
     /// takes them on item stands (<c>m_useItemStands</c>) the stands' item and how many stands,
-    /// and where it stands, a location's name or the altar's own prefab where it is one.
+    /// and where it stands: the place's name, and what goes to its page, the location's key or
+    /// the altar's own prefab where it is one.
     /// </summary>
     internal struct Summon
     {

@@ -522,7 +522,7 @@ namespace Scry
             }
         }
 
-        /// <summary>Every altar's boss tells where it is summoned and with what; every trader tells what it sells.</summary>
+        /// <summary>Every altar's boss tells where it is summoned and with what, the altar going to its place's page; every trader tells what it sells.</summary>
         private static IEnumerator AltarsAndTraders(Probe p)
         {
             if (Locations.Now != Locations.State.Read) p.Skip("the locations are not read");
@@ -532,10 +532,12 @@ namespace Scry
             {
                 var entry = X.Catalog.FirstOrDefault(e => e.Name == boss && e.Kind == Kind.Creature);
                 if (entry == null) continue;
-                if (!Facts.For(entry).Rows.Any(r => r.Title.StartsWith("Summoned at", StringComparison.Ordinal))) wrong.Add($"{boss} tells no altar");
+                var altars = Facts.For(entry).Rows.Where(r => r.Title.StartsWith("Summoned at", StringComparison.Ordinal)).ToList();
+                if (altars.Count == 0) wrong.Add($"{boss} tells no altar");
+                else if (altars.Any(r => string.IsNullOrEmpty(r.TitleLink) || X.Find(r.TitleLink) == null)) wrong.Add($"{boss}'s altar goes to no page");
             }
             p.Note($"{Numbers.Count(bosses.Count)} bosses summoned at altars");
-            p.Check(bosses.Count > 0 && wrong.Count == 0, "every boss tells where it is summoned and with what", string.Join("; ", wrong));
+            p.Check(bosses.Count > 0 && wrong.Count == 0, "every boss tells where it is summoned and with what, its altar going to its place's page", string.Join("; ", wrong));
             var traders = X.Catalog.Where(e => e.Source is GameObject g && g.GetComponent<Trader>() != null).ToList();
             var quiet = traders.Where(t => !Facts.For(t).Rows.Any(r => r.Title.StartsWith("Sells", StringComparison.Ordinal))).Select(t => t.Name).ToList();
             p.Note($"{Numbers.Count(traders.Count)} traders: {string.Join(", ", traders.Select(t => t.Name))}");

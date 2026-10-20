@@ -297,6 +297,7 @@ namespace Scry
         private static void PutAway()
         {
             _askedServer = false;
+            HollowShown = 0;
             if (MarksShown == 0) return;
             HideName();
             foreach (var mark in Marks)

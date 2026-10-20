@@ -31,6 +31,10 @@ namespace Scry
         private static ZRoutedRpc _registeredOn;
         private static string _world;
 
+        /// <summary>Whether the self-test holds its own in place of the world's, and what: one ground's made-up dungeons, or none.</summary>
+        private static bool _insteadOn;
+        private static (WorldSource Source, DungeonMaps Maps)? _instead;
+
         /// <summary>Counts up whenever what is held changes, for the marks to be listed again.</summary>
         public static int Stamp { get; private set; }
 
@@ -38,12 +42,16 @@ namespace Scry
         public static int Answers { get; private set; }
 
         /// <summary>The dungeons held of a ground.</summary>
-        public static IEnumerable<(string Id, DungeonMap Map)> Of(WorldSource source) =>
-            Held.TryGetValue(source, out var maps) ? maps.All : Enumerable.Empty<(string, DungeonMap)>();
+        public static IEnumerable<(string Id, DungeonMap Map)> Of(WorldSource source)
+        {
+            if (_insteadOn) return _instead is (WorldSource ground, DungeonMaps made) && ground == source ? made.All : Enumerable.Empty<(string, DungeonMap)>();
+            return Held.TryGetValue(source, out var maps) ? maps.All : Enumerable.Empty<(string, DungeonMap)>();
+        }
 
         /// <summary>A dungeon held of any ground, by its id; none.</summary>
         public static DungeonMap MapOf(string id)
         {
+            if (_insteadOn) return _instead?.Maps.Of(id);
             foreach (var maps in Held.Values)
             {
                 var map = maps.Of(id);
@@ -52,12 +60,28 @@ namespace Scry
             return null;
         }
 
-        /// <summary>Made-up dungeons held of a ground in place of the world's, or none again (null); for the self-test.</summary>
-        internal static void ForTest(WorldSource source, DungeonMaps maps)
+        /// <summary>Made-up dungeons of one ground in place of every ground's, those of the world kept to come back (<see cref="WorldAgainForTest"/>); for the self-test.</summary>
+        internal static void InsteadForTest(WorldSource source, DungeonMaps maps)
         {
-            if (maps == null) Held.Remove(source);
-            else Held[source] = maps;
-            AskedAt[source] = Time.unscaledTime;
+            _insteadOn = true;
+            _instead = (source, maps);
+            Stamp++;
+        }
+
+        /// <summary>No dungeons in any ground, those of the world kept to come back; for the self-test, so its own marks stand alone.</summary>
+        internal static void NoneForTest()
+        {
+            _insteadOn = true;
+            _instead = null;
+            Stamp++;
+        }
+
+        /// <summary>The world's dungeons in the grounds again, after the self-test's.</summary>
+        internal static void WorldAgainForTest()
+        {
+            if (!_insteadOn) return;
+            _insteadOn = false;
+            _instead = null;
             Stamp++;
         }
 
