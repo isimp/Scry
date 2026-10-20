@@ -528,6 +528,9 @@ namespace Scry
         [Diagnostic]
         public static Rect CompendiumBoxForTest => _bookBox;
 
+        /// <summary>The column noted for the floor's arrows, which stand beside its biome rather than at their columns' starts (<see cref="BookColumns.Arrows"/>); a pin's is -1.</summary>
+        public const int BesideBiome = -2;
+
         private static void NoteBookCell(string row, string label, int column, Rect at, bool lit, bool words)
         {
             if (Event.current.type == EventType.Repaint) BookCellsForTest.Add((row, label, column, at, lit, !words || SegmentWidth(label) <= at.width + 0.5f));
@@ -608,10 +611,11 @@ namespace Scry
             }
             for (var i = 0; i < CompendiumWords.Rules.Count; i++) BookSegments[i] = CellAt(BookColumns.Of(CompendiumWords.Rules[i]), rowY);
             var floorY = rowY + height + U(6f);
-            // The arrows square at the starts of their columns, the biome across the two between.
-            _bookLower = new Rect(CellAt(BookColumns.FloorLower, floorY).x, floorY, height, height);
+            // The arrows square, each a gap from the biome across the two columns between.
+            var (lowerX, raiseX) = BookColumns.Arrows(BookColumnWidths, columnsLeft, gap, height);
+            _bookLower = new Rect(lowerX, floorY, height, height);
             _bookValue = CellAt(BookColumns.FloorValue, floorY);
-            _bookRaise = new Rect(CellAt(BookColumns.FloorRaise, floorY).x, floorY, height, height);
+            _bookRaise = new Rect(raiseX, floorY, height, height);
             var pinX = columnsLeft + BookColumns.Width(BookColumnWidths, gap) + gap;
             if (_bookSourcesShown)
             {
@@ -631,7 +635,8 @@ namespace Scry
             if (_bookWithShown)
             {
                 var withY = _bookBox.yMax - pad - withH + U(14f);
-                _withCaption = new Rect(_bookBox.x + pad, withY, _bookCaptionW, height);
+                // The caption on the value's first line, as the value is drawn from its top.
+                _withCaption = new Rect(_bookBox.x + pad, withY, _bookCaptionW, Skin.Wrap.lineHeight);
                 _withValue = new Rect(_bookBox.x + pad + _bookCaptionW, withY, _bookBox.width - pad * 2f - _bookCaptionW, rowH);
                 _withHint = new Rect(_bookBox.x + pad, withY + rowH + U(6f), _bookBox.width - pad * 2f, withHintH);
             }
@@ -743,9 +748,9 @@ namespace Scry
                 GUI.enabled = was;
                 GUI.Label(_bookValue, CompendiumWords.FloorName(floor), Skin.Button);
             }
-            NoteBookCell("floor", "lower", BookColumns.FloorLower.First, _bookLower, false, words: false);
+            NoteBookCell("floor", "lower", BesideBiome, _bookLower, false, words: false);
             NoteBookCell("floor", CompendiumWords.FloorName(floor), BookColumns.FloorValue.First, _bookValue, false, words: false);
-            NoteBookCell("floor", "raise", BookColumns.FloorRaise.First, _bookRaise, false, words: false);
+            NoteBookCell("floor", "raise", BesideBiome, _bookRaise, false, words: false);
             if (!book.World.FloorAllowed)
             {
                 if (_bookLower.Contains(mouse) || _bookRaise.Contains(mouse) || _bookValue.Contains(mouse)) AskTip("floor-locked", WorldRulesWords.NoFloor);

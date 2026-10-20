@@ -49,5 +49,17 @@ namespace Scry.Tests
             Assert.Equal((134f, 120f), BookColumns.Cell(widths, 100f, 4f, 1, 2));
             Assert.Equal(238f, BookColumns.Width(widths, 4f));
         }
+
+        [Fact]
+        public void TheFloorsArrowsStandAGapFromItsBiomeOnEitherSide()
+        {
+            // The first column, Off's, is wider than an arrow: the arrow keeps to its inner end, as the raise keeps to the start of With insides'.
+            var widths = new[] { 50f, 65f, 73f, 108f };
+            var (lower, raise) = BookColumns.Arrows(widths, left: 100f, gap: 4f, size: 28f);
+            var (valueX, valueW) = BookColumns.Cell(widths, 100f, 4f, BookColumns.FloorValue.First, BookColumns.FloorValue.Last);
+            Assert.Equal(4f, valueX - (lower + 28f), 3);
+            Assert.Equal(4f, raise - (valueX + valueW), 3);
+            Assert.True(lower >= 100f);
+        }
     }
 }

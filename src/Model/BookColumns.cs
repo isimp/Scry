@@ -7,7 +7,7 @@ namespace Scry
     /// show (Off, Seen, Known, With insides), so a level stands at one place on every row, a row
     /// without one leaving its cell empty. Counted, the whole world's alone, spans Seen and Known;
     /// the rules (Off, Loose, Strict) take the first three, and the floor's arrows the first and
-    /// the last, its biome the two between. A column is as wide as the widest that stands in it,
+    /// the last, each at the end nearer its biome, which takes the two between (<see cref="Arrows"/>). A column is as wide as the widest that stands in it,
     /// each measured as it is drawn lit; one spanning is made room for at the last column it spans.
     /// </summary>
     internal static class BookColumns
@@ -59,6 +59,18 @@ namespace Scry
             var width = gap * (last - first);
             for (var c = first; c <= last; c++) width += widths[c];
             return (x, width);
+        }
+
+        /// <summary>
+        /// Where the floor's arrows stand, square: the lower at the end of the first column, the
+        /// raise at the start of the last, so each stands a gap from the biome between them however
+        /// wide the columns the levels make.
+        /// </summary>
+        public static (float Lower, float Raise) Arrows(float[] widths, float left, float gap, float size)
+        {
+            var (lowerX, lowerW) = Cell(widths, left, gap, FloorLower.First, FloorLower.Last);
+            var (raiseX, _) = Cell(widths, left, gap, FloorRaise.First, FloorRaise.Last);
+            return (lowerX + lowerW - size, raiseX);
         }
 
         /// <summary>How wide the columns are together, with the gaps between them.</summary>
