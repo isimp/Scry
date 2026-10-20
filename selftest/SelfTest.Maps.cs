@@ -302,9 +302,9 @@ namespace Scry
         }
 
         /// <summary>
-        /// The group's record of a crypt, two rooms walked, in place of what a server would send, with
+        /// The server's record of a crypt, two rooms walked, in place of what a server would send, with
         /// a made-up character whose floor reaches the crypt's tier and who never was in it: its page
-        /// has the group's line, Open map shows the rooms the group walked, peek the rest. Merging
+        /// has the server's line, Open map shows the rooms walked on the server, peek the rest. Merging
         /// players' walks on a real server is not tried here, as it would write a made-up record into
         /// the server's file.
         /// </summary>
@@ -349,22 +349,22 @@ namespace Scry
             Session.ShowKnownInstead(floored);
             var lines = ScryPanel.Drawn(PanelPart.MapLine);
             yield return Until(() => ReferenceEquals(X.Compendium, floored) && ScryPanel.Drawn(PanelPart.MapLine) > lines + 1, 5);
-            p.Check(ExampleLayouts.GroupOpen && ScryPanel.GroupLinesDrawn == 1 && ScryPanel.MapLinesDrawn == 0, "with the floor at its tier, its page has the group's line and none of the character's",
-                $"open {ExampleLayouts.GroupOpen}, {Numbers.Count(ScryPanel.GroupLinesDrawn)} group lines, {Numbers.Count(ScryPanel.MapLinesDrawn)} own");
-            yield return Picture(p, $"the group's map of {entry.Name} on its page");
+            p.Check(ExampleLayouts.GroupOpen && ScryPanel.GroupLinesDrawn == 1 && ScryPanel.MapLinesDrawn == 0, "with the floor at its tier, its page has the server's line and none of the character's",
+                $"open {ExampleLayouts.GroupOpen}, {Numbers.Count(ScryPanel.GroupLinesDrawn)} server lines, {Numbers.Count(ScryPanel.MapLinesDrawn)} own");
+            yield return Picture(p, $"the server's map of {entry.Name} on its page");
 
             ScryPanel.OpenMapForTest(id);
             yield return Until(() => ExampleLayouts.ShownMap == id && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 60);
             var rooms = rolled.Rooms.Count(r => !r.Room.EndCap && !r.Room.Divider);
-            p.Check(ExampleLayouts.ShownMap == id && ExampleLayouts.Walked == (2, rooms), "Open map shows the rooms the group walked", $"{Numbers.Count(ExampleLayouts.Walked.Walked)} of {Numbers.Count(ExampleLayouts.Walked.Rooms)}");
-            yield return Picture(p, $"the group's map of {entry.Name}");
+            p.Check(ExampleLayouts.ShownMap == id && ExampleLayouts.Walked == (2, rooms), "Open map shows the rooms walked on the server", $"{Numbers.Count(ExampleLayouts.Walked.Walked)} of {Numbers.Count(ExampleLayouts.Walked.Rooms)}");
+            yield return Picture(p, $"the server's map of {entry.Name}");
             X.Peeking = true;
             yield return Until(() => ExampleLayouts.PeekedRooms > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 60);
             p.Check(ExampleLayouts.PeekedRooms == rooms - 2, "peek shows the rooms nobody walked", $"{Numbers.Count(ExampleLayouts.PeekedRooms)} peeked");
             GroupRecordsAsTheyWere();
         }
 
-        /// <summary>Ends the group's stand-in and the fog's.</summary>
+        /// <summary>Ends the stand-in for the server's records and the fog's.</summary>
         private static void GroupRecordsAsTheyWere()
         {
             GroupMapsLink.GroupInsteadForTest(null);

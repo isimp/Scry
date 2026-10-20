@@ -21,7 +21,7 @@ namespace Scry
     {
         private Harmony _harmony;
 
-        /// <summary>Whether this is a dedicated server, where Scry only answers players' explored maps and keeps the group's dungeon records.</summary>
+        /// <summary>Whether this is a dedicated server, where Scry only answers players' explored maps and keeps the server's records of the dungeons walked.</summary>
         private bool _server;
 
         private void Awake()
@@ -140,7 +140,7 @@ namespace Scry
         private void Update()
         {
             Guard.Run(Feature.CompendiumMap, "Scry's messages with the server", CompendiumLink.Update);
-            Guard.Run(Feature.GroupDungeonMaps, "the group's dungeon records", GroupMapsLink.Update);
+            Guard.Run(Feature.GroupDungeonMaps, "the server's records of the dungeons walked", GroupMapsLink.Update);
             Guard.Run(Feature.CompendiumTogether, "Scry's messages with the other players' games", EventLink.Update);
             Guard.Run(Feature.DungeonMaps, "the dungeons in the ground shown with insides", DungeonsInGround.Update);
             if (_server) return;

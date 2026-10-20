@@ -7,15 +7,16 @@ namespace Scry
     /// The maps kept of a dungeon location's dungeons in the world played, under its stage's
     /// buttons (<see cref="DungeonWalks"/>): a line each with a room walked saying how far, with
     /// <i>Open map</i>, which shows it on the stage wherever the player is, and <i>Forget</i>; then,
-    /// where the compendium's floor opens them, a line for each of the group's records the server
-    /// sent (<see cref="GroupMapsLink"/>), with <i>Open map</i>. No world position is shown.
+    /// where the compendium's floor opens them, a line for each of the server's records it sent,
+    /// anyone's walks on this server (<see cref="GroupMapsLink"/>), with <i>Open map</i>. No world
+    /// position is shown.
     /// </summary>
     internal static partial class ScryPanel
     {
         private static readonly List<(string Id, DungeonMap Map, int Walked, int Rooms)> MapsShown = new List<(string, DungeonMap, int, int)>();
         private static readonly List<(string Id, DungeonMap Map)> GroupShown = new List<(string, DungeonMap)>();
 
-        /// <summary>How many of the group's lines were last drawn, for the self-test.</summary>
+        /// <summary>How many of the server's lines were last drawn, for the self-test.</summary>
         [Diagnostic]
         public static int GroupLinesDrawn { get; private set; }
 

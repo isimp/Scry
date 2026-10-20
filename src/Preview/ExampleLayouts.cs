@@ -78,13 +78,13 @@ namespace Scry
         private static DungeonExample _whole;
         private static string _wholeId;
 
-        /// <summary>Whether the compendium is set on, and peeking, as the explorer last said; and whether its floor opens the group's records of the location shown.</summary>
+        /// <summary>Whether the compendium is set on, and peeking, as the explorer last said; and whether its floor opens the server's records of the location shown.</summary>
         private static bool _fogged, _peeking, _groupOpen;
 
-        /// <summary>What the fog was last laid by: the character's maps' stamp and the group's, the compendium set on, peeking, and the group's records open.</summary>
+        /// <summary>What the fog was last laid by: the character's maps' stamp and the server's records', the compendium set on, peeking, and the server's records open.</summary>
         private static (int Stamp, int GroupStamp, bool Fogged, bool Peeking, bool GroupOpen) _fogOf;
 
-        /// <summary>Whether the compendium's floor opens the group's records of the location shown (<see cref="GroupMapsLink"/>).</summary>
+        /// <summary>Whether the compendium's floor opens the server's records of the location shown (<see cref="GroupMapsLink"/>).</summary>
         public static bool GroupOpen => _groupOpen;
 
         /// <summary>How often rooms newly walked lay the dungeon out again while it is shown, in seconds, as the stage builds it afresh.</summary>
@@ -260,7 +260,7 @@ namespace Scry
             if (plan.Algorithm == "Dungeon") LookForWorlds(place);
             _fogged = explorer.CompendiumSet;
             _peeking = explorer.Peeking;
-            // The group's records of a dungeon the floor reaches, asked for now and then.
+            // The server's records of a dungeon the floor reaches, asked for now and then.
             _groupOpen = plan.Algorithm == "Dungeon" && _fogged && explorer.Compendium != null && explorer.Compendium.InsidesShown(entry);
             if (_groupOpen) GroupMapsLink.Ask(place.Prefab);
             // A peek, the compendium or the floor changed lays it out at once; rooms walked while it is shown, now and then.
@@ -503,7 +503,7 @@ namespace Scry
             _fogOf = (DungeonWalks.Maps.Stamp, GroupMapsLink.Group.Stamp, _fogged, _peeking, _groupOpen);
             _refoggedAt = Time.unscaledTime;
             _reenter = Stage.RoomGoneInto?.SavedAt ?? -1;
-            // The rooms the character walked, and where the floor opens them, the rooms the group walked.
+            // The rooms the character walked, and where the floor opens them, the rooms anyone on the server walked.
             var walked = DungeonWalks.Maps.Of(_wholeId)?.Walked;
             var group = _groupOpen ? GroupMapsLink.Group.Of(_wholeId)?.Walked : null;
             bool IsWalked(PlacedRoom room) => walked != null && walked.Contains(room.SavedAt) || group != null && group.Contains(room.SavedAt);
