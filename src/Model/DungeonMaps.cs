@@ -67,8 +67,65 @@ namespace Scry
         /// <summary>The name of the file a server keeps a world's records of its dungeons in.</summary>
         public static string ServerFile(string world) => "maps-" + world + ".dat";
 
-        /// <summary>The id a map is kept by: the world's, then its generator's network id (the user who made it and its number); none outside a world.</summary>
+        /// <summary>
+        /// An id of the older form, the world's then its generator's network id (the user who made
+        /// it and its number); none outside a world. The game numbers its objects afresh each time it
+        /// loads the world, so such an id names another object after a restart: maps kept under one
+        /// are re-keyed by place where they come in (<see cref="ByPlace"/>); the self-test's made-up
+        /// maps are kept under them.
+        /// </summary>
         public static string IdOf(string world, long user, uint id) => world != null ? world + ":" + Stored.Count(user) + ":" + Stored.Count(id) : null;
+
+        /// <summary>The id a dungeon of the world is kept by: the world's, then where its location stands, which the world's making fixed for good (<see cref="EntranceIdOf"/>); none outside a world.</summary>
+        public static string PlaceIdOf(string world, Vec3 entrance) => EntranceIdOf(world, entrance.X, entrance.Z);
+
+        /// <summary>Whether an id is of the older form, by a generator's network id, and of which world.</summary>
+        private static bool ByNumber(string id, out string world)
+        {
+            world = null;
+            var parts = id.Split(':');
+            if (parts.Length != 3 || !Stored.TryLong(parts[1], out _) || !Stored.TryLong(parts[2], out var number) || number < 0) return false;
+            world = parts[0];
+            return true;
+        }
+
+        /// <summary>
+        /// The maps kept under ids of the older form re-keyed by where each dungeon's location stands
+        /// (<see cref="PlaceIdOf"/>), those of one dungeon kept under several numbers across restarts
+        /// merged into one, its rooms walked, earliest first day and latest last day; these maps
+        /// themselves where none is of the older form, else new ones to be written again.
+        /// </summary>
+        public DungeonMaps ByPlace()
+        {
+            if (!_order.Any(id => ByNumber(id, out _))) return this;
+            var keyed = new DungeonMaps();
+            foreach (var (id, map) in All)
+            {
+                var at = ByNumber(id, out var world) ? PlaceIdOf(world, map.Entrance) : id;
+                var one = new DungeonMaps();
+                var kept = one.Keep(at, map.Location, map.Rooms, map.Entrance, map.Generator, map.Turn);
+                foreach (var room in map.Walked) one.Walk(at, room);
+                kept.FirstDay = map.FirstDay;
+                kept.LastDay = map.LastDay;
+                keyed.Merge(one);
+            }
+            foreach (var pair in _forgotten) keyed._forgotten[pair.Key] = pair.Value;
+            return keyed;
+        }
+
+        /// <summary>The game's day each world's records were last forgotten on, by an admin (<see cref="NoteForgotten"/>).</summary>
+        private readonly Dictionary<string, int> _forgotten = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        /// <summary>The game's day a world's records were last forgotten on; -1 where they never were.</summary>
+        public int ForgottenDay(string world) => world != null && _forgotten.TryGetValue(world, out var day) ? day : -1;
+
+        /// <summary>Notes the game's day a world's records were forgotten on, so walks last walked before it are not taken back; a later forget moves it on, never back.</summary>
+        public void NoteForgotten(string world, int day)
+        {
+            if (world == null || day <= ForgottenDay(world)) return;
+            _forgotten[world] = day;
+            Stamp++;
+        }
 
         /// <summary>The id a dungeon known only by its entrance is kept by, its area never loaded: the world's, then where it lies, to the metre; none outside a world.</summary>
         public static string EntranceIdOf(string world, float x, float z) =>
@@ -168,6 +225,14 @@ namespace Scry
             foreach (var (id, map) in maps.ToList())
             {
                 var kept = Keep(id, map.Location, map.Rooms, map.Entrance, map.Generator, map.Turn);
+                // Known by its entrance alone before, its rooms come with the map that has them.
+                if ((kept.Rooms == null || kept.Rooms.Count == 0) && map.Rooms != null && map.Rooms.Count > 0)
+                {
+                    kept.Rooms = map.Rooms;
+                    kept.Generator = map.Generator;
+                    kept.Turn = map.Turn;
+                    Stamp++;
+                }
                 foreach (var room in map.Walked) if (Walk(id, room)) walked++;
                 if (map.FirstDay >= 0 && (kept.FirstDay < 0 || map.FirstDay < kept.FirstDay))
                 {
@@ -241,11 +306,13 @@ namespace Scry
         public Func<string> ToSave()
         {
             var held = All.Select(m => (m.Id, m.Map.Location, m.Map.Entrance, m.Map.Generator, m.Map.Turn, Walked: m.Map.Walked.ToArray(), m.Map.Rooms, Days: (m.Map.FirstDay, m.Map.LastDay))).ToList();
+            var forgotten = _forgotten.OrderBy(f => f.Key, StringComparer.Ordinal).ToList();
             _savedStamp = Stamp;
             return () =>
             {
                 var text = new StringBuilder();
                 text.Append(FirstLine).Append('\n');
+                foreach (var pair in forgotten) text.Append(ForgottenLine).Append('\t').Append(Stored.Escaped(pair.Key)).Append('\t').Append(Stored.Count(pair.Value)).Append('\n');
                 foreach (var (id, location, entrance, generator, turn, walked, rooms, days) in held)
                 {
                     if (rooms == null || rooms.Count == 0)
@@ -273,6 +340,9 @@ namespace Scry
         /// <summary>How a line of a dungeon known only by its entrance begins.</summary>
         private const string EntranceLine = "entrance";
 
+        /// <summary>How a line of the day a world's records were forgotten on begins.</summary>
+        private const string ForgottenLine = "forgotten";
+
         private static string Point(Vec3 p) => Stored.Exact(p.X) + " " + Stored.Exact(p.Y) + " " + Stored.Exact(p.Z);
 
         /// <summary>The maps a file held, with their days; a line that cannot be read is passed over, as are days of a dungeon not held, and none for no text.</summary>
@@ -287,6 +357,11 @@ namespace Scry
                 if (fields.Length == 4 && fields[0] == DaysLine)
                 {
                     if (Stored.TryUnescaped(fields[1], out var of) && Stored.TryCount(fields[2], out var first) && Stored.TryCount(fields[3], out var last)) days.Add((of, first, last));
+                    continue;
+                }
+                if (fields.Length == 3 && fields[0] == ForgottenLine)
+                {
+                    if (Stored.TryUnescaped(fields[1], out var gone) && Stored.TryCount(fields[2], out var day)) maps.NoteForgotten(gone, day);
                     continue;
                 }
                 if (fields.Length == 4 && fields[0] == EntranceLine)

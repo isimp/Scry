@@ -139,6 +139,95 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ADungeonIsKnownByWhereItsLocationStandsItsOldNumberReKeyedAsItIsRead()
+        {
+            // The game numbers its objects afresh each time it loads the world, so a generator's number
+            // names another object after a restart; where the dungeon's location stands never moves.
+            Assert.Equal(DungeonMaps.EntranceIdOf("w", 1200.4f, -340.2f), DungeonMaps.PlaceIdOf("w", new Vec3(1200.4f, 30f, -340.2f)));
+            Assert.Null(DungeonMaps.PlaceIdOf(null, new Vec3(0f, 0f, 0f)));
+
+            var maps = new DungeonMaps();
+            var rooms = Rooms(3);
+            maps.Keep("w:1:369448", "MountainCave02", rooms, new Vec3(1200.4f, 30f, -340.2f), default, Quat.Identity, 41);
+            maps.Walk("w:1:369448", 0);
+            // The same cave under the number a later load gave it, walked further on another day.
+            maps.Keep("w:1:370001", "MountainCave02", rooms, new Vec3(1200.4f, 30f, -340.2f), default, Quat.Identity, 45);
+            maps.Walk("w:1:370001", 2);
+            maps.Keep("w:-77:5", "Crypt2", Rooms(2), new Vec3(10f, 0f, 20f), default, Quat.Identity);
+            // Another world's crypt at the same spot stays that world's.
+            maps.Keep("v:7:5", "Crypt2", Rooms(2), new Vec3(10f, 0f, 20f), default, Quat.Identity);
+            // Re-keyed where real maps come in: the character's file, the server's records and its answers.
+            var read = DungeonMaps.Load(maps.ToSave()());
+            Assert.Equal(new[] { "w:1:369448", "w:1:370001", "w:-77:5", "v:7:5" }, read.All.Select(m => m.Id));
+            var back = read.ByPlace();
+            Assert.Equal(new[] { "w:at:1200:-340", "w:at:10:20", "v:at:10:20" }, back.All.Select(m => m.Id));
+            var cave = back.Of("w:at:1200:-340");
+            Assert.Equal(new[] { 0, 2 }, cave.Walked);
+            Assert.Equal((41, 45), (cave.FirstDay, cave.LastDay));
+            // Written again under the ids by place; read and re-keyed again, nothing changes.
+            Assert.True(back.Changed);
+            var again = DungeonMaps.Load(back.ToSave()());
+            Assert.Same(again, again.ByPlace());
+            Assert.False(again.Changed);
+            Assert.Equal(back.All.Select(m => m.Id), again.All.Select(m => m.Id));
+
+            // An id of no form this Scry knows, a newer one's say, stays as it is.
+            var other = new DungeonMaps();
+            other.Keep("w:1:369448", "Crypt2", Rooms(2), new Vec3(10f, 0f, 20f), default, Quat.Identity);
+            other.Keep("w:1:x", "Crypt2", Rooms(2), new Vec3(30f, 0f, 40f), default, Quat.Identity);
+            other.Keep("w:1:-5", "Crypt2", Rooms(2), new Vec3(50f, 0f, 60f), default, Quat.Identity);
+            Assert.Equal(new[] { "w:at:10:20", "w:1:x", "w:1:-5" }, other.ByPlace().All.Select(m => m.Id));
+        }
+
+        [Fact]
+        public void ADungeonKnownByItsEntranceTakesItsRoomsFromAWalkOfItThatComesIn()
+        {
+            // Kept by where it lies, the dungeon seen from its entrance and the one walked are one.
+            var at = new Vec3(1200.6f, 31f, -340.2f);
+            var id = DungeonMaps.PlaceIdOf("w", at);
+            var maps = new DungeonMaps();
+            maps.Keep(id, "Crypt2", new List<(int, Vec3, Vec3)>(), at, default, Quat.Identity);
+            maps.ToSave();
+            var walk = new DungeonMaps();
+            var rooms = Rooms(3);
+            walk.Keep(id, "Crypt2", rooms, at, new Vec3(1f, 2f, 3f), Quat.Identity, 41);
+            walk.Walk(id, 1);
+            Assert.Equal(1, maps.Merge(walk));
+            var map = maps.Of(id);
+            Assert.Equal(rooms, map.Rooms);
+            Assert.Equal((1f, 2f, 3f), (map.Generator.X, map.Generator.Y, map.Generator.Z));
+            Assert.Equal(new[] { 1 }, map.Walked);
+            Assert.True(maps.Changed);
+            // Rooms once kept stay those first read.
+            var later = new DungeonMaps();
+            later.Keep(id, "Crypt2", Rooms(5), at, default, Quat.Identity);
+            maps.Merge(later);
+            Assert.Equal(rooms, maps.Of(id).Rooms);
+        }
+
+        [Fact]
+        public void TheDayAWorldsRecordsWereForgottenIsKeptOnALineOfItsOwn()
+        {
+            var maps = Two();
+            Assert.Equal(-1, maps.ForgottenDay("w"));
+            maps.ToSave();
+            maps.NoteForgotten("w", 120);
+            Assert.True(maps.Changed);
+            Assert.Equal(120, maps.ForgottenDay("w"));
+            Assert.Equal(-1, maps.ForgottenDay("v"));
+            // A later forget moves it on, never back.
+            maps.NoteForgotten("w", 90);
+            Assert.Equal(120, maps.ForgottenDay("w"));
+            var text = maps.ToSave()();
+            Assert.Contains("forgotten\tw\t120", text);
+            Assert.Equal(120, DungeonMaps.Load(text).ForgottenDay("w"));
+            // Three fields, no dungeon's line: an older Scry passes it over; one that cannot be read is passed over.
+            Assert.Equal(-1, DungeonMaps.Load("scry-maps 1\nforgotten\tw\tnot a day").ForgottenDay("w"));
+            // Re-keyed by place, the day stays the world's.
+            Assert.Equal(120, DungeonMaps.Load(text).ByPlace().ForgottenDay("w"));
+        }
+
+        [Fact]
         public void TheKindsOfRoomWalkedAreThoseOfEveryWorldsMaps()
         {
             // Under the strict rules a kind of room walked once counts in every world, as all else the character met does.

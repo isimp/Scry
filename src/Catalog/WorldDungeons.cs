@@ -122,7 +122,8 @@ namespace Scry
                 Saved = saved,
                 Generator = new Vec3(at.x, at.y, at.z),
                 Turn = new Quat(turn.x, turn.y, turn.z, turn.w),
-                Id = DungeonMaps.IdOf(world, zdo.m_uid.UserID, zdo.m_uid.ID),
+                // By where its location stands: the game numbers its objects afresh each time it loads the world.
+                Id = DungeonMaps.PlaceIdOf(world, new Vec3(entrance.x, entrance.y, entrance.z)),
                 Location = location,
                 Entrance = new Vec3(entrance.x, entrance.y, entrance.z),
             };

@@ -227,7 +227,8 @@ namespace Scry
             var world = package.ReadString();
             var source = (WorldSource)package.ReadInt();
             if (!System.Enum.IsDefined(typeof(WorldSource), source)) return;
-            Take(world, source, DungeonMaps.Load(Encoding.UTF8.GetString(Utils.Decompress(package.ReadByteArray()))));
+            // A server's older Scry names its dungeons by their generators' numbers: re-keyed by place.
+            Take(world, source, DungeonMaps.Load(Encoding.UTF8.GetString(Utils.Decompress(package.ReadByteArray()))).ByPlace());
         }
 
         private static void Take(string world, WorldSource source, DungeonMaps maps)

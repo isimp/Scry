@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -16,8 +18,13 @@ namespace Scry
     /// cache. A client asks for the records of the locations its compendium floor opens, at most once
     /// a minute each, and gets them as they stand from their generators, no place of the world in
     /// them (<see cref="DungeonMaps.Only"/>); a server without Scry never answers. An admin forgets
-    /// the world's records. The messages are registered on each new connection, as the game makes its
-    /// routed messages anew for each.
+    /// the world's records, the day noted so walks last walked before it are not taken back. On
+    /// joining, a client lists its walks of the world to the server, a few bytes a dungeon
+    /// (<see cref="WalkList"/>); the server answers with those it lacks, has fewer rooms of or an
+    /// older day of, and the client sends just those, so walks made before the server kept them, or
+    /// lost from it, come in. Every map that comes in is re-keyed by place (<see cref="DungeonMaps.ByPlace"/>).
+    /// The messages are registered on each new connection, as the game makes its routed messages
+    /// anew for each.
     /// </summary>
     internal static class GroupMapsLink
     {
@@ -28,6 +35,37 @@ namespace Scry
         public const string AnswerRpc = "Scry_GroupAnswer";
         public const string ForgetRpc = "Scry_GroupForget";
         public const string ForgotRpc = "Scry_GroupForgot";
+        public const string WalksListRpc = "Scry_WalksList";
+        public const string WalksWantedRpc = "Scry_WalksWanted";
+
+        /// <summary>The world the walks were listed to the server for this connection; none before.</summary>
+        private static string _listedFor;
+
+        /// <summary>Whether the next answer on a list is only told to the self-test, nothing sent; and the ids the last answer wanted.</summary>
+        private static bool _listOnlyForTest;
+
+        /// <summary>The ids the server's last answer on a list wanted, for the self-test; none before one.</summary>
+        [Diagnostic]
+        public static List<string> WantedForTest { get; private set; }
+
+        /// <summary>How many walks this game sent the server as its answers on its lists wanted, this session; for the self-test.</summary>
+        [Diagnostic]
+        public static int SentWanted { get; private set; }
+
+        /// <summary>Lists made-up walks to the server and keeps what it answers, nothing sent after; for the self-test.</summary>
+        [Diagnostic]
+        public static void ListForTest(List<WalkList.Walk> walks)
+        {
+            var rpc = ZRoutedRpc.instance;
+            var world = CompendiumMap.World;
+            if (rpc == null || world == null) return;
+            WantedForTest = null;
+            _listOnlyForTest = true;
+            var package = new ZPackage();
+            package.Write(world);
+            package.Write(Utils.Compress(WalkList.Write(walks)));
+            rpc.InvokeRoutedRPC(WalksListRpc, package);
+        }
 
         /// <summary>How often a client sends its walk, and asks again for a location's records, in seconds.</summary>
         private const float ReportEvery = 10f, AskEvery = 60f;
@@ -88,6 +126,8 @@ namespace Scry
             _recordsWorld = null;
             _reading = null;
             _unreadable = false;
+            _listedFor = null;
+            _listOnlyForTest = false;
         }
 
         /// <summary>Registers the messages on each new connection, sends a walk due, and on a server keeps its records; called each frame, on a dedicated server too.</summary>
@@ -105,11 +145,89 @@ namespace Scry
                     rpc.Register<ZPackage>(AnswerRpc, (sender, package) => Guard.Run(Feature.GroupDungeonMaps, "taking the server's dungeon records", () => Take(package)));
                     rpc.Register<ZPackage>(ForgetRpc, (sender, package) => Guard.Run(Feature.GroupDungeonMaps, "forgetting the world's dungeon records", () => ForgetAsked(sender, package)));
                     rpc.Register<int>(ForgotRpc, (sender, count) => Guard.Run(Feature.GroupDungeonMaps, "taking the server's answer to forgetting", () => Forgot(count)));
+                    rpc.Register<ZPackage>(WalksListRpc, (sender, package) => Guard.Run(Feature.GroupDungeonMaps, "answering a player's list of walks", () => ListAsked(sender, package)));
+                    rpc.Register<ZPackage>(WalksWantedRpc, (sender, package) => Guard.Run(Feature.GroupDungeonMaps, "sending the walks the server wants", () => WantedTaken(sender, package)));
                 }
+                _listedFor = null;
             }
             if (IsServer) KeepRecords();
             if (_toReport != null && Time.unscaledTime - _reportedAt >= ReportEvery) SendWalk();
+            ListWalks();
         }
+
+        /// <summary>
+        /// Once a connection, the character in the world and its maps read: its walks of the world
+        /// listed to the server once its Scry said hello, or taken into the records here where this
+        /// game runs the world, those last walked before a forget left out.
+        /// </summary>
+        private static void ListWalks()
+        {
+            var world = CompendiumMap.World;
+            if (world == null || _listedFor == world || Player.m_localPlayer == null || !DungeonWalks.Ready) return;
+            if (!IsServer && !ServerScries.Answers(EventLink.Server)) return;
+            if (IsServer && _records == null) return;
+            _listedFor = world;
+            var walks = WalkList.Of(DungeonWalks.Maps, world);
+            if (walks.Count == 0) return;
+            if (IsServer)
+            {
+                foreach (var batch in WalkList.Batches(DungeonWalks.Maps, WalkList.Wanted(_records, walks, _records.ForgottenDay(world)))) MergeIn(batch, world);
+                return;
+            }
+            var rpc = ZRoutedRpc.instance;
+            if (rpc == null || rpc != _registeredOn) return;
+            var package = new ZPackage();
+            package.Write(world);
+            package.Write(Utils.Compress(WalkList.Write(walks)));
+            rpc.InvokeRoutedRPC(WalksListRpc, package);
+        }
+
+        /// <summary>The server answers a player's list of walks with the ids of those it wants.</summary>
+        private static void ListAsked(long sender, ZPackage package)
+        {
+            if (!IsServer || _records == null) return;
+            var world = package.ReadString();
+            var packed = package.ReadByteArray();
+            var listed = packed != null ? WalkList.Read(Utils.Decompress(packed)) : null;
+            if (world != CompendiumMap.World || listed == null) return;
+            var wanted = WalkList.Wanted(_records, listed, _records.ForgottenDay(world));
+            var reply = new ZPackage();
+            reply.Write(world);
+            reply.Write(wanted.Count);
+            foreach (var id in wanted) reply.Write(id);
+            ZRoutedRpc.instance.InvokeRoutedRPC(sender, WalksWantedRpc, reply);
+        }
+
+        /// <summary>The client sends the walks the server wants, a batch to a message, by the message a walk goes by; from any game but the world's server, passed over.</summary>
+        private static void WantedTaken(long sender, ZPackage package)
+        {
+            if (sender != EventLink.WorldSession) return;
+            var world = package.ReadString();
+            var count = package.ReadInt();
+            if (count < 0 || count > 100000) return;
+            var wanted = new List<string>(Math.Min(count, 1024));
+            for (var i = 0; i < count; i++) wanted.Add(package.ReadString());
+            if (world != CompendiumMap.World) return;
+            if (_listOnlyForTest)
+            {
+                _listOnlyForTest = false;
+                WantedForTest = wanted;
+                return;
+            }
+            var rpc = ZRoutedRpc.instance;
+            if (rpc == null || rpc != _registeredOn) return;
+            foreach (var batch in WalkList.Batches(DungeonWalks.Maps, wanted))
+            {
+                var walk = new ZPackage();
+                walk.Write(world);
+                walk.Write(Utils.Compress(Encoding.UTF8.GetBytes(batch.ToSave()())));
+                rpc.InvokeRoutedRPC(WalkedRpc, walk);
+                SentWanted += batch.All.Count();
+            }
+        }
+
+        /// <summary>The game's day here, for when a world's records were forgotten; -1 before the world's clock runs.</summary>
+        private static int Today() => EnvMan.instance != null ? EnvMan.instance.GetDay() : -1;
 
         private static bool IsServer => ZNet.instance != null && ZNet.instance.IsServer();
 
@@ -174,6 +292,7 @@ namespace Scry
             if (IsServer)
             {
                 var forgotten = _records?.ForgetWorld(world) ?? 0;
+                _records?.NoteForgotten(world, Today());
                 _group.ForgetWorld(world);
                 Save(now: true);
                 return DungeonMapWords.GroupForgotten(forgotten);
@@ -194,7 +313,8 @@ namespace Scry
             var world = package.ReadString();
             var text = Unpacked(package.ReadByteArray());
             if (world != CompendiumMap.World || text == null) return;
-            MergeIn(DungeonMaps.Load(text), world);
+            // A client's older Scry names its dungeons by their generators' numbers: re-keyed by place.
+            MergeIn(DungeonMaps.Load(text).ByPlace(), world);
         }
 
         private static void MergeIn(DungeonMaps walked, string world)
@@ -224,7 +344,9 @@ namespace Scry
             var peer = ZNet.instance.GetPeer(sender);
             var admin = peer?.m_socket != null && ZNet.instance.IsAdmin(peer.m_socket.GetHostName());
             var forgotten = admin && world == CompendiumMap.World ? _records.ForgetWorld(world) : -1;
-            if (forgotten > 0) Save(now: true);
+            // The day noted, so the walks players list later are not taken back from before it.
+            if (forgotten >= 0) _records.NoteForgotten(world, Today());
+            if (forgotten >= 0) Save(now: true);
             ZRoutedRpc.instance.InvokeRoutedRPC(sender, ForgotRpc, forgotten);
         }
 
@@ -281,7 +403,7 @@ namespace Scry
         private static DungeonMaps Read(string path)
         {
             var file = FileSwap.ToRead(path);
-            return DungeonMaps.Load(file != null ? File.ReadAllText(file) : null);
+            return DungeonMaps.Load(file != null ? File.ReadAllText(file) : null).ByPlace();
         }
 
         private static string PathOf(string world) => Path.Combine(Settings.CacheFolder, DungeonMaps.ServerFile(world));
@@ -293,7 +415,7 @@ namespace Scry
             var world = package.ReadString();
             var text = Unpacked(package.ReadByteArray());
             if (world != CompendiumMap.World || text == null) return;
-            _group.Merge(DungeonMaps.Load(text), world);
+            _group.Merge(DungeonMaps.Load(text).ByPlace(), world);
         }
 
         private static void Forgot(int count)

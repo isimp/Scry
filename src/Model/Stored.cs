@@ -23,6 +23,9 @@ namespace Scry
         /// <summary>Reads a whole number written by <see cref="Count"/>; false for anything else.</summary>
         public static bool TryCount(string text, out int value) => int.TryParse(text, NumberStyles.AllowLeadingSign, Plain, out value);
 
+        /// <summary>Reads a long whole number written by <see cref="Count"/>, as a network id's user; false for anything else.</summary>
+        public static bool TryLong(string text, out long value) => long.TryParse(text, NumberStyles.AllowLeadingSign, Plain, out value);
+
         /// <summary>A yes or no: "1" or "0".</summary>
         public static string Flag(bool value) => value ? "1" : "0";
 

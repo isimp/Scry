@@ -42,6 +42,9 @@ namespace Scry
         /// <summary>The dungeons this character has been in, and how far each was walked.</summary>
         public static DungeonMaps Maps => _instead ?? _own;
 
+        /// <summary>Whether the character's maps are read, so what it walked is all here.</summary>
+        public static bool Ready => _file != null && _reading == null && !_unreadable;
+
         /// <summary>The map id of the dungeon the player stands in, none outside one.</summary>
         public static string YouIn { get; private set; }
 
@@ -185,11 +188,11 @@ namespace Scry
             return true;
         }
 
-        /// <summary>The maps kept for a character; none for a character never kept. On a worker thread.</summary>
+        /// <summary>The maps kept for a character, those kept under a generator's number re-keyed by place and so written again (<see cref="DungeonMaps.ByPlace"/>); none for a character never kept. On a worker thread.</summary>
         private static DungeonMaps Read(string path)
         {
             var file = FileSwap.ToRead(path);
-            return DungeonMaps.Load(file != null ? File.ReadAllText(file) : null);
+            return DungeonMaps.Load(file != null ? File.ReadAllText(file) : null).ByPlace();
         }
 
         private static string PathOf(string file) => Path.Combine(Settings.CacheFolder, "maps", file);

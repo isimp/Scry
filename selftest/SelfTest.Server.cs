@@ -1,4 +1,6 @@
 using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Scry
 {
@@ -36,6 +38,48 @@ namespace Scry
             p.Check(hint != null && hint.StartsWith("The server runs no Scry: what your explored and shared maps show", System.StringComparison.Ordinal), "and the line under it says what that leaves out", hint);
             yield return Picture(p, "compendium box server without Scry");
             ServerAsItWas();
+        }
+
+        /// <summary>
+        /// The character's walks of the world are kept by where each dungeon lies, whatever number
+        /// the game gave its generator at the last load; listed to the server on joining, those it
+        /// lacked were sent; and a list naming a made-up walk the server lacks is answered with it,
+        /// one of the walks the server holds already with none, nothing sent after.
+        /// </summary>
+        private static IEnumerator WalksToServer(Probe p)
+        {
+            var world = CompendiumMap.World;
+            if (world == null || !DungeonWalks.Ready)
+            {
+                p.Skip("no world, or the character's maps are not read yet");
+                yield break;
+            }
+            var own = DungeonWalks.Maps.OfWorld(world).ToList();
+            p.Note($"{Numbers.Count(own.Count)} walks of this world kept, {Numbers.Count(GroupMapsLink.SentWanted)} sent to the server this session as it wanted");
+            p.Check(own.All(m => m.Id.StartsWith(world + ":at:", System.StringComparison.Ordinal)), "each walk of the world is kept by where its dungeon lies", string.Join(", ", own.Select(m => m.Id).Take(3)));
+            if (ZNet.instance.IsServer())
+            {
+                p.Note("this game runs the world: its walks go into its records itself");
+                yield break;
+            }
+            yield return Until(() => EventLink.Server != Scry.ServerScry.Waiting, 15);
+            if (!ServerScries.Answers(EventLink.Server))
+            {
+                p.Skip("the server runs no Scry of this version, so it keeps no walks");
+                yield break;
+            }
+            var madeUp = DungeonMaps.EntranceIdOf(world, 987654f, -987654f);
+            var today = EnvMan.instance != null ? EnvMan.instance.GetDay() : -1;
+            var listed = new List<WalkList.Walk> { new WalkList.Walk(madeUp, 3, today) };
+            var held = WalkList.Of(DungeonWalks.Maps, world).FirstOrDefault();
+            if (held.Id != null) listed.Add(held);
+            GroupMapsLink.ListForTest(listed);
+            yield return Until(() => GroupMapsLink.WantedForTest != null, 10);
+            var wanted = GroupMapsLink.WantedForTest;
+            if (!p.Check(wanted != null, "the server answers a list of walks")) yield break;
+            p.Check(wanted.Contains(madeUp), "a walk it lacks is wanted", string.Join(", ", wanted));
+            if (held.Id != null) p.Check(!wanted.Contains(held.Id), "one of the character's, sent on joining, is held already", string.Join(", ", wanted));
+            else p.Note("the character walked no dungeon of this world, so none was listed on joining");
         }
 
         /// <summary>The world's server's Scry as the world's again, the box let go.</summary>
