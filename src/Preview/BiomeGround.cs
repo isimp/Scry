@@ -176,17 +176,21 @@ namespace Scry
                 _across = StageGround.Across(_basis, sky);
                 _clear = clear;
                 _at = at;
-                var step = Timing.Start();
-                PaintMask();
-                Timing.Add("render frame ground paint", step);
-                // The grass at once for another entry, biome or sky; for what changes as a place's
-                // rooms come in one by one (its paints, its size, its reach), once they have stopped.
+                // The paint and the grass at once for another entry, biome or sky; for what changes
+                // as a place's rooms come in one by one (its paints, its size, its reach), once they
+                // have stopped, as painting a camp's hundreds of paints takes tens of milliseconds.
                 if (afresh)
                 {
+                    _paintWait.Done();
+                    RepaintMask();
                     _grassWait.Done();
                     Scatter(root, layer);
                 }
-                else _grassWait.Changed(Time.unscaledTime);
+                else
+                {
+                    _paintWait.Changed(Time.unscaledTime);
+                    _grassWait.Changed(Time.unscaledTime);
+                }
             }
             else if (Mathf.Abs(at.y - _at.y) > 0.005f)
             {
@@ -194,6 +198,7 @@ namespace Scry
                 _at = at;
             }
 
+            if (_paintWait.Due(Time.unscaledTime)) RepaintMask();
             if (_grassWait.Due(Time.unscaledTime)) Scatter(root, layer);
 
             PlaceAt(_at, _across);
@@ -205,6 +210,16 @@ namespace Scry
         private const float GrassSettleSeconds = 0.3f;
 
         private readonly AfterQuiet _grassWait = new AfterQuiet(GrassSettleSeconds);
+
+        /// <summary>Whether the ground's paint waits for what it holds to settle, as its grass does.</summary>
+        private readonly AfterQuiet _paintWait = new AfterQuiet(GrassSettleSeconds);
+
+        private void RepaintMask()
+        {
+            var step = Timing.Start();
+            PaintMask();
+            Timing.Add("render frame ground paint", step);
+        }
 
         private void Scatter(GameObject root, int layer)
         {
