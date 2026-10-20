@@ -96,8 +96,8 @@ namespace Scry
         /// <summary>Whether it has an outside to switch to as well: a location drawing nothing but its example has none.</summary>
         public static bool HasOutside => HasInside && !TheExample.NothingOutside;
 
-        /// <summary>Whether its inside is shown: as the switch is left, or always where it has nothing outside.</summary>
-        public static bool ShowsInside => HasInside && (InsideWanted || TheExample.NothingOutside);
+        /// <summary>Whether its inside is shown: as the switch is left, or always where it has nothing outside; never where the example has no room to stand, as a dungeon of the world nobody walked under the fog, whose entrance shows.</summary>
+        public static bool ShowsInside => HasInside && (InsideWanted || TheExample.NothingOutside) && TheExample.Placed.Rooms.Count > 0;
 
         /// <summary>What the location draws outside, for the self-test to tell.</summary>
         public static string OutsideTold() => TheExample.OutsideTold();
@@ -141,6 +141,9 @@ namespace Scry
                 ForgetExample();
                 TheExample.Begin(example, plan, _subject.transform, _layer);
                 ChooseCutForExample();
+                // With no room to stand no first room switches to the inside: the entrance shows now,
+                // with the place's own floors and framed afresh, not as the example before it left them.
+                if (TheExample.IsDungeon && TheExample.Placed.Rooms.Count == 0) ShowInsideOrOut();
                 // What is kept of a dungeon's rooms' floors is found while they are made.
                 if (TheExample.IsDungeon) foreach (var room in TheExample.Placed.Rooms) FloorRecords.Want(room.Room.Name, true);
             }
