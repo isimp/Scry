@@ -109,7 +109,7 @@ namespace Scry
             {
                 if (place == null) continue;
                 var centre = place.transform.position;
-                if (Vector3.Distance(player.transform.position, centre) <= place.m_exteriorRadius + CreatureReach && InView(view, centre))
+                if (Vector3.Distance(player.transform.position, centre) <= place.m_exteriorRadius + CreatureReach && InView(view, centre) && InSight(view.position, centre, place.m_exteriorRadius))
                 {
                     catchUp.Met(EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject)), KnownLevel.Seen, book);
                 }
@@ -330,6 +330,17 @@ namespace Scry
         private static bool IsNumber(Vector3 point) => !float.IsNaN(point.x + point.y + point.z) && !float.IsInfinity(point.x + point.y + point.z);
 
         private static bool InView(Transform view, Vector3 point) => Vector3.Angle(view.forward, point - view.position) <= HalfView;
+
+        /// <summary>Whether any of the points a place is looked for at (<see cref="Sighting.PlacePoints"/>) is in sight from the eye (<see cref="Sighting.PlaceInSight"/>).</summary>
+        private static bool InSight(Vector3 eye, Vector3 centre, float radius)
+        {
+            foreach (var (x, y, z) in Sighting.PlacePoints(radius))
+            {
+                var blocked = Physics.Linecast(eye, centre + new Vector3(x, y, z), out var hit, _solid);
+                if (Sighting.PlaceInSight(blocked, hit.point.x - centre.x, hit.point.z - centre.z, radius)) return true;
+            }
+            return false;
+        }
 
         /// <summary>
         /// Whether nothing solid (ground, rock, a building) stands between the eye and a point; what

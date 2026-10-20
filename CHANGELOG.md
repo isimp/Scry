@@ -10,7 +10,7 @@ A character played before is caught up from what the game keeps of it and from i
 
 Where friends have Scry, what their game runs near you counts for you as it would alone, and a notice names those whose games lack it.
 
-Each world can show more as known, source by source in the compendium's box: explored ground, shared maps, marked places, places on every map. With Scry on the server, the compendium also learns what only the server knows, and the server can set its rules for everyone, which a notice tells once on joining. Explored ground shows its places through its own row, which can be turned off, as the map reaches 100 m around you whatever you saw.
+Each world can show more as known, source by source in the compendium's box: explored ground, shared maps, marked places, places on every map. With Scry on the server, the compendium also learns what only the server knows, and the server can set its rules for everyone, which a notice tells once on joining. Explored ground shows its places through its own row, which can be turned off, as the map reaches 100 m around you whatever you saw, and a place counts as seen only once your eye has a clear line to it.
 
 The gear in the title row holds the panel's settings, written to the config file as they are chosen, among them *Stage* set to *Fast* for big dungeons on weaker machines. The spin's speed and the lights below a dungeon's cut are in the View box, reading locations in every world is beside *Find where things are*, and the map's marks are in the compendium's box.
 
