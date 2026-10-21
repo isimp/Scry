@@ -441,7 +441,11 @@ namespace Scry
         private static IEnumerator CampExample(Probe p)
         {
             yield return Layout(p, Camp(), "CampRadial");
-            if (Camp() is Entry camp && Stage.ExampleShown != null) yield return Picture(p, $"camp example {camp.Name}");
+            if (!(Camp() is Entry camp) || Stage.ExampleShown == null) yield break;
+            BigStage();
+            yield return Until(() => !Stage.Gliding, 3);
+            yield return Picture(p, $"camp example {camp.Name}");
+            StageAsItWas();
         }
 
         private static IEnumerator Layout(Probe p, Entry entry, string algorithm)

@@ -70,25 +70,26 @@ namespace Scry
             yield return Until(() => !Stage.Gliding, 3);
             yield return null;
             yield return Shot(p, what);
-            if (_readme && ReadmeShot(what) is string name && ReadmeTaken.Add(name)) yield return CleanPicture(p, name);
+            if (_readme && ReadmeShots.FirstOrDefault(s => s.Shows(what)) is var shot && shot.Name != null && ReadmeTaken.Add(shot.Name)) yield return CleanPicture(p, shot.Name, shot.KeepsHud);
         }
 
         /// <summary>
         /// The pictures a full run also takes clean, for the README and the player's guide, by
-        /// what a part pictures: the self-test's strip and the game's HUD hidden for the shot, saved
-        /// as "readme" and a name, the first time a part pictures it in the run.
+        /// what a part pictures: the self-test's strip and, but for the large map, which closes
+        /// with it, the game's HUD hidden for the shot, saved as "readme" and a name, the first
+        /// time a part pictures it in the run.
         /// </summary>
-        private static readonly (Func<string, bool> Shows, string Name)[] ReadmeShots =
+        private static readonly (Func<string, bool> Shows, string Name, bool KeepsHud)[] ReadmeShots =
         {
-            (w => w == "you Troll, first seen, came to know and killed you", "readme troll page"),
-            (w => w == "learned by day", "readme learned by day"),
-            (w => w == "compendium box pins", "readme compendium box"),
-            (w => w.StartsWith("plan ", StringComparison.Ordinal) && w.EndsWith(" Above deepest gone into", StringComparison.Ordinal), "readme dungeon plan"),
-            (w => w.StartsWith("the marks of ", StringComparison.Ordinal) && w.EndsWith(", the hollow one's tip shown", StringComparison.Ordinal), "readme map marks"),
-            (w => w.StartsWith("camp example ", StringComparison.Ordinal), "readme camp example"),
-            (w => w == "compact header", "readme compact view"),
-            (w => w == "skill Swords", "readme skill page"),
-            (w => w == "skill lines SwordIron", "readme item skill lines"),
+            (w => w == "you Troll, first seen, came to know and killed you", "readme troll page", false),
+            (w => w == "learned by day, Troll selected", "readme learned by day", false),
+            (w => w == "compendium box pins", "readme compendium box", false),
+            (w => w.StartsWith("plan ", StringComparison.Ordinal) && w.EndsWith(" Above deepest gone into", StringComparison.Ordinal), "readme dungeon plan", false),
+            (w => w.StartsWith("the marks of ", StringComparison.Ordinal) && w.EndsWith(", the hollow one's tip shown", StringComparison.Ordinal), "readme map marks", true),
+            (w => w.StartsWith("camp example ", StringComparison.Ordinal), "readme camp example", false),
+            (w => w == "compact header", "readme compact view", false),
+            (w => w == "skill Swords", "readme skill page", false),
+            (w => w == "skill lines SwordIron", "readme item skill lines", false),
         };
 
         /// <summary>Whether this run takes the README's pictures, a full one; and those it took.</summary>
@@ -102,13 +103,10 @@ namespace Scry
             ReadmeTaken.Clear();
         }
 
-        /// <summary>The README's name for what a part pictures; none for what it takes no picture of.</summary>
-        private static string ReadmeShot(string what) => ReadmeShots.FirstOrDefault(s => s.Shows(what)).Name;
-
-        /// <summary>Takes a picture with the self-test's strip and the game's HUD put away, both back as they were after.</summary>
-        private static IEnumerator CleanPicture(Probe p, string name)
+        /// <summary>Takes a picture with the self-test's strip put away, and the game's HUD unless it is kept, both back as they were after.</summary>
+        private static IEnumerator CleanPicture(Probe p, string name, bool keepsHud)
         {
-            var hud = Hud.instance;
+            var hud = keepsHud ? null : Hud.instance;
             var hudWas = hud != null && hud.m_userHidden;
             SelfTestPanel.HiddenForPicture = true;
             if (hud != null) hud.m_userHidden = true;

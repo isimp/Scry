@@ -78,6 +78,7 @@ namespace Scry
             var opened = ScryPanel.ListHeadingsForTest;
             p.Check(opened.Any(h => h.Heading.StartsWith("Day 12", System.StringComparison.Ordinal) && !h.Folded), "the selection moved into a folded day opens it",
                 string.Join("; ", opened.Select(h => h.Heading + (h.Folded ? " (folded)" : ""))));
+            yield return Picture(p, "learned by day, Troll selected");
 
             // The notice in words.
             p.Check(ScryPanel.NewsLine == "Since day 12: came to know Troll, saw Boar, and read 1 thing from the game's records of this character", "the notice tells what happened in words", ScryPanel.NewsLine);

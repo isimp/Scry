@@ -174,7 +174,7 @@ namespace Scry
             yield return S("places' floors are found in the places themselves", FloorsFound, 240, bearsSkips: true);
             yield return S("the places looked at for their floors open each floor, cut under its ceiling, pictured", FloorsPictured, 300, StageAsItWas, bearsSkips: true);
             yield return S("a dungeon lays out an example, drawn, its rooms going to their entries", DungeonExample, 200, bearsSkips: true);
-            yield return S("a camp lays out an example, drawn", CampExample, 150, bearsSkips: true);
+            yield return S("a camp lays out an example, drawn", CampExample, 150, StageAsItWas, bearsSkips: true);
             yield return S("the dungeon the player is in stands as saved, tagged, the menu switching to an example and back", ThisDungeon, 200, () => { ThisDungeonAsItWas(); StageAsItWas(); }, bearsSkips: true);
             yield return S("with the compendium on, the dungeon the player is in shows as walked, where they stand marked, peek showing the rest", DungeonFogShows, 240, () => { DungeonFogAsItWas(); StageAsItWas(); }, bearsSkips: true);
             yield return S("a dungeon's maps kept are on its page, open from anywhere and are forgotten", MapsKept, 200, () => { DungeonFogAsItWas(); StageAsItWas(); }, bearsSkips: true);
