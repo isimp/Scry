@@ -748,34 +748,25 @@ namespace Scry
 
         /// <summary>
         /// The words under the mark of a dungeon walked by you on Valheim's map, as the game names a
-        /// pin under it: its name, and under it how far you walked it, smaller and in a colour of
-        /// its own, in the rich text the game's pin names write.
+        /// pin under it: its name, and under it how far you walked it in a colour of its own, both
+        /// larger than the game's pin names, in the rich text they write. What each look of mark
+        /// means is told in the compendium's guide, the days walked on the dungeon's page.
         /// </summary>
-        public static string MarkLabel(string name, int walked, int rooms, string walkedColour, int yourLast, int serverLast) =>
-            $"{name}\n<size=80%><color=#{walkedColour}>Walked by you: {MarkRooms(walked, rooms)}</color></size>" + LastDays(yourLast, serverLast);
+        public static string MarkLabel(string name, int walked, int rooms, string walkedColour) =>
+            Named(name, walkedColour, "Walked by you: " + MarkRooms(walked, rooms));
 
-        /// <summary>The words under the mark of a dungeon walked on this server, shown with insides: its name, how far anyone walked it, how many of those rooms came of traces alone, and the last day anyone did.</summary>
-        public static string ServerLabel(string name, int walked, int rooms, string colour, int serverLast, int fromTraces) =>
-            $"{name}\n<size=80%><color=#{colour}>Walked on this server: {MarkRooms(walked, rooms)}{FromTraces(walked, fromTraces, ", ")}</color></size>" + LastDays(-1, serverLast);
+        /// <summary>The words under the mark of a dungeon walked on this server, shown with insides: its name, how far anyone walked it, and how many of those rooms came of traces alone.</summary>
+        public static string ServerLabel(string name, int walked, int rooms, string colour, int fromTraces) =>
+            Named(name, colour, "Walked on this server: " + MarkRooms(walked, rooms) + FromTraces(walked, fromTraces, ", "));
 
         /// <summary>The words under the mark of a dungeon's entrance alone: whether anyone on this server walked it, With insides then showing what was walked.</summary>
         public static string EntranceLabel(string name, bool walkedOnServer, string colour) =>
-            $"{name}\n<size=80%><color=#{colour}>{(walkedOnServer ? "Walked on this server; With insides shows what was walked" : "Nobody on this server walked it")}</color></size>";
+            Named(name, colour, walkedOnServer ? "Walked on this server; With insides shows what was walked" : "Nobody on this server walked it");
 
-        /// <summary>The line every mark's words end with, smallest: what each look of mark means, and what a click does.</summary>
-        public const string MarkLegend = "\n<size=70%>solid: walked by you \u00b7 hollow: walked on this server \u00b7 plain: its entrance alone; a click shows it in Scry</size>";
+        private static string Named(string name, string colour, string line) => $"<size=130%>{name}</size>\n<size=115%><color=#{colour}>{line}</color></size>";
 
-        /// <summary>A mark's words with the legend after them (<see cref="MarkLegend"/>).</summary>
-        public static string WithLegend(string said) => said + MarkLegend;
-
-        /// <summary>A mark's line of the last days walked, yours apart from anyone's on this server, smaller; none where neither is known.</summary>
-        private static string LastDays(int yourLast, int serverLast)
-        {
-            var said = new List<string>();
-            if (yourLast >= 0) said.Add("you last day " + Numbers.Count(yourLast));
-            if (serverLast >= 0) said.Add("server last day " + Numbers.Count(serverLast));
-            return said.Count == 0 ? "" : "\n<size=75%>" + string.Join(" \u00b7 ", said) + "</size>";
-        }
+        /// <summary>A mark's words on a dark plate, each line boxed behind as the game's text draws a mark, so they read on snow as on the sea.</summary>
+        public static string OnPlate(string said, string plate) => $"<mark=#{plate} padding=\"12,12,6,6\">{said}</mark>";
 
         /// <summary>The answer to forgetting the maps of the world played.</summary>
         public static string WorldForgotten(int maps) => maps == 0

@@ -251,19 +251,18 @@ namespace Scry
             _hovered = null;
         }
 
-        /// <summary>A mark's words, by its look: how far you walked it, how far anyone on this server did, or whether anyone did, with the last days known; then what each look means.</summary>
-        private static string Said(DungeonMark kept) => DungeonMapWords.WithLegend(SaidOf(kept));
+        /// <summary>A mark's words, by its look, on a dark plate: how far you walked it, how far anyone on this server did, or whether anyone did.</summary>
+        private static string Said(DungeonMark kept) => DungeonMapWords.OnPlate(SaidOf(kept), ColorUtility.ToHtmlStringRGBA(new Color(Skin.TipFill.r, Skin.TipFill.g, Skin.TipFill.b, 0.92f)));
 
         private static string SaidOf(DungeonMark kept)
         {
             var name = Shown(kept.Map.Location);
             var accent = ColorUtility.ToHtmlStringRGB(Skin.Accent);
-            var serverLast = GroupMapsLink.Group.Of(kept.Id)?.LastDay ?? -1;
             var (walked, rooms) = DungeonMaps.Walked(kept.Map, _ => null);
             switch (kept.Look)
             {
-                case MarkLook.Yours: return DungeonMapWords.MarkLabel(name, walked, rooms, accent, kept.Map.LastDay, serverLast);
-                case MarkLook.Server: return DungeonMapWords.ServerLabel(name, walked, rooms, accent, Mathf.Max(serverLast, kept.Map.LastDay), kept.Map.Traced.Count);
+                case MarkLook.Yours: return DungeonMapWords.MarkLabel(name, walked, rooms, accent);
+                case MarkLook.Server: return DungeonMapWords.ServerLabel(name, walked, rooms, accent, kept.Map.Traced.Count);
                 default: return DungeonMapWords.EntranceLabel(name, kept.Map.Walked.Count > 0, ColorUtility.ToHtmlStringRGB(Skin.Faint));
             }
         }

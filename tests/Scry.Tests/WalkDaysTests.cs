@@ -134,15 +134,12 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void TheMarkSaysTheLastDaysYoursAndTheServers()
+        public void TheMarkLeavesTheDaysToTheDungeonsPage()
         {
-            const string Walked = "Sunken Crypts\n<size=80%><color=#F5B857>Walked by you: 7 of 12 rooms</color></size>";
-            Assert.Equal(Walked + "\n<size=75%>you last day 241 · server last day 245</size>", DungeonMapWords.MarkLabel("Sunken Crypts", 7, 12, "F5B857", 241, 245));
-            Assert.Equal(Walked + "\n<size=75%>you last day 241</size>", DungeonMapWords.MarkLabel("Sunken Crypts", 7, 12, "F5B857", 241, -1));
-            Assert.Equal(Walked, DungeonMapWords.MarkLabel("Sunken Crypts", 7, 12, "F5B857", -1, -1));
-            const string Server = "Burial Chambers\n<size=80%><color=#F5B857>Walked on this server: 3 of 12 rooms</color></size>";
-            Assert.Equal(Server + "\n<size=75%>server last day 245</size>", DungeonMapWords.ServerLabel("Burial Chambers", 3, 12, "F5B857", 245, 0));
-            Assert.Equal(Server, DungeonMapWords.ServerLabel("Burial Chambers", 3, 12, "F5B857", -1, 0));
+            // The mark's words name the dungeon and how far it was walked alone, readable on the
+            // map; the days walked are told on the dungeon's page, by its walk lines (DaysTip).
+            Assert.DoesNotContain("day", DungeonMapWords.MarkLabel("Sunken Crypts", 7, 12, "F5B857"));
+            Assert.DoesNotContain("day", DungeonMapWords.ServerLabel("Burial Chambers", 3, 12, "F5B857", 0));
         }
     }
 }

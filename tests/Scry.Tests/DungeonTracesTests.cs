@@ -387,9 +387,9 @@ namespace Scry.Tests
             Assert.Equal("One you have not found · on this server 7 of 12 rooms, from traces", DungeonMapWords.Line(new WalkLine { Server = (7, 12, 7) }));
             Assert.Equal("One you have not found · on this server 9 of 12 rooms, 7 from traces", DungeonMapWords.Line(new WalkLine { Server = (9, 12, 7) }));
             Assert.Equal("One you have not found · on this server 9 of 12 rooms", DungeonMapWords.Line(new WalkLine { Server = (9, 12, 0) }));
-            Assert.Equal("Frost Caves\n<size=80%><color=#abc>Walked on this server: 7 of 12 rooms, from traces</color></size>", DungeonMapWords.ServerLabel("Frost Caves", 7, 12, "abc", -1, 7));
-            Assert.Equal("Frost Caves\n<size=80%><color=#abc>Walked on this server: 9 of 12 rooms, 7 from traces</color></size>", DungeonMapWords.ServerLabel("Frost Caves", 9, 12, "abc", -1, 7));
-            Assert.Equal("Frost Caves\n<size=80%><color=#abc>Walked on this server: 9 of 12 rooms</color></size>", DungeonMapWords.ServerLabel("Frost Caves", 9, 12, "abc", -1, 0));
+            Assert.Equal("<size=130%>Frost Caves</size>\n<size=115%><color=#abc>Walked on this server: 7 of 12 rooms, from traces</color></size>", DungeonMapWords.ServerLabel("Frost Caves", 7, 12, "abc", 7));
+            Assert.Equal("<size=130%>Frost Caves</size>\n<size=115%><color=#abc>Walked on this server: 9 of 12 rooms, 7 from traces</color></size>", DungeonMapWords.ServerLabel("Frost Caves", 9, 12, "abc", 7));
+            Assert.Equal("<size=130%>Frost Caves</size>\n<size=115%><color=#abc>Walked on this server: 9 of 12 rooms</color></size>", DungeonMapWords.ServerLabel("Frost Caves", 9, 12, "abc", 0));
         }
 
         [Fact]

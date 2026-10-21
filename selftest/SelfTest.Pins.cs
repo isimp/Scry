@@ -15,6 +15,9 @@ namespace Scry
         private static string KeptPins(string path) =>
             path != null && System.IO.File.Exists(path) ? string.Join("\n", System.IO.File.ReadAllLines(path).Where(l => l.StartsWith("marks\t", System.StringComparison.Ordinal))) : "";
 
+        /// <summary>Whether a mark's words stand on a dark plate, the legend and the days told elsewhere.</summary>
+        private static bool OnPlateAlone(string said) => said != null && said.StartsWith("<mark=", System.StringComparison.Ordinal) && !said.Contains("solid") && !said.Contains(" day ");
+
         /// <summary>
         /// The explored ground's pin at its row's end in the compendium's box, kept with the
         /// character as it is turned on, With insides dimmed on each row none of whose places has
@@ -144,7 +147,7 @@ namespace Scry
             var saidHollow = MapMarkButtons.SaidForTest(1);
             p.Check(saidHollow != null && saidHollow.Contains("Walked on this server: 2 of"), "its words say how far anyone on this server walked it", saidHollow);
             p.Check((MapMarkButtons.SaidForTest(0) ?? "").Contains("Walked by you: 1 of"), "the one walked by you says how far you walked it", MapMarkButtons.SaidForTest(0));
-            p.Check((MapMarkButtons.SaidForTest(0) ?? "").EndsWith(DungeonMapWords.MarkLegend, System.StringComparison.Ordinal), "and its words end saying what each look of mark means", MapMarkButtons.SaidForTest(0));
+            p.Check(OnPlateAlone(MapMarkButtons.SaidForTest(0)), "its words stand on a dark plate, the name and how far it was walked alone", MapMarkButtons.SaidForTest(0));
 
             var hollowAt = MapMarkButtons.MarkCenterForTest(1);
             var entranceAt = MapMarkButtons.MarkCenterForTest(2);
