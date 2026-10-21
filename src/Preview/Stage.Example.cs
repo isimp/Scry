@@ -128,6 +128,10 @@ namespace Scry
             }
         }
 
+        /// <summary>Whether a dungeon's example stands on the stage in place of its outside, for the self-test to tell what it should stand on.</summary>
+        [ForTest]
+        public static bool ExampleShownInside => ExampleInside;
+
         /// <summary>Whether what is shown is a dungeon's example inside, for the ground to keep the plain floor.</summary>
         private static bool ExampleInside => TheExample.IsDungeon && TheExample.Holder != null && TheExample.Holder.activeSelf;
 

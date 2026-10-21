@@ -209,7 +209,8 @@ namespace Scry
             yield return S("every dungeon and camp lays out", EveryDungeonLaysOut, 60, bearsSkips: true);
             yield return S("content lists come in their order, a place's parts by what they are", ContentOrders, 60, bearsSkips: true);
             yield return S("every dungeon heads its group, its rooms under it", EveryDungeonHeadsItsGroup, 10);
-            yield return S("a spread of locations stands on the stage", LocationsOnStage, 200, bearsSkips: true);
+            yield return S("a spread of locations stands on the stage", LocationsOnStage, 400, bearsSkips: true);
+            yield return S("a beacon's beam stays out of its fortress's frame", BeaconOutOfFrame, 60, bearsSkips: true);
             yield return S("every entry's details are told, every chip leading somewhere", EveryDetail, 300, bearsSkips: true);
             yield return S("a location plays its music on Enter and gives the game's back", PlaysMusic, 30);
             yield return S("every boss tells its altar, and every trader what it sells", AltarsAndTraders, 10);

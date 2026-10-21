@@ -15,6 +15,7 @@ namespace Scry
         private static readonly List<Renderer> Renderers = new List<Renderer>();
         private static readonly List<Renderer> SolidRenderers = new List<Renderer>();
         private static readonly List<Renderer> LooseRenderers = new List<Renderer>();
+        private static readonly List<Renderer> SeeThroughRenderers = new List<Renderer>();
         private static float _gridMetres = -1f;
 
         // What the camera frames, eased towards what is to be seen, so it does not jump about.
@@ -422,9 +423,11 @@ namespace Scry
         /// <summary>
         /// What a copy draws, as bounds; of its <paramref name="body"/> only, leaving out what hangs
         /// on it, where it has anything else. Particles are left out when there is anything else,
-        /// since their bounds are unsettled while they start.
+        /// since their bounds are unsettled while they start, and so is a see-through part reaching
+        /// far past the solid ones (<see cref="TakeInSeeThrough"/>), named in <paramref name="leftOut"/>
+        /// where asked.
         /// </summary>
-        private static Bounds Measure(GameObject subject, bool body = false)
+        private static Bounds Measure(GameObject subject, bool body = false, List<Renderer> leftOut = null)
         {
             // A renderer whose bounds are not numbers (a mod's broken mesh) would make the whole
             // measure so, and the camera with it; it is left out.
@@ -451,14 +454,15 @@ namespace Scry
                 {
                     if (!renderer.enabled || !Usable(renderer.bounds)) continue;
                     if (renderer is ParticleSystemRenderer || renderer is TrailRenderer || renderer is LineRenderer) LooseRenderers.Add(renderer);
+                    else if (SeeThrough(renderer)) SeeThroughRenderers.Add(renderer);
                     else SolidRenderers.Add(renderer);
                 }
+                TakeInSeeThrough(leftOut);
 
                 var use = SolidRenderers.Count > 0 ? SolidRenderers : LooseRenderers;
                 if (use.Count == 0) return Unmeasured(subject.transform.position);
 
-                var bounds = use[0].bounds;
-                for (var i = 1; i < use.Count; i++) bounds.Encapsulate(use[i].bounds);
+                var bounds = Encapsulated(use);
 
                 // A degenerate or runaway size would put the camera nowhere useful.
                 if (!Usable(bounds) || bounds.size.sqrMagnitude < 0.0001f || bounds.size.magnitude > 2000f) return Unmeasured(subject.transform.position);
@@ -469,8 +473,47 @@ namespace Scry
                 Renderers.Clear();
                 SolidRenderers.Clear();
                 LooseRenderers.Clear();
+                SeeThroughRenderers.Clear();
             }
         }
+
+        /// <summary>Whether a renderer draws see-through, after what is solid, as glass, glows and beams do.</summary>
+        private static bool SeeThrough(Renderer renderer) =>
+            renderer.sharedMaterial != null && renderer.sharedMaterial.renderQueue >= (int)UnityEngine.Rendering.RenderQueue.Transparent;
+
+        /// <summary>
+        /// Frames the see-through parts with the solid ones, every one where nothing solid is drawn;
+        /// one reaching far past the solid body, as a beacon's beam into the sky, is left out
+        /// (<see cref="StageFraming.FramesSeeThrough"/>).
+        /// </summary>
+        private static void TakeInSeeThrough(List<Renderer> leftOut)
+        {
+            if (SeeThroughRenderers.Count == 0) return;
+            if (SolidRenderers.Count == 0)
+            {
+                SolidRenderers.AddRange(SeeThroughRenderers);
+                return;
+            }
+            var body = Encapsulated(SolidRenderers);
+            var widest = Widest(body.size);
+            foreach (var renderer in SeeThroughRenderers)
+            {
+                var withIt = body;
+                withIt.Encapsulate(renderer.bounds);
+                if (StageFraming.FramesSeeThrough(widest, Widest(withIt.size))) SolidRenderers.Add(renderer);
+                else leftOut?.Add(renderer);
+            }
+        }
+
+        /// <summary>What renderers draw together, as one bounds; the list holds one at least.</summary>
+        private static Bounds Encapsulated(List<Renderer> renderers)
+        {
+            var bounds = renderers[0].bounds;
+            for (var i = 1; i < renderers.Count; i++) bounds.Encapsulate(renderers[i].bounds);
+            return bounds;
+        }
+
+        private static float Widest(Vector3 size) => Mathf.Max(size.x, Mathf.Max(size.y, size.z));
 
         /// <summary>What a copy with nothing to measure is taken to be: two metres across, standing where it is.</summary>
         private static Bounds Unmeasured(Vector3 position) => new Bounds(position + Vector3.up, Vector3.one * 2f);

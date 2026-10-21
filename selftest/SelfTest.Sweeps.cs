@@ -24,6 +24,7 @@ namespace Scry
             var before = Memory();
             var failed = new List<string>();
             var odd = new List<string>();
+            var seeThrough = new List<string>();
             var shown = 0;
             foreach (var kind in new[] { Kind.Creature, Kind.Item, Kind.Piece, Kind.Resource, Kind.Spawner, Kind.Projectile, Kind.Effect, Kind.Other })
             {
@@ -40,9 +41,12 @@ namespace Scry
                     shown++;
                     var size = Stage.SubjectSize;
                     if (float.IsNaN(size.magnitude) || float.IsInfinity(size.magnitude) || size.magnitude > 2000f) odd.Add($"{entry.Name} {Figures.Point(size)}");
+                    var left = Stage.SeeThroughLeftOut();
+                    if (left.Count > 0) seeThrough.Add($"{entry.Name} ({string.Join(", ", left)})");
                 }
             }
             p.Note($"{Numbers.Count(shown)} copies stood on the stage");
+            if (seeThrough.Count > 0) p.Note($"{Numbers.Count(seeThrough.Count)} framed leaving out a see-through part reaching far past them: " + string.Join("; ", seeThrough.Take(40)));
             var game = failed.Where(f => f.EndsWith("(game)", StringComparison.Ordinal)).ToList();
             if (failed.Count > game.Count) p.Note("mods' prefabs that did not stand: " + string.Join(", ", failed.Except(game)));
             p.Check(game.Count == 0, "every one of the game's stands on the stage", string.Join(", ", game));

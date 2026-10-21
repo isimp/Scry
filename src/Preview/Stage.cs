@@ -223,6 +223,17 @@ namespace Scry
             return said;
         }
 
+        /// <summary>The see-through parts of the stage copy its frame leaves out, reaching far past its solid body as a beacon's beam into the sky; for the self-test to name.</summary>
+        [Diagnostic, ForTest]
+        public static List<string> SeeThroughLeftOut()
+        {
+            var left = new List<Renderer>();
+            if (_subject != null) Measure(_subject, leftOut: left);
+            var said = new List<string>();
+            foreach (var renderer in left) said.Add(Path(renderer.transform));
+            return said;
+        }
+
         [Diagnostic]
         private static string Path(Transform t)
         {

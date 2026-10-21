@@ -18,6 +18,29 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ABeaconsBeamReachingIntoTheSkyLeavesTheFrameToWhatItShinesFrom()
+        {
+            // A fortress 78 m across whose bell altar sends a see-through beam 308 m up is framed
+            // as the fortress, the beam left out as particles are: it would make the frame four
+            // times as tall as the fortress is wide.
+            Assert.False(StageFraming.FramesSeeThrough(bodyWidest: 78f, withItWidest: 324f));
+            // A small altar with the same beam, alone, the more so.
+            Assert.False(StageFraming.FramesSeeThrough(bodyWidest: 3f, withItWidest: 308f));
+        }
+
+        [Fact]
+        public void GlassAndGlowsTheSizeOfWhatTheyAreOnAreFramedWithIt()
+        {
+            // A bottle's glass round its mead, a lantern's panes, a window in a wall: the frame
+            // takes them in, so nothing see-through of a model's own size leaves the picture.
+            Assert.True(StageFraming.FramesSeeThrough(bodyWidest: 0.25f, withItWidest: 0.32f));
+            Assert.True(StageFraming.FramesSeeThrough(bodyWidest: 10f, withItWidest: 10f));
+            // Up to twice what the solid body is wide.
+            Assert.True(StageFraming.FramesSeeThrough(bodyWidest: 10f, withItWidest: 20f));
+            Assert.False(StageFraming.FramesSeeThrough(bodyWidest: 10f, withItWidest: 20.5f));
+        }
+
+        [Fact]
         public void NothingFramedYetHasNoDistance()
         {
             Assert.Equal(0f, StageFraming.FramedDistance(0f, 60f));

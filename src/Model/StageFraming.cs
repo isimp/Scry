@@ -17,6 +17,9 @@ namespace Scry
         /// <summary>How far past its own size a model's framing takes in what it plays, as a share of that size.</summary>
         public const float ModelReach = 1.6f;
 
+        /// <summary>How many times its solid body's widest side a model's frame may grow to to take in a see-through part of it.</summary>
+        public const float SeeThroughStretch = 2f;
+
         /// <summary>How quickly the framing widens, or goes to a floor stepped to, per second.</summary>
         private const float WidenRate = 5f;
 
@@ -28,6 +31,14 @@ namespace Scry
 
         /// <summary>How far left of the model the person stands, in metres.</summary>
         public const float PersonGap = 0.4f;
+
+        /// <summary>
+        /// Whether a see-through part of a model (glass, a glow, a beacon's beam) is framed with its
+        /// solid body: where taking it in keeps the frame's widest side within
+        /// <see cref="SeeThroughStretch"/> times the body's. A beam reaching far into the sky is
+        /// left out, as particles are; glass round what it holds is framed with it.
+        /// </summary>
+        public static bool FramesSeeThrough(float bodyWidest, float withItWidest) => withItWidest <= bodyWidest * SeeThroughStretch;
 
         /// <summary>
         /// How far off a sphere of a radius fills the picture's height, seen through a field of view

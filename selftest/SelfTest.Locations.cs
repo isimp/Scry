@@ -587,12 +587,16 @@ namespace Scry
             p.Check(silent.Count == 0, "each plays its music", string.Join(", ", silent));
         }
 
-        /// <summary>A spread of locations stands on the stage, framed to a sane size on its own ground.</summary>
+        /// <summary>
+        /// A spread of locations stands on the stage, framed to a sane size on its own ground; a
+        /// dungeon's example, once every room of it is made and its floors read, on its lowest floor.
+        /// </summary>
         private static IEnumerator LocationsOnStage(Probe p)
         {
             var all = X.Catalog.Where(e => PlaceOf(e) != null && !PlaceOf(e).IsRoom).OrderBy(e => e.Name, StringComparer.Ordinal).ToList();
             var wrong = new List<string>();
             var sizes = new List<string>();
+            var seeThrough = new List<string>();
             foreach (var entry in Spread(all, 10))
             {
                 var place = PlaceOf(entry);
@@ -609,20 +613,51 @@ namespace Scry
                     continue;
                 }
                 yield return null;
+                // Its outside stands on its own ground until the example's rooms come in, so a
+                // dungeon's example is waited for whole before what it stands on is looked at.
+                if (place.Contents?.Dungeon?.Algorithm == "Dungeon")
+                    yield return Until(() => Stage.HasInside && (Stage.ExampleRoomsTotal == 0 || (Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.ExampleFloorsToRead == 0)), 30);
                 var size = Stage.SubjectSize;
                 sizes.Add($"{entry.Name} {Numbers.Amount(Mathf.Max(size.x, size.z), 0)} m");
+                var left = Stage.SeeThroughLeftOut();
+                if (left.Count > 0) seeThrough.Add($"{entry.Name} ({string.Join(", ", left)})");
                 if (Mathf.Max(size.x, size.y, size.z) > 300f)
                 {
                     wrong.Add($"{entry.Name} frames {Figures.Point(size)}");
                     p.Note($"{entry.Name}'s largest parts: " + string.Join("; ", Stage.LargestParts(5)));
                 }
                 // A location stands on its own ground; a dungeon's example, shown inside, on its lowest floor.
-                var inside = Stage.HasInside && Stage.Inside && Stage.FloorHeights.Count > 0;
+                var inside = Stage.ExampleShownInside && Stage.FloorHeights.Count > 0;
                 var ground = inside ? Stage.FloorHeights[Stage.FloorHeights.Count - 1] : 0f;
                 if (float.IsNaN(Stage.Ground) || Mathf.Abs(Stage.Ground - ground) > 0.01f) wrong.Add($"{entry.Name} stands at {Numbers.Fixed(Stage.Ground, 1)} m{(inside ? $", its example's lowest floor at {Numbers.Fixed(ground, 1)} m" : "")}");
             }
             p.Note(string.Join(", ", sizes));
+            if (seeThrough.Count > 0) p.Note("see-through parts left out of the frame: " + string.Join("; ", seeThrough));
             p.Check(wrong.Count == 0, "each loads, is framed to a sane size and stands on its own ground", string.Join("; ", wrong));
+        }
+
+        /// <summary>
+        /// The Charred fortress is framed as the fortress: the beacon its bell altar sends into the
+        /// sky stands on the stage, see-through and far taller than the fortress is wide, and is
+        /// left out of the frame. Pictured.
+        /// </summary>
+        private static IEnumerator BeaconOutOfFrame(Probe p)
+        {
+            var fortress = X.Catalog.FirstOrDefault(e => e.Name == "CharredFortress" && PlaceOf(e) != null && !PlaceOf(e).IsRoom);
+            if (fortress == null) p.Skip("CharredFortress is not in the catalog");
+            BigStage();
+            Select(fortress);
+            yield return Until(() => PlaceAssets.State(PlaceOf(fortress)) != PlaceLoad.Loading && CopyOf(fortress) != null, 30);
+            if (!p.Check(CopyOf(fortress) != null, "it stands on the stage")) yield break;
+            yield return new Wait(1);
+            var size = Stage.SubjectSize;
+            var left = Stage.SeeThroughLeftOut();
+            var largest = Stage.LargestParts(1);
+            p.Check(largest.Count > 0 && largest[0].Contains("BellHolder_Beam"), "its altar's beam stands on the stage, its largest part", string.Join("; ", largest));
+            p.Check(left.Any(l => l.EndsWith("BellHolder_Beam", StringComparison.Ordinal)), "and is what the frame leaves out", left.Count == 0 ? "nothing left out" : string.Join(", ", left));
+            p.Check(Mathf.Max(size.x, size.y, size.z) < 120f, "so the fortress is framed as itself, not as tall as its beam", Figures.Point(size));
+            yield return Picture(p, "CharredFortress framed");
+            StageAsItWas();
         }
 
         /// <summary>
