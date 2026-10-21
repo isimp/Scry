@@ -13,9 +13,15 @@ namespace Scry
     /// </summary>
     internal static partial class SelfTest
     {
-        /// <summary>A spread of every kind of prefab stands on the stage, measured to a sane size.</summary>
+        /// <summary>
+        /// A spread of every kind of prefab stands on the stage, measured to a sane size. A deep or
+        /// full run stands every one, thousands, and what their copies leave behind the engine lets
+        /// go of only when unused assets are unloaded, as a scene change does: unloaded after, the
+        /// memory before, after and once unloaded noted, so the parts after are not left paging.
+        /// </summary>
         private static IEnumerator KindsOnStage(Probe p)
         {
+            var before = Memory();
             var failed = new List<string>();
             var odd = new List<string>();
             var shown = 0;
@@ -41,7 +47,19 @@ namespace Scry
             if (failed.Count > game.Count) p.Note("mods' prefabs that did not stand: " + string.Join(", ", failed.Except(game)));
             p.Check(game.Count == 0, "every one of the game's stands on the stage", string.Join(", ", game));
             p.Check(odd.Count == 0, "and measures to a sane size", string.Join(", ", odd));
+            var after = Memory();
+            var unloading = Resources.UnloadUnusedAssets();
+            yield return Until(() => unloading.isDone, 60);
+            GC.Collect();
+            var unloaded = Memory();
+            p.Note($"memory the engine holds, before the spread {MemoryTold(before)}, after it {MemoryTold(after)}, its unused assets unloaded {MemoryTold(unloaded)}");
         }
+
+        /// <summary>What the engine holds allocated and what the game's process holds, in bytes.</summary>
+        private static (long Engine, long Process) Memory() => (UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong(), Process.GetCurrentProcess().PrivateMemorySize64);
+
+        private static string MemoryTold((long Engine, long Process) memory) =>
+            $"{Numbers.Count(memory.Engine >> 20)} MB (the process {Numbers.Count(memory.Process >> 20)} MB)";
 
         /// <summary>Every raid tells when it comes and what it brings, each thing it brings an entry.</summary>
         private static IEnumerator EveryRaid(Probe p)

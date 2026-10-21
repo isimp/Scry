@@ -48,8 +48,12 @@ namespace Scry
 
             // The notice says what the server sets, once: put away, it stays away in this world.
             var world = CompendiumMap.World;
-            _rulesToldBefore = (world, book.RulesTold(world));
             var said = WorldRulesWords.Notice(made);
+            // The made-up rules' notice kept as told, as a run stopped before putting it back
+            // leaves it, is told afresh and not put back.
+            var before = book.RulesTold(world);
+            _rulesToldBefore = (world, before == said ? null : before);
+            book.RulesToldAgain(world, null);
             var notices = ScryPanel.Drawn(PanelPart.RulesNotice);
             yield return Until(() => ScryPanel.Drawn(PanelPart.RulesNotice) > notices, 3);
             p.Check(ScryPanel.Drawn(PanelPart.RulesNotice) > notices && ScryPanel.RulesNoticeLine == said, "a notice says what the server sets", ScryPanel.RulesNoticeLine ?? "no notice");

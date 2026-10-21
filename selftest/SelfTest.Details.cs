@@ -237,7 +237,7 @@ namespace Scry
         }
 
         /// <summary>
-        /// For each kind of gear fact, the first item that has it shows it: armour's resistances
+        /// For each kind of gear fact, the first item that has it shows it, one of the game's own where there is one (a mod may write its items' figures while the game runs, after their page was told): armour's resistances
         /// while worn, a shield's while blocking, what gear changes while worn (heat, stamina,
         /// eitr, adrenaline), what full adrenaline gives, and a weapon's second attack.
         /// </summary>
@@ -266,7 +266,7 @@ namespace Scry
                     p.Note($"no {what} in this game");
                     continue;
                 }
-                var (entry, _) = found[0];
+                var (entry, _) = found.OrderBy(i => i.Entry.Origin == Origin.Vanilla ? 0 : 1).First();
                 var gearFacts = Facts.For(entry);
                 // Told as a fact, a grid or a table.
                 var row = gearFacts.Rows.FirstOrDefault(r => r.Title == label);

@@ -136,7 +136,7 @@ namespace Scry
             yield return S("a creature stands with stars and in each look", StarsAndLooks, 30, () => X.Modifiers.Reset());
             yield return S("a slower animation slows it, and a piece stands in every wear", SpeedAndWear, 30, () => X.Modifiers.Reset());
             yield return S("loudness follows, and a new selection starts afresh", AdjustmentsStartAfresh, 10, () => X.Modifiers.Reset());
-            yield return S("a spread of every kind stands on the stage", KindsOnStage, 240, bearsSkips: true);
+            yield return S("a spread of every kind stands on the stage", KindsOnStage, 320, bearsSkips: true);
             yield return S("switching every frame leaves the last one shown", FastSwitching, 60);
             yield return S("after many others, the stage holds no leftovers", NoLeftovers, 40);
             yield return S("every raid tells what it brings", EveryRaid, 10);
