@@ -381,7 +381,9 @@ namespace Scry
         /// The creatures the kills counted stand for. The game counts a kill by the name a creature
         /// shows, which several can share, as the frozen greydwarf, living only in the Deep North,
         /// shows the greydwarf's: of those, the ones living in a biome the character entered;
-        /// where none does, a kill was still one of them, and all count.
+        /// where none does, the ones the world brings about (<see cref="Comes"/>), never the
+        /// bosses' aspects, which nothing in the game spawns though their roots go by the Elder's
+        /// roots' name; where none comes about either, a kill was still one of them, and all count.
         /// </summary>
         private IEnumerable<Entry> Killed(CompendiumRecords records, HashSet<string> entered)
         {
@@ -389,12 +391,53 @@ namespace Scry
             {
                 if (token == null || !_byToken.TryGetValue(token, out var entries)) continue;
                 var lived = false;
-                foreach (var entry in entries) lived |= entry.Kind == Kind.Creature && entry.Biomes.Any(entered.Contains);
+                var comes = false;
                 foreach (var entry in entries)
                 {
-                    if (entry.Kind == Kind.Creature && (!lived || entry.Biomes.Any(entered.Contains))) yield return entry;
+                    if (entry.Kind != Kind.Creature) continue;
+                    lived |= entry.Biomes.Any(entered.Contains);
+                    comes |= Comes(entry);
+                }
+                foreach (var entry in entries)
+                {
+                    if (entry.Kind == Kind.Creature && (lived ? entry.Biomes.Any(entered.Contains) : !comes || Comes(entry))) yield return entry;
                 }
             }
+        }
+
+        /// <summary>
+        /// Whether the world brings a creature about: it lives in a biome, or something it brings
+        /// about spawns it, a place, a spawner, a raid or a creature summoning it.
+        /// </summary>
+        private bool Comes(Entry creature) => ComesBy(creature, new HashSet<Entry>());
+
+        private bool ComesBy(Entry entry, HashSet<Entry> seen)
+        {
+            if (entry.Biomes.Length > 0) return true;
+            if (!seen.Add(entry)) return false;
+            foreach (var by in SpawnedBy(entry)) if (ComesBy(by, seen)) return true;
+            return false;
+        }
+
+        /// <summary>What spawns each entry (<see cref="Entry.TermLinks"/>, "spawns"), made once from the catalog.</summary>
+        private Dictionary<Entry, List<Entry>> _spawnedBy;
+
+        private IReadOnlyList<Entry> SpawnedBy(Entry entry)
+        {
+            if (_spawnedBy == null)
+            {
+                _spawnedBy = new Dictionary<Entry, List<Entry>>();
+                foreach (var by in _catalog.All)
+                {
+                    foreach (var spawned in by.TermLinks("spawns"))
+                    {
+                        if (spawned == null) continue;
+                        if (!_spawnedBy.TryGetValue(spawned, out var those)) _spawnedBy[spawned] = those = new List<Entry>();
+                        those.Add(by);
+                    }
+                }
+            }
+            return _spawnedBy.TryGetValue(entry, out var spawners) ? (IReadOnlyList<Entry>)spawners : Array.Empty<Entry>();
         }
 
         /// <summary>

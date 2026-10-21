@@ -58,6 +58,8 @@ namespace Scry.Tests
             forest.Biomes = new[] { "BlackForest" };
             greydwarf.Biomes = new[] { "Meadows", "BlackForest" };
             shaman.Biomes = new[] { "BlackForest" };
+            frozen.Biomes = new[] { "DeepNorth" };
+            frozenShaman.Biomes = new[] { "DeepNorth" };
             var (catchUp, book) = Fresh(greydwarf, frozen, shaman, frozenShaman, forest);
             var records = new CompendiumRecords();
             records.Killed.Add("$enemy_greydwarf");
@@ -90,6 +92,44 @@ namespace Scry.Tests
             before.Fill(early, beforeBook, firstLoad: false);
             Assert.Equal(KnownLevel.Known, beforeBook.Level(greydwarf.Key));
             Assert.Equal(KnownLevel.Known, beforeBook.Level(frozen.Key));
+        }
+
+        [Fact]
+        public void AKillCountedUnderANameIsNeverOfACreatureNothingInTheWorldBringsAbout()
+        {
+            // The Elder, in the Black Forest, summons its roots; the game also holds the bosses'
+            // aspects, which nothing in the game spawns, and the Elder's aspect summons roots going
+            // by the same name. A kill of the roots is the Elder's, never the aspect's.
+            var elder = E(Kind.Creature, "gd_king", "$enemy_gdking");
+            elder.Biomes = new[] { "BlackForest" };
+            var roots = E(Kind.Creature, "TentaRoot", "$enemy_tentaroot");
+            var aspect = E(Kind.Creature, "Aspect_Elder", "$enemy_gdking");
+            var aspectRoots = E(Kind.Creature, "Aspect_TentaRoot", "$enemy_tentaroot");
+            elder.AddTermLink("spawns", roots);
+            aspect.AddTermLink("spawns", aspectRoots);
+            var records = new CompendiumRecords();
+            records.Killed.Add("$enemy_tentaroot");
+            records.Killed.Add("$enemy_gdking");
+
+            var (catchUp, book) = Fresh(elder, roots, aspect, aspectRoots);
+            catchUp.Fill(records, book, firstLoad: true);
+            Assert.Equal(KnownLevel.Known, book.Level(roots.Key));
+            Assert.Equal(KnownLevel.Known, book.Level(elder.Key));
+            Assert.Equal(KnownLevel.Unknown, book.Level(aspectRoots.Key));
+            Assert.Equal(KnownLevel.Unknown, book.Level(aspect.Key));
+
+            // Counted before by the rule that took every one, the aspect's roots are taken back.
+            var (again, older) = Fresh(elder, roots, aspect, aspectRoots);
+            older.Raise(aspectRoots.Key, KnownLevel.Known);
+            older.Witness(aspectRoots.Key, EntryKeys.Did(Deed.Killed));
+            again.Fill(records, older, firstLoad: false);
+            Assert.Equal(KnownLevel.Unknown, older.Level(aspectRoots.Key));
+            Assert.False(older.Witnessed(aspectRoots.Key, EntryKeys.Did(Deed.Killed)));
+
+            // Where nothing going by the name comes about in the world, a kill was still one of them.
+            var (alone, aloneBook) = Fresh(aspect, aspectRoots);
+            alone.Fill(records, aloneBook, firstLoad: true);
+            Assert.Equal(KnownLevel.Known, aloneBook.Level(aspectRoots.Key));
         }
 
         [Fact]
