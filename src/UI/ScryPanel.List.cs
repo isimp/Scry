@@ -438,6 +438,11 @@ namespace Scry
             return _listRows;
         }
 
+        /// <summary>
+        /// A row of the list: lit where selected or under the mouse, the entry's icon or its kind's
+        /// dot, its name and what tells it apart, its star and the mark of what shows it by the
+        /// player's choice; a click selects it or stars it, a double-click acts on what is known.
+        /// </summary>
         private static void Row(Explorer explorer, Entry entry, Rect rect, bool selected, Rect visible)
         {
             var e = Event.current;
@@ -448,19 +453,10 @@ namespace Scry
             else if (hover) Skin.Box(inner, Skin.Hover);
             if (selected) Skin.Fill(new Rect(inner.x, inner.y + U(8f), U(3f), inner.height - U(16f)), Skin.Accent);
 
-            // An entry without an icon of its own gets no mark in a kind's tab, where it would be
-            // the same on every row, and the names move left when nothing there has an icon; in a
-            // list of every kind, a dot of its kind's colour tells the kinds apart.
-            var icon = new Rect(inner.x + U(10f), inner.y + (inner.height - U(24f)) / 2f, U(24f), U(24f));
+            // The names move left in a kind's tab where nothing there has an icon.
+            var icon =new Rect(inner.x + U(10f), inner.y + (inner.height - U(24f)) / 2f, U(24f), U(24f));
             var oneKind = Grouped(explorer);
-            var drawn = Timing.Start();
-            if (HasIcon(entry)) DrawIcon(entry, icon);
-            else if (!oneKind)
-            {
-                var dot = U(8f);
-                Skin.Icon(new Rect(icon.center.x - dot / 2f, icon.center.y - dot / 2f, dot, dot), Skin.Circle, Skin.KindColor(entry.Kind));
-            }
-            Timing.Add("list icons", drawn);
+            RowIcon(entry, icon, oneKind);
 
             var favourite = explorer.Favourites.Contains(entry);
             var star = new Rect(inner.xMax - U(28f), inner.y + (inner.height - U(18f)) / 2f, U(18f), U(18f));
@@ -482,14 +478,52 @@ namespace Scry
             if ((entry.Indent || explorer.UnderOwner(entry)) && oneKind) textX += U(20f);
             var textW = (choice != null ? floorMark.x : star.x) - U(8f) - textX;
             var primary = entry.ShownName;
-            // In the learned list, how its latest news came (killed, seen, what was found out). With the
-            // compendium on, no prefab name, a place's tag holding one too: which of several going by
-            // one name it is, where it is one, the creatures carrying it kept back until met. Off, its
-            // tag or its prefab's name; a creature's attack by its carrier, told apart from its others.
-            var secondary = (explorer.LearnedOnly ? explorer.LearnedNote(entry) : null)
-                            ?? (explorer.CompendiumOn ? Masked(explorer, explorer.AlikeOf(entry)) ?? ""
-                                : (entry.TagNamesCarrier ? entry.Alike : null) ?? entry.Tag ?? (primary == entry.Name ? "" : entry.Name));
+            var secondary = RowSecondary(explorer, entry, primary);
+            var cut = RowNames(explorer, entry, new Rect(textX, inner.y, textW, inner.height), primary, secondary);
+            if (hover) RowTip(explorer, entry, choice, floorMark, star, cut, primary, secondary);
+            Timing.Add("list names", named);
+            if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition) && visible.Contains(e.mousePosition)) RowClick(explorer, entry, star);
+        }
 
+        /// <summary>
+        /// An entry's icon, or without one of its own no mark in a kind's tab, where it would be the
+        /// same on every row, and in a list of every kind a dot of its kind's colour, telling the
+        /// kinds apart.
+        /// </summary>
+        private static void RowIcon(Entry entry, Rect icon, bool oneKind)
+        {
+            var drawn = Timing.Start();
+            if (HasIcon(entry)) DrawIcon(entry, icon);
+            else if (!oneKind)
+            {
+                var dot = U(8f);
+                Skin.Icon(new Rect(icon.center.x - dot / 2f, icon.center.y - dot / 2f, dot, dot), Skin.Circle, Skin.KindColor(entry.Kind));
+            }
+            Timing.Add("list icons", drawn);
+        }
+
+        /// <summary>
+        /// What a row tells after the name: in the learned list how its latest news came (killed,
+        /// seen, what was found out). With the compendium on no prefab name, a place's tag holding
+        /// one too: which of several going by one name it is, where it is one, the creatures
+        /// carrying it kept back until met. Off, its tag or its prefab's name; a creature's attack
+        /// by its carrier, told apart from its others.
+        /// </summary>
+        private static string RowSecondary(Explorer explorer, Entry entry, string primary) =>
+            (explorer.LearnedOnly ? explorer.LearnedNote(entry) : null)
+            ?? (explorer.CompendiumOn ? Masked(explorer, explorer.AlikeOf(entry)) ?? ""
+                : (entry.TagNamesCarrier ? entry.Alike : null) ?? entry.Tag ?? (primary == entry.Name ? "" : entry.Name));
+
+        /// <summary>
+        /// A row's name, cut with an ellipsis where too long, faint where only seen in the learned list
+        /// or where there is nothing to see, and after it what tells it apart while there is room, the
+        /// search's matches lit in both. Whether either was cut.
+        /// </summary>
+        private static bool RowNames(Explorer explorer, Entry entry, Rect text, string primary, string secondary)
+        {
+            var textX = text.x;
+            var textW = text.width;
+            var inner = text;
             var nameStyle = Skin.RowName;
             var fullW = Skin.Width(nameStyle, primary);
             var nameW = Mathf.Min(textW, fullW);
@@ -520,33 +554,39 @@ namespace Scry
                     cut = true;
                 }
             }
+            return cut;
+        }
 
-            // A cut name shows whole on hover, and a faint row says why it is faint.
-            if (hover && choice != null && floorMark.Contains(e.mousePosition))
+        /// <summary>Under the mouse, the mark's tip saying what shows the entry, or a cut name whole and why a faint row is faint.</summary>
+        private static void RowTip(Explorer explorer, Entry entry, Texture2D choice, Rect floorMark, Rect star, bool cut, string primary, string secondary)
+        {
+            var e = Event.current;
+            if (choice != null && floorMark.Contains(e.mousePosition))
             {
                 AskTip("choice-mark:" + entry.Key, explorer.ByFloor(entry) || !(explorer.ByWorld(entry) is WorldSource from)
                     ? CompendiumWords.ByFloor(explorer.Compendium.Floor)
                     : CompendiumWords.ByWorld(from, explorer.LevelOf(entry)));
             }
-            else if (hover && (cut || entry.Empty) && !star.Contains(e.mousePosition))
+            else if ((cut || entry.Empty) && !star.Contains(e.mousePosition))
             {
                 AskTip(entry.Key, Naming.Lines(primary, secondary, entry.Empty ? ListWords.Silent : null));
             }
-            Timing.Add("list names", named);
+        }
 
-            if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition) && visible.Contains(e.mousePosition))
+        /// <summary>A click on a row: on its star it stars or unstars the entry, else selects it, a double-click acting on what is known.</summary>
+        private static void RowClick(Explorer explorer, Entry entry, Rect star)
+        {
+            var e = Event.current;
+            if (star.Contains(e.mousePosition))
             {
-                if (star.Contains(e.mousePosition))
-                {
-                    explorer.ToggleFavourite(entry);
-                }
-                else
-                {
-                    explorer.Select(entry);
-                    if (e.clickCount == 2 && explorer.LevelOf(entry) == KnownLevel.Known) Primary(entry);
-                }
-                e.Use();
+                explorer.ToggleFavourite(entry);
             }
+            else
+            {
+                explorer.Select(entry);
+                if (e.clickCount == 2 && explorer.LevelOf(entry) == KnownLevel.Known) Primary(entry);
+            }
+            e.Use();
         }
 
         private static void DrawIcon(Entry entry, Rect rect)
