@@ -49,6 +49,7 @@ namespace Scry.Tests
             {
                 Assert.True(afresh.Of(entry) == told.Of(entry), $"{entry.Key}: {told.Of(entry)} told on top, {afresh.Of(entry)} afresh");
                 Assert.True(afresh.ByFloor(entry) == told.ByFloor(entry), $"{entry.Key}: by the floor {told.ByFloor(entry)} told on top, {afresh.ByFloor(entry)} afresh");
+                Assert.True(afresh.FloorOf(entry) == told.FloorOf(entry), $"{entry.Key}: by the floor's tier {told.FloorOf(entry)} told on top, {afresh.FloorOf(entry)} afresh");
                 Assert.True((afresh.Because(entry) == null) == (told.Because(entry) == null), $"{entry.Key}: a reason told on top {told.Because(entry)?.Key}, afresh {afresh.Because(entry)?.Key}");
                 // Which of several owners is named may differ; the one named must own or name it, and be known.
                 var because = told.Because(entry);

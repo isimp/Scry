@@ -143,6 +143,68 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatTheFloorShowsIsToldByTheLowestTierThatShowsIt()
+        {
+            // Stepped up to the Mountain, the floor shows the troll by the Black Forest's tier, not
+            // the Mountain's: what it brings along goes by the same tier, unless a tier of its own
+            // is higher, and what two things bring along goes by the lower of theirs.
+            var troll = new Entry { Kind = Kind.Creature, Name = "Troll" };
+            var wolf = new Entry { Kind = Kind.Creature, Name = "Wolf" };
+            var boar = new Entry { Kind = Kind.Creature, Name = "Boar" };
+            var trollSound = new Entry { Kind = Kind.Sound, Name = "sfx_troll_idle" };
+            var howl = new Entry { Kind = Kind.Sound, Name = "sfx_wolf_howl" };
+            var hit = new Entry { Kind = Kind.Sound, Name = "sfx_hit" };
+            var frost = new Entry { Kind = Kind.StatusEffect, Name = "Frost" };
+            trollSound.UsedBy.Add("Troll");
+            howl.UsedBy.Add("Wolf");
+            hit.UsedBy.Add("Wolf");
+            hit.UsedBy.Add("Troll");
+            troll.Links.Add(new Link { Group = "Status effects", Target = frost.Key });
+            var view = new CompendiumView(new EntryCatalog(new[] { wolf, troll, boar, trollSound, howl, hit, frost }));
+            var tiers = new Dictionary<string, int> { { troll.Key, 2 }, { wolf.Key, 4 }, { boar.Key, 1 }, { frost.Key, 4 } };
+            var book = new CompendiumBook();
+            book.Raise(boar.Key, KnownLevel.Known);
+
+            view.Milestones(tiers, 4);
+            view.Tell(book, CompendiumRule.Loose);
+            Assert.Equal(2, view.FloorOf(troll));
+            Assert.Equal(2, view.FloorOf(trollSound));
+            Assert.Equal(2, view.FloorOf(hit));
+            Assert.Equal(4, view.FloorOf(wolf));
+            Assert.Equal(4, view.FloorOf(howl));
+            Assert.Equal(4, view.FloorOf(frost));
+            Assert.True(view.Owns(troll, frost));
+            // Known by the character, or of no catalog: no tier of the floor's.
+            Assert.Equal(0, view.FloorOf(boar));
+            Assert.Equal(0, view.FloorOf(null));
+
+            // Lowered to the Black Forest, the troll is told by it as before; the wolf no longer shows.
+            view.Milestones(tiers, 2);
+            view.Tell(book, CompendiumRule.Loose);
+            Assert.Equal(2, view.FloorOf(troll));
+            Assert.Equal(2, view.FloorOf(hit));
+            Assert.Equal(0, view.FloorOf(wolf));
+            Assert.Equal(0, view.FloorOf(frost));
+        }
+
+        [Fact]
+        public void ALinksTipNamesTheTierThatShowsWhatItGoesTo()
+        {
+            var troll = new Entry { Kind = Kind.Creature, Name = "Troll" };
+            var explorer = new Explorer(new List<Entry> { troll }, new Favourites(System.IO.Path.Combine(TestCatalog.TempDir(), "favourites.txt")));
+            var view = new CompendiumView(explorer.Entries);
+            view.Milestones(new Dictionary<string, int> { { troll.Key, 2 } }, 5);
+            view.Tell(new CompendiumBook(), CompendiumRule.Loose);
+            explorer.Know(view);
+
+            Assert.Equal(2, explorer.FloorOf(troll));
+            Assert.Equal(CompendiumWords.FloorTip(2, "Go to Troll"), explorer.ChoiceTip(troll.Key, "Go to Troll"));
+            // Peeking at everything, nothing is told apart.
+            explorer.Peeking = true;
+            Assert.Equal(0, explorer.FloorOf(troll));
+        }
+
+        [Fact]
         public void TheFloorBringsAlongNothingOfATierAboveIt()
         {
             // A torch of the first tier is known by a floor of the second, and the sound it plays

@@ -564,7 +564,7 @@ namespace Scry
             if (choice != null && floorMark.Contains(e.mousePosition))
             {
                 AskTip("choice-mark:" + entry.Key, explorer.ByFloor(entry) || !(explorer.ByWorld(entry) is WorldSource from)
-                    ? CompendiumWords.ByFloor(explorer.Compendium.Floor)
+                    ? CompendiumWords.ByFloor(explorer.FloorOf(entry))
                     : CompendiumWords.ByWorld(from, explorer.LevelOf(entry)));
             }
             else if ((cut || entry.Empty) && !star.Contains(e.mousePosition))

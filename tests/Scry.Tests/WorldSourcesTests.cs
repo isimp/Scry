@@ -381,7 +381,7 @@ namespace Scry.Tests
         {
             Assert.Equal("Shown as known from your explored ground, not yet met by this character", CompendiumWords.ByWorld(WorldSource.Explored, KnownLevel.Known));
             Assert.Equal("Shown as seen from shared maps, not yet met by this character", CompendiumWords.ByWorld(WorldSource.SharedMaps, KnownLevel.Seen));
-            Assert.Equal("shown as known from the places every map shows", CompendiumWords.CameLine(null, -1, null, owner: null, byFloor: false, known: true, byWorld: WorldSource.OnEveryMap));
+            Assert.Equal("shown as known from the places every map shows", CompendiumWords.CameLine(null, -1, null, owner: null, floor: 0, known: true, byWorld: WorldSource.OnEveryMap));
         }
 
         [Fact]

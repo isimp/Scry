@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Scry
 {
@@ -65,8 +66,8 @@ namespace Scry
     /// trophy. A dungeon known owns its rooms. Under <see cref="CompendiumRule.Strict"/> only what is
     /// known brings its parts along, and a known page keeps of how it connects only what is
     /// <see cref="Related"/> to it. With a milestone floor (<see cref="Milestones"/>) everything of
-    /// a tier at or below it is known too, with what it owns that is no higher, told apart
-    /// (<see cref="ByFloor"/>), and shows whole
+    /// a tier at or below it is known too, with what it owns that is no higher, told apart by the
+    /// lowest tier that shows it (<see cref="ByFloor"/>, <see cref="FloorOf"/>), and shows whole
     /// under either rules (<see cref="BelowFloor"/>). Whatever else a known entry's page names,
     /// by its links, its link terms, its stations or the places it is found in, is heard of.
     /// Told again only when the book's levels, the rule, the floor, the skills learned or the catalog's groups change
@@ -85,7 +86,9 @@ namespace Scry
         private readonly Dictionary<Entry, KnownLevel> _levels = new Dictionary<Entry, KnownLevel>();
         private readonly Dictionary<Entry, Entry> _because = new Dictionary<Entry, Entry>();
         private readonly HashSet<(Entry, Entry)> _owns = new HashSet<(Entry, Entry)>();
-        private readonly HashSet<Entry> _byFloor = new HashSet<Entry>();
+
+        /// <summary>What shows only because of the floor, by the lowest tier that shows it (<see cref="FloorOf"/>).</summary>
+        private readonly Dictionary<Entry, int> _byFloor = new Dictionary<Entry, int>();
 
         /// <summary>What shows only because a source of the world found it, or brought along by such a place, by the source (<see cref="ByWorld"/>).</summary>
         private readonly Dictionary<Entry, WorldSource> _byWorld = new Dictionary<Entry, WorldSource>();
@@ -305,13 +308,23 @@ namespace Scry
         public static bool OnlyGlimpsed(Entry entry) => Array.IndexOf(entry.Components, GlimpsedBehaviour) >= 0;
 
         /// <summary>Whether an entry's own tier is above the floor, so the floor does not bring it along; none is for one of no tier.</summary>
-        private bool AboveFloor(Entry entry) => _tiers != null && _tiers.TryGetValue(entry.Key, out var tier) && tier > _floor;
+        private bool AboveFloor(Entry entry) => TierOf(entry) > _floor;
+
+        /// <summary>An entry's own tier; none (0) for one of no tier.</summary>
+        private int TierOf(Entry entry) => _tiers != null && _tiers.TryGetValue(entry.Key, out var tier) ? tier : 0;
 
         /// <summary>The floor shown by, the last tier it opens; none at 0.</summary>
         public int Floor => _floor;
 
         /// <summary>Whether an entry shows as known only because of the floor: neither the character knows it nor anything it knows brings it along.</summary>
-        public bool ByFloor(Entry entry) => entry != null && _byFloor.Contains(entry);
+        public bool ByFloor(Entry entry) => entry != null && _byFloor.ContainsKey(entry);
+
+        /// <summary>
+        /// The lowest tier the floor shows an entry by (<see cref="ByFloor"/>): its own, or for one
+        /// brought along, that of what brings it, unless its own is higher; with the floor stepped
+        /// above it, still that tier. None (0) for one the floor does not show.
+        /// </summary>
+        public int FloorOf(Entry entry) => entry != null && _byFloor.TryGetValue(entry, out var tier) ? tier : 0;
 
         /// <summary>The world played, by its id, whose places the book's sources found (<see cref="CompendiumBook.FoundIn"/>) show; another counts afresh at the next telling.</summary>
         public void InWorld(string world)
@@ -432,7 +445,8 @@ namespace Scry
             if (rule == CompendiumRule.Off) return;
 
             // What the character knows itself, with all it brings along; then what the floor adds,
-            // and all that brings, told apart as the floor's (ByFloor).
+            // and all that brings, told apart as the floor's (ByFloor), tier by tier from the lowest
+            // so each is told by the lowest tier that shows it (FloorOf).
             var met = new Queue<Entry>();
             var floored = new List<Entry>();
             foreach (var entry in _catalog.All)
@@ -447,15 +461,18 @@ namespace Scry
                 // Only what is known brings its parts along, not what was only seen, as a creature seen from afar.
                 if (level >= KnownLevel.Known) met.Enqueue(entry);
             }
-            Spread(met, false);
-            foreach (var entry in floored)
+            Spread(met);
+            foreach (var tier in floored.GroupBy(TierOf).OrderBy(g => g.Key))
             {
-                if (Of(entry) == KnownLevel.Known) continue;
-                _levels[entry] = KnownLevel.Known;
-                _byFloor.Add(entry);
-                met.Enqueue(entry);
+                foreach (var entry in tier)
+                {
+                    if (Of(entry) == KnownLevel.Known) continue;
+                    _levels[entry] = KnownLevel.Known;
+                    _byFloor[entry] = tier.Key;
+                    met.Enqueue(entry);
+                }
+                Spread(met, tier.Key);
             }
-            Spread(met, true);
             if (_world != null) ShowFromWorld(book, met);
 
             var heard = new List<(Entry Named, Entry By)>();
@@ -536,22 +553,24 @@ namespace Scry
 
         /// <summary>
         /// What a known entry owns is known, and owns in turn (an effect's own sounds):
-        /// each owner waiting in the queue, and what it brings along; by the floor, told so, and
-        /// only what is of no higher a tier than the floor.
+        /// each owner waiting in the queue, and what it brings along; by the floor's tier given,
+        /// told so by it, and only what is of no higher a tier than the floor, what is of a higher
+        /// tier than the one given waiting for its own.
         /// </summary>
-        private void Spread(Queue<Entry> met, bool byFloor, WorldSource? source = null, bool insides = false)
+        private void Spread(Queue<Entry> met, int byFloor = 0, WorldSource? source = null, bool insides = false)
         {
+            var floored = byFloor > 0;
             while (met.Count > 0)
             {
                 var owner = met.Dequeue();
                 foreach (var owned in Owned(owner, insides ? source : null))
                 {
-                    if (byFloor && (AboveFloor(owned) || OnlyGlimpsed(owned))) continue;
+                    if (floored && (AboveFloor(owned) || OnlyGlimpsed(owned))) continue;
                     _owns.Add((owner, owned));
-                    if (Of(owned) == KnownLevel.Known) continue;
+                    if (Of(owned) == KnownLevel.Known || floored && TierOf(owned) > byFloor) continue;
                     _levels[owned] = KnownLevel.Known;
                     _because[owned] = owner;
-                    if (byFloor) _byFloor.Add(owned);
+                    if (floored) _byFloor[owned] = byFloor;
                     if (source != null) _byWorld[owned] = source.Value;
                     met.Enqueue(owned);
                 }
@@ -603,7 +622,7 @@ namespace Scry
                     if (level == SourceLevel.WithInsides) ShownWithInsides(entry, source);
                     met.Enqueue(entry);
                 }
-                Spread(met, false, source, level == SourceLevel.WithInsides);
+                Spread(met, 0, source, level == SourceLevel.WithInsides);
             }
         }
 

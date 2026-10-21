@@ -284,7 +284,7 @@ namespace Scry
 
         /// <summary>What shows an entry by the player's choice, the floor or a source of the world, as the line under its title says; none for what the character met itself.</summary>
         private static string ShownBy(Explorer explorer, Entry entry) =>
-            explorer.ByFloor(entry) ? CompendiumWords.ByFloor(explorer.Compendium.Floor)
+            explorer.ByFloor(entry) ? CompendiumWords.ByFloor(explorer.FloorOf(entry))
             : explorer.ByWorld(entry) is WorldSource source ? CompendiumWords.ByWorld(source, explorer.LevelOf(entry)) : null;
 
         /// <summary>

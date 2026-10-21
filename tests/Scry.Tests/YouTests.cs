@@ -35,11 +35,12 @@ namespace Scry.Tests
         [Fact]
         public void HowItCameToBeKnownIsTheWayKeptOrWhatBroughtItAlongOrTheFloor()
         {
-            Assert.Equal("day 12, fighting it in the Black Forest", CompendiumWords.CameLine(CameBy.Fought, 12, "Black Forest", owner: "Troll", byFloor: true, known: true));
-            Assert.Equal("with Troll", CompendiumWords.CameLine(null, -1, null, owner: "Troll", byFloor: true, known: true));
-            Assert.Equal("shown as known up to its biome", CompendiumWords.CameLine(null, -1, null, owner: null, byFloor: true, known: true));
-            Assert.Equal("known before Scry kept track of this character", CompendiumWords.CameLine(null, -1, null, owner: null, byFloor: false, known: true));
-            Assert.Null(CompendiumWords.CameLine(null, -1, null, owner: null, byFloor: false, known: false));
+            Assert.Equal("day 12, fighting it in the Black Forest", CompendiumWords.CameLine(CameBy.Fought, 12, "Black Forest", owner: "Troll", floor: 2, known: true));
+            Assert.Equal("with Troll", CompendiumWords.CameLine(null, -1, null, owner: "Troll", floor: 2, known: true));
+            // Shown by the floor, by the lowest tier that shows it, whatever the floor stepped to since.
+            Assert.Equal("shown as known up to the Black Forest tier", CompendiumWords.CameLine(null, -1, null, owner: null, floor: 2, known: true));
+            Assert.Equal("known before Scry kept track of this character", CompendiumWords.CameLine(null, -1, null, owner: null, floor: 0, known: true));
+            Assert.Null(CompendiumWords.CameLine(null, -1, null, owner: null, floor: 0, known: false));
         }
     }
 }

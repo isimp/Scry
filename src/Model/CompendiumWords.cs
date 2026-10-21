@@ -238,15 +238,15 @@ namespace Scry
 
         /// <summary>
         /// How a known thing came to be known, for that box: the way kept in its book, else what
-        /// known brought it along, else the floor, else known before the book was kept; none for
-        /// one not known.
+        /// known brought it along, else the floor's tier that shows it (none at 0), else known
+        /// before the book was kept; none for one not known.
         /// </summary>
-        public static string CameLine(CameBy? way, int day, string biome, string owner, bool byFloor, bool known, DayPart time = DayPart.None, string weather = null, string inHand = null,
+        public static string CameLine(CameBy? way, int day, string biome, string owner, int floor, bool known, DayPart time = DayPart.None, string weather = null, string inHand = null,
             WorldSource? byWorld = null)
         {
             if (way is CameBy by) return CameToKnow(by, day, biome, time, weather, inHand);
             if (!string.IsNullOrEmpty(owner)) return CameWith(owner);
-            if (byFloor) return "shown as known up to its biome";
+            if (floor > 0) return $"shown as {FloorCaption.ToLowerInvariant()} the {FloorName(floor)} tier";
             if (byWorld is WorldSource source) return "shown as known from " + SourcePhrase(source);
             return known ? KnownBefore : null;
         }

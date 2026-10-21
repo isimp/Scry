@@ -236,6 +236,9 @@ namespace Scry
         /// <summary>Whether an entry shows as known only because of the compendium's floor (<see cref="CompendiumView.ByFloor"/>).</summary>
         public bool ByFloor(Entry entry) => CompendiumOn && _view.ByFloor(entry);
 
+        /// <summary>The lowest tier the compendium's floor shows an entry by (<see cref="CompendiumView.FloorOf"/>); none (0) for one it does not show, or with the compendium off.</summary>
+        public int FloorOf(Entry entry) => CompendiumOn ? _view.FloorOf(entry) : 0;
+
         /// <summary>Whether an entry's latest news is what a reading of the explored map brought (<see cref="EntryKeys.OnMap"/>), counted rather than named in the notice.</summary>
         public bool FromMap(Entry entry) => CompendiumOn && entry != null && _view.Book?.FoundOutOf(entry.Key) == EntryKeys.OnMap;
 
@@ -264,11 +267,11 @@ namespace Scry
         /// <summary>Whether what a link or chip goes to, by its key, shows only by the player's choice (<see cref="ByChoice"/>), to be marked as its row is.</summary>
         public bool ShownByChoice(string key) => ByChoice(Find(key));
 
-        /// <summary>A link's or chip's tip, with what shows only by the player's choice saying so first: the floor's tier, or the source and how it shows.</summary>
+        /// <summary>A link's or chip's tip, with what shows only by the player's choice saying so first: the floor's tier that shows it, or the source and how it shows.</summary>
         public string ChoiceTip(string key, string tip)
         {
             var entry = Find(key);
-            if (ByFloor(entry)) return CompendiumWords.FloorTip(_view.Floor, tip);
+            if (ByFloor(entry)) return CompendiumWords.FloorTip(FloorOf(entry), tip);
             var source = ByWorld(entry);
             return source != null ? CompendiumWords.WorldTip(source.Value, _view.Of(entry), tip) : tip;
         }
