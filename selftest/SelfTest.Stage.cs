@@ -388,7 +388,7 @@ namespace Scry
             {
                 Stage.GroundBiomeOverride = biome;
                 yield return null;
-                yield return null;
+                yield return Until(() => !Stage.GrassScattering, 5);
                 yield return null;
                 grass[biome] = Stage.GrassCount;
                 water[biome] = Stage.WaterShown;

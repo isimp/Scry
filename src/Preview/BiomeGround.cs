@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -163,6 +164,7 @@ namespace Scry
             if (!on)
             {
                 if (_water != null && _water.activeSelf) _water.SetActive(false);
+                StopScatter();
                 if (_grass.Count > 0 || _grassCopies.Count > 0) ForgetGrass();
                 _for = null;
                 return;
@@ -206,6 +208,7 @@ namespace Scry
 
             if (_paintWait.Due(Time.unscaledTime)) RepaintMask();
             if (_grassWait.Due(Time.unscaledTime)) Scatter(root, layer);
+            StepScatter();
 
             PlaceAt(_at, _across);
             PlaceWater(root, layer);
@@ -227,11 +230,53 @@ namespace Scry
             Timing.Add("render frame ground paint", step);
         }
 
+        /// <summary>Starts scattering the grass afresh, any scatter under way let go of; the grass shown stays until the new is done.</summary>
         private void Scatter(GameObject root, int layer)
         {
+            StopScatter();
+            _scattering = ScatterGrass(root, layer);
+            StepScatter();
+        }
+
+        /// <summary>A few milliseconds a frame for scattering grass, as a wide ground scatters tens of thousands of stems.</summary>
+        private const double ScatterBudgetMs = 4.0;
+
+        /// <summary>The scatter under way, a patch a step, and the copies it made so far, kept hidden until it is done; none between.</summary>
+        private IEnumerator _scattering;
+        private readonly List<GameObject> _scatteredCopies = new List<GameObject>();
+
+        /// <summary>Whether grass is being scattered, the grass scattered last shown meanwhile, for the self-test.</summary>
+        public bool Scattering => _scattering != null;
+
+        /// <summary>Scatters on for a few milliseconds a frame, the game's own dice put back after.</summary>
+        private void StepScatter()
+        {
+            if (_scattering == null) return;
             var step = Timing.Start();
-            ScatterGrass(root, layer);
+            var state = UnityEngine.Random.state;
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                while (watch.Elapsed.TotalMilliseconds < ScatterBudgetMs)
+                {
+                    if (_scattering.MoveNext()) continue;
+                    _scattering = null;
+                    break;
+                }
+            }
+            finally
+            {
+                UnityEngine.Random.state = state;
+            }
             Timing.Add("render frame ground grass", step);
+        }
+
+        /// <summary>Lets go of a scatter under way and the copies it made.</summary>
+        private void StopScatter()
+        {
+            _scattering = null;
+            foreach (var copy in _scatteredCopies) if (copy != null) Object.Destroy(copy);
+            _scatteredCopies.Clear();
         }
 
         /// <summary>Makes the piece of ground once the world's terrain has a material to borrow, trying again a second apart.</summary>
@@ -512,12 +557,17 @@ namespace Scry
         /// the ground taken at a height typical of the biome (<see cref="StageGround.Altitude"/>).
         /// It grows out to where the ground has faded away, eighty metres at the most, thinning as
         /// the ground fades (<see cref="StageGround.GrassKept"/>), so grass and ground fade together.
+        /// A patch a step, a few milliseconds a frame (<see cref="StepScatter"/>), the grass shown
+        /// staying until the new is done, then lifted with the ground where it moved meanwhile.
         /// </summary>
-        private void ScatterGrass(GameObject root, int layer)
+        private IEnumerator ScatterGrass(GameObject root, int layer)
         {
-            ForgetGrass();
             var system = ClutterSystem.instance;
-            if (system == null || root == null || !Enum.TryParse<Heightmap.Biome>(Biome, out var biome)) return;
+            if (system == null || root == null || !Enum.TryParse<Heightmap.Biome>(Biome, out var biome))
+            {
+                ForgetGrass();
+                yield break;
+            }
             var paints = PaintsNow();
             var ground = Heightmap.m_paintMaskNothing;
             ground.a = StageGround.MaskShare(Biome);
@@ -531,55 +581,60 @@ namespace Scry
             // reach cut short, thinning as if the ground ended there.
             var thinsBy = reach / 0.95f;
             var patches = Mathf.CeilToInt(reach / size);
-            _farthest = 0f;
-            _nearest = float.MaxValue;
+            var at = _at;
+            var clear = _clear;
+            var farthest = 0f;
+            var nearest = float.MaxValue;
             var kinds = new Dictionary<GameObject, GrassKind>();
-            var state = UnityEngine.Random.state;
-            try
+            for (var px = -patches; px <= patches; px++)
             {
-                for (var px = -patches; px <= patches; px++)
+                for (var pz = -patches; pz <= patches; pz++)
                 {
-                    for (var pz = -patches; pz <= patches; pz++)
+                    var cx = at.x + px * size;
+                    var cz = at.z + pz * size;
+                    if (new Vector2(cx - at.x, cz - at.z).magnitude > reach) continue;
+                    for (var i = 0; i < system.m_clutter.Count; i++)
                     {
-                        var cx = _at.x + px * size;
-                        var cz = _at.z + pz * size;
-                        if (new Vector2(cx - _at.x, cz - _at.z).magnitude > reach) continue;
-                        for (var i = 0; i < system.m_clutter.Count; i++)
+                        var clutter = system.m_clutter[i];
+                        if (clutter == null || !clutter.m_enabled || clutter.m_prefab == null || (clutter.m_biome & biome) == 0) continue;
+                        UnityEngine.Random.InitState(StageGround.PatchSeed(px, pz, i));
+                        var offset = new Vector3(clutter.m_fractalOffset, 0f, 0f);
+                        var amount = (int)(clutter.m_amount * system.m_amountScale);
+                        for (var j = 0; j < amount; j++)
                         {
-                            var clutter = system.m_clutter[i];
-                            if (clutter == null || !clutter.m_enabled || clutter.m_prefab == null || (clutter.m_biome & biome) == 0) continue;
-                            UnityEngine.Random.InitState(StageGround.PatchSeed(px, pz, i));
-                            var offset = new Vector3(clutter.m_fractalOffset, 0f, 0f);
-                            var amount = (int)(clutter.m_amount * system.m_amountScale);
-                            for (var j = 0; j < amount; j++)
+                            var point = new Vector3(UnityEngine.Random.Range(cx - half, cx + half), 0f, UnityEngine.Random.Range(cz - half, cz + half));
+                            float yaw = UnityEngine.Random.Range(0, 360);
+                            var kept = UnityEngine.Random.value;
+                            var away = new Vector2(point.x - at.x, point.z - at.z).magnitude;
+                            if (away < clear || kept >= StageGround.GrassKept(away / thinsBy)) continue;
+                            if (!Grows(clutter, point, offset, altitude, depth, bare, paints)) continue;
+                            farthest = Mathf.Max(farthest, away);
+                            nearest = Mathf.Min(nearest, away);
+                            point.y = clutter.m_snapToWater ? at.y + depth : at.y + Below;
+                            if (clutter.m_randomOffset != 0f) point.y += UnityEngine.Random.Range(0f - clutter.m_randomOffset, clutter.m_randomOffset);
+                            var turn = Quaternion.Euler(0f, yaw, 0f);
+                            if (clutter.m_instanced) AddGrass(kinds, clutter, point, turn);
+                            else if (_scatteredCopies.Count < MostGrassCopies)
                             {
-                                var point = new Vector3(UnityEngine.Random.Range(cx - half, cx + half), 0f, UnityEngine.Random.Range(cz - half, cz + half));
-                                float yaw = UnityEngine.Random.Range(0, 360);
-                                var kept = UnityEngine.Random.value;
-                                var away = new Vector2(point.x - _at.x, point.z - _at.z).magnitude;
-                                if (away < _clear || kept >= StageGround.GrassKept(away / thinsBy)) continue;
-                                if (!Grows(clutter, point, offset, altitude, depth, bare, paints)) continue;
-                                _farthest = Mathf.Max(_farthest, away);
-                                _nearest = Mathf.Min(_nearest, away);
-                                point.y = clutter.m_snapToWater ? _at.y + depth : _at.y + Below;
-                                if (clutter.m_randomOffset != 0f) point.y += UnityEngine.Random.Range(0f - clutter.m_randomOffset, clutter.m_randomOffset);
-                                var turn = Quaternion.Euler(0f, yaw, 0f);
-                                if (clutter.m_instanced) AddGrass(kinds, clutter, point, turn);
-                                else if (_grassCopies.Count < MostGrassCopies)
-                                {
-                                    var copy = Ghost.Make(clutter.m_prefab, root.transform, point, turn, layer);
-                                    if (copy != null) _grassCopies.Add(copy);
-                                }
+                                var copy = Ghost.Make(clutter.m_prefab, root.transform, point, turn, layer);
+                                if (copy == null) continue;
+                                copy.SetActive(false);
+                                _scatteredCopies.Add(copy);
                             }
                         }
                     }
+                    yield return null;
                 }
             }
-            finally
-            {
-                UnityEngine.Random.state = state;
-            }
+            // Done: the new grass in the old's place, lifted where the ground moved meanwhile.
+            ForgetGrass();
             _grass.AddRange(kinds.Values);
+            foreach (var copy in _scatteredCopies) if (copy != null) copy.SetActive(true);
+            _grassCopies.AddRange(_scatteredCopies);
+            _scatteredCopies.Clear();
+            _farthest = farthest;
+            _nearest = nearest;
+            if (Mathf.Abs(_at.y - at.y) > 0.0001f) LiftGrass(_at.y - at.y);
         }
 
         /// <summary>Whether a kind of grass grows at a point of the ground, by the game's rules for it.</summary>
@@ -773,6 +828,7 @@ namespace Scry
         /// </summary>
         public void Forget()
         {
+            StopScatter();
             ForgetGrass();
             if (_waterMaterial != null) Object.Destroy(_waterMaterial);
             _water = null;

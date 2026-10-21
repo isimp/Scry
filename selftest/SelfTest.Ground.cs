@@ -25,7 +25,7 @@ namespace Scry
             Stage.BackdropIndex = 5;
 
             Select(small);
-            yield return Until(() => CopyOf(small) != null && Stage.GroundShown == "Meadows" && Stage.GrassCount > 0, 10);
+            yield return GrassFor(small);
             yield return new Wait(1);
             var spread = Stage.GrassSpread;
             var fadesAt = Mathf.Min(StageGround.GrassOut(spread.Reach * 2f), 80f);
@@ -37,7 +37,7 @@ namespace Scry
             yield return Picture(p, "ground meadow");
 
             Select(big);
-            yield return Until(() => CopyOf(big) != null && Stage.GrassCount > 0, 15);
+            yield return GrassFor(big);
             yield return new Wait(1);
             spread = Stage.GrassSpread;
             var size = Stage.SubjectSize;
@@ -46,6 +46,15 @@ namespace Scry
                 $"kept off {Numbers.Fixed(spread.Cleared, 1)} m round it, the nearest stem {Numbers.Fixed(spread.Nearest, 1)} m from its middle, half its widest side {Numbers.Fixed(footprint, 1)} m");
             yield return Picture(p, "ground big creature");
             GroundAsItWas();
+        }
+
+        /// <summary>Waits for an entry's copy, then for the grass scattered for it, a few milliseconds a frame, the last grass shown till then.</summary>
+        private static IEnumerator GrassFor(Entry entry)
+        {
+            yield return Until(() => CopyOf(entry) != null && Stage.GroundShown == "Meadows", 15);
+            yield return null;
+            yield return null;
+            yield return Until(() => !Stage.GrassScattering && Stage.GrassCount > 0, 10);
         }
 
         /// <summary>The backdrop, spin and ground put back as they were before <see cref="GroundGrass"/>.</summary>
