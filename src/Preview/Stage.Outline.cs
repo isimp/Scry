@@ -27,7 +27,7 @@ namespace Scry
         public static bool OutlineShown => _outline != null && _outline.gameObject.activeSelf;
 
         /// <summary>The shader the outline is drawn with, and whether it draws over everything, for the self-test; none before it is first drawn.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static string OutlineDrawnWith => _outlineMaterial == null ? null : _outlineMaterial.shader.name + (_outlineMaterial.HasProperty("_ZTest") ? ", over everything" : ", hidden by walls");
 
         /// <summary>Puts the outline away or back, for the self-test to film the stage without it.</summary>

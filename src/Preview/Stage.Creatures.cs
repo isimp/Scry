@@ -63,6 +63,7 @@ namespace Scry
         }
 
         /// <summary>How many creatures rolled were left off the stage, not met yet, for the self-test.</summary>
+        [ForTest]
         public static int CreaturesLeftOff => Creatures.LeftOffCount;
 
         /// <summary>Whether the place shown puts any creature there.</summary>
@@ -70,13 +71,17 @@ namespace Scry
 
         /// <summary>How many creatures stand made, and how many wait to be, for the self-test.</summary>
         public static int CreaturesMade => Creatures.Made;
+        [ForTest]
         public static int CreaturesWaiting => Creatures.WaitingCount;
 
         /// <summary>How many creatures stand switched on, for the self-test.</summary>
+        [ForTest]
         public static int CreaturesStanding => Creatures.Standing;
 
         /// <summary>How many creatures rolled stand below their spawn point, dropped to the ground under it, and how many fly over it, for the self-test.</summary>
+        [ForTest]
         public static int CreaturesDropped => Creatures.Dropped;
+        [ForTest]
         public static int CreaturesFlying => Creatures.Flying;
 
         private static readonly List<Renderer> Counted = new List<Renderer>();
@@ -95,15 +100,19 @@ namespace Scry
         }
 
         /// <summary>Where each creature standing on the stage draws, for the self-test.</summary>
+        [ForTest]
         public static List<Bounds> CreatureBoundsNow() => Creatures.Copies.Where(c => c.activeInHierarchy).Select(c => Measure(c)).ToList();
 
         /// <summary>The names of the creatures made, for the self-test to tell.</summary>
+        [ForTest]
         public static IEnumerable<string> CreatureNames => Creatures.Copies.Select(c => c.name);
 
         /// <summary>The creatures that fly and how high over their ground, by kind, for the self-test.</summary>
+        [ForTest]
         public static string FlyersTold() => Creatures.FlyersTold();
 
         /// <summary>How many creatures stand above the cut, cut away with their floor, for the self-test.</summary>
+        [ForTest]
         public static int CreaturesAboveCut => CreatureLayer != _layer ? Creatures.OnLayer(_layer) : 0;
 
         /// <summary>Whether a part of the copy shown belongs to one of its place's creatures, which hang on its spawn points inside it.</summary>

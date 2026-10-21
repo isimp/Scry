@@ -235,6 +235,7 @@ namespace Scry
         }
 
         /// <summary>The notice of what the world's server sets as it shows now; none while it is not up. For the self-test.</summary>
+        [ForTest]
         internal static string RulesNoticeLine => RulesNoticeHeight() > 0f ? _rulesLine : null;
 
         /// <summary>How tall the notice of what the world's server sets is: none where it sets nothing, or where the notice as it reads now was told in this world.</summary>
@@ -278,6 +279,7 @@ namespace Scry
         private static string _newsLine;
 
         /// <summary>The notice's line as last drawn, for the self-test.</summary>
+        [ForTest]
         internal static string NewsLine => _newsLine;
 
         /// <summary>Lets go of the book and entries the notice of what was learned holds, as on leaving a world.</summary>
@@ -360,8 +362,10 @@ namespace Scry
         private static List<string> _lacking = new List<string>();
 
         /// <summary>The notice's line and the box's row as last told, for the self-test.</summary>
+        [ForTest]
         internal static string PlayingWithLine => _withLine;
 
+        [ForTest]
         internal static string PlayingWithRow => _withRow;
 
         /// <summary>A notice of the self-test's own in place of the player's, so what it closes is left as it was; the one it replaced.</summary>

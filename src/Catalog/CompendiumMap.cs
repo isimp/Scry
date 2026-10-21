@@ -103,6 +103,7 @@ namespace Scry
         private static readonly HashSet<string> ReadThisSession = new HashSet<string>(StringComparer.Ordinal);
 
         /// <summary>Whether this world's map is read again this session (<see cref="Update"/>), for the self-test.</summary>
+        [ForTest]
         public static bool ReadAgainThisSession => World != null && ReadThisSession.Contains(World);
 
         /// <summary>
@@ -353,6 +354,7 @@ namespace Scry
         }
 
         /// <summary>The explored map of the character played, packed in cells about as wide as given, the places' own by default; none before it is in.</summary>
+        [ForTest]
         public static byte[] PackedMap(float cellMetres = ExploredGrid.PlaceCellMetres)
         {
             var (size, pixel, words) = Copy();

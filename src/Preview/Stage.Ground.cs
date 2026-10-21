@@ -35,6 +35,7 @@ namespace Scry
         public static RenderingPath? PathOverride { get; set; }
 
         /// <summary>For the self-test: the distance the terrain's shader is given to hide the ground by (<see cref="BiomeGround.HideDistance"/>).</summary>
+        [ForTest]
         public static float? GroundHideDistance
         {
             get => TheGround.HideDistance;
@@ -42,10 +43,13 @@ namespace Scry
         }
 
         /// <summary>For the self-test: what the ground's material holds and how it is drawn.</summary>
+        [ForTest]
         public static string GroundMaterialTold() => TheGround.MaterialTold(_camera, InView);
 
         /// <summary>For the self-test: the biome whose ground is laid now, its paints, its grass and its water.</summary>
+        [ForTest]
         public static string GroundShown => TheGround.Shown;
+        [ForTest]
         public static int GroundPaintCount => TheGround.PaintCount;
         public static int GrassCount => TheGround.GrassCount;
         public static bool WaterShown => TheGround.WaterShown;

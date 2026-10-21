@@ -34,6 +34,7 @@ namespace Scry
             public float Cut => PlaceView.CutHeight(Top, null, Ceiling);
 
             /// <summary>Whether its cut opens every room in it: over each floor and under each ceiling.</summary>
+            [ForTest]
             public bool OpensAll => Opens(Top, Ceiling);
 
             /// <summary>

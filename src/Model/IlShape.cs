@@ -106,6 +106,7 @@ namespace Scry
         /// never act. False where any return may give something else, where it has none, or where
         /// the code cannot be read.
         /// </summary>
+        [ForTest]
         public static bool OnlyFalse(byte[] il)
         {
             if (il == null || il.Length == 0) return false;

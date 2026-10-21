@@ -29,9 +29,11 @@ namespace Scry
         private static int _modCountOf;
 
         /// <summary>Whether the mod report is shown, for the self-test.</summary>
+        [ForTest]
         public static bool ModReportShown => _card == ListCard.ModReport;
 
         /// <summary>Puts the list back in the report's place.</summary>
+        [ForTest]
         public static void HideModReport() => CloseCard(ListCard.ModReport);
 
         /// <summary>Shows the mod report in the list's place.</summary>

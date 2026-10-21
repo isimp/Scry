@@ -24,6 +24,7 @@ namespace Scry
         /// keyboard can only be handed over while the panel draws. For the self-test's pictures,
         /// so the search's help does not cover the list.
         /// </summary>
+        [ForTest]
         internal static void LeaveBoxes()
         {
             _leaveBoxes = true;
@@ -416,6 +417,7 @@ namespace Scry
         private static Rect _marksCaption, _marksOn, _marksOff;
 
         /// <summary>Holds the compendium's box open, or lets it close again; for the self-test.</summary>
+        [ForTest]
         internal static void HoldCompendiumBox(bool open) => _bookHeld = open;
 
         /// <summary>Whether the box stays open though the mouse is elsewhere, as the notice's chip asked, until the mouse has been on it and left; and whether it has been.</summary>
@@ -438,6 +440,7 @@ namespace Scry
         private static string _bookLabel;
 
         /// <summary>How wide the compendium's button was last drawn, and how wide its label is plain and open (bold); for the self-test.</summary>
+        [ForTest]
         internal static (float Width, float Plain, float Open) CompendiumButtonRoom() =>
             _bookLabel == null ? (0f, 0f, 0f) : (_bookButtonW, Skin.Width(Skin.Button, _bookLabel), Skin.Width(Skin.On, _bookLabel));
 

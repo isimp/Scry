@@ -78,6 +78,7 @@ namespace Scry
             "(" + Fixed(x, decimals) + ", " + Fixed(y, decimals) + ", " + Fixed(z, decimals) + ")";
 
         /// <summary>A code in hexadecimal digits, as a colour is written: "0A".</summary>
+        [ForTest]
         public static string Hex(long value, int digits) => value.ToString("X" + Math.Max(1, digits).ToString(English), English);
 
         private static string Pattern(int decimals, bool fixedDecimals) =>

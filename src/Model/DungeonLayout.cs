@@ -80,6 +80,7 @@ namespace Scry
         public IEnumerable<PlacedRoom> BottomUp => Rooms.OrderBy(r => r.Position.Y);
 
         /// <summary>The room a point on the plan is in: the one drawn on top of the others there, or null.</summary>
+        [ForTest]
         public PlacedRoom RoomAt(float x, float z) => BottomUp.LastOrDefault(r => r.Covers(x, z));
 
         /// <summary>A point of the world where it stands from the generator, as <see cref="FromGenerator"/> stands the rooms.</summary>

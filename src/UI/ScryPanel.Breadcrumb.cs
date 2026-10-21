@@ -182,14 +182,16 @@ namespace Scry
             _trailMenuFor = null;
         }
 
-        /// <summary>Does what a row does as a click on it does, for the self-test.</summary>
-        [Diagnostic]
-        public static void ChooseTrailMenuForTest(int row)
+        /// <summary>Does what a row of the trail's menu does, closing the menu: a click on the row.</summary>
+        private static void ChooseInTrailMenu(int row)
         {
             var rows = TrailMenuRows();
             _trailMenuOpen = false;
             if (row >= 0 && row < rows.Length) rows[row].Do?.Invoke();
         }
+
+        /// <summary>Does what a row does as a click on it does, for the self-test.</summary>
+        public static void ChooseTrailMenuForTest(int row) => ChooseInTrailMenu(row);
 
         /// <summary>
         /// Before anything draws: the open menu takes a press over it, going into the room of the
@@ -220,7 +222,7 @@ namespace Scry
                     if (!_trailMenuChip.Contains(mouse)) _trailMenuOpen = false;
                     return false;
                 }
-                ChooseTrailMenuForTest(Mathf.FloorToInt((mouse.y - _trailMenuBox.y - U(4f)) / TrailMenuRowHeight));
+                ChooseInTrailMenu(Mathf.FloorToInt((mouse.y - _trailMenuBox.y - U(4f)) / TrailMenuRowHeight));
                 e.Use();
                 return true;
             }

@@ -369,6 +369,7 @@ namespace Scry
         /// languages, or one of a biome a mod adds kept in a language not played in now. The game's
         /// no-biome (<see cref="BiomeWords.NoBiome"/>) is left out, being no biome a character enters.
         /// </summary>
+        [ForTest]
         public List<string> AreasNotKnown(CompendiumRecords records, CompendiumBook book) =>
             records.Biomes.Where(area => area != BiomeWords.NoBiome && !BiomesIn(area).Any(b => book.Level(b.Key) == KnownLevel.Known)).ToList();
 

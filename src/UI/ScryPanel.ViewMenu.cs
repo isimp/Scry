@@ -21,11 +21,13 @@ namespace Scry
         private static Rect _viewChip, _viewBox;
 
         /// <summary>Whether the View box is open, for the self-test.</summary>
+        [ForTest]
         public static bool ViewMenuOpen => _viewOpen;
 
         private static void CloseViewMenu() => _viewOpen = false;
 
         /// <summary>Opens the box for an entry under a point of the screen, as its chip would, for the self-test.</summary>
+        [ForTest]
         public static void OpenViewMenu(Entry entry, Vector2 under)
         {
             _viewOpen = false;

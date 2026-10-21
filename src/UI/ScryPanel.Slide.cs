@@ -22,9 +22,11 @@ namespace Scry
         private static Rect _slideIcon, _slideBox, _slideTrack, _slideValue;
 
         /// <summary>Whether a slider is open, for the self-test.</summary>
+        [ForTest]
         public static bool SliderOpen => _slide != Slide.None;
 
         /// <summary>Opens the volume or the size slider for an entry under a point of the screen, as its icon would, for the self-test.</summary>
+        [ForTest]
         public static void OpenSlider(Entry entry, bool size, Vector2 under)
         {
             _slide = size ? Slide.Size : Slide.Volume;

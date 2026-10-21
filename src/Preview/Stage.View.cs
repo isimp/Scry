@@ -52,6 +52,7 @@ namespace Scry
         }
 
         /// <summary>Where a point of the stage's picture (0 to 1 across, 0 to 1 up) shows, for the self-test; null behind the camera.</summary>
+        [ForTest]
         public static Vector2? PictureOf(Vector3 world)
         {
             if (_camera == null) return null;
@@ -146,7 +147,7 @@ namespace Scry
         }
 
         /// <summary>How far the view is moved off what it frames, by a drag or a zoom toward the pointer, for the self-test.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static Vector3 PanOffset => _pan;
 
         /// <summary>Turns the camera to a view: "Front", "Side", "Top", or "Fit" to frame it whole again.</summary>

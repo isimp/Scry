@@ -116,6 +116,7 @@ namespace Scry
         }
 
         /// <summary>Whether a game said hello this session, of any messages: the server's among them, where it runs Scry.</summary>
+        [ForTest]
         public static bool HeardFrom(long session) => Peers.Has(session) || Peers.Outdated(session);
 
         /// <summary>Who plays with Scry in this world.</summary>
@@ -282,6 +283,7 @@ namespace Scry
         /// Asks the game running the world to send a made-up event back so many times, as from
         /// itself (<see cref="Echo"/>); for the self-test, which makes the event the world's game's own.
         /// </summary>
+        [ForTest]
         internal static void AskEcho(WorldEvent told, int times)
         {
             var rpc = ZRoutedRpc.instance;
@@ -315,6 +317,7 @@ namespace Scry
         /// Asks the game running the world to run made-up events as its own (<see cref="Run"/>):
         /// each of a thing at a place, done by this game's character or by no one. For the self-test.
         /// </summary>
+        [ForTest]
         internal static void AskRun(IReadOnlyList<(string Thing, Vector3 At, bool Done)> events)
         {
             var rpc = ZRoutedRpc.instance;
@@ -388,6 +391,7 @@ namespace Scry
         }
 
         /// <summary>Asks the game running the world whether it took an event (<see cref="TakenAsked"/>); for the self-test.</summary>
+        [ForTest]
         internal static void AskTaken(long game, int number)
         {
             var rpc = ZRoutedRpc.instance;

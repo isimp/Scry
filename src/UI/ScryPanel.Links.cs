@@ -235,6 +235,7 @@ namespace Scry
         }
 
         /// <summary>Whether LINKED shows a group of the entry shown, for the self-test.</summary>
+        [ForTest]
         public static bool LinkedShows(string group) => LinkRows.Exists(r => r.Title == group);
 
         /// <summary>
@@ -410,6 +411,7 @@ namespace Scry
         private static bool LeftOut(Explorer explorer, string key) => InCatalog(explorer, key) && !explorer.Reaches(key);
 
         /// <summary>A text as the page shown would draw it (<see cref="Masked"/>), for the self-test.</summary>
+        [ForTest]
         public static string AsDrawn(Explorer explorer, string text) => Masked(explorer, text);
 
         private static NameMask _mask;

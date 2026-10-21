@@ -300,6 +300,7 @@ namespace Scry
         public string RulesTold(string world) => world != null && _rulesTold.TryGetValue(world, out var told) ? told : null;
 
         /// <summary>Puts back what a world's notice said as last told, none forgetting it: the self-test tells a notice of rules it made up.</summary>
+        [ForTest]
         public void RulesToldAgain(string world, string said)
         {
             if (world == null || RulesTold(world) == said) return;
@@ -470,9 +471,11 @@ namespace Scry
         public IEnumerable<string> LearnedSince(int mark) => _lately.Where(key => _learnedAt.TryGetValue(key, out var at) && at > mark);
 
         /// <summary>Every entry known of at all, with its level.</summary>
+        [ForTest]
         public IEnumerable<KeyValuePair<string, KnownLevel>> All => _levels;
 
         /// <summary>How many entries are known at least to a level.</summary>
+        [ForTest]
         public int Count(KnownLevel atLeast) => _levels.Values.Count(l => l >= atLeast);
 
         /// <summary>Whether a world's explored map was caught up with.</summary>
@@ -536,6 +539,7 @@ namespace Scry
         }
 
         /// <summary>The rules as the player chose them, whatever the world sets.</summary>
+        [ForTest]
         public CompendiumRule ChosenRule => _rule;
 
         /// <summary>
@@ -556,6 +560,7 @@ namespace Scry
         public bool Witnessed(string a, string b) => !string.IsNullOrEmpty(a) && !string.IsNullOrEmpty(b) && _pairs.Contains(Pair(a, b));
 
         /// <summary>How many pairs the character saw go together.</summary>
+        [ForTest]
         public int Pairs => _pairs.Count;
 
         private static (string, string) Pair(string a, string b) => string.CompareOrdinal(a, b) <= 0 ? (a, b) : (b, a);

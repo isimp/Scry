@@ -27,10 +27,11 @@ namespace Scry
         private static float? _heldShare;
 
         /// <summary>Has parts dimmed from now on keep another share of their colours, none for black, for the self-test to film what no colour lights; null for the dimming's own.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static void HoldShare(float? share) => _heldShare = share;
 
         /// <summary>Whether dimming darkens a material: its shader takes a colour.</summary>
+        [ForTest]
         public static bool Reaches(Material material) => material != null && material.shader != null && Colours(material.shader).Length > 0;
 
         /// <summary>The share of its colours a room's copy keeps as it is dimmed: half on the level of the room gone into, less below.</summary>

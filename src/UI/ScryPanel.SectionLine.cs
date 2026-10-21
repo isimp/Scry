@@ -123,6 +123,7 @@ namespace Scry
         }
 
         /// <summary>The sections on the line, by key, with their names as it shows them, for the self-test.</summary>
+        [ForTest]
         public static IEnumerable<(string Key, string Link)> SectionLinks()
         {
             if (!SectionLine.Shows(Marks.Count)) yield break;
@@ -130,12 +131,14 @@ namespace Scry
         }
 
         /// <summary>Whether a section of the details is open, for the self-test.</summary>
+        [ForTest]
         public static bool SectionOpen(string key) => !IsFolded(key);
 
         /// <summary>The section lit on the line, by its key, or null; for the self-test.</summary>
         public static string SectionLit { get; private set; }
 
         /// <summary>Whether the details stand where going to a section or topic put them, for the self-test; a topic is never lit on the line.</summary>
+        [ForTest]
         public static bool StandsAt(string key) => key != null && _wentTo == key && Mathf.Abs(_sideScroll.y - _wentToScroll) < 1f;
 
         /// <summary>The names flow across the line short of the room the fold all icon takes at its end.</summary>

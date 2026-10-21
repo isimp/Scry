@@ -33,6 +33,7 @@ namespace Scry
         }
 
         /// <summary>Puts away whatever card is showing, for the list.</summary>
+        [ForTest]
         internal static void CloseCards() => _card = ListCard.None;
 
         /// <summary>Scrolls the selected entry into sight at the list's next repaint.</summary>
@@ -60,8 +61,10 @@ namespace Scry
         }
 
         /// <summary>Whether the search's help is shown, and showing or hiding it, for the self-test.</summary>
+        [ForTest]
         public static bool HelpShown => _card == ListCard.Help;
 
+        [ForTest]
         public static void ShowHelp(bool shown)
         {
             if (shown) ShowCard(ListCard.Help);

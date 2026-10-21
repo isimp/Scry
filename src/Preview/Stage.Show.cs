@@ -66,6 +66,7 @@ namespace Scry
         }
 
         /// <summary>The entry the stage was last asked to show, whose copy is <see cref="Subject"/> once made.</summary>
+        [ForTest]
         public static Entry Showing => _lastShown;
 
         /// <summary>How often the stage was asked to show something, and how often a copy came of it, for the self-test to tell.</summary>
@@ -151,7 +152,7 @@ namespace Scry
         public static float LastFrontTurn { get; private set; }
 
         /// <summary>Whether the subject, where it is rigged as a person, faces the camera from where its legs stand; null for anything else or with nothing shown. For the self-test.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static bool? SubjectFacesCamera()
         {
             var animator = _subject != null ? _subject.GetComponentInChildren<Animator>() : null;
@@ -185,7 +186,7 @@ namespace Scry
         public static bool Building => _building != null;
 
         /// <summary>Whether the location or room shown is made and waits for what is kept of its floors to be found, for the self-test.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static bool WaitingForFloors => _building != null && _building.Result != null;
 
         /// <summary>How many frames the last location or room took to make, and how many parts it has, for the self-test to tell.</summary>

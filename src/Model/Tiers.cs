@@ -134,6 +134,7 @@ namespace Scry
         /// tier it has: the way that set it in the last <see cref="Work"/>, where those are the
         /// tiers given.
         /// </summary>
+        [ForTest]
         public (int Tier, string[] Needs, WayFrom From)? WayIn(string key, Dictionary<string, int> tiers)
         {
             if (key == null || !_ways.TryGetValue(key, out var ways) || !tiers.TryGetValue(key, out var tier)) return null;

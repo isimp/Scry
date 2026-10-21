@@ -164,6 +164,7 @@ namespace Scry
     internal static class MapCatchUp
     {
         /// <summary>The kinds of place with one at least whose centre lies in explored ground, each once, in the order first found.</summary>
+        [ForTest]
         public static List<string> Kinds(ExploredGrid grid, IEnumerable<(string Kind, float X, float Z)> places) => Counted(grid, places).Select(c => c.Kind).ToList();
 
         /// <summary>The kinds of place with one at least whose centre lies in explored ground, with how many, in the order first found.</summary>

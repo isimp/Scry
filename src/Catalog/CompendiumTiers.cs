@@ -69,6 +69,7 @@ namespace Scry
         }
 
         /// <summary>The ways to come by each entry of a catalog, read from what Scry knows of it, all at once.</summary>
+        [ForTest]
         public static TierPass Gather(EntryCatalog catalog)
         {
             var gathering = new TierGathering(catalog);

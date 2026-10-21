@@ -246,7 +246,7 @@ namespace Scry
         private static readonly int[] SpareLayers = { 7, 6, 3 };
 
         /// <summary>Which layer the creatures stand on, for the self-test to tell.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static string CreatureLayerTold => _layer < 0 ? "no stage layer" : CreatureLayer == _layer ? $"the stage's own, {Numbers.Count(_layer)}: no second free layer" : $"{Numbers.Count(CreatureLayer)}, the stage's {Numbers.Count(_layer)}";
 
         /// <summary>The stage's layers filmed with the cut: its own and its creatures'.</summary>

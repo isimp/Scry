@@ -113,6 +113,7 @@ namespace Scry
         }
 
         /// <summary>The playing sound's source and how its clip loads, for the self-test to tell.</summary>
+        [ForTest]
         public static string SoundSourceTold() => TheSound.SourceTold();
 
         /// <summary>Where the playing sound is and how long its clip is, for the panel's timeline.</summary>

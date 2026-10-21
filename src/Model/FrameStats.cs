@@ -36,6 +36,7 @@ namespace Scry
         /// A slow frame in words: its time, its slowest part, the outer part it ran in, and the
         /// memory cleanups in it, which can make a frame long with no part of Scry's slow.
         /// </summary>
+        [ForTest]
         public static string Told((double Ms, string Part, double PartMs, string Outer, double OuterMs, int Cleanups) frame)
         {
             var told = $"a slow frame: {Numbers.Amount(frame.Ms, 1)} ms, the slowest part {frame.Part} {Numbers.Amount(frame.PartMs, 1)} ms";
@@ -50,9 +51,11 @@ namespace Scry
 
         public void AddTest(double ms) => TestMax = Math.Max(TestMax, ms);
 
+        [ForTest]
         public int Frames => _frames.Count;
 
         /// <summary>The time of the frame noted last, 0 before any.</summary>
+        [ForTest]
         public double Last => _frames.Count == 0 ? 0 : _frames[_frames.Count - 1].Ms;
 
         public double Mean => _frames.Count == 0 ? 0 : _frames.Average(f => f.Ms);
@@ -72,16 +75,19 @@ namespace Scry
         public int Over(double ms) => _frames.Count(f => f.Ms > ms);
 
         /// <summary>The slowest frames, slowest first, each with its slowest part.</summary>
+        [ForTest]
         public List<(double Ms, string Part, double PartMs, string Outer, double OuterMs, int Cleanups)> Slowest(int count) =>
             SlowestPlaces(count).Select(i => _frames[i]).ToList();
 
         /// <summary>The parts of the slowest frames, in the order of <see cref="Slowest"/>; null for a frame given none.</summary>
+        [ForTest]
         public List<string> PartsOfSlowest(int count) =>
             SlowestPlaces(count).Select(i => _parts.TryGetValue(i, out var parts) ? parts : null).ToList();
 
         private IEnumerable<int> SlowestPlaces(int count) =>
             Enumerable.Range(0, _frames.Count).OrderByDescending(i => _frames[i].Ms).Take(count);
 
+        [ForTest]
         public string Line(double budgetMs)
         {
             if (_frames.Count == 0) return "no frames measured";
@@ -89,6 +95,7 @@ namespace Scry
                    $"{Numbers.Amount(Max, 1)} ms at the most; {Numbers.Count(Over(budgetMs))} frames over {Numbers.Amount(budgetMs, 1)} ms";
         }
 
+        [ForTest]
         public void Clear()
         {
             _frames.Clear();
@@ -97,6 +104,7 @@ namespace Scry
         }
 
         /// <summary>The frames from the given one on, told on their own.</summary>
+        [ForTest]
         public FrameStats Since(int first)
         {
             var part = new FrameStats();

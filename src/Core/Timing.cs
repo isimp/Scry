@@ -61,10 +61,11 @@ namespace Scry
         private static readonly Dictionary<string, long> BytesByPart = new Dictionary<string, long>(StringComparer.Ordinal);
 
         /// <summary>Forgets what each part allocated, as the self-test starts counting afresh.</summary>
+        [ForTest]
         public static void ForgetBytesByPart() => BytesByPart.Clear();
 
         /// <summary>The parts that allocated most since the self-test last forgot them, inner ones too and its own left out, each with its kilobytes.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static string BytesByPartTold(int most)
         {
             var told = BytesByPart.Where(p => p.Key != SelfTestPart).OrderByDescending(p => p.Value).Take(most).Select(p => $"{p.Key} {Numbers.Fixed(p.Value / 1024f, 1)} KB").ToList();

@@ -9,6 +9,7 @@ namespace Scry
         private static bool TextRead(Explorer explorer, string text) => YourTexts.HasRead(text) || (explorer.Compendium?.Book?.HasRead(text) ?? false);
 
         /// <summary>Whether the runestones' texts are folded away; setting it is remembered, as clicking its heading is.</summary>
+        [ForTest]
         public static bool RunesFolded
         {
             get => IsFolded("runes");

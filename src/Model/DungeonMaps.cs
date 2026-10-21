@@ -101,6 +101,7 @@ namespace Scry
         /// are re-keyed by place where they come in (<see cref="ByPlace"/>); the self-test's made-up
         /// maps are kept under them.
         /// </summary>
+        [ForTest]
         public static string IdOf(string world, long user, uint id) => world != null ? world + ":" + Stored.Count(user) + ":" + Stored.Count(id) : null;
 
         /// <summary>The id a dungeon of the world is kept by: the world's, then where its location stands, which the world's making fixed for good (<see cref="EntranceIdOf"/>); none outside a world.</summary>

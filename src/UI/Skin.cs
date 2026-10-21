@@ -367,7 +367,7 @@ namespace Scry
         /// Whether the panel's text font draws a character itself, for the self-test: the game's
         /// font where it was found, else Unity's own.
         /// </summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static bool FontHolds(char character)
         {
             var font = _body != null ? _body : GUI.skin != null ? GUI.skin.font : null;
@@ -375,7 +375,7 @@ namespace Scry
         }
 
         /// <summary>The name of the panel's text font, for the self-test.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static string FontName => _body != null ? _body.name : "Unity's own";
 
         /// <summary>

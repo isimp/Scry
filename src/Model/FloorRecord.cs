@@ -255,6 +255,7 @@ namespace Scry
         }
 
         /// <summary>What a ray (by its place in the grid's list) met of any roll probed, top down.</summary>
+        [ForTest]
         public IEnumerable<RaySurface> On(int ray) => _rays.TryGetValue(ray, out var surfaces) ? surfaces : Enumerable.Empty<RaySurface>();
 
         /// <summary>What a ray (by its place in the grid's list) meets of a roll with these parts there, top down, passing what lies just under each surface it meets.</summary>

@@ -66,11 +66,11 @@ namespace Scry
         private static readonly List<string> CardLines = new List<string>();
 
         /// <summary>The ways on the card shows, in its order, for the self-test to go through one as a click does.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static IReadOnlyList<WayOn> RoomCardWays => _roomCard != null && Stage.RoomGoneInto == _roomCard.Room ? _roomCard.Ways : new List<WayOn>();
 
         /// <summary>What the card says, line by line, for the self-test.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static IReadOnlyList<string> RoomCardLines => CardLines;
 
         /// <summary>Clicks a way chip of the card as the mouse does, for the self-test.</summary>

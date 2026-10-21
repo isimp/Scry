@@ -71,6 +71,7 @@ namespace Scry
         public int Of(PlayEvent what) => _counts[(int)what];
 
         /// <summary>Every kind with its count, the zeros among them.</summary>
+        [ForTest]
         public string Told()
         {
             var told = new List<string>();

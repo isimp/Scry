@@ -56,10 +56,11 @@ namespace Scry
         public static int ExampleRoomsTotal => TheExample.Holder != null && TheExample.Placed != null ? TheExample.Placed.Rooms.Count : 0;
 
         /// <summary>How many of the example's rooms made still have their floors to read, one a frame.</summary>
+        [ForTest]
         public static int ExampleFloorsToRead => TheExample.FloorsToRead;
 
         /// <summary>How many rooms of examples had their rays cast with their copy switched off this session, for the self-test.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static int ExampleReadsSwitchedOff => TheExample.ReadSwitchedOff;
 
         /// <summary>The example as it stands on the stage, in its own space, for its plan; null before it is begun.</summary>
@@ -100,10 +101,11 @@ namespace Scry
         public static bool ShowsInside => HasInside && (InsideWanted || TheExample.NothingOutside) && TheExample.Placed.Rooms.Count > 0;
 
         /// <summary>What the location draws outside, for the self-test to tell.</summary>
+        [ForTest]
         public static string OutsideTold() => TheExample.OutsideTold();
 
         /// <summary>How many of the location's own parts are drawn on the stage now, switched on with something to draw, the example left out; for the self-test to tell its entrance shown from nothing.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static int OutsidePartsDrawn
         {
             get
@@ -222,20 +224,23 @@ namespace Scry
         }
 
         /// <summary>How many of the example's rooms are dimmed, below the floor opened, for the self-test.</summary>
+        [ForTest]
         public static int ExampleRoomsDimmed => TheExample.DimmedCount;
 
         /// <summary>Whether every room of the example stands, is dimmed or is put away as the floor opened has it, for the self-test.</summary>
+        [ForTest]
         public static bool ExampleRoomsKept => TheExample.Kept(ExamplePlanFloor, ExampleFloors);
 
         /// <summary>Holds every room of the example whole, dimmed or put away, for the self-test to film each; null lets the floor opened decide again.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static void ExampleHoldLook(RoomLook? look) => TheExample.HoldLook(look);
 
         /// <summary>The example's rooms' copies standing, for the self-test to tell what they are drawn with.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static List<GameObject> ExampleRoomCopies() => TheExample.RoomCopies();
 
         /// <summary>How many of the example's rooms are put away, above the floor opened, for the self-test.</summary>
+        [ForTest]
         public static int ExampleRoomsAway => TheExample.Away;
 
         /// <summary>How many rooms of the example stand on the floor opened, end caps and dividers left out; -1 with no floor of an example opened.</summary>
@@ -266,9 +271,11 @@ namespace Scry
         }
 
         /// <summary>The lights switched on in the example's rooms dimmed below the floor opened, for the self-test.</summary>
+        [ForTest]
         public static List<Light> DimmedLights() => TheExample.DimmedLights();
 
         /// <summary>Each room of the example read so far with its box, doorways, ground and the floors it stands on, for the self-test to tell.</summary>
+        [ForTest]
         public static List<string> ExampleRoomGroundTold() => TheExample.RoomGroundTold(FloorHeights);
 
         /// <summary>Whether a room of the example has a floor of its own at a height in the example's space, as the plan tiles it (<see cref="StageExample.HasFloorAt"/>).</summary>
@@ -306,7 +313,7 @@ namespace Scry
         public static RoomLook ExampleRoomLook(PlacedRoom room) => TheExample.LookOf(room, ExamplePlanFloor, ExampleFloors);
 
         /// <summary>Whether a room's copy of the example stands and the share of its colours it keeps as dimmed, for the self-test.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static (bool Standing, float? Keep)? ExampleRoomDrawn(PlacedRoom room) => TheExample.Drawn(room);
 
         /// <summary>
@@ -315,7 +322,7 @@ namespace Scry
         /// the self-test: what is seen of it under the cut, as a tall room's box reaches far above
         /// it. Null without a camera or example.
         /// </summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static Vector3? ExampleRoomInView(PlacedRoom room)
         {
             if (_camera == null || TheExample.Holder == null || room == null) return null;
@@ -336,6 +343,7 @@ namespace Scry
         /// its slope starts, or over its top where it is a shaft (<see cref="SlopeCut"/>); else
         /// head height over its ground, under its own ceiling where lower (<see cref="RoomFocus.Cut"/>).
         /// </summary>
+        [ForTest]
         public static float RoomCut(PlacedRoom room)
         {
             var lift = TheExample.Holder != null ? TheExample.Holder.transform.localPosition.y : 0f;
@@ -345,7 +353,7 @@ namespace Scry
         }
 
         /// <summary>The cut over a room as it would be gone into (<see cref="SlopeCut"/>), in the example's own space, for the self-test; none for one cut over its ground.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static RoomCutPlane? ExampleRoomSlope(PlacedRoom room) => TheExample.SlopeOf(room);
 
         /// <summary>The sloping cut over the room gone into, in the example's own space, before the cut is moved by hand; none while it is cut flat or from the side.</summary>
@@ -405,11 +413,11 @@ namespace Scry
         }
 
         /// <summary>Whether the cut laid over the room gone into slopes, for the self-test.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static bool SlopeCutLaid => SlopeLaid(out _);
 
         /// <summary>How many of a room's drawn parts reach under the cut where each stands, of how many it has, for the self-test to tell a room cut away from one shown.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static (int Under, int All) ExampleRoomPartsUnderCut(PlacedRoom room)
         {
             var copy = TheExample.CopyOf(room);
@@ -550,7 +558,7 @@ namespace Scry
         }
 
         /// <summary>The groups of rooms one cut opens on each of the example's levels, for the self-test.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static LevelCuts ExampleLevelCuts => TheExample.LevelCutsNow();
 
         /// <summary>How high the example stands over the location's root, its own space to the stage's.</summary>
@@ -883,6 +891,7 @@ namespace Scry
         }
 
         /// <summary>Where a room of the example is in the stage's picture (0 to 1 across, 0 to 1 up), for the self-test to point at it; null when it is not in front of the camera.</summary>
+        [ForTest]
         public static Vector2? ExamplePointOf(int index)
         {
             var placed = TheExample.Placed;

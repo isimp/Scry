@@ -153,6 +153,7 @@ namespace Scry
         private static CompendiumView _knownInstead;
 
         /// <summary>Shows a made-up character's knowledge in place of the one played, for the self-test; none puts the played one back.</summary>
+        [ForTest]
         public static void ShowKnownInstead(CompendiumView view) => _knownInstead = view;
 
         /// <summary>
@@ -209,7 +210,7 @@ namespace Scry
         }
 
         /// <summary>How many times what the played character knows was counted whole for the list, by what set it off; for the self-test.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static int KnownWholeCountsOf(WholeCause cause) => _known != null ? _known.WholeCountsOf(cause) : 0;
 
         /// <summary>When what the character knows was last told to the list, by the unscaled clock.</summary>

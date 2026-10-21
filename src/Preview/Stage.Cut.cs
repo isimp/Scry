@@ -34,6 +34,7 @@ namespace Scry
         public static bool Cutting => TheCut.Cutting;
 
         /// <summary>What the cut's chip says.</summary>
+        [ForTest]
         public static string CutLabel => TheCut.Label;
 
         /// <summary>Where it is cut, above its root as if at size one.</summary>
@@ -44,6 +45,7 @@ namespace Scry
         public static IReadOnlyList<float> CutHeights => TheCut.Cuts;
 
         /// <summary>The ceiling over a floor, from the top, as found; null with none found over it.</summary>
+        [ForTest]
         public static float? CeilingOver(int level) => TheCut.CeilingOver(level);
 
         /// <summary>Which floor is opened, from the top; <see cref="FloorHeights"/>' count for the roof on.</summary>
@@ -118,6 +120,7 @@ namespace Scry
         }
 
         /// <summary>Moves the cut up or down.</summary>
+        [ForTest]
         public static void CutBy(float metres) => TheCut.CutBy(metres);
 
         /// <summary>
@@ -153,6 +156,7 @@ namespace Scry
         private static readonly System.Func<float, float?> PlaceCeiling = floor => FloorFinder.CeilingOver(_floorHits, floor);
 
         /// <summary>What each floor of the location or room shown stands on, from its rays, for the self-test to tell (<see cref="FloorMakers"/>).</summary>
+        [ForTest]
         public static List<string> FloorMakersNow() => FloorMakers.Tell(_floorHits.Select(h => h.Height).ToList(), _floorNames, Floors);
 
         /// <summary>A place's floors being read, a slice of rays a frame (<see cref="FloorProbe.Reading"/>), and the ground its rays were cast over so far; none while none is read.</summary>

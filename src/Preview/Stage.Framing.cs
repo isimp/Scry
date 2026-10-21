@@ -104,7 +104,7 @@ namespace Scry
         private static void ForgetLevelFrame() => _keptLevelFrame = null;
 
         /// <summary>Whether a change of the floor opened keeps the frame the view had, for the self-test.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static bool LevelFrameKept => _keptLevelFrame != null;
 
         /// <summary>Has the grid tiled again for its size at the next frame, as a new grid is.</summary>
@@ -153,15 +153,18 @@ namespace Scry
         public static bool Gliding { get; private set; }
 
         /// <summary>The height on the stage of a floor of the place shown, for the self-test.</summary>
+        [ForTest]
         public static float FloorOnStage(int level) => level >= 0 && level < Floors.Count ? Origin.y + Floors[level] * _scale : float.NaN;
 
         /// <summary>Cuts at a height on the stage, for the self-test.</summary>
+        [ForTest]
         public static void CutOnStage(float y)
         {
             if (_scale > 0f) CutTo((y - Origin.y) / _scale);
         }
 
         /// <summary>Whether a cut is laid in the picture, the camera above it, for the self-test.</summary>
+        [ForTest]
         public static bool CutLaid => _aboveCut != null;
 
         private static void Frame()

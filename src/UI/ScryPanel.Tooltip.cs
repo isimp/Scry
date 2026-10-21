@@ -25,6 +25,7 @@ namespace Scry
         private static readonly List<float> TooltipHeights = new List<float>();
 
         /// <summary>Whether tooltips are folded away; setting it is remembered, as clicking its heading is.</summary>
+        [ForTest]
         public static bool TooltipFolded
         {
             get => IsFolded("tooltip");

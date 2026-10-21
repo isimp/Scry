@@ -98,10 +98,10 @@ namespace Scry
         [Diagnostic]
         public static Rect PlanBoxRect { get; private set; }
 
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static PlanView PlanBoxView => _planView;
 
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static bool PlanBoxBig => _planBig;
 
         /// <summary>Shows a view of the box as its segment does, for the self-test.</summary>
@@ -145,7 +145,7 @@ namespace Scry
         }
 
         /// <summary>How many levels the box last laid out, for the self-test.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static int PlanBoxLevelsShown => _levels?.Levels.Count ?? 0;
 
         /// <summary>Each room's middle as the box last drew it, for the self-test to point at.</summary>
@@ -170,7 +170,7 @@ namespace Scry
         public static List<PlacedRoom> PlanBoxLitShown { get; } = new List<PlacedRoom>();
 
         /// <summary>The room the way from the entrance was last drawn to, for the self-test.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static PlacedRoom PlanBoxRouteShown => _routeTo;
 
         /// <summary>A room's name as the box gives it, for the self-test.</summary>

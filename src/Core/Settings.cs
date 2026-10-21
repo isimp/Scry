@@ -142,7 +142,7 @@ namespace Scry
         private static ServerSync.ConfigSync _sync;
 
         /// <summary>Whether the world's settings are the server's, synced to this game, rather than its own; for the self-test.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static bool WorldFromServer => _sync != null && !_sync.IsSourceOfTruth;
 
         /// <summary>The world's rules (<see cref="WorldRules"/>): as the server's Scry sets them while connected to it, else as this game's own settings, which a game running the world sets for those joining it.</summary>

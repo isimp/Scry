@@ -129,6 +129,7 @@ namespace Scry
         public static int HeldCount => Held.Count + (_loading != null ? 1 : 0);
 
         /// <summary>Whether a room's bundle is held while it loads, for the self-test to see nothing is left held.</summary>
+        [ForTest]
         public static bool Holding => _loading != null || Held.Count > 0;
 
         /// <summary>The bundles held for the stage's copies, by room prefab.</summary>

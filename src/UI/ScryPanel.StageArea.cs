@@ -44,7 +44,7 @@ namespace Scry
         public static void HoverStageForTest(Vector2? point) => _stagePointForTest = point;
 
         /// <summary>The room the stage found under the mouse when last looked, for the self-test.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static PlacedRoom StageRoomHovered => _stageHover;
 
         /// <summary>Where the mouse is for finding the room under it on the stage: the self-test's point of the picture while it points at the stage, nowhere while it points at the plan box, else the player's own.</summary>

@@ -78,6 +78,7 @@ namespace Scry
         public static readonly string[] BackdropNames = StageGround.Backdrops;
 
         /// <summary>How many things the stage holds (its copy, what played on it), for the self-test.</summary>
+        [ForTest]
         public static int Held => _root != null ? _root.transform.childCount : 0;
 
         /// <summary>How long the size the panel asks for must hold still before the texture is made again at it.</summary>
@@ -106,8 +107,11 @@ namespace Scry
         public static Vector3 SubjectSize => _bounds.size * _scale;
 
         /// <summary>What the camera looks at and how far it is from it, and the height of the floor it looks at with one opened, for the self-test.</summary>
+        [ForTest]
         public static Vector3 LookAt => _lookAt;
+        [ForTest]
         public static float LookDistance => _camera != null ? Vector3.Distance(_camera.transform.position, _lookAt) : 0f;
+        [ForTest]
         public static float? LookedFloor => _lookedFloor;
 
         /// <summary>How far off the pointer may find the floor: a few times what is framed beyond the camera's distance.</summary>
@@ -127,6 +131,7 @@ namespace Scry
         }
 
         /// <summary>Where the model stands, from its root, as if at size one, for the self-test to see a place stands on its own ground.</summary>
+        [ForTest]
         public static float Ground => _bodyMinY - Origin.y;
 
         public static GameObject Subject => _subject;
@@ -228,6 +233,7 @@ namespace Scry
         private static readonly Queue<LODGroup> DetailToKeep = new Queue<LODGroup>();
 
         /// <summary>How many level-of-detail groups still wait to keep their last level, for the self-test.</summary>
+        [ForTest]
         public static int DetailWaiting => DetailToKeep.Count;
 
         /// <summary>

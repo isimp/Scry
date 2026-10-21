@@ -60,6 +60,7 @@ namespace Scry
         private static CompendiumBook _into;
 
         /// <summary>Records what the hooks see into a book of the self-test's own until given none again; the character's book and the play counts are left alone meanwhile.</summary>
+        [ForTest]
         public static void RecordInto(CompendiumBook book) => _into = book;
 
         /// <summary>Whether the self-test is feeding the hooks into a book of its own (<see cref="RecordInto"/>): nothing of it is sent to other players' games.</summary>
@@ -81,6 +82,7 @@ namespace Scry
         private static EntryCatalog _bossesOf;
 
         /// <summary>Where the book of the character being played is kept; none before a character is played.</summary>
+        [ForTest]
         public static string FilePath => _file != null ? PathOf(_file) : null;
 
         /// <summary>The name of the file of the character whose book is held or being read, which their dungeon maps are kept under too; none before a character plays.</summary>
@@ -558,6 +560,7 @@ namespace Scry
         }
 
         /// <summary>Done once every write of the book asked for before it is, for what reads the file back.</summary>
+        [ForTest]
         internal static Task<bool> Written() => Files.Then(() => true);
 
         /// <summary>Writes the book and waits a moment for it to be written, as the game quits.</summary>

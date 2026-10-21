@@ -9,6 +9,7 @@ namespace Scry
     internal static class Figures
     {
         /// <summary>A point on a picture or a plane: "(0.50, 1.25)".</summary>
+        [ForTest]
         public static string Point(Vector2 point, int decimals = 2) => Numbers.Point(point.x, point.y, decimals);
 
         /// <summary>A point or a size in space: "(1.00, 2.50, -3.00)".</summary>

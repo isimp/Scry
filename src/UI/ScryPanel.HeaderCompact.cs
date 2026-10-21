@@ -44,7 +44,7 @@ namespace Scry
         public static Rect PanelDrawnForTest => _drawn;
 
         /// <summary>Which of the compact header's boxes is open, for the self-test.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static HeaderMenu HeaderMenuOpen => _headerMenu;
 
         /// <summary>Where the open box stands on the screen and how many choices it holds, for the self-test.</summary>

@@ -74,7 +74,7 @@ namespace Scry
         }
 
         /// <summary>How many of a copy's parts are drawn as the faint sheet, and how many still with the game's water shader, for the self-test.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static (int Sheets, int Game) Counted(GameObject copy)
         {
             var sheets = 0;

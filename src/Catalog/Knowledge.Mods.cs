@@ -49,7 +49,9 @@ namespace Scry
         public static string ModClue(string name) => name != null && ClueOf.TryGetValue(name, out var clue) ? clue : "";
 
         /// <summary>How many recipes and conversions Jotunn's registry names a mod for, for the self-test to tell.</summary>
+        [ForTest]
         public static int RecipesNamed => RecipeMods.Count;
+        [ForTest]
         public static int ConversionsNamed => ConversionMods.Count;
 
         /// <summary>The mod that added a recipe, or "" when the game's or not known.</summary>

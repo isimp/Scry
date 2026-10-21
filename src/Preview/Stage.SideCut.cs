@@ -16,7 +16,7 @@ namespace Scry
         public static bool CutFromSide { get; private set; }
 
         /// <summary>Whether creatures are drawn again over the cut, as only a cut from above has them, for the self-test.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static bool CreaturesRedrawnOverCut => _aboveCut != null;
 
         /// <summary>Whether the side cut is laid now: chosen, with a dungeon's example shown inside.</summary>

@@ -44,7 +44,7 @@ namespace Scry
         }
 
         /// <summary>Whether the list is folded away in the full view and in the compact one, for the self-test to show it while it runs and put it back after.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         internal static (bool Full, bool Compact) ListsHidden
         {
             get => (_listHiddenFull, _listHiddenCompact);
@@ -70,6 +70,7 @@ namespace Scry
         private static float _stageScale = 1f;
 
         /// <summary>The stage's height against its usual one, as a drag of its edge sets it; for the self-test's pictures.</summary>
+        [ForTest]
         internal static float StageScale
         {
             get => _stageScale;

@@ -24,6 +24,7 @@ namespace Scry
         public static int Count => _kept?.Count ?? 0;
 
         /// <summary>How many kinds of place have their record held, those shown in this session, for the self-test.</summary>
+        [ForTest]
         public static int Held => _kept?.Held ?? 0;
 
         /// <summary>Whether a file is still being listed, found or written.</summary>
@@ -60,7 +61,7 @@ namespace Scry
         /// <paramref name="until"/> is set, a minute at the most, as a long run of files wanted
         /// before them holds them.
         /// </summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static void HoldFiles(System.Threading.WaitHandle until) => Files.Then("holding the floors kept", () => until.WaitOne(System.TimeSpan.FromMinutes(1)));
 
         /// <summary>Keeps a record, and writes it to its file on a worker thread.</summary>

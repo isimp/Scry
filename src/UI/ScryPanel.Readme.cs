@@ -13,6 +13,7 @@ namespace Scry
         private static readonly Dictionary<string, string> Readmes = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
 
         /// <summary>Whether readmes are folded away; setting it is remembered, as clicking its heading is.</summary>
+        [ForTest]
         public static bool ReadmeFolded
         {
             get => IsFolded("readme");

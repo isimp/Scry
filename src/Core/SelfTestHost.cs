@@ -36,6 +36,7 @@ namespace Scry
         private static IRunner _runner;
 
         /// <summary>The self-test registers itself as it loads.</summary>
+        [ForTest]
         public static void Register(IRunner runner) => _runner = runner;
 
         public static void Tick() => _runner?.Tick();

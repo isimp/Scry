@@ -27,7 +27,7 @@ namespace Scry
         private static bool GhostsShown => _ghostRenderer != null && _ghostRenderer.gameObject.activeSelf;
 
         /// <summary>How many rooms the ghosts stand for, for the self-test; none while none show.</summary>
-        [Diagnostic]
+        [Diagnostic, ForTest]
         public static int GhostsDrawn => GhostsShown ? GhostsOf.Count : 0;
 
         /// <summary>Each film: lays the ghosts of the rooms put away inside a dungeon's example, again only as they change; none outside one.</summary>

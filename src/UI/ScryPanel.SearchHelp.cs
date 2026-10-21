@@ -16,6 +16,7 @@ namespace Scry
         private static readonly SearchAssist Assist = new SearchAssist();
 
         /// <summary>What the search box offers to finish a word, from the terms it has in; null while they are still being read. For the self-test.</summary>
+        [ForTest]
         public static List<Suggestion> Offered(Explorer explorer, string word)
         {
             var terms = Assist.TermsFor(explorer);

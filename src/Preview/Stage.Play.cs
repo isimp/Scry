@@ -9,6 +9,7 @@ namespace Scry
         private static readonly List<KeyValuePair<GameObject, float>> Played = new List<KeyValuePair<GameObject, float>>();
 
         /// <summary>How many things played on the model are still about, for the self-test.</summary>
+        [ForTest]
         public static int PlayedCount
         {
             get

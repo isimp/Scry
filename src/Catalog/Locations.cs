@@ -37,6 +37,7 @@ namespace Scry
         public static State Now { get; private set; }
 
         /// <summary>Whether places are being read, what was kept of them found, or what they hold told on the catalog, in the background.</summary>
+        [ForTest]
         public static bool Busy => _reading || PlaceRecords.Finding || _telling != null;
 
         /// <summary>Told as what was kept of the places is forgotten (<see cref="ForgetKept"/>), for what else is kept of them, their floors, to go with it.</summary>
@@ -46,6 +47,7 @@ namespace Scry
         public static bool Reading => _reading;
 
         /// <summary>Whether what was read is still being written to the cache folder.</summary>
+        [ForTest]
         public static bool Saving => PlaceRecords.Busy;
 
         /// <summary>How often what the places hold was put on the catalog's entries in this session, for what is worked out from it to know when to work it out again.</summary>

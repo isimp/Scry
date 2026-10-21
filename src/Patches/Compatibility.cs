@@ -414,6 +414,7 @@ namespace Scry
         private static int _offCounted;
 
         /// <summary>Whether the check has run in this session.</summary>
+        [ForTest]
         public static bool Checked => _checked;
 
         /// <summary>How many features are off, cheap enough to ask every frame: counted again only when another has been found off.</summary>

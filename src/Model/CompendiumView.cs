@@ -194,6 +194,7 @@ namespace Scry
         public Entry Because(Entry entry) => entry != null && _rule != CompendiumRule.Off && _because.TryGetValue(entry, out var owner) ? owner : null;
 
         /// <summary>What made an entry known, then what made that known, back to what the book holds itself.</summary>
+        [ForTest]
         public IEnumerable<Entry> Chain(Entry entry)
         {
             var seen = new HashSet<Entry>();

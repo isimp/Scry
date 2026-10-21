@@ -169,6 +169,7 @@ namespace Scry
         /// The name a key names, and the kind when its namespace tells it; a prefab's key tells no
         /// kind, since every kind of prefab shares one namespace.
         /// </summary>
+        [ForTest]
         public static string Split(string key, out Kind? kind)
         {
             key = key ?? "";

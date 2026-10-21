@@ -754,9 +754,11 @@ namespace Scry
         // ----- Keeping and putting back -----
 
         /// <summary>Keeps where the explorer is whole, to be put back with <see cref="Restore"/>.</summary>
+        [ForTest]
         public Kept Keep() => new Kept(this);
 
         /// <summary>Puts the explorer back where it was kept: search, filters, selection, recent entries and history.</summary>
+        [ForTest]
         public void Restore(Kept kept) => kept?.Into(this);
 
         /// <summary>

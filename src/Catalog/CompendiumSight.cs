@@ -77,18 +77,23 @@ namespace Scry
         }
 
         /// <summary>How many things are kept to look at now, those resting among them.</summary>
+        [ForTest]
         public static int ThingCount => Things.Count;
 
         /// <summary>How many of the things kept rest now, one by one; for the self-test.</summary>
+        [ForTest]
         public static int ThingsResting => Things.Resting;
 
         /// <summary>How many things were seen, or had nothing more to tell, and were let go, in this world.</summary>
+        [ForTest]
         public static int ThingsLetGo => Things.LetGo;
 
         /// <summary>How many things were dropped, gone or not to be looked at (a creature, one showing nothing, one the catalog lacks), in this world.</summary>
+        [ForTest]
         public static int ThingsDropped => Things.Dropped;
 
         /// <summary>Whether a thing is kept to look at now.</summary>
+        [ForTest]
         public static bool Keeps(ZNetView thing) => Things.Contains(thing);
 
         /// <summary>A thing the game keeps in the world woke: kept to be looked at.</summary>
@@ -169,6 +174,7 @@ namespace Scry
         /// Looks at every thing kept once, into a book of its own, letting none go; how the
         /// self-test times a whole round, every thing in view looked through.
         /// </summary>
+        [ForTest]
         public static void LookAtAll(Player player, CompendiumCatchUp catchUp, CompendiumBook book)
         {
             if (!Ready(player, catchUp, book, letGo: false)) return;
