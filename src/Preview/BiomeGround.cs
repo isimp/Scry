@@ -39,8 +39,8 @@ namespace Scry
         /// <summary>How far under the floor the ground lies, as the terrain's shader raises its bumps (<c>_Displacement</c>).</summary>
         public const float Below = 0.05f;
 
-        /// <summary>How far from the middle grass grows, as far as the game grows it around you (<c>ClutterSystem.m_distance</c>).</summary>
-        private const float GrassReach = 40f;
+        /// <summary>The farthest from the middle grass grows, however wide the ground, so a big model's ground does not scatter grass without end.</summary>
+        private const float MostGrassReach = 80f;
 
         /// <summary>The most plants made as copies of their own, rather than drawn many times over.</summary>
         private const int MostGrassCopies = 300;
@@ -111,6 +111,12 @@ namespace Scry
         }
 
         public bool WaterShown => _water != null && _water.activeSelf;
+
+        /// <summary>How far from the middle the farthest and the nearest stem grow, how far round the model the grass was kept off, and how far the ground reaches, in metres, for the self-test.</summary>
+        [Diagnostic]
+        public (float Farthest, float Nearest, float Cleared, float Reach) GrassSpread => (_farthest, _nearest, _clear, _across / 2f);
+
+        private float _farthest, _nearest;
 
         /// <summary>
         /// Each frame: lays the ground or puts it away as it is wanted, of the biome given, making
@@ -499,11 +505,13 @@ namespace Scry
         private readonly List<GameObject> _grassCopies = new List<GameObject>();
 
         /// <summary>
-        /// Scatters the biome's grass and small plants over the ground within forty metres, as the
-        /// game scatters them around you (<c>ClutterSystem.GenerateVegPatch</c>): patch by patch,
-        /// each kind for the biome with its own dice for the patch, its places kept by its forest,
-        /// noise, height, slope, sea depth, vegetation and cleared ground rules, the ground taken
-        /// at a height typical of the biome (<see cref="StageGround.Altitude"/>).
+        /// Scatters the biome's grass and small plants over the ground as the game scatters them
+        /// around you (<c>ClutterSystem.GenerateVegPatch</c>): patch by patch, each kind for the
+        /// biome with its own dice for the patch (<see cref="StageGround.PatchSeed"/>), its places
+        /// kept by its forest, noise, height, slope, sea depth, vegetation and cleared ground rules,
+        /// the ground taken at a height typical of the biome (<see cref="StageGround.Altitude"/>).
+        /// It grows out to where the ground has faded away, eighty metres at the most, thinning as
+        /// the ground fades (<see cref="StageGround.GrassKept"/>), so grass and ground fade together.
         /// </summary>
         private void ScatterGrass(GameObject root, int layer)
         {
@@ -518,8 +526,13 @@ namespace Scry
             var depth = StageGround.WaterOver(Biome) ?? 0f;
             var size = Mathf.Max(1f, system.m_grassPatchSize);
             var half = size / 2f;
-            var reach = Mathf.Min(_across / 2f, GrassReach);
+            var reach = Mathf.Min(StageGround.GrassOut(_across), MostGrassReach);
+            // The share of the ground's half width each stem stands at, by which it thins; with the
+            // reach cut short, thinning as if the ground ended there.
+            var thinsBy = reach / 0.95f;
             var patches = Mathf.CeilToInt(reach / size);
+            _farthest = 0f;
+            _nearest = float.MaxValue;
             var kinds = new Dictionary<GameObject, GrassKind>();
             var state = UnityEngine.Random.state;
             try
@@ -535,15 +548,19 @@ namespace Scry
                         {
                             var clutter = system.m_clutter[i];
                             if (clutter == null || !clutter.m_enabled || clutter.m_prefab == null || (clutter.m_biome & biome) == 0) continue;
-                            UnityEngine.Random.InitState(px * (pz * 1374) + i * 9321);
+                            UnityEngine.Random.InitState(StageGround.PatchSeed(px, pz, i));
                             var offset = new Vector3(clutter.m_fractalOffset, 0f, 0f);
                             var amount = (int)(clutter.m_amount * system.m_amountScale);
                             for (var j = 0; j < amount; j++)
                             {
                                 var point = new Vector3(UnityEngine.Random.Range(cx - half, cx + half), 0f, UnityEngine.Random.Range(cz - half, cz + half));
                                 float yaw = UnityEngine.Random.Range(0, 360);
-                                if (new Vector2(point.x - _at.x, point.z - _at.z).magnitude < _clear) continue;
+                                var kept = UnityEngine.Random.value;
+                                var away = new Vector2(point.x - _at.x, point.z - _at.z).magnitude;
+                                if (away < _clear || kept >= StageGround.GrassKept(away / thinsBy)) continue;
                                 if (!Grows(clutter, point, offset, altitude, depth, bare, paints)) continue;
+                                _farthest = Mathf.Max(_farthest, away);
+                                _nearest = Mathf.Min(_nearest, away);
                                 point.y = clutter.m_snapToWater ? _at.y + depth : _at.y + Below;
                                 if (clutter.m_randomOffset != 0f) point.y += UnityEngine.Random.Range(0f - clutter.m_randomOffset, clutter.m_randomOffset);
                                 var turn = Quaternion.Euler(0f, yaw, 0f);

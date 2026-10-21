@@ -117,15 +117,33 @@ namespace Scry
 
         /// <summary>
         /// How far round the model the stage's grass is kept off, in metres: the ground it stands
-        /// on and a margin (its footprint, half its widest side, a fifth more and 0.3 m); and for
-        /// something lower than grass grows (under 0.6 m), at least 1.5 m, so the grass between it
-        /// and the camera does not hide it.
+        /// on and a margin (its footprint, half its widest side, a fifth more and 0.3 m); none
+        /// round a creature, which stands in the grass as in the game, however wide its arms or
+        /// wings; and for anything lower than grass grows (under 0.6 m), at least 1.5 m, so the
+        /// grass between it and the camera does not hide it.
         /// </summary>
-        public static float ClearOfGrass(float footprint, float height)
+        public static float ClearOfGrass(float footprint, float height, bool creature)
         {
-            var margin = footprint * 1.2f + 0.3f;
-            return height < 0.6f ? Math.Max(margin, 1.5f) : margin;
+            if (height >= 0.6f) return creature ? 0f : footprint * 1.2f + 0.3f;
+            return Math.Max(footprint * 1.2f + 0.3f, 1.5f);
         }
+
+        /// <summary>How far from its middle grass grows on a ground so wide: out to where the ground has faded away (<see cref="Fade"/>).</summary>
+        public static float GrassOut(float across) => across / 2f * 0.95f;
+
+        /// <summary>How much of the grass grows at a share of the ground's half width out from its middle: all of it in the middle, thinning as the ground fades (<see cref="Fade"/>), none where it has faded.</summary>
+        public static float GrassKept(float share) => 1f - Fade(share);
+
+        /// <summary>
+        /// The dice a patch of grass is scattered with, for one kind of grass (<c>ClutterSystem.GenerateVegPatch</c>):
+        /// the game's seed for a patch by its numbers, the stage's patches numbered as if out in
+        /// the world, as round its middle the small numbers multiplied would give a cross of
+        /// patches, and mirrored pairs, the same dice.
+        /// </summary>
+        public static int PatchSeed(int x, int z, int kind) => unchecked((x + PatchAwayX) * ((z + PatchAwayZ) * 1374) + kind * 9321);
+
+        /// <summary>Where the stage's patches are numbered from, as if out in the world: primes far apart, so no two patches within twenty of the middle multiply alike.</summary>
+        private const int PatchAwayX = 1013, PatchAwayZ = 7927;
 
         /// <summary>
         /// The height over the sea a biome's ground is taken at, for the game's rules for where

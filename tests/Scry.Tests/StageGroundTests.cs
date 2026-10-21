@@ -68,15 +68,54 @@ namespace Scry.Tests
         [Fact]
         public void GrassKeepsOffWhatStandsOnTheStageAndWhatLiesSmallInIt()
         {
-            // A bear: its footprint and a margin round it.
-            Assert.Equal(1.5f, StageGround.ClearOfGrass(footprint: 1f, height: 1.5f), 3);
-            // A tree: wider, and as tall as it likes.
-            Assert.Equal(2.7f, StageGround.ClearOfGrass(footprint: 2f, height: 10f), 3);
+            // A tree or a wall: its footprint and a margin round it, as tall as it likes.
+            Assert.Equal(2.7f, StageGround.ClearOfGrass(footprint: 2f, height: 10f, creature: false), 3);
+            Assert.Equal(1.5f, StageGround.ClearOfGrass(footprint: 1f, height: 1.5f, creature: false), 3);
             // A sword lying down or a pebble: low enough for grass to hide it, so a wider ring.
-            Assert.Equal(1.5f, StageGround.ClearOfGrass(footprint: 0.6f, height: 0.1f), 3);
-            Assert.Equal(1.5f, StageGround.ClearOfGrass(footprint: 0.05f, height: 0.05f), 3);
+            Assert.Equal(1.5f, StageGround.ClearOfGrass(footprint: 0.6f, height: 0.1f, creature: false), 3);
+            Assert.Equal(1.5f, StageGround.ClearOfGrass(footprint: 0.05f, height: 0.05f, creature: false), 3);
             // Something small but standing taller than grass needs only its own margin.
-            Assert.Equal(0.54f, StageGround.ClearOfGrass(footprint: 0.2f, height: 1f), 3);
+            Assert.Equal(0.54f, StageGround.ClearOfGrass(footprint: 0.2f, height: 1f, creature: false), 3);
+        }
+
+        [Fact]
+        public void GrassGrowsUpToACreaturesFeetUnlessItIsLowerThanTheGrass()
+        {
+            // As in the game, a troll or a dragon stands in the grass, however wide its arms or wings.
+            Assert.Equal(0f, StageGround.ClearOfGrass(footprint: 2.5f, height: 4f, creature: true), 3);
+            Assert.Equal(0f, StageGround.ClearOfGrass(footprint: 9f, height: 5f, creature: true), 3);
+            // One lower than the grass keeps its ring, or the grass would hide it.
+            Assert.Equal(1.5f, StageGround.ClearOfGrass(footprint: 0.4f, height: 0.4f, creature: true), 3);
+        }
+
+        [Fact]
+        public void GrassFadesOutWithTheGroundItGrowsOn()
+        {
+            // Grass grows out to where the ground has faded away, thinning as the ground fades, so
+            // the two go together rather than the grass ending in a ring.
+            Assert.Equal(76f, StageGround.GrassOut(160f), 3);
+            Assert.Equal(1f, StageGround.GrassKept(0f), 3);
+            Assert.Equal(1f, StageGround.GrassKept(0.6f), 3);
+            Assert.Equal(0f, StageGround.GrassKept(0.95f), 3);
+            for (var share = 0f; share <= 1f; share += 0.05f) Assert.Equal(1f - StageGround.Fade(share), StageGround.GrassKept(share), 4);
+            Assert.True(StageGround.GrassKept(0.7f) > StageGround.GrassKept(0.85f));
+        }
+
+        [Fact]
+        public void NoTwoPatchesOfGrassAroundTheStageAreScatteredAlike()
+        {
+            // The game seeds a patch by its place in the world, its numbers multiplied; round the
+            // stage's middle those numbers are small, so a cross of patches and mirrored pairs came
+            // out alike, a tiled look. Seeded as if out in the world, none is.
+            for (var kind = 0; kind < 24; kind++)
+            {
+                var seeds = new System.Collections.Generic.HashSet<int>();
+                for (var x = -12; x <= 12; x++)
+                    for (var z = -12; z <= 12; z++)
+                        Assert.True(seeds.Add(StageGround.PatchSeed(x, z, kind)), $"kind {kind}: patch {x}, {z} seeded as another");
+            }
+            Assert.NotEqual(StageGround.PatchSeed(1, 2, 0), StageGround.PatchSeed(2, 1, 0));
+            Assert.NotEqual(StageGround.PatchSeed(0, 3, 0), StageGround.PatchSeed(0, -3, 0));
         }
 
         [Fact]

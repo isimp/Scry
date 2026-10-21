@@ -54,6 +54,10 @@ namespace Scry
         public static int GrassCount => TheGround.GrassCount;
         public static bool WaterShown => TheGround.WaterShown;
 
+        /// <summary>For the self-test: how far out the grass grows, how near the middle, how far round the model it is kept off, and how far the ground reaches.</summary>
+        [ForTest]
+        public static (float Farthest, float Nearest, float Cleared, float Reach) GrassSpread => TheGround.GrassSpread;
+
         /// <summary>The biome whose ground the model stands on, or null on the plain floor or the grid.</summary>
         public static string GroundUnderfoot => TheGround.On ? TheGround.Biome : null;
 
@@ -92,7 +96,7 @@ namespace Scry
             var edge = sky ? look.Horizon : look.Backdrop;
             edge.a = 1f;
             var size = SubjectSize;
-            var clear = StageGround.ClearOfGrass(Mathf.Max(size.x, size.z) / 2f, size.y);
+            var clear = StageGround.ClearOfGrass(Mathf.Max(size.x, size.z) / 2f, size.y, _lastShown?.Kind == Kind.Creature);
             TheGround.Lay(groundY, _lastShown, sky, _frameRadius, clear, Origin, edge, _root, _layer);
         }
 
