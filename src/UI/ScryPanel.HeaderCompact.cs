@@ -222,12 +222,23 @@ namespace Scry
                 return;
             }
             _headerMenu = menu;
-            _headerMenuChip = chipOnScreen;
             HeaderMenuChoices.Clear();
+            _headerMenuBox = default;
+            PlaceHeaderMenu(chipOnScreen);
+        }
+
+        /// <summary>
+        /// Places the open box under its chip as the chip stands now, each time it is drawn, so it
+        /// follows the header as a notice comes or goes above it: every kind across the kind row,
+        /// where the list is taken from ending at its chip. The kinds' height is known once they
+        /// are placed (<see cref="HeaderMenuDraw"/>).
+        /// </summary>
+        private static void PlaceHeaderMenu(Rect chipOnScreen)
+        {
+            _headerMenuChip = chipOnScreen;
             var top = chipOnScreen.yMax + U(4f);
-            // Laid out as it is drawn; its height is known once the kinds are placed.
-            _headerMenuBox = menu == HeaderMenu.Kinds
-                ? new Rect(_kindRowOnScreen.x, top, _kindRowOnScreen.width, U(40f))
+            _headerMenuBox = _headerMenu == HeaderMenu.Kinds
+                ? new Rect(_kindRowOnScreen.x, top, _kindRowOnScreen.width, _headerMenuBox.height > 0f ? _headerMenuBox.height : U(40f))
                 : new Rect(chipOnScreen.xMax - OriginSwitchWidth() - U(16f), top, OriginSwitchWidth() + U(16f), chipOnScreen.height + U(16f));
         }
 
@@ -303,6 +314,7 @@ namespace Scry
         {
             if (_headerMenu == HeaderMenu.None || !_compact) return;
             var e = Event.current;
+            PlaceHeaderMenu(_headerMenu == HeaderMenu.Kinds ? _pillOnScreen : _originOnScreen);
             var box = Here(_headerMenuBox);
             HeaderMenuChoices.Clear();
             var inset = U(8f);
