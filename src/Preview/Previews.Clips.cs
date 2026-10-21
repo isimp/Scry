@@ -357,9 +357,14 @@ namespace Scry
         private static readonly string[] WaterClips = { "swim", "tread" };
         private static readonly string[] JumpClips = { "jump" };
 
+        /// <summary>
+        /// What a prefab's clips play: worked out once for what it carries now (its look's gear, or
+        /// what the person tries on), from the attacks of what it carries, the game's own actions,
+        /// what is heard around it, clips found by their names, and a tag for each; none yet while
+        /// its animator is still watched.
+        /// </summary>
         private static ClipPlays Find(GameObject prefab, GameObject copy, bool wait)
         {
-
             // What it has now: a creature what its look carries; the person trying an item on
             // what it wears, the item first.
             var worn = Looks.IsWorn(_entry) && !ReferenceEquals(_entry.Source, prefab) ? Looks.WornWith((GameObject)_entry.Source) : null;
@@ -378,9 +383,38 @@ namespace Scry
 
             var items = worn ?? Relations.CarriedItems(prefab);
             if (carried != null) items = items.Where(carried.Contains).Concat(items.Where(i => !carried.Contains(i))).ToList();
+            var names = new Dictionary<Attack, string>();
+            var attacks = AttacksOf(prefab, animator, items, names);
+            var actions = GameLists(prefab).ToList();
+            if (attacks.Count == 0 && actions.Count == 0 && prefab.GetComponent<BaseAI>() == null) return plays;
+            var clips = animator.runtimeAnimatorController.animationClips.Where(c => c != null).ToList();
+            var striking = clips.Where(c => c.events.Any(e => e.functionName == "Hit" || e.functionName == "OnAttackTrigger")).Select(c => c.name);
+            var seen = TriggerProbe.ClipsOf(prefab.name, animator, attacks.Select(a => a.Item1), wait);
+            if (seen.Busy)
+            {
+                ClipPlaysCache.Remove(cacheKey);
+                return NotYet;
+            }
+            plays.Attacks = ClipAttacks.Match(attacks, seen.Triggers, clips.Select(c => c.name), striking);
+            plays.Actions = ClipActions.Match(actions, seen.Actions, plays.Attacks.Keys);
+            var body = prefab.GetComponent<Character>();
+            plays.Around = AroundOf(prefab, seen, plays);
+            plays.ByName = ByNameOf(body, seen, clips, plays);
+            if (body != null && body.m_flying && EffectSlots.ShowsAny(body.m_flyingContinuousEffect) && !animator.parameters.Any(p => p.name == "flying")) plays.Flying = body.m_flyingContinuousEffect;
+            TagClips(plays, names, seen);
+            if (body != null && FirstTime("lasting:" + prefab.name)) TellLasting(prefab, body);
+            return plays;
+        }
+
+        /// <summary>
+        /// The attacks of what a prefab carries that its animator has a trigger for, each with the
+        /// triggers that start it, and after them every attack's later combo steps, so a start keeps
+        /// its own clip; each attack's name put in <paramref name="names"/>.
+        /// </summary>
+        private static List<(string, object)> AttacksOf(GameObject prefab, Animator animator, List<GameObject> items, Dictionary<Attack, string> names)
+        {
             var attacks = new List<(string, object)>();
             var steps = new List<(string, object)>();
-            var names = new Dictionary<Attack, string>();
             foreach (var item in items)
             {
                 var shared = item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
@@ -400,24 +434,17 @@ namespace Scry
                     names[attack] = ClipWords.Attack(name, attack == shared.m_secondaryAttack);
                 }
             }
-
             attacks.AddRange(steps);
-            var actions = GameLists(prefab).ToList();
-            if (attacks.Count == 0 && actions.Count == 0 && prefab.GetComponent<BaseAI>() == null) return plays;
-            var clips = animator.runtimeAnimatorController.animationClips.Where(c => c != null).ToList();
-            var striking = clips.Where(c => c.events.Any(e => e.functionName == "Hit" || e.functionName == "OnAttackTrigger")).Select(c => c.name);
-            var seen = TriggerProbe.ClipsOf(prefab.name, animator, attacks.Select(a => a.Item1), wait);
-            if (seen.Busy)
-            {
-                ClipPlaysCache.Remove(cacheKey);
-                return NotYet;
-            }
-            plays.Attacks = ClipAttacks.Match(attacks, seen.Triggers, clips.Select(c => c.name), striking);
-            plays.Actions = ClipActions.Match(actions, seen.Actions, plays.Attacks.Keys);
+            return attacks;
+        }
 
-            // What is heard next or now and then: waking, a troll is silent and roars once it
-            // spots you (BaseAI.SetAlerted); awake, it makes its idle sound now and then
-            // (BaseAI.DoIdleSound), whatever it plays.
+        /// <summary>
+        /// What is heard next or now and then: waking, a troll is silent and roars once it spots you
+        /// (BaseAI.SetAlerted); awake, it makes its idle sound now and then (BaseAI.DoIdleSound),
+        /// whatever it plays; staggered, it was hit, again and again (Character.AddStaggerDamage).
+        /// </summary>
+        private static Dictionary<string, object> AroundOf(GameObject prefab, Probed seen, ClipPlays plays)
+        {
             var ai = prefab.GetComponent<BaseAI>();
             var alerted = ai != null && EffectSlots.ShowsAny(ai.m_alertedEffects) ? ai.m_alertedEffects : null;
             var around = new List<(string, object)>();
@@ -427,14 +454,15 @@ namespace Scry
                 around.Add(("spawn", alerted));
             }
 
-            // Staggered, it was hit, again and again (Character.AddStaggerDamage).
             var hit = prefab.GetComponent<Character>().OrNull()?.m_hitEffects;
             if (hit != null && EffectSlots.ShowsAny(hit)) around.Add(("stagger", hit));
             var idleSound = ai != null && EffectSlots.ShowsAny(ai.m_idleSound) ? ai.m_idleSound : null;
-            plays.Around = ClipAround.Match(around, seen.Actions, seen.Idle, idleSound, plays.Attacks.Keys);
+            return ClipAround.Match(around, seen.Actions, seen.Idle, idleSound, plays.Attacks.Keys);
+        }
 
-            // Where the animator could not be seen to swim or jump, clips named so.
-            var body = prefab.GetComponent<Character>();
+        /// <summary>Where the animator could not be seen to swim or jump, the clips named so.</summary>
+        private static Dictionary<string, object> ByNameOf(Character body, Probed seen, List<AnimationClip> clips, ClipPlays plays)
+        {
             var named = new List<(string, string[], object)>();
             if (body != null && EffectSlots.ShowsAny(body.m_waterEffects)) named.Add(("water", WaterClips, body.m_waterEffects));
             if (body != null && EffectSlots.ShowsAny(body.m_jumpEffects)) named.Add(("jump", JumpClips, body.m_jumpEffects));
@@ -442,12 +470,12 @@ namespace Scry
             IReadOnlyList<string> Saw(string action) => seen.Actions.TryGetValue(action, out var s) ? s : System.Array.Empty<string>();
             tried["water"] = Saw("water").Concat(Saw("swim")).ToList();
             tried["jump"] = Saw("jump");
-            plays.ByName = ClipByName.Match(named, tried, clips.Select(c => c.name), plays.Attacks.Keys.Concat(plays.Actions.Keys));
+            return ClipByName.Match(named, tried, clips.Select(c => c.name), plays.Attacks.Keys.Concat(plays.Actions.Keys));
+        }
 
-            if (body != null && body.m_flying && EffectSlots.ShowsAny(body.m_flyingContinuousEffect) && !animator.parameters.Any(p => p.name == "flying")) plays.Flying = body.m_flyingContinuousEffect;
-
-            // What each clip is: the attack it plays, what the animator was seen to do there,
-            // what it was named for, or idling.
+        /// <summary>What each clip is: the attack it plays, what the animator was seen to do there, what it was named for, or idling.</summary>
+        private static void TagClips(ClipPlays plays, Dictionary<Attack, string> names, Probed seen)
+        {
             foreach (var part in plays.Attacks)
             {
                 if (part.Value.Key is Attack attack && names.TryGetValue(attack, out var name)) plays.Tags[part.Key] = name;
@@ -463,8 +491,6 @@ namespace Scry
                 plays.Tags[pair.Key] = ClipWords.ByName(pair.Key);
             }
             foreach (var clip in seen.Idle) if (!plays.Tags.ContainsKey(clip)) plays.Tags[clip] = ClipWords.Idles;
-            if (body != null && FirstTime("lasting:" + prefab.name)) TellLasting(prefab, body);
-            return plays;
         }
 
         /// <summary>
