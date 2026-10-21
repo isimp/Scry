@@ -128,202 +128,240 @@ namespace Scry
 
         private static void StageArea(Explorer explorer, Entry entry, Rect rect)
         {
-            var e = Event.current;
             Skin.Box(rect, Skin.Stage);
-
-            if (Stage.IsStaged(entry))
-            {
-                var inner = new Rect(rect.x + U(3f), rect.y + U(3f), rect.width - U(6f), rect.height - U(6f));
-                if (e.type == EventType.Repaint)
-                {
-                    Stage.Request((int)inner.width, (int)inner.height);
-                    StagePieces.Clear();
-                }
-                _pictureScreen = OnScreen(inner);
-
-                // An effect's stage stands once its copy has played out, empty.
-                if ((Stage.Subject != null || entry.Kind == Kind.Effect) && Stage.Texture != null)
-                {
-                    var drawn = Timing.Start();
-                    if (e.type == EventType.Repaint) GUI.DrawTexture(inner, Stage.Texture, ScaleMode.StretchToFill, false);
-                    Timing.Add("stage texture", drawn);
-                }
-                else if (entry.Kind != Kind.Effect)
-                {
-                    // A location or room is shown once its model has loaded and its copy is made.
-                    var note = entry.Source is PlaceSource place ? LocationWords.StageNote(Stage.Building || Previews.ReadingPlace ? PlaceLoad.Loading : PlaceAssets.State(place)) : null;
-                    GUI.Label(inner, note ?? "This one could not be previewed.", Skin.CenterDim);
-                }
-
-                // The example's plan in the corner, which takes the mouse where it is.
-                // Inside a dungeon, the plan box with its views; a camp keeps its plan from above.
-                if (e.type == EventType.Repaint) Stage.ViewShift = 0f;
-                var plan = Stage.Subject == null ? Rect.zero
-                    : Stage.HasInside && Stage.ShowsInside && ExampleOf(entry) != null ? DungeonPlanBox(explorer, inner)
-                    : PlanOverlay(explorer, entry, inner);
-                // The card of the room gone into in the other corner, which takes the mouse too.
-                var card = Stage.Subject != null ? RoomCardBox(explorer, inner, plan) : Rect.zero;
-                StagePiece("plan box", plan);
-                StagePiece("room card", card);
-
-                // A room of the example under the mouse is named, and a click on it that is not a
-                // drag goes into it inside a dungeon's example, and to its entry in a camp's.
-                string roomKey = null;
-                PlacedRoom pointed = null;
-                _stageRoom = null;
-                _stageHover = null;
-                var still = _drag == Drag.None || (_drag == Drag.Orbit && _dragMoved < U(5f));
-                var mouse = StageMouse(e, inner);
-                if (Stage.ExampleRoomsShown > 0 && still && inner.Contains(mouse) && !plan.Contains(mouse) && !card.Contains(mouse))
-                {
-                    var point = new Vector2((mouse.x - inner.x) / inner.width, 1f - (mouse.y - inner.y) / inner.height);
-                    var room = Stage.ExampleRoomAt(point);
-                    if (room != null)
-                    {
-                        var key = EntryKeys.For(Kind.Location, room.Room.Name);
-                        var known = Goes(explorer, key);
-                        var name = explorer.NotMet(key) ? CompendiumWords.Unknown(Kind.Location) : ShownName(explorer, key, LocationWords.RoomName(room.Room.Name));
-                        AskTip("stageroom:" + room.Room.Name, Stage.HasInside ? Peek(explorer, room) : StageWords.RoomTip(name, known));
-                        if (known) roomKey = key;
-                        pointed = room;
-                        _stageRoom = room.Room.Name;
-                        _stageHover = room;
-                    }
-                }
-                // Inside a dungeon, the room lit is outlined on the stage (RoomLight): a way chip of
-                // the card hovered for it, else one under the mouse in the plan box or on the stage.
-                // The room last come out of stays outlined until the mouse moves, the mouse the self-test points counted.
-                var moving = _boxPointForTest ?? mouse;
-                if (Stage.CameOutOf == null) _cameOutMouse = null;
-                else if (e.type == EventType.Repaint)
-                {
-                    if (_cameOutMouse == null) _cameOutMouse = moving;
-                    else if ((moving - _cameOutMouse.Value).sqrMagnitude > U(4f) * U(4f)) Stage.LetGoOfCameOut();
-                }
-                if (e.type == EventType.Repaint) Stage.LitRoom = Stage.HasInside && Stage.ShowsInside ? RoomLight.Lit(_cardLit, _boxHover, _stageHover) ?? Stage.PickedRoom ?? Stage.CameOutOf : null;
-                // A click on no room, not a drag, lets go of the room picked.
-                if (e.type == EventType.MouseUp && e.button == 0 && _stageUnpick)
-                {
-                    _stageUnpick = false;
-                    if (_drag == Drag.Orbit && _dragMoved < U(5f)) Stage.Pick(null);
-                }
-                if (e.type == EventType.MouseUp && e.button == 0 && _drag == Drag.Orbit && _dragMoved < U(5f) && (_stageRoomDown != null || _stageRoomDownAt != null))
-                {
-                    var go = _stageRoomDown;
-                    var into = _stageRoomDownAt;
-                    _stageRoomDown = null;
-                    _stageRoomDownAt = null;
-                    ClickRoom(explorer, into, go);
-                }
-
-                // An effect, or a status effect's look on the person, that has played out plays again
-                // on a click of its stage that is not a drag.
-                var playedOut = entry.Kind == Kind.Effect && !Previews.Repeat && Stage.Finished || entry.Kind == Kind.StatusEffect && Stage.LookPlayedOut;
-                if (playedOut && e.type == EventType.MouseUp && e.button == 0 && _drag == Drag.Orbit && _dragMoved < U(5f) && rect.Contains(e.mousePosition)) Previews.Replay();
-
-                // The camera's buttons show only while the mouse is on the stage, so the model is not
-                // framed by controls while it is looked at; the key sheet's ? stays in the corner.
-                var over = rect.Contains(StageMouse(e, inner)) || _drag == Drag.Orbit;
-                var viewsW = KeysMark(inner) + (over ? ViewButtons(inner) : 0f);
-                var textW = inner.width - U(24f) - viewsW;
-                if (playedOut)
-                {
-                    PictureNote(inner, textW, StageWords.PlayedOut);
-                }
-                else if (ExampleProgress(entry) is string progress)
-                {
-                    PictureNote(inner, textW, progress);
-                }
-                else if (Stage.Subject != null && Stage.ShowsGrid)
-                {
-                    // On the grid, how big the model is, in the same metres as its squares.
-                    var size = Stage.SubjectSize;
-                    PictureNote(inner, textW, StageWords.Grid(size.x, size.y, size.z));
-                }
-
-                // The stage's own buttons and its floor ruler come before its dragging, which would otherwise take their clicks.
-                NoteStage(rect);
-                // Inside a dungeon, the breadcrumb where the kind badge stands, before the chips that keep clear of it.
-                if (TrailShown(entry)) Breadcrumb(explorer, entry, rect);
-                StageButtons(entry, rect);
-                FloorRuler(rect);
-
-                if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition))
-                {
-                    // A double-click goes into the room under it inside a dungeon, else frames the view afresh.
-                    if (e.clickCount == 2 && Stage.HasInside && pointed != null) Stage.GoInto(pointed);
-                    else if (e.clickCount == 2) Stage.ResetView();
-                    _stageRoomDown = e.clickCount == 2 ? null : roomKey;
-                    _stageRoomDownAt = e.clickCount == 2 ? null : pointed;
-                    _stageUnpick = e.clickCount == 1 && pointed == null && Stage.PickedRoom != null;
-                    StartDrag(Drag.Orbit);
-                    Stage.Dragging = true;
-                    e.Use();
-                }
-                else if (e.type == EventType.MouseDown && e.button == 1 && rect.Contains(e.mousePosition))
-                {
-                    StartDrag(Drag.Pan);
-                    e.Use();
-                }
-                else if (e.type == EventType.ScrollWheel && rect.Contains(e.mousePosition))
-                {
-                    // With Shift each notch of the wheel steps the cut of a place opened, a level or a
-                    // room's mark, down as it scrolls down; held, the turn can come sideways.
-                    // Otherwise it zooms toward what is under the pointer.
-                    if (e.shift && (Stage.Cutting || Stage.HasFloors)) WheelStep(StageCamera.WheelTurn(e.delta.x, e.delta.y));
-                    else Stage.ZoomBy(e.delta.y, OnPicture(GUIUtility.GUIToScreenPoint(e.mousePosition)));
-                    e.Use();
-                }
-            }
-            else if (entry.Kind == Kind.Sound)
-            {
-                var drawn = Timing.Start();
-                SoundCard(entry, rect);
-                Timing.Add("stage card", drawn);
-            }
-            else if (entry.Kind == Kind.StatusEffect)
-            {
-                var drawn = Timing.Start();
-                StatusCard(entry, rect);
-                Timing.Add("stage card", drawn);
-            }
-            else if (entry.Kind == Kind.Mod)
-            {
-                var drawn = Timing.Start();
-                ModCard(entry, rect);
-                Timing.Add("stage card", drawn);
-            }
-            else if (entry.Kind == Kind.Biome)
-            {
-                var drawn = Timing.Start();
-                BiomeCard(entry, rect);
-                Timing.Add("stage card", drawn);
-            }
-            else if (entry.Kind == Kind.Skill)
-            {
-                var drawn = Timing.Start();
-                SkillCard(entry, rect);
-                Timing.Add("stage card", drawn);
-            }
-            else if (entry.Kind == Kind.Raid)
-            {
-                var drawn = Timing.Start();
-                RaidCard(entry, rect);
-                Timing.Add("stage card", drawn);
-            }
-            else
-            {
-                var middle = new Rect(rect.x + U(30f), rect.y + rect.height / 2f - U(34f), rect.width - U(60f), U(70f));
-                GUI.Label(new Rect(middle.x, middle.y, middle.width, U(28f)), "Nothing to see or hear", Skin.Center);
-                GUI.Label(new Rect(middle.x, middle.y + U(30f), middle.width, U(40f)),
-                    "It has no model, particles, light or sound. Often a spawner or a controller.", Skin.CenterDim);
-            }
+            if (Stage.IsStaged(entry)) StagedArea(explorer, entry, rect);
+            else StageCard(entry, rect);
 
             if (!Stage.IsStaged(entry) || !TrailShown(entry))
             {
                 KindBadge(entry, new Vector2(rect.x + U(10f), rect.y + U(10f)));
                 StagePiece("kind", new Rect(rect.x + U(10f), rect.y + U(10f), _badgeWidth, U(22f)));
             }
+        }
+
+        /// <summary>
+        /// A staged entry's stage: its picture, the example's plan and the room card in its corners,
+        /// the room under the mouse named and lit, a note at its foot, its buttons and floor ruler,
+        /// and the mouse turning, moving and zooming the view.
+        /// </summary>
+        private static void StagedArea(Explorer explorer, Entry entry, Rect rect)
+        {
+            var e = Event.current;
+            var inner = new Rect(rect.x + U(3f), rect.y + U(3f), rect.width - U(6f), rect.height - U(6f));
+            if (e.type == EventType.Repaint)
+            {
+                Stage.Request((int)inner.width, (int)inner.height);
+                StagePieces.Clear();
+            }
+            _pictureScreen = OnScreen(inner);
+
+            StagePicture(entry, inner);
+
+            // The example's plan in the corner, which takes the mouse where it is.
+            // Inside a dungeon, the plan box with its views; a camp keeps its plan from above.
+            if (e.type == EventType.Repaint) Stage.ViewShift = 0f;
+            var plan = Stage.Subject == null ? Rect.zero
+                : Stage.HasInside && Stage.ShowsInside && ExampleOf(entry) != null ? DungeonPlanBox(explorer, inner)
+                : PlanOverlay(explorer, entry, inner);
+            // The card of the room gone into in the other corner, which takes the mouse too.
+            var card = Stage.Subject != null ? RoomCardBox(explorer, inner, plan) : Rect.zero;
+            StagePiece("plan box", plan);
+            StagePiece("room card", card);
+
+            var mouse = StageMouse(e, inner);
+            var pointed = PointedRoom(explorer, inner, mouse, plan, card, out var roomKey);
+            RoomsLitAndClicked(explorer, e, mouse);
+
+            // An effect, or a status effect's look on the person, that has played out plays again
+            // on a click of its stage that is not a drag.
+            var playedOut = entry.Kind == Kind.Effect && !Previews.Repeat && Stage.Finished || entry.Kind == Kind.StatusEffect && Stage.LookPlayedOut;
+            if (playedOut && e.type == EventType.MouseUp && e.button == 0 && _drag == Drag.Orbit && _dragMoved < U(5f) && rect.Contains(e.mousePosition)) Previews.Replay();
+
+            // The camera's buttons show only while the mouse is on the stage, so the model is not
+            // framed by controls while it is looked at; the key sheet's ? stays in the corner.
+            var over = rect.Contains(StageMouse(e, inner)) || _drag == Drag.Orbit;
+            var viewsW = KeysMark(inner) + (over ? ViewButtons(inner) : 0f);
+            var textW = inner.width - U(24f) - viewsW;
+            StageNote(entry, inner, textW, playedOut);
+
+            // The stage's own buttons and its floor ruler come before its dragging, which would otherwise take their clicks.
+            NoteStage(rect);
+            // Inside a dungeon, the breadcrumb where the kind badge stands, before the chips that keep clear of it.
+            if (TrailShown(entry)) Breadcrumb(explorer, entry, rect);
+            StageButtons(entry, rect);
+            FloorRuler(rect);
+            StageInput(e, rect, pointed, roomKey);
+        }
+
+        /// <summary>The stage's picture, an effect's standing empty once it played out; a place's note while it loads, or that it could not be previewed.</summary>
+        private static void StagePicture(Entry entry, Rect inner)
+        {
+            var e = Event.current;
+            if ((Stage.Subject != null || entry.Kind == Kind.Effect) && Stage.Texture != null)
+            {
+                var drawn = Timing.Start();
+                if (e.type == EventType.Repaint) GUI.DrawTexture(inner, Stage.Texture, ScaleMode.StretchToFill, false);
+                Timing.Add("stage texture", drawn);
+            }
+            else if (entry.Kind != Kind.Effect)
+            {
+                // A location or room is shown once its model has loaded and its copy is made.
+                var note = entry.Source is PlaceSource place ? LocationWords.StageNote(Stage.Building || Previews.ReadingPlace ? PlaceLoad.Loading : PlaceAssets.State(place)) : null;
+                GUI.Label(inner, note ?? "This one could not be previewed.", Skin.CenterDim);
+            }
+        }
+
+        /// <summary>
+        /// The room of the example under the mouse while it is still, out of the plan and the card,
+        /// named in a tip: a peek inside a dungeon, its entry in a camp. The room, and the key of its
+        /// entry where a click goes there.
+        /// </summary>
+        private static PlacedRoom PointedRoom(Explorer explorer, Rect inner, Vector2 mouse, Rect plan, Rect card, out string roomKey)
+        {
+            roomKey = null;
+            PlacedRoom pointed = null;
+            _stageRoom = null;
+            _stageHover = null;
+            var still = _drag == Drag.None || (_drag == Drag.Orbit && _dragMoved < U(5f));
+            if (Stage.ExampleRoomsShown > 0 && still && inner.Contains(mouse) && !plan.Contains(mouse) && !card.Contains(mouse))
+            {
+                var point = new Vector2((mouse.x - inner.x) / inner.width, 1f - (mouse.y - inner.y) / inner.height);
+                var room = Stage.ExampleRoomAt(point);
+                if (room != null)
+                {
+                    var key = EntryKeys.For(Kind.Location, room.Room.Name);
+                    var known = Goes(explorer, key);
+                    var name = explorer.NotMet(key) ? CompendiumWords.Unknown(Kind.Location) : ShownName(explorer, key, LocationWords.RoomName(room.Room.Name));
+                    AskTip("stageroom:" + room.Room.Name, Stage.HasInside ? Peek(explorer, room) : StageWords.RoomTip(name, known));
+                    if (known) roomKey = key;
+                    pointed = room;
+                    _stageRoom = room.Room.Name;
+                    _stageHover = room;
+                }
+            }
+            return pointed;
+        }
+
+        /// <summary>
+        /// Inside a dungeon, the room lit and outlined on the stage (<see cref="RoomLight"/>), the
+        /// one last come out of until the mouse moves; a click on no room lets go of the one picked,
+        /// and a click on one, not a drag, goes into it or to its entry.
+        /// </summary>
+        private static void RoomsLitAndClicked(Explorer explorer, Event e, Vector2 mouse)
+        {
+            // Inside a dungeon, the room lit is outlined on the stage (RoomLight): a way chip of
+            // the card hovered for it, else one under the mouse in the plan box or on the stage.
+            // The room last come out of stays outlined until the mouse moves, the mouse the self-test points counted.
+            var moving = _boxPointForTest ?? mouse;
+            if (Stage.CameOutOf == null) _cameOutMouse = null;
+            else if (e.type == EventType.Repaint)
+            {
+                if (_cameOutMouse == null) _cameOutMouse = moving;
+                else if ((moving - _cameOutMouse.Value).sqrMagnitude > U(4f) * U(4f)) Stage.LetGoOfCameOut();
+            }
+            if (e.type == EventType.Repaint) Stage.LitRoom = Stage.HasInside && Stage.ShowsInside ? RoomLight.Lit(_cardLit, _boxHover, _stageHover) ?? Stage.PickedRoom ?? Stage.CameOutOf : null;
+            // A click on no room, not a drag, lets go of the room picked.
+            if (e.type == EventType.MouseUp && e.button == 0 && _stageUnpick)
+            {
+                _stageUnpick = false;
+                if (_drag == Drag.Orbit && _dragMoved < U(5f)) Stage.Pick(null);
+            }
+            if (e.type == EventType.MouseUp && e.button == 0 && _drag == Drag.Orbit && _dragMoved < U(5f) && (_stageRoomDown != null || _stageRoomDownAt != null))
+            {
+                var go = _stageRoomDown;
+                var into = _stageRoomDownAt;
+                _stageRoomDown = null;
+                _stageRoomDownAt = null;
+                ClickRoom(explorer, into, go);
+            }
+        }
+
+        /// <summary>The note at the stage's foot: that an effect played out, how far an example is built, or on the grid how big the model is.</summary>
+        private static void StageNote(Entry entry, Rect inner, float textW, bool playedOut)
+        {
+            if (playedOut)
+            {
+                PictureNote(inner, textW, StageWords.PlayedOut);
+            }
+            else if (ExampleProgress(entry) is string progress)
+            {
+                PictureNote(inner, textW, progress);
+            }
+            else if (Stage.Subject != null && Stage.ShowsGrid)
+            {
+                // On the grid, how big the model is, in the same metres as its squares.
+                var size = Stage.SubjectSize;
+                PictureNote(inner, textW, StageWords.Grid(size.x, size.y, size.z));
+            }
+        }
+
+        /// <summary>
+        /// The mouse on the stage: a press turns the view, a double-click goes into the room under
+        /// it or frames the view afresh, the right button moves it, and the wheel zooms or, with
+        /// Shift, steps the cut.
+        /// </summary>
+        private static void StageInput(Event e, Rect rect, PlacedRoom pointed, string roomKey)
+        {
+            if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition))
+            {
+                // A double-click goes into the room under it inside a dungeon, else frames the view afresh.
+                if (e.clickCount == 2 && Stage.HasInside && pointed != null) Stage.GoInto(pointed);
+                else if (e.clickCount == 2) Stage.ResetView();
+                _stageRoomDown = e.clickCount == 2 ? null : roomKey;
+                _stageRoomDownAt = e.clickCount == 2 ? null : pointed;
+                _stageUnpick = e.clickCount == 1 && pointed == null && Stage.PickedRoom != null;
+                StartDrag(Drag.Orbit);
+                Stage.Dragging = true;
+                e.Use();
+            }
+            else if (e.type == EventType.MouseDown && e.button == 1 && rect.Contains(e.mousePosition))
+            {
+                StartDrag(Drag.Pan);
+                e.Use();
+            }
+            else if (e.type == EventType.ScrollWheel && rect.Contains(e.mousePosition))
+            {
+                // With Shift each notch of the wheel steps the cut of a place opened, a level or a
+                // room's mark, down as it scrolls down; held, the turn can come sideways.
+                // Otherwise it zooms toward what is under the pointer.
+                if (e.shift && (Stage.Cutting || Stage.HasFloors)) WheelStep(StageCamera.WheelTurn(e.delta.x, e.delta.y));
+                else Stage.ZoomBy(e.delta.y, OnPicture(GUIUtility.GUIToScreenPoint(e.mousePosition)));
+                e.Use();
+            }
+        }
+
+        /// <summary>The card standing for a stage where an entry has none: a sound's, a status effect's, a mod's, a biome's, a skill's or a raid's; else that it has nothing to see or hear.</summary>
+        private static void StageCard(Entry entry, Rect rect)
+        {
+            var drawn = Timing.Start();
+            switch (entry.Kind)
+            {
+                case Kind.Sound:
+                    SoundCard(entry, rect);
+                    break;
+                case Kind.StatusEffect:
+                    StatusCard(entry, rect);
+                    break;
+                case Kind.Mod:
+                    ModCard(entry, rect);
+                    break;
+                case Kind.Biome:
+                    BiomeCard(entry, rect);
+                    break;
+                case Kind.Skill:
+                    SkillCard(entry, rect);
+                    break;
+                case Kind.Raid:
+                    RaidCard(entry, rect);
+                    break;
+                default:
+            var middle = new Rect(rect.x + U(30f), rect.y + rect.height / 2f - U(34f), rect.width - U(60f), U(70f));
+            GUI.Label(new Rect(middle.x, middle.y, middle.width, U(28f)), "Nothing to see or hear", Skin.Center);
+            GUI.Label(new Rect(middle.x, middle.y + U(30f), middle.width, U(40f)),
+                "It has no model, particles, light or sound. Often a spawner or a controller.", Skin.CenterDim);
+                    return;
+            }
+            Timing.Add("stage card", drawn);
         }
 
         /// <summary>

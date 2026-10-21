@@ -258,69 +258,111 @@ namespace Scry
             CountDrawn(PanelPart.RoomCard);
             Skin.Box(area, Skin.Alpha(Skin.Stage, 0.88f), Skin.Outline);
             if (scrolls) _cardScroll = GUI.BeginScrollView(area, _cardScroll, new Rect(area.x, area.y, area.width - CardScrollbar, wanted), false, false, GUIStyle.none, Skin.Gui.verticalScrollbar);
-            var x = area.x + pad;
-            var y = area.y + pad;
+            var pen = new CardPen { Explorer = explorer, X = area.x + pad, Y = area.y + pad, TextW = textW, LineH = lineH, HeadH = headH, Repaint = repaint };
+            CardName(ref pen, card, picked, nameH, out var openPage, out var goIn);
+            pen.Line(whereH, card.Where, Skin.FaintLabel);
+            // The world's own dungeon is shown by its layout alone: what lives and lies in it is the world's, not read.
+            if (!card.LayoutOnly)
+            {
+                pen.ListHeading("creatures", RoomCardWords.Creatures, card.CreatureCount, Skin.KindColor(Kind.Creature), RoomCardWords.CreaturesTip);
+                if (CardListOpen("creatures")) pen.Rows(card.CreatureRows, card.CreaturesLeftLine);
+                pen.ListHeading("loot", RoomCardWords.Loot, card.LootCount, Skin.KindColor(Kind.Item), RoomCardWords.LootTip);
+                if (CardListOpen("loot")) pen.Rows(card.LootRows, card.LootLeftLine);
+            }
+            var goTo = CardWays(ref pen, card, chipH);
+            if (levels) CardLevels(ref pen, card, chipH);
+            if (scrolls) GUI.EndScrollView();
 
-            // A creature's or a chest's line goes to its page on a click, where it has one.
-            string goPage = null;
-            void Line(float h, string text, GUIStyle style, string odds = null, string page = null)
+            if (goTo != null) Stage.GoInto(goTo);
+            else if (goIn) Stage.GoInto(room);
+            else if (openPage) Go(explorer, card.Key);
+            else if (pen.GoPage != null) Go(explorer, pen.GoPage);
+
+            // The card is not the stage: a click on it neither turns nor zooms it, and the wheel on it
+            // steps the room's cut a mark a notch, as Shift and the wheel do on the stage.
+            if (area.Contains(e.mousePosition) && e.type == EventType.ScrollWheel && Stage.HasFloors) WheelStep(StageCamera.WheelTurn(e.delta.x, e.delta.y));
+            if (area.Contains(e.mousePosition) && (e.type == EventType.MouseDown || e.type == EventType.ScrollWheel)) e.Use();
+            return area;
+        }
+
+        /// <summary>
+        /// Where the room card's next line goes and what it is drawn with: its left edge, how far
+        /// down, its text's width, its lines' and headings' heights, whether this is a repaint; and
+        /// the page a line clicked goes to.
+        /// </summary>
+        private struct CardPen
+        {
+            public Explorer Explorer;
+            public float X, Y, TextW, LineH, HeadH;
+            public bool Repaint;
+            public string GoPage;
+
+            /// <summary>A line of the card, its odds faint at its end; a creature's or a chest's goes to its page on a click, where it has one.</summary>
+            public void Line(float h, string text, GUIStyle style, string odds = null, string page = null)
             {
                 var oddsW = odds != null ? Skin.Width(Skin.FaintLabel, odds) + U(4f) : 0f;
-                if (repaint) CardLines.Add(RoomCardWords.Row(text, odds));
-                var rect = new Rect(x, y, textW - oddsW, h);
-                if (page != null && Goes(explorer, page))
+                if (Repaint) CardLines.Add(RoomCardWords.Row(text, odds));
+                var rect = new Rect(X, Y, TextW - oddsW, h);
+                if (page != null && Goes(Explorer, page))
                 {
                     var link = new Rect(rect.x, rect.y, Mathf.Min(rect.width, Skin.Width(style, text)), rect.height);
                     CountDrawn(PanelPart.RoomCardLine);
-                    if (link.Contains(e.mousePosition)) AskTip("card-line:" + page, RoomCardWords.LineTip);
-                    if (GUI.Button(link, GUIContent.none, GUIStyle.none)) goPage = page;
+                    if (link.Contains(Event.current.mousePosition)) AskTip("card-line:" + page, RoomCardWords.LineTip);
+                    if (GUI.Button(link, GUIContent.none, GUIStyle.none)) GoPage = page;
                     LinkLabel(rect, text, style, Skin.Text);
                 }
                 else FitLabel(rect, text, style, 10f);
-                if (odds != null) GUI.Label(new Rect(x + textW - oddsW + U(4f), y, oddsW, h), odds, Skin.FaintLabel);
-                y += h;
+                if (odds != null) GUI.Label(new Rect(X + TextW - oddsW + U(4f), Y, oddsW, h), odds, Skin.FaintLabel);
+                Y += h;
             }
 
-            void Heading(string text, Color colour, string tip)
+            public void Heading(string text, Color colour, string tip)
             {
-                var rect = new Rect(x, y, textW, headH);
-                if (repaint) CardLines.Add(text);
+                var rect = new Rect(X, Y, TextW, HeadH);
+                if (Repaint) CardLines.Add(text);
                 Skin.LabelIn(rect, text, Skin.Heading, colour);
-                if (tip != null && rect.Contains(e.mousePosition)) AskTip("card:" + text, tip);
-                y += headH;
+                if (tip != null && rect.Contains(Event.current.mousePosition)) AskTip("card:" + text, tip);
+                Y += HeadH;
             }
 
-            void Rows(List<(string Name, string Odds, bool More, string Page)> rows, string left)
+            /// <summary>A list's rows, the line saying how many more faint and without odds; none, said so.</summary>
+            public void Rows(List<(string Name, string Odds, bool More, string Page)> rows, string left)
             {
-                if (rows.Count == 0 && left == null) Line(lineH, RoomCardWords.None, Skin.FaintLabel);
-                // The line saying how many more stands faint, without odds.
+                if (rows.Count == 0 && left == null) Line(LineH, RoomCardWords.None, Skin.FaintLabel);
                 foreach (var (name, odds, more, page) in rows)
                 {
-                    if (more) Line(lineH, name, Skin.FaintLabel);
-                    else Line(lineH, name, Skin.Small, odds, page);
+                    if (more) Line(LineH, name, Skin.FaintLabel);
+                    else Line(LineH, name, Skin.Small, odds, page);
                 }
-                if (left != null) Line(lineH, left, Skin.FaintLabel);
+                if (left != null) Line(LineH, left, Skin.FaintLabel);
             }
 
-            // A list's heading says how many it holds, and a click on it opens it or folds it away.
-            void ListHeading(string list, string text, int count, Color colour, string tip)
+            /// <summary>A list's heading saying how many it holds; a click on it opens it or folds it away.</summary>
+            public void ListHeading(string list, string text, int count, Color colour, string tip)
             {
                 var open = CardListOpen(list);
                 var shown = RoomCardWords.ListHeading(text, count, open);
-                if (repaint) CardLines.Add(text);
-                Skin.LabelIn(new Rect(x, y, textW, headH), shown, Skin.Heading, colour);
-                var head = new Rect(x, y, Mathf.Min(textW, Skin.Width(Skin.Heading, shown) + U(4f)), headH);
-                if (head.Contains(e.mousePosition)) AskTip("card:" + text, RoomCardWords.ListTip(tip, open));
+                if (Repaint) CardLines.Add(text);
+                Skin.LabelIn(new Rect(X, Y, TextW, HeadH), shown, Skin.Heading, colour);
+                var head = new Rect(X, Y, Mathf.Min(TextW, Skin.Width(Skin.Heading, shown) + U(4f)), HeadH);
+                if (head.Contains(Event.current.mousePosition)) AskTip("card:" + text, RoomCardWords.ListTip(tip, open));
                 if (GUI.Button(head, GUIContent.none, GUIStyle.none)) OpenCardList(list, !open);
-                y += headH;
+                Y += HeadH;
             }
+        }
 
-            // Its name, its page a link at the line's end where it has one, picked a link going into it before.
-            var openPage = false;
-            var goIn = false;
+        /// <summary>The card's name, its page a link at the line's end where it has one, a room picked a link going into it before; which was clicked.</summary>
+        private static void CardName(ref CardPen pen, RoomCardShown card, bool picked, float nameH, out bool openPage, out bool goIn)
+        {
+            var e = Event.current;
+            openPage = false;
+            goIn = false;
+            var x = pen.X;
+            var y = pen.Y;
+            var textW = pen.TextW;
             var pageW = card.Goes ? Skin.Width(Skin.Small, RoomCardWords.PageLink) + U(8f) : 0f;
             var inW = picked ? Skin.Width(Skin.Small, StageWords.GoInLink) + U(8f) : 0f;
-            if (repaint) CardLines.Add(card.Name);
+            if (pen.Repaint) CardLines.Add(card.Name);
             FitLabel(new Rect(x, y, textW - pageW - inW, nameH), card.Name, Skin.TopicName, 10f);
             if (picked)
             {
@@ -336,22 +378,18 @@ namespace Scry
                 if (GUI.Button(link, GUIContent.none, GUIStyle.none)) openPage = true;
                 LinkLabel(link, RoomCardWords.PageLink, Skin.Small, Skin.Accent);
             }
-            y += nameH;
-            Line(whereH, card.Where, Skin.FaintLabel);
-            // The world's own dungeon is shown by its layout alone: what lives and lies in it is the world's, not read.
-            if (!card.LayoutOnly)
-            {
-                ListHeading("creatures", RoomCardWords.Creatures, card.CreatureCount, Skin.KindColor(Kind.Creature), RoomCardWords.CreaturesTip);
-                if (CardListOpen("creatures")) Rows(card.CreatureRows, card.CreaturesLeftLine);
-                ListHeading("loot", RoomCardWords.Loot, card.LootCount, Skin.KindColor(Kind.Item), RoomCardWords.LootTip);
-                if (CardListOpen("loot")) Rows(card.LootRows, card.LootLeftLine);
-            }
+            pen.Y += nameH;
+        }
 
-            // Its ways on: each goes into its room, and lights it on the stage and the plan while hovered.
-            Heading(RoomCardWords.Ways, Skin.Faint, null);
-            var flow = new ChipFlow(x, x + textW, y, chipH, U(4f), U(4f));
+        /// <summary>The card's ways on as chips, each its room's name cut at its end where too long, how far and whether a dead end in its tip: each goes into its room, and lights it on the stage and the plan while hovered. The room clicked.</summary>
+        private static PlacedRoom CardWays(ref CardPen pen, RoomCardShown card, float chipH)
+        {
+            var e = Event.current;
+            var repaint = pen.Repaint;
+            var textW = pen.TextW;
+            pen.Heading(RoomCardWords.Ways, Skin.Faint, null);
+            var flow = new ChipFlow(pen.X, pen.X + textW, pen.Y, chipH, U(4f), U(4f));
             PlacedRoom goTo = null;
-            // Each chip its room's name alone, cut at its end where too long; how far and whether a dead end in its tip.
             foreach (var way in card.Ways)
             {
                 var label = Skin.Fit(Skin.Chip, way.Name, textW - U(6f));
@@ -364,42 +402,33 @@ namespace Scry
                 if (repaint && chip.Contains(OwnMouse(e))) _cardLit = way.To;
                 if (GUI.Button(chip, label, Skin.Fitted(Skin.Chip, chip))) goTo = way.To;
             }
-            y += card.WaysTall;
+            pen.Y += card.WaysTall;
+            return goTo;
+        }
 
-            // Its own levels, the one open lit; opening one cuts at head height over it.
-            if (levels)
+        /// <summary>The room's own levels as segments, the one open lit; opening one cuts at head height over it.</summary>
+        private static void CardLevels(ref CardPen pen, RoomCardShown card, float chipH)
+        {
+            var e = Event.current;
+            var repaint = pen.Repaint;
+            var textW = pen.TextW;
+            pen.Heading(RoomCardWords.Floors, Skin.Faint, null);
+            var open = Stage.RoomLevelOpen;
+            var steps = new ChipFlow(pen.X, pen.X + textW, pen.Y, chipH, U(4f), U(4f));
+            for (var i = 0; i < card.Levels.Count; i++)
             {
-                Heading(RoomCardWords.Floors, Skin.Faint, null);
-                var open = Stage.RoomLevelOpen;
-                var steps = new ChipFlow(x, x + textW, y, chipH, U(4f), U(4f));
-                for (var i = 0; i < card.Levels.Count; i++)
-                {
-                    var words = card.LevelWords[i];
-                    var on = open is float at && Mathf.Abs(at - card.Levels[i]) < 0.01f;
-                    var style = on ? Skin.SegmentOn : Skin.Segment;
-                    var w = Mathf.Min(Skin.Width(Skin.Segment, words) + U(6f), textW);
-                    var (cx, cy) = steps.Place(w);
-                    var segment = new Rect(cx, cy, w, chipH);
-                    CountDrawn(PanelPart.RoomCardLevel);
-                    if (repaint) CardLines.Add(words);
-                    if (segment.Contains(e.mousePosition)) AskTip("card-level:" + words, RoomCardWords.FloorTip);
-                    if (GUI.Button(segment, words, Skin.Fitted(style, segment)) && !on) Stage.OpenRoomLevel(card.Levels[i]);
-                }
-                y += card.LevelsTall;
+                var words = card.LevelWords[i];
+                var on = open is float at && Mathf.Abs(at - card.Levels[i]) < 0.01f;
+                var style = on ? Skin.SegmentOn : Skin.Segment;
+                var w = Mathf.Min(Skin.Width(Skin.Segment, words) + U(6f), textW);
+                var (cx, cy) = steps.Place(w);
+                var segment = new Rect(cx, cy, w, chipH);
+                CountDrawn(PanelPart.RoomCardLevel);
+                if (repaint) CardLines.Add(words);
+                if (segment.Contains(e.mousePosition)) AskTip("card-level:" + words, RoomCardWords.FloorTip);
+                if (GUI.Button(segment, words, Skin.Fitted(style, segment)) && !on) Stage.OpenRoomLevel(card.Levels[i]);
             }
-
-            if (scrolls) GUI.EndScrollView();
-
-            if (goTo != null) Stage.GoInto(goTo);
-            else if (goIn) Stage.GoInto(room);
-            else if (openPage) Go(explorer, card.Key);
-            else if (goPage != null) Go(explorer, goPage);
-
-            // The card is not the stage: a click on it neither turns nor zooms it, and the wheel on it
-            // steps the room's cut a mark a notch, as Shift and the wheel do on the stage.
-            if (area.Contains(e.mousePosition) && e.type == EventType.ScrollWheel && Stage.HasFloors) WheelStep(StageCamera.WheelTurn(e.delta.x, e.delta.y));
-            if (area.Contains(e.mousePosition) && (e.type == EventType.MouseDown || e.type == EventType.ScrollWheel)) e.Use();
-            return area;
+            pen.Y += card.LevelsTall;
         }
 
         /// <summary>How tall rows of chips of these texts stand, wrapped to a width, with the gap under them.</summary>

@@ -59,155 +59,194 @@ namespace Scry
         {
             caption = null;
             if (!draw) ActionWidths.Clear();
-            var index = 0;
-
-            bool Button(string text, ActionLook look, string tip) => Shown(text, look, true, tip);
-
-            bool Shown(string text, ActionLook look, bool can, string tip)
-            {
-                var w = Skin.Width(Skin.SmallCenter, text) + U(22f);
-                if (!draw)
-                {
-                    ActionWidths.Add(w);
-                    return false;
-                }
-                var i = index++;
-                if (i >= ActionPlaces.Count) return false;
-                var (x, line) = ActionPlaces[i];
-                var rect = new Rect(_toolbarAt.x + x, _toolbarAt.y + line * (ToolbarRow + ToolbarLineGap), w, ToolbarRow);
-                var first = i == 0 || ActionPlaces[i - 1].Line != line;
-                var last = i == ActionPlaces.Count - 1 || ActionPlaces[i + 1].Line != line;
-                var hover = can && rect.Contains(Event.current.mousePosition);
-                var fill = look == ActionLook.Leading ? (hover ? Skin.Shade(Skin.Accent, 1.08f) : Skin.Accent)
-                    : look == ActionLook.On ? Skin.Alpha(Skin.Accent, hover ? 0.28f : 0.2f)
-                    : hover ? Skin.RaisedHover : Skin.Raised;
-                Skin.JoinedPiece(rect, fill, first, last);
-                var ink = look == ActionLook.Leading ? Skin.OnAccent : look == ActionLook.On ? Skin.Accent : Skin.Text;
-                Skin.LabelIn(rect, text, Skin.SmallCenter, can ? ink : Skin.Alpha(ink, 0.4f));
-                if (rect.Contains(Event.current.mousePosition)) AskTip("action:" + text, tip);
-                if (Event.current.type == EventType.Repaint) ToolbarPartsForTest.Add(("action", rect));
-                return can && GUI.Button(rect, GUIContent.none, GUIStyle.none);
-            }
-
-            string note = null;
+            _actionsDrawn = draw;
+            _actionIndex = 0;
             switch (entry.Kind)
             {
                 case Kind.Sound:
-                    if (Button(SoundWords.Play(Variants(entry).Count), ActionLook.Leading, ActionWords.PlaySound(Variants(entry).Count))) Previews.PlaySound(entry);
-                    var sounding = Previews.SoundPlaying;
-                    if (Shown(PanelWords.Pause(sounding && Previews.SoundPaused), ActionLook.Plain, sounding, ActionWords.PauseSound(Previews.SoundPaused))) Previews.PauseSound(!Previews.SoundPaused);
-                    if (Shown("Stop", ActionLook.Plain, sounding, ActionWords.StopSound)) Previews.StopSound();
-                    break;
-
+                    SoundActions(entry);
+                    return null;
                 case Kind.Effect:
-                    var there = Previews.Playing.IsPlaying(PlayKey.There(entry.Name));
-                    if (Button("Play where you look", there ? ActionLook.On : ActionLook.Leading, ActionWords.PlayThere(there)))
-                    {
-                        if (there) Previews.Stop(PlayKey.There(entry.Name));
-                        else Previews.PlayEffect(entry, onYou: false);
-                    }
-                    var onYou = Previews.Playing.IsPlaying(PlayKey.OnYou(entry.Name));
-                    if (Button("Play on you", onYou ? ActionLook.On : ActionLook.Plain, ActionWords.PlayOnYou(onYou)))
-                    {
-                        if (onYou) Previews.Stop(PlayKey.OnYou(entry.Name));
-                        else Previews.PlayEffect(entry, onYou: true);
-                    }
-                    if (withStage && Button("Replay", ActionLook.Plain, ActionWords.Replay)) Previews.Replay();
-                    break;
-
+                    EffectActions(entry, withStage);
+                    return null;
                 case Kind.StatusEffect:
-                    caption = StatusActions(entry, Button);
-                    break;
-
+                    caption = StatusActions(entry, ActionButtonOf);
+                    return null;
                 case Kind.Raid:
-                    // What a raid's roll brought, rolled again on a new copy.
-                    if (withStage && Stage.IsStaged(entry))
-                    {
-                        if (Shown("Roll again", ActionLook.Leading, Stage.Subject != null, ActionWords.RollRaid)) Previews.Rebuild();
-                        if (RaidCrowd.LastFor == entry && Stage.Subject != null) note = RaidWords.FirstRoll(RaidCrowd.LastRoll, RolledName, RaidCrowd.LastNotMet);
-                    }
-                    break;
-
+                    return RaidActions(entry, withStage);
                 case Kind.Biome:
                     // Everything there, as the search finds it.
-                    if (Button("Find everything here", ActionLook.Leading, ActionWords.EverythingHere) && _explorer != null) SearchFor(_explorer, SearchHelp.Term("biome", entry.Name));
-                    break;
-
+                    if (ActionButton("Find everything here", ActionLook.Leading, ActionWords.EverythingHere) && _explorer != null) SearchFor(_explorer, SearchHelp.Term("biome", entry.Name));
+                    return null;
                 case Kind.Location:
-                    // What the game leaves to chance, rolled again on a new copy; only where something is, and
-                    // not on the world's own dungeon, shown by its layout alone.
-                    if (withStage && entry.Source is PlaceSource place && place.Contents != null && place.Contents.LeftToChance
-                        && !(ExampleLayouts.ShowsWorlds && ExampleLayouts.Of(entry))
-                        && Shown("Roll again", ActionLook.Leading, Stage.Subject != null, ActionWords.RollPlace))
-                    {
-                        Previews.Rebuild();
-                    }
-                    // A dungeon's or camp's example, laid out anew, with what it holds or how far reading it has got.
-                    if (withStage && entry.Source is PlaceSource laid && !laid.IsRoom && laid.Contents?.Dungeon != null)
-                    {
-                        var example = ExampleOf(entry);
-                        if (Shown("Another example", ActionLook.Plain, example != null, ActionWords.AnotherLayout)) ExampleLayouts.Another();
-                        note = example != null
-                            // The world's own dungeon with no room shown in the fog says nothing of what is laid out.
-                            ? ExampleLayouts.ShowsWorlds ? DungeonWords.WorldsNote(example.Rooms.Count > 0 ? DungeonWords.Example(example, ExampleLayouts.Failed) : null, ExampleLayouts.Unread,
-                                ExampleLayouts.Fogged ? DungeonWords.WalkedInYourWorld(ExampleLayouts.Walked.Walked, ExampleLayouts.Walked.Rooms) : null)
-                            : DungeonWords.ExampleNote(DungeonWords.Example(example, ExampleLayouts.Failed), entry.ShownName, example.Rooms.Count > 0, ExampleLayouts.StandsIn(laid.Prefab))
-                            : ExampleLayouts.Of(entry) ? DungeonWords.Reading(ExampleLayouts.Read, ExampleLayouts.Total) : null;
-                        if (note != null) DungeonNoteForTest = note;
-                    }
-                    break;
-
+                    return LocationActions(entry, withStage);
                 default:
-                    if (entry.Kind == Kind.Projectile && Button("Fire where you look", ActionLook.Leading, ActionWords.Fire)) Previews.Fire(entry);
-                    // Wearing it and keeping it on are one idea, side by side in both views; the
-                    // stage's own chips only change how it is seen.
-                    if (entry.Kind == Kind.Item && entry.Source is GameObject wearable && PrefabGear.IsWearable(wearable)
-                        && Button("Wear it", Looks.OnPerson ? ActionLook.On : ActionLook.Plain, ActionWords.Wear(Looks.OnPerson)))
-                    {
-                        Looks.OnPerson = !Looks.OnPerson;
-                        Previews.Rebuild();
-                        SaveRects();
-                    }
-                    if (Looks.IsWorn(entry))
-                    {
-                        var kept = Looks.Outfit.Contains(entry.Name);
-                        if (Button("Keep it on", kept ? ActionLook.On : ActionLook.Plain, ActionWords.Keep(kept)))
-                        {
-                            if (kept) Looks.Outfit.TakeOff(entry.Name);
-                            else Looks.Outfit.Keep(entry.Name, PrefabGear.SlotOf((GameObject)entry.Source));
-                            Previews.Rebuild();
-                        }
-                    }
-                    // Falling as a ragdoll, or rolling loose, needs the stage's copy.
-                    var fallen = Previews.Playing.IsPlaying(PlayKey.Ragdoll);
-                    if (withStage && Previews.RagdollOf(entry) != null && Shown("Ragdoll", fallen ? ActionLook.On : ActionLook.Plain, Stage.Subject != null, ActionWords.Ragdoll(fallen)))
-                    {
-                        if (fallen) Previews.Stop(PlayKey.Ragdoll);
-                        else Previews.Ragdoll();
-                    }
-                    var loose = Previews.Playing.IsPlaying(PlayKey.LetFall);
-                    if (withStage && Previews.CanLetFall(entry) && Shown("Let it fall", loose ? ActionLook.On : ActionLook.Plain, Stage.Subject != null, ActionWords.LetFall(loose)))
-                    {
-                        if (loose) Previews.Stop(PlayKey.LetFall);
-                        else Previews.LetFall();
-                    }
-                    if (Previews.IsModel(entry))
-                    {
-                        if (Button("Show in the world", Previews.InWorld ? ActionLook.On : ActionLook.Plain, ActionWords.InWorld(Previews.InWorld))) Previews.ToggleWorld();
-                        // Shown in the world, at the group's end, so nothing before them moves.
-                        if (Previews.InWorld)
-                        {
-                            if (Button("Move to where you look", ActionLook.Plain, ActionWords.MoveHere)) Previews.PlaceHere();
-                            if (Button("Pin", ActionLook.Plain, ActionWords.Pin))
-                            {
-                                Previews.Pin();
-                                Say("Pinned. It stays where it is until you press Clear world.");
-                            }
-                        }
-                    }
-                    break;
+                    ThingActions(entry, withStage);
+                    return null;
+            }
+        }
+
+        /// <summary>Whether the action buttons are drawn rather than measured, and the next one's place among them, while <see cref="ActionButtons"/> goes through them.</summary>
+        private static bool _actionsDrawn;
+        private static int _actionIndex;
+
+        /// <summary>A button that can always be pressed, as the status effects' actions take it.</summary>
+        private static readonly Func<string, ActionLook, string, bool> ActionButtonOf = ActionButton;
+
+        private static bool ActionButton(string text, ActionLook look, string tip) => ActionShown(text, look, true, tip);
+
+        /// <summary>
+        /// One action button: measured, its width noted, or drawn at the next place the toolbar
+        /// gave, joined to its neighbours on its line, greyed where it can do nothing for now. True
+        /// when it is pressed.
+        /// </summary>
+        private static bool ActionShown(string text, ActionLook look, bool can, string tip)
+        {
+            var w = Skin.Width(Skin.SmallCenter, text) + U(22f);
+            if (!_actionsDrawn)
+            {
+                ActionWidths.Add(w);
+                return false;
+            }
+            var i = _actionIndex++;
+            if (i >= ActionPlaces.Count) return false;
+            var (x, line) = ActionPlaces[i];
+            var rect = new Rect(_toolbarAt.x + x, _toolbarAt.y + line * (ToolbarRow + ToolbarLineGap), w, ToolbarRow);
+            var first = i == 0 || ActionPlaces[i - 1].Line != line;
+            var last = i == ActionPlaces.Count - 1 || ActionPlaces[i + 1].Line != line;
+            var hover = can && rect.Contains(Event.current.mousePosition);
+            var fill = look == ActionLook.Leading ? (hover ? Skin.Shade(Skin.Accent, 1.08f) : Skin.Accent)
+                : look == ActionLook.On ? Skin.Alpha(Skin.Accent, hover ? 0.28f : 0.2f)
+                : hover ? Skin.RaisedHover : Skin.Raised;
+            Skin.JoinedPiece(rect, fill, first, last);
+            var ink = look == ActionLook.Leading ? Skin.OnAccent : look == ActionLook.On ? Skin.Accent : Skin.Text;
+            Skin.LabelIn(rect, text, Skin.SmallCenter, can ? ink : Skin.Alpha(ink, 0.4f));
+            if (rect.Contains(Event.current.mousePosition)) AskTip("action:" + text, tip);
+            if (Event.current.type == EventType.Repaint) ToolbarPartsForTest.Add(("action", rect));
+            return can && GUI.Button(rect, GUIContent.none, GUIStyle.none);
+        }
+
+        /// <summary>A sound's actions: play it, pause it and stop it.</summary>
+        private static void SoundActions(Entry entry)
+        {
+            if (ActionButton(SoundWords.Play(Variants(entry).Count), ActionLook.Leading, ActionWords.PlaySound(Variants(entry).Count))) Previews.PlaySound(entry);
+            var sounding = Previews.SoundPlaying;
+            if (ActionShown(PanelWords.Pause(sounding && Previews.SoundPaused), ActionLook.Plain, sounding, ActionWords.PauseSound(Previews.SoundPaused))) Previews.PauseSound(!Previews.SoundPaused);
+            if (ActionShown("Stop", ActionLook.Plain, sounding, ActionWords.StopSound)) Previews.StopSound();
+        }
+
+        /// <summary>An effect's actions: play it where you look and on you, each again to stop it, and replay it on the stage.</summary>
+        private static void EffectActions(Entry entry, bool withStage)
+        {
+            var there = Previews.Playing.IsPlaying(PlayKey.There(entry.Name));
+            if (ActionButton("Play where you look", there ? ActionLook.On : ActionLook.Leading, ActionWords.PlayThere(there)))
+            {
+                if (there) Previews.Stop(PlayKey.There(entry.Name));
+                else Previews.PlayEffect(entry, onYou: false);
+            }
+            var onYou = Previews.Playing.IsPlaying(PlayKey.OnYou(entry.Name));
+            if (ActionButton("Play on you", onYou ? ActionLook.On : ActionLook.Plain, ActionWords.PlayOnYou(onYou)))
+            {
+                if (onYou) Previews.Stop(PlayKey.OnYou(entry.Name));
+                else Previews.PlayEffect(entry, onYou: true);
+            }
+            if (withStage && ActionButton("Replay", ActionLook.Plain, ActionWords.Replay)) Previews.Replay();
+        }
+
+        /// <summary>A raid's actions: roll it again on a new copy; the note of what its roll brought.</summary>
+        private static string RaidActions(Entry entry, bool withStage)
+        {
+            string note = null;
+            // What a raid's roll brought, rolled again on a new copy.
+            if (withStage && Stage.IsStaged(entry))
+            {
+                if (ActionShown("Roll again", ActionLook.Leading, Stage.Subject != null, ActionWords.RollRaid)) Previews.Rebuild();
+                if (RaidCrowd.LastFor == entry && Stage.Subject != null) note = RaidWords.FirstRoll(RaidCrowd.LastRoll, RolledName, RaidCrowd.LastNotMet);
             }
             return note;
+        }
+
+        /// <summary>A place's actions: roll what it leaves to chance again, and lay a dungeon's or camp's example out anew; the note of what the example holds.</summary>
+        private static string LocationActions(Entry entry, bool withStage)
+        {
+            string note = null;
+            // What the game leaves to chance, rolled again on a new copy; only where something is, and
+            // not on the world's own dungeon, shown by its layout alone.
+            if (withStage && entry.Source is PlaceSource place && place.Contents != null && place.Contents.LeftToChance
+                && !(ExampleLayouts.ShowsWorlds && ExampleLayouts.Of(entry))
+                && ActionShown("Roll again", ActionLook.Leading, Stage.Subject != null, ActionWords.RollPlace))
+            {
+                Previews.Rebuild();
+            }
+            // A dungeon's or camp's example, laid out anew, with what it holds or how far reading it has got.
+            if (withStage && entry.Source is PlaceSource laid && !laid.IsRoom && laid.Contents?.Dungeon != null)
+            {
+                var example = ExampleOf(entry);
+                if (ActionShown("Another example", ActionLook.Plain, example != null, ActionWords.AnotherLayout)) ExampleLayouts.Another();
+                note = example != null
+                    // The world's own dungeon with no room shown in the fog says nothing of what is laid out.
+                    ? ExampleLayouts.ShowsWorlds ? DungeonWords.WorldsNote(example.Rooms.Count > 0 ? DungeonWords.Example(example, ExampleLayouts.Failed) : null, ExampleLayouts.Unread,
+                        ExampleLayouts.Fogged ? DungeonWords.WalkedInYourWorld(ExampleLayouts.Walked.Walked, ExampleLayouts.Walked.Rooms) : null)
+                    : DungeonWords.ExampleNote(DungeonWords.Example(example, ExampleLayouts.Failed), entry.ShownName, example.Rooms.Count > 0, ExampleLayouts.StandsIn(laid.Prefab))
+                    : ExampleLayouts.Of(entry) ? DungeonWords.Reading(ExampleLayouts.Read, ExampleLayouts.Total) : null;
+                if (note != null) DungeonNoteForTest = note;
+            }
+            return note;
+        }
+
+        /// <summary>
+        /// A thing's actions: fire a projectile, wear an item and keep it on, let the stage's copy
+        /// fall as a ragdoll or roll loose, and show a model in the world, move it there and pin it.
+        /// </summary>
+        private static void ThingActions(Entry entry, bool withStage)
+        {
+            if (entry.Kind == Kind.Projectile && ActionButton("Fire where you look", ActionLook.Leading, ActionWords.Fire)) Previews.Fire(entry);
+            // Wearing it and keeping it on are one idea, side by side in both views; the
+            // stage's own chips only change how it is seen.
+            if (entry.Kind == Kind.Item && entry.Source is GameObject wearable && PrefabGear.IsWearable(wearable)
+                && ActionButton("Wear it", Looks.OnPerson ? ActionLook.On : ActionLook.Plain, ActionWords.Wear(Looks.OnPerson)))
+            {
+                Looks.OnPerson = !Looks.OnPerson;
+                Previews.Rebuild();
+                SaveRects();
+            }
+            if (Looks.IsWorn(entry))
+            {
+                var kept = Looks.Outfit.Contains(entry.Name);
+                if (ActionButton("Keep it on", kept ? ActionLook.On : ActionLook.Plain, ActionWords.Keep(kept)))
+                {
+                    if (kept) Looks.Outfit.TakeOff(entry.Name);
+                    else Looks.Outfit.Keep(entry.Name, PrefabGear.SlotOf((GameObject)entry.Source));
+                    Previews.Rebuild();
+                }
+            }
+            // Falling as a ragdoll, or rolling loose, needs the stage's copy.
+            var fallen = Previews.Playing.IsPlaying(PlayKey.Ragdoll);
+            if (withStage && Previews.RagdollOf(entry) != null && ActionShown("Ragdoll", fallen ? ActionLook.On : ActionLook.Plain, Stage.Subject != null, ActionWords.Ragdoll(fallen)))
+            {
+                if (fallen) Previews.Stop(PlayKey.Ragdoll);
+                else Previews.Ragdoll();
+            }
+            var loose = Previews.Playing.IsPlaying(PlayKey.LetFall);
+            if (withStage && Previews.CanLetFall(entry) && ActionShown("Let it fall", loose ? ActionLook.On : ActionLook.Plain, Stage.Subject != null, ActionWords.LetFall(loose)))
+            {
+                if (loose) Previews.Stop(PlayKey.LetFall);
+                else Previews.LetFall();
+            }
+            if (Previews.IsModel(entry))
+            {
+                if (ActionButton("Show in the world", Previews.InWorld ? ActionLook.On : ActionLook.Plain, ActionWords.InWorld(Previews.InWorld))) Previews.ToggleWorld();
+                // Shown in the world, at the group's end, so nothing before them moves.
+                if (Previews.InWorld)
+                {
+                    if (ActionButton("Move to where you look", ActionLook.Plain, ActionWords.MoveHere)) Previews.PlaceHere();
+                    if (ActionButton("Pin", ActionLook.Plain, ActionWords.Pin))
+                    {
+                        Previews.Pin();
+                        Say("Pinned. It stays where it is until you press Clear world.");
+                    }
+                }
+            }
         }
 
         /// <summary>What the actions note at the page's top: what their last pass said, that a copy in the world is yours alone, and a dungeon's maps kept.</summary>

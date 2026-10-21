@@ -275,34 +275,8 @@ namespace Scry
             y += U(24f);
 
             var gap = U(12f);
-            ColumnWidths.Clear();
-            HeadingWidths.Clear();
-            for (var c = 0; c < row.Columns.Length; c++)
-            {
-                var w = Skin.Width(Skin.DimLabel, row.Columns[c]);
-                HeadingWidths.Add(w + U(2f));
-                for (var l = 0; l < row.Lines.Count; l++)
-                {
-                    // Measured as drawn: a line left out takes no room, a number kept back that of ???.
-                    if (LineLeftOut(explorer, row.Lines[l].Link)) continue;
-                    var drawn = CellDrawn(explorer, row, l, c);
-                    if (drawn != null) w = Mathf.Max(w, Skin.Width(Skin.Small, drawn) + (drawn != CompendiumWords.Hidden && explorer.ShownByChoice(CellLink(row, l, c)) ? FloorRoom : 0f));
-                    if (!row.Yours.TryGetValue(l, out var yours) || LineKept(explorer, row, l, out _) || AttackKept(explorer, row, l)) continue;
-                    foreach (var under in yours) if (c < under.Cells.Length && !explorer.NotMet(under.Skill)) w = Mathf.Max(w, Skin.Width(Skin.Small, under.Cells[c]) + (c == 0 ? YoursIndent : 0f));
-                }
-                ColumnWidths.Add(w + U(2f));
-            }
-            // Too wide, each column gives up what it wants beyond its heading, so the headings stay whole.
-            TableFit.Fit(ColumnWidths, HeadingWidths, width - gap * (row.Columns.Length - 1));
-            if (KeepTablesForTest) TablesDrawnForTest[row.Title ?? ""] = (ColumnWidths.ToArray(), HeadingWidths.ToArray());
-
-            var x = 0f;
-            for (var c = 0; c < row.Columns.Length; c++)
-            {
-                GUI.Label(new Rect(x, y, ColumnWidths[c], U(18f)), Skin.Fit(Skin.DimLabel, row.Columns[c], ColumnWidths[c]), Skin.DimLabel);
-                x += ColumnWidths[c] + gap;
-            }
-            y += U(22f);
+            MeasureColumns(explorer, row, width - gap * (row.Columns.Length - 1));
+            y = TableHeadings(row, gap, y);
 
             var attacksKept = 0;
             var notCounted = false;
@@ -332,92 +306,10 @@ namespace Scry
                 var line = new Rect(0f, y, width, height + underHeight);
                 if (!OutOfSight(line))
                 {
-                    x = 0f;
+                    var x = 0f;
                     for (var c = 0; c < cells.Length && c < ColumnWidths.Count; c++)
                     {
-                        var cell = new Rect(x, y, ColumnWidths[c], height);
-                        // An attack's name plays its animation on the stage and stops it again, lit
-                        // while it plays, as its clip's chip does: a creature's, or a weapon's on the
-                        // person wearing it, put on the person first where it is shown on its own.
-                        if (c == 0 && EntryKeys.PlaysAttack(link, out var item, out var second, out var step))
-                        {
-                            var clip = Previews.ClipOfAttackItem(item, second, step);
-                            var playing = clip != null && Previews.PlayingClip() == clip;
-                            var wearFirst = clip == null && explorer.Selected is Entry weapon && weapon.Kind == Kind.Item && weapon.Name == item && !Looks.IsWorn(weapon);
-                            // Its clips worked out and none of them its own: it plays nothing, so its name is no link.
-                            if (clip == null && !wearFirst && Previews.StageClipsKnown())
-                            {
-                                GUI.Label(cell, Masked(explorer, cells[c]), Skin.SmallWrap);
-                                if (cell.Contains(Event.current.mousePosition)) AskTip("table-attack-none:" + link, ClipWords.NoAttackClip);
-                                x += ColumnWidths[c] + gap;
-                                continue;
-                            }
-                            LinkLabel(cell, cells[c], Skin.SmallWrap, playing ? Skin.KindColor(Kind.Sound) : Skin.Accent);
-                            if (cell.Contains(Event.current.mousePosition)) AskTip("table-attack:" + link + (clip != null) + playing + wearFirst, ClipWords.PlayAttackTip(clip != null, playing, wearFirst));
-                            if (GUI.Button(cell, GUIContent.none, GUIStyle.none))
-                            {
-                                if (playing) Previews.StopClip();
-                                else if (clip != null)
-                                {
-                                    Previews.PlayClip(clip);
-                                    Previews.LastClip = clip;
-                                }
-                                else if (wearFirst)
-                                {
-                                    Looks.OnPerson = true;
-                                    Previews.Rebuild();
-                                    Previews.PlayAttackWhenKnown(item, second, step);
-                                    SaveRects();
-                                }
-                            }
-                        }
-                        // A line naming music plays it, as a fact naming music does.
-                        else if (c == 0 && !string.IsNullOrEmpty(link) && EntryKeys.PlaysMusic(link, out var named) && explorer.Selected is Entry shown)
-                        {
-                            var playing = MusicPreview.PlayingFor == shown && (named == null || MusicPreview.Playing == named);
-                            LinkLabel(cell, cells[c], Skin.SmallWrap, playing ? Skin.KindColor(Kind.Sound) : Skin.Accent);
-                            if (cell.Contains(Event.current.mousePosition)) AskTip("table-music:" + named, MusicWords.Tip(playing));
-                            if (GUI.Button(cell, GUIContent.none, GUIStyle.none))
-                            {
-                                var said = named == null ? Previews.PlacesMusic(shown) : Previews.NamedMusic(shown, named);
-                                if (said != null) Say(said);
-                            }
-                        }
-                        else if (c == 0 && !string.IsNullOrEmpty(link) && Goes(explorer, link))
-                        {
-                            LinkLabel(cell, cells[c], Skin.SmallWrap, LinkText(KindOf(explorer, link), false));
-                            var linkMark = ChoiceMark(explorer, link);
-                            if (linkMark != null) FloorMark(FloorMarkX(cell, cells[c]), cell, linkMark);
-                            if (cell.Contains(Event.current.mousePosition)) AskTip("table:" + link, FloorTip(explorer, link, PanelWords.GoTo(cells[c])));
-                            if (GUI.Button(cell, GUIContent.none, GUIStyle.none)) Go(explorer, link);
-                        }
-                        // Counted under the strict rules (a biome's weathers): how often it was seen, or ???.
-                        else if (c > 0 && CellShown(explorer, row, l, c, cells[c]) is string counted && !ReferenceEquals(counted, cells[c]))
-                        {
-                            GUI.Label(cell, counted, Skin.SmallWrap);
-                            if (counted == CompendiumWords.Hidden) notCounted = true;
-                        }
-                        // A number kept back reads ??? and says on hover what shows it.
-                        else if (c > 0 && (lineKept || (attackKept && Array.IndexOf(row.AttackCells, c) >= 0)))
-                        {
-                            GUI.Label(cell, CompendiumWords.Hidden, Skin.SmallWrap);
-                            if (cell.Contains(Event.current.mousePosition)) AskTip("kept:" + row.Title + cells[0] + row.Columns[c], lineKept ? KeptTip(explorer, cells[0], lineProof) : CompendiumWords.NotYetTakenTip);
-                        }
-                        // A cell naming what was not seen together with the page keeps the name back.
-                        else if (c > 0 && row.CellLinks.TryGetValue((l, c), out var hidden) && explorer.LeavesOut(hidden))
-                        {
-                            GUI.Label(cell, CompendiumWords.Hidden, Skin.SmallWrap);
-                        }
-                        // A later cell naming something in the catalog goes there: an attack's projectile, what it puts on you.
-                        else if (c > 0 && row.CellLinks.TryGetValue((l, c), out var to) && Goes(explorer, to))
-                        {
-                            LinkLabel(cell, cells[c], Skin.SmallWrap, LinkText(KindOf(explorer, to), false));
-                            var toMark = ChoiceMark(explorer, to);
-                            if (toMark != null) FloorMark(FloorMarkX(cell, cells[c]), cell, toMark);
-                            if (cell.Contains(Event.current.mousePosition)) AskTip("table:" + to, FloorTip(explorer, to, PanelWords.GoTo(cells[c])));
-                            if (GUI.Button(cell, GUIContent.none, GUIStyle.none)) Go(explorer, to);
-                        }
-                        else GUI.Label(cell, Masked(explorer, cells[c]), Skin.SmallWrap);
+                        notCounted |= TableCell(explorer, row, l, c, new Rect(x, y, ColumnWidths[c], height), lineKept, attackKept, lineProof);
                         x += ColumnWidths[c] + gap;
                     }
                     if (under != null)
@@ -435,6 +327,141 @@ namespace Scry
             if (notCounted) y = HintLine(explorer.NotYetCounted(row.Tally), "not-counted:", row.Title, PanelPart.TallyCounted, width, y);
             foreach (var said in KeptLines) y = HintLine(said, "line-kept:", said, PanelPart.TableKeptBack, width, y);
             return y;
+        }
+
+        /// <summary>
+        /// The widths of a table's columns for the room given (<see cref="ColumnWidths"/>), each as
+        /// wide as its heading and every cell drawn under it, a line left out taking no room and a
+        /// number kept back that of ???; too wide, each gives up what it wants beyond its heading,
+        /// so the headings stay whole.
+        /// </summary>
+        private static void MeasureColumns(Explorer explorer, Facts.Row row, float room)
+        {
+            ColumnWidths.Clear();
+            HeadingWidths.Clear();
+            for (var c = 0; c < row.Columns.Length; c++)
+            {
+                var w = Skin.Width(Skin.DimLabel, row.Columns[c]);
+                HeadingWidths.Add(w + U(2f));
+                for (var l = 0; l < row.Lines.Count; l++)
+                {
+                    if (LineLeftOut(explorer, row.Lines[l].Link)) continue;
+                    var drawn = CellDrawn(explorer, row, l, c);
+                    if (drawn != null) w = Mathf.Max(w, Skin.Width(Skin.Small, drawn) + (drawn != CompendiumWords.Hidden && explorer.ShownByChoice(CellLink(row, l, c)) ? FloorRoom : 0f));
+                    if (!row.Yours.TryGetValue(l, out var yours) || LineKept(explorer, row, l, out _) || AttackKept(explorer, row, l)) continue;
+                    foreach (var under in yours) if (c < under.Cells.Length && !explorer.NotMet(under.Skill)) w = Mathf.Max(w, Skin.Width(Skin.Small, under.Cells[c]) + (c == 0 ? YoursIndent : 0f));
+                }
+                ColumnWidths.Add(w + U(2f));
+            }
+            TableFit.Fit(ColumnWidths, HeadingWidths, room);
+            if (KeepTablesForTest) TablesDrawnForTest[row.Title ?? ""] = (ColumnWidths.ToArray(), HeadingWidths.ToArray());
+        }
+
+        /// <summary>A table's faint line of column headings, each fitted to its column; where the lines start.</summary>
+        private static float TableHeadings(Facts.Row row, float gap, float y)
+        {
+            var x = 0f;
+            for (var c = 0; c < row.Columns.Length; c++)
+            {
+                GUI.Label(new Rect(x, y, ColumnWidths[c], U(18f)), Skin.Fit(Skin.DimLabel, row.Columns[c], ColumnWidths[c]), Skin.DimLabel);
+                x += ColumnWidths[c] + gap;
+            }
+            return y + U(22f);
+        }
+
+        /// <summary>
+        /// One cell of a table's line: the first an attack playing on the stage, music playing, or
+        /// a link to what it names; a later one counted under the strict rules, a number kept back
+        /// as ??? saying what shows it, a name not seen with the page kept back, or a link to what
+        /// it names; else its words. True where it is a count not yet taken.
+        /// </summary>
+        private static bool TableCell(Explorer explorer, Facts.Row row, int l, int c, Rect cell, bool lineKept, bool attackKept, string lineProof)
+        {
+            var (cells, link) = row.Lines[l];
+            if (c == 0 && EntryKeys.PlaysAttack(link, out var item, out var second, out var step)) AttackCell(explorer, cell, cells[c], link, item, second, step);
+            // A line naming music plays it, as a fact naming music does.
+            else if (c == 0 && !string.IsNullOrEmpty(link) && EntryKeys.PlaysMusic(link, out var named) && explorer.Selected is Entry shown)
+            {
+                var playing = MusicPreview.PlayingFor == shown && (named == null || MusicPreview.Playing == named);
+                LinkLabel(cell, cells[c], Skin.SmallWrap, playing ? Skin.KindColor(Kind.Sound) : Skin.Accent);
+                if (cell.Contains(Event.current.mousePosition)) AskTip("table-music:" + named, MusicWords.Tip(playing));
+                if (GUI.Button(cell, GUIContent.none, GUIStyle.none))
+                {
+                    var said = named == null ? Previews.PlacesMusic(shown) : Previews.NamedMusic(shown, named);
+                    if (said != null) Say(said);
+                }
+            }
+            else if (c == 0 && !string.IsNullOrEmpty(link) && Goes(explorer, link))
+            {
+                LinkLabel(cell, cells[c], Skin.SmallWrap, LinkText(KindOf(explorer, link), false));
+                var linkMark = ChoiceMark(explorer, link);
+                if (linkMark != null) FloorMark(FloorMarkX(cell, cells[c]), cell, linkMark);
+                if (cell.Contains(Event.current.mousePosition)) AskTip("table:" + link, FloorTip(explorer, link, PanelWords.GoTo(cells[c])));
+                if (GUI.Button(cell, GUIContent.none, GUIStyle.none)) Go(explorer, link);
+            }
+            // Counted under the strict rules (a biome's weathers): how often it was seen, or ???.
+            else if (c > 0 && CellShown(explorer, row, l, c, cells[c]) is string counted && !ReferenceEquals(counted, cells[c]))
+            {
+                GUI.Label(cell, counted, Skin.SmallWrap);
+                return counted == CompendiumWords.Hidden;
+            }
+            // A number kept back reads ??? and says on hover what shows it.
+            else if (c > 0 && (lineKept || (attackKept && Array.IndexOf(row.AttackCells, c) >= 0)))
+            {
+                GUI.Label(cell, CompendiumWords.Hidden, Skin.SmallWrap);
+                if (cell.Contains(Event.current.mousePosition)) AskTip("kept:" + row.Title + cells[0] + row.Columns[c], lineKept ? KeptTip(explorer, cells[0], lineProof) : CompendiumWords.NotYetTakenTip);
+            }
+            // A cell naming what was not seen together with the page keeps the name back.
+            else if (c > 0 && row.CellLinks.TryGetValue((l, c), out var hidden) && explorer.LeavesOut(hidden))
+            {
+                GUI.Label(cell, CompendiumWords.Hidden, Skin.SmallWrap);
+            }
+            // A later cell naming something in the catalog goes there: an attack's projectile, what it puts on you.
+            else if (c > 0 && row.CellLinks.TryGetValue((l, c), out var to) && Goes(explorer, to))
+            {
+                LinkLabel(cell, cells[c], Skin.SmallWrap, LinkText(KindOf(explorer, to), false));
+                var toMark = ChoiceMark(explorer, to);
+                if (toMark != null) FloorMark(FloorMarkX(cell, cells[c]), cell, toMark);
+                if (cell.Contains(Event.current.mousePosition)) AskTip("table:" + to, FloorTip(explorer, to, PanelWords.GoTo(cells[c])));
+                if (GUI.Button(cell, GUIContent.none, GUIStyle.none)) Go(explorer, to);
+            }
+            else GUI.Label(cell, Masked(explorer, cells[c]), Skin.SmallWrap);
+            return false;
+        }
+
+        /// <summary>
+        /// A table line's attack: its name plays its animation on the stage and stops it again, lit
+        /// while it plays, as its clip's chip does: a creature's, or a weapon's on the person
+        /// wearing it, put on the person first where it is shown on its own. Its clips worked out
+        /// and none of them its own, it plays nothing, so its name is no link.
+        /// </summary>
+        private static void AttackCell(Explorer explorer, Rect cell, string text, string link, string item, bool second, int step)
+        {
+            var clip = Previews.ClipOfAttackItem(item, second, step);
+            var playing = clip != null && Previews.PlayingClip() == clip;
+            var wearFirst = clip == null && explorer.Selected is Entry weapon && weapon.Kind == Kind.Item && weapon.Name == item && !Looks.IsWorn(weapon);
+            if (clip == null && !wearFirst && Previews.StageClipsKnown())
+            {
+                GUI.Label(cell, Masked(explorer, text), Skin.SmallWrap);
+                if (cell.Contains(Event.current.mousePosition)) AskTip("table-attack-none:" + link, ClipWords.NoAttackClip);
+                return;
+            }
+            LinkLabel(cell, text, Skin.SmallWrap, playing ? Skin.KindColor(Kind.Sound) : Skin.Accent);
+            if (cell.Contains(Event.current.mousePosition)) AskTip("table-attack:" + link + (clip != null) + playing + wearFirst, ClipWords.PlayAttackTip(clip != null, playing, wearFirst));
+            if (!GUI.Button(cell, GUIContent.none, GUIStyle.none)) return;
+            if (playing) Previews.StopClip();
+            else if (clip != null)
+            {
+                Previews.PlayClip(clip);
+                Previews.LastClip = clip;
+            }
+            else if (wearFirst)
+            {
+                Looks.OnPerson = true;
+                Previews.Rebuild();
+                Previews.PlayAttackWhenKnown(item, second, step);
+                SaveRects();
+            }
         }
 
         /// <summary>How far a faint line at the character's skill sits in under its table line.</summary>
