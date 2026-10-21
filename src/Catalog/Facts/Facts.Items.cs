@@ -170,30 +170,8 @@ namespace Scry
             var ammo = type == ItemDrop.ItemData.ItemType.Ammo || type == ItemDrop.ItemData.ItemType.AmmoNonEquipable;
             var shield = type == ItemDrop.ItemData.ItemType.Shield;
 
-            if ((weapon || ammo || shield || type == ItemDrop.ItemData.ItemType.Tool) && shared.m_skillType != Skills.SkillType.None)
-            {
-                // The skill goes to its page, named as the page names it.
-                var skill = SkillName(shared.m_skillType);
-                var page = EntryKeys.For(Kind.Skill, shared.m_skillType.ToString());
-                var link = EntryOf(page) != null ? page : null;
-                if (skill == SkillWords.ModSkill) AddUnsure("Skill", skill, UnsureWords.ModSkill, link);
-                else Add("Skill", skill, link);
-            }
-
-            if (weapon || shield)
-            {
-                // The game tells blocking only above 1, as AddBlockTooltip does; below that it cannot block.
-                // Each at the first quality; what each level adds is in the table by quality.
-                Add("Block", ItemWords.Block(shared.m_blockPower));
-                if (shared.m_blockPower > 1f) YoursAt("Block", Skills.SkillType.Blocking, level => ItemWords.Block(SkillMath.Block(shared.m_blockPower, level)));
-                if (shared.m_deflectionForce > 1f) Add("Block force", Numbers.Amount(shared.m_deflectionForce));
-                if (shared.m_timedBlockBonus > 1f) Add("Parry bonus", Numbers.Times(shared.m_timedBlockBonus));
-                // A parry holds back the block times its bonus (Humanoid.BlockAttack).
-                if (shared.m_timedBlockBonus > 1f && shared.m_blockPower > 1f)
-                {
-                    YoursAt("Parry bonus", Skills.SkillType.Blocking, level => SkillWords.Parry(SkillMath.Block(shared.m_blockPower, level) * shared.m_timedBlockBonus));
-                }
-            }
+            if ((weapon || ammo || shield || type == ItemDrop.ItemData.ItemType.Tool) && shared.m_skillType != Skills.SkillType.None) SkillLine(shared);
+            if (weapon || shield) Blocking(shared);
 
             var attack = shared.m_attack;
             // A second attack the game offers only with an animation of its own (ItemData.HaveSecondaryAttack).
@@ -209,60 +187,112 @@ namespace Scry
 
             if (weapon && attack != null)
             {
-                // A bow's draw and a crossbow's reload, each faster at the character's skill (Humanoid.GetAttackDrawPercentage,
-                // ItemDrop.ItemData.GetWeaponLoadingTime), and the drain while drawing, less (ItemDrop.ItemData.GetDrawStaminaDrain).
-                if (attack.m_drawStaminaDrain > 0f)
-                {
-                    Add("Drawing costs", CombatWords.DrawCost(attack.m_drawStaminaDrain));
-                    YoursAt("Drawing costs", shared.m_skillType, level => CombatWords.DrawCost(attack.m_drawStaminaDrain * SkillMath.CostShare(level), 1));
-                }
-                if (attack.m_bowDraw && attack.m_drawDurationMin > 0f)
-                {
-                    Add(CombatWords.FullDraw, Numbers.Duration(attack.m_drawDurationMin));
-                    YoursAt(CombatWords.FullDraw, shared.m_skillType, level => Numbers.Duration(SkillMath.DrawTime(attack.m_drawDurationMin, level)));
-                }
-                if (attack.m_requiresReload && attack.m_reloadTime > 0f)
-                {
-                    Add(CombatWords.Reloads, Numbers.Duration(attack.m_reloadTime));
-                    YoursAt(CombatWords.Reloads, shared.m_skillType, level => Numbers.Duration(SkillMath.ReloadTime(attack.m_reloadTime, level)));
-                }
-                // Each attack a line, side by side: what it deals at the first quality, knocks back,
-                // staggers and costs. One with no second attack has its line too, so it can be played.
-                // Under each, faint, the same at the character's skill (Attack.DoMeleeAttack,
-                // Attack.FireProjectileBurst, Attack.GetAttackStamina), and an axe's hit on a tree
-                // where trees take another skill.
-                var table = new Row { Title = CombatWords.WeaponAttacksTitle, Columns = CombatWords.WeaponAttackColumns };
-                var you = YourAt(shared.m_skillType);
-                foreach (var (each, isSecond) in twoAttacks ? new[] { (attack, false), (second, true) } : new[] { (attack, false) })
-                {
-                    var figures = DamageFigures(shared.m_damages).Select(d => (d.Type, d.Amount * each.m_damageMultiplier)).ToList();
-                    var costs = CombatWords.Costs(each.m_attackStamina, each.m_attackEitr, each.m_attackHealth, each.m_attackHealthPercentage);
-                    var knockback = shared.m_attackForce * each.m_forceMultiplier;
-                    var plays = !string.IsNullOrEmpty(each.m_attackAnimation);
-                    // A chained attack a line for each step, the last as the game deals it (Attack.DoMeleeAttack,
-                    // DoAreaAttack); each step's name plays that step on the person wearing it.
-                    if (each.m_attackChainLevels > 1)
-                    {
-                        var melee = each.m_attackType == Attack.AttackType.Horizontal || each.m_attackType == Attack.AttackType.Vertical;
-                        var area = each.m_attackType == Attack.AttackType.Area;
-                        var last = CombatWords.LastSwingMultiplier(melee, area, each.m_lastChainDamageMultiplier);
-                        var steps = CombatWords.WeaponCombo(each.m_attackChainLevels, isSecond, figures, knockback, each.m_staggerMultiplier, last, costs);
-                        var first = table.Lines.Count;
-                        for (var step = 0; step < steps.Count; step++) table.Lines.Add((steps[step], plays ? EntryKeys.PlayAttack(prefab.name, isSecond, step) : null));
-                        YoursUnder(table, first, each, figures, knockback, last, you);
-                        Add(CombatWords.ComboTitle(isSecond), CombatWords.Combo(each.m_attackChainLevels, melee || area));
-                        foreach (var (label, value) in CombatWords.ComboResets((int)each.m_resetChainIfHit)) Add(label, value);
-                        continue;
-                    }
-                    // Its name plays it on the person wearing it, as a creature's attack plays from its table; one with no animation plays nothing.
-                    table.Lines.Add((CombatWords.WeaponAttack(isSecond, CombatWords.Damage(figures), knockback, each.m_staggerMultiplier, costs),
-                        plays ? EntryKeys.PlayAttack(prefab.name, isSecond) : null));
-                    YoursUnder(table, table.Lines.Count - 1, each, figures, knockback, 1f, you);
-                }
-                Rows.Add(table);
-                if (!twoAttacks) Add("Secondary attack", "none");
+                Drawing(shared, attack);
+                WeaponAttacks(prefab, shared, attack, second, twoAttacks);
             }
+            Durability(prefab, shared);
+        }
 
+        /// <summary>The skill an item trains, going to its page, named as the page names it; one a mod adds marked unsure.</summary>
+        private void SkillLine(ItemDrop.ItemData.SharedData shared)
+        {
+            var skill = SkillName(shared.m_skillType);
+            var page = EntryKeys.For(Kind.Skill, shared.m_skillType.ToString());
+            var link = EntryOf(page) != null ? page : null;
+            if (skill == SkillWords.ModSkill) AddUnsure("Skill", skill, UnsureWords.ModSkill, link);
+            else Add("Skill", skill, link);
+        }
+
+        /// <summary>
+        /// Blocking, at the first quality, what each level adds being in the table by quality: told
+        /// only above 1, as AddBlockTooltip does, below which it cannot block; its force, its parry
+        /// bonus, and what a parry holds back at the character's skill.
+        /// </summary>
+        private void Blocking(ItemDrop.ItemData.SharedData shared)
+        {
+            Add("Block", ItemWords.Block(shared.m_blockPower));
+            if (shared.m_blockPower > 1f) YoursAt("Block", Skills.SkillType.Blocking, level => ItemWords.Block(SkillMath.Block(shared.m_blockPower, level)));
+            if (shared.m_deflectionForce > 1f) Add("Block force", Numbers.Amount(shared.m_deflectionForce));
+            if (shared.m_timedBlockBonus > 1f) Add("Parry bonus", Numbers.Times(shared.m_timedBlockBonus));
+            // A parry holds back the block times its bonus (Humanoid.BlockAttack).
+            if (shared.m_timedBlockBonus > 1f && shared.m_blockPower > 1f)
+            {
+                YoursAt("Parry bonus", Skills.SkillType.Blocking, level => SkillWords.Parry(SkillMath.Block(shared.m_blockPower, level) * shared.m_timedBlockBonus));
+            }
+        }
+
+        /// <summary>
+        /// A bow's draw and a crossbow's reload, each faster at the character's skill
+        /// (Humanoid.GetAttackDrawPercentage, ItemDrop.ItemData.GetWeaponLoadingTime), and the drain
+        /// while drawing, less (ItemDrop.ItemData.GetDrawStaminaDrain).
+        /// </summary>
+        private void Drawing(ItemDrop.ItemData.SharedData shared, Attack attack)
+        {
+            if (attack.m_drawStaminaDrain > 0f)
+            {
+                Add("Drawing costs", CombatWords.DrawCost(attack.m_drawStaminaDrain));
+                YoursAt("Drawing costs", shared.m_skillType, level => CombatWords.DrawCost(attack.m_drawStaminaDrain * SkillMath.CostShare(level), 1));
+            }
+            if (attack.m_bowDraw && attack.m_drawDurationMin > 0f)
+            {
+                Add(CombatWords.FullDraw, Numbers.Duration(attack.m_drawDurationMin));
+                YoursAt(CombatWords.FullDraw, shared.m_skillType, level => Numbers.Duration(SkillMath.DrawTime(attack.m_drawDurationMin, level)));
+            }
+            if (attack.m_requiresReload && attack.m_reloadTime > 0f)
+            {
+                Add(CombatWords.Reloads, Numbers.Duration(attack.m_reloadTime));
+                YoursAt(CombatWords.Reloads, shared.m_skillType, level => Numbers.Duration(SkillMath.ReloadTime(attack.m_reloadTime, level)));
+            }
+        }
+
+        /// <summary>
+        /// A weapon's attacks table, each attack a line side by side: what it deals at the first
+        /// quality, knocks back, staggers and costs, one with no second attack having its line too,
+        /// so it can be played; a chained attack a line for each step. Under each, faint, the same at
+        /// the character's skill (Attack.DoMeleeAttack, Attack.FireProjectileBurst,
+        /// Attack.GetAttackStamina), and an axe's hit on a tree where trees take another skill.
+        /// </summary>
+        private void WeaponAttacks(GameObject prefab, ItemDrop.ItemData.SharedData shared, Attack attack, Attack second, bool twoAttacks)
+        {
+            var table = new Row { Title = CombatWords.WeaponAttacksTitle, Columns = CombatWords.WeaponAttackColumns };
+            var you = YourAt(shared.m_skillType);
+            foreach (var (each, isSecond) in twoAttacks ? new[] { (attack, false), (second, true) } : new[] { (attack, false) })
+            {
+                var figures = DamageFigures(shared.m_damages).Select(d => (d.Type, d.Amount * each.m_damageMultiplier)).ToList();
+                var costs = CombatWords.Costs(each.m_attackStamina, each.m_attackEitr, each.m_attackHealth, each.m_attackHealthPercentage);
+                var knockback = shared.m_attackForce * each.m_forceMultiplier;
+                var plays = !string.IsNullOrEmpty(each.m_attackAnimation);
+                // A chained attack a line for each step, the last as the game deals it (Attack.DoMeleeAttack,
+                // DoAreaAttack); each step's name plays that step on the person wearing it.
+                if (each.m_attackChainLevels > 1)
+                {
+                    var melee = each.m_attackType == Attack.AttackType.Horizontal || each.m_attackType == Attack.AttackType.Vertical;
+                    var area = each.m_attackType == Attack.AttackType.Area;
+                    var last = CombatWords.LastSwingMultiplier(melee, area, each.m_lastChainDamageMultiplier);
+                    var steps = CombatWords.WeaponCombo(each.m_attackChainLevels, isSecond, figures, knockback, each.m_staggerMultiplier, last, costs);
+                    var first = table.Lines.Count;
+                    for (var step = 0; step < steps.Count; step++) table.Lines.Add((steps[step], plays ? EntryKeys.PlayAttack(prefab.name, isSecond, step) : null));
+                    YoursUnder(table, first, each, figures, knockback, last, you);
+                    Add(CombatWords.ComboTitle(isSecond), CombatWords.Combo(each.m_attackChainLevels, melee || area));
+                    foreach (var (label, value) in CombatWords.ComboResets((int)each.m_resetChainIfHit)) Add(label, value);
+                    continue;
+                }
+                // Its name plays it on the person wearing it, as a creature's attack plays from its table; one with no animation plays nothing.
+                table.Lines.Add((CombatWords.WeaponAttack(isSecond, CombatWords.Damage(figures), knockback, each.m_staggerMultiplier, costs),
+                    plays ? EntryKeys.PlayAttack(prefab.name, isSecond) : null));
+                YoursUnder(table, table.Lines.Count - 1, each, figures, knockback, 1f, you);
+            }
+            Rows.Add(table);
+            if (!twoAttacks) Add("Secondary attack", "none");
+        }
+
+        /// <summary>
+        /// Durability, and where an item is repaired: where it is made or at its repair station, from
+        /// the recipe's station level (InventoryGui.CanRepair); where it cannot be, that is said too.
+        /// Gear that does not wear says so.
+        /// </summary>
+        private void Durability(GameObject prefab, ItemDrop.ItemData.SharedData shared)
+        {
             var recipe = RecipeOf(prefab);
             if (shared.m_useDurability)
             {
@@ -274,7 +304,6 @@ namespace Scry
                     shared.m_canBeReparied && at != null ? at.gameObject.name : null);
             }
             else if (IsGear(shared.m_itemType)) Add("Durability", ItemWords.NoWear);
-
         }
 
         /// <summary>
