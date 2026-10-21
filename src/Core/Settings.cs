@@ -83,6 +83,14 @@ namespace Scry
         public static float SpinSpeed { get => Mathf.Clamp(_spinSpeed?.Value ?? 14f, 1f, 90f); set => Set(_spinSpeed, Mathf.Clamp(value, 1f, 90f)); }
         public static bool ReadLocationsAutomatically { get => _readLocations?.Value ?? false; set => Set(_readLocations, value); }
 
+        /// <summary>Whether a dedicated server reads what was left inside the world's dungeons by itself once the world's records are read; off, only as an admin asks.</summary>
+        public static bool ReadTracesOnStart => _readTracesOnStart?.Value ?? true;
+
+        /// <summary>Whether the world's server keeps the dungeon walks players' games send, and tells them to everyone.</summary>
+        public static bool TakeWalks => _takeWalks?.Value ?? true;
+
+        private static ConfigEntry<bool> _readTracesOnStart, _takeWalks;
+
         /// <summary>Whether each dungeon been in is marked on Valheim's large map.</summary>
         public static bool DungeonMarksOnMap { get => _dungeonMarks?.Value ?? true; set => Set(_dungeonMarks, value); }
 
@@ -193,6 +201,10 @@ namespace Scry
                 "Lets the rooms shown dimmed below a dungeon's opened floor keep their own lights, as the game lights them. Off, only the stage's light reaches them, and a big dungeon is filmed in about half the time.");
             _logPreviews = config.Bind("3 - Diagnostics", "LogPreviews", false,
                 "Writes to the log what each preview played and what Scry found out about each prefab (its animator, its gear, what it leaves behind), for finding out why something looks or sounds wrong. Off, the log only says when the game has changed in a way Scry notices, and how long reading the catalog took.");
+            _readTracesOnStart = config.Bind("5 - Server", "ReadTracesOnStart", true,
+                "On a dedicated server, reads what was left inside the world's dungeons once the world's records are read, a few milliseconds a frame, so rooms emptied before anyone's walk was kept count as walked on this server. Off, they are read only when an admin types /scry read traces. Only the server's own setting counts.");
+            _takeWalks = config.Bind("5 - Server", "TakeWalks", true,
+                "Keeps the dungeon walks players' games send, every room anyone stood in and the first and last day, and tells them to everyone as walked on this server. Off, the server keeps no one's walks: each player keeps their own, and the others see only what the traces show. Only the server's own setting counts.");
             _showMonitor = config.Bind("3 - Diagnostics", "ResourceMonitor", false,
                 "Shows a small box in the screen's corner, also with the panel closed, telling what Scry costs and holds: its own time each frame with a graph of the last ten seconds and its parts, what it allocates, the bundles, copies, textures and meshes it holds, beside the game's memory. /scry monitor switches it. For finding faults, not for play.");
         }

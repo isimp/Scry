@@ -21,12 +21,13 @@ Every player plays the same version of Scry: the hello carries the messages' ver
 
 - `BepInEx/cache/isimp.Scry/maps-<world>.dat`: the world's dungeon records, every room any player stood in, the first and last day walked, the rooms traces uncovered, the day an admin last forgot them. Written at most every half minute, flushed to disk with the file before kept as `.bak`; a file that cannot be read is never written over.
 - `BepInEx/config/isimp.Scry.cfg`, section *4 - World*: the rules, whether peeking and *Known up to* are allowed, and how far each source of the world may show. ServerSync sends them to every player connected; set there, they win, each player's own choices kept beneath.
+- The same file, section *5 - Server*, the server's own and never sent: `ReadTracesOnStart` (read the traces at each start, `GroupMapsLink.KeepRecords`) and `TakeWalks` (keep players' walks; off, `GroupMapsLink.MergeIn` takes none and a list of walks is answered wanting none).
 
 A world moved from a hosting game to a dedicated server leaves the host's records behind; copy `maps-<world>.dat` across with the world to keep them.
 
 ## For an admin
 
 - `/scry forget server maps` forgets the world's records; walks last made before that day are not taken back from players' lists.
-- `/scry read traces` reads again what was left inside the world's dungeons: chests taken from, things broken, pickups taken, doors opened. A dedicated server reads them at each start; what was read stays though a mod resets a dungeon.
+- `/scry read traces` reads again what was left inside the world's dungeons: chests taken from, things broken, pickups taken, doors opened. A dedicated server reads them at each start unless `ReadTracesOnStart` is off; what was read stays though a mod resets a dungeon.
 
 Both go on the admin's own connection and are refused for anyone not on the server's admin list.

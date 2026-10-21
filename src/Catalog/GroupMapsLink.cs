@@ -225,7 +225,7 @@ namespace Scry
             var packed = package.ReadByteArray();
             var listed = WalkList.Read(Packed.Unpack(packed, MostText));
             if (world != CompendiumMap.World || listed == null) return;
-            var wanted = WalkList.Wanted(_records, listed, _records.ForgottenDay(world));
+            var wanted = Settings.TakeWalks ? WalkList.Wanted(_records, listed, _records.ForgottenDay(world)) : new List<string>();
             var reply = new ZPackage();
             reply.Write(world);
             reply.Write(wanted.Count);
@@ -373,7 +373,8 @@ namespace Scry
 
         private static void MergeIn(DungeonMaps walked, string world)
         {
-            if (_records == null) return;
+            // Told to keep no one's walks, the server takes none in, its own player's neither.
+            if (_records == null || !Settings.TakeWalks) return;
             _records.Merge(walked, world);
             // The way to a trace goes by the rooms walked: worked out again with them.
             foreach (var (id, _) in walked.OfWorld(world)) DungeonTraceReader.Again(_records, id);
@@ -520,9 +521,9 @@ namespace Scry
                 _reading = null;
             }
             // Once its records are read, a dedicated server reads the traces in the world's dungeons, a
-            // few milliseconds a frame; a game hosting the world reads them only on the command, its
-            // player playing in it.
-            if (_records != null && _tracedFor != world && ZNet.instance.IsDedicated() && ZoneSystem.instance != null && DungeonDB.instance != null)
+            // few milliseconds a frame, unless told not to (ReadTracesOnStart); a game hosting the
+            // world reads them only on the command, its player playing in it.
+            if (_records != null && _tracedFor != world && Settings.ReadTracesOnStart && ZNet.instance.IsDedicated() && ZoneSystem.instance != null && DungeonDB.instance != null)
             {
                 _tracedFor = world;
                 DungeonTraceReader.Start(world, null);
