@@ -34,7 +34,6 @@ namespace Scry.Tests
             ["src/Catalog/Facts/Facts.Resources.cs Facts.Resource"] = 144,
             ["src/Preview/Stage.Framing.cs Stage.Frame"] = 129,
             ["src/UI/ScryPanel.Animations.cs ScryPanel.Clips"] = 146,
-            ["src/UI/ScryPanel.Facts.cs ScryPanel.FactRow"] = 139,
             ["src/UI/ScryPanel.Header.cs ScryPanel.BookLayout"] = 125,
             ["src/UI/ScryPanel.List.cs ScryPanel.List"] = 128,
             ["src/UI/ScryPanel.Plan.cs ScryPanel.PlanOverlay"] = 121,
@@ -46,7 +45,6 @@ namespace Scry.Tests
         private static readonly Dictionary<string, int> LongFiles = new Dictionary<string, int>
         {
             ["selftest/SelfTest.Details.cs"] = 1017,
-            ["src/UI/ScryPanel.Facts.cs"] = 1184,
             ["src/UI/Skin.cs"] = 1230,
         };
 
