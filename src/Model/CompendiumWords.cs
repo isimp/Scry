@@ -109,6 +109,9 @@ namespace Scry
         /// <summary>The server's log line on answering a player's map.</summary>
         public static string MapAnswered(int kinds) => $"answered a player's explored map: {Numbers.Count(kinds)} kinds of place lie in it";
 
+        /// <summary>The server's log line, once a player, for one whose asks about ground came sooner than it answers (<see cref="GroundAskPace"/>).</summary>
+        public static string GroundAsksPassedOver(string player) => $"{(string.IsNullOrEmpty(player) ? "a player" : player)}'s game asked about its ground more often than the server answers; what came sooner was passed over";
+
         /// <summary>The log's line when the server never answered.</summary>
         public static string MapNoServerScry => "the server did not answer on the explored map (it has no Scry, or one too old): places count as the character meets them";
 

@@ -83,6 +83,44 @@ namespace Scry
         }
 
         /// <summary>
+        /// Asks about ground go by the player's own connection, and the server answers a few at
+        /// once, then one a minute: six asks on shared ground sent at once, for a made-up world
+        /// and a ground of one cell, are answered no more than its burst allows, the rest passed
+        /// over. The session's own shared ground is then asked at that pace for a few minutes.
+        /// </summary>
+        private static IEnumerator GroundAsksPaced(Probe p)
+        {
+            if (ZNet.instance == null || ZNet.instance.IsServer())
+            {
+                p.Skip("this game runs the world, so its asks about ground go nowhere");
+                yield break;
+            }
+            yield return Until(() => EventLink.Server != Scry.ServerScry.Waiting, 15);
+            if (!ServerScries.Answers(EventLink.Server))
+            {
+                p.Skip("the server runs no Scry of this version, so it answers no asks about ground");
+                yield break;
+            }
+            const int sent = 6;
+            var ground = Utils.Compress(ExploredGrid.FromMap(64, 12f, i => i == 0).Pack());
+            var heard = CompendiumLink.SharedHeard;
+            var went = 0;
+            for (var i = 0; i < sent; i++)
+            {
+                var package = new ZPackage();
+                package.Write("scry-selftest");
+                package.Write(ground);
+                if (GroundAsks.Send(CompendiumLink.SharedAskRpc, package)) went++;
+            }
+            p.Check(went == sent, "each ask goes by the player's own connection to the server", $"{Numbers.Count(went)} of {Numbers.Count(sent)} sent");
+            yield return Until(() => CompendiumLink.SharedHeard - heard >= GroundAskPace.Burst(GroundAsk.Shared), 8);
+            yield return new Wait(3);
+            var answered = CompendiumLink.SharedHeard - heard;
+            p.Check(answered >= 1 && answered <= GroundAskPace.Burst(GroundAsk.Shared), $"of {Numbers.Count(sent)} asks sent at once, the server answers no more than {Numbers.Count(GroundAskPace.Burst(GroundAsk.Shared))}, the rest passed over",
+                $"{Numbers.Count(answered)} answered");
+        }
+
+        /// <summary>
         /// The server, asked to read what was left inside the world's dungeons, answers once done how
         /// many held traces, each uncovering a room at least, the way to them among the rooms; and in
         /// every record it sent, the rooms of traces alone count among the rooms walked, the line

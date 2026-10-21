@@ -9,9 +9,10 @@ namespace Scry
     /// (<see cref="CompendiumMap"/>): a client of a dedicated server sends its explored map packed
     /// (<see cref="ExploredGrid"/>), and the server's Scry answers with the kinds of place lying in
     /// it (<see cref="MapCatchUp.Kinds"/>), never where they are; asked again with the ground new
-    /// since as the map grows (<see cref="AskMore"/>). The messages are registered on each new
-    /// connection, as the game makes its routed messages anew for each; whoever is the world's
-    /// server answers, a dedicated one or a game hosting. Only a server whose Scry said hello is
+    /// since as the map grows (<see cref="AskMore"/>). The asks go by the player's own connection,
+    /// answered at the server's pace (<see cref="GroundAsks"/>); the answers and the census are
+    /// routed messages, registered on each new connection, as the game makes its routed messages
+    /// anew for each; whoever is the world's server answers, a dedicated one or a game hosting. Only a server whose Scry said hello is
     /// asked (<see cref="EventLink.Server"/>): one that did not within the wait runs none, and the
     /// client gives up on the world for the session at once, its places counting as the character
     /// meets them; an answer lost is given up on after <see cref="AnswerWait"/> seconds. The ground
@@ -79,9 +80,7 @@ namespace Scry
             if (rpc == null) return;
             rpc.Register<ZPackage>(CensusAskRpc, (sender, package) => Guard.Run(Feature.CompendiumMap, "answering a player's ask for the world's census", () => AnswerCensus(sender, package)));
             rpc.Register<ZPackage>(CensusAnswerRpc, (sender, package) => Guard.Run(Feature.CompendiumMap, "taking the server's census of the world", () => TakeCensus(sender, package)));
-            rpc.Register<ZPackage>(SharedAskRpc, (sender, package) => Guard.Run(Feature.CompendiumMap, "answering a player's shared ground", () => Answer(sender, package, SharedAnswerRpc)));
             rpc.Register<ZPackage>(SharedAnswerRpc, (sender, package) => Guard.Run(Feature.CompendiumMap, "taking the server's answer on the shared ground", () => TakeShared(sender, package)));
-            rpc.Register<ZPackage>(AskRpc, (sender, package) => Guard.Run(Feature.CompendiumMap, "answering a player's explored map", () => Answer(sender, package, AnswerRpc)));
             rpc.Register<ZPackage>(AnswerRpc, (sender, package) => Guard.Run(Feature.CompendiumMap, "taking the server's answer on the explored map", () => Take(sender, package)));
         }
 
@@ -128,7 +127,7 @@ namespace Scry
             _askedFor = world;
             _askedAt = Time.unscaledTime;
             CompendiumMap.Asked(world, packing.Result.Grid);
-            rpc.InvokeRoutedRPC(AskRpc, package);
+            GroundAsks.Send(AskRpc, package);
         }
 
         /// <summary>A client asks the server which kinds of place lie in the ground explored since it last asked, packed already; the answer comes as the first's, taken for this ask.</summary>
@@ -141,7 +140,7 @@ namespace Scry
             package.Write(packed);
             _askedMoreFor = world;
             _askedMoreAt = Time.unscaledTime;
-            rpc.InvokeRoutedRPC(AskRpc, package);
+            GroundAsks.Send(AskRpc, package);
         }
 
         /// <summary>
@@ -170,12 +169,12 @@ namespace Scry
             package.Write(world);
             package.Write(Utils.Compress(packing.Result));
             _sharedAskedFor = world;
-            rpc.InvokeRoutedRPC(SharedAskRpc, package);
+            GroundAsks.Send(SharedAskRpc, package);
             return true;
         }
 
-        /// <summary>The server answers a player's explored ground, its own or from shared maps, with the kinds of place lying in it.</summary>
-        private static void Answer(long sender, ZPackage package, string answerRpc)
+        /// <summary>The server answers a player's explored ground, its own or from shared maps, with the kinds of place lying in it, to the player's game.</summary>
+        internal static void Answer(long to, ZPackage package, string answerRpc)
         {
             if (ZNet.instance == null || !ZNet.instance.IsServer()) return;
             var world = package.ReadString();
@@ -188,7 +187,7 @@ namespace Scry
             foreach (var (kind, _) in counted) reply.Write(kind);
             // How many of each, after the kinds, so a client's older Scry reads the kinds as before.
             foreach (var (_, count) in counted) reply.Write(count);
-            ZRoutedRpc.instance.InvokeRoutedRPC(sender, answerRpc, reply);
+            ZRoutedRpc.instance.InvokeRoutedRPC(to, answerRpc, reply);
             Answered++;
             Log.Report(CompendiumWords.MapAnswered(counted.Count));
         }
@@ -285,12 +284,17 @@ namespace Scry
         private static void TakeShared(long sender, ZPackage package)
         {
             if (sender != EventLink.WorldSession) return;
+            SharedHeard++;
             var world = package.ReadString();
             var counted = ReadCounted(package);
             if (world != _sharedAskedFor) return;
             _sharedAskedFor = null;
             CompendiumMap.ToldShared(CompendiumKeeper.Book, world, counted);
         }
+
+        /// <summary>How many answers on shared ground this game heard from its world's server, for any world; for the self-test.</summary>
+        [Diagnostic]
+        public static int SharedHeard { get; private set; }
 
         private static void Forget()
         {

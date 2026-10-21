@@ -11,8 +11,9 @@ namespace Scry
     /// or whose row shows With insides, for their marks on Valheim's big map (<see cref="DungeonMarks"/>)
     /// and what the row shows (<see cref="SourceWalks"/>): worked out by the game running the world
     /// (<see cref="WorldDungeons.InGround"/>), here where it is this game, else asked of a dedicated
-    /// server's Scry by messages of its own, the ground packed as for the explored map and the kinds
-    /// of dungeon named (<see cref="DungeonKinds"/>). Each comes with its rooms where the world keeps
+    /// server's Scry, the ground packed as for the explored map and the kinds of dungeon named
+    /// (<see cref="DungeonKinds"/>), the ask by the player's own connection at the server's pace
+    /// (<see cref="GroundAsks"/>) and the answer by a routed message of its own. Each comes with its rooms where the world keeps
     /// them and the server's walks on it, anyone's (<see cref="GroupMapsLink.RecordOf"/>), else by
     /// its entrance alone. Asked as a pin goes on and again every ten minutes while it is, as the
     /// ground grows; for the single places a row shows with insides, the server's records of their
@@ -100,7 +101,6 @@ namespace Scry
             {
                 _registeredOn = rpc;
                 if (rpc == null) return;
-                rpc.Register<ZPackage>(AskRpc, (sender, package) => Guard.Run(Feature.DungeonMaps, "answering which dungeons lie in a player's ground", () => Asked(sender, package)));
                 rpc.Register<ZPackage>(AnswerRpc, (sender, package) => Guard.Run(Feature.DungeonMaps, "taking which dungeons lie in the ground", () => Answered(sender, package)));
             }
             var world = CompendiumMap.World;
@@ -162,7 +162,7 @@ namespace Scry
             // The kinds of dungeon after the ground, which a server's older Scry leaves unread.
             package.Write(kinds.Count);
             foreach (var kind in kinds) package.Write(kind);
-            rpc.InvokeRoutedRPC(AskRpc, package);
+            GroundAsks.Send(AskRpc, package);
         }
 
         /// <summary>
@@ -208,7 +208,7 @@ namespace Scry
         private const int MostKinds = 4096;
 
         /// <summary>In the game running the world: which dungeons lie in a player's ground, answered to that player's game as the maps' own text.</summary>
-        private static void Asked(long sender, ZPackage package)
+        internal static void Asked(long to, ZPackage package)
         {
             if (ZNet.instance == null || !ZNet.instance.IsServer()) return;
             var world = package.ReadString();
@@ -220,7 +220,7 @@ namespace Scry
             answer.Write(world);
             answer.Write(source);
             answer.Write(Utils.Compress(Encoding.UTF8.GetBytes(maps.ToSave()())));
-            ZRoutedRpc.instance.InvokeRoutedRPC(sender, AnswerRpc, answer);
+            ZRoutedRpc.instance.InvokeRoutedRPC(to, AnswerRpc, answer);
         }
 
         /// <summary>The server's answer, kept for the ground asked about; from any other game, passed over.</summary>

@@ -81,6 +81,7 @@ namespace Scry
             yield return S("what the world's server allows the compendium holds over the character's choices, kept beneath, the box shows it locked, and a notice says it once", WorldRulesShown, 20, WorldRulesAsTheyWere);
             yield return S("the character's walks are kept by where each dungeon lies, and the server, sent a list of them, wants just those it lacks", WalksToServer, 20);
             yield return S("the server reads what was left inside the world's dungeons, and the rooms of traces alone count among the rooms walked", TracesReadOnServer, 330);
+            yield return S("asks about ground go by the player's own connection, and the server answers a few at once, the rest passed over", GroundAsksPaced, 30);
             yield return S("the server's game runs made-up events as a friend's would, choosing who gets them by the rules for every event", CompendiumEventsRunByWorld, 20, EventsCrossAsItWas);
             yield return S("this game sends its own events to the games they concern, the server's among them, and to no other", CompendiumEventsSent, 15);
             yield return S("a player rising again after a death stays played with, one without Scry is named after a wait, one gone is forgotten", PlayersComeAndGo, 25, PlayersAsTheyWere);
