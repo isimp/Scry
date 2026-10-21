@@ -176,6 +176,11 @@ namespace Scry.Tests
 
             var unknown = KeptPlaces.Load(text.Replace("weather\tCrypt\n", "weather\tCrypt\nsomething new\t1\n"));
             Assert.Null(unknown.Find("Crypt2", false));
+
+            // A rune's text with no stone read before it to hold it.
+            var stray = KeptPlaces.Load(text.Replace("weather\tCrypt\n", "weather\tCrypt\nrune\t$topic\t$text\n"));
+            Assert.Null(stray.Find("Crypt2", false));
+            Assert.NotNull(stray.Find("crypt2_Room_skull", true));
         }
 
         [Fact]

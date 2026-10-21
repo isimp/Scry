@@ -703,8 +703,8 @@ namespace Scry
         {
             var book = new CompendiumBook();
             if (string.IsNullOrEmpty(text)) return book;
-            var lately = new HashSet<string>(StringComparer.Ordinal);
-            var mapApart = false;
+            book._mapApart = false;
+            book._latelyRead = new HashSet<string>(StringComparer.Ordinal);
             // The counts of what fell and was given, each its own text inside the book's.
             var fell = new StringBuilder();
             var gave = new StringBuilder();
@@ -725,71 +725,103 @@ namespace Scry
             {
                 var parts = line.TrimEnd('\r').Split('\t');
                 if (parts.Length < 2 || !Stored.TryUnescaped(parts[1], out var name) || name.Length == 0) continue;
-                switch (parts[0])
-                {
-                    case "opened" when parts.Length == 2 && !ChestByNumber(name):
-                        book._opened.Add(name);
-                        break;
-                    case "found" when parts.Length == 3 && Stored.TryUnescaped(parts[2], out var proof) && proof.Length > 0:
-                        book._found[name] = proof;
-                        break;
-                    case "know" when parts.Length == 3 && Stored.TryCount(parts[2], out var level) && level > (int)KnownLevel.Unknown && level <= (int)KnownLevel.Known:
-                        book._levels[name] = (KnownLevel)level;
-                        break;
-                    case "lately" when (parts.Length == 2 || parts.Length == 3) && lately.Add(name):
-                        book._lately.Add(name);
-                        if (parts.Length == 3 && Stored.TryCount(parts[2], out var newsDay)) book._newsDay[name] = newsDay;
-                        break;
-                    case "mapped" when parts.Length == 2:
-                        book._mapped.Add(name);
-                        break;
-                    case "read" when parts.Length == 2:
-                        book._read.Add(name);
-                        break;
-                    case "place" when parts.Length == 4 && Enum.TryParse(parts[2], out WorldSource source) && Enum.IsDefined(typeof(WorldSource), source)
-                                      && Stored.TryUnescaped(parts[3], out var kind) && kind.Length > 0:
-                        if (!book._foundIn.TryGetValue((name, source), out var found)) book._foundIn[(name, source)] = found = new HashSet<string>(StringComparer.Ordinal);
-                        found.Add(kind);
-                        break;
-                    case "shows" when parts.Length == 3 && Enum.TryParse(name, out WorldSource shown) && Enum.IsDefined(typeof(WorldSource), shown)
-                                      && Enum.TryParse(parts[2], out SourceLevel level) && Enum.IsDefined(typeof(SourceLevel), level) && WorldSources.Allows(shown, level):
-                        book._shows[shown] = level;
-                        break;
-                    case "marks" when parts.Length == 2 && Enum.TryParse(name, out WorldSource marked) && Enum.IsDefined(typeof(WorldSource), marked) && WorldSources.HasGround(marked):
-                        book._marks.Add(marked);
-                        break;
-                    case "welcomed" when parts.Length == 2:
-                        book._welcomed = true;
-                        break;
-                    case "mapapart" when parts.Length == 2:
-                        mapApart = true;
-                        break;
-                    case "ruled" when parts.Length == 3 && Stored.TryUnescaped(parts[2], out var ruled) && ruled.Length > 0:
-                        book._rulesTold[name] = ruled;
-                        break;
-                    case "rule" when parts.Length == 2 && (name == nameof(CompendiumRule.Loose) || name == nameof(CompendiumRule.Strict)):
-                        book._rule = name == nameof(CompendiumRule.Loose) ? CompendiumRule.Loose : CompendiumRule.Strict;
-                        break;
-                    case "floor" when parts.Length == 2 && Stored.TryCount(parts[1], out var floor):
-                        book._floor = Math.Max(0, Math.Min(Tiers.Last, floor));
-                        break;
-                    case "saw" when parts.Length == 3 && Stored.TryUnescaped(parts[2], out var other) && other.Length > 0 && other != name:
-                        book._pairs.Add(Pair(name, other));
-                        break;
-                    case "came" when parts.Length >= 5 && Enum.TryParse(parts[2], out CameBy way) && Enum.IsDefined(typeof(CameBy), way) && Read(parts, 3, out var cameAt):
-                        book._came[name] = (way, cameAt);
-                        break;
-                    case "seen" when parts.Length == 8 && Stored.TryCount(parts[2], out var stars) && Read(parts, 3, out var seenAt):
-                        book._seen[name] = (seenAt, stars);
-                        break;
-                    case "died" when parts.Length == 4 && Stored.TryCount(parts[2], out var deaths) && deaths > 0 && Stored.TryCount(parts[3], out var lastDay):
-                        book._deaths[name] = (deaths, lastDay);
-                        break;
-                }
+                if (LineReaders.TryGetValue(parts[0], out var read)) read(book, parts, name);
             }
-            if (!mapApart) book.GiveBackMapPlaces();
+            book._latelyRead = null;
+            if (!book._mapApart) book.GiveBackMapPlaces();
             return book;
         }
+
+        /// <summary>The names of the learned list read so far while the book loads, so each is listed once; none otherwise.</summary>
+        private HashSet<string> _latelyRead;
+
+        /// <summary>
+        /// How each kind of a saved book's lines is read, by its first word: each takes the book,
+        /// the line's parts and its name (its second part, unescaped), and passes over a line it
+        /// cannot read. A first word no reader takes is passed over.
+        /// </summary>
+        private static readonly Dictionary<string, Action<CompendiumBook, string[], string>> LineReaders = new Dictionary<string, Action<CompendiumBook, string[], string>>(StringComparer.Ordinal)
+        {
+            ["opened"] = (book, parts, name) =>
+            {
+                if (parts.Length == 2 && !ChestByNumber(name)) book._opened.Add(name);
+            },
+            ["found"] = (book, parts, name) =>
+            {
+                if (parts.Length == 3 && Stored.TryUnescaped(parts[2], out var proof) && proof.Length > 0) book._found[name] = proof;
+            },
+            ["know"] = (book, parts, name) =>
+            {
+                if (parts.Length == 3 && Stored.TryCount(parts[2], out var level) && level > (int)KnownLevel.Unknown && level <= (int)KnownLevel.Known) book._levels[name] = (KnownLevel)level;
+            },
+            ["lately"] = (book, parts, name) =>
+            {
+                if ((parts.Length != 2 && parts.Length != 3) || !book._latelyRead.Add(name)) return;
+                book._lately.Add(name);
+                if (parts.Length == 3 && Stored.TryCount(parts[2], out var newsDay)) book._newsDay[name] = newsDay;
+            },
+            ["mapped"] = (book, parts, name) =>
+            {
+                if (parts.Length == 2) book._mapped.Add(name);
+            },
+            ["read"] = (book, parts, name) =>
+            {
+                if (parts.Length == 2) book._read.Add(name);
+            },
+            ["place"] = (book, parts, name) =>
+            {
+                if (parts.Length != 4 || !Enum.TryParse(parts[2], out WorldSource source) || !Enum.IsDefined(typeof(WorldSource), source)
+                    || !Stored.TryUnescaped(parts[3], out var kind) || kind.Length == 0) return;
+                if (!book._foundIn.TryGetValue((name, source), out var found)) book._foundIn[(name, source)] = found = new HashSet<string>(StringComparer.Ordinal);
+                found.Add(kind);
+            },
+            ["shows"] = (book, parts, name) =>
+            {
+                if (parts.Length == 3 && Enum.TryParse(name, out WorldSource shown) && Enum.IsDefined(typeof(WorldSource), shown)
+                    && Enum.TryParse(parts[2], out SourceLevel level) && Enum.IsDefined(typeof(SourceLevel), level) && WorldSources.Allows(shown, level)) book._shows[shown] = level;
+            },
+            ["marks"] = (book, parts, name) =>
+            {
+                if (parts.Length == 2 && Enum.TryParse(name, out WorldSource marked) && Enum.IsDefined(typeof(WorldSource), marked) && WorldSources.HasGround(marked)) book._marks.Add(marked);
+            },
+            ["welcomed"] = (book, parts, name) =>
+            {
+                if (parts.Length == 2) book._welcomed = true;
+            },
+            ["mapapart"] = (book, parts, name) =>
+            {
+                if (parts.Length == 2) book._mapApart = true;
+            },
+            ["ruled"] = (book, parts, name) =>
+            {
+                if (parts.Length == 3 && Stored.TryUnescaped(parts[2], out var ruled) && ruled.Length > 0) book._rulesTold[name] = ruled;
+            },
+            ["rule"] = (book, parts, name) =>
+            {
+                if (parts.Length == 2 && (name == nameof(CompendiumRule.Loose) || name == nameof(CompendiumRule.Strict)))
+                    book._rule = name == nameof(CompendiumRule.Loose) ? CompendiumRule.Loose : CompendiumRule.Strict;
+            },
+            ["floor"] = (book, parts, name) =>
+            {
+                if (parts.Length == 2 && Stored.TryCount(parts[1], out var floor)) book._floor = Math.Max(0, Math.Min(Tiers.Last, floor));
+            },
+            ["saw"] = (book, parts, name) =>
+            {
+                if (parts.Length == 3 && Stored.TryUnescaped(parts[2], out var other) && other.Length > 0 && other != name) book._pairs.Add(Pair(name, other));
+            },
+            ["came"] = (book, parts, name) =>
+            {
+                if (parts.Length >= 5 && Enum.TryParse(parts[2], out CameBy way) && Enum.IsDefined(typeof(CameBy), way) && Read(parts, 3, out var cameAt)) book._came[name] = (way, cameAt);
+            },
+            ["seen"] = (book, parts, name) =>
+            {
+                if (parts.Length == 8 && Stored.TryCount(parts[2], out var stars) && Read(parts, 3, out var seenAt)) book._seen[name] = (seenAt, stars);
+            },
+            ["died"] = (book, parts, name) =>
+            {
+                if (parts.Length == 4 && Stored.TryCount(parts[2], out var deaths) && deaths > 0 && Stored.TryCount(parts[3], out var lastDay)) book._deaths[name] = (deaths, lastDay);
+            },
+        };
 
         /// <summary>Whether the places this book once took off the explored map were given back (<see cref="GiveBackMapPlaces"/>); a new book has none to give.</summary>
         private bool _mapApart = true;

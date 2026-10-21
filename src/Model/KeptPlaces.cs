@@ -205,94 +205,126 @@ namespace Scry
             return kept;
         }
 
-        /// <summary>Takes one line of a place; false for a line that cannot be read, which leaves the place out.</summary>
-        private static bool ReadLine(PlaceRecord record, string kind, string[] f)
+        /// <summary>Takes one line of a place by its first word (<see cref="LineReaders"/>); false for a line that cannot be read, or of a word none reads, which leaves the place out.</summary>
+        private static bool ReadLine(PlaceRecord record, string kind, string[] f) => LineReaders.TryGetValue(kind, out var read) && read(record, record.Contents, f);
+
+        /// <summary>
+        /// How each kind of a kept place's lines is read, by its first word: each takes the place,
+        /// its contents and the line's fields, unescaped, and is false for a line it cannot read.
+        /// </summary>
+        private static readonly Dictionary<string, Func<PlaceRecord, PlaceContents, string[], bool>> LineReaders = new Dictionary<string, Func<PlaceRecord, PlaceContents, string[], bool>>(StringComparer.Ordinal)
         {
-            var c = record.Contents;
-            switch (kind)
+            ["names"] = (record, c, f) =>
             {
-                case "names":
-                    if (f.Length != 3) return false;
-                    c.GameNameKey = f[0];
-                    c.TraderKey = f[1];
-                    c.BossPrefab = f[2];
-                    return true;
-                case "part":
-                case "creature":
-                    if (f.Length != 3 || !Count(f[1], out var count) || !Stored.TryExact(f[2], out var chance)) return false;
-                    (kind == "part" ? c.Parts : c.Creatures).Add(new PlacePart { Prefab = f[0], Count = count, Chance = chance });
-                    return true;
-                case "vegvisir":
-                    if (f.Length != 1) return false;
-                    c.Vegvisirs.Add(f[0]);
-                    return true;
-                case "levels":
-                    if (f.Length != 4 || !Stored.TryCount(f[0], out var min) || !Stored.TryCount(f[1], out var max) || !Stored.TryExact(f[2], out var up) || !Stored.TryFlag(f[3], out var exceptions)) return false;
-                    c.EnemyMinLevel = min;
-                    c.EnemyMaxLevel = max;
-                    c.EnemyLevelUpChance = up;
-                    c.LevelOverrideExceptions = exceptions;
-                    return true;
-                case "nobuild":
-                    if (f.Length != 2 || !Stored.TryFlag(f[0], out var noBuild) || !Stored.TryExact(f[1], out var radius)) return false;
-                    c.NoBuild = noBuild;
-                    c.NoBuildRadius = radius;
-                    return true;
-                case "rolls":
-                    if (f.Length != 3 || !Stored.TryFlag(f[0], out var parts) || !Stored.TryFlag(f[1], out var stars) || !Stored.TryFlag(f[2], out var groups)) return false;
-                    c.PartsRolled = parts;
-                    c.StarsRolled = stars;
-                    c.GroupsRolled = groups;
-                    return true;
-                case "music":
-                    if (f.Length != 3 || !Enum.TryParse<MusicWhen>(f[0], out var when) || !Enum.IsDefined(typeof(MusicWhen), when) || !Stored.TryExact(f[2], out var often)) return false;
-                    c.OwnMusic.Add(new PlaceMusic { When = when, Name = f[1], Chance = often });
-                    return true;
-                case "weather":
-                    if (f.Length != 1) return false;
-                    c.Weathers.Add(f[0]);
-                    return true;
-                case "stone":
-                    if (f.Length != 1) return false;
-                    c.Stones.Add(new PlaceRunestone { Name = f[0] });
-                    return true;
-                case "rune":
-                    if (f.Length != 2 || c.Stones.Count == 0) return false;
-                    c.Stones[c.Stones.Count - 1].Texts.Add(new RuneText { Topic = f[0], Text = f[1] });
-                    return true;
-                case "dungeon":
-                    return f.Length == 28 && Dungeon(c, f);
-                case "required":
-                    if (f.Length != 1 || c.Dungeon == null) return false;
-                    c.Dungeon.RequiredRooms.Add(f[0]);
-                    return true;
-                case "door":
-                    if (f.Length != 3 || c.Dungeon == null || !Stored.TryExact(f[1], out var doorChance)) return false;
-                    c.Dungeon.Doors.Add((f[0], doorChance, f[2]));
-                    return true;
-                case "room":
-                    return f.Length == 13 && RoomOf(c, f);
-                case "doorway":
-                    return f.Length == 11 && c.Room != null && DoorwayOf(c.Room, f);
-                case "theme":
-                    if (f.Length != 1 || !Stored.TryCount(f[0], out var theme)) return false;
-                    record.Themes.Add(theme);
-                    return true;
-                case "known":
-                    if (f.Length != 1 || !Count(f[0], out var known)) return false;
-                    record.Known = known;
-                    return true;
-                case "named":
-                    if (f.Length != 1) return false;
-                    record.Names.Add(f[0]);
-                    return true;
-                case "altar":
-                    if (f.Length != 4 || !Count(f[2], out var items) || !Stored.TryFlag(f[3], out var onStands)) return false;
-                    record.Altars.Add(new PlaceAltar { Boss = f[0], Item = f[1], Count = items, OnStands = onStands });
-                    return true;
-                default:
-                    return false;
-            }
+                if (f.Length != 3) return false;
+                c.GameNameKey = f[0];
+                c.TraderKey = f[1];
+                c.BossPrefab = f[2];
+                return true;
+            },
+            ["part"] = (record, c, f) => PartOf(c.Parts, f),
+            ["creature"] = (record, c, f) => PartOf(c.Creatures, f),
+            ["vegvisir"] = (record, c, f) =>
+            {
+                if (f.Length != 1) return false;
+                c.Vegvisirs.Add(f[0]);
+                return true;
+            },
+            ["levels"] = (record, c, f) =>
+            {
+                if (f.Length != 4 || !Stored.TryCount(f[0], out var min) || !Stored.TryCount(f[1], out var max) || !Stored.TryExact(f[2], out var up) || !Stored.TryFlag(f[3], out var exceptions)) return false;
+                c.EnemyMinLevel = min;
+                c.EnemyMaxLevel = max;
+                c.EnemyLevelUpChance = up;
+                c.LevelOverrideExceptions = exceptions;
+                return true;
+            },
+            ["nobuild"] = (record, c, f) =>
+            {
+                if (f.Length != 2 || !Stored.TryFlag(f[0], out var noBuild) || !Stored.TryExact(f[1], out var radius)) return false;
+                c.NoBuild = noBuild;
+                c.NoBuildRadius = radius;
+                return true;
+            },
+            ["rolls"] = (record, c, f) =>
+            {
+                if (f.Length != 3 || !Stored.TryFlag(f[0], out var parts) || !Stored.TryFlag(f[1], out var stars) || !Stored.TryFlag(f[2], out var groups)) return false;
+                c.PartsRolled = parts;
+                c.StarsRolled = stars;
+                c.GroupsRolled = groups;
+                return true;
+            },
+            ["music"] = (record, c, f) =>
+            {
+                if (f.Length != 3 || !Enum.TryParse<MusicWhen>(f[0], out var when) || !Enum.IsDefined(typeof(MusicWhen), when) || !Stored.TryExact(f[2], out var often)) return false;
+                c.OwnMusic.Add(new PlaceMusic { When = when, Name = f[1], Chance = often });
+                return true;
+            },
+            ["weather"] = (record, c, f) =>
+            {
+                if (f.Length != 1) return false;
+                c.Weathers.Add(f[0]);
+                return true;
+            },
+            ["stone"] = (record, c, f) =>
+            {
+                if (f.Length != 1) return false;
+                c.Stones.Add(new PlaceRunestone { Name = f[0] });
+                return true;
+            },
+            ["rune"] = (record, c, f) =>
+            {
+                if (f.Length != 2 || c.Stones.Count == 0) return false;
+                c.Stones[c.Stones.Count - 1].Texts.Add(new RuneText { Topic = f[0], Text = f[1] });
+                return true;
+            },
+            ["dungeon"] = (record, c, f) => f.Length == 28 && Dungeon(c, f),
+            ["required"] = (record, c, f) =>
+            {
+                if (f.Length != 1 || c.Dungeon == null) return false;
+                c.Dungeon.RequiredRooms.Add(f[0]);
+                return true;
+            },
+            ["door"] = (record, c, f) =>
+            {
+                if (f.Length != 3 || c.Dungeon == null || !Stored.TryExact(f[1], out var doorChance)) return false;
+                c.Dungeon.Doors.Add((f[0], doorChance, f[2]));
+                return true;
+            },
+            ["room"] = (record, c, f) => f.Length == 13 && RoomOf(c, f),
+            ["doorway"] = (record, c, f) => f.Length == 11 && c.Room != null && DoorwayOf(c.Room, f),
+            ["theme"] = (record, c, f) =>
+            {
+                if (f.Length != 1 || !Stored.TryCount(f[0], out var theme)) return false;
+                record.Themes.Add(theme);
+                return true;
+            },
+            ["known"] = (record, c, f) =>
+            {
+                if (f.Length != 1 || !Count(f[0], out var known)) return false;
+                record.Known = known;
+                return true;
+            },
+            ["named"] = (record, c, f) =>
+            {
+                if (f.Length != 1) return false;
+                record.Names.Add(f[0]);
+                return true;
+            },
+            ["altar"] = (record, c, f) =>
+            {
+                if (f.Length != 4 || !Count(f[2], out var items) || !Stored.TryFlag(f[3], out var onStands)) return false;
+                record.Altars.Add(new PlaceAltar { Boss = f[0], Item = f[1], Count = items, OnStands = onStands });
+                return true;
+            },
+        };
+
+        /// <summary>A part or a creature of a place: its prefab, how many and its chance.</summary>
+        private static bool PartOf(List<PlacePart> into, string[] f)
+        {
+            if (f.Length != 3 || !Count(f[1], out var count) || !Stored.TryExact(f[2], out var chance)) return false;
+            into.Add(new PlacePart { Prefab = f[0], Count = count, Chance = chance });
+            return true;
         }
 
         private static bool Dungeon(PlaceContents c, string[] f)

@@ -362,6 +362,14 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AFloorSavedPastTheLastTierReadsAsTheLastTier()
+        {
+            Assert.Equal(Tiers.Last, CompendiumBook.Load("floor\t99").ChosenFloor);
+            Assert.Equal(2, CompendiumBook.Load("floor\t2").ChosenFloor);
+            Assert.Equal(0, CompendiumBook.Load("floor\tlots").ChosenFloor);
+        }
+
+        [Fact]
         public void ALineThatCannotBeReadIsPassedOver()
         {
             // "asked" lines kept a question no longer asked: read past and not written again.
