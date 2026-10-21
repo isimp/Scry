@@ -167,6 +167,7 @@ namespace Scry
             Timing.Measuring = Frames;
             _sampled = asked.Sampled;
             if (asked.Scope == RunScope.Quick || asked.Scope == RunScope.Deep || asked.Scope == RunScope.Full) PicturesAside();
+            ReadmeFor(asked.Scope);
             _runner = new ScenarioRunner(parts, Write, Finish, AllKnown);
             SelfTestPanel.ShowResult();
             return SelfTestWords.Started(_runner.Total, asked.Scope, times.Estimate(parts.Select(s => s.Name), asked.Sampled));
@@ -258,6 +259,7 @@ namespace Scry
 
         private static void Finish(ScenarioRunner runner, string stopped)
         {
+            SelfTestPanel.HiddenForPicture = false;
             var reports = runner?.Reports ?? new List<ScenarioReport>();
             LastHeadline = stopped == null ? SelfTestWords.Finished(reports, runner?.Seconds) : $"Self-test stopped after {Numbers.Count(reports.Count)} of {Numbers.Count(runner?.Total ?? 0)} parts, as {stopped}.";
             LastSummary = SelfTestWords.Summary(reports);

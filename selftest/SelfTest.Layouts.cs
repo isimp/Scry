@@ -437,7 +437,12 @@ namespace Scry
 
         private static IEnumerator DungeonExample(Probe p) => Layout(p, Crypt(), "Dungeon");
 
-        private static IEnumerator CampExample(Probe p) => Layout(p, Camp(), "CampRadial");
+        /// <summary>A camp's example lays out as a dungeon's does, round the location's own parts, and is pictured as it stands.</summary>
+        private static IEnumerator CampExample(Probe p)
+        {
+            yield return Layout(p, Camp(), "CampRadial");
+            if (Camp() is Entry camp && Stage.ExampleShown != null) yield return Picture(p, $"camp example {camp.Name}");
+        }
 
         private static IEnumerator Layout(Probe p, Entry entry, string algorithm)
         {

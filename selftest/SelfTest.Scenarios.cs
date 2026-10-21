@@ -217,6 +217,7 @@ namespace Scry
             yield return S("the largest locations are made over several frames", LargestLocations, 120);
             yield return S("a spread of rooms stands on its floor, opened", RoomsOnStage, 160);
             yield return S("closing the panel lets go of every bundle", ClosingLetsGo, 5);
+            yield return S("a full run took each of the README's pictures clean, without the strip and the game's HUD", ReadmePictures, 5, full: true);
 
             yield return new Scenario("Scry's own work over the whole run", WholeRun) { Timeout = 5 };
         }

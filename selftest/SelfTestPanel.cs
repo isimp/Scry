@@ -25,7 +25,10 @@ namespace Scry
         }
 
         /// <summary>Whether the strip shows: while a run goes on, and once one has ended until it is put away.</summary>
-        public static bool StripShown => SelfTest.Running || (_shown && SelfTest.LastHeadline != null);
+        public static bool StripShown => !HiddenForPicture && (SelfTest.Running || (_shown && SelfTest.LastHeadline != null));
+
+        /// <summary>Whether the strip is put away for a clean picture, as the README's are taken.</summary>
+        public static bool HiddenForPicture { get; set; }
 
         /// <summary>Whether the last run's details stand in the list's place.</summary>
         public static bool CardShown => _details;
