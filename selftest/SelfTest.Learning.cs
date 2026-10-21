@@ -15,7 +15,8 @@ namespace Scry
         /// keeper's own entry points the hooks call, into a book of the test's own: what it makes
         /// known, and what the strict rules then show of how the things go together. Standing in a
         /// place pairs it with the biome there; at a dungeon's entrance it is seen, inside known; a
-        /// rune stone read keeps its text as read whatever its label; a station in use, an upgrade
+        /// rune stone read keeps its text as read whatever its label, its location's page showing it
+        /// read though told there in words; a station in use, an upgrade
         /// built near it and a station built near its upgrades pair the station with each. The
         /// character's book is left alone. Rows needing a stone or a station with upgrades loaded
         /// near by are left out where there is none.
@@ -74,6 +75,16 @@ namespace Scry
                 var view = stone.GetComponentInParent<ZNetView>();
                 p.Check(texts.Any(book.HasRead) && (view == null || book.Level(Utils.GetPrefabName(view.gameObject)) == KnownLevel.Known),
                     $"a rune stone read ({stone.name}) keeps the text it gave as read, whatever the game keeps of it, the stone known", string.Join(", ", texts.Take(3)));
+                // What its location's page shows: the texts told there in words, each asked after as the page asks, by the key the stone gives it by.
+                var location = Location.GetLocation(stone.transform.position);
+                var entry = location != null ? X.Find(EntryKeys.For(Kind.Location, Utils.GetPrefabName(location.gameObject))) : null;
+                var told = (entry?.Source as PlaceSource)?.Contents?.Runestones.SelectMany(s => s.Texts).ToList();
+                if (told != null && told.Count > 0)
+                {
+                    p.Check(told.Any(t => book.HasRead(RuneWords.ReadAs(t))), $"and {entry.Name}'s page shows the text read, told there in words",
+                        string.Join(", ", told.Take(3).Select(t => RuneWords.ReadAs(t) + " = " + t.Text.Substring(0, System.Math.Min(24, t.Text.Length)))));
+                }
+                else p.Note($"the place {stone.name} stands in has no page with its texts told here: the page's side untried");
             }
             else p.Note("no rune stone loaded or among the prefabs: reading one untried");
 

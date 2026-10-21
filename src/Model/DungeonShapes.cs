@@ -277,7 +277,7 @@ namespace Scry
             foreach (var stone in Stones)
             {
                 var told = new PlaceRunestone { Name = terms.Words(stone.Name) ?? "" };
-                foreach (var text in stone.Texts) told.Texts.Add(new RuneText { Topic = terms.Words(text.Topic) ?? "", Text = terms.Words(text.Text) ?? "" });
+                foreach (var text in stone.Texts) told.Texts.Add(new RuneText { Topic = terms.Words(text.Topic) ?? "", Text = terms.Words(text.Text) ?? "", Key = text.Text });
                 PlaceRunes.Add(Runestones, told);
             }
 

@@ -82,6 +82,23 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ATextToldInWordsKeepsTheKeyTheStoneGivesItBy()
+        {
+            // The game and the character's book keep a text read by the key the stone holds, not by
+            // its words, so a text is asked after by that key in whatever language it is shown.
+            var contents = new PlaceContents();
+            contents.Stones.Add(Stone("$rune_name", ("$lore_1_topic", "$lore_1"), ("", "$lore_2")));
+            foreach (var words in new[] { German, English })
+            {
+                contents.Tell(In(words));
+                Assert.Equal(new[] { "$lore_1", "$lore_2" }, Assert.Single(contents.Runestones).Texts.Select(t => t.Key));
+                Assert.Equal("$lore_1", RuneWords.ReadAs(Assert.Single(contents.Runestones).Texts[0]));
+            }
+            // One read straight from a stone, not told, is asked after by its text as it is.
+            Assert.Equal("$lore_9", RuneWords.ReadAs(new RuneText { Text = "$lore_9" }));
+        }
+
+        [Fact]
         public void AWeathersMusicIsWhatTheGameGivesThatWeatherAfterThePlacesOwnMusic()
         {
             var contents = new PlaceContents();
