@@ -2,7 +2,7 @@
 
 The plan box inside a dungeon (Above, Levels, Tree), a room peeked or gone into, and the room card.
 
-Code: `src/Preview/Stage.cs`, `src/Model/RoomFocus.cs`, `src/Model/DungeonWays.cs`, `src/UI/ScryPanel.cs`, `src/Model/RoomLight.cs`, `src/Model/PanelPlace.cs`, `src/Model/CornerFit.cs`, `src/Preview/StageExample.cs`.
+Code: `src/Preview/Stage.cs`, `src/Model/RoomFocus.cs`, `src/Model/DungeonWays.cs`, `src/UI/ScryPanel.cs`, `src/Model/RoomLight.cs`, `src/Model/PanelPlace.cs`, `src/Model/CornerFit.cs`, `src/Preview/StageExample.cs`., `src/UI/ScryPanel.PlanViews.cs`
 
 See also: [examples](examples.md), [this dungeon](this-dungeon.md); all notes in [the index](../index.md).
 
