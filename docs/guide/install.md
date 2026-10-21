@@ -2,7 +2,7 @@
 
 ## Playing
 
-Install Scry from a mod manager, or put `Scry.dll` in `BepInEx/plugins`. Press F7 or type /scry in the chat to open it; the other commands are in [commands](commands.md). Scry spawns nothing, saves nothing into the world and shows nothing to other players, so it works on any server whether the server has it or not.
+Install Scry from a mod manager, or put `Scry.dll` in `BepInEx/plugins`. Press F7 or type `/scry` in the chat to open it; the other commands are in [commands](commands.md). Scry spawns nothing, saves nothing into the world and shows nothing to other players, so it works on any server whether the server has it or not.
 
 A new character starts with the compendium off, and Scry is then a lookup of everything in the game. The first time the panel opens for it, Scry asks whether to keep a compendium: *Loose*, *Strict* or *Not now* ([the compendium's rules](rules.md)). The choice can be changed any time under *Compendium* at the top of the panel. Each character keeps its own choice and its own knowledge.
 
@@ -20,7 +20,7 @@ Put the same Scry package in the server's `BepInEx/plugins`, by the server profi
 
 ## Hosting from the game
 
-A game hosting a world is that world's server: the host's own Scry does the server's part, and nothing more needs installing. Two things differ from a dedicated server. The host's own *4 - World* settings bind everyone who joins, so a host who changed them for themselves changed them for their friends too. And the traces left inside the world's dungeons are read when the host types /scry read traces, not at each start.
+A game hosting a world is that world's server: the host's own Scry does the server's part, and nothing more needs installing. Two things differ from a dedicated server. The host's own *4 - World* settings bind everyone who joins, so a host who changed them for themselves changed them for their friends too. And the traces left inside the world's dungeons are read when the host types `/scry read traces`, not at each start.
 
 ## Moving a world
 

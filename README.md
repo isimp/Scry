@@ -1,6 +1,6 @@
 # Scry
 
-A compendium of Valheim that grows with your character. Every creature, item, piece, place and dungeon you meet gets a page, told by the game's own data and rules, while the rest stays unknown until you find it. Press F7 or type /scry in the chat to open it. Nothing is ever spawned.
+A compendium of Valheim that grows with your character. Every creature, item, piece, place and dungeon you meet gets a page, told by the game's own data and rules, while the rest stays unknown until you find it. Press F7 or type `/scry` in the chat to open it. Nothing is ever spawned.
 
 ![A camp on the Scry stage with its plan and what its rooms hold](https://raw.githubusercontent.com/isimp/Scry/main/docs/images/screenshot.webp)
 
@@ -30,6 +30,6 @@ Install from a mod manager. A server does not need Scry; with the same package i
 
 ## Settings
 
-Settings are in `BepInEx/config/isimp.Scry.cfg`, each with a description; a server's are in its section *4 - World*. Favourites and the panel's layout are kept in `BepInEx/config/isimp.Scry`, each character's knowledge in `BepInEx/cache/isimp.Scry/compendium`. Every /scry command is described at https://github.com/isimp/Scry/blob/main/docs/guide/commands.md
+Settings are in `BepInEx/config/isimp.Scry.cfg`, each with a description; a server's are in its section *4 - World*. Favourites and the panel's layout are kept in `BepInEx/config/isimp.Scry`, each character's knowledge in `BepInEx/cache/isimp.Scry/compendium`. Every `/scry` command is described at https://github.com/isimp/Scry/blob/main/docs/guide/commands.md
 
 More, with technical notes and build instructions: https://github.com/isimp/Scry

@@ -18,7 +18,7 @@ The rest cap how far each source of the world may show in the compendium's box; 
 
 `WholeWorldUpTo`, for *The whole world*: `Off` or `Counted` (the default).
 
-Two more, in the section `[5 - Server]`, count only on the server and are never sent to players. `ReadTracesOnStart` (on by default) has a dedicated server read what was left inside the world's dungeons each time the world starts, a few milliseconds a frame, so rooms emptied before anyone's walk was kept count as walked on this server; off, they are read only when an admin types /scry read traces. `TakeWalks` (on by default) keeps the dungeon walks players send and tells them to everyone as walked on this server; off, the server keeps no one's walks, each player keeps their own, and the others see only what the traces show.
+Two more, in the section `[5 - Server]`, count only on the server and are never sent to players. `ReadTracesOnStart` (on by default) has a dedicated server read what was left inside the world's dungeons each time the world starts, a few milliseconds a frame, so rooms emptied before anyone's walk was kept count as walked on this server; off, they are read only when an admin types `/scry read traces`. `TakeWalks` (on by default) keeps the dungeon walks players send and tells them to everyone as walked on this server; off, the server keeps no one's walks, each player keeps their own, and the others see only what the traces show.
 
 The server answers each player's asks about their ground (which places and dungeons lie in it) a few at once and then about one a minute, so a changed game cannot map the world by asking cell by cell; a player's own game never asks faster than that.
 
