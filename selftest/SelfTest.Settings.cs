@@ -9,8 +9,8 @@ namespace Scry
         private static (StageQuality Quality, bool News, float Speed)? _settingsBefore;
 
         /// <summary>
-        /// The gear in the title row opens the settings card in the list's place and closes it
-        /// again. A fast stage is filmed at half the size, and the View box's speed goes on to the
+        /// The gear in the title row opens the settings card in the list's place, each row's
+        /// choices on one line beside its label, and closes it again. A fast stage is filmed at half the size, and the View box's speed goes on to the
         /// next; each setting is put back as it was.
         /// </summary>
         private static IEnumerator SettingsCardShown(Probe p)
@@ -27,6 +27,11 @@ namespace Scry
             ScryPanel.ShowSettings(true);
             yield return Until(() => ScryPanel.Drawn(PanelPart.SettingsCard) > cards, 3);
             p.Check(ScryPanel.SettingsShown && ScryPanel.Drawn(PanelPart.SettingsCard) > cards, "the gear opens the settings card in the list's place");
+            var wrapped = ScryPanel.Drawn(PanelPart.SettingsRowWrapped);
+            cards = ScryPanel.Drawn(PanelPart.SettingsCard);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.SettingsCard) > cards + 3, 3);
+            p.Check(ScryPanel.Drawn(PanelPart.SettingsRowWrapped) == wrapped, "every row of the settings card stands on one line beside its label",
+                $"{Numbers.Count(ScryPanel.Drawn(PanelPart.SettingsRowWrapped) - wrapped)} rows wrapped over {Numbers.Count(ScryPanel.Drawn(PanelPart.SettingsCard) - cards)} frames");
             yield return Picture(p, "settings card");
             ScryPanel.ShowSettings(false);
             p.Check(!ScryPanel.SettingsShown, "and closes it");

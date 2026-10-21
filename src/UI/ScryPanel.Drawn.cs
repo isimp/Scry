@@ -121,6 +121,9 @@ namespace Scry
 
         /// <summary>The notice told once on joining a world whose server sets any of the compendium's rules.</summary>
         RulesNotice,
+
+        /// <summary>A row of the settings card whose choices could not stand on one line beside its label.</summary>
+        SettingsRowWrapped,
     }
 
     internal static partial class ScryPanel

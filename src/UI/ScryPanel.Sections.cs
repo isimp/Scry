@@ -108,6 +108,9 @@ namespace Scry
             return result;
         }
 
+        /// <summary>How many rows of segments could not stand on one line beside their label, counted at each repaint.</summary>
+        private static int _rowsWrapped;
+
         /// <summary>A labelled row of segments, one of them on; returns the one clicked, or -1.</summary>
         private static int Segments(string label, List<string> names, int selected, float width, float labelW, ref float y) => SegmentRow(label, names, selected, null, width, labelW, ref y);
 
@@ -144,6 +147,7 @@ namespace Scry
                 y += rowH + U(8f);
                 return clicked;
             }
+            if (Event.current.type == EventType.Repaint) _rowsWrapped++;
             var flow = new ChipFlow(labelW, width, y, rowH, U(4f), U(4f));
             for (var i = 0; i < names.Count; i++)
             {

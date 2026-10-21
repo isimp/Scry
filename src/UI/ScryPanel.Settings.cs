@@ -70,8 +70,9 @@ namespace Scry
             var body = BeginCard(rect, ref _settingsScroll, _settingsHeight, SettingsWords.Title);
             GUI.BeginGroup(new Rect(body.X, 0f, body.Width, Mathf.Max(_settingsHeight, rect.height)));
             var width = body.Width;
-            var labelW = Mathf.Min(U(170f), width * 0.42f);
+            var labelW = LabelColumn.Width(SettingsLabels(), U(14f), width);
             var y = body.Y;
+            var wrapped = _rowsWrapped;
 
             // The size follows the slider once it is let go, as the panel changing size under a
             // dragged slider moves the slider away from the mouse.
@@ -127,12 +128,23 @@ namespace Scry
             if (news >= 0) Settings.NewsNotice = news == 0;
             RowTip(top, y, width, "settings-news", SettingsWords.NewsTip);
 
+            if (_rowsWrapped > wrapped) CountDrawn(PanelPart.SettingsRowWrapped);
             var keptH = Skin.DimWrap.CalcHeight(new GUIContent(SettingsWords.Kept), width);
             GUI.Label(new Rect(0f, y + U(4f), width, keptH), SettingsWords.Kept, Skin.DimWrap);
             y += keptH + U(16f);
             GUI.EndGroup();
             if (e.type == EventType.Repaint) _settingsHeight = y;
             if (EndCard(rect, out _)) ShowSettings(false);
+        }
+
+        private static readonly string[] SettingsLabelNames = { SettingsWords.Size, SettingsWords.Key, SettingsWords.WhileOpen, SettingsWords.Opening, SettingsWords.Sounds, SettingsWords.Tips, SettingsWords.Stage, SettingsWords.News };
+        private static readonly float[] SettingsLabelWidths = new float[SettingsLabelNames.Length];
+
+        /// <summary>How wide each of the settings card's labels is drawn, for their column to be as wide as the widest.</summary>
+        private static float[] SettingsLabels()
+        {
+            for (var i = 0; i < SettingsLabelNames.Length; i++) SettingsLabelWidths[i] = Skin.Width(Skin.DimLabel, SettingsLabelNames[i]);
+            return SettingsLabelWidths;
         }
 
         /// <summary>A row's tip, asked while the mouse is over the row from its top to where the next begins.</summary>
