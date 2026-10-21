@@ -27,6 +27,7 @@ namespace Scry
             var misdrawn = new List<string>();
             var unseen = new List<string>();
             var cameOut = new List<string>();
+            var notWhole = new List<string>();
             var unmarked = new List<string>();
             var unlevelled = new List<string>();
             foreach (var entry in places)
@@ -101,12 +102,7 @@ namespace Scry
                 p.Note($"{name}: outlined with {Stage.OutlineDrawnWith ?? "nothing"}, {Numbers.Count(amber)} amber pixels added; {Numbers.Count(changed)} pixels changed in all, on average {colour}");
                 if (!shown || amber < 100) unmarked.Add($"{name}: {(shown ? "shown" : "not shown")}, {Numbers.Count(amber)} amber pixels added");
 
-                // Coming back out, as Esc does: the level the room is on opened, the roof on for a room on none.
-                var itsMark = Stage.ExampleMarkOfRoom(deepest);
-                Stage.ComeOut();
-                yield return Until(() => Stage.RoomGoneInto == null && Stage.ExampleRoomsKept, 5);
-                if (Stage.RoomGoneInto != null || Stage.CutLevel != (itsMark >= 0 ? itsMark : Stage.FloorHeights.Count) || Stage.CameOutOf != deepest)
-                    cameOut.Add($"{entry.Name}: {Stage.CutLabel}, its level's mark {(itsMark >= 0 ? Numbers.Count(itsMark) : "none")}, {(Stage.CameOutOf == deepest ? "outlined" : "not outlined")}");
+                yield return EscapeOut(entry.Name, deepest, cameOut, notWhole);
 
                 // A room with levels of its own: each is opened in turn, the cut at head height over it.
                 var tiered = rooms.FirstOrDefault(r => !r.Room.EndCap && !r.Room.Divider && Stage.ExampleRoomLevels(r).Count > 1);
@@ -139,7 +135,26 @@ namespace Scry
             p.Check(misdrawn.Count == 0, "rooms on its level stand half dimmed, those below dimmed, those above put away until the cut stands over their ground", string.Join("; ", misdrawn));
             p.Check(unseen.Count == 0, "the camera has the room gone into in view", string.Join("; ", unseen));
             p.Check(unmarked.Count == 0, "the room gone into is outlined in amber", string.Join("; ", unmarked));
-            p.Check(cameOut.Count == 0, "coming back out opens the level the room is on, the room outlined", string.Join("; ", cameOut));
+            p.Check(cameOut.Count == 0, "coming back out by Esc opens the level the room is on, the room outlined", string.Join("; ", cameOut));
+            p.Check(notWhole.Count == 0, "Esc again puts the roof back on the whole dungeon, the panel still open", string.Join("; ", notWhole));
+        }
+
+        /// <summary>
+        /// Comes back out of a room gone into by Esc: the level the room is on opened, the roof on
+        /// for a room on none, the room outlined; where a level opened, Esc again puts the roof back
+        /// on the whole dungeon, the panel still open. What went otherwise is noted in the lists.
+        /// </summary>
+        private static IEnumerator EscapeOut(string name, PlacedRoom room, List<string> cameOut, List<string> notWhole)
+        {
+            var itsMark = Stage.ExampleMarkOfRoom(room);
+            ScryPanel.EscapeForTest();
+            yield return Until(() => Stage.RoomGoneInto == null && Stage.ExampleRoomsKept, 5);
+            if (Stage.RoomGoneInto != null || Stage.CutLevel != (itsMark >= 0 ? itsMark : Stage.FloorHeights.Count) || Stage.CameOutOf != room)
+                cameOut.Add($"{name}: {Stage.CutLabel}, its level's mark {(itsMark >= 0 ? Numbers.Count(itsMark) : "none")}, {(Stage.CameOutOf == room ? "outlined" : "not outlined")}");
+            if (!Stage.LevelOpened) yield break;
+            ScryPanel.EscapeForTest();
+            yield return Until(() => !Stage.Gliding, 5);
+            if (Stage.LevelOpened || Stage.CutLevel != Stage.FloorHeights.Count || !Session.IsOpen) notWhole.Add($"{name}: {Stage.CutLabel}, the panel {(Session.IsOpen ? "open" : "closed")}");
         }
 
         /// <summary>Comes out of a room gone into, its outline back, after <see cref="GoesIntoRooms"/>.</summary>

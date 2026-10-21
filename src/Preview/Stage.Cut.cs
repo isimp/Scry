@@ -97,6 +97,9 @@ namespace Scry
             KeepOrFreshView(framed);
         }
 
+        /// <summary>Whether a floor or level of the place is opened, outside a room gone into, so Esc puts the roof back before the panel closes.</summary>
+        public static bool LevelOpened => TheExample.Focused == null && TheCut.HasFloors && !TheCut.Held && TheCut.Cutting;
+
         /// <summary>The frame the view has on the floor opened, outside a room gone into; none with the roof on or in a room.</summary>
         private static Vector4? LevelFramed() => TheExample.Focused == null && !TheCut.Held ? ShownLevelFrame : null;
 

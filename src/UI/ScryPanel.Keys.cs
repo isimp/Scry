@@ -8,6 +8,29 @@ namespace Scry
     {
         // ----- Keyboard -----
 
+        /// <summary>
+        /// What Esc does, a step back at a time: out of a text box first, handing the keys back to
+        /// the list and to walking; then let go of a room picked; then out of a room gone into, to
+        /// its level; then from a level opened back to the whole place with the roof on; from
+        /// anywhere else the panel closes.
+        /// </summary>
+        private static void Escape()
+        {
+            if (Typing)
+            {
+                GUIUtility.keyboardControl = 0;
+                Assist.ResetCycle();
+            }
+            else if (Stage.PickedRoom != null) Stage.Pick(null);
+            else if (Stage.RoomGoneInto != null) Stage.ComeOut();
+            else if (Stage.LevelOpened) Stage.WholeDungeon();
+            else AskClose();
+        }
+
+        /// <summary>Esc as the player presses it, for the self-test.</summary>
+        [ForTest]
+        internal static void EscapeForTest() => Escape();
+
         private static void Keys(Explorer explorer)
         {
             var e = Event.current;
@@ -23,16 +46,7 @@ namespace Scry
             switch (e.keyCode)
             {
                 case KeyCode.Escape:
-                    // Out of a text box first, handing the keys back to the list and to walking;
-                    // then let go of a room picked, then out of a room gone into; from anywhere else the panel closes.
-                    if (Typing)
-                    {
-                        GUIUtility.keyboardControl = 0;
-                        Assist.ResetCycle();
-                    }
-                    else if (Stage.PickedRoom != null) Stage.Pick(null);
-                    else if (Stage.RoomGoneInto != null) Stage.ComeOut();
-                    else AskClose();
+                    Escape();
                     e.Use();
                     break;
                 case KeyCode.LeftArrow:
