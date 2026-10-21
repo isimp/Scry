@@ -199,6 +199,30 @@ namespace Scry
             return $"Wrote {Numbers.Count(lines.Count - 1)} renderers of {_subject.name} to the log.";
         }
 
+        /// <summary>
+        /// The drawn parts of the stage copy reaching farthest across, largest first: where each
+        /// sits, what draws it, its size and the height of its middle over the stage. For the
+        /// self-test to name what stretches a frame past any sane size.
+        /// </summary>
+        [Diagnostic, ForTest]
+        public static List<string> LargestParts(int few)
+        {
+            var parts = new List<Renderer>();
+            if (_subject == null) return new List<string>();
+            foreach (var renderer in _subject.GetComponentsInChildren<Renderer>(false))
+                if (renderer.enabled && Usable(renderer.bounds)) parts.Add(renderer);
+            float Across(Renderer r) => Mathf.Max(r.bounds.size.x, r.bounds.size.y, r.bounds.size.z);
+            parts.Sort((a, b) => Across(b).CompareTo(Across(a)));
+            var said = new List<string>();
+            for (var i = 0; i < parts.Count && i < few; i++)
+            {
+                var r = parts[i];
+                var mesh = r is SkinnedMeshRenderer skinned ? skinned.sharedMesh : r.GetComponent<MeshFilter>().OrNull()?.sharedMesh;
+                said.Add($"{Path(r.transform)} ({r.GetType().Name}, mesh {(mesh != null ? mesh.name : "none")}) {Figures.Point(r.bounds.size)} at {Numbers.Fixed(r.bounds.center.y - Origin.y, 1)} m");
+            }
+            return said;
+        }
+
         [Diagnostic]
         private static string Path(Transform t)
         {

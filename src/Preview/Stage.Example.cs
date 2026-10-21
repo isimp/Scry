@@ -495,11 +495,17 @@ namespace Scry
             return (floors, CeilingOf);
         }
 
-        /// <summary>Hands the cut the example's floors anew, as more of it is read or how it opens changes.</summary>
+        /// <summary>
+        /// Hands the cut the example's floors anew, as more of it is read or how it opens changes;
+        /// shown inside, it stands on its lowest floor again, as it did on its first room alone
+        /// (<see cref="ShowInsideOrOut"/>), so a dungeon reaching below its entrance has the floor
+        /// under its deepest room rather than through it.
+        /// </summary>
         private static void RefreshExampleFloors()
         {
             var (floors, ceiling) = ExampleMarksNow();
             RefreshFloors(floors, ceiling, TheExample.Top);
+            if (ShowsInside && !_insideUnknown && floors.Count > 0) StandAt(Origin.y + floors[floors.Count - 1] * _baseScale.y);
         }
 
         /// <summary>The lowest ground of the rooms of the level opened, in the example's own space, for the plan to leave out only what lies below them; none for a camp or with none opened.</summary>

@@ -76,6 +76,9 @@ namespace Scry
             _bounds = Unscaled(Measure(_subject));
         }
 
+        /// <summary>Has what is shown stand at another height, its floor and ground following, its size and framing left as they are.</summary>
+        private static void StandAt(float bodyMinY) => _bodyMinY = bodyMinY;
+
         /// <summary>Frames what is shown anew, from its whole size, rather than easing from what was framed.</summary>
         private static void FrameAnew()
         {

@@ -611,7 +611,11 @@ namespace Scry
                 yield return null;
                 var size = Stage.SubjectSize;
                 sizes.Add($"{entry.Name} {Numbers.Amount(Mathf.Max(size.x, size.z), 0)} m");
-                if (Mathf.Max(size.x, size.y, size.z) > 300f) wrong.Add($"{entry.Name} frames {Figures.Point(size)}");
+                if (Mathf.Max(size.x, size.y, size.z) > 300f)
+                {
+                    wrong.Add($"{entry.Name} frames {Figures.Point(size)}");
+                    p.Note($"{entry.Name}'s largest parts: " + string.Join("; ", Stage.LargestParts(5)));
+                }
                 // A location stands on its own ground; a dungeon's example, shown inside, on its lowest floor.
                 var inside = Stage.HasInside && Stage.Inside && Stage.FloorHeights.Count > 0;
                 var ground = inside ? Stage.FloorHeights[Stage.FloorHeights.Count - 1] : 0f;
