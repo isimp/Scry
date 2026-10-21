@@ -323,7 +323,15 @@ namespace Scry
             Unsure[label] = why;
         }
 
-        private static readonly Dictionary<Entry, Facts> Cache = new Dictionary<Entry, Facts>();
+        /// <summary>How many entries' facts are kept for the next time each is shown: a sweep over every entry, or a long session, kept them all, and the game's memory cleanup goes through all it holds.</summary>
+        private const int FactsKept = 256;
+
+        /// <summary>The facts told lately, by entry, the one shown longest ago let go of first (<see cref="RecentCache{TKey, TValue}"/>).</summary>
+        private static readonly RecentCache<Entry, Facts> Cache = new RecentCache<Entry, Facts>(FactsKept);
+
+        /// <summary>How many entries' facts are kept now, for the self-test.</summary>
+        [ForTest]
+        public static int Held => Cache.Count;
 
         public static Facts For(Entry entry)
         {
@@ -332,7 +340,7 @@ namespace Scry
             // play, and an item's what equipping it was seen to change and the mods' settings for
             // it, which change as they are set.
             // What is told at the character's skill levels changes as a level does.
-            if (Cache.TryGetValue(entry, out var known) && (known._toldWith == Freshness || (!known._skilled && !known._keyed && entry.Kind != Kind.Creature && entry.Kind != Kind.Item && entry.Kind != Kind.Mod))) return known;
+            if (Cache.TryGet(entry, out var known) && (known._toldWith == Freshness || (!known._skilled && !known._keyed && entry.Kind != Kind.Creature && entry.Kind != Kind.Item && entry.Kind != Kind.Mod))) return known;
 
             var facts = new Facts { _toldWith = Freshness };
             _notables = new Dictionary<string, (ICollection<string>, bool, int)>(StringComparer.Ordinal);
@@ -346,7 +354,7 @@ namespace Scry
                 _notables = null;
                 _loot = null;
             }
-            Cache[entry] = facts;
+            Cache.Set(entry, facts);
             return facts;
         }
 

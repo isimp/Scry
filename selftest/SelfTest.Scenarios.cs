@@ -232,6 +232,7 @@ namespace Scry
             var parts = Frames.PartsOfSlowest(5);
             for (var i = 0; i < slowest.Count; i++) p.Note(FrameStats.Told(slowest[i]) + (parts[i] != null ? "; " + parts[i] : ""));
             p.Note($"the self-test's own checks, left out of these figures, took up to {Numbers.Amount(Frames.TestMax, 0)} ms in a frame");
+            p.Note($"at the end the scripts hold {Numbers.Count(System.GC.GetTotalMemory(false) >> 20)} MB, the facts of {Numbers.Count(Facts.Held)} pages kept");
             p.Check(Frames.Frames > 0, "Scry's own work was measured");
             p.Check(Frames.Max < 250, "no frame of Scry's own work took a quarter of a second", $"{Numbers.Amount(Frames.Max, 0)} ms at the most");
             yield break;

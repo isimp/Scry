@@ -52,14 +52,15 @@ namespace Scry
             yield return Until(() => unloading.isDone, 60);
             GC.Collect();
             var unloaded = Memory();
-            p.Note($"memory the engine holds, before the spread {MemoryTold(before)}, after it {MemoryTold(after)}, its unused assets unloaded {MemoryTold(unloaded)}");
+            p.Note($"memory, before the spread {MemoryTold(before)}, after it {MemoryTold(after)}, its unused assets unloaded and cleaned up {MemoryTold(unloaded)}");
+            p.Check(Facts.Held <= 256, "the facts kept for pages shown stay within 256 pages, however many were shown", $"{Numbers.Count(Facts.Held)} kept after {Numbers.Count(shown)} shown");
         }
 
-        /// <summary>What the engine holds allocated and what the game's process holds, in bytes.</summary>
-        private static (long Engine, long Process) Memory() => (UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong(), Process.GetCurrentProcess().PrivateMemorySize64);
+        /// <summary>What the engine holds allocated and what the game's scripts hold, in bytes.</summary>
+        private static (long Engine, long Scripts) Memory() => (UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong(), GC.GetTotalMemory(false));
 
-        private static string MemoryTold((long Engine, long Process) memory) =>
-            $"{Numbers.Count(memory.Engine >> 20)} MB (the process {Numbers.Count(memory.Process >> 20)} MB)";
+        private static string MemoryTold((long Engine, long Scripts) memory) =>
+            $"the engine {Numbers.Count(memory.Engine >> 20)} MB, the scripts {Numbers.Count(memory.Scripts >> 20)} MB";
 
         /// <summary>Every raid tells when it comes and what it brings, each thing it brings an entry.</summary>
         private static IEnumerator EveryRaid(Probe p)
