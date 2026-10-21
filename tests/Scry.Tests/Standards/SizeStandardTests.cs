@@ -29,7 +29,6 @@ namespace Scry.Tests
             ["selftest/SelfTest.Pins.cs SelfTest.DungeonPins"] = 159,
             ["selftest/SelfTest.PlanBox.cs SelfTest.PlanBoxShows"] = 495,
             ["selftest/SelfTest.Play.cs SelfTest.CompendiumHooksFed"] = 168,
-            ["selftest/SelfTest.Scenarios.cs SelfTest.Scenarios"] = 198,
             ["selftest/SelfTest.Stage.cs SelfTest.GroundBackdrop"] = 135,
             ["src/Catalog/Facts/Facts.Resources.cs Facts.Resource"] = 144,
             ["src/Preview/Stage.Framing.cs Stage.Frame"] = 129,

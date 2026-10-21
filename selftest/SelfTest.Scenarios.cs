@@ -28,6 +28,7 @@ namespace Scry
             yield return S("both views draw, and /scry searches", PanelViews, 10);
             yield return S("the arrow keys move, Game and Mods filter, and an empty tab shows every kind", ListKeysAndFilters, 10, ResetList);
             yield return S("the search's help opens and closes", HelpOpens, 5, () => ScryPanel.ShowHelp(false));
+            yield return S("held looking around with the panel open, the cursor stays captured and hidden, and is freed once let go", CursorHeldWhileLooking, 10, () => ScryPanel.LookForTest(false));
             yield return S("the gear opens the settings card, a fast stage is filmed at half the size, and the View box's speed steps", SettingsCardShown, 20, SettingsAsTheyWere);
             yield return S("the compendium's box shows its guide's ?, and the guide opens in the list's place", GuideShown, 10, () => { ScryPanel.ShowGuide(false); ScryPanel.HoldCompendiumBox(false); });
             yield return S("the question of keeping a compendium draws, the book left as it was", WelcomeShown, 10, () => ScryPanel.AskWelcomeForTest(false));
@@ -123,7 +124,12 @@ namespace Scry
             yield return S("a spawner tells its pool and pace, and its creatures their share", SpawnerFacts, 10);
             yield return S("items tell their odds in the tables that give them", LootOdds, 10);
             yield return S("items, stations, smelters and beds tell what they are for", WhatThingsTell, 10);
+            foreach (var each in StageAndPlaceParts()) yield return each;
+        }
 
+        /// <summary>The parts on the stage, the world and the places, in their turn after the pages'.</summary>
+        private static IEnumerable<Scenario> StageAndPlaceParts()
+        {
             yield return S("the stage's lighting, backdrops and views all draw", StageControls, 20);
             yield return S("a bigger size makes a bigger copy", SizeAdjusts, 10);
             yield return S("a creature stands with stars and in each look", StarsAndLooks, 30, () => X.Modifiers.Reset());

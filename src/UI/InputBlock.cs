@@ -113,9 +113,11 @@ namespace Scry
     }
 
     /// <summary>
-    /// While looking around, the cursor is captured as in normal play. Let go, the game frees it in
-    /// the middle of the window, where a locked cursor is kept; it is put back where the look
-    /// began (<see cref="PointerReturn"/>).
+    /// While looking around, the cursor is held captured as in normal play, in place of the game's
+    /// own capture for that frame: with the panel open the game frees and shows it (the panel's
+    /// text boxes answer <c>TextInput.IsVisible</c>), and captured again after it, it was shown in
+    /// the middle of the window each frame. Let go, the game frees it there, where a locked cursor
+    /// is kept; it is put back where the look began (<see cref="PointerReturn"/>).
     /// </summary>
     [HarmonyPatch(typeof(GameCamera), nameof(GameCamera.UpdateMouseCapture))]
     internal static class LookCapture
@@ -123,11 +125,20 @@ namespace Scry
         private static bool _off;
         private static bool _backOff;
 
+        private static bool Prefix()
+        {
+            if (_off) return true;
+            if (!Guard.Run(Feature.CursorHeldWhileLooking, "holding the cursor", Capture, out var held))
+            {
+                _off = true;
+                return true;
+            }
+            return !held;
+        }
+
         private static void Postfix()
         {
-            if (_off) return;
-            if (!Guard.Run(Feature.CursorHeldWhileLooking, "holding the cursor", Capture)) _off = true;
-            else if (!_backOff && !Guard.Run(Feature.PointerBackAfterLooking, "putting the pointer back", PutBack)) _backOff = true;
+            if (!_backOff && !Guard.Run(Feature.PointerBackAfterLooking, "putting the pointer back", PutBack)) _backOff = true;
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -138,12 +149,14 @@ namespace Scry
             ZInput.SetMousePosition(at);
         }
 
+        /// <summary>Holds the cursor captured and hidden while looking around; whether it did, the game's own capture then left out.</summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static void Capture()
+        private static bool Capture()
         {
-            if (!ScryPanel.Looking) return;
+            if (!ScryPanel.Looking) return false;
             ZCursor.LockState = UnityEngine.CursorLockMode.Locked;
             ZCursor.Hide();
+            return true;
         }
     }
 

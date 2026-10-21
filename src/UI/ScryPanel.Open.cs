@@ -45,6 +45,11 @@ namespace Scry
         /// </summary>
         public static bool Looking { get; private set; }
 
+        /// <summary>Holds looking around on as the right mouse button held outside the panel does, or lets it go again; for the self-test.</summary>
+        public static void LookForTest(bool on) => _lookForTest = on;
+
+        private static bool _lookForTest;
+
         /// <summary>Where the pointer goes back to once looking around ends.</summary>
         private static readonly PointerReturn Pointer = new PointerReturn();
 
@@ -129,7 +134,8 @@ namespace Scry
         private static void LookAndStep()
         {
             // Looking starts only from a press outside the panel, so a right click on it stays a click.
-            if (!IsOpen || !Input.GetMouseButton(1)) Looking = false;
+            if (IsOpen && _lookForTest) Looking = true;
+            else if (!IsOpen || !Input.GetMouseButton(1)) Looking = false;
             else if (Input.GetMouseButtonDown(1) && Settings.LookWithRightMouse && !Covers(Input.mousePosition)) Looking = true;
             Pointer.Frame(Looking, IsOpen, Input.mousePosition.x, Input.mousePosition.y);
 
