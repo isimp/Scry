@@ -19,12 +19,16 @@ namespace Scry
             if (Event.current.type == EventType.Repaint) _askedTipKey = null;
         }
 
-        /// <summary>Asks for a tooltip at the mouse, shown once the mouse has rested on the same thing for a moment.</summary>
+        /// <summary>
+        /// Asks for a tooltip at the mouse, shown once the mouse has rested on the same thing for a
+        /// moment. A tip draws plain text, so what the game's or a mod's words mark up is left out
+        /// (<see cref="Naming.Plain"/>), never shown as its tags.
+        /// </summary>
         private static void AskTip(string key, string text)
         {
             if (Event.current.type != EventType.Repaint || _drag != Drag.None || string.IsNullOrEmpty(text)) return;
             _askedTipKey = key;
-            _askedTipText = text;
+            _askedTipText = Naming.Plain(text);
             _askedTipAt = GUIUtility.GUIToScreenPoint(Event.current.mousePosition);
         }
 

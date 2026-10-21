@@ -42,6 +42,9 @@ namespace Scry.Tests
         [InlineData("<size=20><color=#ff0000>Big</color></size>", "Big")]
         [InlineData("Less < more > still", "Less < more > still")]
         [InlineData("Troll", "Troll")]
+        // A tip draws plain text: what the game's text marks up, a size in percent as its pins write it among it, is left out.
+        [InlineData("Crypt\n<size=80%><color=#E0B050>Walked on this server: 2 of 18 rooms</color></size>", "Crypt\nWalked on this server: 2 of 18 rooms")]
+        [InlineData("Go to <color=orange>Frost resistance</color>", "Go to Frost resistance")]
         public void ANameIsShownWithoutTheMarkupAModPutInIt(string raw, string shown)
         {
             Assert.Equal(shown, Naming.Plain(raw));
