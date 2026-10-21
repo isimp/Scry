@@ -300,6 +300,9 @@ namespace Scry
             _packing = null;
             _packingShared = null;
             _sharedAskedFor = null;
+            _askedAt = 0f;
+            _askedMoreAt = 0f;
+            _toldNoScry = false;
         }
     }
 }

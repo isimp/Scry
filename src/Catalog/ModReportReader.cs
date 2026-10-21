@@ -46,6 +46,7 @@ namespace Scry
         {
             _report = null;
             _reportOf = null;
+            _reportCount = _reportLocations = _reportSeen = 0;
         }
 
         public static List<ModSummary> Read(IReadOnlyList<Entry> catalog)

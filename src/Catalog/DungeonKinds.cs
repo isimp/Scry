@@ -11,6 +11,16 @@ namespace Scry
     /// </summary>
     internal static class DungeonKinds
     {
+        static DungeonKinds() => WorldCaches.Register(nameof(DungeonKinds), Forget);
+
+        /// <summary>Lets go of the kinds read and the catalog they were read from, with the world.</summary>
+        private static void Forget()
+        {
+            Kinds.Clear();
+            _of = null;
+            _regroups = -1;
+        }
+
         /// <summary>The plan of a dungeon lying inside, as the game names its generator's way.</summary>
         private const string InsideAlgorithm = "Dungeon";
 

@@ -214,6 +214,8 @@ namespace Scry
         {
             ByType.Clear();
             LearnedTypes.Clear();
+            Seen.Clear();
+            Gone.Clear();
             _readAt = -1f;
             _known = false;
             _version++;

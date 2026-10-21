@@ -141,6 +141,12 @@ namespace Scry
             Named.Clear();
             Now = State.NotRead;
             Found = (0, 0, 0);
+            _automatically = false;
+            _current = default;
+            _next = _failed = _frames = 0;
+            _workMs = 0.0;
+            RecordNames.Clear();
+            Components.Clear();
         }
 
         /// <summary>Ends a reading, keeping nothing of it.</summary>

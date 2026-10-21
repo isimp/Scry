@@ -423,12 +423,17 @@ namespace Scry
         private static void Forget()
         {
             _saidHello = false;
+            _saidAt = 0f;
+            _server = ServerScry.Waiting;
             _lookedAt = 0f;
             Peers.Forget();
             _playingWith = new List<(string, PeerScry)>();
             PlayingWithVersion++;
             _taken = new TakenLately();
             _alsoListedForTest = null;
+            _serverForTest = null;
+            _playingWithForTest = null;
+            _alsoWithoutCharacterForTest = 0;
             RanForTest = null;
             RanSawYouAt = null;
             TakenForTest = null;

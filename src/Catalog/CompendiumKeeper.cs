@@ -686,6 +686,12 @@ namespace Scry
             Ceiling = 0;
             Acted.Clear();
             PlaceKeys.Clear();
+            _recordsPower = null;
+            _lookedAt = 0f;
+            _stationInUse = null;
+            UpgradesNear.Clear();
+            _into = null;
+            _worldForTest = null;
         }
     }
 }

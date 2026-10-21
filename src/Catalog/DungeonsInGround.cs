@@ -259,6 +259,8 @@ namespace Scry
         {
             Clear();
             _world = null;
+            _insteadOn = false;
+            _instead = null;
         }
     }
 }

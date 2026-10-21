@@ -378,6 +378,11 @@ namespace Scry
             Waiting.Clear();
             Read.Clear();
             LetGo();
+            _dungeons = _rooms = _onTheWay = _otherRooms = 0;
+            _chestsMade = _chestsStanding = _chestsFilled = _chestsTaken = _chestsGone = 0;
+            Shapes.Clear();
+            StandingOf.Clear();
+            Near.Clear();
         }
     }
 }

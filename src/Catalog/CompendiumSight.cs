@@ -27,6 +27,15 @@ namespace Scry
         {
             Things.Clear();
             Shapes.Clear();
+            // What the last round looked with, the book among it, let go of with the world.
+            _catchUp = null;
+            _book = null;
+            _letGo = false;
+            _from = _eye = _forward = Vector3.zero;
+            _sweepStarted = 0;
+            Bodies.Clear();
+            Meshes.Clear();
+            Skins.Clear();
         });
 
         /// <summary>How far beyond its own reach a place in view is seen, as far as a creature of a person's size.</summary>

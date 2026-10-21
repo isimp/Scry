@@ -115,6 +115,7 @@ namespace Scry
         public static void Forget()
         {
             _recipes = null;
+            ForgetTranslations();
         }
 
         /// <summary>

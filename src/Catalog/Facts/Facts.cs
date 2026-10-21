@@ -482,6 +482,8 @@ namespace Scry
         {
             Cache.Clear();
             _tools = null;
+            _notables = null;
+            _loot = null;
             Tooltips.Forget();
         }
 

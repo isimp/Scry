@@ -485,6 +485,7 @@ namespace Scry
             _heldVersion++;
             _failedFor = null;
             _player = null;
+            _playerSince = 0f;
             _biomes = null;
             _biomesFor = null;
         }

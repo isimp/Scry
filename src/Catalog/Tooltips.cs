@@ -82,6 +82,7 @@ namespace Scry
         public static void Forget()
         {
             Kept.Clear();
+            _keptWith = default;
             _mods = null;
         }
     }

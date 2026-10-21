@@ -43,6 +43,7 @@ namespace Scry
         {
             _generator = null;
             _read = null;
+            InZone.Clear();
         }
 
         /// <summary>The dungeon of the location named where the player stands, the same each time while its generator stands; null elsewhere or before it has loaded.</summary>
