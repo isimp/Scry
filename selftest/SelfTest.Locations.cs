@@ -636,10 +636,15 @@ namespace Scry
             p.Check(wrong.Count == 0, "each loads, is framed to a sane size and stands on its own ground", string.Join("; ", wrong));
         }
 
+        /// <summary>Models whose see-through body is many times their solid parts: two aspects, see-through round their eyes, and the needle arrow, see-through before its feathers.</summary>
+        private static readonly string[] SeeThroughBodies = { "Aspect_Elder", "Aspect_Bonemass", "ArrowNeedle" };
+
         /// <summary>
         /// The Charred fortress is framed as the fortress: the beacon its bell altar sends into the
         /// sky stands on the stage, see-through and far taller than the fortress is wide, and is
-        /// left out of the frame. Pictured.
+        /// left out of the frame. A see-through body round small solid parts, as an aspect's round
+        /// its eyes or a needle arrow's shaft before its feathers, is the model and is framed whole.
+        /// Both pictured.
         /// </summary>
         private static IEnumerator BeaconOutOfFrame(Probe p)
         {
@@ -657,6 +662,27 @@ namespace Scry
             p.Check(left.Any(l => l.EndsWith("BellHolder_Beam", StringComparison.Ordinal)), "and is what the frame leaves out", left.Count == 0 ? "nothing left out" : string.Join(", ", left));
             p.Check(Mathf.Max(size.x, size.y, size.z) < 120f, "so the fortress is framed as itself, not as tall as its beam", Figures.Point(size));
             yield return Picture(p, "CharredFortress framed");
+
+            var bodies = SeeThroughBodies
+                .Select(n => X.Catalog.FirstOrDefault(e => e.Name == n && e.Source is GameObject)).Where(e => e != null).ToList();
+            var cut = new List<string>();
+            foreach (var entry in bodies)
+            {
+                Select(entry);
+                yield return Until(() => CopyOf(entry) != null, 10);
+                var lost = Stage.SeeThroughLeftOut();
+                if (CopyOf(entry) == null) cut.Add($"{entry.Name} stands nowhere");
+                else if (lost.Count > 0) cut.Add($"{entry.Name} leaves out {string.Join(", ", lost)}");
+            }
+            p.Check(bodies.Count > 0 && cut.Count == 0, "a see-through body round small solid parts is framed whole",
+                bodies.Count == 0 ? "neither aspect nor the needle arrow is in the catalog" : string.Join("; ", cut));
+            if (bodies.Count > 0)
+            {
+                Select(bodies[0]);
+                yield return Until(() => CopyOf(bodies[0]) != null, 10);
+                yield return new Wait(1);
+                yield return Picture(p, $"{bodies[0].Name} framed");
+            }
             StageAsItWas();
         }
 

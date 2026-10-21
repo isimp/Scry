@@ -483,8 +483,8 @@ namespace Scry
 
         /// <summary>
         /// Frames the see-through parts with the solid ones, every one where nothing solid is drawn;
-        /// one reaching far past the solid body, as a beacon's beam into the sky, is left out
-        /// (<see cref="StageFraming.FramesSeeThrough"/>).
+        /// one reaching far past the solid parts, both many times their size and many metres, as a
+        /// beacon's beam into the sky, is left out (<see cref="StageFraming.FramesSeeThrough"/>).
         /// </summary>
         private static void TakeInSeeThrough(List<Renderer> leftOut)
         {

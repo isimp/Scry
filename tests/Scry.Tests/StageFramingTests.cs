@@ -20,10 +20,10 @@ namespace Scry.Tests
         [Fact]
         public void ABeaconsBeamReachingIntoTheSkyLeavesTheFrameToWhatItShinesFrom()
         {
-            // A fortress 78 m across whose bell altar sends a see-through beam 308 m up is framed
-            // as the fortress, the beam left out as particles are: it would make the frame four
-            // times as tall as the fortress is wide.
-            Assert.False(StageFraming.FramesSeeThrough(bodyWidest: 78f, withItWidest: 324f));
+            // A fortress 56 m across whose bell altar sends a see-through beam 308 m up is framed
+            // as the fortress, the beam left out as particles are: it would make the frame nearly
+            // six times as tall as the fortress is wide, 268 m past it.
+            Assert.False(StageFraming.FramesSeeThrough(bodyWidest: 56f, withItWidest: 324f));
             // A small altar with the same beam, alone, the more so.
             Assert.False(StageFraming.FramesSeeThrough(bodyWidest: 3f, withItWidest: 308f));
         }
@@ -35,9 +35,22 @@ namespace Scry.Tests
             // takes them in, so nothing see-through of a model's own size leaves the picture.
             Assert.True(StageFraming.FramesSeeThrough(bodyWidest: 0.25f, withItWidest: 0.32f));
             Assert.True(StageFraming.FramesSeeThrough(bodyWidest: 10f, withItWidest: 10f));
-            // Up to twice what the solid body is wide.
-            Assert.True(StageFraming.FramesSeeThrough(bodyWidest: 10f, withItWidest: 20f));
-            Assert.False(StageFraming.FramesSeeThrough(bodyWidest: 10f, withItWidest: 20.5f));
+            // Up to twice what the solid body is wide, however far that reaches.
+            Assert.True(StageFraming.FramesSeeThrough(bodyWidest: 60f, withItWidest: 120f));
+            Assert.False(StageFraming.FramesSeeThrough(bodyWidest: 60f, withItWidest: 121f));
+        }
+
+        [Fact]
+        public void ASeeThroughBodyRoundSmallSolidPartsIsFramedWhole()
+        {
+            // An aspect's body is see-through round its solid eyes, and a needle arrow's shaft
+            // see-through before its solid feathers: each is the model, many times its solid
+            // parts, and is framed whole. A see-through part is left out only where it reaches
+            // more than fifty metres past the solid body besides.
+            Assert.True(StageFraming.FramesSeeThrough(bodyWidest: 0.6f, withItWidest: 9f));
+            Assert.True(StageFraming.FramesSeeThrough(bodyWidest: 0.2f, withItWidest: 1.1f));
+            Assert.True(StageFraming.FramesSeeThrough(bodyWidest: 1f, withItWidest: 51f));
+            Assert.False(StageFraming.FramesSeeThrough(bodyWidest: 1f, withItWidest: 51.5f));
         }
 
         [Fact]
