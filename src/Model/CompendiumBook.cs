@@ -355,6 +355,20 @@ namespace Scry
             Changed = true;
         }
 
+        /// <summary>
+        /// Forgets what every kind of chest held when the character first opened one, as
+        /// /scry forget chests asks, so they count afresh; the chests opened stay opened, never
+        /// counted a second time. Returns how many kinds of chest were forgotten.
+        /// </summary>
+        public int ForgetChests()
+        {
+            var kinds = _held.Count;
+            if (kinds == 0) return 0;
+            _held.Clear();
+            Changed = true;
+            return kinds;
+        }
+
         /// <summary>A weather seen come in a biome, counted as one of the weathers seen there.</summary>
         public void Weathered(string biome, string weather)
         {

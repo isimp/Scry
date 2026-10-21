@@ -30,6 +30,6 @@ Install from a mod manager. A server does not need Scry; with the same package i
 
 ## Settings
 
-Settings are in `BepInEx/config/isimp.Scry.cfg`, each with a description; a server's are in its section *4 - World*. Favourites and the panel's layout are kept in `BepInEx/config/isimp.Scry`, each character's knowledge in `BepInEx/cache/isimp.Scry/compendium`.
+Settings are in `BepInEx/config/isimp.Scry.cfg`, each with a description; a server's are in its section *4 - World*. Favourites and the panel's layout are kept in `BepInEx/config/isimp.Scry`, each character's knowledge in `BepInEx/cache/isimp.Scry/compendium`. Every /scry command is described at https://github.com/isimp/Scry/blob/main/docs/guide/commands.md
 
 More, with technical notes and build instructions: https://github.com/isimp/Scry

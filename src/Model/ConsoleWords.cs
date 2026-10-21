@@ -12,6 +12,11 @@ namespace Scry
         /// <summary>The reply to /scry monitor: whether the resource monitor is now on.</summary>
         public static string Monitor(bool on) => Reply("the resource monitor is " + (on ? "on." : "off."));
 
+        /// <summary>The reply to /scry forget chests: how many kinds of chest the character's book forgot, or that no character is played.</summary>
+        public static string ChestsForgotten(int? kinds) => kinds is int forgotten
+            ? $"forgot what {Numbers.Count(forgotten)} {(forgotten == 1 ? "kind" : "kinds")} of chest held for this character; chests not opened before count afresh."
+            : "no character is played, so there is no compendium to forget chests in.";
+
         /// <summary>Whether /scry's words ask to forget the server's records of the world's dungeons: "forget server maps", or "forget group maps" as they were first called.</summary>
         public static bool ForgetsServerMaps(string said) =>
             string.Equals(said, "forget server maps", System.StringComparison.OrdinalIgnoreCase) || string.Equals(said, "forget group maps", System.StringComparison.OrdinalIgnoreCase);

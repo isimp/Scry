@@ -10,7 +10,7 @@ namespace Scry
         {
             // The game keeps a command as it is made.
             _ = new Terminal.ConsoleCommand("scry",
-                "[text] - opens Scry, the compendium and lookup, searching for the text if given. 'scry clear' removes every preview from the world; 'scry locations' reads where things are found in locations and dungeons, 'scry locations stop' stops it; 'scry forget' forgets what Scry kept of the locations and their floors and reads them afresh; 'scry forget maps' forgets this character's maps of the dungeons of this world; 'scry forget server maps' forgets the server's records of them, for an admin; 'scry read traces' has the server read again what was left inside the world's dungeons, for an admin; 'scry map' looks at the explored map again for the compendium, as Look at the map again does; 'scry mods' shows what each mod adds and what Scry links for it; 'scry monitor' shows or hides the resource monitor.",
+                "[text] - opens Scry, the compendium and lookup, searching for the text if given. 'scry clear' removes every preview from the world; 'scry locations' reads where things are found in locations and dungeons, 'scry locations stop' stops it; 'scry forget' forgets what Scry kept of the locations and their floors and reads them afresh; 'scry forget maps' forgets this character's maps of the dungeons of this world; 'scry forget chests' forgets what this character counted chests holding, so they count afresh; 'scry forget server maps' forgets the server's records of them, for an admin; 'scry read traces' has the server read again what was left inside the world's dungeons, for an admin; 'scry map' looks at the explored map again for the compendium, as Look at the map again does; 'scry mods' shows what each mod adds and what Scry links for it; 'scry monitor' shows or hides the resource monitor.",
                 args =>
                 {
                     // A command that fails says so in the chat, and once in the log, rather than
@@ -57,6 +57,15 @@ namespace Scry
             if (rest.Equals("read traces", System.StringComparison.OrdinalIgnoreCase))
             {
                 args.Context.OrNull()?.AddString(ConsoleWords.Reply(GroupMapsLink.ReadTraces()));
+                return;
+            }
+
+            if (rest.Equals("forget chests", System.StringComparison.OrdinalIgnoreCase))
+            {
+                var book = CompendiumKeeper.Book;
+                var kinds = book?.ForgetChests();
+                if (book != null) CompendiumKeeper.Save(now: true);
+                args.Context.OrNull()?.AddString(ConsoleWords.Reply(ConsoleWords.ChestsForgotten(kinds)));
                 return;
             }
 

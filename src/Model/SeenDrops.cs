@@ -66,6 +66,18 @@ namespace Scry
             foreach (var pair in other._drops) _drops[pair.Key] = pair.Value;
         }
 
+        /// <summary>How many givers anything was counted of.</summary>
+        public int Count => _kills.Count;
+
+        /// <summary>Forgets all that was counted.</summary>
+        public void Clear()
+        {
+            if (_kills.Count == 0 && _drops.Count == 0) return;
+            _kills.Clear();
+            _drops.Clear();
+            Changed = true;
+        }
+
         public int Kills(string creature) => creature != null && _kills.TryGetValue(creature, out var kills) ? kills : 0;
 
         /// <summary>What a creature was seen to drop, the most often first.</summary>

@@ -418,5 +418,29 @@ namespace Scry.Tests
             Assert.Equal(0, CompendiumBook.Load(null).Count(KnownLevel.HeardOf));
             Assert.Equal(0, CompendiumBook.Load("").Count(KnownLevel.HeardOf));
         }
+
+        [Fact]
+        public void ForgettingChestsDropsWhatTheyHeldButKeepsWhichWereOpened()
+        {
+            // Chests counted again after each world load left tallies too high in older books:
+            // forgotten, they count afresh, but a chest opened before never counts a second time.
+            var book = new CompendiumBook();
+            var chest = CompendiumBook.ChestId("w", "TreasureChest_meadows", 1f, 2f, 3f);
+            Assert.True(book.FirstOpen(chest));
+            book.Held("TreasureChest_meadows", new[] { ("Coins", 12) });
+            book.Held("TreasureChest_meadows", new[] { ("Coins", 9) });
+            book.Held("TreasureChest_forestcrypt", new[] { ("Amber", 1) });
+            book.Save();
+
+            Assert.Equal(2, book.ForgetChests());
+            Assert.True(book.Changed);
+            Assert.Equal(0, book.Tallied(Tally.Held).Kills("TreasureChest_meadows"));
+            Assert.Empty(book.Tallied(Tally.Held).Of("TreasureChest_forestcrypt"));
+            Assert.False(book.FirstOpen(chest));
+            var kept = CompendiumBook.Load(book.Save());
+            Assert.Equal(0, kept.Tallied(Tally.Held).Kills("TreasureChest_meadows"));
+            Assert.False(kept.FirstOpen(chest));
+            Assert.Equal(0, kept.ForgetChests());
+        }
     }
 }

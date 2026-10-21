@@ -2,7 +2,7 @@
 
 How Scry works, which of the game's rules it follows, and what to do when the game updates. Scry runs in the game client (`BepInProcess("valheim.exe")`); the same DLL loads on a dedicated server (`BepInProcess("valheim_server.exe")`), where, finding no graphics device, it patches nothing and draws nothing and runs only its side of the messages with the players' games ([server](server.md)). Nothing Scry shows is spawned or saved into the world, and no other player sees it.
 
-Each note covers one area, starts with what it covers, names the source files it is about on its `Code:` line, and links its neighbours. Player-facing pages (installing, the compendium's rules, the server's settings) are in [guide](guide/install.md).
+Each note covers one area, starts with what it covers, names the source files it is about on its `Code:` line, and links its neighbours. Player-facing pages (installing, the compendium's rules, the server's settings, the commands) are in [guide](guide/install.md).
 
 ## Where to start
 
