@@ -81,7 +81,7 @@ namespace Scry
         public static float TooltipDelay { get => Mathf.Clamp(_tooltipDelay?.Value ?? 0.35f, 0f, 3f); set => Set(_tooltipDelay, Mathf.Clamp(value, 0f, 3f)); }
         public static int RecentCount => _recentCount?.Value ?? 30;
         public static float SpinSpeed { get => Mathf.Clamp(_spinSpeed?.Value ?? 14f, 1f, 90f); set => Set(_spinSpeed, Mathf.Clamp(value, 1f, 90f)); }
-        public static bool ReadLocationsAutomatically { get => _readLocations?.Value ?? false; set => Set(_readLocations, value); }
+        public static bool ReadLocationsAutomatically { get => _readLocations?.Value ?? true; set => Set(_readLocations, value); }
 
         /// <summary>Whether a dedicated server reads what was left inside the world's dungeons by itself once the world's records are read; off, only as an admin asks.</summary>
         public static bool ReadTracesOnStart => _readTracesOnStart?.Value ?? true;
@@ -182,8 +182,8 @@ namespace Scry
             _catalogDelay = config.Bind("1 - General", "CatalogDelay", 10f,
                 new ConfigDescription("Seconds after entering a world before Scry starts reading the game's prefabs in the background. Opening the panel sooner starts it at once.",
                     new AcceptableValueRange<float>(0f, 120f)));
-            _readLocations = config.Bind("1 - General", "ReadLocationsAutomatically", false,
-                "Reads where things are found in each world's locations and dungeons by itself, in the background once the prefabs are read, taking a few minutes. Off, they are read only when asked, with Find where things are or /scry locations.");
+            _readLocations = config.Bind("1 - General", "ReadLocationsAutomatically", true,
+                "Reads where things are found in each world's locations and dungeons by itself, in the background once the prefabs are read, taking a few minutes the first time in a world and kept for the next. Off, they are read only when asked, with Find where things are or /scry locations.");
             _dungeonMarks = config.Bind("1 - General", "DungeonMarksOnMap", true,
                 "Marks each dungeon you have been in on Valheim's large map, just above its entrance, telling how much of it you walked; a click on a mark opens its map in Scry. Off, the map shows nothing of Scry's.");
             _newsNotice = config.Bind("1 - General", "NewsNotice", true,

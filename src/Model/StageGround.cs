@@ -23,6 +23,9 @@ namespace Scry
         /// <summary>The backdrops, by index.</summary>
         public static readonly string[] Backdrops = { "Plain", "Sky", "Grid", "Sky and grid", "Ground", "Sky and ground" };
 
+        /// <summary>The backdrop a new player first sees, until one is picked and kept: the biome's ground under the sky.</summary>
+        public const int FirstBackdrop = 5;
+
         public static bool Sky(int backdrop) => backdrop == 1 || backdrop == 3 || backdrop == 5;
 
         public static bool Grid(int backdrop) => backdrop == 2 || backdrop == 3;

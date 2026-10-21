@@ -88,7 +88,7 @@ namespace Scry
         public static bool Dragging { get; set; }
 
         private static int _lighting;
-        private static int _backdrop;
+        private static int _backdrop = StageGround.FirstBackdrop;
         private static bool _showPerson;
 
         public static Texture Texture => _texture;

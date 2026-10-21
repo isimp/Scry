@@ -119,6 +119,14 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ANewPlayerFirstSeesTheBiomesGroundUnderTheSky()
+        {
+            // The stage's own ground and sky, not a plain field, until a backdrop is picked and kept.
+            Assert.Equal("Sky and ground", StageGround.Backdrops[StageGround.FirstBackdrop]);
+            Assert.True(StageGround.Ground(StageGround.FirstBackdrop, underground: false));
+        }
+
+        [Fact]
         public void TheBackdropsAreThePlainOnesTheGridAndTheGround()
         {
             Assert.Equal(new[] { "Plain", "Sky", "Grid", "Sky and grid", "Ground", "Sky and ground" }, StageGround.Backdrops);
