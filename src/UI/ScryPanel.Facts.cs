@@ -822,6 +822,7 @@ namespace Scry
                     LocationWords.PlacesBar(Locations.Reading, Locations.Done, Locations.Total), Skin.DimLabel);
                 if (GUI.Button(button, ReadAgainText, Skin.Fitted(Skin.Chip, button))) ReadPlacesAgain();
                 if (button.Contains(mouse)) AskTip("read-again", ReadAgainTip);
+                CountDrawn(PanelPart.LookAgain);
             }
             else
             {

@@ -206,7 +206,7 @@ namespace Scry
         private static IEnumerator FastSwitching(Probe p)
         {
             var all = X.Catalog.Where(e => e.Kind != Kind.Location && e.Kind != Kind.Mod).OrderBy(e => e.Key, StringComparer.Ordinal).ToList();
-            var picks = Spread(all, 60);
+            var picks = Sample(all, 60);
             foreach (var entry in picks)
             {
                 Select(entry);
@@ -232,7 +232,7 @@ namespace Scry
             yield return Until(() => Stage.PlayedCount == 0, 10);
             yield return null;
             var held = Stage.Held;
-            var others = Spread(X.Catalog.Where(e => e.Kind != Kind.Location && e.Kind != Kind.Mod).OrderBy(e => e.Key, StringComparer.Ordinal).ToList(), 40);
+            var others = Sample(X.Catalog.Where(e => e.Kind != Kind.Location && e.Kind != Kind.Mod).OrderBy(e => e.Key, StringComparer.Ordinal).ToList(), 40);
             foreach (var entry in others)
             {
                 Select(entry);

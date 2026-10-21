@@ -64,7 +64,7 @@ namespace Scry
         {
             var places = X.Catalog.Where(e => PlaceOf(e) != null).OrderBy(e => e.Name, StringComparer.Ordinal).ToList();
             if (places.Count == 0) p.Skip("there are no locations");
-            var picks = Spread(places, 16);
+            var picks = Sample(places, 16);
             picks.AddRange(places.Where(e => e.Name.IndexOf("Tower", StringComparison.OrdinalIgnoreCase) >= 0 || e.Name.IndexOf("Cave", StringComparison.OrdinalIgnoreCase) >= 0).Take(8));
             var circle = places.FirstOrDefault(e => e.Name == NothingToCut);
             if (circle != null) picks.Add(circle);
@@ -269,7 +269,7 @@ namespace Scry
         {
             var places = X.Catalog.Where(e => PlaceOf(e) != null).OrderBy(e => e.Name, StringComparer.Ordinal).ToList();
             if (places.Count == 0) p.Skip("there are no locations");
-            var picks = Spread(places, 10);
+            var picks = Sample(places, 10);
             picks.AddRange(places.Where(e => e.Name.IndexOf("Tower", StringComparison.OrdinalIgnoreCase) >= 0 || e.Name.IndexOf("Cave", StringComparison.OrdinalIgnoreCase) >= 0).Take(4));
             picks = picks.Distinct().ToList();
             var crypt = Crypt();

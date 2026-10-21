@@ -124,6 +124,9 @@ namespace Scry
 
         /// <summary>A row of the settings card whose choices could not stand on one line beside its label.</summary>
         SettingsRowWrapped,
+
+        /// <summary>Look again above the Locations list, offered once the places are read.</summary>
+        LookAgain,
     }
 
     internal static partial class ScryPanel

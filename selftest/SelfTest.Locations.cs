@@ -324,9 +324,9 @@ namespace Scry
             if (!Session.IsOpen) Session.Show(null);
             X.SearchEverything("");
             X.KindFilter = Kind.Location;
-            var drawn = ScryPanel.Drawn(PanelPart.PlacesBar);
-            yield return Until(() => ScryPanel.Drawn(PanelPart.PlacesBar) > drawn, 5);
-            p.Check(ScryPanel.Drawn(PanelPart.PlacesBar) > drawn, "the Locations tab offers Look again above its list once the places are known",
+            var drawn = ScryPanel.Drawn(PanelPart.LookAgain);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.LookAgain) > drawn, 5);
+            p.Check(ScryPanel.Drawn(PanelPart.LookAgain) > drawn, "the Locations tab offers Look again above its list once the places are known",
                 $"panel {(Session.IsOpen ? "open" : "closed")}, tab {X.KindFilter?.ToString() ?? "every kind"}, {Numbers.Count(X.Results.Count)} listed, locations {Locations.Now}");
 
             var before = ToldOfPlaces();
@@ -343,10 +343,10 @@ namespace Scry
             p.Check(told.Count == 0 && foundIn.Count == 0, "every place is told as never read meanwhile, nothing found in one",
                 $"{Numbers.Count(told.Count)} places tell what they hold ({string.Join(", ", told.Take(4))}), {Numbers.Count(foundIn.Count)} entries are found in one ({string.Join(", ", foundIn.Take(4))})");
             p.Check(Locations.Reading && Locations.Now == Locations.State.Reading, "and every one is read afresh", $"{Locations.Now}, {Numbers.Count(Locations.Total)} to read");
-            drawn = ScryPanel.Drawn(PanelPart.PlacesBar);
+            drawn = ScryPanel.Drawn(PanelPart.LookAgain);
             yield return null;
             yield return null;
-            p.Check(ScryPanel.Drawn(PanelPart.PlacesBar) == drawn, "Look again is not offered while they are read afresh");
+            p.Check(ScryPanel.Drawn(PanelPart.LookAgain) == drawn, "Look again is not offered while they are read afresh");
 
             var asked = Time.unscaledTime;
             yield return Until(() => !Locations.Busy && Locations.Now == Locations.State.Read, 400);

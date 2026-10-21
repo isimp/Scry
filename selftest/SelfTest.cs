@@ -51,7 +51,10 @@ namespace Scry
         private static string[] Few(string[] all, int few) => _sampled ? SelfTestSample.First(all, few) : all;
 
         /// <summary>Some of many, spread over them, in a quick run; all of them otherwise.</summary>
-        private static List<T> Spread<T>(List<T> all, int few) => _sampled ? SelfTestSample.Spread(all.ToArray(), few).ToList() : all;
+        private static List<T> Spread<T>(List<T> all, int few) => _sampled ? Sample(all, few) : all;
+
+        /// <summary>The few of a list a quick run takes, whatever the run: for a part about how many it takes, not about every one, whose time is set by them.</summary>
+        private static List<T> Sample<T>(List<T> all, int few) => SelfTestSample.Spread(all.ToArray(), few).ToList();
 
         /// <summary>Scry's share of a frame above which a frame counts as heavy in the notes, in milliseconds.</summary>
         private const double Budget = 16;
