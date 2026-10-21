@@ -64,25 +64,8 @@ namespace Scry
             var example = ExampleOf(entry) != null ? Stage.ExampleShown : null;
             if (example == null || example.Rooms.Count == 0 || Stage.HasInside && !Stage.ShowsInside || Stage.InsideUnknown) return Rect.zero;
             var e = Event.current;
-
-            // Folded, a small tab where it stands, which brings it back.
-            if (PlanFolded)
-            {
-                var tabW = Skin.Width(Skin.Chip, PlanBoxWords.Tab) + U(4f);
-                var tab = new Rect(inner.x + U(8f), inner.yMax - U(34f) - U(22f), tabW, U(22f));
-                if (tab.Contains(e.mousePosition)) AskTip("plan:tab", PlanBoxWords.TabTip);
-                CountDrawn(PanelPart.PlanTab);
-                if (GUI.Button(tab, PlanBoxWords.Tab, Skin.Fitted(Skin.Chip, tab))) PlanFolded = false;
-                return tab;
-            }
-
-            if (_planOf != example)
-            {
-                _planOf = example;
-                PlanRooms.Clear();
-                PlanRooms.AddRange(example.BottomUp);
-                _planWidest = Mathf.Max(1f, ExamplePlan.Widest(PlanRooms));
-            }
+            if (PlanFolded) return PlanTab(inner);
+            KnowPlanRooms(example);
 
             // At one scale whichever way it is turned: as wide as a third of the stage and no
             // taller than under half of it, its box hugging its rooms as they are turned now.
@@ -102,15 +85,72 @@ namespace Scry
             if (named != null) size.x = Mathf.Max(size.x, Skin.Width(Skin.FaintLabel, named) + pad * 2f + U(20f));
             // Above the stage's line of hints along its bottom.
             var area = new Rect(inner.x + U(8f), inner.yMax - U(34f) - size.y, size.x, size.y);
-            Vector2 At(Vec3 p)
-            {
-                var (right, up) = ExamplePlan.Turn(p.X, p.Z, yaw);
-                return new Vector2(area.x + pad + (right - extent.MinRight) * scale, area.y + pad + line + (extent.MaxUp - up) * scale);
-            }
+            var frame = new PlanBoxFrame { Area = area, Pad = pad, Line = line, Scale = scale, Yaw = yaw, Extent = extent };
 
             Skin.Box(area, Skin.Alpha(Skin.Stage, 0.82f), Skin.Outline);
+            if (PlanFold(area)) return area;
+            if (named != null) GUI.Label(new Rect(area.x + pad, area.y + U(2f), area.width - pad * 2f - U(18f), line), named, Skin.FaintLabel);
+            var hovered = area.Contains(e.mousePosition) && (_drag == Drag.None || _drag == Drag.Orbit) ? frame.RoomAt(e.mousePosition, PlanRooms) : null;
+            if (e.type == EventType.Repaint) PlanTilesDrawn(frame, hovered);
+            CountDrawn(PanelPart.Plan);
+            PlanDoorsDrawn(example, floor, frame);
+            if (area.Contains(e.mousePosition)) PlanClicks(explorer, hovered);
+            return area;
+        }
 
-            // Its fold, in its top right corner.
+        /// <summary>
+        /// Where the plan's box stands and how it is drawn in it: its padding, the line its floor's
+        /// name takes over the rooms, its scale, the view's turn and its rooms' extent so turned;
+        /// a point of the example where it is drawn, and the room drawn at a point of the box.
+        /// </summary>
+        private struct PlanBoxFrame
+        {
+            public Rect Area;
+            public float Pad, Line, Scale, Yaw;
+            public (float MinRight, float MaxRight, float MinUp, float MaxUp) Extent;
+
+            public Vector2 At(Vec3 p)
+            {
+                var (right, up) = ExamplePlan.Turn(p.X, p.Z, Yaw);
+                return new Vector2(Area.x + Pad + (right - Extent.MinRight) * Scale, Area.y + Pad + Line + (Extent.MaxUp - up) * Scale);
+            }
+
+            /// <summary>The topmost room of the plan under a point of the box.</summary>
+            public PlacedRoom RoomAt(Vector2 point, List<PlacedRoom> rooms)
+            {
+                var right = Extent.MinRight + (point.x - Area.x - Pad) / Scale;
+                var up = Extent.MaxUp - (point.y - Area.y - Pad - Line) / Scale;
+                var (x, z) = ExamplePlan.Back(right, up, Yaw);
+                return ExamplePlan.TopmostAt(rooms, x, z, OnPlanRoom);
+            }
+        }
+
+        /// <summary>The folded plan: a small tab where it stands, which brings it back.</summary>
+        private static Rect PlanTab(Rect inner)
+        {
+            var e = Event.current;
+            var tabW = Skin.Width(Skin.Chip, PlanBoxWords.Tab) + U(4f);
+            var tab = new Rect(inner.x + U(8f), inner.yMax - U(34f) - U(22f), tabW, U(22f));
+            if (tab.Contains(e.mousePosition)) AskTip("plan:tab", PlanBoxWords.TabTip);
+            CountDrawn(PanelPart.PlanTab);
+            if (GUI.Button(tab, PlanBoxWords.Tab, Skin.Fitted(Skin.Chip, tab))) PlanFolded = false;
+            return tab;
+        }
+
+        /// <summary>The rooms of the plan, bottom up, and the widest of them, made again only for another example.</summary>
+        private static void KnowPlanRooms(DungeonExample example)
+        {
+            if (_planOf == example) return;
+            _planOf = example;
+            PlanRooms.Clear();
+            PlanRooms.AddRange(example.BottomUp);
+            _planWidest = Mathf.Max(1f, ExamplePlan.Widest(PlanRooms));
+        }
+
+        /// <summary>The plan's fold, in its top right corner, with its tip; true when it was clicked, the plan folded.</summary>
+        private static bool PlanFold(Rect area)
+        {
+            var e = Event.current;
             var fold = new Rect(area.xMax - U(18f), area.y + U(2f), U(16f), U(16f));
             if (fold.Contains(e.mousePosition))
             {
@@ -119,64 +159,66 @@ namespace Scry
                 {
                     PlanFolded = true;
                     e.Use();
-                    return area;
+                    return true;
                 }
             }
             if (e.type == EventType.Repaint) GUI.Label(fold, "\u2013", fold.Contains(e.mousePosition) ? Skin.Label : Skin.DimLabel);
-            if (named != null) GUI.Label(new Rect(area.x + pad, area.y + U(2f), area.width - pad * 2f - U(18f), line), named, Skin.FaintLabel);
+            return false;
+        }
 
-            PlacedRoom hovered = null;
-            if (area.Contains(e.mousePosition) && (_drag == Drag.None || _drag == Drag.Orbit))
-            {
-                var right = extent.MinRight + (e.mousePosition.x - area.x - pad) / scale;
-                var up = extent.MaxUp - (e.mousePosition.y - area.y - pad - line) / scale;
-                var (x, z) = ExamplePlan.Back(right, up, yaw);
-                hovered = ExamplePlan.TopmostAt(PlanRooms, x, z, OnPlanRoom);
-            }
+        /// <summary>
+        /// What lies under the floor first, then every tile of it, then their outlines over all the
+        /// tiles, so rooms overlapping show where each ends rather than a darker patch.
+        /// </summary>
+        private static void PlanTilesDrawn(PlanBoxFrame frame, PlacedRoom hovered)
+        {
+            foreach (var room in PlanRooms) if (PlanTiles.TryGetValue(room, out var tile) && tile == PlanTile.Below) PlanRoom(room, frame.At(room.Position), frame.Scale, frame.Yaw, RoomDraw.Beneath);
+            foreach (var room in PlanRooms) if (OnPlan(room)) PlanRoom(room, frame.At(room.Position), frame.Scale, frame.Yaw, Lit(room, hovered) ? RoomDraw.LitTile : RoomDraw.Tile);
+            foreach (var room in PlanRooms) if (OnPlan(room) && !Lit(room, hovered)) PlanRoom(room, frame.At(room.Position), frame.Scale, frame.Yaw, RoomDraw.Outline);
+            foreach (var room in PlanRooms) if (OnPlan(room) && Lit(room, hovered)) PlanRoom(room, frame.At(room.Position), frame.Scale, frame.Yaw, RoomDraw.LitOutline);
+        }
 
-            // What lies under the floor first, then every tile of it, then their outlines over all
-            // the tiles, so rooms overlapping show where each ends rather than a darker patch.
-            if (e.type == EventType.Repaint)
-            {
-                foreach (var room in PlanRooms) if (PlanTiles.TryGetValue(room, out var tile) && tile == PlanTile.Below) PlanRoom(room, At(room.Position), scale, yaw, RoomDraw.Beneath);
-                foreach (var room in PlanRooms) if (OnPlan(room)) PlanRoom(room, At(room.Position), scale, yaw, Lit(room, hovered) ? RoomDraw.LitTile : RoomDraw.Tile);
-                foreach (var room in PlanRooms) if (OnPlan(room) && !Lit(room, hovered)) PlanRoom(room, At(room.Position), scale, yaw, RoomDraw.Outline);
-                foreach (var room in PlanRooms) if (OnPlan(room) && Lit(room, hovered)) PlanRoom(room, At(room.Position), scale, yaw, RoomDraw.LitOutline);
-            }
-            CountDrawn(PanelPart.Plan);
-            var door = Mathf.Max(U(2f), 0.8f * scale);
+        /// <summary>The example's doors shown on the floor opened: a square where one leads along it, an arrow up or down where it leads to another floor.</summary>
+        private static void PlanDoorsDrawn(DungeonExample example, float? floor, PlanBoxFrame frame)
+        {
+            var door = Mathf.Max(U(2f), 0.8f * frame.Scale);
             var mark = Mathf.Max(U(8f), door * 2f);
             for (var i = 0; i < example.Doors.Count; i++)
             {
                 var at = example.Doors[i];
                 if (!ExamplePlan.DoorShown(at, floor)) continue;
-                var p = At(at);
+                var p = frame.At(at);
                 var leads = i < PlanDoors.Count ? PlanDoors[i] : DoorLeads.Level;
                 if (leads == DoorLeads.Level) Skin.Fill(new Rect(p.x - door / 2f, p.y - door / 2f, door, door), Skin.Alpha(Skin.Accent, 0.85f));
                 else Skin.Icon(new Rect(p.x - mark / 2f, p.y - mark / 2f, mark, mark), leads == DoorLeads.Up ? Skin.Up : Skin.Down, Skin.Accent);
             }
+        }
 
-            if (area.Contains(e.mousePosition))
+        /// <summary>
+        /// The mouse on the plan: the room under it named in a tip, by its kind alone where not met,
+        /// a click going to its entry where it has one; the plan is not the stage, so a click or the
+        /// wheel on it neither turns nor zooms the stage.
+        /// </summary>
+        private static void PlanClicks(Explorer explorer, PlacedRoom hovered)
+        {
+            var e = Event.current;
+            if (hovered != null)
             {
-                if (hovered != null)
+                var key = EntryKeys.For(Kind.Location, hovered.Room.Name);
+                var known = Goes(explorer, key);
+                // A room not met is named by its kind alone, as a closed page is.
+                var name = explorer.NotMet(key) ? CompendiumWords.Unknown(Kind.Location) : ShownName(explorer, key, LocationWords.RoomName(hovered.Room.Name));
+                AskTip("plan:" + hovered.Room.Name, StageWords.RoomTip(name, known));
+                if (known && e.type == EventType.MouseDown && e.button == 0)
                 {
-                    var key = EntryKeys.For(Kind.Location, hovered.Room.Name);
-                    var known = Goes(explorer, key);
-                    // A room not met is named by its kind alone, as a closed page is.
-                    var name = explorer.NotMet(key) ? CompendiumWords.Unknown(Kind.Location) : ShownName(explorer, key, LocationWords.RoomName(hovered.Room.Name));
-                    AskTip("plan:" + hovered.Room.Name, StageWords.RoomTip(name, known));
-                    if (known && e.type == EventType.MouseDown && e.button == 0)
-                    {
-                        e.Use();
-                        Go(explorer, key);
-                        return area;
-                    }
+                    e.Use();
+                    Go(explorer, key);
+                    return;
                 }
-
-                // The plan is not the stage: a click or the wheel on it neither turns nor zooms it.
-                if (e.type == EventType.MouseDown || e.type == EventType.ScrollWheel) e.Use();
             }
-            return area;
+
+            // The plan is not the stage: a click or the wheel on it neither turns nor zooms it.
+            if (e.type == EventType.MouseDown || e.type == EventType.ScrollWheel) e.Use();
         }
 
         /// <summary>Whether a room is a tile of the plan with the floor opened.</summary>
