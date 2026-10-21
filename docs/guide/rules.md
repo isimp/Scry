@@ -2,6 +2,8 @@
 
 The compendium shows only what the character you play has come to know, and grows as you play. It is chosen for each character in the *Compendium* box at the top of the panel, and a character whose compendium is off is asked once whether to keep one. The *?* in that box tells the same as this page, in the game.
 
+![The compendium's guide, opened by the ? in its box](../images/compendium-guide.webp)
+
 ## Off, Loose and Strict
 
 *Off* shows everything the game holds, as a lookup.
@@ -21,6 +23,8 @@ The eye beside the compendium's button peeks: every page shows whole until the p
 ## What a world shows as known
 
 The compendium's box also chooses what the world itself may show as known, source by source. *Ground you explored* and *Places marked for you* (a Vegvisir or a rune stone) start at *Seen*; *Shared maps* (a cartography table), *Places on every map* (traders, the start, Hildir's places) and *The whole world* start off. Each can be raised to *Known*, or *With insides* to show the dungeons in it with whatever anyone on the server walked inside them; *The whole world* is *Counted*, making every kind of place the world holds heard of. What shows so is marked with a folded map, and your book keeps only what you met yourself, so turning a source down takes it all back. Your map reaches 100 m around you whatever you saw, so *Ground you explored* can also be turned off, leaving only the places you saw.
+
+![The compendium's box, each source of the world at the level chosen](../images/compendium-box.webp)
 
 The pin at the end of *Ground you explored* and *Shared maps* marks every dungeon entrance lying in that ground on Valheim's large map: solid where you walked it, hollow where someone on the server did, plain for an entrance alone. A click on a mark shows that dungeon in Scry. *Marks on the map*, under the pins, turns every mark of Scry's on the map on or off.
 

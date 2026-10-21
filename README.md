@@ -2,7 +2,7 @@
 
 A compendium of Valheim that grows with your character. Every creature, item, piece, place and dungeon you meet gets a page, told by the game's own data and rules, while the rest stays unknown until you find it. Press F7 or type `/scry` in the chat to open it. Nothing is ever spawned.
 
-![A camp on the Scry stage with its plan and what its rooms hold](https://raw.githubusercontent.com/isimp/Scry/main/docs/images/screenshot.webp)
+![The Troll's page, its You box telling when this character first saw one, came to know it and how its fights went](https://raw.githubusercontent.com/isimp/Scry/main/docs/images/troll-page.webp)
 
 ## AI notice
 
@@ -12,9 +12,15 @@ Most of Scry was written by Claude Code (Anthropic), which did the heavy lifting
 
 Turn it on for a character with *Compendium* at the top of the panel. A creature becomes known once fought or tamed, an item once held or made, a place once stepped into, a dungeon once entered; what was only seen stands on the stage with its page closed, telling how to come to know it. *Loose* shows a known page whole but names only what your character has met. *Strict* also keeps back how things connect until your character saw them go together, and the numbers the game never shows until it found them out, such as an attack's damage until it hit you. A page's *You* box tells when your character first saw the thing and came to know it, and how its fights went; *Learned* lists what it learned, day by day; *Known up to* opens every tier below the bosses it has beaten. A character played before is caught up from what the game keeps of it and from its explored map.
 
+![The compendium's box: the rules, Known up to and what this world shows as known](https://raw.githubusercontent.com/isimp/Scry/main/docs/images/compendium-box.webp)
+
+![Learned, by day, what this character came to know](https://raw.githubusercontent.com/isimp/Scry/main/docs/images/learned-by-day.webp)
+
 ## Exploring
 
 Dungeons you walk are kept as you walked them, room by room, and marked on Valheim's large map; a click on a mark shows the dungeon in Scry, its rooms on a plan you can go into. Each world can show more as known, source by source: the ground you explored, maps shared at a cartography table, places a Vegvisir or a rune stone marked, the places every map shows. Places tell where they lie in your ground and what they hold.
+
+![A dungeon's example on the stage, the plan box seen from above and the card of the room gone into](https://raw.githubusercontent.com/isimp/Scry/main/docs/images/dungeon-plan.webp)
 
 ## Playing together
 
