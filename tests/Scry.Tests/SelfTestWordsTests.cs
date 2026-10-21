@@ -120,5 +120,33 @@ namespace Scry.Tests
             Assert.Contains("BepInEx/Scry-selftest.log", SelfTestWords.Advice(Run(), "BepInEx/Scry-selftest.log"));
             Assert.StartsWith("Nothing to do", SelfTestWords.Advice(new List<ScenarioReport> { Report("a", Result.Pass) }, "f.log"));
         }
+
+        [Fact]
+        public void HelpSaysWhatEachRunTakesAndAboutHowLong()
+        {
+            var help = SelfTestWords.Help(new RunSize(160, 640), new RunSize(160, 1260), new RunSize(161, 1560), new RunSize(2, 40),
+                new[] { "the plan box shows a dungeon", "rune stones are read" },
+                new[] { ("rune", new RunSize(2, 30)), ("plan box", new RunSize(6, 170)) }, "BepInEx/Scry-selftest.log").Split('\n');
+            Assert.Equal("self-test commands, each after /scry:", help[0]);
+            Assert.Equal("  selftest: a quick run, the long parts through a few of their places; 160 parts, about 11 min.", help[1]);
+            Assert.Equal("  selftest deep: every part through every place it names; 160 parts, about 21 min.", help[2]);
+            Assert.Equal("  selftest full: also reads every location again; 161 parts, about 26 min.", help[3]);
+            Assert.Equal("  selftest failed: the 2 parts that failed last, less than a minute: the plan box shows a dungeon; rune stones are read.", help[4]);
+            Assert.Equal("  selftest and any words: the parts whose names hold every word, such as selftest rune (2 parts, less than a minute) or selftest plan box (6 parts, about 3 min).", help[5]);
+            Assert.Equal("  selftest list: writes every part's name, with how long it took last, to BepInEx/Scry-selftest.log.", help[6]);
+            Assert.Equal("  selftest stop: stops a run.", help[7]);
+        }
+
+        [Fact]
+        public void HelpSaysWhenNothingFailedAndNamesNoMoreThanFiveFailed()
+        {
+            var none = SelfTestWords.Help(new RunSize(1, 1), new RunSize(1, 1), new RunSize(1, 1), new RunSize(0, 0), new string[0], new (string, RunSize)[0], "f.log");
+            Assert.Contains("  selftest failed: nothing failed in the last run.", none.Split('\n'));
+            Assert.DoesNotContain("selftest and any words: the parts whose names hold every word, such as", none);
+
+            var many = SelfTestWords.Help(new RunSize(1, 1), new RunSize(1, 1), new RunSize(1, 1), new RunSize(7, 90),
+                new[] { "a", "b", "c", "d", "e", "f", "g" }, new (string, RunSize)[0], "f.log");
+            Assert.Contains("  selftest failed: the 7 parts that failed last, about 2 min: a; b; c; d; e; and 2 more.", many.Split('\n'));
+        }
     }
 }

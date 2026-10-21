@@ -4,10 +4,23 @@ using System.Linq;
 
 namespace Scry
 {
+    /// <summary>How many parts a run takes, and about how long by the parts' last times, in seconds.</summary>
+    internal readonly struct RunSize
+    {
+        public readonly int Parts;
+        public readonly double Seconds;
+
+        public RunSize(int parts, double seconds)
+        {
+            Parts = parts;
+            Seconds = seconds;
+        }
+    }
+
     /// <summary>
     /// What the self-test tells the player: that it started and how long it takes, how far it has
     /// got while it runs, and at the end what passed, each failed part with the checks that failed
-    /// in it, each skipped part with why, and what to do next.
+    /// in it, each skipped part with why, what to do next, and what can be run.
     /// </summary>
     internal static class SelfTestWords
     {
@@ -33,6 +46,38 @@ namespace Scry
         public static string NothingToRun(SelfTestRequest asked) => asked.Scope == RunScope.Failed
             ? "nothing failed in the last run, so there is nothing to run again."
             : $"no part's name holds {Naming.Joined(asked.Words.Select(w => "\"" + w + "\"").ToList())}; /scry selftest list writes every part's name to the log.";
+
+        /// <summary>
+        /// What can be run, each after /scry: a quick, deep and full run with how many parts each
+        /// takes and about how long by the parts' last times; the parts that failed last, named, no
+        /// more than five; the parts some words name, with a few words as examples and what each
+        /// takes; the list of every part, and stopping.
+        /// </summary>
+        public static string Help(RunSize quick, RunSize deep, RunSize full, RunSize failed, IReadOnlyList<string> failedNames, IReadOnlyList<(string Words, RunSize Size)> examples, string file)
+        {
+            var lines = new List<string>
+            {
+                "self-test commands, each after /scry:",
+                $"  selftest: a quick run, the long parts through a few of their places; {Takes(quick)}.",
+                $"  selftest deep: every part through every place it names; {Takes(deep)}.",
+                $"  selftest full: also reads every location again; {Takes(full)}.",
+            };
+            if (failed.Parts == 0) lines.Add("  selftest failed: nothing failed in the last run.");
+            else
+            {
+                var named = failedNames.Take(5).ToList();
+                if (failedNames.Count > named.Count) named.Add($"and {Numbers.Count(failedNames.Count - named.Count)} more");
+                lines.Add($"  selftest failed: the {Numbers.Count(failed.Parts)} {(failed.Parts == 1 ? "part" : "parts")} that failed last, {About(failed.Seconds)}: {string.Join("; ", named)}.");
+            }
+            var such = examples.Select(e => $"selftest {e.Words} ({Numbers.Count(e.Size.Parts)} {(e.Size.Parts == 1 ? "part" : "parts")}, {About(e.Size.Seconds)})").ToList();
+            lines.Add("  selftest and any words: the parts whose names hold every word" + (such.Count > 0 ? ", such as " + string.Join(" or ", such) : "") + ".");
+            lines.Add($"  selftest list: writes every part's name, with how long it took last, to {file}.");
+            lines.Add("  selftest stop: stops a run.");
+            return string.Join("\n", lines);
+        }
+
+        /// <summary>How many parts a run takes and about how long: "160 parts, about 11 min".</summary>
+        private static string Takes(RunSize run) => $"{Numbers.Count(run.Parts)} {(run.Parts == 1 ? "part" : "parts")}, {About(run.Seconds)}";
 
         /// <summary>That every part's name was written to the log, with the seconds it took last.</summary>
         public static string Listed(int parts, string file) => $"{Numbers.Count(parts)} parts listed in {file}, each with how long it took last.";

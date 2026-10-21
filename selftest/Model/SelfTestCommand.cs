@@ -16,6 +16,9 @@ namespace Scry
 
         /// <summary>Every part's name written to the log, with how long it took last.</summary>
         List,
+
+        /// <summary>What can be run: each run, how many parts it takes and about how long.</summary>
+        Help,
     }
 
     /// <summary>Which parts a run takes, and how far each goes.</summary>
@@ -54,8 +57,9 @@ namespace Scry
     /// The words of /scry the self-test answers once installed: <c>selftest</c> starts a quick
     /// run, <c>selftest deep</c> one going through every place, <c>selftest full</c> one also
     /// reading every location again, <c>selftest failed</c> the parts that failed last,
-    /// <c>selftest list</c> writes every part's name, <c>selftest stop</c> stops it, and any
-    /// other words after <c>selftest</c> run the parts whose names hold them all; in any case and
+    /// <c>selftest list</c> writes every part's name, <c>selftest help</c> (or <c>?</c>) says what
+    /// each run takes, <c>selftest stop</c> stops it, and any other words after <c>selftest</c>
+    /// run the parts whose names hold them all; in any case and
     /// spacing. Everything else stays Scry's, so without the self-test the same words are only a
     /// search. The marker file starts a run by the words after <c>selftest</c>.
     /// </summary>
@@ -82,6 +86,9 @@ namespace Scry
                 {
                     case "stop": return new SelfTestRequest { Ask = SelfTestAsk.Stop };
                     case "list": return new SelfTestRequest { Ask = SelfTestAsk.List };
+                    case "help":
+                    case "?":
+                        return new SelfTestRequest { Ask = SelfTestAsk.Help };
                     case "deep": return new SelfTestRequest { Ask = SelfTestAsk.Start, Scope = RunScope.Deep };
                     case "full": return new SelfTestRequest { Ask = SelfTestAsk.Start, Scope = RunScope.Full };
                     case "failed": return new SelfTestRequest { Ask = SelfTestAsk.Start, Scope = RunScope.Failed };

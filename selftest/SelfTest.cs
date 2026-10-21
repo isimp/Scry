@@ -87,6 +87,7 @@ namespace Scry
                     case SelfTestAsk.Start: return SelfTest.Start("it was asked for with /scry " + string.Join(" ", typed.Split((char[])null, StringSplitOptions.RemoveEmptyEntries)), asked);
                     case SelfTestAsk.Stop: return SelfTest.Stop();
                     case SelfTestAsk.List: return SelfTest.List();
+                    case SelfTestAsk.Help: return SelfTest.Help();
                     default: return null;
                 }
             }
@@ -169,6 +170,25 @@ namespace Scry
             _runner = new ScenarioRunner(parts, Write, Finish, AllKnown);
             SelfTestPanel.ShowResult();
             return SelfTestWords.Started(_runner.Total, asked.Scope, times.Estimate(parts.Select(s => s.Name), asked.Sampled));
+        }
+
+        /// <summary>A few words a part's name holds, as examples of a run by words in the help.</summary>
+        private static readonly string[] HelpExamples = { "rune", "plan box", "compendium box", "map" };
+
+        /// <summary>What can be run: each run's parts and about how long they take by their last times, the parts that failed last, and runs by words.</summary>
+        public static string Help()
+        {
+            var times = SelfTestTimes.Load(Kept(TimesFile));
+            var failed = SelfTestTimes.FailedOf(Kept(FailedFile));
+            List<Scenario> Parts(string words) => Scenario.ForRun(Scenarios(), SelfTestCommand.Of(("selftest " + words).Trim()), failed);
+            RunSize Size(string words)
+            {
+                var asked = SelfTestCommand.Of(("selftest " + words).Trim());
+                var parts = Parts(words);
+                return new RunSize(parts.Count, times.Estimate(parts.Select(s => s.Name), asked.Sampled));
+            }
+            var examples = HelpExamples.Select(w => (w, Size(w))).Where(e => e.Item2.Parts > 0).ToList();
+            return SelfTestWords.Help(Size(""), Size("deep"), Size("full"), Size("failed"), Parts("failed").Select(s => s.Name).ToList(), examples, "BepInEx/Scry-selftest.log");
         }
 
         /// <summary>Writes every part's name to the log, in the order a run takes them, with how long each took last.</summary>

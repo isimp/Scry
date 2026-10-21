@@ -49,6 +49,15 @@ namespace Scry.Tests
         public void ListWritesThePartsNames() => Assert.Equal(SelfTestAsk.List, Of("selftest list").Ask);
 
         [Theory]
+        [InlineData("selftest help")]
+        [InlineData("selftest ?")]
+        [InlineData("SelfTest HELP")]
+        public void HelpSaysWhatCanBeRun(string typed) => Assert.Equal(SelfTestAsk.Help, Of(typed).Ask);
+
+        [Fact]
+        public void HelpAmongOtherWordsIsAPartsName() => Assert.Equal(RunScope.Named, Of("selftest help card").Scope);
+
+        [Theory]
         [InlineData("selftest compendium box", new[] { "compendium", "box" })]
         [InlineData("selftest  Plan  BOX ", new[] { "plan", "box" })]
         [InlineData("selftest stop now", new[] { "stop", "now" })]
