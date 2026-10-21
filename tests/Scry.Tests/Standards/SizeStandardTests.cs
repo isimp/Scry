@@ -32,7 +32,6 @@ namespace Scry.Tests
             ["selftest/SelfTest.Scenarios.cs SelfTest.Scenarios"] = 198,
             ["selftest/SelfTest.Stage.cs SelfTest.GroundBackdrop"] = 135,
             ["src/Catalog/Facts/Facts.Resources.cs Facts.Resource"] = 144,
-            ["src/Catalog/Facts/Facts.Stations.cs Facts.Station"] = 171,
             ["src/Preview/Stage.Framing.cs Stage.Frame"] = 129,
             ["src/UI/ScryPanel.Animations.cs ScryPanel.Clips"] = 146,
             ["src/UI/ScryPanel.Facts.cs ScryPanel.FactRow"] = 139,
