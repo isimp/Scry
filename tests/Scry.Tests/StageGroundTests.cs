@@ -69,23 +69,51 @@ namespace Scry.Tests
         public void GrassKeepsOffWhatStandsOnTheStageAndWhatLiesSmallInIt()
         {
             // A tree or a wall: its footprint and a margin round it, as tall as it likes.
-            Assert.Equal(2.7f, StageGround.ClearOfGrass(footprint: 2f, height: 10f, creature: false), 3);
-            Assert.Equal(1.5f, StageGround.ClearOfGrass(footprint: 1f, height: 1.5f, creature: false), 3);
+            Assert.Equal(2.7f, StageGround.ClearOfGrass(footprint: 2f, height: 10f, GrassStand.Thing), 3);
+            Assert.Equal(1.5f, StageGround.ClearOfGrass(footprint: 1f, height: 1.5f, GrassStand.Thing), 3);
             // A sword lying down or a pebble: low enough for grass to hide it, so a wider ring.
-            Assert.Equal(1.5f, StageGround.ClearOfGrass(footprint: 0.6f, height: 0.1f, creature: false), 3);
-            Assert.Equal(1.5f, StageGround.ClearOfGrass(footprint: 0.05f, height: 0.05f, creature: false), 3);
+            Assert.Equal(1.5f, StageGround.ClearOfGrass(footprint: 0.6f, height: 0.1f, GrassStand.Thing), 3);
+            Assert.Equal(1.5f, StageGround.ClearOfGrass(footprint: 0.05f, height: 0.05f, GrassStand.Thing), 3);
             // Something small but standing taller than grass needs only its own margin.
-            Assert.Equal(0.54f, StageGround.ClearOfGrass(footprint: 0.2f, height: 1f, creature: false), 3);
+            Assert.Equal(0.54f, StageGround.ClearOfGrass(footprint: 0.2f, height: 1f, GrassStand.Thing), 3);
         }
 
         [Fact]
         public void GrassGrowsUpToACreaturesFeetUnlessItIsLowerThanTheGrass()
         {
             // As in the game, a troll or a dragon stands in the grass, however wide its arms or wings.
-            Assert.Equal(0f, StageGround.ClearOfGrass(footprint: 2.5f, height: 4f, creature: true), 3);
-            Assert.Equal(0f, StageGround.ClearOfGrass(footprint: 9f, height: 5f, creature: true), 3);
+            Assert.Equal(0f, StageGround.ClearOfGrass(footprint: 2.5f, height: 4f, GrassStand.Figure), 3);
+            Assert.Equal(0f, StageGround.ClearOfGrass(footprint: 9f, height: 5f, GrassStand.Figure), 3);
             // One lower than the grass keeps its ring, or the grass would hide it.
-            Assert.Equal(1.5f, StageGround.ClearOfGrass(footprint: 0.4f, height: 0.4f, creature: true), 3);
+            Assert.Equal(1.5f, StageGround.ClearOfGrass(footprint: 0.4f, height: 0.4f, GrassStand.Figure), 3);
+        }
+
+        [Fact]
+        public void ARaidsCrowdATraderAndAPersonStandInTheGrassAsACreatureDoes()
+        {
+            // Every figure the stage shows stands in the grass as the game's creatures do: a raid's
+            // crowd twelve metres across, a trader, the person wearing a status effect.
+            Assert.Equal(GrassStand.Figure, StageGround.StandsAs(Kind.Creature));
+            Assert.Equal(GrassStand.Figure, StageGround.StandsAs(Kind.Raid));
+            Assert.Equal(GrassStand.Figure, StageGround.StandsAs(Kind.Trader));
+            Assert.Equal(GrassStand.Figure, StageGround.StandsAs(Kind.StatusEffect));
+            Assert.Equal(0f, StageGround.ClearOfGrass(footprint: 6f, height: 2.5f, StageGround.StandsAs(Kind.Raid)), 3);
+        }
+
+        [Fact]
+        public void APlaceLeavesItsGrassToTheGroundItPaints()
+        {
+            // A camp or any location clears its grass where its own ground is painted, as the game
+            // clears it, never in a ring round all of it: a camp forty metres across stands in the
+            // meadow between its tents, however low or high it is.
+            Assert.Equal(GrassStand.Place, StageGround.StandsAs(Kind.Location));
+            Assert.Equal(0f, StageGround.ClearOfGrass(footprint: 20f, height: 8f, GrassStand.Place), 3);
+            Assert.Equal(0f, StageGround.ClearOfGrass(footprint: 3f, height: 0.3f, GrassStand.Place), 3);
+            // Anything else keeps the ring round its footprint, nothing shown standing in no grass.
+            Assert.Equal(GrassStand.Thing, StageGround.StandsAs(Kind.Item));
+            Assert.Equal(GrassStand.Thing, StageGround.StandsAs(Kind.Piece));
+            Assert.Equal(GrassStand.Thing, StageGround.StandsAs(Kind.Spawner));
+            Assert.Equal(GrassStand.Thing, StageGround.StandsAs(null));
         }
 
         [Fact]

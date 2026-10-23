@@ -100,7 +100,7 @@ namespace Scry
             var edge = sky ? look.Horizon : look.Backdrop;
             edge.a = 1f;
             var size = SubjectSize;
-            var clear = StageGround.ClearOfGrass(Mathf.Max(size.x, size.z) / 2f, size.y, _lastShown?.Kind == Kind.Creature);
+            var clear = StageGround.ClearOfGrass(Mathf.Max(size.x, size.z) / 2f, size.y, StageGround.StandsAs(_lastShown?.Kind));
             TheGround.Lay(groundY, _lastShown, sky, _frameRadius, clear, Origin, edge, _root, _layer);
         }
 

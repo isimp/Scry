@@ -11,6 +11,19 @@ namespace Scry
         public bool ClearsVegetation;
     }
 
+    /// <summary>How what the stage shows stands in the biome's grass (<see cref="StageGround.ClearOfGrass"/>).</summary>
+    internal enum GrassStand
+    {
+        /// <summary>A thing that keeps a ring of ground round its footprint: an item, a piece, a rock, a nest.</summary>
+        Thing,
+
+        /// <summary>A figure that stands in the grass as the game's creatures do: a creature, a trader, a raid's crowd, a person.</summary>
+        Figure,
+
+        /// <summary>A place, whose own ground paints clear its grass where the game clears it.</summary>
+        Place,
+    }
+
     /// <summary>
     /// What the stage's backdrop puts behind and under a model: the plain floor, the sky, the
     /// grid ruled in metres, or with the Ground backdrop its own biome's ground, painted by the
@@ -119,16 +132,35 @@ namespace Scry
         }
 
         /// <summary>
-        /// How far round the model the stage's grass is kept off, in metres: the ground it stands
-        /// on and a margin (its footprint, half its widest side, a fifth more and 0.3 m); none
-        /// round a creature, which stands in the grass as in the game, however wide its arms or
-        /// wings; and for anything lower than grass grows (under 0.6 m), at least 1.5 m, so the
-        /// grass between it and the camera does not hide it.
+        /// How far round the model the stage's grass is kept off, in metres: the ground a thing
+        /// stands on and a margin (its footprint, half its widest side, a fifth more and 0.3 m);
+        /// none round a figure, which stands in the grass as the game's creatures do, however wide
+        /// its arms or wings or its crowd; none round a place, whose own ground paints clear its
+        /// grass where the game clears it; and for a thing or a figure lower than grass grows
+        /// (under 0.6 m), at least 1.5 m, so the grass between it and the camera does not hide it.
         /// </summary>
-        public static float ClearOfGrass(float footprint, float height, bool creature)
+        public static float ClearOfGrass(float footprint, float height, GrassStand stand)
         {
-            if (height >= 0.6f) return creature ? 0f : footprint * 1.2f + 0.3f;
+            if (stand == GrassStand.Place) return 0f;
+            if (height >= 0.6f) return stand == GrassStand.Figure ? 0f : footprint * 1.2f + 0.3f;
             return Math.Max(footprint * 1.2f + 0.3f, 1.5f);
+        }
+
+        /// <summary>How what is shown of a kind stands in the grass: creatures, traders, a raid's crowd and the person wearing a status effect as figures, locations as places, the rest as things.</summary>
+        public static GrassStand StandsAs(Kind? kind)
+        {
+            switch (kind)
+            {
+                case Kind.Creature:
+                case Kind.Trader:
+                case Kind.Raid:
+                case Kind.StatusEffect:
+                    return GrassStand.Figure;
+                case Kind.Location:
+                    return GrassStand.Place;
+                default:
+                    return GrassStand.Thing;
+            }
         }
 
         /// <summary>How far from its middle grass grows on a ground so wide: out to where the ground has faded away (<see cref="Fade"/>).</summary>

@@ -11,8 +11,9 @@ namespace Scry
         /// <summary>
         /// On a meadow with the sky, a small creature's grass grows past forty metres, out to where
         /// the ground has faded away and no farther, thinning as it goes; a big creature stands in
-        /// the grass up to its feet, none kept off round it however wide it is. Each is pictured,
-        /// and the backdrop, spin and ground put back.
+        /// the grass up to its feet, none kept off round it however wide it is, and so do a raid's
+        /// crowd and a camp, whose own painted ground alone is clear. Each is pictured, and the
+        /// backdrop, spin and ground put back.
         /// </summary>
         private static IEnumerator GroundGrass(Probe p)
         {
@@ -45,7 +46,33 @@ namespace Scry
             p.Check(spread.Cleared == 0f && spread.Nearest < footprint, $"{big.Name} stands in the grass up to its feet, none kept off round it",
                 $"kept off {Numbers.Fixed(spread.Cleared, 1)} m round it, the nearest stem {Numbers.Fixed(spread.Nearest, 1)} m from its middle, half its widest side {Numbers.Fixed(footprint, 1)} m");
             yield return Picture(p, "ground big creature");
+
+            // A raid's crowd stands in the grass as one creature does, and a camp in the meadow
+            // between its tents, its grass cleared only where its own ground is painted.
+            var raid = Pick(Kind.Raid, "army_eikthyr", "foresttrolls", "army_theelder");
+            if (raid != null) yield return StandsInGrass(p, raid, "ground raid");
+            var camp = LocationNamed("WoodFarm1", "WoodVillage1", "GoblinCamp2");
+            if (camp != null)
+            {
+                Select(camp);
+                yield return Until(() => CopyOf(camp) != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 60);
+                yield return StandsInGrass(p, camp, "ground camp");
+            }
             GroundAsItWas();
+        }
+
+        /// <summary>One shown stands in the grass, none kept off round it and a stem within half its widest side of its middle; pictured.</summary>
+        private static IEnumerator StandsInGrass(Probe p, Entry entry, string picture)
+        {
+            Select(entry);
+            yield return GrassFor(entry);
+            yield return new Wait(1);
+            var spread = Stage.GrassSpread;
+            var size = Stage.SubjectSize;
+            var footprint = Mathf.Max(size.x, size.z) / 2f;
+            p.Check(spread.Cleared == 0f && spread.Nearest < footprint, $"{entry.Name} stands in the grass, none kept off round all of it",
+                $"kept off {Numbers.Fixed(spread.Cleared, 1)} m round it, the nearest stem {Numbers.Fixed(spread.Nearest, 1)} m from its middle, half its widest side {Numbers.Fixed(footprint, 1)} m");
+            yield return Picture(p, picture);
         }
 
         /// <summary>Waits for an entry's copy, then for the grass scattered for it, a few milliseconds a frame, the last grass shown till then.</summary>
