@@ -53,24 +53,44 @@ namespace Scry
         /// </summary>
         public static List<FloorLanding> Landings(FloorRecord record, ISet<int> present, Start start)
         {
+            var landings = new List<FloorLanding>();
+            foreach (var _ in Walking(record, present, start, landings)) { }
+            return landings;
+        }
+
+        /// <summary>How many rays, or steps of the walk, are taken at a time between waits.</summary>
+        private const int AtOnce = 512;
+
+        /// <summary>
+        /// The walk of <see cref="Landings"/> in steps, the landings found added to
+        /// <paramref name="into"/> at its end: so many rays, or steps from one surface to the
+        /// next, at a time, nothing between them, so a fortress's thousands of rays are walked
+        /// over frames. The landings are those of the walk done at once.
+        /// </summary>
+        public static IEnumerable<object> Walking(FloorRecord record, ISet<int> present, Start start, List<FloorLanding> into)
+        {
             var grid = record.Grid;
             var columns = new List<RaySurface>[grid.Count];
             var at = new Dictionary<(int, int), int>(grid.Count);
             for (var ray = 0; ray < grid.Count; ray++)
             {
+                if (ray > 0 && ray % AtOnce == 0) yield return null;
                 columns[ray] = record.On(ray, present).ToList();
                 at[(grid[ray].I, grid[ray].J)] = ray;
             }
             var spacing = (float)Math.Sqrt(record.Cell);
-            var reached = Reach(columns, at, grid, Seeds(columns, grid, start, spacing), Math.Max(Step, spacing));
+            var seeds = Seeds(columns, grid, start, spacing);
+            yield return null;
+            var reached = new Dictionary<int, List<float>>();
+            foreach (var _ in Reaching(columns, at, grid, seeds, Math.Max(Step, spacing), reached)) yield return null;
 
-            var landings = new List<FloorLanding>();
+            var looked = 0;
             foreach (var landing in record.Landings(present))
             {
+                if (++looked % AtOnce == 0) yield return null;
                 if (!at.TryGetValue((landing.I, landing.J), out var ray) || !reached.TryGetValue(ray, out var heights)) continue;
-                if (heights.Any(h => landing.Height <= h + 0.05f && h - landing.Height <= Under)) landings.Add(landing);
+                if (heights.Any(h => landing.Height <= h + 0.05f && h - landing.Height <= Under)) into.Add(landing);
             }
-            return landings;
         }
 
         /// <summary>Whether one stands on a surface of a column: nothing of the place within <see cref="Headroom"/> over it.</summary>
@@ -119,11 +139,13 @@ namespace Scry
         }
 
         /// <summary>
-        /// The ground reached from the seeds, by ray: from ground one stands on to the next ray's,
-        /// onto the first surface there no more than <paramref name="up"/> over it, where one
-        /// stands; anything higher is in the way, anything lower is dropped onto.
+        /// The ground reached from the seeds, by ray, into <paramref name="reached"/> at its end:
+        /// from ground one stands on to the next ray's, onto the first surface there no more than
+        /// <paramref name="up"/> over it, where one stands; anything higher is in the way, anything
+        /// lower is dropped onto. So many steps at a time, nothing between them.
         /// </summary>
-        private static Dictionary<int, List<float>> Reach(List<RaySurface>[] columns, Dictionary<(int, int), int> at, IReadOnlyList<(int I, int J, float X, float Z)> grid, List<(int Ray, int K)> seeds, float up)
+        private static IEnumerable<object> Reaching(List<RaySurface>[] columns, Dictionary<(int, int), int> at, IReadOnlyList<(int I, int J, float X, float Z)> grid, List<(int Ray, int K)> seeds, float up,
+            Dictionary<int, List<float>> reached)
         {
             var seen = new HashSet<(int, int)>();
             var next = new Queue<(int, int)>();
@@ -139,8 +161,10 @@ namespace Scry
                     return;
                 }
             }
+            var stepped = 0;
             while (next.Count > 0)
             {
+                if (++stepped % AtOnce == 0) yield return null;
                 var (ray, k) = next.Dequeue();
                 var height = columns[ray][k].Height;
                 var (i, j) = (grid[ray].I, grid[ray].J);
@@ -149,13 +173,11 @@ namespace Scry
                 StepTo(i, j - 1, height);
                 StepTo(i, j + 1, height);
             }
-            var reached = new Dictionary<int, List<float>>();
             foreach (var (ray, k) in seen)
             {
                 if (!reached.TryGetValue(ray, out var heights)) reached[ray] = heights = new List<float>();
                 heights.Add(columns[ray][k].Height);
             }
-            return reached;
         }
     }
 }

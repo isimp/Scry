@@ -144,7 +144,12 @@ namespace Scry
                 {
                     FromKept++;
                     timed = Timing.Start();
-                    Tell(kept, present, root, space, patch, hits, names, placed, keys, start, top);
+                    foreach (var _ in Telling(kept, present, root, space, patch, hits, names, placed, keys, start, top))
+                    {
+                        Timing.Add("floor probe kept", timed);
+                        yield return null;
+                        timed = Timing.Start();
+                    }
                     Timing.Add("floor probe kept", timed);
                     yield return kept.Ground;
                     yield break;
@@ -189,13 +194,13 @@ namespace Scry
                     if (covered)
                     {
                         Checked?.Invoke(kept, FloorRecord.New(prefab, room, stamp, kept.MinX, kept.MaxX, kept.MinZ, kept.MaxZ, kept.Top, kept.Bottom, parts).With(seen), present, keys, met, root);
-                        Tell(kept, present, root, space, patch, hits, names, placed, keys, start, top);
+                        foreach (var _ in Telling(kept, present, root, space, patch, hits, names, placed, keys, start, top)) yield return null;
                         yield return kept.Ground;
                         yield break;
                     }
                     var grown = record.With(seen);
                     FloorRecords.Put(grown);
-                    Tell(grown, present, root, space, patch, hits, names, placed, keys, start, top);
+                    foreach (var _ in Telling(grown, present, root, space, patch, hits, names, placed, keys, start, top)) yield return null;
                     yield return grown.Ground;
                 }
                 finally
@@ -390,14 +395,19 @@ namespace Scry
         /// <summary>
         /// Tells the copy's floors and where its creatures stand from a record, for the parts
         /// there: its ground walked to from <paramref name="start"/>, each with how far over it what
-        /// hides it from above is, and the highest its rays met, in the space given.
+        /// hides it from above is, and the highest its rays met, in the space given. The walk goes
+        /// in steps, nothing between them (<see cref="FloorWalk.Walking"/>), all told at its end.
         /// </summary>
-        private static void Tell(FloorRecord record, HashSet<int> present, Transform root, Transform space, int patch, List<FloorHit> hits, List<string> names, List<Stage.SpawnHere> placed, List<string> keys,
+        private static IEnumerable<object> Telling(FloorRecord record, HashSet<int> present, Transform root, Transform space, int patch, List<FloorHit> hits, List<string> names, List<Stage.SpawnHere> placed, List<string> keys,
             FloorWalk.Start start, Action<float> top)
         {
             var cell = record.Cell;
             float Height(float x, float y, float z) => space.InverseTransformPoint(root.TransformPoint(new Vector3(x, y, z))).y;
-            foreach (var landing in start != null ? FloorWalk.Landings(record, present, start) : record.Landings(present))
+            // A walk from where one comes in goes over frames, a fortress's thousands of rays a slice at a time.
+            var landings = new List<FloorLanding>();
+            if (start != null) foreach (var _ in FloorWalk.Walking(record, present, start, landings)) yield return null;
+            else landings.AddRange(record.Landings(present));
+            foreach (var landing in landings)
             {
                 var height = Height(landing.X, landing.Height, landing.Z);
                 var over = landing.Over > 0f ? Height(landing.X, landing.Height + landing.Over, landing.Z) - height : 0f;

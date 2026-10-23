@@ -39,6 +39,25 @@ namespace Scry.Tests
             FloorFinder.Floors(landings.Select(l => new FloorHit { I = l.I, J = l.J, Height = l.Height, Area = record.Cell, Open = l.Open }).ToList(), record.Ground);
 
         [Fact]
+        public void ABigPlaceIsWalkedInStepsToTheSameFloors()
+        {
+            // A fortress's thousands of rays are walked a slice at a time, a frame waiting between
+            // slices: the landings are those of the walk done at once.
+            var fort = Place(90, 90, (i, j) =>
+                i >= 40 ? new[] { At(9f, Roof), At(4.5f, Floor), At(0f, Floor) }
+                : i >= 31 ? new[] { At(9f, Roof), At((i - 30) * 0.5f, Stair), At(0f, Floor) }
+                : new[] { At(9f, Roof), At(0f, Floor) });
+
+            var whole = FloorWalk.Landings(fort, All, FloorWalk.Start.Outdoors);
+            var stepped = new List<FloorLanding>();
+            var steps = FloorWalk.Walking(fort, All, FloorWalk.Start.Outdoors, stepped).Count();
+
+            Assert.True(steps > 3, $"{steps} steps");
+            Assert.Equal(whole.Select(l => (l.I, l.J, l.Height)), stepped.Select(l => (l.I, l.J, l.Height)));
+            Assert.True(Has(stepped, 4.5f));
+        }
+
+        [Fact]
         public void APillarsTopNoOneCanClimbIsNoFloor()
         {
             // A ruin under an arch: a pillar three metres across, three metres high, on its ground.
