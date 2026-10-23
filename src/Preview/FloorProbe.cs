@@ -123,7 +123,7 @@ namespace Scry
                 var parts = new List<RayPart>();
                 var transforms = new List<Transform>();
                 var timed = Timing.Start();
-                foreach (var _ in PartsOf(copy, roll, parts, transforms))
+                foreach (var _ in PartsOf(copy, roll, parts, transforms, prefab))
                 {
                     Timing.Add("floor probe parts", timed);
                     yield return null;
@@ -225,6 +225,16 @@ namespace Scry
         /// <summary>How many of a copy's colliders are gathered as parts at a time, between which a reading may wait for the next frame.</summary>
         private const int PartsAtOnce = 256;
 
+        /// <summary>How many places' part names are kept for their next reading.</summary>
+        private const int NamesKept = 32;
+
+        /// <summary>
+        /// The names of a place's parts by its prefab, by each collider's place among the copy's
+        /// colliders, which every copy of it has in the same order: named once, as a reading names
+        /// thousands, each name making strings anew; filled as each is first met.
+        /// </summary>
+        private static readonly RecentCache<string, string[]> PartNames = new RecentCache<string, string[]>(NamesKept, StringComparer.Ordinal);
+
         /// <summary>
         /// Gathers the parts of a copy a ray can meet into <paramref name="parts"/>, their objects
         /// into <paramref name="transforms"/>, in the order its record keeps them: each object
@@ -234,11 +244,17 @@ namespace Scry
         /// none between them; the copy's colliders taken first into a list of the reading's own, as
         /// another reading may run between.
         /// </summary>
-        private static IEnumerable<object> PartsOf(GameObject copy, PlaceRoll roll, List<RayPart> parts, List<Transform> transforms)
+        private static IEnumerable<object> PartsOf(GameObject copy, PlaceRoll roll, List<RayPart> parts, List<Transform> transforms, string prefab)
         {
             var root = copy.transform;
             var seen = new HashSet<Transform>();
             var colliders = copy.GetComponentsInChildren<Collider>(true);
+            string[] named = null;
+            if (prefab != null && (!PartNames.TryGet(prefab, out named) || named.Length != colliders.Length))
+            {
+                named = new string[colliders.Length];
+                PartNames.Set(prefab, named);
+            }
             for (var i = 0; i < colliders.Length; i++)
             {
                 if (i > 0 && i % PartsAtOnce == 0) yield return null;
@@ -257,7 +273,8 @@ namespace Scry
                 }
                 if (!possible) continue;
                 transforms.Add(part);
-                parts.Add(new RayPart { Name = PartName(part), Solid = !roll.NotSolid.Contains(collider) });
+                var name = named == null ? PartName(part) : named[i] ?? (named[i] = PartName(part));
+                parts.Add(new RayPart { Name = name, Solid = !roll.NotSolid.Contains(collider) });
             }
         }
 
