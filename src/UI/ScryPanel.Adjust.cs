@@ -73,10 +73,15 @@ namespace Scry
             var looksHidden = entry.Source is GameObject hinged && _explorer != null && _explorer.HidesHinged(PrefabLooks.HingeOf(hinged));
             _looksHidden = looksHidden;
             if (looksHidden && modifiers.Look != 0) modifiers.Look = 0;
-            if (open && model && modifiers.LookAvailable && !looksHidden)
+            // A gear look whose items were not all met is left out too, the first shown taking its place.
+            var shown = LooksShown(entry, modifiers);
+            if (!looksHidden && shown.Count > 0 && !shown.Contains(modifiers.Look)) modifiers.Look = shown[0];
+            if (open && model && modifiers.LookAvailable && !looksHidden && shown.Count > 1)
             {
-                var chosen = Segments("Look", new List<string>(modifiers.LookNames), modifiers.Look, width, labelW, ref y);
-                if (chosen >= 0) modifiers.Look = chosen;
+                LookNamesShown.Clear();
+                foreach (var look in shown) LookNamesShown.Add(modifiers.LookNames[look]);
+                var chosen = Segments("Look", LookNamesShown, shown.IndexOf(modifiers.Look), width, labelW, ref y);
+                if (chosen >= 0) modifiers.Look = shown[chosen];
                 if (modifiers.Look > 0 && entry.Source is GameObject creature && PrefabLooks.IsGear(creature)) LoadoutRows(creature, modifiers.Look, width, labelW, ref y);
             }
 
@@ -92,6 +97,40 @@ namespace Scry
         private static readonly List<AnimationClip> NoClips = new List<AnimationClip>();
 
         private static bool _looksHidden;
+
+        private static readonly List<string> LookNamesShown = new List<string>();
+
+        /// <summary>The looks of what is shown the stage offers, worked out again only as what the character knows or the entry changes (<see cref="Explorer.LooksShown"/>).</summary>
+        private static List<int> LooksShown(Entry entry, Modifiers modifiers)
+        {
+            var count = modifiers.LookNames?.Length ?? 0;
+            var stamp = _explorer?.KnowStamp ?? -1;
+            if (ReferenceEquals(entry, _looksOf) && stamp == _looksStamp && count == _looksCount) return _looksShown;
+            _looksOf = entry;
+            _looksStamp = stamp;
+            _looksCount = count;
+            var gear = entry.Source is GameObject creature && PrefabLooks.IsGear(creature) ? creature : null;
+            _looksShown = _explorer != null && gear != null ? _explorer.LooksShown(count, look => PrefabGear.SetItems(gear, look)) : Enumerable.Range(0, count).ToList();
+            return _looksShown;
+        }
+
+        private static Entry _looksOf;
+        private static int _looksStamp = -1, _looksCount = -1;
+        private static List<int> _looksShown = new List<int>();
+
+        /// <summary>Lets go of the entry the looks were last worked out for, with the world.</summary>
+        private static void ForgetLooks()
+        {
+            _looksOf = null;
+            _looksStamp = -1;
+            _looksCount = -1;
+            _looksShown = new List<int>();
+            LookNamesShown.Clear();
+        }
+
+        /// <summary>How many looks the stage offers what is shown, its gear's looks of unmet items left out, for the self-test.</summary>
+        [ForTest]
+        public static int LooksOfferedForTest => _looksShown.Count;
 
         /// <summary>Whether the looks of what is shown were last left out, as hinging on a thing not met, for the self-test.</summary>
         [ForTest]

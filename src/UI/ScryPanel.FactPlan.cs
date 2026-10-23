@@ -46,7 +46,7 @@ namespace Scry
             PlanPairs.Clear();
             for (var i = 0; i < facts.Pairs.Count; i++) PlanPairs.Add((Hidden(facts.PairParts[i]) ? null : facts.Pairs[i].Key, facts.PairParts[i]));
             PlanRows.Clear();
-            foreach (var row in facts.Rows) PlanRows.Add((Hidden(row.Part) ? null : row.Title, row.Part ?? ""));
+            foreach (var row in facts.Rows) PlanRows.Add((Hidden(row.Part) || UnmetWhole(explorer, row) ? null : row.Title, row.Part ?? ""));
             PlanLinks.Clear();
             foreach (var group in entry.LinkGroups()) PlanLinks.Add(group.Key);
             _plan = FactLayout.Plan(entry.Kind, PlanPairs, PlanRows, PlanBlocks, PlanLinks);
@@ -246,6 +246,14 @@ namespace Scry
 
         /// <summary>How wide each heading of the table being drawn is, which its column keeps where it can.</summary>
         private static readonly List<float> HeadingWidths = new List<float>();
+
+        /// <summary>Whether a row left out while all it names is unmet names nothing met (<see cref="Facts.Row.UnmetLeftOut"/>).</summary>
+        private static bool UnmetWhole(Explorer explorer, Facts.Row row)
+        {
+            if (!row.UnmetLeftOut || row.Items.Count == 0) return false;
+            foreach (var item in row.Items) if (!explorer.NotMet(item.Prefab)) return false;
+            return true;
+        }
 
         /// <summary>The headings of the page's topics as last laid out, none for a topic without one, for the self-test.</summary>
         [ForTest]

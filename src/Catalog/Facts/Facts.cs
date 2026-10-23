@@ -43,6 +43,9 @@ namespace Scry
             /// <summary>The reader part that told it, for the page's layout (<see cref="FactLayout"/>); "" for none.</summary>
             public string Part;
 
+            /// <summary>Left out of the page whole while every thing it names was never met, as its title alone would tell what it holds: what a boss's fall opens.</summary>
+            public bool UnmetLeftOut;
+
             /// <summary>A grid in place of chips: every damage type and the share of it taken (<see cref="ResistWords"/>).</summary>
             public List<ResistCell> Cells;
 

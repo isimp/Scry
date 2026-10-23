@@ -72,6 +72,21 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AGearLookShowsOnlyOnceEverythingItWearsWasMet()
+        {
+            // A creature's looks on the stage: no gear, a set of Stone met, a set holding Barley
+            // never met. The set of Barley would show and name it, so it is left out; with the
+            // compendium off every look shows.
+            var world = new World().Rule(CompendiumRule.Loose);
+            world.Explorer.Select(world.Neck);
+            IReadOnlyList<string> ItemsOf(int look) => look == 1 ? new[] { world.Stone.Key } : look == 2 ? new[] { world.Stone.Key, world.Barley.Key } : new string[0];
+            Assert.Equal(new[] { 0, 1 }, world.Explorer.LooksShown(3, ItemsOf));
+            world.Rule(CompendiumRule.Off);
+            world.Explorer.Select(world.Neck);
+            Assert.Equal(new[] { 0, 1, 2 }, world.Explorer.LooksShown(3, ItemsOf));
+        }
+
+        [Fact]
         public void AKnownWindmillDoesNotTellWhatItGrindsBeforeTheGrainWasMet()
         {
             var world = new World().Rule(CompendiumRule.Loose);

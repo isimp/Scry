@@ -324,6 +324,23 @@ namespace Scry
         public bool HidesHinged(string key) => !string.IsNullOrEmpty(key) && NotMet(key);
 
         /// <summary>
+        /// The looks of a creature's gear the stage offers, by their place among all its looks: each
+        /// whose items, by their keys (<paramref name="itemsOf"/>), were all met, as a set's look
+        /// shows them and its name tells their attacks; every look with the compendium off.
+        /// </summary>
+        public List<int> LooksShown(int looks, Func<int, IReadOnlyList<string>> itemsOf)
+        {
+            var shown = new List<int>();
+            for (var look = 0; look < looks; look++)
+            {
+                var hidden = false;
+                foreach (var item in itemsOf(look)) hidden |= HidesHinged(item);
+                if (!hidden) shown.Add(look);
+            }
+            return shown;
+        }
+
+        /// <summary>
         /// Whether a key names an entry of the catalog the character has not met, seen or come to
         /// know, with the compendium on: a creature so is left off a place's example on the stage,
         /// and out of a room's card, unless the page shown is a place shown with all it holds.

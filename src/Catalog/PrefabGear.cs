@@ -58,6 +58,16 @@ namespace Scry
             return sets;
         }
 
+        /// <summary>The items of the set a look shows, by their prefabs' names: none for no gear, nor for a creature with no sets to roll, whose one look is its own gear.</summary>
+        public static IReadOnlyList<string> SetItems(GameObject prefab, int look)
+        {
+            var humanoid = prefab != null ? prefab.GetComponent<Humanoid>() : null;
+            if (humanoid == null || look <= 0) return System.Array.Empty<string>();
+            var rolled = RolledSets(humanoid);
+            if (look > rolled.Count) return System.Array.Empty<string>();
+            return rolled[look - 1].m_items.Where(i => i != null).Select(i => i.name).ToList();
+        }
+
         /// <summary>The weapons of the set a look shows, those that show in the hand first.</summary>
         public static List<string> SetWeapons(GameObject prefab, int look)
         {
