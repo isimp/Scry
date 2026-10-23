@@ -124,6 +124,21 @@ namespace Scry
         public void Forget() => _told.Clear();
     }
 
+    /// <summary>Which deeds a kind of entry's page keeps numbers back for (<see cref="Entry.Deeds"/>).</summary>
+    internal static class StrictDeeds
+    {
+        /// <summary>Whether a deed noted of a prefab's components fits its kind: health until one is killed only for a creature (a trader is never killed), until one is broken only for a resource.</summary>
+        public static bool Fits(Deed deed, Kind kind)
+        {
+            switch (deed)
+            {
+                case Deed.Killed: return kind == Kind.Creature;
+                case Deed.Broke: return kind == Kind.Resource;
+                default: return true;
+            }
+        }
+    }
+
     /// <summary>
     /// The one rule every event is recorded by, for the character: it did it where the event names
     /// its game among those who did it, however far away; else it saw it where it stands within

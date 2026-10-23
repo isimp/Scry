@@ -55,6 +55,29 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void IsLeftFindsWhatStillHasANumberToFindOutUnderTheStrictRules()
+        {
+            // A to-do list for the strict rules: a known Troll whose health waits for a kill, and a
+            // known Neck whose health was found out, so nothing is left of it; the loose rules keep
+            // nothing back, so nothing is left there.
+            var world = new World();
+            world.Troll.Deeds = new[] { Deed.Killed };
+            world.Neck.Deeds = new[] { Deed.Killed };
+            world.Book.Raise(world.Neck.Key, KnownLevel.Known);
+            world.Book.FoundOut(world.Neck.Key, EntryKeys.Did(Deed.Killed));
+            world.Rule(CompendiumRule.Strict);
+            Assert.Equal(new[] { world.Troll }, world.Found("is:left"));
+            Assert.Contains(world.Neck, world.Found("kind:creature -is:left"));
+            world.Rule(CompendiumRule.Loose);
+            Assert.Empty(world.Found("is:left"));
+            // A trader is never killed, a piece never broken: those deeds fit only creatures and resources.
+            Assert.True(StrictDeeds.Fits(Deed.Killed, Kind.Creature));
+            Assert.False(StrictDeeds.Fits(Deed.Killed, Kind.Trader));
+            Assert.False(StrictDeeds.Fits(Deed.Broke, Kind.Piece));
+            Assert.True(StrictDeeds.Fits(Deed.Tamed, Kind.Creature));
+        }
+
+        [Fact]
         public void IsNewFindsWhatTheCharacterLearnedToday()
         {
             var world = new World().Rule(CompendiumRule.Loose);

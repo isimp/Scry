@@ -137,6 +137,9 @@ namespace Scry
         /// <summary>The type names of the components on the prefab, each once.</summary>
         public string[] Components = Array.Empty<string>();
 
+        /// <summary>The deeds whose numbers its page keeps back under the strict rules until seen (<see cref="Deed"/>), as its components have them: its health until one is killed or broken, how long taming, a birth or growing back take, and the rest.</summary>
+        public Deed[] Deeds = Array.Empty<Deed>();
+
         /// <summary>
         /// A creature's attacks, each by the item it is made with and the damage types it deals,
         /// in small letters; for the strict rules' search, which finds a creature by what it deals

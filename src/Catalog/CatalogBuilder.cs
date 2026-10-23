@@ -33,6 +33,9 @@ namespace Scry
 
             /// <summary>Every name the game's records may know it by: its creature's, item's, piece's and station's.</summary>
             public readonly HashSet<string> Tokens = new HashSet<string>(StringComparer.Ordinal);
+
+            /// <summary>The deeds whose numbers its page keeps back under the strict rules (<see cref="Entry.Deeds"/>).</summary>
+            public readonly HashSet<Deed> Deeds = new HashSet<Deed>();
             public object Icon;
             public int ExtraLevels;
             public bool HasWear;
@@ -294,11 +297,13 @@ namespace Scry
                 Origin = registeredOrigin ? Origins.Prefabs.Of(name) : Provenance.Combine(found.UserOrigins),
                 Registered = registeredOrigin,
                 Components = found.Components.ToArray(),
+                Deeds = found.Deeds.ToArray(),
                 Tokens = found.Tokens.ToArray(),
                 Biomes = Knowledge.Biomes(name),
                 ModName = Knowledge.ModName(name),
                 ModClue = Knowledge.ModClue(name),
             };
+            entry.Deeds = Array.FindAll(entry.Deeds, deed => StrictDeeds.Fits(deed, entry.Kind));
 
             // Something none of the other kinds is grouped by what it is there for.
             if (entry.Kind == Kind.Spawner)
@@ -408,6 +413,7 @@ namespace Scry
                 Guard.Each(Feature.EffectLists, "effect lists", owner, () =>
                 {
                     Note(component, found, traits);
+                    NoteDeeds(component, found.Deeds);
                     found.Components.Add(component.GetType().Name);
                     Gather(component, owner, ownerOrigin, effects, owner, owner);
 
@@ -439,6 +445,46 @@ namespace Scry
         private static void Named(Found found, string token)
         {
             if (!string.IsNullOrEmpty(token)) found.Tokens.Add(token);
+        }
+
+        /// <summary>
+        /// The deeds a component's numbers wait for under the strict rules, as its page keeps them
+        /// back: health until one is killed or broken, taming, riding where it takes a saddle, a
+        /// birth, growing up, hatching, growing back where it does, a crop growing, a spawn, a
+        /// station's work, a producer's pace.
+        /// </summary>
+        private static void NoteDeeds(Component component, HashSet<Deed> deeds)
+        {
+            switch (component)
+            {
+                case Character _: deeds.Add(Deed.Killed); break;
+                case Tameable tame:
+                    deeds.Add(Deed.Tamed);
+                    if (tame.m_saddle != null) deeds.Add(Deed.Ridden);
+                    break;
+                case Procreation _: deeds.Add(Deed.Born); break;
+                case Growup _: deeds.Add(Deed.GrewUp); break;
+                case EggGrow _: deeds.Add(Deed.Hatched); break;
+                case Pickable pick when pick.m_respawnTimeMinutes > 0f: deeds.Add(Deed.GrewBack); break;
+                case Plant _: deeds.Add(Deed.Grew); break;
+                case TreeBase _:
+                case TreeLog _:
+                case MineRock _:
+                case MineRock5 _:
+                case Destructible _:
+                    deeds.Add(Deed.Broke);
+                    break;
+                case SpawnArea _: deeds.Add(Deed.Spawned); break;
+                case Smelter _:
+                case Fermenter _:
+                case CookingStation _:
+                    deeds.Add(Deed.Finished);
+                    break;
+                case Beehive _:
+                case SapCollector _:
+                    deeds.Add(Deed.Collected);
+                    break;
+            }
         }
 
         private static void Note(Component component, Found found, PrefabTraits traits)

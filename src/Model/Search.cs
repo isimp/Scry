@@ -144,7 +144,7 @@ namespace Scry
         /// new, learned more of today; seen, seen but not known; walked, a dungeon's room walked or
         /// a dungeon one of whose rooms was. Matched only whole, as is:w could be a weapon.
         /// </summary>
-        public static readonly string[] MineWords = { "new", "seen", "walked" };
+        public static readonly string[] MineWords = { "new", "seen", "walked", "left" };
 
         /// <summary>Whether a term asks what the character met: an is: term each of whose values is one of <see cref="MineWords"/>, which it gives.</summary>
         public static bool AsksMine(string key, string value, out string[] words)

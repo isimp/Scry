@@ -173,7 +173,8 @@ namespace Scry
         /// Whether an entry answers a word of an is: term asking what the character met (<see
         /// cref="Search.MineWords"/>): new, seen or come to know on the day given; seen, seen but not
         /// known; walked, a dungeon's room the character walked, or a place one of whose rooms it
-        /// walked.
+        /// walked; left, under the strict rules, a known page whose number a deed shows not yet
+        /// seen (<see cref="Entry.Deeds"/>), none shown whole by the floor.
         /// </summary>
         public bool Is(Entry entry, string word, int today)
         {
@@ -184,6 +185,10 @@ namespace Scry
                     return today >= 0 && (_book.Came(entry.Key)?.At.Day == today || _book.FirstSeen(entry.Key)?.At.Day == today);
                 case "seen":
                     return Of(entry) == KnownLevel.Seen;
+                case "left":
+                    if (_rule != CompendiumRule.Strict || Of(entry) != KnownLevel.Known || _byFloor.ContainsKey(entry)) return false;
+                    foreach (var deed in entry.Deeds) if (!_book.Witnessed(entry.Key, EntryKeys.Did(deed))) return true;
+                    return false;
                 case "walked":
                     if (entry.Kind != Kind.Location) return false;
                     if (Walked(entry)) return true;

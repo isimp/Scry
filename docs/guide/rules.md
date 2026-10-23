@@ -18,7 +18,7 @@ The compendium shows only what the character you play has come to know, and grow
 
 The eye beside the compendium's button peeks: every page shows whole until the panel closes.
 
-*Learned* lists what your character learned, newest first, day by day, under *Strict* also what it found out and saw go together, which *Loose* shows whole from the start (in the search, `is:new` finds what it learned today, `is:seen` what it has only seen and `is:walked` the dungeons it walked), and a page's *You* box tells when it first saw the thing and came to know it, in what weather and with what in hand, and how its kills went.
+*Learned* lists what your character learned, newest first, day by day, under *Strict* also what it found out and saw go together, which *Loose* shows whole from the start (in the search, `is:new` finds what it learned today, `is:seen` what it has only seen, `is:walked` the dungeons it walked, and under *Strict* `is:left` what still has a number to find out by a deed, a kill, a taming, a birth), and a page's *You* box tells when it first saw the thing and came to know it, in what weather and with what in hand, and how its kills went.
 
 ## What a world shows as known
 

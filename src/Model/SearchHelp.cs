@@ -302,7 +302,7 @@ namespace Scry
             ("mod:epic", "What a mod added, by the start or any part of its name.", true),
             ("playedby:troll", "The sounds and effects a prefab plays.", true),
             ("is:boss", SearchFlags.HelpLine(), true),
-            ("is:new", "With the compendium on, what your character learned today; is:seen what it has only seen, is:walked the dungeons and rooms it walked.", true),
+            ("is:new", "With the compendium on, what your character learned today; is:seen what it has only seen, is:walked the dungeons and rooms it walked, and under Strict is:left what still has a number to find out by a deed: a kill, a taming, a birth.", true),
             ("weak:fire", "Creatures weak to a damage type, as their resistance grid shows, and armour leaving you weak to it while worn; resists: and immune: the same for less and none.", true),
             ("damage:spirit", "What deals a damage type: weapons, ammo, projectiles, and creatures by their attacks. Blunt, slash, pierce, chop, pickaxe, fire, frost, lightning, poison, spirit, or true for plain damage.", true),
             ("skill:axes", "Weapons, ammo, shields and tools that train a skill.", true),
