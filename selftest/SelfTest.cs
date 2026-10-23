@@ -38,6 +38,9 @@ namespace Scry
         });
 
         public static string ResultFile => Path.Combine(BepInEx.Paths.BepInExRootPath, "Scry-selftest.log");
+
+        /// <summary>Where the runs before the log's last go once it grows large (<see cref="SelfTestLog"/>).</summary>
+        private static string OlderFile => Path.Combine(BepInEx.Paths.BepInExRootPath, "Scry-selftest.old.log");
         public static string MarkerFile => Path.Combine(BepInEx.Paths.BepInExRootPath, "Scry-selftest.run");
 
         /// <summary>Each part's last time, and the parts that failed in the last run (<see cref="SelfTestTimes"/>).</summary>
@@ -144,6 +147,7 @@ namespace Scry
             if (parts.Count == 0) return SelfTestWords.NothingToRun(asked);
             var times = SelfTestTimes.Load(Kept(TimesFile));
 
+            LogAside();
             Write("");
             Write($"==== Scry {About.Version} {asked.Scope.ToString().ToLowerInvariant()} self-test, {DateTime.Now:yyyy-MM-dd HH:mm:ss}, started because {why} ====");
             Write($"World {ZNet.instance.OrNull()?.GetWorldName()}, {Numbers.Count(Session.Explorer.Catalog.Count)} entries, {Numbers.Count(BepInEx.Bootstrap.Chainloader.PluginInfos.Count)} mods loaded, panel {(Session.IsOpen ? "open" : "closed")}" +
@@ -175,6 +179,20 @@ namespace Scry
             SelfTestPanel.ShowResult();
             return SelfTestWords.Started(_runner.Total, asked.Scope, times.Estimate(parts.Select(s => s.Name), asked.Sampled));
         }
+
+        /// <summary>
+        /// Keeps the log to its last runs once it grew past <see cref="SelfTestLog.KeptBytes"/>, the
+        /// runs before them moved to the older log in place of what it held.
+        /// </summary>
+        private static void LogAside() => Steps.Run(() =>
+        {
+            var log = new FileInfo(ResultFile);
+            if (!log.Exists || log.Length < SelfTestLog.KeptBytes) return;
+            var (older, kept) = SelfTestLog.Split(File.ReadAllText(ResultFile));
+            if (older.Length == 0) return;
+            File.WriteAllText(OlderFile, older);
+            File.WriteAllText(ResultFile, kept);
+        }, null);
 
         /// <summary>A few words a part's name holds, as examples of a run by words in the help.</summary>
         private static readonly string[] HelpExamples = { "rune", "plan box", "compendium box", "map" };

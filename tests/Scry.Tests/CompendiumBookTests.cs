@@ -6,6 +6,14 @@ namespace Scry.Tests
 {
     public class CompendiumBookTests
     {
+        [Fact]
+        public void ACrashLosesAtMostTenSecondsOfWhatTheCharacterLearned()
+        {
+            // The book and the character's dungeon walks are written at most this long after they
+            // change (and at once on leaving a world or quitting), so a crash loses no more.
+            Assert.Equal(10f, CompendiumBook.WriteEvery);
+        }
+
         // What a character has come to know, entry by entry: unknown, heard of, seen or known,
         // only ever rising, kept from session to session.
 

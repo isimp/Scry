@@ -254,6 +254,9 @@ namespace Scry
         /// <summary>How many of the latest raises the book remembers, for what is counted on top (<see cref="RaisedSince"/>); the older half is forgotten past it.</summary>
         public const int RaisesKept = 4096;
 
+        /// <summary>How long, in seconds, what the character learned waits at most before its book and its dungeon walks are written (at once on leaving a world or quitting), so a crash loses no more.</summary>
+        public const float WriteEvery = 10f;
+
         /// <summary>What creatures were seen to drop, kill by kill, and what trees, rocks and other resources were seen to give, for the strict rules' amounts.</summary>
         private readonly SeenDrops _fell = new SeenDrops();
         private readonly SeenDrops _gave = new SeenDrops();

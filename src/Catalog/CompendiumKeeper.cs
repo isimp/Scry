@@ -15,8 +15,8 @@ namespace Scry
     /// is read, as news, the first time and then whenever those records grow, looked at once a
     /// second along with what the character has, is in, points at and sees (<see cref="Look"/>,
     /// <see cref="CompendiumSight"/>), and fed what it fights and hits as it happens; and
-    /// written back once it changed, at most every half minute, on leaving a world and on
-    /// quitting. A book that could not be read is never written over.
+    /// written back once it changed, at most every ten seconds (<see cref="CompendiumBook.WriteEvery"/>),
+    /// on leaving a world and on quitting. A book that could not be read is never written over.
     /// </summary>
     internal static class CompendiumKeeper
     {
@@ -549,10 +549,10 @@ namespace Scry
             return key;
         }
 
-        /// <summary>Writes the book once it changed, at most every half minute unless asked to now, its text worked out and written on a worker thread.</summary>
+        /// <summary>Writes the book once it changed, at most every ten seconds unless asked to now (<see cref="CompendiumBook.WriteEvery"/>), its text worked out and written on a worker thread.</summary>
         public static void Save(bool now = false)
         {
-            if (_book == null || _unreadable || !_book.Changed || (!now && Time.unscaledTime - _savedAt < 30f)) return;
+            if (_book == null || _unreadable || !_book.Changed || (!now && Time.unscaledTime - _savedAt < CompendiumBook.WriteEvery)) return;
             _savedAt = Time.unscaledTime;
             var text = _book.ToSave();
             var path = PathOf(_file);

@@ -448,6 +448,16 @@ namespace Scry
             StageAsItWas();
         }
 
+        /// <summary>
+        /// Waits for a level opened to be laid: a frame for it to start, as the rooms kept to the
+        /// roof a moment before still count as kept, then its rooms dimmed where any stand below.
+        /// </summary>
+        private static IEnumerator LevelLaid()
+        {
+            yield return null;
+            yield return Until(() => Stage.ExampleRoomsKept && (Stage.FloorHeights.Count <= 1 || Stage.ExampleRoomsDimmed > 0), 3);
+        }
+
         private static IEnumerator Layout(Probe p, Entry entry, string algorithm)
         {
             if (entry == null) p.Skip("there is no such location");
@@ -540,7 +550,7 @@ namespace Scry
                     p.Check(Stage.ExampleRoomsAway == 0, "with the roof on every room stands", $"{Numbers.Count(Stage.ExampleRoomsAway)} still away");
                 }
                 Stage.OpenLevel(0);
-                yield return Until(() => Stage.ExampleRoomsKept, 3);
+                yield return LevelLaid();
                 if (Stage.FloorHeights.Count > 1) p.Check(Stage.ExampleRoomsDimmed > 0, "on its top level the rooms below stand dimmed", $"{Numbers.Count(Stage.ExampleRoomsDimmed)} dimmed, {Numbers.Count(Stage.ExampleRoomsAway)} put away");
                 // A room of the top level, which stands while it is opened.
                 var top = Stage.ExampleShown?.Rooms.FindIndex(r => !r.Room.EndCap && !r.Room.Divider && Stage.ExampleRoomShown(r) == PlanRoomShown.Whole) ?? -1;

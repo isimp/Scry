@@ -250,41 +250,13 @@ namespace Scry
                         .Where(r => (r.Room.EndCap || r.Room.Divider) && r.JoinedTo != null && !Equals(Stage.ExampleRoomDrawn(r), Stage.ExampleRoomDrawn(r.JoinedTo)))
                         .Select(r => r.Room.Name + " beside " + r.JoinedTo.Room.Name).ToList();
                     if (capsApart.Count > 0) apartCaps.Add($"{entry.Name}: {string.Join(", ", capsApart.Take(4))}");
-                    PlacedRoom below = null;
-                    var placedNow = Stage.ExampleShown?.Rooms;
-                    // Each dimmed room's middle first, then points across the whole picture, as a
-                    // stack's lower rooms stand only where the floor opened leaves them in view.
-                    var points = new List<Vector2>();
-                    for (var i = 0; placedNow != null && i < placedNow.Count; i++)
-                    {
-                        if (Stage.ExampleRoomShown(placedNow[i]) == PlanRoomShown.Faint && Stage.ExamplePointOf(i) is Vector2 middle && InPicture(middle)) points.Add(middle);
-                    }
-                    for (var gx = 1; gx < 10; gx++)
-                    {
-                        for (var gy = 1; gy < 8; gy++) points.Add(new Vector2(gx / 10f, gy / 8f));
-                    }
-                    foreach (var point in points)
-                    {
-                        if (below != null) break;
-                        ScryPanel.HoverStageForTest(point);
-                        var drawnBelow = ScryPanel.Drawn(PanelPart.PlanBox);
-                        yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnBelow + 1, 3);
-                        var found = ScryPanel.StageRoomHovered;
-                        if (found != null && (found.Room.EndCap || found.Room.Divider) && capsFound.Count < 6) capsFound.Add($"{entry.Name}: {found.Room.Name}");
-                        if (found != null && Stage.ExampleRoomShown(found) == PlanRoomShown.Faint) below = found;
-                    }
-                    if (below == null) p.Note($"{entry.Name}: no room dimmed below the top floor stands in view outside the floor opened");
+                    var below = new Found<PlacedRoom>();
+                    yield return RoomBelow(entry, below, capsFound);
+                    if (below.Value == null) p.Note($"{entry.Name}: no room dimmed below the top floor stands in view outside the floor opened");
                     else
                     {
                         foundBelow++;
-                        var top = below.Position.Y + below.Room.Size.Y / 2f;
-                        yield return Until(() => Stage.LitRoom == below && Stage.LitOutlineShown && (!Stage.OutlinesPastCutForTest || Mathf.Abs(Stage.LitOutlineTopLaid - top) <= 0.01f), 3);
-                        if (Stage.LitRoom != below || !Stage.LitOutlineShown) unchosen.Add($"{entry.Name}: {below.Room.Name} found but not outlined");
-                        else
-                        {
-                            if (Stage.OutlinesPastCutForTest && Mathf.Abs(Stage.LitOutlineTopLaid - top) > 0.01f) unwhole.Add($"{entry.Name}: {below.Room.Name} lit to {Numbers.Fixed(Stage.LitOutlineTopLaid, 1)} m of its top at {Numbers.Fixed(top, 1)} m");
-                            yield return Picture(p, $"plan {entry.Name} room below the floor lit");
-                        }
+                        yield return OutlinedBelow(p, entry, below.Value, unchosen, unwhole);
                     }
                     ScryPanel.HoverStageForTest(null);
                     Stage.ComeOut();
@@ -446,6 +418,32 @@ namespace Scry
                 Stage.OpenLevel(Stage.FloorHeights.Count);
             }
 
+            // A roll can leave no room below the top floor in view outside the floor opened; the
+            // other reference dungeons are tried then, so the check fails only where dimmed rooms
+            // are found in none.
+            foreach (var name in AllReferenceDungeons)
+            {
+                if (foundBelow > 0) break;
+                var other = X.Catalog.FirstOrDefault(e => e.Name == name && PlaceOf(e) != null && !PlaceOf(e).IsRoom);
+                if (other == null || places.Contains(other)) continue;
+                Select(other);
+                yield return Until(() => CopyOf(other) != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.ExampleFloorsToRead == 0, 60);
+                if (CopyOf(other) == null || Stage.FloorHeights.Count <= 1) continue;
+                Stage.OpenLevel(0);
+                yield return Until(() => Stage.Cutting && Stage.ExampleRoomsKept, 3);
+                var below = new Found<PlacedRoom>();
+                yield return RoomBelow(other, below, capsFound);
+                if (below.Value != null)
+                {
+                    foundBelow++;
+                    p.Note($"a room dimmed below the top floor was found in {other.Name}, tried as the others showed none in view");
+                    yield return OutlinedBelow(p, other, below.Value, unchosen, unwhole);
+                }
+                ScryPanel.HoverStageForTest(null);
+                Stage.ComeOut();
+                Stage.OpenLevel(Stage.FloorHeights.Count);
+            }
+
             // What was chosen is remembered in the panel's file.
             ScryPanel.ShowPlanViewForTest(PlanView.Tree);
             ScryPanel.GrowPlanForTest(true);
@@ -511,6 +509,56 @@ namespace Scry
             p.Check(capsFound.Count == 0, "the mouse on an end cap or divider on the stage finds the room it closes", string.Join("; ", capsFound));
             p.Check(unwhole.Count == 0, "the outlines of the room gone into and of the room lit stand their whole box however low the cut", string.Join("; ", unwhole));
             p.Check(notIn.Count == 0, "a click on a room in the plan box goes into it", string.Join("; ", notIn));
+        }
+
+        /// <summary>What a search finds, handed back from a coroutine; none until something is found.</summary>
+        private sealed class Found<T> where T : class
+        {
+            public T Value;
+        }
+
+        /// <summary>
+        /// With a floor of the example shown opened, looks under the mouse on the stage for a room
+        /// dimmed below it: each dimmed room's middle first, then points across the whole picture,
+        /// as a stack's lower rooms stand only where the floor opened leaves them in view. End caps
+        /// and dividers met on the way are noted (<paramref name="capsFound"/>, six at most).
+        /// </summary>
+        private static IEnumerator RoomBelow(Entry entry, Found<PlacedRoom> below, List<string> capsFound)
+        {
+            var placedNow = Stage.ExampleShown?.Rooms;
+            var points = new List<Vector2>();
+            for (var i = 0; placedNow != null && i < placedNow.Count; i++)
+            {
+                if (Stage.ExampleRoomShown(placedNow[i]) == PlanRoomShown.Faint && Stage.ExamplePointOf(i) is Vector2 middle && InPicture(middle)) points.Add(middle);
+            }
+            for (var gx = 1; gx < 10; gx++)
+            {
+                for (var gy = 1; gy < 8; gy++) points.Add(new Vector2(gx / 10f, gy / 8f));
+            }
+            foreach (var point in points)
+            {
+                if (below.Value != null) yield break;
+                ScryPanel.HoverStageForTest(point);
+                var drawnBelow = ScryPanel.Drawn(PanelPart.PlanBox);
+                yield return Until(() => ScryPanel.Drawn(PanelPart.PlanBox) > drawnBelow + 1, 3);
+                var found = ScryPanel.StageRoomHovered;
+                if (found != null && (found.Room.EndCap || found.Room.Divider) && capsFound.Count < 6) capsFound.Add($"{entry.Name}: {found.Room.Name}");
+                if (found != null && Stage.ExampleRoomShown(found) == PlanRoomShown.Faint) below.Value = found;
+            }
+        }
+
+        /// <summary>A room dimmed below the floor opened, found under the mouse, is outlined its whole box, top to foot; pictured.</summary>
+        private static IEnumerator OutlinedBelow(Probe p, Entry entry, PlacedRoom below, List<string> unchosen, List<string> unwhole)
+        {
+            var top = below.Position.Y + below.Room.Size.Y / 2f;
+            yield return Until(() => Stage.LitRoom == below && Stage.LitOutlineShown && (!Stage.OutlinesPastCutForTest || Mathf.Abs(Stage.LitOutlineTopLaid - top) <= 0.01f), 3);
+            if (Stage.LitRoom != below || !Stage.LitOutlineShown)
+            {
+                unchosen.Add($"{entry.Name}: {below.Room.Name} found but not outlined");
+                yield break;
+            }
+            if (Stage.OutlinesPastCutForTest && Mathf.Abs(Stage.LitOutlineTopLaid - top) > 0.01f) unwhole.Add($"{entry.Name}: {below.Room.Name} lit to {Numbers.Fixed(Stage.LitOutlineTopLaid, 1)} m of its top at {Numbers.Fixed(top, 1)} m");
+            yield return Picture(p, $"plan {entry.Name} room below the floor lit");
         }
 
         /// <summary>Whether a point stands on a room's floor as seen from above, its doorways' width of leeway at its walls.</summary>

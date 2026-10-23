@@ -139,10 +139,10 @@ namespace Scry
             if (walked || entered || newDay) GroupMapsLink.Walked(world.Id);
         }
 
-        /// <summary>Writes the maps once they changed, at most every half minute unless asked to now, on a worker thread.</summary>
+        /// <summary>Writes the maps once they changed, at most every ten seconds unless asked to now (<see cref="CompendiumBook.WriteEvery"/>), on a worker thread.</summary>
         public static void Save(bool now = false)
         {
-            if (_file == null || _reading != null || _unreadable || !_own.Changed || (!now && Time.unscaledTime - _savedAt < 30f)) return;
+            if (_file == null || _reading != null || _unreadable || !_own.Changed || (!now && Time.unscaledTime - _savedAt < CompendiumBook.WriteEvery)) return;
             _savedAt = Time.unscaledTime;
             var text = _own.ToSave();
             var path = PathOf(_file);
