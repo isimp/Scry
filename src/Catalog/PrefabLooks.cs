@@ -23,6 +23,9 @@ namespace Scry
             public Sort Sort;
             public string[] Names = System.Array.Empty<string>();
             public int Default;
+
+            /// <summary>The thing the looks hinge on, left out while it was not met (<see cref="Explorer.HidesHinged"/>): a creature's saddle; none for most.</summary>
+            public string Hinge;
         }
 
         private static readonly Dictionary<GameObject, Found> Known = new Dictionary<GameObject, Found>();
@@ -34,6 +37,9 @@ namespace Scry
             defaultLook = found.Default;
             return found.Names;
         }
+
+        /// <summary>The thing a prefab's looks hinge on, as its saddle; none for most (<see cref="Found.Hinge"/>).</summary>
+        public static string HingeOf(GameObject prefab) => Describe(prefab).Hinge;
 
         /// <summary>Whether a prefab's looks are about the gear it wears.</summary>
         public static bool IsGear(GameObject prefab) => Describe(prefab).Sort == Sort.Gear;
@@ -172,7 +178,7 @@ namespace Scry
                     }
                     else if (tameable != null && tameable.m_saddle != null)
                     {
-                        found = new Found { Sort = Sort.Saddle, Names = SaddleLooks };
+                        found = new Found { Sort = Sort.Saddle, Names = SaddleLooks, Hinge = tameable.m_saddleItem != null ? tameable.m_saddleItem.gameObject.name : null };
                     }
                     else if (drop != null && drop.m_itemData?.m_shared != null && drop.m_itemData.m_shared.m_variants > 1)
                     {

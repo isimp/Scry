@@ -273,14 +273,16 @@ namespace Scry
                 }
                 Add("Fed for", Numbers.Duration(tame.m_fedDuration));
                 Proofs["Tames in"] = Proofs["Fed for"] = EntryKeys.Did(Deed.Tamed);
-                Part("riding", () => Riding(tame, character));
+                // Riding hinges on the saddle, breeding on the young it brings: neither is told
+                // before the character met it.
+                Part("riding", () => Riding(tame, character), tame.m_saddleItem != null ? tame.m_saddleItem.gameObject.name : null);
                 var breed = prefab.GetComponent<Procreation>();
-                if (breed != null) Part("breeding", () => Breeding(breed));
+                if (breed != null) Part("breeding", () => Breeding(breed), breed.m_offspring != null ? breed.m_offspring.name : null);
                 Hooked(HookedRule.Taming);
             }
 
             var grow = prefab.GetComponent<Growup>();
-            if (grow != null) Part("growing up", () => GrowingUp(grow));
+            if (grow != null) Part("growing up", () => GrowingUp(grow), grow.m_grownPrefab != null ? grow.m_grownPrefab.name : null);
         }
 
         /// <summary>
@@ -320,10 +322,13 @@ namespace Scry
             if (saddle == null) return;
             Add("Stamina when ridden", RideWords.Stamina(saddle.m_maxStamina, saddle.m_staminaRegen, saddle.m_staminaRegenHungry));
             Add("Riding drains", RideWords.Drains(saddle.m_runStaminaDrain, saddle.m_swimStaminaDrain));
+            // The game shows none of these numbers: under the strict rules they wait for a ride.
+            Proofs["Stamina when ridden"] = Proofs["Riding drains"] = EntryKeys.Did(Deed.Ridden);
             YoursAt("Riding drains", Skills.SkillType.Ride, level => RideWords.Drains(saddle.m_runStaminaDrain * SkillMath.MountDrainShare(level), saddle.m_swimStaminaDrain * SkillMath.MountDrainShare(level)));
             if (character.m_runSpeed > 0f)
             {
                 Add("Runs ridden", SkillWords.Span(SkillWords.Speed(character.m_runSpeed), SkillWords.Speed(character.m_runSpeed * SkillMath.MountSpeedShare(SkillMath.Top))));
+                Proofs["Runs ridden"] = EntryKeys.Did(Deed.Ridden);
                 YoursAt("Runs ridden", Skills.SkillType.Ride, level => SkillWords.Speed(character.m_runSpeed * SkillMath.MountSpeedShare(level)));
             }
         }

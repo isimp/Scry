@@ -121,6 +121,7 @@ namespace Scry
             yield return S("a rock and a tree say what breaks them, by tier and by the damage they take", WhatBreaksIt, 10);
             yield return S("breeding, planting and summoning show whole on each page of them", ChainsShown, 10);
             yield return S("with the compendium on, a chain stands whole, a step not met reading ???", ChainsWithStepsNotMet, 15, () => Session.ShowKnownInstead(null));
+            yield return S("with the compendium on, what hinges on a thing not met is left out whole: a Lox's riding and saddled look before its saddle", HingedOnAThingNotMet, 20, () => Session.ShowKnownInstead(null));
             yield return S("every creature, piece of gear and buildable piece shows its standard rows, saying none where it has none", StandardRows, 60);
             yield return S("a spawner tells its pool and pace, and its creatures their share", SpawnerFacts, 10);
             yield return S("items tell their odds in the tables that give them", LootOdds, 10);

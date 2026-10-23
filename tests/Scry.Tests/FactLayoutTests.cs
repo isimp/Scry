@@ -79,6 +79,19 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APairOrRowLeftOutGoesToNoTopicTheRestKeepingTheirPlace()
+        {
+            // A lox's riding, hinging on a saddle not met, comes to the layout with no labels: no
+            // topic shows it, no Riding topic stands empty, and the pairs after it keep their index.
+            var pairs = new[] { ("Health", ""), ((string)null, "riding"), ((string)null, "riding"), ("Gives up chasing", "behaviour") };
+            var rows = new[] { ((string)null, "riding") };
+            var plan = FactLayout.Plan(Kind.Creature, pairs, rows, new FactBlock[0]);
+            Assert.DoesNotContain("Riding", plan.Select(t => t.Heading));
+            Assert.Equal(3, Assert.Single(plan.Single(t => t.Heading == "Senses and behaviour").Bits).Pair);
+            Assert.DoesNotContain(plan.SelectMany(t => t.Bits), b => b.Pair == 1 || b.Pair == 2 || b.Row == 0);
+        }
+
+        [Fact]
         public void WhatToBringIsPartOfACreaturesFight()
         {
             var plan = FactLayout.Plan(Kind.Creature, new[] { ("Health", "") }, new[] { ("Damage it takes", "resistances"), (SearchFight.BringTitle, "what to bring") }, new FactBlock[0]);

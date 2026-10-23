@@ -232,6 +232,10 @@ namespace Scry.Tests
             Assert.Equal("its pregnancy found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.Born)));
             Assert.Equal("its growing up found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.GrewUp)));
             Assert.Equal("its growing back found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.GrewBack)));
+            // A creature ridden shows its stamina and speed when ridden, which the game never tells.
+            Assert.Equal("its riding found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.Ridden)));
+            Assert.Equal("how Lox rides", JournalWords.FoundOutOf(EntryKeys.Did(Deed.Ridden), "Lox"));
+            Assert.Equal("shows once you have ridden one", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Ridden)));
             Assert.Equal("a weak spot found", CompendiumWords.FoundOutNote(EntryKeys.WeakSpot("head")));
             Assert.Equal("how Fire lands found out", CompendiumWords.FoundOutNote(EntryKeys.Damage("Fire")));
             Assert.Equal("an attack's damage found out", CompendiumWords.FoundOutNote("Troll_log"));

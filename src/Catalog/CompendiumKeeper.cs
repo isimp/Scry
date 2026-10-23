@@ -225,6 +225,8 @@ namespace Scry
             if (trader != null) _catchUp.Traded(Utils.GetPrefabName(trader.gameObject), trader.GetAvailableItems().Where(t => t?.m_prefab != null).Select(t => t.m_prefab.name), _book);
             Weather();
             Tamings(player, creature => creature.IsTamed());
+            // Riding a creature: its stamina and speed when ridden found out.
+            if (player.GetDoodadController() is Sadle saddle && saddle.GetCharacter() is Character mount) Into?.FoundOut(Utils.GetPrefabName(mount.gameObject), EntryKeys.Did(Deed.Ridden));
             var place = Location.GetLocation(player.transform.position);
             if (place != null) StoodIn(EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject)), place.m_hasInterior, player.InInterior(), player.transform.position);
             // A station in use, seen with the upgrades standing near it.

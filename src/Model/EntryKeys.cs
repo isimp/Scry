@@ -40,6 +40,9 @@ namespace Scry
 
         /// <summary>Saw an egg hatch: how long that takes.</summary>
         Hatched,
+
+        /// <summary>Rode a creature: its stamina and speed when ridden.</summary>
+        Ridden,
     }
 
     /// <summary>

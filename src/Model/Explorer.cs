@@ -316,6 +316,14 @@ namespace Scry
             CompendiumOn && _selected != null && _selected.Kind != Kind.Mod && _view.Of(_selected) == KnownLevel.Known;
 
         /// <summary>
+        /// Whether what hinges on the entry a key names is left out whole, a topic of a page or a
+        /// look on the stage that exists only through it, as a lox's riding and saddled look through
+        /// its saddle: with the compendium on, until the character met it, seen counting, so no
+        /// ??? where it would be named tells it is there. None for no key.
+        /// </summary>
+        public bool HidesHinged(string key) => !string.IsNullOrEmpty(key) && NotMet(key);
+
+        /// <summary>
         /// Whether a key names an entry of the catalog the character has not met, seen or come to
         /// know, with the compendium on: a creature so is left off a place's example on the stage,
         /// and out of a room's card, unless the page shown is a place shown with all it holds.

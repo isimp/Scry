@@ -11,6 +11,9 @@ namespace Scry
         private static Facts _planFacts;
 
         private static int _planBlocks = -1;
+
+        /// <summary>What the character knew when the plan was laid (<see cref="Explorer.KnowStamp"/>), as a part hinging on a thing met then shows.</summary>
+        private static int _planStamp = -1;
         private static List<FactTopicPlan> _plan;
 
         private static readonly FactBlock[] EveryBlock = (FactBlock[])Enum.GetValues(typeof(FactBlock));
@@ -35,17 +38,21 @@ namespace Scry
             if (ModHookWords.Line(facts.Hooks) != null) PlanBlocks.Add(FactBlock.Hooks);
             var blocks = 0;
             foreach (var block in PlanBlocks) blocks |= 1 << (int)block;
-            if (ReferenceEquals(facts, _planFacts) && blocks == _planBlocks) return _plan;
+            if (ReferenceEquals(facts, _planFacts) && blocks == _planBlocks && explorer.KnowStamp == _planStamp) return _plan;
 
+            // What a part tells is left out whole, its label handed in as none, while the thing it
+            // hinges on was not met (Facts.PartHinges).
+            bool Hidden(string part) => part != null && facts.PartHinges.TryGetValue(part, out var hinge) && explorer.HidesHinged(hinge);
             PlanPairs.Clear();
-            for (var i = 0; i < facts.Pairs.Count; i++) PlanPairs.Add((facts.Pairs[i].Key, facts.PairParts[i]));
+            for (var i = 0; i < facts.Pairs.Count; i++) PlanPairs.Add((Hidden(facts.PairParts[i]) ? null : facts.Pairs[i].Key, facts.PairParts[i]));
             PlanRows.Clear();
-            foreach (var row in facts.Rows) PlanRows.Add((row.Title, row.Part ?? ""));
+            foreach (var row in facts.Rows) PlanRows.Add((Hidden(row.Part) ? null : row.Title, row.Part ?? ""));
             PlanLinks.Clear();
             foreach (var group in entry.LinkGroups()) PlanLinks.Add(group.Key);
             _plan = FactLayout.Plan(entry.Kind, PlanPairs, PlanRows, PlanBlocks, PlanLinks);
             _planFacts = facts;
             _planBlocks = blocks;
+            _planStamp = explorer.KnowStamp;
             TopicHeights.Clear();
             return _plan;
         }
@@ -239,6 +246,10 @@ namespace Scry
 
         /// <summary>How wide each heading of the table being drawn is, which its column keeps where it can.</summary>
         private static readonly List<float> HeadingWidths = new List<float>();
+
+        /// <summary>The headings of the page's topics as last laid out, none for a topic without one, for the self-test.</summary>
+        [ForTest]
+        public static List<string> TopicHeadingsForTest => _plan == null ? new List<string>() : _plan.ConvertAll(t => t.Heading);
 
         /// <summary>Whether each table's widths are kept as drawn (<see cref="TablesDrawnForTest"/>), for the self-test.</summary>
         [Diagnostic]

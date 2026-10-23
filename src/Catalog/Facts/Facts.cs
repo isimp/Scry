@@ -463,6 +463,20 @@ namespace Scry
         private readonly List<string> _missing = new List<string>();
 
         /// <summary>
+        /// The thing each reader part hinges on, by the part's name, where it has one: a topic that
+        /// exists only through it, left out of the page whole while the character has not met it
+        /// (<see cref="Explorer.HidesHinged"/>), as a creature's riding through its saddle.
+        /// </summary>
+        public readonly Dictionary<string, string> PartHinges = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        /// <summary>Reads a part that hinges on a thing (<see cref="PartHinges"/>); none for a part that hinges on nothing.</summary>
+        private void Part(string part, Action read, string hinge)
+        {
+            if (!string.IsNullOrEmpty(hinge)) PartHinges[part] = hinge;
+            Part(part, read);
+        }
+
+        /// <summary>
         /// Reads one part of the facts on its own. One that fails, on a mod's odd prefab or because
         /// an update changed what it reads, is told once in the log and named at the end of the
         /// facts, and the other parts still show.

@@ -523,7 +523,8 @@ namespace Scry
             for (var i = 0; i < pairs.Count; i++)
             {
                 var (label, part) = pairs[i];
-                if (tiled.Contains(i)) continue;
+                // A pair handed in with no label is left out of the page (its part hinges on a thing not met).
+                if (label == null || tiled.Contains(i)) continue;
                 if (plan.Notes.ContainsKey(label))
                 {
                     notes.Add(i);
@@ -536,6 +537,7 @@ namespace Scry
             for (var i = 0; i < rows.Count; i++)
             {
                 var (title, part) = rows[i];
+                if (title == null) continue;
                 var bit = new FactBit { Row = i };
                 topics[TopicOf(title, part)].Bits.Add(bit);
                 anchors[title] = bit;

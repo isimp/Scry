@@ -69,7 +69,11 @@ namespace Scry
                 if (chosen >= 0) modifiers.Wear = (Wear)chosen;
             }
 
-            if (open && model && modifiers.LookAvailable)
+            // Looks that hinge on a thing not met, as a saddle, are left out, the first look shown.
+            var looksHidden = entry.Source is GameObject hinged && _explorer != null && _explorer.HidesHinged(PrefabLooks.HingeOf(hinged));
+            _looksHidden = looksHidden;
+            if (looksHidden && modifiers.Look != 0) modifiers.Look = 0;
+            if (open && model && modifiers.LookAvailable && !looksHidden)
             {
                 var chosen = Segments("Look", new List<string>(modifiers.LookNames), modifiers.Look, width, labelW, ref y);
                 if (chosen >= 0) modifiers.Look = chosen;
@@ -86,6 +90,12 @@ namespace Scry
         }
 
         private static readonly List<AnimationClip> NoClips = new List<AnimationClip>();
+
+        private static bool _looksHidden;
+
+        /// <summary>Whether the looks of what is shown were last left out, as hinging on a thing not met, for the self-test.</summary>
+        [ForTest]
+        public static bool LooksHiddenForTest => _looksHidden;
         /// <summary>
         /// The weapon, shield and armour a creature can roll, one row each, and the extras it may
         /// be given, each put on or taken off. Only rows with a choice are shown.
@@ -99,10 +109,13 @@ namespace Scry
             for (var i = 0; i < rows.Length; i++)
             {
                 if (!loadout.Offered(rows[i])) continue;
-                var names = loadout.Options(rows[i]).Select(ItemName).ToList();
+                var options = loadout.Options(rows[i]);
+                var names = options.Select(ItemName).ToList();
                 for (var n = 0; n < names.Count; n++)
                 {
-                    if (names.Count(other => other == names[n]) > 1) names[n] = Naming.WithPrefab(names[n], loadout.Options(rows[i])[n]);
+                    // An item never met reads ??? as in a page's text, its prefab not told either.
+                    if (_explorer != null && _explorer.NotMet(options[n])) names[n] = CompendiumWords.Hidden;
+                    else if (names.Count(other => other == names[n]) > 1) names[n] = Naming.WithPrefab(names[n], options[n]);
                 }
 
                 // A shield the weapon leaves no hand for is shown put away, and still chosen for later.
@@ -122,7 +135,7 @@ namespace Scry
             }
 
             if (loadout.Extras.Count == 0) return;
-            var extras = loadout.Extras.Select(e => ItemName(e.Name)).ToList();
+            var extras = loadout.Extras.Select(e => _explorer != null && _explorer.NotMet(e.Name) ? CompendiumWords.Hidden : ItemName(e.Name)).ToList();
             var clicked = Toggles("Extras", extras, loadout.ExtraOn, width, labelW, ref y);
             if (clicked < 0) return;
             loadout.ToggleExtra(clicked);

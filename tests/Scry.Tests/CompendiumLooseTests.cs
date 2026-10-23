@@ -51,6 +51,27 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatHingesOnAThingNotMetIsLeftOutWholeNotNamedAsUnknown()
+        {
+            // A lox's riding hinges on its saddle: stamina and speed when ridden, and a saddled look
+            // on the stage, would tell it can be ridden. Until the saddle is met, seen counting, the
+            // whole topic and the look are left out, not a ??? where the saddle would be named.
+            var world = new World().Rule(CompendiumRule.Loose);
+            world.Explorer.Select(world.Neck);
+            Assert.True(world.Explorer.HidesHinged(world.Barley.Key));
+            Assert.False(world.Explorer.HidesHinged(world.Wood.Key));
+            Assert.False(world.Explorer.HidesHinged(world.Stone.Key));
+            Assert.False(world.Explorer.HidesHinged(null));
+            // The strict rules likewise; with the compendium off, everything shows.
+            world.Rule(CompendiumRule.Strict);
+            world.Explorer.Select(world.Neck);
+            Assert.True(world.Explorer.HidesHinged(world.Barley.Key));
+            world.Rule(CompendiumRule.Off);
+            world.Explorer.Select(world.Neck);
+            Assert.False(world.Explorer.HidesHinged(world.Barley.Key));
+        }
+
+        [Fact]
         public void AKnownWindmillDoesNotTellWhatItGrindsBeforeTheGrainWasMet()
         {
             var world = new World().Rule(CompendiumRule.Loose);
