@@ -38,5 +38,14 @@ namespace Scry
         /// seeing it; the stop given from the place's middle across the ground.
         /// </summary>
         public static bool PlaceInSight(bool blocked, float offX, float offZ, float radius) => !blocked || offX * offX + offZ * offZ <= radius * radius;
+
+        /// <summary>How far over where a deed happened the eye looks for it, in metres: a creature's or a person's middle.</summary>
+        public const float DeedHeight = 1f;
+
+        /// <summary>How near the point looked at the line may stop and the deed still be seen, in metres: what it was done to, or by, standing in the way.</summary>
+        public const float DeedNear = 1.5f;
+
+        /// <summary>Whether a deed is in sight: the line from the eye meets nothing solid, or stops within <see cref="DeedNear"/> of the point (<paramref name="hitOff"/>, how far from it).</summary>
+        public static bool DeedInSight(bool blocked, float hitOff) => !blocked || hitOff <= DeedNear;
     }
 }

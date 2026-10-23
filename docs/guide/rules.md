@@ -30,7 +30,7 @@ The pin at the end of *Ground you explored* and *Shared maps* marks every dungeo
 
 ## Playing together
 
-Where your friends have Scry, what their game runs near you, a kill or a drop or a pick, counts for you as it would alone, if you did it or stood within 30 m. What runs in a game without Scry counts nothing, and a notice names those players.
+Where your friends have Scry, what their game runs near you, a kill or a drop or a pick, counts for you as it would alone, if you did it or saw it, within 30 m with nothing solid between, as a wall or a hill hides a place. What runs in a game without Scry counts nothing, and a notice names those players.
 
 A server can set the rules for everyone and cap each source ([server settings](server-settings.md)); the box then shows the server's choice locked, your own kept beneath it.
 

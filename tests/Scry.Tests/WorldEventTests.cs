@@ -169,6 +169,21 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ADeedNearByBehindSomethingSolidIsNotSeen()
+        {
+            // A friend's kill 10 m away behind a wall: within reach, but no line from the eye, as a
+            // place or a thing needs one to be seen; done by the character, it counts all the same.
+            System.Func<float, float, float, bool> walled = (x, y, z) => false;
+            Assert.Equal(EventShare.None, EventRule.Tell(Death(10f, doers: new[] { Friend }), Me, 0f, 0f, 0f, new EventLedger(), new CompendiumBook(), null, walled));
+            Assert.Equal(EventShare.Did, EventRule.Tell(Death(10f, doers: new[] { Me }), Me, 0f, 0f, 0f, new EventLedger(), new CompendiumBook(), null, walled));
+            Assert.Equal(EventShare.Saw, EventRule.Tell(Death(10f, doers: new[] { Friend }), Me, 0f, 0f, 0f, new EventLedger(), new CompendiumBook(), null, (x, y, z) => true));
+            // The line stops at what it was done to itself, or by it, within a step: still seen.
+            Assert.True(Sighting.DeedInSight(blocked: false, hitOff: 0f));
+            Assert.True(Sighting.DeedInSight(blocked: true, hitOff: 1.2f));
+            Assert.False(Sighting.DeedInSight(blocked: true, hitOff: 4f));
+        }
+
+        [Fact]
         public void ACreatureSeenEatingIsPairedWithWhatItAte()
         {
             Assert.True(Told(Event(Happened.Ate, "Boar", 10f, with: "Raspberry")).Witnessed("Boar", "Raspberry"));

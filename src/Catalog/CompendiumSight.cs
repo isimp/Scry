@@ -358,6 +358,22 @@ namespace Scry
         }
 
         /// <summary>
+        /// Whether a deed done where it says is in sight of the eye: a line to a creature's middle
+        /// over it meets nothing solid, or stops within a step of it, on what the deed was done to
+        /// (<see cref="Sighting.DeedInSight"/>). In sight wherever there is no eye to look from.
+        /// </summary>
+        public static bool SeesDeed(float x, float y, float z)
+        {
+            var player = Player.m_localPlayer;
+            if (player == null) return true;
+            Bind();
+            var eye = (GameCamera.instance != null ? GameCamera.instance.transform : player.transform).position;
+            var point = new Vector3(x, y + Sighting.DeedHeight, z);
+            var blocked = Physics.Linecast(eye, point, out var hit, _solid);
+            return Sighting.DeedInSight(blocked, blocked ? Vector3.Distance(hit.point, point) : 0f);
+        }
+
+        /// <summary>
         /// Whether nothing solid (ground, rock, a building) stands between the eye and a point; what
         /// the line meets of the thing looked at itself does not hide it.
         /// </summary>

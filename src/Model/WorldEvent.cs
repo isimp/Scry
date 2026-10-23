@@ -136,10 +136,13 @@ namespace Scry
         /// recorded in its book where it did it or saw it, and counted in the play counts given;
         /// how it concerns the character, none when told before.
         /// </summary>
-        public static EventShare Tell(WorldEvent told, long me, float x, float y, float z, EventLedger ledger, CompendiumBook book, PlayCounts counts)
+        public static EventShare Tell(WorldEvent told, long me, float x, float y, float z, EventLedger ledger, CompendiumBook book, PlayCounts counts,
+            Func<float, float, float, bool> inSight = null)
         {
             if (told == null || book == null || !ledger.First(told)) return EventShare.None;
             var share = Of(told, me, x, y, z);
+            // Seen only with a line from the eye to it, as a place or a thing is (Sighting.DeedInSight).
+            if (share == EventShare.Saw && inSight != null && !inSight(told.X, told.Y, told.Z)) share = EventShare.None;
             if (share != EventShare.None) Record(told, book, counts);
             return share;
         }

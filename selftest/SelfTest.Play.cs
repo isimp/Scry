@@ -12,6 +12,35 @@ namespace Scry
     internal static partial class SelfTest
     {
         /// <summary>
+        /// One rule for every event: one beyond sight counts only where the character did it, and
+        /// once however often it is told; one within reach under the ground, no line from the eye
+        /// reaching it, is not seen.
+        /// </summary>
+        private static void DeathsOutOfSight(Probe p, CompendiumBook book, Player player, long[] me)
+        {
+            const string Made = "ScrySelfTestCreature";
+            var far = player.transform.position + Vector3.right * (Sighting.PersonReach * 2f);
+            CompendiumKeeper.Tell(WorldEvents.Make(Happened.Died, Made, far));
+            p.Check(book.Tallied(Tally.Fell).Kills(Made) == 0, "a death beyond sight that the character had no hand in records nothing");
+            var done = WorldEvents.Make(Happened.Died, Made, far, doers: me);
+            CompendiumKeeper.Tell(done);
+            CompendiumKeeper.Tell(done);
+            p.Check(book.Tallied(Tally.Fell).Kills(Made) == 1, "one the character had a hand in counts, once however often it is told");
+            const string Buried = "ScrySelfTestBuried";
+            var under = player.transform.position + Vector3.down * 12f;
+            CompendiumKeeper.Tell(WorldEvents.Make(Happened.Died, Buried, under));
+            p.Check(book.Tallied(Tally.Fell).Kills(Buried) == 0 && !CompendiumSight.SeesDeed(under.x, under.y, under.z),
+                "a death within reach under the ground, no line from the eye to it, records nothing");
+        }
+
+        /// <summary>Whether a thing near by is in sight of the eye, as a deed done to it must be to be seen (<see cref="CompendiumSight.SeesDeed"/>).</summary>
+        private static bool InSight(Component thing)
+        {
+            var at = thing.transform.position;
+            return CompendiumSight.SeesDeed(at.x, at.y, at.z);
+        }
+
+        /// <summary>
         /// A birth near by, of a tame creature that breeds and is not pregnant now: it shows how
         /// long it is pregnant, and the young it brought, which the game names by waking it last,
         /// told to the keeper as the birth names it (nothing is spawned, nor sent to other games),
@@ -20,7 +49,7 @@ namespace Scry
         private static void BirthSeen(Probe p, CompendiumBook book, Player player)
         {
             var parent = UnityEngine.Object.FindObjectsByType<Procreation>(FindObjectsSortMode.None)
-                .FirstOrDefault(c => c != null && Vector3.Distance(c.transform.position, player.transform.position) <= Sighting.PersonReach && !DeedWatch.Pregnant(c));
+                .FirstOrDefault(c => c != null && Vector3.Distance(c.transform.position, player.transform.position) <= Sighting.PersonReach && !DeedWatch.Pregnant(c) && InSight(c));
             if (parent == null)
             {
                 p.Note("no tame creature that breeds is near to see born");
@@ -61,16 +90,7 @@ namespace Scry
             CompendiumKeeper.RecordInto(book);
             var me = new[] { ZNet.GetUID() };
 
-            // One rule for every event: one beyond sight counts only where the character did it, and
-            // once however often it is told.
-            const string Made = "ScrySelfTestCreature";
-            var far = player.transform.position + Vector3.right * (Sighting.PersonReach * 2f);
-            CompendiumKeeper.Tell(WorldEvents.Make(Happened.Died, Made, far));
-            p.Check(book.Tallied(Tally.Fell).Kills(Made) == 0, "a death beyond sight that the character had no hand in records nothing");
-            var done = WorldEvents.Make(Happened.Died, Made, far, doers: me);
-            CompendiumKeeper.Tell(done);
-            CompendiumKeeper.Tell(done);
-            p.Check(book.Tallied(Tally.Fell).Kills(Made) == 1, "one the character had a hand in counts, once however often it is told");
+            DeathsOutOfSight(p, book, player, me);
 
             // A hit of the character's on the nearest loaded creature: how its damage landed, then its weak spot.
             var creature = UnityEngine.Object.FindObjectsByType<Character>(FindObjectsSortMode.None).Where(c => c != null && !c.IsPlayer())
@@ -119,7 +139,7 @@ namespace Scry
             var near = Sighting.PersonReach;
             BirthSeen(p, book, player);
             var bush = UnityEngine.Object.FindObjectsByType<Pickable>(FindObjectsSortMode.None)
-                .FirstOrDefault(b => b != null && Vector3.Distance(b.transform.position, player.transform.position) <= near);
+                .FirstOrDefault(b => b != null && Vector3.Distance(b.transform.position, player.transform.position) <= near && InSight(b));
             if (bush == null) p.Note("no pickable is near to see grow back");
             else
             {
@@ -179,7 +199,7 @@ namespace Scry
 
             // A spawner spawning near by, a hive collected from.
             var spawner = UnityEngine.Object.FindObjectsByType<SpawnArea>(FindObjectsSortMode.None)
-                .FirstOrDefault(a => a != null && Vector3.Distance(a.transform.position, player.transform.position) <= near);
+                .FirstOrDefault(a => a != null && Vector3.Distance(a.transform.position, player.transform.position) <= near && InSight(a));
             if (spawner == null) p.Note("no spawner is near to see spawn");
             else
             {

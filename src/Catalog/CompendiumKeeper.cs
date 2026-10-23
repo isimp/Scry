@@ -378,7 +378,7 @@ namespace Scry
             var player = Player.m_localPlayer;
             if (Into == null || told == null || player == null) return;
             var at = player.transform.position;
-            EventRule.Tell(told, ZNet.GetUID(), at.x, at.y, at.z, Told, Into, _into == null ? Play : null);
+            EventRule.Tell(told, ZNet.GetUID(), at.x, at.y, at.z, Told, Into, _into == null ? Play : null, CompendiumSight.SeesDeed);
         }
 
         /// <summary>A producer the character collected from shows its pace (<see cref="Deed.Collected"/>).</summary>
