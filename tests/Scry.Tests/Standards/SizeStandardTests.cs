@@ -22,7 +22,7 @@ namespace Scry.Tests
         {
             ["selftest/SelfTest.Card.cs SelfTest.RoomCardShows"] = 174,
             ["selftest/SelfTest.Compendium.cs SelfTest.CompendiumKept"] = 124,
-            ["selftest/SelfTest.Compendium.cs SelfTest.CompendiumShown"] = 267,
+            ["selftest/SelfTest.Compendium.cs SelfTest.CompendiumShown"] = 264,
             ["selftest/SelfTest.Focus.cs SelfTest.GoesIntoRooms"] = 123,
             ["selftest/SelfTest.Layouts.cs SelfTest.Layout"] = 155,
             ["selftest/SelfTest.LevelsTried.cs SelfTest.LevelsTried"] = 222,

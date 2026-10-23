@@ -386,6 +386,123 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheEyePeeksAtThePageShownAloneAndGoingToAnotherEndsIt()
+        {
+            // A look at the one page in front of you: it shows whole, the list and the search stay as
+            // the character knows them, and going to any other entry, from the list or back, ends it.
+            var world = new World().Rule(CompendiumRule.Loose);
+            var explorer = world.Explorer;
+            explorer.Select(world.Troll);
+            explorer.Select(world.Boar);
+
+            explorer.PeekPage();
+            Assert.True(explorer.Peeking);
+            Assert.False(explorer.PeekingEvery);
+            Assert.Same(world.Boar, explorer.PeekedPage);
+            Assert.False(explorer.CompendiumOn);
+            Assert.Equal(KnownLevel.Known, explorer.LevelOf(world.Boar));
+            explorer.Text = "\"fenring\"";
+            Assert.Empty(explorer.Results);
+            explorer.Text = "";
+            Assert.Equal(2, explorer.Results.Count);
+
+            explorer.Select(world.Troll);
+            Assert.False(explorer.Peeking);
+            Assert.Null(explorer.PeekedPage);
+            Assert.True(explorer.CompendiumOn);
+
+            // Going back to the page peeked at shows it as the character knows it.
+            Assert.True(explorer.Back());
+            Assert.Same(world.Boar, explorer.Selected);
+            Assert.False(explorer.Peeking);
+            Assert.Equal(KnownLevel.Seen, explorer.LevelOf(world.Boar));
+        }
+
+        [Fact]
+        public void ALinkFollowedFromAPagePeekedAtToAThingNotMetPeeksAtThatOneInTurn()
+        {
+            // The page peeked at shows whole, so its links lead anywhere: one to a thing the
+            // character has not met opens that page peeked at in turn, staying while the list is
+            // asked again though it is not listed; going back to a page it has met ends the peek,
+            // and what was looked at meanwhile is no step forward after.
+            var world = new World().Rule(CompendiumRule.Loose);
+            var explorer = world.Explorer;
+            explorer.Select(world.Troll);
+            explorer.PeekPage();
+
+            Assert.True(explorer.Jump(world.Fenring.Key));
+            Assert.Same(world.Fenring, explorer.Selected);
+            Assert.Same(world.Fenring, explorer.PeekedPage);
+            explorer.Text = "boar";
+            explorer.Text = "";
+            Assert.Same(world.Fenring, explorer.Selected);
+
+            Assert.True(explorer.Back());
+            Assert.Same(world.Troll, explorer.Selected);
+            Assert.False(explorer.Peeking);
+            Assert.False(explorer.CanGoForward);
+        }
+
+        [Fact]
+        public void PeekingAtEveryPageAPageNotMetStaysShownWhileTheListIsAskedAgain()
+        {
+            // A link followed while peeking at every page keeps its page when the list is asked
+            // again, as the character's book catches up; stopping the peek closes it.
+            var world = new World().Rule(CompendiumRule.Loose);
+            var explorer = world.Explorer;
+            explorer.Select(world.Troll);
+            explorer.Peeking = true;
+            Assert.True(explorer.Jump(world.Fenring.Key));
+            explorer.Text = "boar";
+            explorer.Text = "";
+            Assert.Same(world.Fenring, explorer.Selected);
+
+            explorer.Peeking = false;
+            Assert.Null(explorer.Selected);
+        }
+
+        [Fact]
+        public void APeekAtOnePageWidensToEveryPageOrStops()
+        {
+            var world = new World().Rule(CompendiumRule.Loose);
+            var explorer = world.Explorer;
+            explorer.Select(world.Boar);
+            explorer.PeekPage();
+
+            // The strip's chip: every page shows whole until the panel closes, going elsewhere or not.
+            explorer.Peeking = true;
+            Assert.True(explorer.PeekingEvery);
+            Assert.Null(explorer.PeekedPage);
+            explorer.Text = "\"fenring\"";
+            Assert.Equal(new[] { world.Fenring }, explorer.Results);
+            explorer.Text = "";
+            explorer.Select(world.Troll);
+            Assert.True(explorer.PeekingEvery);
+
+            // The strip's cross, or the eye again: the compendium as it was.
+            explorer.Peeking = false;
+            explorer.PeekPage();
+            explorer.Peeking = false;
+            Assert.False(explorer.Peeking);
+            Assert.Null(explorer.PeekedPage);
+            Assert.True(explorer.CompendiumOn);
+        }
+
+        [Fact]
+        public void WithNoPageShownTheEyePeeksAtEveryPageAndWithTheCompendiumOffAtNone()
+        {
+            var world = new World().Rule(CompendiumRule.Loose);
+            world.Explorer.PeekPage();
+            Assert.True(world.Explorer.PeekingEvery);
+
+            var off = new World().Rule(CompendiumRule.Off);
+            off.Explorer.Select(off.Troll);
+            off.Explorer.PeekPage();
+            Assert.False(off.Explorer.Peeking);
+            Assert.Null(off.Explorer.PeekedPage);
+        }
+
+        [Fact]
         public void ThereIsNoPeekingWithTheCompendiumOff()
         {
             var world = new World().Rule(CompendiumRule.Off);

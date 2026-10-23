@@ -62,8 +62,15 @@ namespace Scry.Tests
         public void PeekingWarnsThatEverythingShowsAndUntilWhen()
         {
             // Peeking shows the page looked at whole, not the whole catalog: the list stays as the character knows it.
-            Assert.Equal("Show each page whole for now, its links leading anywhere and a whole name in quotes finding what this character has not met; the list stays as it knows it, and it stops when the panel closes", CompendiumWords.PeekTip(false));
-            Assert.Equal("Show only what this character has met again", CompendiumWords.PeekTip(true));
+            Assert.Equal("Show each page whole for now, its links leading anywhere and a whole name in quotes finding what this character has not met; the list stays as it knows it, and it stops when the panel closes", CompendiumWords.PeekTip(false, pageShown: false));
+            Assert.Equal("Show only what this character has met again", CompendiumWords.PeekTip(true, pageShown: true));
+            // With a page shown, the eye peeks at that page alone; its strip can widen it.
+            Assert.Equal("Show this page whole for now, its links leading anywhere, until you go to another page; its notice can show every page whole until the panel closes", CompendiumWords.PeekTip(false, pageShown: true));
+            Assert.Equal("Peeking at Troll: this page shows whole until you go to another", CompendiumWords.PeekingPageLine("Troll", compact: false));
+            Assert.Equal("Peeking at Troll", CompendiumWords.PeekingPageLine("Troll", compact: true));
+            Assert.Equal("Until you go to another page, this one shows whole and its links lead anywhere; the list stays as this character knows it", CompendiumWords.PeekingPageTip);
+            Assert.Equal("Every page", CompendiumWords.EveryPage);
+            Assert.Equal("Show every page whole until the panel closes, a whole name in quotes finding what this character has not met", CompendiumWords.EveryPageTip);
             // The strip says it short; the rest in the tip of its line.
             Assert.Equal("Peeking: pages show whole until the panel closes", CompendiumWords.Peeking);
             Assert.Equal("Each page shows whole, its links lead anywhere and a whole name in quotes finds what this character has not met; the list stays as it knows it", CompendiumWords.PeekingTip);

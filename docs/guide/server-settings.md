@@ -6,7 +6,7 @@ A server with Scry, a dedicated one or a game hosting, can set what the compendi
 
 `Rules` is the compendium's rules everyone plays by: `Off`, `Loose`, `Strict`, or `PlayersChoose` (the default), which leaves them to each player ([the rules](rules.md)).
 
-`Peeking` (true by default) is whether players may peek, every page showing whole until the panel closes.
+`Peeking` (true by default) is whether players may peek, at the page shown until they go to another or at every page until the panel closes.
 
 `KnownUpTo` (true by default) is whether players may raise *Known up to*, showing everything of the tiers below the bosses they beat as known.
 

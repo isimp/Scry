@@ -679,6 +679,25 @@ namespace Scry
             Session.ShowKnownInstead(null);
         }
 
+        /// <summary>Closing the panel ends a peek; the eye with a page shown peeks at that page alone, under its own warning, and going to another entry ends it.</summary>
+        private static IEnumerator PeekEnds(Probe p, Entry unseen)
+        {
+            X.Peeking = true;
+            Session.Hide();
+            p.Check(!X.Peeking, "closing the panel ends a peek");
+            Session.Show(null);
+            var met = X.Results.Where(e => e != unseen && X.LevelOf(e) >= KnownLevel.Seen).Take(2).ToList();
+            if (met.Count < 2) yield break;
+            X.Select(met[0]);
+            var pageStrips = ScryPanel.Drawn(PanelPart.PeekPageStrip);
+            ScryPanel.PressEyeForTest();
+            yield return Until(() => ScryPanel.Drawn(PanelPart.PeekPageStrip) > pageStrips + 1, 3);
+            p.Check(X.PeekedPage == met[0] && !X.PeekingEvery && ScryPanel.Drawn(PanelPart.PeekPageStrip) > pageStrips, $"the eye peeks at {met[0].Name}'s page alone, under its own warning");
+            yield return Picture(p, "peeking at one page");
+            X.Select(met[1]);
+            p.Check(!X.Peeking && X.CompendiumOn, $"going to {met[1].Name} ends the peek at {met[0].Name}");
+        }
+
         /// <summary>
         /// With the compendium on, a made-up character who has fought one creature and seen
         /// another sees only that: its creatures' tab lists those two, counted as found of all; no
@@ -943,10 +962,7 @@ namespace Scry
             p.Check(CompendiumKeeper.Book == null || ScryPanel.Drawn(PanelPart.PeekButton) > eyes, "the eye that peeks stands beside the compendium's button in the title row");
             X.Peeking = false;
             p.Check(!X.Results.Contains(unseen) && X.LevelOf(unseen) < KnownLevel.Seen, "stopped, it is not listed and its page is closed again");
-            X.Peeking = true;
-            Session.Hide();
-            p.Check(!X.Peeking, "closing the panel ends a peek");
-            Session.Show(null);
+            yield return PeekEnds(p, unseen);
 
             // Off: everything as before.
             view.Tell(book, CompendiumRule.Off);

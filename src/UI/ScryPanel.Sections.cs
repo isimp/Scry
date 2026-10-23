@@ -300,13 +300,26 @@ namespace Scry
         private static bool NewsUp(Explorer explorer) => Settings.NewsNotice && LearnedNews.New(explorer).Count > 0;
 
         /// <summary>
-        /// Warns that everything shows while peeking, with a chip that stops it; else names what
+        /// Warns that the page shown shows whole while peeking at it alone, with a chip widening
+        /// the peek to every page and a cross stopping it; that everything shows while peeking at
+        /// every page, with a chip that stops it; else names what
         /// the character learned since last told, with a chip listing what it learned lately and
         /// a cross putting the notice away until it learns more; the compact view's step at its
         /// end where given. What was clicked.
         /// </summary>
         private static StripClick CompendiumStrip(Explorer explorer, Rect rect, string step = null)
         {
+            if (explorer.PeekedPage is Entry page)
+            {
+                CountDrawn(PanelPart.PeekStrip);
+                CountDrawn(PanelPart.PeekPageStrip);
+                var widened = NoticeStrip(rect, Skin.Warn, CompendiumWords.PeekingPageLine(page.ShownName, _compact), Skin.WarnLabel, true, CompendiumWords.EveryPage, false, true,
+                    chipTip: CompendiumWords.EveryPageTip, crossTip: CompendiumWords.StopPeeking, lineTip: CompendiumWords.PeekingPageTip, step: step);
+                PeekLineFitsForTest = _stripLineFits;
+                if (widened == StripClick.Chip) Peek(explorer, true);
+                else if (widened == StripClick.Cross) Peek(explorer, false);
+                return widened;
+            }
             if (explorer.Peeking)
             {
                 CountDrawn(PanelPart.PeekStrip);
@@ -508,7 +521,24 @@ namespace Scry
             PinCompendiumBox(false);
         }
 
-        /// <summary>Starts or stops showing everything though the compendium is on (<see cref="Explorer.Peeking"/>), keeping the list where it was.</summary>
+        /// <summary>The eye: peeks at the page shown alone (<see cref="Explorer.PeekPage"/>), or stops a peek.</summary>
+        private static void PressEye(Explorer explorer)
+        {
+            if (explorer.Peeking)
+            {
+                Peek(explorer, false);
+                return;
+            }
+            explorer.PeekPage();
+            ListFiltered();
+            RevealSelected();
+        }
+
+        /// <summary>Presses the eye, for the self-test.</summary>
+        [ForTest]
+        public static void PressEyeForTest() => PressEye(_explorer);
+
+        /// <summary>Starts showing every page whole though the compendium is on (<see cref="Explorer.Peeking"/>), or stops a peek, keeping the list where it was.</summary>
         private static void Peek(Explorer explorer, bool peek)
         {
             explorer.Peeking = peek;

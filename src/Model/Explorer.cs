@@ -8,7 +8,7 @@ namespace Scry
     /// What the panel shows and what the player has picked: the search, the kind chips, the list,
     /// the selection and its modifiers. The panel draws this and hands it the player's input.
     /// </summary>
-    internal sealed class Explorer
+    internal sealed partial class Explorer
     {
         private readonly EntryCatalog _entries;
         private readonly IReadOnlyList<Entry> _catalog;
@@ -201,27 +201,6 @@ namespace Scry
 
         /// <summary>Whether the compendium is set on, peeking or not: what the list, its counts and the search go with, and Peek and the list of what was learned lately.</summary>
         public bool CompendiumSet => _view != null && _view.Rule != CompendiumRule.Off;
-
-        private bool _peeking;
-
-        /// <summary>
-        /// Whether each page shows whole for now though the compendium is on, its links leading
-        /// anywhere and a whole name in quotes finding what the character has not met, the list and
-        /// its counts staying as it knows them, for checking something or helping a friend, until it
-        /// is stopped; what was looked at meanwhile and not seen is no step back after. Never with
-        /// the compendium off.
-        /// </summary>
-        public bool Peeking
-        {
-            get => _peeking;
-            set
-            {
-                var peek = value && CompendiumSet;
-                if (peek == _peeking) return;
-                _peeking = peek;
-                Retell();
-            }
-        }
 
         /// <summary>How much the character knows of an entry; all of it while the compendium is off.</summary>
         public KnownLevel LevelOf(Entry entry) => CompendiumOn ? _view.Of(entry) : KnownLevel.Known;
@@ -551,7 +530,7 @@ namespace Scry
             _viewVersion = version;
             _pairsVersion = pairs;
             // A peek ends with the compendium turned off.
-            if (!CompendiumSet) _peeking = false;
+            if (!CompendiumSet) Peeking = false;
             Retell();
         }
 
@@ -648,11 +627,15 @@ namespace Scry
                 Remember(_back);
                 _forward.Clear();
             }
+            // A peek at the page shown alone ends on going to another, but for one the character has
+            // not seen, which only that page's links reach: that one is peeked at in turn.
+            var endsPeek = PeekEndsGoingTo(entry);
 
             _selected = entry;
             _selectedIndex = entry == null ? -1 : _results.IndexOf(entry);
             _selectionVersion++;
             _modifiers.ResetFor(entry);
+            if (endsPeek) Peeking = false;
 
             // The recent list is not reordered under the cursor; it catches up on the next refresh.
             if (entry == null) return;
@@ -898,9 +881,9 @@ namespace Scry
             // Peeking, the list stays as the character knows it; only a page shows whole.
             var view = CompendiumSet ? _view : null;
             Array.Clear(_counts, 0, _counts.Length);
-            _results = Search.Run(_catalog, _query, _favourites.Keys, order?.Keys, _learnedOnly ? null : _counts, view, _peeking);
+            _results = Search.Run(_catalog, _query, _favourites.Keys, order?.Keys, _learnedOnly ? null : _counts, view, PeekingEvery);
             // The learned list is a tab of its own: the others count what each would show.
-            if (_learnedOnly) Search.Run(_catalog, _query, _favourites.Keys, null, _counts, view, _peeking);
+            if (_learnedOnly) Search.Run(_catalog, _query, _favourites.Keys, null, _counts, view, PeekingEvery);
             _countAll = 0;
             foreach (var count in _counts) _countAll += count;
             // The learned tab counts what the search finds among what was learned, as each kind's tab
@@ -915,7 +898,7 @@ namespace Scry
                     if (entry != null) _learned.Add(entry);
                 }
                 Array.Clear(_learnedCounts, 0, _learnedCounts.Length);
-                Search.Run(_learned, _query, _favourites.Keys, null, _learnedCounts, view, _peeking);
+                Search.Run(_learned, _query, _favourites.Keys, null, _learnedCounts, view, PeekingEvery);
                 foreach (var count in _learnedCounts) _learnedCount += count;
             }
 
@@ -970,7 +953,8 @@ namespace Scry
             if (_selected == null) return;
 
             _selectedIndex = _results.IndexOf(_selected);
-            if (_selectedIndex < 0) Select(null, false);
+            // While peeking, a page reached by a link stays, listed or not.
+            if (_selectedIndex < 0 && !_peeking) Select(null, false);
         }
     }
 }

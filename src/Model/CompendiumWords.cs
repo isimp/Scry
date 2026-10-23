@@ -70,10 +70,24 @@ namespace Scry
             _ => "show everything. What this character comes to know is kept all the same, so turning the compendium on later shows everything met meanwhile",
         };
 
-        /// <summary>The tip of the eye beside the mode that peeks at each page whole, by whether it is peeking.</summary>
-        public static string PeekTip(bool peeking) => peeking
+        /// <summary>The tip of the eye beside the mode, by whether it is peeking and whether a page is shown for it to peek at alone, else at each page.</summary>
+        public static string PeekTip(bool peeking, bool pageShown) => peeking
             ? "Show only what this character has met again"
-            : "Show each page whole for now, its links leading anywhere and a whole name in quotes finding what this character has not met; the list stays as it knows it, and it stops when the panel closes";
+            : pageShown
+                ? "Show this page whole for now, its links leading anywhere, until you go to another page; its notice can show every page whole until the panel closes"
+                : "Show each page whole for now, its links leading anywhere and a whole name in quotes finding what this character has not met; the list stays as it knows it, and it stops when the panel closes";
+
+        /// <summary>The warning strip while peeking at the page shown alone: in the compact view its name alone, the rest in its tip.</summary>
+        public static string PeekingPageLine(string name, bool compact) => compact ? "Peeking at " + name : "Peeking at " + name + ": this page shows whole until you go to another";
+
+        /// <summary>The tip of the strip's line while peeking at one page.</summary>
+        public const string PeekingPageTip = "Until you go to another page, this one shows whole and its links lead anywhere; the list stays as this character knows it";
+
+        /// <summary>The strip's chip widening a peek at one page to every page.</summary>
+        public const string EveryPage = "Every page";
+
+        /// <summary>That chip's tip.</summary>
+        public const string EveryPageTip = "Show every page whole until the panel closes, a whole name in quotes finding what this character has not met";
 
         /// <summary>The warning strip while peeking, short; the rest in its tip.</summary>
         public const string Peeking = "Peeking: pages show whole until the panel closes";

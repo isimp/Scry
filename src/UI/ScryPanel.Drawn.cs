@@ -32,6 +32,7 @@ namespace Scry
         UnseenName,
         ListLeftOut,
         PeekStrip,
+        PeekPageStrip,
         LearnedStrip,
         FloorControl,
         CompendiumSwitch,

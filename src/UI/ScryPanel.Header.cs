@@ -485,7 +485,7 @@ namespace Scry
             return button.x;
         }
 
-        /// <summary>The eye beside the compendium's button while it is on, peeking at everything for now, lit while it does; dimmed where the world's server allows no peeking.</summary>
+        /// <summary>The eye beside the compendium's button while it is on, peeking at the page shown for now (<see cref="PressEye"/>), lit while a peek is on; dimmed where the world's server allows no peeking.</summary>
         private static void PeekButton(Explorer explorer, Rect rect)
         {
             CountDrawn(PanelPart.PeekButton);
@@ -493,11 +493,11 @@ namespace Scry
             if (!allowed) CountDrawn(PanelPart.WorldLocked);
             var was = GUI.enabled;
             GUI.enabled = was && allowed;
-            if (GUI.Button(rect, GUIContent.none, explorer.Peeking ? Skin.On : Skin.IconButton) && allowed) Peek(explorer, !explorer.Peeking);
+            if (GUI.Button(rect, GUIContent.none, explorer.Peeking ? Skin.On : Skin.IconButton) && allowed) PressEye(explorer);
             GUI.enabled = was;
             var icon = new Rect(rect.x + rect.width * 0.2f, rect.y + rect.height * 0.2f, rect.width * 0.6f, rect.height * 0.6f);
             Skin.Icon(icon, Skin.Eye, explorer.Peeking ? Skin.Accent : allowed ? Skin.Dim : Skin.Alpha(Skin.Faint, 0.45f));
-            if (rect.Contains(Event.current.mousePosition)) AskTip("peek", allowed ? CompendiumWords.PeekTip(explorer.Peeking) : WorldRulesWords.NoPeeking);
+            if (rect.Contains(Event.current.mousePosition)) AskTip("peek", allowed ? CompendiumWords.PeekTip(explorer.Peeking, explorer.Selected != null) : WorldRulesWords.NoPeeking);
         }
 
         /// <summary>The box's columns' widths, worked out with it each event, and what stands in them (<see cref="BookColumns"/>).</summary>

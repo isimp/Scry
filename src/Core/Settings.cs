@@ -221,7 +221,7 @@ namespace Scry
             _worldRules = config.Bind("4 - World", "Rules", WorldRule.PlayersChoose,
                 "The compendium's rules everyone in this world plays by: Off, Loose or Strict; PlayersChoose leaves them to each player. Set on the server, it holds for every player connected to it.");
             _worldPeeking = config.Bind("4 - World", "Peeking", true,
-                "Whether players may peek, each page showing whole until the panel closes.");
+                "Whether players may peek, the page shown showing whole until they go to another, or every page until the panel closes.");
             _worldFloor = config.Bind("4 - World", "KnownUpTo", true,
                 "Whether players may raise Known up to, showing everything of the tiers below as known.");
             Sync(_worldRules);
