@@ -405,7 +405,7 @@ namespace Scry
                 p.Note(held != null
                     ? $"{what} ({entry.Name}), {Numbers.Count(held.Frames)} frames: Scry's own work {Numbers.Fixed(held.Mean, 2)} ms a frame on average, {Numbers.Fixed(held.Percentile(0.95), 2)} ms at the 95th percentile; it allocated about {Numbers.Count(own / count)} bytes a frame{(Timing.CountsPerThread ? "" : ", other threads' left out")}"
                     : $"{what}: frames were not measured");
-                p.Note($"{what}, by part: " + Timing.BytesByPartTold(10));
+                p.Note($"{what}, by part: " + Timing.BytesByPartTold(30));
             }
             Stage.Inside = wasInside;
             p.Check(true, "the panel stood open on each and was measured");
@@ -454,7 +454,7 @@ namespace Scry
                 ? $"idling {Numbers.Count(idle.Frames)} frames: Scry's own work {Numbers.Fixed(idle.Mean, 3)} ms a frame on average, {Numbers.Fixed(idle.Percentile(0.95), 3)} ms at the 95th percentile, {Numbers.Fixed(idle.Max, 3)} ms at the most; it allocated about {Numbers.Count(allocated / 1024)} KB, {Numbers.Count(allocated / count)} bytes a frame, {counted}"
                 : "frames were not measured");
             // By part, an outer one with the inner ones in it, to tell which allocates.
-            p.Note((Timing.CountsPerThread ? "by part: " : "by part, other threads' allocations while each ran in it too: ") + Timing.BytesByPartTold(8));
+            p.Note((Timing.CountsPerThread ? "by part: " : "by part, other threads' allocations while each ran in it too: ") + Timing.BytesByPartTold(20));
             // Standing still, the compendium's sight looks only at what can move.
             p.Note($"the compendium's sight keeps {Numbers.Count(CompendiumSight.ThingCount)} things to look at, {Numbers.Count(CompendiumSight.ThingsResting)} of them resting as the character and the eye stood still");
             // A frame above a millisecond while idling is one to account for: every part of it.

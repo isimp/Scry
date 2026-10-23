@@ -299,6 +299,23 @@ namespace Scry
             return (only, worth, loot.Count);
         }
 
+        /// <summary>The page's line for the mods hooking into what it tells (<see cref="ModHookWords.Line"/>), worked out once, as the page draws it every frame; null for none.</summary>
+        public string HooksLine
+        {
+            get
+            {
+                if (!_hooksLineTold)
+                {
+                    _hooksLine = ModHookWords.Line(Hooks);
+                    _hooksLineTold = true;
+                }
+                return _hooksLine;
+            }
+        }
+
+        private string _hooksLine;
+        private bool _hooksLineTold;
+
         /// <summary>Why Scry is not sure of a pair, by its label (<see cref="UnsureWords"/>).</summary>
         public readonly Dictionary<string, string> Unsure = new Dictionary<string, string>();
 

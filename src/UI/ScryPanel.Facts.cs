@@ -529,16 +529,24 @@ namespace Scry
             return y;
         }
 
+        /// <summary>The hooks line last drawn and its words marked as unsure, so a page drawn every frame marks them once.</summary>
+        private static string _hooksTextOf, _hooksText;
+
         /// <summary>The mods hooking into what the page tells, in one soft line.</summary>
         private static float HooksBlock(Entry entry, Facts facts, float width, float y)
         {
             // Mods hooking into what the page tells, in one soft line after the rest; who they
             // are and what each may change on hover.
-            var hooks = ModHookWords.Line(facts.Hooks);
+            var hooks = facts.HooksLine;
             if (hooks != null)
             {
                 y += U(6f);
-                var text = UnsureWords.Marked(hooks);
+                if (!ReferenceEquals(_hooksTextOf, hooks))
+                {
+                    _hooksTextOf = hooks;
+                    _hooksText = UnsureWords.Marked(hooks);
+                }
+                var text = _hooksText;
                 var hooksRect = new Rect(0f, y, width, Skin.Height(Skin.DimWrap, text, width));
                 GUI.Label(hooksRect, text, Skin.DimWrap);
                 if (hooksRect.Contains(Event.current.mousePosition)) AskTip("hooks:" + entry.Key, Naming.Lines(ModHookWords.Tip(facts.Hooks), UnsureWords.Hooked));

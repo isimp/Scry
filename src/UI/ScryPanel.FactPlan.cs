@@ -35,7 +35,7 @@ namespace Scry
             if (entry.Biomes.Length > 0 && entry.Kind != Kind.Biome) PlanBlocks.Add(FactBlock.Biomes);
             if (Users(explorer, entry).Count > 0) PlanBlocks.Add(FactBlock.Users);
             if (facts.UseRows.Count > 0) PlanBlocks.Add(FactBlock.Uses);
-            if (ModHookWords.Line(facts.Hooks) != null) PlanBlocks.Add(FactBlock.Hooks);
+            if (facts.HooksLine != null) PlanBlocks.Add(FactBlock.Hooks);
             var blocks = 0;
             foreach (var block in PlanBlocks) blocks |= 1 << (int)block;
             if (ReferenceEquals(facts, _planFacts) && blocks == _planBlocks && explorer.KnowStamp == _planStamp) return _plan;
