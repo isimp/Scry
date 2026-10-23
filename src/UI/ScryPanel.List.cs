@@ -34,7 +34,10 @@ namespace Scry
 
         /// <summary>Puts away whatever card is showing, for the list.</summary>
         [ForTest]
-        internal static void CloseCards() => _card = ListCard.None;
+        internal static void CloseCards() => AnyCardAway();
+
+        /// <summary>Puts away whatever card stands in the list's place.</summary>
+        private static void AnyCardAway() => _card = ListCard.None;
 
         /// <summary>Scrolls the selected entry into sight at the list's next repaint.</summary>
         private static void RevealSelected() => _reveal = true;
@@ -42,23 +45,41 @@ namespace Scry
         private static void ListFromTop() => _listScroll = Vector2.zero;
 
         /// <summary>
-        /// The list was filtered anew: it shows from its top, and the search's help and the mod
-        /// report give way to it; the notice of what is off stays.
+        /// The list was filtered anew, by the search, the favourites, the recent or a tab: it shows
+        /// from its top, and whatever card stood in its place gives way to it, as the list asked
+        /// for is what is wanted.
         /// </summary>
         private static void ListFiltered()
         {
             ListFromTop();
-            CloseCard(ListCard.Help);
-            CloseCard(ListCard.ModReport);
+            AnyCardAway();
         }
 
-        /// <summary>Went to an entry: the list shows it, its details start at their top, and the search's help gives way.</summary>
+        /// <summary>Went to an entry: the list shows it, its details start at their top, and whatever card stood in the list's place gives way.</summary>
         private static void AfterGoing()
         {
             RevealSelected();
             DetailsFromTop();
-            CloseCard(ListCard.Help);
+            AnyCardAway();
         }
+
+        /// <summary>Shows only the favourites, or every entry again, as the header's star does.</summary>
+        private static void ToggleFavourites(Explorer explorer)
+        {
+            explorer.FavouritesOnly = !explorer.FavouritesOnly;
+            ListFiltered();
+        }
+
+        /// <summary>Shows only what was shown lately, or every entry again, as the header's clock does.</summary>
+        private static void ToggleRecent(Explorer explorer)
+        {
+            explorer.RecentOnly = !explorer.RecentOnly;
+            ListFiltered();
+        }
+
+        /// <summary>Presses the header's clock, for the self-test.</summary>
+        [ForTest]
+        public static void ToggleRecentForTest() => ToggleRecent(_explorer);
 
         /// <summary>Whether the search's help is shown, and showing or hiding it, for the self-test.</summary>
         [ForTest]

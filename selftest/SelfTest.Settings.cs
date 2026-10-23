@@ -98,6 +98,14 @@ namespace Scry
             yield return Picture(p, "compendium guide");
             ScryPanel.ShowGuide(false);
             p.Check(!ScryPanel.GuideShown, "and is put away");
+
+            // Asking for the list, the recent here, puts a card in its place away, as the list is what is wanted.
+            ScryPanel.ShowGuide(true);
+            yield return null;
+            ScryPanel.ToggleRecentForTest();
+            yield return null;
+            p.Check(!ScryPanel.GuideShown, "pressing the recent puts the guide away, so the list asked for shows");
+            ScryPanel.ToggleRecentForTest();
         }
 
         /// <summary>The question of keeping a compendium draws in the list's place, asked here whatever the book says; nothing is answered, so the book is as it was.</summary>

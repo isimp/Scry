@@ -81,21 +81,13 @@ namespace Scry
             if (help.Contains(Event.current.mousePosition)) AskTip("help", "How to search");
 
             var star = new Rect(help.xMax + gap, y, size, size);
-            if (GUI.Button(star, GUIContent.none, explorer.FavouritesOnly ? Skin.On : Skin.IconButton))
-            {
-                explorer.FavouritesOnly = !explorer.FavouritesOnly;
-                ListFiltered();
-            }
+            if (GUI.Button(star, GUIContent.none, explorer.FavouritesOnly ? Skin.On : Skin.IconButton)) ToggleFavourites(explorer);
             var icon = new Rect(star.x + star.width * 0.22f, star.y + star.height * 0.22f, star.width * 0.56f, star.height * 0.56f);
             Skin.Icon(icon, explorer.FavouritesOnly ? Skin.Star : Skin.StarHollow, explorer.FavouritesOnly ? Skin.Accent : Skin.Dim);
             if (star.Contains(Event.current.mousePosition)) AskTip("fav", ListWords.FavouritesTip(explorer.FavouritesOnly));
 
             var recent = new Rect(star.xMax + gap, y, size, size);
-            if (GUI.Button(recent, GUIContent.none, explorer.RecentOnly ? Skin.On : Skin.IconButton))
-            {
-                explorer.RecentOnly = !explorer.RecentOnly;
-                ListFiltered();
-            }
+            if (GUI.Button(recent, GUIContent.none, explorer.RecentOnly ? Skin.On : Skin.IconButton)) ToggleRecent(explorer);
             var clock = new Rect(recent.x + recent.width * 0.22f, recent.y + recent.height * 0.22f, recent.width * 0.56f, recent.height * 0.56f);
             Skin.Icon(clock, Skin.Clock, explorer.RecentOnly ? Skin.Accent : Skin.Dim);
             if (recent.Contains(Event.current.mousePosition)) AskTip("recent", ListWords.RecentTip(explorer.RecentOnly));
