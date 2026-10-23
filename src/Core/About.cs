@@ -7,7 +7,7 @@ namespace Scry
     {
         public const string Guid = "isimp.Scry";
         public const string Name = "Scry";
-        public const string Version = "0.3.0";
+        public const string Version = "0.3.1";
 
         /// <summary>
         /// Scry's own types, those that load. One naming a game type an update removed cannot be

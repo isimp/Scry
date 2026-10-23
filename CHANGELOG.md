@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.3.1
+
 ## 0.3.0
 
 Scry keeps a compendium for each character, chosen at the top of the panel and offered once on a new character. *Loose* shows only what the character has met; *Strict* also keeps back how things connect, and the numbers the game never shows, until the character found them out. The *?* in the compendium's box explains it in the game, and `is:new`, `is:seen` and `is:walked` search what the character met.
