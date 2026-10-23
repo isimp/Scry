@@ -24,7 +24,7 @@ Put the same Scry package in the server's `BepInEx/plugins`, by the server profi
 
 ## Hosting from the game
 
-A game hosting a world is that world's server: the host's own Scry does the server's part, and nothing more needs installing. Two things differ from a dedicated server. The host's own *4 - World* settings bind everyone who joins, so a host who changed them for themselves changed them for their friends too. And the traces left inside the world's dungeons are read when the host types `/scry read traces`, not at each start.
+A game hosting a world is that world's server: the host's own Scry does the server's part, and nothing more needs installing. One thing differs from a dedicated server: the host's own *4 - World* settings bind everyone who joins, so a host who changed them for themselves changed them for their friends too. The traces left inside the world's dungeons are read at each start as a dedicated server reads them, a few milliseconds a frame while the host plays.
 
 ## Moving a world
 

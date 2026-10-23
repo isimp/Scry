@@ -28,6 +28,6 @@ A world moved from a hosting game to a dedicated server leaves the host's record
 ## For an admin
 
 - `/scry forget server maps` forgets the world's records; walks last made before that day are not taken back from players' lists.
-- `/scry read traces` reads again what was left inside the world's dungeons: chests taken from, things broken, pickups taken, doors opened. A dedicated server reads them at each start unless `ReadTracesOnStart` is off; what was read stays though a mod resets a dungeon.
+- `/scry read traces` reads again what was left inside the world's dungeons: chests taken from, things broken, pickups taken, doors opened. The game running the world, a dedicated server or a host, reads them at each start unless `ReadTracesOnStart` is off; what was read stays though a mod resets a dungeon.
 
 Both go on the admin's own connection and are refused for anyone not on the server's admin list.

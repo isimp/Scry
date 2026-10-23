@@ -520,10 +520,10 @@ namespace Scry
                 }
                 _reading = null;
             }
-            // Once its records are read, a dedicated server reads the traces in the world's dungeons, a
-            // few milliseconds a frame, unless told not to (ReadTracesOnStart); a game hosting the
-            // world reads them only on the command, its player playing in it.
-            if (_records != null && _tracedFor != world && Settings.ReadTracesOnStart && ZNet.instance.IsDedicated() && ZoneSystem.instance != null && DungeonDB.instance != null)
+            // Once its records are read, the game running the world, a dedicated server or a host,
+            // reads the traces in the world's dungeons, a few milliseconds a frame, unless told not
+            // to (ReadTracesOnStart), so a world counts the same whoever hosts it.
+            if (_records != null && _tracedFor != world && Settings.ReadTracesOnStart && ZoneSystem.instance != null && DungeonDB.instance != null)
             {
                 _tracedFor = world;
                 DungeonTraceReader.Start(world, null);

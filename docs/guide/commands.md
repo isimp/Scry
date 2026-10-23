@@ -24,7 +24,7 @@ Every command is typed in the chat as shown, or in the game's console (F5) witho
 
 `/scry forget server maps` forgets the server's records of the dungeons walked in this world, everyone's; walks last made before that day are not taken back when players join.
 
-`/scry read traces` has the server read again what was left inside the world's dungeons: chests taken from, things broken, pickups taken, doors opened. A dedicated server reads them at each start unless its `ReadTracesOnStart` is off (see [server settings](server-settings.md)). On a world hosted from the game, this command is the only way they are read.
+`/scry read traces` has the server read again what was left inside the world's dungeons: chests taken from, things broken, pickups taken, doors opened. The game running the world, a dedicated server or a host, reads them at each start unless its `ReadTracesOnStart` is off (see [server settings](server-settings.md)). On a world hosted from the game, this command is the only way they are read.
 
 ## Looking into Scry
 

@@ -202,7 +202,7 @@ namespace Scry
             _logPreviews = config.Bind("3 - Diagnostics", "LogPreviews", false,
                 "Writes to the log what each preview played and what Scry found out about each prefab (its animator, its gear, what it leaves behind), for finding out why something looks or sounds wrong. Off, the log only says when the game has changed in a way Scry notices, and how long reading the catalog took.");
             _readTracesOnStart = config.Bind("5 - Server", "ReadTracesOnStart", true,
-                "On a dedicated server, reads what was left inside the world's dungeons once the world's records are read, a few milliseconds a frame, so rooms emptied before anyone's walk was kept count as walked on this server. Off, they are read only when an admin types /scry read traces. Only the server's own setting counts.");
+                "On the game that runs the world, a dedicated server or a host, reads what was left inside the world's dungeons once the world's records are read, a few milliseconds a frame, so rooms emptied before anyone's walk was kept count as walked on this server. Off, they are read only when an admin types /scry read traces. Only the server's own setting counts.");
             _takeWalks = config.Bind("5 - Server", "TakeWalks", true,
                 "Keeps the dungeon walks players' games send, every room anyone stood in and the first and last day, and tells them to everyone as walked on this server. Off, the server keeps no one's walks: each player keeps their own, and the others see only what the traces show. Only the server's own setting counts.");
             _showMonitor = config.Bind("3 - Diagnostics", "ResourceMonitor", false,
