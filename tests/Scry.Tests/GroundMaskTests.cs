@@ -66,6 +66,26 @@ namespace Scry.Tests
             Assert.Equal(PointByPoint(size, 12.5f, -40f, across, paints), mask);
         }
 
+        [Theory]
+        [InlineData(100, 60f, 80, 2, 7)]
+        [InlineData(256, 160f, 300, 3, 1)]
+        [InlineData(77, 45.5f, 150, 5, 33)]
+        public void AMaskPaintedRowsAtATimeIsTheMaskPaintedAtOnce(int size, float across, int count, int seed, int rowsAtATime)
+        {
+            // A camp's hundreds of paints are laid over frames, a few rows each, the old mask shown
+            // till all are painted: what is painted so is the mask painted at once.
+            var paints = Paints(count, seed, across * 1.3f, 12.5f, -40f);
+            var whole = new (float, float, float, float)[size * size];
+            StageGround.PaintMask(size, 12.5f, -40f, across, paints, Bare, whole);
+
+            var painter = new MaskPainter(size, 12.5f, -40f, across, paints, Bare);
+            var parts = new (float, float, float, float)[size * size];
+            for (var row = 0; row < size; row += rowsAtATime) painter.PaintRows(parts, row, Math.Min(size, row + rowsAtATime));
+
+            Assert.Equal(size, painter.Size);
+            Assert.Equal(whole, parts);
+        }
+
         [Fact]
         public void PaintsOffTheMaskLeaveItBare()
         {

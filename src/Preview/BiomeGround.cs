@@ -206,7 +206,8 @@ namespace Scry
                 _at = at;
             }
 
-            if (_paintWait.Due(Time.unscaledTime)) RepaintMask();
+            if (_paintWait.Due(Time.unscaledTime)) BeginPaint();
+            StepPaint();
             if (_grassWait.Due(Time.unscaledTime)) Scatter(root, layer);
             StepScatter();
 
@@ -226,8 +227,67 @@ namespace Scry
         private void RepaintMask()
         {
             var step = Timing.Start();
+            _painter = null;
             PaintMask();
             Timing.Add("render frame ground paint", step);
+        }
+
+        /// <summary>How long painting the ground's mask takes of a frame at most, in milliseconds.</summary>
+        private const double PaintBudgetMs = 3.0;
+
+        /// <summary>How many of the mask's rows are painted between looks at the time.</summary>
+        private const int PaintRowsAtOnce = 4;
+
+        /// <summary>The mask being painted a few milliseconds a frame, the one shown kept till it is done; none while none is.</summary>
+        private MaskPainter _painter;
+        private int _paintedRows;
+        private (float R, float G, float B, float A)[] _paintingPoints = Array.Empty<(float, float, float, float)>();
+
+        /// <summary>Starts painting the mask afresh once what the ground holds settled, a few milliseconds a frame (<see cref="StepPaint"/>).</summary>
+        private void BeginPaint()
+        {
+            var ground = Heightmap.m_paintMaskNothing;
+            ground.a = StageGround.MaskShare(Biome);
+            var paints = PaintsNow();
+            var size = StageGround.MaskSize(paints.Count, _across);
+            _painter = new MaskPainter(size, _at.x, _at.z, _across, paints, (ground.r, ground.g, ground.b, ground.a));
+            _paintedRows = 0;
+            if (_paintingPoints.Length != size * size) _paintingPoints = new (float, float, float, float)[size * size];
+        }
+
+        /// <summary>Paints the mask begun a few milliseconds a frame; once every row is painted, the texture takes them.</summary>
+        private void StepPaint()
+        {
+            if (_painter == null) return;
+            var step = Timing.Start();
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            var size = _painter.Size;
+            while (_paintedRows < size && watch.Elapsed.TotalMilliseconds < PaintBudgetMs)
+            {
+                var to = Math.Min(size, _paintedRows + PaintRowsAtOnce);
+                _painter.PaintRows(_paintingPoints, _paintedRows, to);
+                _paintedRows = to;
+            }
+            if (_paintedRows >= size)
+            {
+                _painter = null;
+                Applied(size, _paintingPoints);
+            }
+            Timing.Add("render frame ground paint", step);
+        }
+
+        /// <summary>The mask's texture takes the points painted.</summary>
+        private void Applied(int size, (float R, float G, float B, float A)[] points)
+        {
+            if (_mask.width != size) _mask.Reinitialize(size, size);
+            if (_maskPixels.Length != size * size) _maskPixels = new Color[size * size];
+            for (var p = 0; p < points.Length && p < _maskPixels.Length; p++)
+            {
+                var (r, g, b, a) = points[p];
+                _maskPixels[p] = new Color(r, g, b, a);
+            }
+            _mask.SetPixels(_maskPixels);
+            _mask.Apply(false);
         }
 
         /// <summary>Starts scattering the grass afresh, any scatter under way let go of; the grass shown stays until the new is done.</summary>
@@ -469,21 +529,10 @@ namespace Scry
             ground.a = StageGround.MaskShare(Biome);
             var paints = PaintsNow();
             var size = StageGround.MaskSize(paints.Count, _across);
-            if (_mask.width != size) _mask.Reinitialize(size, size);
             // Kept from one painting to the next, so laying the ground anew makes no new ones.
-            if (_maskPoints.Length != size * size)
-            {
-                _maskPoints = new (float, float, float, float)[size * size];
-                _maskPixels = new Color[size * size];
-            }
+            if (_maskPoints.Length != size * size) _maskPoints = new (float, float, float, float)[size * size];
             StageGround.PaintMask(size, _at.x, _at.z, _across, paints, (ground.r, ground.g, ground.b, ground.a), _maskPoints);
-            for (var p = 0; p < _maskPoints.Length; p++)
-            {
-                var (r, g, b, a) = _maskPoints[p];
-                _maskPixels[p] = new Color(r, g, b, a);
-            }
-            _mask.SetPixels(_maskPixels);
-            _mask.Apply(false);
+            Applied(size, _maskPoints);
         }
 
         /// <summary>The mask's points as painted, and as colours for its texture.</summary>
@@ -829,6 +878,7 @@ namespace Scry
         public void Forget()
         {
             StopScatter();
+            _painter = null;
             ForgetGrass();
             if (_waterMaterial != null) Object.Destroy(_waterMaterial);
             _water = null;

@@ -118,8 +118,17 @@ namespace Scry
             var root = copy.transform;
             try
             {
+                // The parts are gathered so many at a time, a big place's thousands over frames,
+                // none between them, as the rays are cast.
+                var parts = new List<RayPart>();
+                var transforms = new List<Transform>();
                 var timed = Timing.Start();
-                var parts = PartsOf(copy, roll, out var transforms);
+                foreach (var _ in PartsOf(copy, roll, parts, transforms))
+                {
+                    Timing.Add("floor probe parts", timed);
+                    yield return null;
+                    timed = Timing.Start();
+                }
                 var present = new HashSet<int>();
                 for (var i = 0; i < transforms.Count; i++) if (There(transforms[i], root)) present.Add(i);
                 var placed = roll.Spawns.Where(s => s.At != null && s.At.IsChildOf(root)).ToList();
@@ -208,21 +217,27 @@ namespace Scry
             }
         }
 
+        /// <summary>How many of a copy's colliders are gathered as parts at a time, between which a reading may wait for the next frame.</summary>
+        private const int PartsAtOnce = 256;
+
         /// <summary>
-        /// The parts of a copy a ray can meet, in the order its record keeps them: each object
+        /// Gathers the parts of a copy a ray can meet into <paramref name="parts"/>, their objects
+        /// into <paramref name="transforms"/>, in the order its record keeps them: each object
         /// holding a solid collider that is there, or that a roll can bring (every object above it
         /// switched on, or one of those its rolls switch), named, and solid where the game's floor
-        /// rays for what it drops meet it.
+        /// rays for what it drops meet it. So many colliders at a time (<see cref="PartsAtOnce"/>),
+        /// none between them; the copy's colliders taken first into a list of the reading's own, as
+        /// another reading may run between.
         /// </summary>
-        private static List<RayPart> PartsOf(GameObject copy, PlaceRoll roll, out List<Transform> transforms)
+        private static IEnumerable<object> PartsOf(GameObject copy, PlaceRoll roll, List<RayPart> parts, List<Transform> transforms)
         {
             var root = copy.transform;
-            var parts = new List<RayPart>();
-            transforms = new List<Transform>();
             var seen = new HashSet<Transform>();
-            copy.GetComponentsInChildren(true, Colliders);
-            foreach (var collider in Colliders)
+            var colliders = copy.GetComponentsInChildren<Collider>(true);
+            for (var i = 0; i < colliders.Length; i++)
             {
+                if (i > 0 && i % PartsAtOnce == 0) yield return null;
+                var collider = colliders[i];
                 if (collider == null || !collider.enabled || collider.isTrigger) continue;
                 var part = collider.transform;
                 if (!seen.Add(part)) continue;
@@ -239,8 +254,6 @@ namespace Scry
                 transforms.Add(part);
                 parts.Add(new RayPart { Name = PartName(part), Solid = !roll.NotSolid.Contains(collider) });
             }
-            Colliders.Clear();
-            return parts;
         }
 
         /// <summary>Whether a part is there in this roll: it and every object above it switched on.</summary>
