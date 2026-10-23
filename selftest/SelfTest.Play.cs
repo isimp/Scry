@@ -12,6 +12,34 @@ namespace Scry
     internal static partial class SelfTest
     {
         /// <summary>
+        /// A birth near by, of a tame creature that breeds and is not pregnant now: it shows how
+        /// long it is pregnant, and the young it brought, which the game names by waking it last,
+        /// told to the keeper as the birth names it (nothing is spawned, nor sent to other games),
+        /// is known, seen born.
+        /// </summary>
+        private static void BirthSeen(Probe p, CompendiumBook book, Player player)
+        {
+            var parent = UnityEngine.Object.FindObjectsByType<Procreation>(FindObjectsSortMode.None)
+                .FirstOrDefault(c => c != null && Vector3.Distance(c.transform.position, player.transform.position) <= Sighting.PersonReach && !DeedWatch.Pregnant(c));
+            if (parent == null)
+            {
+                p.Note("no tame creature that breeds is near to see born");
+                return;
+            }
+            var key = Utils.GetPrefabName(parent.gameObject);
+            DeedWatch.Procreated(parent, wasPregnant: true);
+            p.Check(book.Witnessed(key, EntryKeys.Did(Deed.Born)), "a birth seen near by shows how long it is pregnant");
+            var young = parent.m_offspring != null ? Utils.GetPrefabName(parent.m_offspring) : null;
+            if (young == null)
+            {
+                p.Note($"{key} names no young");
+                return;
+            }
+            CompendiumKeeper.Tell(WorldEvents.Make(Happened.Born, key, parent.transform.position, with: young));
+            p.Check(book.Level(young) == KnownLevel.Known && book.Came(young)?.Way == CameBy.Born, $"the young a birth near by brought ({young}) is known, seen born", $"{book.Level(young)}, {book.Came(young)?.Way.ToString() ?? "no way kept"}");
+        }
+
+        /// <summary>
         /// Made-up events through the real hooks, recorded into a book of the test's own
         /// (<see cref="CompendiumKeeper.RecordInto"/>): a hit of the character's on a loaded
         /// creature, on its weak spot, an armed creature's hit taken, a birth, a regrowth and a
@@ -89,14 +117,7 @@ namespace Scry
 
             // Deeds near by: a birth (one not pregnant now), a regrowth, a taming.
             var near = Sighting.PersonReach;
-            var parent = UnityEngine.Object.FindObjectsByType<Procreation>(FindObjectsSortMode.None)
-                .FirstOrDefault(c => c != null && Vector3.Distance(c.transform.position, player.transform.position) <= near && !DeedWatch.Pregnant(c));
-            if (parent == null) p.Note("no tame creature that breeds is near to see born");
-            else
-            {
-                DeedWatch.Procreated(parent, wasPregnant: true);
-                p.Check(book.Witnessed(Utils.GetPrefabName(parent.gameObject), EntryKeys.Did(Deed.Born)), "a birth seen near by shows how long it is pregnant");
-            }
+            BirthSeen(p, book, player);
             var bush = UnityEngine.Object.FindObjectsByType<Pickable>(FindObjectsSortMode.None)
                 .FirstOrDefault(b => b != null && Vector3.Distance(b.transform.position, player.transform.position) <= near);
             if (bush == null) p.Note("no pickable is near to see grow back");

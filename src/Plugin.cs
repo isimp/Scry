@@ -100,6 +100,7 @@ namespace Scry
             { typeof(ThingWoke), Feature.CompendiumSeen },
             { typeof(BirthSeen), Feature.CompendiumTogether },
             { typeof(GrowingUpSeen), Feature.CompendiumTogether },
+            { typeof(HatchingSeen), Feature.CompendiumTogether },
             { typeof(GrowingBackSeen), Feature.CompendiumTogether },
             { typeof(CropGrown), Feature.CompendiumTogether },
             { typeof(SmeltingFinished), Feature.CompendiumTogether },

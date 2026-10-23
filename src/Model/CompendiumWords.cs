@@ -399,6 +399,7 @@ namespace Scry
             Pending(Deed.Tamed, "Tame one", "shows how long taming and a meal take");
             Pending(Deed.Born, "See one born", "shows how long it is pregnant");
             Pending(Deed.GrewUp, "See one grow up", "shows how long that takes");
+            Pending(Deed.Hatched, "See one hatch", "shows how long that takes");
             Pending(Deed.GrewBack, "See one grow back", "shows how long that takes");
             Pending(Deed.Broke, "Break one", "shows its health");
             Pending(Deed.StarredFell, "See a starred one fall", "shows what stars change");
@@ -428,6 +429,7 @@ namespace Scry
                 {
                     case Deed.Tamed: return "its taming found out";
                     case Deed.Born: return "its pregnancy found out";
+                    case Deed.Hatched: return "its hatching found out";
                     case Deed.GrewUp: return "its growing up found out";
                     case Deed.GrewBack: return "its growing back found out";
                     case Deed.StarredFell: return "what stars change found out";
@@ -462,6 +464,7 @@ namespace Scry
             {
                 case Deed.Tamed: return "tamed one";
                 case Deed.Born: return "seen one born";
+                case Deed.Hatched: return "seen one hatch";
                 case Deed.GrewUp: return "seen one grow up";
                 case Deed.GrewBack: return "seen one grow back";
                 case Deed.Broke: return "broken one";

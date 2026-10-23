@@ -312,6 +312,7 @@ namespace Scry
             ("CookingStation", "SpawnItem", 4, 0x2D88D50F, Feature.CompendiumTogether),
             ("Growup", "GetPrefab", 0, 0x7CD1A961, Feature.WhatYoungCreaturesGrowInto),
             ("EggGrow", "CanGrow", 0, 0x28D2DC79, Feature.WhereEggsHatch),
+            ("EggGrow", "GrowUpdate", 0, 0x0AF38598, Feature.CompendiumTogether),
             ("Fish", "TestBate", 1, 0x92BFD221, Feature.WhatFishBiteOn),
             ("Door", "Interact", 3, 0x90968825, Feature.WhatOpensDoor),
             ("Player", "UpdatePlacementGhost", 1, 0xE17BEED9, Feature.WherePiecesMayBePlaced),

@@ -7,5 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../src/Model/IlShape.cs" />
+    <Compile Include="../../src/Model/ForTest.cs" />
   </ItemGroup>
 </Project>

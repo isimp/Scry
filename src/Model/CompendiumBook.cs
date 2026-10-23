@@ -46,6 +46,12 @@ namespace Scry
         Given,
         Gives,
         Chosen,
+
+        /// <summary>Seen born or hatched, tame from the start.</summary>
+        Born,
+
+        /// <summary>Seen grow up from a young one.</summary>
+        GrewUp,
     }
 
     /// <summary>

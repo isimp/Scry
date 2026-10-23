@@ -37,6 +37,9 @@ namespace Scry
 
         /// <summary>Saw a station hand out what it made: how long each takes and what it burns.</summary>
         Finished,
+
+        /// <summary>Saw an egg hatch: how long that takes.</summary>
+        Hatched,
     }
 
     /// <summary>

@@ -94,6 +94,8 @@ namespace Scry
                 case CameBy.Given: return "come by what gives it";
                 case CameBy.Gives: return "its gift taken";
                 case CameBy.Chosen: return "chosen at its stone";
+                case CameBy.Born: return "seen born";
+                case CameBy.GrewUp: return "seen grow up";
                 default: return "known";
             }
         }
@@ -131,6 +133,7 @@ namespace Scry
                 {
                     case Deed.Tamed: return $"how {name} tames";
                     case Deed.Born: return $"how {name} breeds";
+                    case Deed.Hatched: return $"how {name} hatches";
                     case Deed.GrewUp: return $"how {name} grows up";
                     case Deed.GrewBack: return $"how {name} grows back";
                     case Deed.StarredFell: return $"what stars change on {name}";

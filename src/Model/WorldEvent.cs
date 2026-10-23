@@ -35,6 +35,9 @@ namespace Scry
 
         /// <summary>A tame creature ate.</summary>
         Ate,
+
+        /// <summary>An egg hatched.</summary>
+        Hatched,
     }
 
     /// <summary>
@@ -157,7 +160,9 @@ namespace Scry
         /// from it, a starred one showing what its stars change; what a break or a pick gave counted,
         /// each seen to come from it, a break showing its health, none of it where it gave nothing;
         /// what a creature ate paired with it; a birth, a growing up and the rest each showing the
-        /// number it tells (<see cref="Deed"/>).
+        /// number it tells (<see cref="Deed"/>); the young a birth or a hatching brought, or the one
+        /// a young one grew into, known, as a creature seen tamed is, and seen together with what
+        /// it came of (<see cref="YoungKnown"/>).
         /// </summary>
         private static void Record(WorldEvent told, CompendiumBook book, PlayCounts counts)
         {
@@ -189,18 +194,45 @@ namespace Scry
                     return;
                 default:
                     book.FoundOut(told.Thing, EntryKeys.Did(DeedOf(told.What)));
+                    YoungKnown(told, book);
                     var noted = NotedAs(told.What);
                     if (noted != null) counts?.Note(noted.Value);
                     return;
             }
         }
 
+        /// <summary>
+        /// The creature a birth or a hatching brought, or a young one grew into, named as the
+        /// event's other thing: known, seen born or seen grow up, and seen together with what it
+        /// came of. None where the event names none, as a hen's egg laid alone, an item.
+        /// </summary>
+        private static void YoungKnown(WorldEvent told, CompendiumBook book)
+        {
+            if (string.IsNullOrEmpty(told.With)) return;
+            CameBy way;
+            switch (told.What)
+            {
+                case Happened.Born:
+                case Happened.Hatched:
+                    way = CameBy.Born;
+                    break;
+                case Happened.GrewUp:
+                    way = CameBy.GrewUp;
+                    break;
+                default:
+                    return;
+            }
+            book.Witness(told.Thing, told.With);
+            book.Raise(told.With, KnownLevel.Known, way: way);
+        }
+
         /// <summary>The deed something seen done shows (<see cref="Deed"/>).</summary>
-        private static Deed DeedOf(Happened what)
+        public static Deed DeedOf(Happened what)
         {
             switch (what)
             {
                 case Happened.Born: return Deed.Born;
+                case Happened.Hatched: return Deed.Hatched;
                 case Happened.GrewUp: return Deed.GrewUp;
                 case Happened.GrewBack: return Deed.GrewBack;
                 case Happened.Grew: return Deed.Grew;

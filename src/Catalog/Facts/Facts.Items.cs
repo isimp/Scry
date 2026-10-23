@@ -88,6 +88,7 @@ namespace Scry
             {
                 Add("Hatches into", BreedWords.HatchesInto(AnyName(egg.m_grownPrefab, egg.m_grownPrefab.name), egg.m_tamed), egg.m_grownPrefab.name);
                 Add("Hatches in", Numbers.Duration(egg.m_growTime));
+                Proofs["Hatches in"] = EntryKeys.Did(Deed.Hatched);
                 Add("Hatches when", BreedWords.Hatches(egg.m_requireNearbyFire, egg.m_requireUnderRoof, egg.m_requireCoverPercentige));
             }
 

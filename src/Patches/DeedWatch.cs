@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using HarmonyLib;
 using UnityEngine;
 
@@ -6,8 +7,10 @@ namespace Scry
     /// <summary>
     /// What the character sees done that shows a number the game never does, for the strict
     /// rules (<see cref="Deed"/>): a tamed creature giving birth (<c>Procreation.Procreate</c>,
-    /// its pregnancy ending), a young one growing up (<c>Growup.GrowUpdate</c>, the young one
-    /// gone as the grown one comes), a pickable growing back (<c>Pickable.SetPicked</c> to not
+    /// its pregnancy ending), an egg hatching (<c>EggGrow.GrowUpdate</c>, the egg gone as the
+    /// young one comes), a young one growing up (<c>Growup.GrowUpdate</c>, the young one
+    /// gone as the grown one comes), each naming the creature that came, which the game wakes
+    /// last of all creatures in that call, a pickable growing back (<c>Pickable.SetPicked</c> to not
     /// picked), a crop growing (<c>Plant.Grow</c>), a station handing out what it made
     /// (<c>Smelter.Spawn</c>, <c>Fermenter.DelayedTap</c>, <c>CookingStation.SpawnItem</c>). Each is
     /// told as an event (<see cref="WorldEvents"/>), counted where the character saw it, and only
@@ -24,22 +27,55 @@ namespace Scry
                 return zdo != null && zdo.GetLong(ZDOVars.s_pregnant) != 0L;
             }, out var pregnant) && pregnant;
 
-        /// <summary>A pregnancy that ended in this call: a birth.</summary>
+        /// <summary>A pregnancy that ended in this call: a birth, naming the young creature it brought.</summary>
         public static void Procreated(Procreation procreation, bool wasPregnant)
         {
             if (!wasPregnant || Pregnant(procreation)) return;
-            Guard.Run(Feature.CompendiumTogether, "noting a birth seen", () => WorldEvents.Tell(Happened.Born, procreation));
+            Guard.Run(Feature.CompendiumTogether, "noting a birth seen", () => WorldEvents.Tell(Happened.Born, procreation, Newest(procreation.m_offspring, procreation.m_noPartnerOffspring)));
+        }
+
+        /// <summary>
+        /// The creature the game made last in this call, by its prefab's name, where it is of one
+        /// of the kinds it could make: the game wakes a creature it makes at once, last of all
+        /// creatures. None where the last is of none of them, as an egg laid is an item.
+        /// </summary>
+        private static string Newest(params GameObject[] kinds)
+        {
+            var all = Character.GetAllCharacters();
+            if (all.Count == 0 || all[all.Count - 1] == null) return null;
+            var last = Utils.GetPrefabName(all[all.Count - 1].gameObject);
+            foreach (var kind in kinds)
+            {
+                if (kind != null && Utils.GetPrefabName(kind) == last) return last;
+            }
+            return null;
+        }
+
+        /// <summary>Whether an egg is still in the world, before it may hatch.</summary>
+        public static bool Laid(EggGrow egg) =>
+            Guard.Run(Feature.CompendiumTogether, "noting an egg hatched", () => egg != null && egg.GetComponent<ZNetView>().OrNull()?.IsValid() == true, out var here) && here;
+
+        /// <summary>An egg gone in this call: hatched, naming the young creature that came.</summary>
+        public static void Hatched(EggGrow egg, bool wasHere)
+        {
+            if (!wasHere || Laid(egg)) return;
+            Guard.Run(Feature.CompendiumTogether, "noting an egg hatched", () => WorldEvents.Tell(Happened.Hatched, egg, Newest(egg.m_grownPrefab)));
         }
 
         /// <summary>Whether a young creature is still in the world, before it may grow up.</summary>
         public static bool Here(Growup young) =>
             Guard.Run(Feature.CompendiumTogether, "noting one grown up", () => young != null && young.GetComponent<ZNetView>().OrNull()?.IsValid() == true, out var here) && here;
 
-        /// <summary>A young creature gone in this call: grown up.</summary>
+        /// <summary>A young creature gone in this call: grown up, naming the one it grew into.</summary>
         public static void Grew(Growup young, bool wasHere)
         {
             if (!wasHere || Here(young)) return;
-            Guard.Run(Feature.CompendiumTogether, "noting one grown up", () => WorldEvents.Tell(Happened.GrewUp, young));
+            Guard.Run(Feature.CompendiumTogether, "noting one grown up", () =>
+            {
+                var kinds = new List<GameObject> { young.m_grownPrefab };
+                if (young.m_altGrownPrefabs != null) foreach (var alt in young.m_altGrownPrefabs) kinds.Add(alt?.m_prefab);
+                WorldEvents.Tell(Happened.GrewUp, young, Newest(kinds.ToArray()));
+            });
         }
 
         /// <summary>A spawner that spawned in this call.</summary>
@@ -124,6 +160,14 @@ namespace Scry
         private static void Prefix(Procreation __instance, out bool __state) => __state = DeedWatch.Pregnant(__instance);
 
         private static void Postfix(Procreation __instance, bool __state) => DeedWatch.Procreated(__instance, __state);
+    }
+
+    [HarmonyPatch(typeof(EggGrow), "GrowUpdate")]
+    internal static class HatchingSeen
+    {
+        private static void Prefix(EggGrow __instance, out bool __state) => __state = DeedWatch.Laid(__instance);
+
+        private static void Postfix(EggGrow __instance, bool __state) => DeedWatch.Hatched(__instance, __state);
     }
 
     [HarmonyPatch(typeof(Growup), "GrowUpdate")]

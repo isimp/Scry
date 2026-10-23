@@ -161,6 +161,7 @@ namespace Scry.Tests
         [InlineData(Happened.Grew, Deed.Grew)]
         [InlineData(Happened.Spawned, Deed.Spawned)]
         [InlineData(Happened.Finished, Deed.Finished)]
+        [InlineData(Happened.Hatched, Deed.Hatched)]
         public void SomethingSeenDoneShowsTheNumberItTells(object what, object deed)
         {
             Assert.Equal(EntryKeys.Did((Deed)deed), Told(Event((Happened)what, "Thing", 10f)).FoundOutOf("Thing"));
@@ -172,6 +173,35 @@ namespace Scry.Tests
         {
             Assert.True(Told(Event(Happened.Ate, "Boar", 10f, with: "Raspberry")).Witnessed("Boar", "Raspberry"));
             Assert.False(Told(Event(Happened.Ate, "Boar", 40f, with: "Raspberry")).Witnessed("Boar", "Raspberry"));
+        }
+
+        [Theory]
+        [InlineData(Happened.Born, "Lox", "Lox_Calf", CameBy.Born)]
+        [InlineData(Happened.Hatched, "ChickenEgg", "Chicken", CameBy.Born)]
+        [InlineData(Happened.GrewUp, "Chicken", "Hen", CameBy.GrewUp)]
+        public void TheYoungSeenComeAboutComesToBeKnown(object what, string thing, string young, object way)
+        {
+            // A calf born, a chick hatched, a hen grown from it: seen within reach, the one that came
+            // is known as a creature tamed near the character is, tame from the start, seen
+            // together with what it came of, so a strict page names each on the other's.
+            var book = Told(Event((Happened)what, thing, 10f, with: young));
+            Assert.Equal(KnownLevel.Known, book.Level(young));
+            Assert.Equal((CameBy)way, book.Came(young)?.Way);
+            Assert.True(book.Witnessed(thing, young));
+            // Too far away to see, nothing.
+            Assert.Equal(KnownLevel.Unknown, Told(Event((Happened)what, thing, 40f, with: young)).Level(young));
+            // Told with no young (a hen's egg laid alone is an item, no creature), only the deed shows.
+            Assert.Equal(EntryKeys.Did(EventRule.DeedOf((Happened)what)), Told(Event((Happened)what, thing, 10f)).FoundOutOf(thing));
+        }
+
+        [Fact]
+        public void TheWaysTheYoungComeToBeKnownAreToldInAFewWords()
+        {
+            Assert.Equal("seen born", JournalWords.LearnedNote(new BookNews(NewsHow.Known, null, CameBy.Born, 3)));
+            Assert.Equal("seen grow up", JournalWords.LearnedNote(new BookNews(NewsHow.Known, null, CameBy.GrewUp, 3)));
+            Assert.Equal("its hatching found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.Hatched)));
+            Assert.Equal("how Chicken egg hatches", JournalWords.FoundOutOf(EntryKeys.Did(Deed.Hatched), "Chicken egg"));
+            Assert.Equal("shows once you have seen one hatch", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Hatched)));
         }
 
         [Fact]

@@ -28,7 +28,7 @@ namespace Scry.Tests
             ["selftest/SelfTest.LevelsTried.cs SelfTest.LevelsTried"] = 222,
             ["selftest/SelfTest.Pins.cs SelfTest.DungeonPins"] = 159,
             ["selftest/SelfTest.PlanBox.cs SelfTest.PlanBoxShows"] = 493,
-            ["selftest/SelfTest.Play.cs SelfTest.CompendiumHooksFed"] = 168,
+            ["selftest/SelfTest.Play.cs SelfTest.CompendiumHooksFed"] = 161,
             ["selftest/SelfTest.Stage.cs SelfTest.GroundBackdrop"] = 135,
             ["src/Catalog/Facts/Facts.Resources.cs Facts.Resource"] = 144,
             ["src/Preview/Stage.Framing.cs Stage.Frame"] = 129,
