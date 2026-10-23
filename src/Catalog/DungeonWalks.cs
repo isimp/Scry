@@ -31,7 +31,7 @@ namespace Scry
         /// <summary>The character's maps, the file they are kept in, and the reading of another's.</summary>
         private static DungeonMaps _own = new DungeonMaps();
         private static string _file;
-        private static Task<DungeonMaps> _reading;
+        private static Task<(DungeonMaps Maps, string Aside)> _reading;
         private static bool _unreadable;
         private static float _savedAt;
 
@@ -173,11 +173,15 @@ namespace Scry
             _reading = Files.Then(() => Read(path));
         }
 
-        /// <summary>Takes the maps read, once they are; none where they could not be read, the file never written over.</summary>
+        /// <summary>Takes the maps read, once they are: those that could not be read set aside and new ones started, told once; none, the file never written over, where even that failed.</summary>
         private static bool Opened()
         {
             if (!_reading.IsCompleted) return false;
-            if (_reading.Status == TaskStatus.RanToCompletion) _own = _reading.Result;
+            if (_reading.Status == TaskStatus.RanToCompletion)
+            {
+                _own = _reading.Result.Maps;
+                if (_reading.Result.Aside != null) Faults.Tell(Feature.DungeonMaps, "reading the maps of the dungeons walked", CompendiumWords.SetAside(Path.GetFileName(_reading.Result.Aside)));
+            }
             else
             {
                 Faults.Tell(Feature.DungeonMaps, "reading the maps of the dungeons walked", _reading.Exception?.GetBaseException());
@@ -189,10 +193,10 @@ namespace Scry
         }
 
         /// <summary>The maps kept for a character, those kept under a generator's number re-keyed by place and so written again (<see cref="DungeonMaps.ByPlace"/>); none for a character never kept. On a worker thread.</summary>
-        private static DungeonMaps Read(string path)
+        private static (DungeonMaps Maps, string Aside) Read(string path)
         {
-            var file = FileSwap.ToRead(path);
-            return DungeonMaps.Load(file != null ? File.ReadAllText(file) : null).ByPlace();
+            var maps = KeptFile.Read(path, text => DungeonMaps.Load(text).ByPlace(), CompendiumKeeper.Stamp(), out var aside);
+            return (maps, aside);
         }
 
         private static string PathOf(string file) => Path.Combine(Settings.CacheFolder, "maps", file);

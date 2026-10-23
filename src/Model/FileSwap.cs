@@ -19,6 +19,28 @@ namespace Scry
 
         private static string Before(string path) => path + ".bak";
 
+        /// <summary>The copy of a lasting file kept from before it was last written.</summary>
+        public static string BeforeOf(string path) => Before(path);
+
+        /// <summary>
+        /// Sets a file that cannot be read aside, with any copy of it written aside or kept from
+        /// before: each moved beside it under its own name and ".unreadable-" and the
+        /// <paramref name="stamp"/>, none in place to be read again, nothing written over or lost.
+        /// The path the file in place went to, or where none was, the first moved.
+        /// </summary>
+        public static string SetAside(string path, string stamp)
+        {
+            string moved = null;
+            foreach (var file in new[] { path, Aside(path), Before(path) })
+            {
+                if (!File.Exists(file)) continue;
+                var to = file + ".unreadable-" + stamp;
+                File.Move(file, to);
+                if (moved == null) moved = to;
+            }
+            return moved;
+        }
+
         /// <summary>The file to read: the one in place, else one written aside and never moved there, else the one before it where the one in place was lost; null for none.</summary>
         public static string ToRead(string path)
         {

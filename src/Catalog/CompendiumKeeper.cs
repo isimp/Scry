@@ -36,7 +36,7 @@ namespace Scry
         private static string _namedBy;
         private static FileHelpers.FileSource _sourceOf;
         private static long _idOf;
-        private static Task<CompendiumBook> _reading;
+        private static Task<(CompendiumBook Book, string Aside)> _reading;
         private static CompendiumBook _book;
         private static bool _unreadable;
         private static bool _caughtUp;
@@ -591,13 +591,18 @@ namespace Scry
             _reading = Files.Then(() => Read(path));
         }
 
-        /// <summary>Takes the book read, once it is; an empty one where it could not be read, never written over.</summary>
+        /// <summary>
+        /// Takes the book read, once it is: one that could not be read was set aside and a new one
+        /// started (<see cref="KeptFile"/>), told once; an empty one, never written over, where even
+        /// setting it aside failed.
+        /// </summary>
         private static bool Opened()
         {
             if (!_reading.IsCompleted) return false;
             if (_reading.Status == TaskStatus.RanToCompletion)
             {
-                _book = _reading.Result;
+                _book = _reading.Result.Book;
+                if (_reading.Result.Aside != null) Faults.Tell(Feature.CompendiumCatchUp, "reading what the character knows", CompendiumWords.SetAside(Path.GetFileName(_reading.Result.Aside)));
             }
             else
             {
@@ -629,12 +634,15 @@ namespace Scry
             return new Moment(day, biome == Heightmap.Biome.None ? null : biome.ToString(), time, weather, inHand);
         }
 
-        /// <summary>The book kept for a character; an empty one for a character never kept. On a worker thread.</summary>
-        private static CompendiumBook Read(string path)
+        /// <summary>The book kept for a character, an empty one for a character never kept, and where one that could not be read was set aside (<see cref="KeptFile"/>). On a worker thread.</summary>
+        private static (CompendiumBook Book, string Aside) Read(string path)
         {
-            var file = FileSwap.ToRead(path);
-            return CompendiumBook.Load(file != null ? File.ReadAllText(file) : null);
+            var book = KeptFile.Read(path, CompendiumBook.Load, Stamp(), out var aside);
+            return (book, aside);
         }
+
+        /// <summary>The date and time a file set aside is named by.</summary>
+        internal static string Stamp() => System.DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture);
 
         private static string PathOf(string file) => Path.Combine(Settings.CacheFolder, "compendium", file);
 

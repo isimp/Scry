@@ -555,6 +555,9 @@ namespace Scry
         /// <summary>A name the strict rules keep back where it stands in a page's text.</summary>
         public const string Hidden = "???";
 
+        /// <summary>Why a kept file no longer stands in place: it could not be read, so it was set aside under its new name and a new one started.</summary>
+        public static string SetAside(string file) => $"it could not be read, so it was set aside as {file} and a new one started, which saves";
+
         /// <summary>The tab after All listing what the character learned lately.</summary>
         public const string LearnedTab = "Learned";
 

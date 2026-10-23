@@ -123,7 +123,7 @@ namespace Scry
 
         private static DungeonMaps _records;
         private static string _recordsWorld;
-        private static Task<DungeonMaps> _reading;
+        private static Task<(DungeonMaps Maps, string Aside)> _reading;
         private static bool _unreadable;
         private static float _savedAt;
 
@@ -511,7 +511,11 @@ namespace Scry
             if (_reading != null)
             {
                 if (!_reading.IsCompleted) return;
-                if (_reading.Status == TaskStatus.RanToCompletion) _records = _reading.Result;
+                if (_reading.Status == TaskStatus.RanToCompletion)
+                {
+                    _records = _reading.Result.Maps;
+                    if (_reading.Result.Aside != null) Faults.Tell(Feature.GroupDungeonMaps, "reading the world's dungeon records", CompendiumWords.SetAside(Path.GetFileName(_reading.Result.Aside)));
+                }
                 else
                 {
                     Faults.Tell(Feature.GroupDungeonMaps, "reading the world's dungeon records", _reading.Exception?.GetBaseException());
@@ -553,10 +557,10 @@ namespace Scry
             Files.Then(() => true).Wait(QuitWaitMs);
         }
 
-        private static DungeonMaps Read(string path)
+        private static (DungeonMaps Maps, string Aside) Read(string path)
         {
-            var file = FileSwap.ToRead(path);
-            return DungeonMaps.Load(file != null ? File.ReadAllText(file) : null).ByPlace();
+            var maps = KeptFile.Read(path, text => DungeonMaps.Load(text).ByPlace(), CompendiumKeeper.Stamp(), out var aside);
+            return (maps, aside);
         }
 
         private static string PathOf(string world) => Path.Combine(Settings.CacheFolder, DungeonMaps.ServerFile(world));
