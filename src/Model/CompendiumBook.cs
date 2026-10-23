@@ -242,7 +242,7 @@ namespace Scry
             if (inPlay && sighted && level == KnownLevel.Seen) _seen[key] = (Now?.Invoke() ?? Moment.None, stars);
             if (!quietly)
             {
-                Newest(key);
+                Newest(key, met: true);
                 _found.Remove(key);
             }
             Version++;
@@ -421,13 +421,58 @@ namespace Scry
             return true;
         }
 
-        /// <summary>A key learned more of now: counted, first among what was learned, with the day (none while caught up).</summary>
-        private void Newest(string key)
+        /// <summary>
+        /// A key learned more of now: counted, first among what was learned, with the day (none
+        /// while caught up); where it was <paramref name="met"/> more (seen or known), also first
+        /// among what was met, which the loose rules list alone, as they show whole what the
+        /// strict rules keep back until found out.
+        /// </summary>
+        private void Newest(string key, bool met)
         {
             _learnedAt[key] = ++Learned;
             _lately.Remove(key);
             _lately.Insert(0, key);
-            _newsDay[key] = CatchingUp ? -1 : Now?.Invoke().Day ?? -1;
+            var day = CatchingUp ? -1 : Now?.Invoke().Day ?? -1;
+            _newsDay[key] = day;
+            if (!met) return;
+            _metAt[key] = Learned;
+            _metLately.Remove(key);
+            _metLately.Insert(0, key);
+            _metDay[key] = day;
+        }
+
+        /// <summary>What was met, newest first: the learned list under the loose rules, which leaves out what was found out.</summary>
+        private readonly List<string> _metLately = new List<string>();
+        private readonly Dictionary<string, int> _metAt = new Dictionary<string, int>(StringComparer.Ordinal);
+        private readonly Dictionary<string, int> _metDay = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        /// <summary>The keys met, seen or known, newest first, leaving out what was only found out (<see cref="Lately"/> holds both).</summary>
+        public IEnumerable<string> MetLately => _metLately;
+
+        /// <summary>The keys met after a count of <see cref="Learned"/> taken before, newest first.</summary>
+        public IEnumerable<string> MetSince(int mark) => _metLately.Where(key => _metAt.TryGetValue(key, out var at) && at > mark);
+
+        /// <summary>
+        /// An entry's news of meeting it, as the loose rules tell it: known with the way it came,
+        /// else seen, or off the explored map, on the day it was met (-1 where that is not kept);
+        /// never what was found out. None for one only heard of or not in the book.
+        /// </summary>
+        public BookNews? MetNewsOf(string key)
+        {
+            var level = Level(key);
+            if (level < KnownLevel.Seen) return null;
+            var day = _metDay.TryGetValue(key, out var told) ? told : -1;
+            var way = _came.TryGetValue(key, out var came) ? came.Way : (CameBy?)null;
+            if (FoundOutOf(key) == EntryKeys.OnMap) return new BookNews(NewsHow.Map, EntryKeys.OnMap, way, day);
+            return new BookNews(level == KnownLevel.Known ? NewsHow.Known : NewsHow.Seen, null, way, day);
+        }
+
+        /// <summary>Forgets an entry's news of meeting it, as it leaves the book.</summary>
+        private void ForgetMet(string key)
+        {
+            _metLately.Remove(key);
+            _metAt.Remove(key);
+            _metDay.Remove(key);
         }
 
         /// <summary>
@@ -439,8 +484,25 @@ namespace Scry
         public bool FoundOut(string key, string proof)
         {
             if (!Witness(key, proof)) return false;
-            Newest(key);
+            Newest(key, met: false);
             _found[key] = proof;
+            Changed = true;
+            return true;
+        }
+
+        /// <summary>
+        /// The character saw a thing go together with another in play, the other shown on the
+        /// thing's page under the strict rules by how they go together (<paramref name="tie"/>):
+        /// paired and, the first time, news of the strict rules on the thing, first among the
+        /// latest learned again, saying what was seen (<see cref="EntryKeys.With"/>); caught up
+        /// from the game's records, paired only. True when the pair is new.
+        /// </summary>
+        public bool SawWith(string key, string other, Tie tie)
+        {
+            if (!Witness(key, other)) return false;
+            if (CatchingUp) return true;
+            Newest(key, met: false);
+            _found[key] = EntryKeys.With(tie);
             Changed = true;
             return true;
         }
@@ -462,6 +524,7 @@ namespace Scry
             _found.Remove(key);
             _learnedAt.Remove(key);
             _lately.Remove(key);
+            ForgetMet(key);
             Version++;
             _raised.Clear();
             _raisedFrom = Version;
@@ -606,6 +669,8 @@ namespace Scry
         {
             var levels = _levels.ToArray();
             var lately = _lately.ToArray();
+            var metLately = _metLately.ToArray();
+            var metDay = new Dictionary<string, int>(_metDay, StringComparer.Ordinal);
             var mapped = _mapped.ToArray();
             var read = _read.ToArray();
             var foundIn = _foundIn.SelectMany(p => p.Value.Select(kind => (p.Key.World, p.Key.Source, Kind: kind))).ToArray();
@@ -639,6 +704,12 @@ namespace Scry
                 {
                     text.Append("lately\t").Append(Stored.Escaped(key));
                     if (newsDay.TryGetValue(key, out var day) && day >= 0) text.Append('\t').Append(Stored.Count(day));
+                    text.Append('\n');
+                }
+                foreach (var key in metLately)
+                {
+                    text.Append("met\t").Append(Stored.Escaped(key));
+                    if (metDay.TryGetValue(key, out var day) && day >= 0) text.Append('\t').Append(Stored.Count(day));
                     text.Append('\n');
                 }
                 foreach (var world in mapped.OrderBy(w => w, StringComparer.Ordinal)) text.Append("mapped\t").Append(Stored.Escaped(world)).Append('\n');
@@ -756,8 +827,28 @@ namespace Scry
                 if (LineReaders.TryGetValue(parts[0], out var read)) read(book, parts, name);
             }
             book._latelyRead = null;
+            if (book._metRead == null) book.MetFromLately();
+            book._metRead = null;
             if (!book._mapApart) book.GiveBackMapPlaces();
             return book;
+        }
+
+        /// <summary>The names of the met list read so far while the book loads, so each is listed once; none where the book holds no met list (<see cref="MetFromLately"/>).</summary>
+        private HashSet<string> _metRead;
+
+        /// <summary>
+        /// For a book kept before what was met was kept apart from what was found out: the met list
+        /// in the order of the learned list, on the day of its news where that was a meeting, with
+        /// no day where it was something found out.
+        /// </summary>
+        private void MetFromLately()
+        {
+            foreach (var key in _lately)
+            {
+                _metLately.Add(key);
+                var proof = FoundOutOf(key);
+                if ((proof == null || proof == EntryKeys.OnMap) && _newsDay.TryGetValue(key, out var day)) _metDay[key] = day;
+            }
         }
 
         /// <summary>The names of the learned list read so far while the book loads, so each is listed once; none otherwise.</summary>
@@ -787,6 +878,13 @@ namespace Scry
                 if ((parts.Length != 2 && parts.Length != 3) || !book._latelyRead.Add(name)) return;
                 book._lately.Add(name);
                 if (parts.Length == 3 && Stored.TryCount(parts[2], out var newsDay)) book._newsDay[name] = newsDay;
+            },
+            ["met"] = (book, parts, name) =>
+            {
+                if (book._metRead == null) book._metRead = new HashSet<string>(StringComparer.Ordinal);
+                if ((parts.Length != 2 && parts.Length != 3) || !book._metRead.Add(name)) return;
+                book._metLately.Add(name);
+                if (parts.Length == 3 && Stored.TryCount(parts[2], out var metDay)) book._metDay[name] = metDay;
             },
             ["mapped"] = (book, parts, name) =>
             {
@@ -872,6 +970,7 @@ namespace Scry
                 _learnedAt.Remove(key);
                 _newsDay.Remove(key);
                 _found.Remove(key);
+                ForgetMet(key);
             }
             _mapped.Clear();
             Version++;

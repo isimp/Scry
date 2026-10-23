@@ -138,7 +138,7 @@ namespace Scry
             Guard.Run(Feature.CompendiumTogether, "noting a fish caught", () =>
             {
                 var key = Utils.GetPrefabName(fish.gameObject);
-                if (!string.IsNullOrEmpty(bait)) CompendiumKeeper.Saw(key, bait);
+                if (!string.IsNullOrEmpty(bait)) CompendiumKeeper.Saw(key, bait, Tie.Eats);
                 CompendiumKeeper.MetIn(key, fish.transform.position);
             });
         }

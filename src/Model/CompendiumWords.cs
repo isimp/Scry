@@ -444,6 +444,18 @@ namespace Scry
             }
             if (EntryKeys.IsWeakSpot(proof)) return "a weak spot found";
             if (EntryKeys.IsDamage(proof, out var type)) return $"how {type} lands found out";
+            if (EntryKeys.IsWith(proof, out var tie))
+            {
+                switch (tie)
+                {
+                    case Tie.Drops: return "a drop seen fall";
+                    case Tie.Gives: return "what it gives seen";
+                    case Tie.Eats: return "what it eats seen";
+                    case Tie.Holds: return "what it holds seen";
+                    case Tie.Where: return "where it is found seen";
+                    default: return "what breaks it seen";
+                }
+            }
             return "an attack's damage found out";
         }
 

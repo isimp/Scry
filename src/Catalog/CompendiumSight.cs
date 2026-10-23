@@ -140,7 +140,7 @@ namespace Scry
                 if (held?.m_dropPrefab == null) continue;
                 catchUp.Met(held.m_dropPrefab.name, KnownLevel.Seen, book);
                 // Its loot was found in it, and in the place it stands in.
-                CompendiumKeeper.Saw(chest, held.m_dropPrefab.name);
+                CompendiumKeeper.Saw(chest, held.m_dropPrefab.name, Tie.Holds);
                 if (chestPlace != null) CompendiumKeeper.Saw(held.m_dropPrefab.name, EntryKeys.For(Kind.Location, Utils.GetPrefabName(chestPlace.gameObject)));
             }
         }

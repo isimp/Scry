@@ -147,7 +147,16 @@ namespace Scry
         public CompendiumBook Book => _book;
 
         /// <summary>What the book told last learned lately, newest first; none before it was told.</summary>
-        public IEnumerable<string> Lately => _book?.Lately ?? Array.Empty<string>();
+        public IEnumerable<string> Lately => (_rule == CompendiumRule.Strict ? _book?.Lately : _book?.MetLately) ?? Array.Empty<string>();
+
+        /// <summary>
+        /// An entry's latest news as the rules tell it: under the strict rules what was found out
+        /// too, under the loose ones, which show it whole, only the meeting (<see cref="CompendiumBook.MetNewsOf"/>).
+        /// </summary>
+        public BookNews? NewsOf(string key) => _rule == CompendiumRule.Strict ? _book?.NewsOf(key) : _book?.MetNewsOf(key);
+
+        /// <summary>The keys learned after a count taken before, as the rules tell news (<see cref="NewsOf"/>), newest first.</summary>
+        public IEnumerable<string> LearnedSince(int mark) => (_rule == CompendiumRule.Strict ? _book?.LearnedSince(mark) : _book?.MetSince(mark)) ?? Array.Empty<string>();
 
         /// <summary>The ruleset last told; with it off, everything is known.</summary>
         public CompendiumRule Rule => _rule;

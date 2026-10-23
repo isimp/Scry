@@ -169,7 +169,7 @@ namespace Scry
             switch (told.What)
             {
                 case Happened.Died:
-                    foreach (var (item, _) in told.Came) book.Witness(told.Thing, item);
+                    foreach (var (item, _) in told.Came) book.SawWith(told.Thing, item, Tie.Drops);
                     book.Dropped(told.Thing, told.Came);
                     counts?.Note(PlayEvent.LootCounted);
                     if (told.Level <= 1) return;
@@ -180,7 +180,7 @@ namespace Scry
                 case Happened.Picked:
                     if (told.Came.Count == 0) return;
                     book.Yielded(told.Thing, told.Came);
-                    foreach (var (item, _) in told.Came) book.Witness(told.Thing, item);
+                    foreach (var (item, _) in told.Came) book.SawWith(told.Thing, item, Tie.Gives);
                     if (told.What == Happened.Picked)
                     {
                         counts?.Note(PlayEvent.PickCounted);
@@ -190,7 +190,7 @@ namespace Scry
                     counts?.Note(PlayEvent.BreakCounted);
                     return;
                 case Happened.Ate:
-                    book.Witness(told.Thing, told.With);
+                    book.SawWith(told.Thing, told.With, Tie.Eats);
                     return;
                 default:
                     book.FoundOut(told.Thing, EntryKeys.Did(DeedOf(told.What)));

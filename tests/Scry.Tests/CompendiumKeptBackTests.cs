@@ -257,23 +257,104 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void TheLearnedListSaysWhatWasFoundOut()
+        public void TheLearnedListSaysWhatWasFoundOutUnderTheStrictRulesAlone()
         {
+            // What was found out is news of the strict rules, which keep those numbers and pairings
+            // back; the loose rules show them whole, so their list and notice tell only what was met.
             var world = new World();
             world.Book.FoundOut(world.Troll.Key, EntryKeys.Did(Deed.Killed));
             world.Rule(CompendiumRule.Strict);
 
             Assert.Equal("its health found out", world.Explorer.LearnedNote(world.Troll));
             Assert.Equal("known", world.Explorer.LearnedNote(world.Hide));
-
-            // Open, the list puts what was just found out first, under either rules.
-            world.Rule(CompendiumRule.Loose);
+            // Open, the strict list puts what was just found out first.
             world.Explorer.LearnedOnly = true;
-            world.Book.FoundOut(world.Hide.Key, "TrollHide_kept");
+            world.Rule(CompendiumRule.Strict);
+            Assert.Same(world.Troll, world.Explorer.Results[0]);
+
+            // The loose list tells the Troll as met, in the order things were met in.
             world.Rule(CompendiumRule.Loose);
-            Assert.Same(world.Hide, world.Explorer.Results[0]);
+            Assert.Equal("known", world.Explorer.LearnedNote(world.Troll));
+            Assert.NotSame(world.Troll, world.Explorer.Results[0]);
+            Assert.DoesNotContain(world.Explorer.NewsLineOf(world.Troll).How, new[] { NewsHow.FoundOut });
             world.Rule(CompendiumRule.Off);
             Assert.Null(world.Explorer.LearnedNote(world.Troll));
+        }
+
+        [Fact]
+        public void WhatWasMetKeepsItsOwnOrderAndDayApartFromWhatWasFoundOut()
+        {
+            var book = new CompendiumBook();
+            var day = 1;
+            book.Now = () => new Moment(day, "Meadows");
+            book.Raise("Troll", KnownLevel.Known);
+            day = 2;
+            book.Raise("TrollHide", KnownLevel.Known);
+            var mark = book.Learned;
+            day = 3;
+            book.FoundOut("Troll", EntryKeys.Did(Deed.Killed));
+
+            // Every news, newest first, for the strict rules; what was met alone for the loose ones.
+            Assert.Equal(new[] { "Troll", "TrollHide" }, book.Lately.ToArray());
+            Assert.Equal(new[] { "TrollHide", "Troll" }, book.MetLately.ToArray());
+            Assert.Equal(NewsHow.FoundOut, book.NewsOf("Troll")?.How);
+            Assert.Equal(3, book.NewsOf("Troll")?.Day);
+            Assert.Equal(NewsHow.Known, book.MetNewsOf("Troll")?.How);
+            Assert.Equal(1, book.MetNewsOf("Troll")?.Day);
+            // Since a mark, what was found out counts only among every news.
+            Assert.Equal(new[] { "Troll" }, book.LearnedSince(mark).ToArray());
+            Assert.Empty(book.MetSince(mark));
+
+            // Kept through a save.
+            var again = CompendiumBook.Load(book.Save());
+            Assert.Equal(new[] { "TrollHide", "Troll" }, again.MetLately.ToArray());
+            Assert.Equal(1, again.MetNewsOf("Troll")?.Day);
+            Assert.Equal(3, again.NewsOf("Troll")?.Day);
+
+            // A book kept before the two were kept apart has its met order from what it learned
+            // lately, a thing whose latest news was found out with no day of meeting.
+            var old = CompendiumBook.Load(string.Join("\n", book.Save().Split('\n').Where(l => !l.StartsWith("met\t", System.StringComparison.Ordinal))));
+            Assert.Equal(new[] { "Troll", "TrollHide" }, old.MetLately.ToArray());
+            Assert.Equal(-1, old.MetNewsOf("Troll")?.Day);
+            Assert.Equal(2, old.MetNewsOf("TrollHide")?.Day);
+        }
+
+        [Fact]
+        public void UnderTheStrictRulesWhatWasSeenGoTogetherIsNewsOfTheThingActedOn()
+        {
+            // A drop seen fall from a Troll, what a tree gave, what a tame ate, what a chest held,
+            // where a thing is found, what broke a rock: each shows on the strict page of the thing
+            // acted on, so it is news there, once, by how they go together.
+            var book = new CompendiumBook();
+            book.Now = () => new Moment(7, "Meadows");
+            book.Raise("Troll", KnownLevel.Known);
+            Assert.True(book.SawWith("Troll", "Coins", Tie.Drops));
+            Assert.True(book.Witnessed("Troll", "Coins"));
+            Assert.Equal(EntryKeys.With(Tie.Drops), book.FoundOutOf("Troll"));
+            Assert.Equal(NewsHow.FoundOut, book.NewsOf("Troll")?.How);
+            Assert.False(book.SawWith("Troll", "Coins", Tie.Drops));
+            // Never met news: the loose rules show the pairing whole already.
+            Assert.Equal(NewsHow.Known, book.MetNewsOf("Troll")?.How);
+            // Caught up from the game's records, paired with no news.
+            book.CatchingUp = true;
+            Assert.True(book.SawWith("Troll", "TrollHide", Tie.Drops));
+            Assert.Equal(EntryKeys.With(Tie.Drops), book.FoundOutOf("Troll"));
+            book.CatchingUp = false;
+
+            Assert.Equal("a drop seen fall", CompendiumWords.FoundOutNote(EntryKeys.With(Tie.Drops)));
+            Assert.Equal("what it gives seen", CompendiumWords.FoundOutNote(EntryKeys.With(Tie.Gives)));
+            Assert.Equal("what it eats seen", CompendiumWords.FoundOutNote(EntryKeys.With(Tie.Eats)));
+            Assert.Equal("what it holds seen", CompendiumWords.FoundOutNote(EntryKeys.With(Tie.Holds)));
+            Assert.Equal("where it is found seen", CompendiumWords.FoundOutNote(EntryKeys.With(Tie.Where)));
+            Assert.Equal("what breaks it seen", CompendiumWords.FoundOutNote(EntryKeys.With(Tie.BrokenWith)));
+            Assert.Equal("a drop of Troll", JournalWords.FoundOutOf(EntryKeys.With(Tie.Drops), "Troll"));
+            Assert.Equal("what Beech gives", JournalWords.FoundOutOf(EntryKeys.With(Tie.Gives), "Beech"));
+            Assert.Equal("what Boar eats", JournalWords.FoundOutOf(EntryKeys.With(Tie.Eats), "Boar"));
+            Assert.Equal("what Chest holds", JournalWords.FoundOutOf(EntryKeys.With(Tie.Holds), "Chest"));
+            Assert.Equal("where Greyling is found", JournalWords.FoundOutOf(EntryKeys.With(Tie.Where), "Greyling"));
+            Assert.Equal("what breaks Rock", JournalWords.FoundOutOf(EntryKeys.With(Tie.BrokenWith), "Rock"));
+            Assert.False(EntryKeys.IsDeed(EntryKeys.With(Tie.Drops), out _));
+            Assert.True(EntryKeys.IsWith(EntryKeys.With(Tie.Where), out var tie) && tie == Tie.Where);
         }
 
         [Fact]

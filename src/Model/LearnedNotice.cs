@@ -24,6 +24,9 @@ namespace Scry
         private CompendiumBook _book;
         private List<Entry> _new = None;
         private int _bookVersion = -1;
+
+        /// <summary>The book's count of what it learned when worked out last: news found out raises no level, so the version alone would miss it.</summary>
+        private int _learned = -1;
         private int _stamp = -1;
         private int _mark = -1;
 
@@ -37,14 +40,15 @@ namespace Scry
                 return None;
             }
             var mark = _marks.GetValue(book, _ => new Mark()).At;
-            if (ReferenceEquals(book, _book) && book.Version == _bookVersion && explorer.KnowStamp == _stamp && mark == _mark) return _new;
+            if (ReferenceEquals(book, _book) && book.Version == _bookVersion && book.Learned == _learned && explorer.KnowStamp == _stamp && mark == _mark) return _new;
 
             _book = book;
             _bookVersion = book.Version;
+            _learned = book.Learned;
             _stamp = explorer.KnowStamp;
             _mark = mark;
             _new = new List<Entry>();
-            foreach (var key in book.LearnedSince(mark))
+            foreach (var key in explorer.Compendium.LearnedSince(mark))
             {
                 var entry = explorer.Find(key);
                 // Named as the list shows them: the world a player meets.

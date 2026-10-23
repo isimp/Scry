@@ -243,7 +243,7 @@ namespace Scry
         public bool FromMap(Entry entry) => CompendiumOn && entry != null && _view.Book?.FoundOutOf(entry.Key) == EntryKeys.OnMap;
 
         /// <summary>An entry's latest news in the book (<see cref="CompendiumBook.NewsOf"/>); none with the compendium off or none to tell.</summary>
-        private BookNews? NewsOf(Entry entry) => CompendiumOn && entry != null ? _view.Book?.NewsOf(entry.Key) : null;
+        private BookNews? NewsOf(Entry entry) => CompendiumOn && entry != null ? _view.NewsOf(entry.Key) : null;
 
         /// <summary>The game's day an entry's latest news came on, for its day in the learned list; -1 for none, caught up or kept before days were.</summary>
         public int LearnedDay(Entry entry) => NewsOf(entry)?.Day ?? -1;
@@ -872,7 +872,7 @@ namespace Scry
                 // Newest first, what has no day (caught up, or kept before days were) after the rest.
                 order = new Dictionary<string, int>();
                 var book = _view.Book;
-                foreach (var key in _view.Lately) if (!order.ContainsKey(key) && (book?.NewsOf(key)?.Day ?? -1) >= 0) order[key] = order.Count;
+                foreach (var key in _view.Lately) if (!order.ContainsKey(key) && (_view.NewsOf(key)?.Day ?? -1) >= 0) order[key] = order.Count;
                 foreach (var key in _view.Lately) if (!order.ContainsKey(key)) order[key] = order.Count;
             }
 

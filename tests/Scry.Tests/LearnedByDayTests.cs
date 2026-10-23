@@ -10,6 +10,7 @@ namespace Scry.Tests
         // The Learned list holds everything the character learned, newest first, grouped by the
         // game's day, each row saying how it came; what was learned with no day (caught up from
         // the game's records, or kept before days were) comes last. The news names it the same way.
+        // What was found out is news of the strict rules alone: the loose rules show it whole.
 
         private sealed class World
         {
@@ -27,15 +28,15 @@ namespace Scry.Tests
                 View = new CompendiumView(Explorer.Entries);
             }
 
-            public World Told()
+            public World Told(CompendiumRule rule)
             {
-                View.Tell(Book, CompendiumRule.Loose);
+                View.Tell(Book, rule);
                 Explorer.Know(View);
                 return this;
             }
         }
 
-        private static World Learned()
+        private static World Learned(CompendiumRule rule = CompendiumRule.Strict)
         {
             var world = new World();
             var book = world.Book;
@@ -49,7 +50,7 @@ namespace Scry.Tests
             book.CatchingUp = true;
             book.Raise(world.Wood.Key, KnownLevel.Known);
             book.CatchingUp = false;
-            return world.Told();
+            return world.Told(rule);
         }
 
         [Fact]
@@ -65,6 +66,8 @@ namespace Scry.Tests
             Assert.Equal("seen", explorer.LearnedNote(world.Boar));
             Assert.Equal("how fire lands found out", explorer.LearnedNote(world.Neck));
             Assert.Equal("known", explorer.LearnedNote(world.Wood));
+            // Under the loose rules the Neck is told as met: fought.
+            Assert.Equal("fought", Learned(CompendiumRule.Loose).Explorer.LearnedNote(world.Neck));
         }
 
         [Fact]
@@ -86,6 +89,11 @@ namespace Scry.Tests
             Assert.Equal(new NewsLine("Troll", NewsHow.Known, null, 14), world.Explorer.NewsLineOf(world.Troll));
             Assert.Equal("Since day 13: came to know Troll, saw Boar, found out how fire lands on Neck, and read 1 thing from the game's records of this character",
                 JournalWords.News(news.Select(world.Explorer.NewsLineOf).ToList(), 0, 0));
+
+            var loose = Learned(CompendiumRule.Loose);
+            var looseNews = new LearnedNotice().New(loose.Explorer);
+            Assert.Equal("Since day 13: came to know Neck and Troll, saw Boar, and read 1 thing from the game's records of this character",
+                JournalWords.News(looseNews.Select(loose.Explorer.NewsLineOf).ToList(), 0, 0));
         }
 
         [Fact]

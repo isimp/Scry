@@ -282,7 +282,7 @@ namespace Scry
             _catchUp.Met(key, KnownLevel.Known, Into, CameBy.Hit);
             ActedOnThing(key, resource.transform.position);
             var tool = Player.m_localPlayer.OrNull()?.GetCurrentWeapon()?.m_dropPrefab.OrNull();
-            if (tool != null) Into.Witness(key, tool.name);
+            if (tool != null) Into.SawWith(key, tool.name, Tie.BrokenWith);
             MetIn(key, resource.transform.position);
         }
 
@@ -420,7 +420,7 @@ namespace Scry
                 loot[held.m_dropPrefab.name] = so + held.m_stack;
             }
             Into.Held(chest, loot.Select(l => (l.Key, l.Value)));
-            foreach (var item in loot.Keys) Into.Witness(chest, item);
+            foreach (var item in loot.Keys) Into.SawWith(chest, item, Tie.Holds);
             Noted(PlayEvent.ChestCounted);
         }
 
@@ -468,7 +468,7 @@ namespace Scry
             if (Into == null || string.IsNullOrEmpty(item) || Acted.Count == 0) return;
             foreach (var giver in Acted.Givers(item, at.x, at.z, Time.unscaledTime, Gives))
             {
-                Into.Witness(giver, item);
+                Into.SawWith(giver, item, Tie.Gives);
                 foreach (var input in ActedOn.TurnedFrom(giver, TurnedInto(giver, item), Into.Witnessed)) Into.Witness(input, item);
             }
         }
@@ -510,14 +510,17 @@ namespace Scry
         /// <summary>The character saw two things go together, by their entries' keys (<see cref="CompendiumBook.Witness"/>).</summary>
         public static void Saw(string a, string b) => Into?.Witness(a, b);
 
+        /// <summary>The character saw a thing go together with another, the other shown on its strict page by how they go together, as news there (<see cref="CompendiumBook.SawWith"/>).</summary>
+        public static void Saw(string thing, string other, Tie tie) => Into?.SawWith(thing, other, tie);
+
         /// <summary>The character met a thing where it stands: with the biome there, and the place it is in.</summary>
         public static void MetIn(string key, Vector3 at)
         {
             if (Into == null || string.IsNullOrEmpty(key)) return;
             var biome = BiomeKeyAt(at);
-            if (biome != null) Into.Witness(key, biome);
+            if (biome != null) Into.SawWith(key, biome, Tie.Where);
             var place = PlaceKeyAt(at);
-            if (place != null) Into.Witness(key, place);
+            if (place != null) Into.SawWith(key, place, Tie.Where);
         }
 
         /// <summary>Whether a thing was paired with the biome where it stands and the place it is in already: nothing more is learned by meeting it there.</summary>

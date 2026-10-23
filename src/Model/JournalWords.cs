@@ -146,6 +146,18 @@ namespace Scry
                 }
             }
             if (EntryKeys.IsWeakSpot(proof)) return $"a weak spot of {name}";
+            if (EntryKeys.IsWith(proof, out var tie))
+            {
+                switch (tie)
+                {
+                    case Tie.Drops: return $"a drop of {name}";
+                    case Tie.Gives: return $"what {name} gives";
+                    case Tie.Eats: return $"what {name} eats";
+                    case Tie.Holds: return $"what {name} holds";
+                    case Tie.Where: return $"where {name} is found";
+                    default: return $"what breaks {name}";
+                }
+            }
             if (EntryKeys.IsDamage(proof, out var type)) return $"how {type} lands on {name}";
             return $"what an attack of {name} deals";
         }

@@ -45,6 +45,28 @@ namespace Scry
         Ridden,
     }
 
+    /// <summary>How two things were seen go together in play, the second shown on the first's page under the strict rules (<see cref="CompendiumBook.SawWith"/>).</summary>
+    internal enum Tie
+    {
+        /// <summary>Seen fall from a creature as it died.</summary>
+        Drops,
+
+        /// <summary>Given by a tree, rock, pickable, station or anything that gives.</summary>
+        Gives,
+
+        /// <summary>Eaten by a tame creature, or bitten on by a fish.</summary>
+        Eats,
+
+        /// <summary>Held in a chest opened.</summary>
+        Holds,
+
+        /// <summary>The biome or place a thing was met in.</summary>
+        Where,
+
+        /// <summary>The tool a thing was hit with.</summary>
+        BrokenWith,
+    }
+
     /// <summary>
     /// The key an entry is kept under in favourites, recent and links. A prefab goes by its name;
     /// what is no prefab has a namespace of its own, since it may share a name with one: a status
@@ -88,6 +110,19 @@ namespace Scry
 
         /// <summary>The note of what a reading of the explored map brought (<see cref="CompendiumBook.NoteNews"/>); no entry goes by it.</summary>
         public const string OnMap = "map:explored";
+
+        /// <summary>The note of a pairing seen in play, by how the two go together (<see cref="CompendiumBook.SawWith"/>); no entry goes by it.</summary>
+        private const string Ties = "with:";
+
+        /// <summary>The note a pairing seen in play is told by, by how the two go together.</summary>
+        public static string With(Tie tie) => Ties + tie;
+
+        /// <summary>Whether a note is a pairing's (<see cref="With"/>), and how the two go together.</summary>
+        public static bool IsWith(string key, out Tie tie)
+        {
+            tie = default;
+            return key != null && key.StartsWith(Ties, StringComparison.Ordinal) && Enum.TryParse(key.Substring(Ties.Length), out tie);
+        }
 
         /// <summary>A creature's weak spot, kept only as paired with a creature a hit of the character found it on; no entry goes by it.</summary>
         private const string Spot = "spot:";
