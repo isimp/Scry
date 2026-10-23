@@ -43,6 +43,22 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheServerKeepsNoWalkOfADungeonLargerThanAnyTheGameBuilds()
+        {
+            // The game's dungeons hold a few dozen rooms, a fortress with its wall caps some 250: a
+            // walk sending more for a dungeon the world places is made up, and taken in it would
+            // grow the server's records by all it sends.
+            var sent = new DungeonMaps();
+            var real = DungeonMaps.EntranceIdOf("w", 100f, 200f);
+            var huge = DungeonMaps.EntranceIdOf("w", 300f, 300f);
+            sent.Keep(real, "Crypt2", Rooms(DungeonMaps.MostRooms), new Vec3(100f, 30f, 200f), default, Quat.Identity);
+            sent.Keep(huge, "Crypt2", Rooms(DungeonMaps.MostRooms + 1), new Vec3(300f, 30f, 300f), default, Quat.Identity);
+            var held = sent.HeldBy(new Dictionary<string, string> { [real] = "Crypt2", [huge] = "Crypt2" }, today: 50);
+            Assert.Equal(new[] { real }, held.All.Select(m => m.Id));
+            Assert.Equal(512, DungeonMaps.MostRooms);
+        }
+
+        [Fact]
         public void AWalksDaysAreNoLaterThanTheWorldsToday()
         {
             var sent = new DungeonMaps();

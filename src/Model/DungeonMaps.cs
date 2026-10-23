@@ -247,12 +247,18 @@ namespace Scry
         public int Merge(DungeonMaps other) => Merge(other.All);
 
         /// <summary>
+        /// The most rooms a dungeon's map a server takes in may hold, wall caps counted: the game's
+        /// dungeons hold a few dozen, a fortress with its wall caps some 250, so more is made up.
+        /// </summary>
+        public const int MostRooms = 512;
+
+        /// <summary>
         /// What a server keeps of the maps a player's game sent (<c>GroupMapsLink</c>): each of a
         /// location the world places where its id says, of that location (<paramref name="placed"/>,
         /// each id to the name of the location placed there), with the rooms walked that its rooms
         /// hold, and no day later than the world's <paramref name="today"/> (none before the world's
         /// clock runs, -1). A map of a place the world holds nothing at, or of another location there,
-        /// is left out.
+        /// is left out, and so is one of more rooms than the game builds (<see cref="MostRooms"/>).
         /// </summary>
         public DungeonMaps HeldBy(IReadOnlyDictionary<string, string> placed, int today)
         {
@@ -260,6 +266,7 @@ namespace Scry
             foreach (var (id, map) in All)
             {
                 if (!placed.TryGetValue(id, out var name) || !string.Equals(name, map.Location, StringComparison.Ordinal)) continue;
+                if (map.Rooms != null && map.Rooms.Count > MostRooms) continue;
                 var kept = held.Keep(id, map.Location, map.Rooms, map.Entrance, map.Generator, map.Turn);
                 foreach (var room in map.Walked) held.Walk(id, room);
                 kept.FirstDay = today >= 0 && map.FirstDay > today ? today : map.FirstDay;
