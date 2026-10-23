@@ -95,21 +95,35 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void MarkedPlacesNeverGoBelowSeenYourOwnGroundCanBeTurnedOff()
+        public void EverySourceCanBeTurnedOffAsNoneWritesTheBook()
         {
-            // Marked places are written into the book as seen as they come: lower would show
-            // nothing less. Your own ground is never written into it, so Off takes it back.
+            // Places marked by a Vegvisir or a rune stone, like your own ground, are kept as found,
+            // never written into the book, as the character never looked at them: Off takes them back.
             var book = new CompendiumBook();
             book.Show(WorldSource.Explored, SourceLevel.Off);
             book.Show(WorldSource.Marked, SourceLevel.Off);
             Assert.Equal(SourceLevel.Off, book.Shows(WorldSource.Explored));
-            Assert.Equal(SourceLevel.Seen, book.Shows(WorldSource.Marked));
+            Assert.Equal(SourceLevel.Off, book.Shows(WorldSource.Marked));
+            Assert.Equal(new[] { SourceLevel.Off, SourceLevel.Seen, SourceLevel.Known, SourceLevel.WithInsides }, WorldSources.Offered(WorldSource.Marked));
             Assert.Equal(SourceLevel.Off, CompendiumBook.Load(book.Save()).Shows(WorldSource.Explored));
             book.Show(WorldSource.Explored, SourceLevel.Seen);
             Assert.DoesNotContain("shows\tExplored", book.Save());
             book.Show(WorldSource.SharedMaps, SourceLevel.Off);
             Assert.Equal(SourceLevel.Off, book.Shows(WorldSource.SharedMaps));
             Assert.Equal(new[] { SourceLevel.Off, SourceLevel.Seen, SourceLevel.Known, SourceLevel.WithInsides }, WorldSources.Offered(WorldSource.Explored));
+        }
+
+        [Fact]
+        public void APlaceMarkedForTheCharacterShowsThroughItsRowAlone()
+        {
+            // A Vegvisir read: the place it marks is kept as found, shown seen while the row is,
+            // never in the book, and gone with the row off.
+            var s = new Setup().Found(WorldSource.Marked, "Crypt2").Shows(WorldSource.Marked, SourceLevel.Seen);
+            Assert.Equal(KnownLevel.Seen, s.View.Of(s.Crypt));
+            Assert.Equal(WorldSource.Marked, s.View.ByWorld(s.Crypt));
+            Assert.Equal(KnownLevel.Unknown, s.Book.Level(s.Crypt.Key));
+            s.Shows(WorldSource.Marked, SourceLevel.Off);
+            Assert.Equal(KnownLevel.Unknown, s.View.Of(s.Crypt));
         }
 
         [Fact]
@@ -314,10 +328,10 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void ASavedChoiceBelowWhatASourceAllowsIsReadAsTheLeast()
+        public void ASavedChoiceIsReadAsSavedWhatCannotBeReadPassedOver()
         {
             var read = CompendiumBook.Load("shows\tMarked\tOff\nshows\tSharedMaps\tKnown\nshows\tNowhere\tSeen\nshows\tOnEveryMap\tEverything\n");
-            Assert.Equal(SourceLevel.Seen, read.Shows(WorldSource.Marked));
+            Assert.Equal(SourceLevel.Off, read.Shows(WorldSource.Marked));
             Assert.Equal(SourceLevel.Known, read.Shows(WorldSource.SharedMaps));
             Assert.Equal(SourceLevel.Off, read.Shows(WorldSource.OnEveryMap));
         }
@@ -403,7 +417,7 @@ namespace Scry.Tests
         public void TheWholeWorldIsOffOrCountedAndNoOtherSourceIsCounted()
         {
             Assert.Equal(new[] { SourceLevel.Off, SourceLevel.Counted }, WorldSources.Offered(WorldSource.WholeWorld));
-            Assert.Equal(new[] { SourceLevel.Seen, SourceLevel.Known, SourceLevel.WithInsides }, WorldSources.Offered(WorldSource.Marked));
+            Assert.Equal(new[] { SourceLevel.Off, SourceLevel.Seen, SourceLevel.Known, SourceLevel.WithInsides }, WorldSources.Offered(WorldSource.Marked));
             Assert.Equal(new[] { SourceLevel.Off, SourceLevel.Seen, SourceLevel.Known, SourceLevel.WithInsides }, WorldSources.Offered(WorldSource.OnEveryMap));
             Assert.False(WorldSources.HasGround(WorldSource.WholeWorld));
             var book = new CompendiumBook();

@@ -22,9 +22,8 @@ namespace Scry
     /// <summary>
     /// What the world's server allows the compendium, from its config synced to every player
     /// (ServerSync): the rules everyone plays by, none leaving them to each player; whether
-    /// peeking and *Known up to* are allowed; and the highest level each source may show, never
-    /// below what the source shows at least (<see cref="WorldSources.Least"/>). The book keeps the
-    /// player's own choices beneath it (<see cref="CompendiumBook.Under"/>).
+    /// peeking and *Known up to* are allowed; and the highest level each source may show, Off
+    /// among them. The book keeps the player's own choices beneath it (<see cref="CompendiumBook.Under"/>).
     /// </summary>
     internal sealed class WorldRules
     {

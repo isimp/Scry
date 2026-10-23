@@ -71,17 +71,15 @@ namespace Scry.Tests
             Assert.Equal(SourceLevel.Seen, book.Shows(WorldSource.SharedMaps));
             Assert.Equal(SourceLevel.WithInsides, book.Chosen(WorldSource.SharedMaps));
             Assert.Equal(SourceLevel.Off, book.Shows(WorldSource.WholeWorld));
-            // Marked places are written as seen as they come, so no world takes them below that;
-            // your own ground is never written into the book, so a world can turn it off.
-            Assert.Equal(SourceLevel.Seen, book.Shows(WorldSource.Marked));
+            // No source writes the book, so a world can turn any of them off.
+            Assert.Equal(SourceLevel.Off, book.Shows(WorldSource.Marked));
             Assert.Equal(SourceLevel.Off, book.Shows(WorldSource.Explored));
             Assert.True(rules.Allows(WorldSource.SharedMaps, SourceLevel.Seen));
             Assert.False(rules.Allows(WorldSource.SharedMaps, SourceLevel.Known));
-            Assert.True(rules.Allows(WorldSource.Marked, SourceLevel.Seen));
-            Assert.False(rules.Allows(WorldSource.Marked, SourceLevel.Known));
+            Assert.False(rules.Allows(WorldSource.Marked, SourceLevel.Seen));
             Assert.False(rules.Allows(WorldSource.Explored, SourceLevel.Seen));
             Assert.Equal(SourceLevel.Seen, rules.Highest(WorldSource.SharedMaps));
-            Assert.Equal(SourceLevel.Seen, rules.Highest(WorldSource.Marked));
+            Assert.Equal(SourceLevel.Off, rules.Highest(WorldSource.Marked));
             Assert.Equal(SourceLevel.Off, rules.Highest(WorldSource.Explored));
             // A cap between two offered levels shows the highest offered beneath it.
             var counted = new WorldRules();

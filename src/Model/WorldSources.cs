@@ -51,24 +51,18 @@ namespace Scry
         public static SourceLevel Starts(WorldSource source) =>
             source == WorldSource.Explored || source == WorldSource.Marked ? SourceLevel.Seen : SourceLevel.Off;
 
-        /// <summary>
-        /// The least a source is set to: the places marked for the character are written into its
-        /// book as seen as they come, so they show at least that; the others, its own ground too,
-        /// are never written into it and can be turned off.
-        /// </summary>
-        public static SourceLevel Least(WorldSource source) => source == WorldSource.Marked ? SourceLevel.Seen : SourceLevel.Off;
-
         private static readonly SourceLevel[] Every = (SourceLevel[])Enum.GetValues(typeof(SourceLevel));
-        private static readonly SourceLevel[] FromSeen = Array.FindAll(Every, level => level >= SourceLevel.Seen);
         private static readonly SourceLevel[] OffOrShown = Array.FindAll(Every, level => level != SourceLevel.Counted);
         private static readonly SourceLevel[] OffOrCounted = { SourceLevel.Off, SourceLevel.Counted };
 
         /// <summary>Whether a source is ground rather than single places: the ground explored and ground from shared maps, whose dungeons can be marked on Valheim's big map (<see cref="DungeonMarks"/>).</summary>
         public static bool HasGround(WorldSource source) => source == WorldSource.Explored || source == WorldSource.SharedMaps;
 
-        /// <summary>The levels the box offers a source, the least it allows first: the whole world only off or counted, no other counted.</summary>
-        public static SourceLevel[] Offered(WorldSource source) =>
-            source == WorldSource.WholeWorld ? OffOrCounted : Least(source) == SourceLevel.Seen ? FromSeen : OffOrShown;
+        /// <summary>
+        /// The levels the box offers a source, Off first: no source writes the character's book, so
+        /// each can be turned off; the whole world only off or counted, no other counted.
+        /// </summary>
+        public static SourceLevel[] Offered(WorldSource source) => source == WorldSource.WholeWorld ? OffOrCounted : OffOrShown;
 
         /// <summary>Whether the box offers a source a level.</summary>
         public static bool Allows(WorldSource source, SourceLevel level) => Array.IndexOf(Offered(source), level) >= 0;

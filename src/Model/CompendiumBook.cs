@@ -145,11 +145,9 @@ namespace Scry
         /// <summary>Whether a source's dungeons are marked now: its pin on and its row showing anything.</summary>
         public bool MarksDungeonsNow(WorldSource source) => MarksDungeons(source) && Shows(source) > SourceLevel.Off;
 
-        /// <summary>Sets how a source's places show, no lower than the least it allows.</summary>
+        /// <summary>Sets how a source's places show, among the levels it offers.</summary>
         public void Show(WorldSource source, SourceLevel level)
         {
-            var least = WorldSources.Least(source);
-            if (level < least) level = least;
             if (!WorldSources.Allows(source, level) || Shows(source) == level) return;
             _shows[source] = level;
             SourcesVersion++;
