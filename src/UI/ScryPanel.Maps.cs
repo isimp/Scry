@@ -141,7 +141,7 @@ namespace Scry
             if (of == _walkLinesOf && Time.unscaledTime - _walkLinesAt < WalkLinesEvery) return;
             _walkLinesOf = of;
             _walkLinesAt = Time.unscaledTime;
-            var yours = DungeonWalks.Maps.WalkedOf(world, place.Prefab, map => example ? ExampleLayouts.Count(map) : DungeonMaps.Walked(map, _ => null));
+            var yours = DungeonWalks.Maps.WalkedOf(world, place.Prefab, map => example ? ExampleLayouts.Count(map) : RoomKinds.Walked(map));
             var server = new List<(string, DungeonMap, int, int)>();
             if (open)
             {

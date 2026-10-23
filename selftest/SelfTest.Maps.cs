@@ -311,7 +311,10 @@ namespace Scry
             Minimap.instance.SetMapMode(Minimap.MapMode.Large);
             yield return Until(() => MapMarkButtons.MarksShown > 0 && MapMarkButtons.FirstListedForTest == id, 5);
             p.Check(MapMarkButtons.MarksShown == 1, "the large map has a mark for the map of this world alone", $"{Numbers.Count(MapMarkButtons.MarksShown)} marks");
-            if (today >= 0) p.Check(MapMarkButtons.SaidForTest(0)?.Contains("you last day " + Numbers.Count(today)) ?? false, "its words say the last day you walked it", MapMarkButtons.SaidForTest(0));
+            // A dungeon's end caps and dividers are no rooms to walk, so its words count without them.
+            var walkable = rolled.Rooms.Count(r => !r.Room.EndCap && !r.Room.Divider);
+            p.Check(MapMarkButtons.SaidForTest(0)?.Contains("Walked by you: 1 of " + Numbers.Count(walkable) + " room") ?? false,
+                "its words count the room walked out of the rooms one can walk, its end caps and dividers left out", $"{MapMarkButtons.SaidForTest(0)}, {Numbers.Count(walkable)} rooms to walk of {Numbers.Count(rolled.Rooms.Count)}");
             // The pointer put on it, as a player's: what the game's event system meets there (the map,
             // which takes the click to hand on), the mark found there as the pointer is read, the
             // game's tip shown, a click taken.

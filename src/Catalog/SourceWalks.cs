@@ -32,7 +32,7 @@ namespace Scry
             if (_gathered && stamp == _stamp) return _walks;
             _gathered = true;
             _stamp = stamp;
-            var walks = book == null || world == null ? ServerWalks.None : ServerWalks.Of(source => Held(book, world, source), RoomsByHash(catalog).TryGet, name => name.GetStableHashCode());
+            var walks = book == null || world == null ? ServerWalks.None : ServerWalks.Of(source => Held(book, world, source), RoomKinds.Of, name => name.GetStableHashCode());
             if (walks.SameAs(_walks)) return _walks;
             _walks = walks;
             Version++;
@@ -74,25 +74,6 @@ namespace Scry
             one.Keep(id, map.Location, map.Rooms, map.Entrance, map.Generator, map.Turn);
             foreach (var room in map.Walked) one.Walk(id, room);
             return one;
-        }
-
-        /// <summary>The shapes of the kinds of room read, by the hash the game saves a room under.</summary>
-        private static RoomShapes RoomsByHash(EntryCatalog catalog)
-        {
-            var shapes = new RoomShapes();
-            if (catalog == null) return shapes;
-            foreach (var entry in catalog.All)
-            {
-                if (entry.Source is PlaceSource place && place.IsRoom && place.Contents?.Room != null) shapes.ByHash[place.Prefab.GetStableHashCode()] = place.Contents.Room;
-            }
-            return shapes;
-        }
-
-        private sealed class RoomShapes
-        {
-            public readonly Dictionary<int, RoomShape> ByHash = new Dictionary<int, RoomShape>();
-
-            public RoomShape TryGet(int hash) => ByHash.TryGetValue(hash, out var shape) ? shape : null;
         }
 
         private static void Forget()

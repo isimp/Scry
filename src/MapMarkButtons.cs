@@ -258,7 +258,7 @@ namespace Scry
         {
             var name = Shown(kept.Map.Location);
             var accent = ColorUtility.ToHtmlStringRGB(Skin.Accent);
-            var (walked, rooms) = DungeonMaps.Walked(kept.Map, _ => null);
+            var (walked, rooms) = RoomKinds.Walked(kept.Map);
             switch (kept.Look)
             {
                 case MarkLook.Yours: return DungeonMapWords.MarkLabel(name, walked, rooms, accent);
