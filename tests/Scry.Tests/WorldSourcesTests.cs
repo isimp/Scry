@@ -116,6 +116,8 @@ namespace Scry.Tests
         [Fact]
         public void APlaceMarkedForTheCharacterShowsThroughItsRowAlone()
         {
+            // The row's tip offers off with the rest, as every source does.
+            Assert.Contains("or off, as you choose", CompendiumWords.SourceTip(WorldSource.Marked));
             // A Vegvisir read: the place it marks is kept as found, shown seen while the row is,
             // never in the book, and gone with the row off.
             var s = new Setup().Found(WorldSource.Marked, "Crypt2").Shows(WorldSource.Marked, SourceLevel.Seen);
