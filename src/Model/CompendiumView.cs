@@ -456,8 +456,11 @@ namespace Scry
             // What the character knows itself, with all it brings along; then what the floor adds,
             // and all that brings, told apart as the floor's (ByFloor), tier by tier from the lowest
             // so each is told by the lowest tier that shows it (FloorOf).
-            var met = new Queue<Entry>();
-            var floored = new List<Entry>();
+            // Kept from one count to the next, as a count goes over thousands of entries each time.
+            var met = _met;
+            met.Clear();
+            var floored = _floored;
+            floored.Clear();
             foreach (var entry in _catalog.All)
             {
                 // A mod is always known, a skill of the character's own once learned, by nothing else.
@@ -484,12 +487,41 @@ namespace Scry
             }
             if (_world != null) ShowFromWorld(book, met);
 
-            var heard = new List<(Entry Named, Entry By)>();
-            foreach (var pair in _levels)
+            // What each known entry names is heard of, in the order the levels hold them: the
+            // known taken first, as hearing writes the levels.
+            var known = _knownNow;
+            known.Clear();
+            foreach (var pair in _levels) if (pair.Value == KnownLevel.Known) known.Add(pair.Key);
+            foreach (var by in known) HearNamed(by);
+            known.Clear();
+        }
+
+        private readonly Queue<Entry> _met = new Queue<Entry>();
+        private readonly List<Entry> _floored = new List<Entry>();
+        private readonly List<Entry> _knownNow = new List<Entry>();
+
+        /// <summary>Makes all a known entry's page names heard of where it was unknown (<see cref="Named"/>), going through its names without gathering them.</summary>
+        private void HearNamed(Entry by)
+        {
+            foreach (var link in by.Links)
             {
-                if (pair.Value == KnownLevel.Known) foreach (var named in Named(pair.Key)) heard.Add((named, pair.Key));
+                var other = _catalog.Find(link.Target);
+                if (other != null) Hear(other, by);
             }
-            foreach (var (named, by) in heard) Hear(named, by);
+            foreach (var key in TermKeys)
+            {
+                var linked = by.TermLinks(key);
+                for (var n = 0; n < linked.Count; n++) Hear(linked[n], by);
+            }
+            foreach (var station in by.Stations)
+            {
+                var other = _catalog.Find(station.Name);
+                if (other != null) Hear(other, by);
+            }
+            foreach (var label in by.FoundIn)
+            {
+                if (label != null && _places.TryGetValue(label, out var places)) foreach (var place in places) Hear(place, by);
+            }
         }
 
         /// <summary>Makes what a known entry's page names heard of where it was unknown; never a skill, which shows only once learned.</summary>
