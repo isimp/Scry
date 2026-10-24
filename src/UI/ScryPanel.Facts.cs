@@ -265,7 +265,6 @@ namespace Scry
                     StrictLeft(1);
                     return y;
                 }
-                if (explorer.NamesOnlyMet && InCatalog(explorer, linked)) StrictShown(1);
             }
             // Under the strict rules the names of what was not seen are kept back in its text, and
             // a number the game never shows until what shows it was seen: a weak spot no hit found
@@ -532,7 +531,6 @@ namespace Scry
             {
                 var biomesLeft = entry.Biomes.Count(b => explorer.LeavesOut(EntryKeys.For(Kind.Biome, b)));
                 StrictLeft(biomesLeft);
-                if (explorer.NamesOnlyMet) StrictShown(entry.Biomes.Length - biomesLeft);
                 y = ChipRow("Biomes", entry.Biomes.Where(b => !explorer.LeavesOut(EntryKeys.For(Kind.Biome, b))).Select(b =>
                 {
                     var page = EntryKeys.For(Kind.Biome, b);

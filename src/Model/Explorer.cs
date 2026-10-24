@@ -357,9 +357,15 @@ namespace Scry
         /// The faint line at a section's end telling how many things its page left out, in the
         /// words of the rules leaving them out: what the character has not met, or under the
         /// strict rules what it has not seen together (<see cref="CompendiumWords.LeftOutOf"/>);
-        /// without "more" where the section lists nothing else (<paramref name="alone"/>).
+        /// without "more" where the section lists nothing else (<paramref name="alone"/>). Only
+        /// for a creature's loot and where it lives, counts the player can act on; none elsewhere.
         /// </summary>
-        public string LeftOutLine(string topic, int count, bool alone = false) => LeavingOut ? CompendiumWords.LeftOutOf(topic, count, alone) : CompendiumWords.NotYetMet(topic, count, alone);
+        public string LeftOutLine(string topic, int count, bool alone = false)
+        {
+            // Only a count the player can act on is said: drops not yet seen fall, places it lives not met in.
+            if (topic != "loot" && topic != "lives") return null;
+            return LeavingOut ? CompendiumWords.LeftOutOf(topic, count, alone) : CompendiumWords.NotYetMet(topic, count, alone);
+        }
 
         /// <summary>
         /// Whether the page shown keeps back how it takes a damage type, where a hit's popup tells
@@ -453,22 +459,6 @@ namespace Scry
             var counted = _view.Book.Tallied(by.Value);
             var drop = counted.Of(source.Giver).FirstOrDefault(d => d.Item == _selected.Name);
             return drop != null ? TallyWords.Line(by.Value, drop, counted.Kills(source.Giver)) : CompendiumWords.Hidden;
-        }
-
-        /// <summary>
-        /// A drop's chance at so many stars in the creature's stars table under the strict rules,
-        /// on a known page above the milestone floor: the character's own count, how many of the
-        /// kills of one with that many stars dropped it (<see cref="TallyWords.Share"/>), ??? while
-        /// none with that many stars was seen to fall; none otherwise, when the game's chance shows.
-        /// </summary>
-        public string StrictStarShare(string creature, string item, int stars)
-        {
-            if (!LeavingOut) return null;
-            var kills = _view.Book.StarredKills(creature, stars);
-            if (kills == 0) return CompendiumWords.Hidden;
-            var times = 0;
-            foreach (var drop in _view.Book.StarredDrops(creature, stars)) if (drop.Item == item) times = drop.Times;
-            return TallyWords.Share(times, kills);
         }
 
         /// <summary>A faint line saying what shows a line of a table kept back (<see cref="CompendiumWords.ShowsOnce(string, string)"/>).</summary>

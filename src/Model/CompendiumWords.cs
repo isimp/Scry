@@ -310,12 +310,8 @@ namespace Scry
             ? SourceName(by) + " shows this page whole, as the compendium's box has it show; turn it down there to see what is still to find out"
             : FloorCaption + " shows this page whole, as it shows every page of the tiers whose bosses this character has beaten; lower it in the compendium's box to see what is still to find out";
 
-        /// <summary>
-        /// The chip's tip of a page with something still to find out: each thing to do and what it
-        /// shows, as its You box lists them, how many names it leaves out, and that a folded section
-        /// went uncounted.
-        /// </summary>
-        public static string FindsTip(System.Collections.Generic.IEnumerable<(string Label, string Value)> still, int namesLeft, bool folded)
+        /// <summary>The chip's tip of a page with something still to find out: each thing to do and what it shows, as its You box lists them.</summary>
+        public static string FindsTip(System.Collections.Generic.IEnumerable<(string Label, string Value)> still)
         {
             var lines = new System.Collections.Generic.List<string> { "Still to find out:" };
             var todo = false;
@@ -324,9 +320,7 @@ namespace Scry
                 lines.Add(label + " \u00b7 " + value);
                 todo = true;
             }
-            if (namesLeft > 0) lines.Add(Numbers.Count(namesLeft) + " more it names, not yet seen together with it");
             if (todo) lines.Add("A click goes to them in its You box");
-            if (folded) lines.Add("Folded sections are not counted");
             return string.Join("\n", lines);
         }
 

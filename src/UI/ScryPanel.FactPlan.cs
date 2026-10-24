@@ -86,11 +86,9 @@ namespace Scry
                 }
 
                 var top = y + U(6f);
-                NoteTopic(topic.Id, top);
                 if (TopicHeights[i] > 0f) Skin.Box(new Rect(0f, top, width, TopicHeights[i]), Skin.TopicFill);
-                if (Spotting) LitSpot(NewsArrival.Topic(topic.Id), new Rect(pad, top + U(4f), inner, U(24f)));
-                GUI.Label(new Rect(pad, top + U(6f), inner, U(20f)), topic.Heading, Skin.TopicName);
-                y = top + U(30f);
+                var body = top + U(30f);
+                y = body;
                 GUI.BeginGroup(new Rect(pad, 0f, inner, y + U(100000f)));
                 try
                 {
@@ -101,6 +99,17 @@ namespace Scry
                 {
                     GUI.EndGroup();
                 }
+                // A topic the rules left nothing in draws neither its heading nor its box: the page says nothing of what it does not know.
+                if (y <= body)
+                {
+                    if (Event.current.type == EventType.Repaint) TopicHeights[i] = 0f;
+                    y = top - U(6f);
+                    CountDrawn(PanelPart.EmptyRowLeftOut);
+                    continue;
+                }
+                NoteTopic(topic.Id, top);
+                if (Spotting) LitSpot(NewsArrival.Topic(topic.Id), new Rect(pad, top + U(4f), inner, U(24f)));
+                GUI.Label(new Rect(pad, top + U(6f), inner, U(20f)), topic.Heading, Skin.TopicName);
                 y += U(4f);
                 if (Event.current.type == EventType.Repaint) TopicHeights[i] = y - top;
                 y += U(4f);
@@ -123,7 +132,6 @@ namespace Scry
                     if (named && explorer.LeavesOut(linked, facts.GameShown.Contains(facts.Pairs[tile].Key))) StrictLeft(1);
                     else
                     {
-                        if (named && explorer.NamesOnlyMet) StrictShown(1);
                         ShownTiles.Add(tile);
                     }
                 }
@@ -324,7 +332,6 @@ namespace Scry
                     StrictLeft(1);
                     continue;
                 }
-                if (explorer.NamesOnlyMet && !string.IsNullOrEmpty(link) && InCatalog(explorer, link)) StrictShown(1);
                 // Under the strict rules an attack that never hit the character keeps its damage
                 // back, and a line only something seen done tells (health by stars) all its numbers.
                 var attackKept = AttackKept(explorer, row, l);
@@ -619,7 +626,6 @@ namespace Scry
                 StrictLeft(1);
                 return y;
             }
-            if (linked != null && explorer.NamesOnlyMet && InCatalog(explorer, linked)) StrictShown(1);
             if (facts.Proofs.TryGetValue(pair.Key, out var proof) && explorer.KeepsBack(proof))
             {
                 // Kept back: ??? in its place, what shows it on hover.

@@ -805,8 +805,8 @@ namespace Scry
             p.Check(ScryPanel.Drawn(PanelPart.ClosedPage) == closed, $"{fought.Name}, fought, shows its whole page");
             p.Check(drop != null && !X.Reaches(drop.Key), $"what it drops, not seen, is no link: {drop?.Name}");
             p.Check(drop != null && X.LeavesOut(drop.Key) && !X.LeavingOut, $"under the loose rules its page leaves out {drop?.Name}, not yet met");
-            p.Check(ScryPanel.Drawn(PanelPart.StrictLeftOut) > notMetLines && X.LeftOutLine("Drops", 1) == CompendiumWords.NotYetMet("Drops", 1),
-                "and says faintly how many more were not yet met", X.LeftOutLine("Drops", 1));
+            p.Check(ScryPanel.Drawn(PanelPart.StrictLeftOut) > notMetLines && X.LeftOutLine("loot", 1) == CompendiumWords.NotYetMet("loot", 1),
+                "and says faintly how many more were not yet met", X.LeftOutLine("loot", 1));
             p.Check(ScryPanel.Drawn(PanelPart.YouBox) > 0, "and opens with a box of what the character did with it and how it came to know it");
 
             // Strict: the fought creature's page keeps the drop seen fall, leaves out one that was not, and draws without fault.
@@ -851,8 +851,8 @@ namespace Scry
                 yield return Until(() => ScryPanel.Repaints >= repaints + 3, 3);
                 p.Check(!X.LeavesOut(drops[0].Key) && X.LeavesOut(drops[1].Key) == (X.LevelOf(drops[1]) < KnownLevel.Seen),
                     $"under the loose rules its page names {drops[0].Name}, seen, and leaves out only what was not met");
-                p.Check(ScryPanel.Drawn(PanelPart.StrictLeftOut) > looseLines && X.LeftOutLine("Drops", 1) == CompendiumWords.NotYetMet("Drops", 1),
-                    "and its sections count what was not yet met, not what was not seen together", X.LeftOutLine("Drops", 1));
+                p.Check(ScryPanel.Drawn(PanelPart.StrictLeftOut) > looseLines && X.LeftOutLine("loot", 1) == CompendiumWords.NotYetMet("loot", 1),
+                    "and its sections count what was not yet met, not what was not seen together", X.LeftOutLine("loot", 1));
                 p.Check(!X.HidesDamage("Blunt"), "nor keeps back how a damage type lands");
             }
 

@@ -236,7 +236,8 @@ namespace Scry.Tests
         {
             var world = new World().Rule(CompendiumRule.Loose);
             world.Explorer.Select(world.Windmill);
-            Assert.Equal("2 more not yet met", world.Explorer.LeftOutLine("making", 2));
+            // Only its loot and where it lives count what was left out: counts the player can act on.
+            Assert.Null(world.Explorer.LeftOutLine("making", 2));
             Assert.Equal("1 more place it lives not yet met in", world.Explorer.LeftOutLine("lives", 1));
             Assert.Null(world.Explorer.LeftOutLine("making", 0));
 

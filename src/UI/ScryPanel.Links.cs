@@ -483,38 +483,11 @@ namespace Scry
             _toUnlock = 0;
         }
 
-        /// <summary>Counts things the strict rules left out of the section being drawn, and of the page.</summary>
+        /// <summary>Counts things the strict rules left out of the section being drawn.</summary>
         private static void StrictLeft(int count)
         {
-            if (count <= 0) return;
-            _strictLeft += count;
-            _drawLeft += count;
+            if (count > 0) _strictLeft += count;
         }
-
-        /// <summary>Counts names the strict rules could have left out of the page but showed, met and seen together with it.</summary>
-        private static void StrictShown(int count)
-        {
-            if (count > 0) _drawShown += count;
-        }
-
-        /// <summary>The names the details' draw going on showed and left out under the strict rules.</summary>
-        private static int _drawShown, _drawLeft;
-
-        /// <summary>The names the last whole draw of an entry's details showed and left out, and whether a section that names things was folded, so not counted; for the title row's chip.</summary>
-        private static (Entry Of, int Shown, int Left, bool Folded) _pageNames;
-
-        /// <summary>A draw of the details begins: no name counted yet.</summary>
-        private static void StartNameCount()
-        {
-            _drawShown = 0;
-            _drawLeft = 0;
-        }
-
-        /// <summary>A whole draw of an entry's details ended: what it showed and left out is the page's.</summary>
-        private static void EndNameCount(Entry entry, bool folded) => _pageNames = (entry, _drawShown, _drawLeft, folded);
-
-        /// <summary>Lets go of the page the names were counted for.</summary>
-        private static void ForgetNameCount() => _pageNames = default;
 
         /// <summary>
         /// Under the strict rules, what the section just drawn left out, said faintly at its end
@@ -576,10 +549,7 @@ namespace Scry
         /// </summary>
         private static IReadOnlyList<T> ShownStrictly<T>(Explorer explorer, IReadOnlyList<T> items, Func<T, string> key, bool gameShown = false)
         {
-            var shown = ShownStrictly(explorer, items, item => explorer.LeavesOut(key(item), gameShown));
-            if (!explorer.NamesOnlyMet) return shown;
-            for (var i = 0; i < shown.Count; i++) if (InCatalog(explorer, key(shown[i]))) StrictShown(1);
-            return shown;
+            return ShownStrictly(explorer, items, item => explorer.LeavesOut(key(item), gameShown));
         }
 
         /// <summary>What a list keeps under the strict rules, each item left out as it says (<see cref="ShownStrictly{T}(Explorer, IReadOnlyList{T}, Func{T, string}, bool)"/>).</summary>

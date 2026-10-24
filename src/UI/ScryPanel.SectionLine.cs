@@ -114,16 +114,6 @@ namespace Scry
             if (_marking && id != null) TopicTops[id] = top;
         }
 
-        /// <summary>The sections a page's names stand in, which the strict rules leave out of.</summary>
-        private static readonly string[] NamingSections = { "facts", "links", "effects", "playsin" };
-
-        /// <summary>Whether a section of the last whole draw that names things was folded, so what it would leave out went uncounted.</summary>
-        private static bool NamingSectionFolded()
-        {
-            foreach (var mark in Marks) if (System.Array.IndexOf(NamingSections, mark.Key) >= 0 && IsFolded(mark.Key)) return true;
-            return false;
-        }
-
         /// <summary>Lets go of the sections found, for another entry or world.</summary>
         private static void ForgetSectionLine()
         {

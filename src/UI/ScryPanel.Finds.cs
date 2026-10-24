@@ -24,9 +24,9 @@ namespace Scry
         [Diagnostic]
         public static IEnumerable<string> StillForTest => _findsStill.ConvertAll(s => s.Label);
 
-        /// <summary>How much was found out of the page last gathered, its numbers and its names, for the self-test.</summary>
+        /// <summary>How much was found out of the page last gathered, of the numbers it keeps back, for the self-test.</summary>
         [Diagnostic]
-        public static (int Found, int Of) FindsForTest => (_finds.Found + _pageNames.Shown, _finds.Of + _pageNames.Shown + _pageNames.Left);
+        public static (int Found, int Of) FindsForTest => (_finds.Found, _finds.Of);
 
         /// <summary>
         /// What the page shown keeps back under the strict rules: what is still to find out, and how
@@ -55,13 +55,11 @@ namespace Scry
 
         /// <summary>
         /// The chip on a known page's title row under the strict rules, before copy and star: how
-        /// much of what it keeps back was found out, the numbers it holds back and the names it
-        /// leaves out (as the last whole draw of its details counted them, shown and left out), with
-        /// a small bar, its tip what is still to find out and a click going to that in the You box;
-        /// lit once all was and no section that names things was folded; faint where the floor or a
-        /// source of the world shows the page whole, its tip saying what does and how to see what is
-        /// left. None where nothing is kept back, nor before its details were counted once. Where
-        /// the chip begins, else <paramref name="right"/>.
+        /// many of the numbers it keeps back were found out, with a small bar, its tip what is
+        /// still to find out and a click going to that in the You box; lit once all were; faint
+        /// where the floor or a source of the world shows the page whole, its tip saying what does
+        /// and how to see what is left. None where nothing is kept back. Where the chip begins,
+        /// else <paramref name="right"/>.
         /// </summary>
         private static float FindsChip(Explorer explorer, Entry entry, float right, float y)
         {
@@ -69,10 +67,8 @@ namespace Scry
             var whole = explorer.ShownWhole(out var source);
             if (!whole && !explorer.LeavingOut) return right;
             var (still, finds) = whole ? (null, null) : FindsOf(explorer, entry);
-            var names = _pageNames;
-            if (!whole && !ReferenceEquals(names.Of, entry)) return right;
-            var found = whole ? 0 : finds.Found + names.Shown;
-            var of = whole ? 0 : finds.Of + names.Shown + names.Left;
+            var found = whole ? 0 : finds.Found;
+            var of = whole ? 0 : finds.Of;
             if (!whole && of == 0) return right;
             CountDrawn(PanelPart.FindsChip);
             var height = U(24f);
@@ -89,7 +85,7 @@ namespace Scry
                 FindsChipForTest = said;
                 return at.x;
             }
-            if (found >= of && !names.Folded)
+            if (found >= of)
             {
                 var said = CompendiumWords.AllFoundOut;
                 var width = Skin.Width(Skin.ChipOn, said) + icon + U(22f);
@@ -116,7 +112,7 @@ namespace Scry
             Skin.Fill(track, Skin.Alpha(Skin.Accent, 0.25f));
             Skin.Fill(new Rect(track.x, track.y, track.width * found / Mathf.Max(1, of), track.height), Skin.Accent);
             Skin.LabelIn(new Rect(track.xMax + U(6f), chip.y, chip.xMax - track.xMax - U(10f), height), text, Skin.Small, Skin.Accent);
-            if (chip.Contains(e.mousePosition)) AskTip("finds:" + text, CompendiumWords.FindsTip(still, names.Left, names.Folded));
+            if (chip.Contains(e.mousePosition)) AskTip("finds:" + text, CompendiumWords.FindsTip(still));
             if (go && still.Count > 0) ArriveAt(NewsArrival.AtYouLine(still[0].Label));
             FindsChipForTest = text;
             return chip.x;

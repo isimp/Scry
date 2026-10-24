@@ -306,7 +306,6 @@ namespace Scry
                     if (row.Owners[o].Key != null && explorer.LeavesOut(row.Owners[o].Key)) StrictLeft(1);
                     else
                     {
-                        if (row.Owners[o].Key != null && explorer.NamesOnlyMet) StrictShown(1);
                         KeptOwners.Add(o);
                     }
                 }
