@@ -170,6 +170,8 @@ namespace Scry
             ScryPanel.MouseAwayForTest(true);
             _allKnown = null;
             AllKnown();
+            // Each place rolls the same while the test runs, so its pictures compare run to run.
+            StageDice.Fix(true);
             Frames.Clear();
             Timing.Measuring = Frames;
             _sampled = asked.Sampled;
@@ -289,6 +291,7 @@ namespace Scry
             KeepTimes(reports);
 
             var readHere = _before != null && _before.LocationsWere != Locations.State.Read && Locations.Now == Locations.State.Read;
+            StageDice.Fix(false);
             var failure = Steps.Run(PutBack, null);
             Write(failure != null
                 ? $"FAIL putting things back threw {failure.GetType().Name}: {failure.Message}"

@@ -28,8 +28,6 @@ namespace Scry
         /// <summary>A few milliseconds a frame for reading rooms that have loaded.</summary>
         private const double BudgetMs = 3.0;
 
-        private static readonly System.Random Seeds = new System.Random();
-
         /// <summary>The location the example is of, and its rooms in the order the game lists them.</summary>
         private static Entry _entry;
         private static readonly List<Entry> Rooms = new List<Entry>();
@@ -474,7 +472,7 @@ namespace Scry
                 var rules = place.Rules.FirstOrDefault();
                 var radius = rules != null ? Mathf.Max(rules.m_exteriorRadius, rules.m_interiorRadius) : 0f;
                 var turned = rules == null || rules.m_randomRotation || rules.m_slopeRotation;
-                var dice = new Dice(Seeds.Next());
+                var dice = new Dice(StageDice.SeedFor(_entry.Name));
                 Example = DungeonLayout.Build(plan, shapes, DungeonLayout.Site(plan, radius, turned, dice), dice);
                 ShowsWorlds = false;
                 Unread = 0;

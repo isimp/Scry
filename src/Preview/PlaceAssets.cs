@@ -98,7 +98,8 @@ namespace Scry
     /// (<c>ZoneSystem.SpawnLocation</c>): each <c>RandomSpawn</c> at its chance, showing its object
     /// for when it is off otherwise, then each <c>RandomObject</c> picking one of its objects by
     /// weight. The rolls are made on the copy while it still sleeps, so the prefab itself is
-    /// never touched.
+    /// never touched; they are by chance, or the same for a place while the self-test runs
+    /// (<see cref="StageDice"/>).
     ///
     /// A dungeon's interior is left out: the game builds it thousands of metres above its
     /// entrance, and on the stage it would stand so far off that the camera could frame
@@ -107,8 +108,6 @@ namespace Scry
     /// </summary>
     internal static class PlaceCopy
     {
-        private static readonly System.Random Dice = new System.Random();
-
         /// <summary>How far above its root a part must be to be an interior: the game's stand some 5,000 m up.</summary>
         private const float InteriorHeight = 1000f;
 
@@ -122,14 +121,14 @@ namespace Scry
         public static Ghost.Building Begin(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer, bool keepColliders = false, bool local = false,
             PlaceRoll roll = null, Location rules = null, List<GroundPaintAt> paints = null)
         {
-            return new Ghost.Building(prefab, parent, position, rotation, layer, copy => Prepare(copy, roll, rules, paints), keepColliders, local);
+            return new Ghost.Building(prefab, parent, position, rotation, layer, copy => Prepare(copy, prefab.name, roll, rules, paints), keepColliders, local);
         }
 
-        private static void Prepare(GameObject copy, PlaceRoll roll, Location rules, List<GroundPaintAt> paints = null)
+        private static void Prepare(GameObject copy, string place, PlaceRoll roll, Location rules, List<GroundPaintAt> paints = null)
         {
             // Its chests and pickups with their chances before the rolls, those left after them.
             var loot = roll != null && roll.WantsLoot ? PlaceReader.LootChances(copy) : null;
-            Roll(copy, roll != null ? roll.Switched : new HashSet<Transform>());
+            Roll(copy, StageDice.RollsFor(place), roll != null ? roll.Switched : new HashSet<Transform>());
             if (loot != null)
             {
                 foreach (var (at, prefab, chance) in loot) if (Animators.SwitchedOn(at, copy.transform)) roll.Loot.Add((prefab, chance));
@@ -182,13 +181,13 @@ namespace Scry
         }
 
         /// <summary>Rolls the copy's chance parts, noting in <paramref name="switches"/> every object a roll switches on or off.</summary>
-        private static void Roll(GameObject copy, HashSet<Transform> switches)
+        private static void Roll(GameObject copy, System.Random dice, HashSet<Transform> switches)
         {
             var root = copy.transform;
             foreach (var spawn in copy.GetComponentsInChildren<RandomSpawn>(true))
             {
                 if (spawn == null || !spawn.enabled || !Animators.SwitchedOn(spawn.transform, root)) continue;
-                var there = Dice.NextDouble() * 100.0 <= spawn.m_chanceToSpawn;
+                var there = dice.NextDouble() * 100.0 <= spawn.m_chanceToSpawn;
                 if (!there) spawn.gameObject.SetActive(false);
                 if (spawn.m_OffObject != null) spawn.m_OffObject.SetActive(!there);
                 switches.Add(spawn.transform);
@@ -198,7 +197,7 @@ namespace Scry
             {
                 if (pick.OrNull()?.m_objects == null || !pick.enabled || !Animators.SwitchedOn(pick.transform, root)) continue;
                 // An entry without an object weighs in too, and picking it leaves the whole pick out.
-                var at = PlaceParts.Pick(pick.m_objects.Select(e => e?.m_weight ?? 0f).ToList(), Dice.NextDouble());
+                var at = PlaceParts.Pick(pick.m_objects.Select(e => e?.m_weight ?? 0f).ToList(), dice.NextDouble());
                 var chosen = at >= 0 ? pick.m_objects[at]?.m_object : null;
                 foreach (var entry in pick.m_objects)
                 {

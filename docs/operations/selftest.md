@@ -1,6 +1,6 @@
 # The self-test
 
-The in-game self-test: how runs are started and chosen, what each area of parts covers, its pictures, and how to read its log.
+The in-game self-test: how runs are started and chosen, what each area of parts covers, its pictures, and how to read its log. While it runs, what a place's example leaves to chance is rolled the same for each place (`StageDice.Fix`), so its pictures of places compare run to run; play rolls by chance again once it ends.
 
 Code: `src/Preview/Stage.cs`, `src/Core/Timing.cs`, `src/Core/Faults.cs`, `src/Core/SelfTestHost.cs`, `src/UI/ScryPanel.Drawn.cs`, `src/Model/FrameTimes.cs`, `src/Model/FrameStats.cs`, `src/Model/Explorer.cs`.
 
