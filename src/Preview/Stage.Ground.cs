@@ -56,7 +56,7 @@ namespace Scry
 
         /// <summary>For the self-test: how far out the grass grows, how near the middle, how far round the model it is kept off, and how far the ground reaches.</summary>
         [ForTest]
-        public static (float Farthest, float Nearest, float Cleared, float Reach) GrassSpread => TheGround.GrassSpread;
+        public static (float Farthest, float Nearest, float ShortOut, float Reach) GrassSpread => TheGround.GrassSpread;
 
         /// <summary>For the self-test: whether the grass is being scattered, the last grass shown meanwhile.</summary>
         [ForTest]
@@ -100,8 +100,8 @@ namespace Scry
             var edge = sky ? look.Horizon : look.Backdrop;
             edge.a = 1f;
             var size = SubjectSize;
-            var clear = StageGround.ClearOfGrass(Mathf.Max(size.x, size.z) / 2f, size.y, StageGround.StandsAs(_lastShown?.Kind));
-            TheGround.Lay(groundY, _lastShown, sky, _frameRadius, clear, Origin, edge, _root, _layer);
+            var shortOut = StageGround.ShortGrassOut(Mathf.Max(size.x, size.z) / 2f, size.y, StageGround.StandsAs(_lastShown?.Kind));
+            TheGround.Lay(groundY, _lastShown, sky, _frameRadius, shortOut, Origin, edge, _root, _layer);
         }
 
         private static void DrawGrass()

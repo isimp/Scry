@@ -43,8 +43,8 @@ namespace Scry
             spread = Stage.GrassSpread;
             var size = Stage.SubjectSize;
             var footprint = Mathf.Max(size.x, size.z) / 2f;
-            p.Check(spread.Cleared == 0f && spread.Nearest < footprint, $"{big.Name} stands in the grass up to its feet, none kept off round it",
-                $"kept off {Numbers.Fixed(spread.Cleared, 1)} m round it, the nearest stem {Numbers.Fixed(spread.Nearest, 1)} m from its middle, half its widest side {Numbers.Fixed(footprint, 1)} m");
+            p.Check(spread.ShortOut == 0f && spread.Nearest < footprint, $"{big.Name} stands in the grass up to its feet, none short round it",
+                $"short {Numbers.Fixed(spread.ShortOut, 1)} m round it, the nearest stem {Numbers.Fixed(spread.Nearest, 1)} m from its middle, half its widest side {Numbers.Fixed(footprint, 1)} m");
             yield return Picture(p, "ground big creature");
 
             // A raid's crowd stands in the grass as one creature does, and a camp in the meadow
@@ -58,6 +58,18 @@ namespace Scry
                 yield return Until(() => CopyOf(camp) != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 60);
                 yield return StandsInGrass(p, camp, "ground camp");
             }
+            // A thing lying low in the meadow: the grass short at its feet, no bare circle round it.
+            var lying = Pick(Kind.Item, "SwordIron", "AxeBronze", "Wood");
+            if (lying != null)
+            {
+                Select(lying);
+                yield return GrassFor(lying);
+                yield return new Wait(1);
+                var low = Stage.GrassSpread;
+                p.Check(low.ShortOut >= 1.5f && low.Nearest < 0.5f, $"{lying.Name} lies in short grass, stems growing at its feet, no bare circle round it",
+                    $"short {Numbers.Fixed(low.ShortOut, 1)} m round it, the nearest stem {Numbers.Fixed(low.Nearest, 2)} m from its middle");
+                yield return Picture(p, "ground thing lying low");
+            }
             GroundAsItWas();
         }
 
@@ -70,8 +82,8 @@ namespace Scry
             var spread = Stage.GrassSpread;
             var size = Stage.SubjectSize;
             var footprint = Mathf.Max(size.x, size.z) / 2f;
-            p.Check(spread.Cleared == 0f && spread.Nearest < footprint, $"{entry.Name} stands in the grass, none kept off round all of it",
-                $"kept off {Numbers.Fixed(spread.Cleared, 1)} m round it, the nearest stem {Numbers.Fixed(spread.Nearest, 1)} m from its middle, half its widest side {Numbers.Fixed(footprint, 1)} m");
+            p.Check(spread.ShortOut == 0f && spread.Nearest < footprint, $"{entry.Name} stands in the grass, none short round all of it",
+                $"short {Numbers.Fixed(spread.ShortOut, 1)} m round it, the nearest stem {Numbers.Fixed(spread.Nearest, 1)} m from its middle, half its widest side {Numbers.Fixed(footprint, 1)} m");
             yield return Picture(p, picture);
         }
 

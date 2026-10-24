@@ -11,10 +11,10 @@ namespace Scry
         public bool ClearsVegetation;
     }
 
-    /// <summary>How what the stage shows stands in the biome's grass (<see cref="StageGround.ClearOfGrass"/>).</summary>
+    /// <summary>How what the stage shows stands in the biome's grass (<see cref="StageGround.ShortGrassOut"/>).</summary>
     internal enum GrassStand
     {
-        /// <summary>A thing that keeps a ring of ground round its footprint: an item, a piece, a rock, a nest.</summary>
+        /// <summary>A thing the grass grows short round, over its footprint and a margin: an item, a piece, a rock, a nest.</summary>
         Thing,
 
         /// <summary>A figure that stands in the grass as the game's creatures do: a creature, a trader, a raid's crowd, a person.</summary>
@@ -132,18 +132,48 @@ namespace Scry
         }
 
         /// <summary>
-        /// How far round the model the stage's grass is kept off, in metres: the ground a thing
-        /// stands on and a margin (its footprint, half its widest side, a fifth more and 0.3 m);
-        /// none round a figure, which stands in the grass as the game's creatures do, however wide
-        /// its arms or wings or its crowd; none round a place, whose own ground paints clear its
-        /// grass where the game clears it; and for a thing or a figure lower than grass grows
-        /// (under 0.6 m), at least 1.5 m, so the grass between it and the camera does not hide it.
+        /// How far round the model the stage's grass grows short (<see cref="StemScale"/>), in
+        /// metres: the ground a thing stands on and a margin (its footprint, half its widest side,
+        /// a fifth more and 0.3 m); none round a figure, which stands in the grass as the game's
+        /// creatures do, however wide its arms or wings or its crowd; none round a place, whose own
+        /// ground paints clear its grass where the game clears it; and for a thing or a figure
+        /// lower than grass grows (under 0.6 m), at least 1.5 m, so the grass between it and the
+        /// camera does not hide it.
         /// </summary>
-        public static float ClearOfGrass(float footprint, float height, GrassStand stand)
+        public static float ShortGrassOut(float footprint, float height, GrassStand stand)
         {
             if (stand == GrassStand.Place) return 0f;
             if (height >= 0.6f) return stand == GrassStand.Figure ? 0f : footprint * 1.2f + 0.3f;
             return Math.Max(footprint * 1.2f + 0.3f, 1.5f);
+        }
+
+        /// <summary>How tall a stem grows at a thing's feet, of its full height.</summary>
+        public const float ShortStem = 0.2f;
+
+        /// <summary>
+        /// How tall a stem grows <paramref name="away"/> metres from the model, of its full height:
+        /// short at its feet (<see cref="ShortStem"/>), growing smoothly to full at
+        /// <paramref name="shortOut"/> (<see cref="ShortGrassOut"/>), so the grass is low where it
+        /// would hide what is shown and no bare circle of ground shows round it; full everywhere
+        /// where none grows short.
+        /// </summary>
+        public static float StemScale(float away, float shortOut)
+        {
+            if (shortOut <= 0f || away >= shortOut) return 1f;
+            var t = Math.Max(0f, away / shortOut);
+            return ShortStem + (1f - ShortStem) * t * t * (3f - 2f * t);
+        }
+
+        /// <summary>
+        /// How many of a kind of plant a patch scatters, as the game does at the player's grass
+        /// quality (<c>ClutterSystem.GenerateVegPatch</c>): a quarter on Low, half on Medium, all on
+        /// High, times the system's scale; none Off, where the game draws no grass at all.
+        /// </summary>
+        public static int Amount(int amount, int quality, float scale)
+        {
+            if (quality <= 0) return 0;
+            var share = quality == 1 ? amount / 4 : quality == 2 ? amount / 2 : amount;
+            return (int)(share * scale);
         }
 
         /// <summary>How what is shown of a kind stands in the grass: creatures, traders, a raid's crowd and the person wearing a status effect as figures, locations as places, the rest as things.</summary>

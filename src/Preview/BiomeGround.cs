@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using HarmonyLib;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Object = UnityEngine.Object;
@@ -65,8 +66,27 @@ namespace Scry
         private float _across = 24f;
         private float _basis;
 
-        /// <summary>How far round the model its grass was kept off when scattered, in metres.</summary>
-        private float _clear;
+        /// <summary>How far round the model its grass grew short when scattered, in metres (<see cref="StageGround.ShortGrassOut"/>).</summary>
+        private float _shortOut;
+
+        /// <summary>The player's grass quality the grass was scattered at, as the game keeps it (<c>ClutterSystem.m_quality</c>).</summary>
+        private int _quality = -1;
+
+        /// <summary>Reads the player's grass quality as the game keeps it, made once; none where an update took the field away.</summary>
+        private static AccessTools.FieldRef<ClutterSystem, ClutterSystem.Quality> _qualityOf;
+        private static bool _qualityTried;
+
+        /// <summary>The player's grass quality now; High where it cannot be read.</summary>
+        private static int QualityNow()
+        {
+            if (!_qualityTried)
+            {
+                _qualityTried = true;
+                Guard.Run(Feature.StageGround, "reading the grass quality", () => _qualityOf = AccessTools.FieldRefAccess<ClutterSystem, ClutterSystem.Quality>("m_quality"));
+            }
+            var system = ClutterSystem.instance;
+            return system != null && _qualityOf != null ? (int)_qualityOf(system) : (int)ClutterSystem.Quality.High;
+        }
         private Vector3 _at;
         private int _paintsLaid = -1;
 
@@ -115,7 +135,7 @@ namespace Scry
 
         /// <summary>How far from the middle the farthest and the nearest stem grow, how far round the model the grass was kept off, and how far the ground reaches, in metres, for the self-test.</summary>
         [Diagnostic]
-        public (float Farthest, float Nearest, float Cleared, float Reach) GrassSpread => (_farthest, _nearest, _clear, _across / 2f);
+        public (float Farthest, float Nearest, float ShortOut, float Reach) GrassSpread => (_farthest, _nearest, _shortOut, _across / 2f);
 
         private float _farthest, _nearest;
 
@@ -153,11 +173,11 @@ namespace Scry
 
         /// <summary>
         /// Lays the ground under the model at its height: again for another entry, biome, sky or
-        /// paint, or as what is framed grows; its grass goes up and down with it, kept off the
-        /// ground round the model (<paramref name="clear"/> metres, <see cref="StageGround.ClearOfGrass"/>).
-        /// Its edge fades into the colour given, what is behind it.
+        /// paint, or the player's grass quality, or as what is framed grows; its grass goes up and
+        /// down with it, short round the model (<paramref name="shortOut"/> metres,
+        /// <see cref="StageGround.ShortGrassOut"/>). Its edge fades into the colour given, what is behind it.
         /// </summary>
-        public void Lay(float groundY, Entry shown, bool sky, float frameRadius, float clear, Vector3 origin, Color edge, GameObject root, int layer)
+        public void Lay(float groundY, Entry shown, bool sky, float frameRadius, float shortOut, Vector3 origin, Color edge, GameObject root, int layer)
         {
             var on = On && _terrain != null && _terrain.activeSelf;
             if (_fade != null && _fade.activeSelf != on) _fade.SetActive(on);
@@ -172,8 +192,9 @@ namespace Scry
 
             var basis = Mathf.Max(0.5f, frameRadius);
             var at = new Vector3(origin.x, groundY - Below, origin.z);
-            var afresh = !ReferenceEquals(_for, shown) || _laidBiome != Biome || _sky != sky;
-            var another = afresh || _paintsLaid != _paintsVersion || Mathf.Abs(clear - _clear) > 0.1f;
+            var quality = QualityNow();
+            var afresh = !ReferenceEquals(_for, shown) || _laidBiome != Biome || _sky != sky || _quality != quality;
+            var another = afresh || _paintsLaid != _paintsVersion || Mathf.Abs(shortOut - _shortOut) > 0.1f;
             if (another || basis > _basis * 1.25f)
             {
                 _basis = another ? basis : Mathf.Max(basis, _basis);
@@ -182,7 +203,8 @@ namespace Scry
                 _sky = sky;
                 _paintsLaid = _paintsVersion;
                 _across = StageGround.Across(_basis, sky);
-                _clear = clear;
+                _shortOut = shortOut;
+                _quality = quality;
                 _at = at;
                 // The paint and the grass at once for another entry, biome or sky; for what changes
                 // as a place's rooms come in one by one (its paints, its size, its reach), once they
@@ -604,6 +626,8 @@ namespace Scry
         /// biome with its own dice for the patch (<see cref="StageGround.PatchSeed"/>), its places
         /// kept by its forest, noise, height, slope, sea depth, vegetation and cleared ground rules,
         /// the ground taken at a height typical of the biome (<see cref="StageGround.Altitude"/>).
+        /// As many of each kind grow as the game grows at the player's grass quality
+        /// (<see cref="StageGround.Amount"/>), short round the model (<see cref="StageGround.StemScale"/>).
         /// It grows out to where the ground has faded away, eighty metres at the most, thinning as
         /// the ground fades (<see cref="StageGround.GrassKept"/>), so grass and ground fade together.
         /// A patch a step, a few milliseconds a frame (<see cref="StepScatter"/>), the grass shown
@@ -631,7 +655,8 @@ namespace Scry
             var thinsBy = reach / 0.95f;
             var patches = Mathf.CeilToInt(reach / size);
             var at = _at;
-            var clear = _clear;
+            var shortOut = _shortOut;
+            var quality = _quality;
             var farthest = 0f;
             var nearest = float.MaxValue;
             var kinds = new Dictionary<GameObject, GrassKind>();
@@ -648,25 +673,27 @@ namespace Scry
                         if (clutter == null || !clutter.m_enabled || clutter.m_prefab == null || (clutter.m_biome & biome) == 0) continue;
                         UnityEngine.Random.InitState(StageGround.PatchSeed(px, pz, i));
                         var offset = new Vector3(clutter.m_fractalOffset, 0f, 0f);
-                        var amount = (int)(clutter.m_amount * system.m_amountScale);
+                        var amount = StageGround.Amount(clutter.m_amount, quality, system.m_amountScale);
                         for (var j = 0; j < amount; j++)
                         {
                             var point = new Vector3(UnityEngine.Random.Range(cx - half, cx + half), 0f, UnityEngine.Random.Range(cz - half, cz + half));
                             float yaw = UnityEngine.Random.Range(0, 360);
                             var kept = UnityEngine.Random.value;
                             var away = new Vector2(point.x - at.x, point.z - at.z).magnitude;
-                            if (away < clear || kept >= StageGround.GrassKept(away / thinsBy)) continue;
+                            if (kept >= StageGround.GrassKept(away / thinsBy)) continue;
                             if (!Grows(clutter, point, offset, altitude, depth, bare, paints)) continue;
                             farthest = Mathf.Max(farthest, away);
                             nearest = Mathf.Min(nearest, away);
                             point.y = clutter.m_snapToWater ? at.y + depth : at.y + Below;
                             if (clutter.m_randomOffset != 0f) point.y += UnityEngine.Random.Range(0f - clutter.m_randomOffset, clutter.m_randomOffset);
                             var turn = Quaternion.Euler(0f, yaw, 0f);
-                            if (clutter.m_instanced) AddGrass(kinds, clutter, point, turn);
+                            var stem = StageGround.StemScale(away, shortOut);
+                            if (clutter.m_instanced) AddGrass(kinds, clutter, point, turn, stem);
                             else if (_scatteredCopies.Count < MostGrassCopies)
                             {
                                 var copy = Ghost.Make(clutter.m_prefab, root.transform, point, turn, layer);
                                 if (copy == null) continue;
+                                copy.transform.localScale *= stem;
                                 copy.SetActive(false);
                                 _scatteredCopies.Add(copy);
                             }
@@ -712,10 +739,10 @@ namespace Scry
             return true;
         }
 
-        /// <summary>One stem of a kind drawn many times over, at its size, as the game adds it (<c>InstanceRenderer.AddInstance</c>).</summary>
-        private static void AddGrass(Dictionary<GameObject, GrassKind> kinds, ClutterSystem.Clutter clutter, Vector3 point, Quaternion turn)
+        /// <summary>One stem of a kind drawn many times over, at its size, as the game adds it (<c>InstanceRenderer.AddInstance</c>), times <paramref name="stem"/> where it grows short.</summary>
+        private static void AddGrass(Dictionary<GameObject, GrassKind> kinds, ClutterSystem.Clutter clutter, Vector3 point, Quaternion turn, float stem)
         {
-            var scale = UnityEngine.Random.Range(clutter.m_scaleMin, clutter.m_scaleMax);
+            var scale = UnityEngine.Random.Range(clutter.m_scaleMin, clutter.m_scaleMax) * stem;
             if (!kinds.TryGetValue(clutter.m_prefab, out var kind))
             {
                 var renderer = clutter.m_prefab.GetComponent<InstanceRenderer>();
