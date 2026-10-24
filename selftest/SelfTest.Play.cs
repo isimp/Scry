@@ -313,7 +313,9 @@ namespace Scry
             p.Check(ScryPanel.Drawn(PanelPart.Smudge) > smudges, "what the fight keeps back shows as smudges, never as text");
             // Its damage kept back reads ???, its columns no wider than their headings need.
             var attacks = Facts.For(troll).Rows.FirstOrDefault(r => r.Title == CombatWords.AttacksTitle);
-            if (attacks?.AttackCells != null && ScryPanel.TablesDrawnForTest.TryGetValue(attacks.Title, out var drawn))
+            // With every attack waiting, the table draws its title and the one line that counts them, no columns.
+            if (attacks?.AttackCells != null && ScryPanel.Drawn(PanelPart.AttacksWait) > 0 && !ScryPanel.TablesDrawnForTest.ContainsKey(attacks.Title)) p.Note("every attack of the troll waits: no column of its table is drawn to measure");
+            else if (attacks?.AttackCells != null && ScryPanel.TablesDrawnForTest.TryGetValue(attacks.Title, out var drawn))
             {
                 var wide = attacks.AttackCells.Where(c => c < drawn.Columns.Length && drawn.Columns[c] > drawn.Headings[c] + 1f).Select(c => $"{attacks.Columns[c]} {Numbers.Fixed(drawn.Columns[c], 0)} for a heading of {Numbers.Fixed(drawn.Headings[c], 0)}").ToList();
                 p.Check(wide.Count == 0, "a column of damage kept back is as wide as its heading, not its hidden figures", string.Join("; ", wide));

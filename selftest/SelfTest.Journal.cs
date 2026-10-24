@@ -14,7 +14,7 @@ namespace Scry
         /// notice tells what happened in words.
         /// </summary>
         private static readonly string[] DayHeadings = { "Day 22  1", "Day 12  1", "Earlier  1" };
-        private static readonly bool[] DaysFolded = { false, true, true };
+        private static readonly bool[] DaysFolded = { false, false, true };
 
         private static IEnumerator YouAndLearnedRead(Probe p)
         {
@@ -68,7 +68,7 @@ namespace Scry
             var headings = ScryPanel.ListHeadingsForTest;
             p.Note("Learned: " + string.Join("; ", headings.Select(h => h.Heading + (h.Folded ? " (folded)" : ""))));
             p.Check(headings.Select(h => h.Heading).SequenceEqual(DayHeadings), "Learned is grouped by day, newest first, what has no day last");
-            p.Check(headings.Select(h => h.Folded).SequenceEqual(DaysFolded), "the newest day is open, older days and what has no day are folded");
+            p.Check(headings.Select(h => h.Folded).SequenceEqual(DaysFolded), "the newest two days are open, older days and what has no day are folded");
             p.Check(X.LearnedNote(boar) == "seen" && X.LearnedNote(troll) == "fought" && X.LearnedNote(wood) == "known", "each row says how it came", $"{X.LearnedNote(boar)}, {X.LearnedNote(troll)}, {X.LearnedNote(wood)}");
             yield return Picture(p, "learned by day");
             // The selection moved into a folded day opens it.

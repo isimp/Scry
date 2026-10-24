@@ -161,9 +161,9 @@ namespace Scry
             // Under the strict rules drops and yields are told as the character saw them, not by the game's chances.
             var counted = explorer.StrictTitle(row.Tally, row.TallyOf, row.TallyLead);
             if (counted != null) title = counted;
-            // A name in the title the character has not met is kept back, as in any text on the page.
-            title = Masked(explorer, title);
-            return title;
+            // A name in the title the character has not met is kept back, as in any text on the page,
+            // but where the game shows the row now, the station its title names stands as the menu names it.
+            return GameShows(explorer, row) ? title : Masked(explorer, title);
         }
 
         /// <summary>A row's title line: marked where Scry is not sure of the row, saying why on hover; a link to the station it names; else plain. Where the chips start.</summary>
