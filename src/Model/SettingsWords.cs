@@ -82,7 +82,7 @@ namespace Scry
             ("Peeking", "The eye beside the compendium's button shows the page you are on whole until you go to another; Every page in its notice shows every page whole until the panel closes."),
             ("Learned and You", "Learned lists what your character learned, day by day; under Strict also what it found out and saw go together, which Loose shows whole from the start. A row there opens its page at what changed, lit a moment. A page's You box tells when it first saw the thing and came to know it, and how its fights went."),
             ("What this world shows as known", "Each source can show more of the world as known: the ground you explored, maps shared at a cartography table, places a Vegvisir or rune stone marked, the places every map shows, and the whole world counted. What shows so is marked with a folded map; your book keeps only what you met, so turning a source down takes it all back."),
-            ("Pins", "The pin at the end of a ground's row marks its dungeon entrances on the large map: solid where you walked it, hollow where someone on this server did, plain for an entrance alone. A click on a mark shows the dungeon in Scry."),
+            ("Pins", "The pin at the end of a ground's row marks its dungeon entrances on the large map: solid where you walked it, ticked where you walked every room, hollow where someone on this server did, plain for an entrance alone. A click on a mark shows the dungeon in Scry."),
             ("Playing together", "Where your friends have Scry, what their game runs near you counts for you as it would alone. A server can set the rules for everyone; the box then shows them locked, your own choices kept beneath."),
         };
 

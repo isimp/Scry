@@ -20,6 +20,14 @@ namespace Scry.Tests
             return map;
         }
 
+        /// <summary>A dungeon of one room, walked.</summary>
+        private static DungeonMap OneRoom(string location)
+        {
+            var map = new DungeonMap { Location = location, Rooms = new List<(int, Vec3, Vec3)> { (0, new Vec3(0f, 0f, 0f), new Vec3(0f, 0f, 0f)) }, Entrance = new Vec3(1f, 2f, 3f) };
+            map.Walked.Add(0);
+            return map;
+        }
+
         /// <summary>A dungeon whose area never loaded: its entrance known, no rooms.</summary>
         private static DungeonMap Entrance(string location) =>
             new DungeonMap { Location = location, Rooms = new List<(int, Vec3, Vec3)>(), Entrance = new Vec3(4f, 5f, 6f) };
@@ -93,6 +101,19 @@ namespace Scry.Tests
             Assert.False(own.MarksDungeonsNow(WorldSource.Explored));
             own.MarkDungeons(WorldSource.Explored, true);
             Assert.True(own.MarksDungeonsNow(WorldSource.Explored));
+        }
+
+        [Fact]
+        public void ADungeonYouWalkedWholeIsMarkedWithATick()
+        {
+            // Every room walked, end caps and dividers left out, stands out from one walked in part.
+            var walked = new[] { ("w:1", Map("Crypt2", 0, 1, 2, 3)), ("w:2", Map("Crypt2", 0)) };
+            var marks = DungeonMarks.Of(new CompendiumBook(), walked, _ => None, _ => null);
+            Assert.Equal(new[] { MarkLook.Whole, MarkLook.Yours }, marks.Select(m => m.Look));
+            // A dungeon of one room walked, too.
+            Assert.Equal(MarkLook.Whole, DungeonMarks.Of(null, new[] { ("w:3", OneRoom("Crypt2")) }, _ => None, _ => null)[0].Look);
+            // Where the rooms' kinds cannot be read, none is told whole.
+            Assert.Equal(MarkLook.Yours, DungeonMarks.Of(null, walked, _ => None)[0].Look);
         }
 
         [Fact]

@@ -60,7 +60,7 @@ namespace Scry
         /// <summary>Whether the server was asked for the marked dungeons' records since the map last opened.</summary>
         private static bool _askedServer;
         private static string _keptWorld;
-        private static Sprite _sprite, _hollow, _entrance;
+        private static Sprite _sprite, _whole, _hollow, _entrance;
 
         /// <summary>How many of the marks shown are of dungeons walked on this server shown with insides, hollow, for the self-test.</summary>
         [Diagnostic]
@@ -77,6 +77,10 @@ namespace Scry
         /// <summary>A mark's words, for the self-test; none for one not shown.</summary>
         [Diagnostic]
         public static string SaidForTest(int mark) => mark >= 0 && mark < Marks.Count && Marks[mark].Made.activeSelf ? Marks[mark].Said : null;
+
+        /// <summary>How a mark looks, for the self-test; none for one not shown.</summary>
+        [Diagnostic]
+        public static MarkLook? LookForTest(int mark) => mark >= 0 && mark < Marks.Count && Marks[mark].Made.activeSelf ? Marks[mark].Look : (MarkLook?)null;
 
         /// <summary>The mark the pointer rests on, whose words are shown; none.</summary>
         private static Mark _hovered;
@@ -168,7 +172,7 @@ namespace Scry
             if (_keptStamp != stamp || _keptWorld != world)
             {
                 Kept.Clear();
-                Kept.AddRange(DungeonMarks.Of(book, maps.OfWorld(world), DungeonsInGround.Of));
+                Kept.AddRange(DungeonMarks.Of(book, maps.OfWorld(world), DungeonsInGround.Of, RoomKinds.Of));
                 _keptStamp = stamp;
                 _keptWorld = world;
                 // Their words told afresh, as the days in them may have moved.
@@ -203,7 +207,7 @@ namespace Scry
                 {
                     mark.Id = kept.Id;
                     mark.Look = kept.Look;
-                    if (mark.Picture != null) mark.Picture.sprite = kept.Look == MarkLook.Yours ? MarkSprite() : kept.Look == MarkLook.Server ? HollowSprite() : EntranceSprite();
+                    if (mark.Picture != null) mark.Picture.sprite = SpriteOf(kept.Look);
                     Name(mark, Said(kept));
                 }
                 // Its words stand where it stands, as the game's pin names do, the name's own layout putting them under it.
@@ -261,7 +265,8 @@ namespace Scry
             var (walked, rooms) = RoomKinds.Walked(kept.Map);
             switch (kept.Look)
             {
-                case MarkLook.Yours: return DungeonMapWords.MarkLabel(name, walked, rooms, accent);
+                case MarkLook.Yours:
+                case MarkLook.Whole: return DungeonMapWords.MarkLabel(name, walked, rooms, accent);
                 case MarkLook.Server: return DungeonMapWords.ServerLabel(name, walked, rooms, accent, kept.Map.Traced.Count);
                 default: return DungeonMapWords.EntranceLabel(name, kept.Map.Walked.Count > 0, ColorUtility.ToHtmlStringRGB(Skin.Faint));
             }
@@ -385,6 +390,57 @@ namespace Scry
         /// <summary>The mark last opened: its dungeon, how it looked and whether its own rooms were opened; for the self-test.</summary>
         [Diagnostic]
         public static (string Id, MarkLook Look, bool Rooms) OpenedForTest { get; private set; }
+
+        /// <summary>A mark's picture by its look.</summary>
+        private static Sprite SpriteOf(MarkLook look)
+        {
+            switch (look)
+            {
+                case MarkLook.Yours: return MarkSprite();
+                case MarkLook.Whole: return WholeSprite();
+                case MarkLook.Server: return HollowSprite();
+                default: return EntranceSprite();
+            }
+        }
+
+        /// <summary>The picture of a mark of a dungeon you walked whole: the walked mark's accent disc, outlined dark, with a tick where its doorway is, made once.</summary>
+        private static Sprite WholeSprite()
+        {
+            if (_whole != null) return _whole;
+            const int side = 64;
+            var texture = Scry.Kept.Add(new Texture2D(side, side, TextureFormat.RGBA32, false) { name = "Scry dungeon mark whole", filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp });
+            var pixels = new Color32[side * side];
+            var accent = (Color32)Skin.Accent;
+            var dark = (Color32)Skin.OnAccent;
+            var clear = default(Color32);
+            for (var y = 0; y < side; y++)
+            {
+                for (var x = 0; x < side; x++)
+                {
+                    var px = x + 0.5f;
+                    var py = y + 0.5f;
+                    var r = Mathf.Sqrt((px - side / 2f) * (px - side / 2f) + (py - side / 2f) * (py - side / 2f));
+                    // A tick of two strokes 7 wide with round ends, its corner low and left of the middle.
+                    var tick = Mathf.Min(ToStroke(px, py, 18f, 31f, 28f, 21f), ToStroke(px, py, 28f, 21f, 46f, 42f)) <= 3.5f;
+                    pixels[y * side + x] = r > 31f ? clear : r > 27f ? dark : tick ? dark : accent;
+                }
+            }
+            texture.SetPixels32(pixels);
+            texture.Apply(false, true);
+            _whole = Scry.Kept.Add(Sprite.Create(texture, new Rect(0f, 0f, side, side), new Vector2(0.5f, 0.5f)));
+            return _whole;
+        }
+
+        /// <summary>How far a point is from a stroke between two points.</summary>
+        private static float ToStroke(float px, float py, float ax, float ay, float bx, float by)
+        {
+            var vx = bx - ax;
+            var vy = by - ay;
+            var t = Mathf.Clamp01(((px - ax) * vx + (py - ay) * vy) / (vx * vx + vy * vy));
+            var cx = ax + t * vx - px;
+            var cy = ay + t * vy - py;
+            return Mathf.Sqrt(cx * cx + cy * cy);
+        }
 
         /// <summary>The mark's picture: an accent disc, outlined dark, with a doorway in it, made once.</summary>
         private static Sprite MarkSprite()

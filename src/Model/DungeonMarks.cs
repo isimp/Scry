@@ -9,6 +9,9 @@ namespace Scry
         /// <summary>Walked by you: a filled doorway.</summary>
         Yours,
 
+        /// <summary>Walked by you, every room of it: a tick in place of the doorway.</summary>
+        Whole,
+
         /// <summary>Walked on this server, shown with insides: a hollow doorway, ringed.</summary>
         Server,
 
@@ -33,22 +36,22 @@ namespace Scry
     }
 
     /// <summary>
-    /// The dungeons marked on Valheim's big map: every one walked by you in the world played, then
-    /// those lying in a ground whose pin is on while its row shows anything
-    /// (<see cref="CompendiumBook.MarksDungeonsNow"/>), in the box's order, each once: hollow where
-    /// the row shows With insides and anyone on this server walked a room of it, else by its
-    /// entrance alone.
+    /// The dungeons marked on Valheim's big map: every one walked by you in the world played,
+    /// ticked where you walked every room of it, then those lying in a ground whose pin is on
+    /// while its row shows anything (<see cref="CompendiumBook.MarksDungeonsNow"/>), in the box's
+    /// order, each once: hollow where the row shows With insides and anyone on this server walked
+    /// a room of it, else by its entrance alone.
     /// </summary>
     internal static class DungeonMarks
     {
-        /// <summary>The marks, from the dungeons walked by you and those each ground holds.</summary>
-        public static List<DungeonMark> Of(CompendiumBook book, IEnumerable<(string Id, DungeonMap Map)> walked, Func<WorldSource, IEnumerable<(string Id, DungeonMap Map)>> inGround)
+        /// <summary>The marks, from the dungeons walked by you and those each ground holds; walked whole told by the kinds of room <paramref name="roomOf"/> reads, none where it is not given.</summary>
+        public static List<DungeonMark> Of(CompendiumBook book, IEnumerable<(string Id, DungeonMap Map)> walked, Func<WorldSource, IEnumerable<(string Id, DungeonMap Map)>> inGround, Func<int, RoomShape> roomOf = null)
         {
             var marks = new List<DungeonMark>();
             var marked = new HashSet<string>(StringComparer.Ordinal);
             foreach (var (id, map) in walked)
             {
-                if (id != null && map != null && marked.Add(id)) marks.Add(new DungeonMark { Id = id, Map = map, Look = MarkLook.Yours });
+                if (id != null && map != null && marked.Add(id)) marks.Add(new DungeonMark { Id = id, Map = map, Look = roomOf != null && WalkedWhole(map, roomOf) ? MarkLook.Whole : MarkLook.Yours });
             }
             if (book == null) return marks;
             foreach (var source in WorldSources.All)
@@ -62,6 +65,13 @@ namespace Scry
                 }
             }
             return marks;
+        }
+
+        /// <summary>Whether every room of a dungeon was walked, end caps and dividers left out.</summary>
+        private static bool WalkedWhole(DungeonMap map, Func<int, RoomShape> roomOf)
+        {
+            var (walked, rooms) = DungeonMaps.Walked(map, roomOf);
+            return rooms > 0 && walked >= rooms;
         }
     }
 }
