@@ -58,6 +58,16 @@ namespace Scry
                     string.Join(", ", ScryPanel.TopicHeadingsForTest.Where(h => h != null)));
             }
 
+            // A creature's weapons are named as its attack table names its attacks, never ???.
+            var armed = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Creature && e.Source is GameObject a && a.GetComponent<Humanoid>() is Humanoid ah && ah.m_randomWeapon != null && ah.m_randomWeapon.Length >= 2);
+            if (armed != null)
+            {
+                yield return OnlyKnowing(view, armed);
+                yield return null;
+                var weapons = ScryPanel.LoadoutNamesForTest.FirstOrDefault(r => r.Row == "Weapon").Names;
+                p.Check(weapons != null && !weapons.Contains(CompendiumWords.Hidden), $"{armed.Name}'s weapons are named, as its attack table names them", weapons == null ? "no weapon row" : string.Join(", ", weapons));
+            }
+
             // A creature's gear sets: a look of items never met is not offered.
             var geared = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Creature && e.Source is GameObject g && g.GetComponent<Humanoid>() is Humanoid h && PrefabGear.RolledSets(h).Count >= 2);
             if (geared == null) p.Note("no creature rolls two sets of gear");

@@ -137,7 +137,10 @@ namespace Scry
         public static bool LooksHiddenForTest => _looksHidden;
         /// <summary>
         /// The weapon, shield and armour a creature can roll, one row each, and the extras it may
-        /// be given, each put on or taken off. Only rows with a choice are shown.
+        /// be given, each put on or taken off. Only rows with a choice are shown. With the
+        /// compendium on, a weapon is named as the creature's attack table names its attacks, any
+        /// other item never met reads ???, and a row whose every item reads so is left out, as it
+        /// gives nothing to choose by.
         /// </summary>
         private static void LoadoutRows(GameObject creature, int look, float width, float labelW, ref float y)
         {
@@ -145,17 +148,26 @@ namespace Scry
             loadout.Carrying(PrefabGear.SetWeapons(creature, look));
             var rows = new[] { Loadout.Row.Holding, Loadout.Row.Weapon, Loadout.Row.Shield, Loadout.Row.Armour };
             var labels = new[] { "Holding", "Weapon", "Shield", "Armour" };
+            LoadoutNames.Clear();
             for (var i = 0; i < rows.Length; i++)
             {
                 if (!loadout.Offered(rows[i])) continue;
                 var options = loadout.Options(rows[i]);
                 var names = options.Select(ItemName).ToList();
+                var hidden = 0;
                 for (var n = 0; n < names.Count; n++)
                 {
-                    // An item never met reads ??? as in a page's text, its prefab not told either.
-                    if (_explorer != null && _explorer.NotMet(options[n])) names[n] = CompendiumWords.Hidden;
+                    // An item never met reads ??? as in a page's text, its prefab not told either,
+                    // but a weapon, whose attacks the creature's table names.
+                    if (rows[i] != Loadout.Row.Weapon && !string.IsNullOrEmpty(options[n]) && _explorer != null && _explorer.NotMet(options[n]))
+                    {
+                        names[n] = CompendiumWords.Hidden;
+                        hidden++;
+                    }
                     else if (names.Count(other => other == names[n]) > 1) names[n] = Naming.WithPrefab(names[n], options[n]);
                 }
+                if (hidden > 0 && hidden == options.Count(o => !string.IsNullOrEmpty(o))) continue;
+                LoadoutNames.Add((labels[i], names));
 
                 // A shield the weapon leaves no hand for is shown put away, and still chosen for later.
                 var held = loadout.Held(rows[i]);
@@ -180,6 +192,12 @@ namespace Scry
             loadout.ToggleExtra(clicked);
             Previews.Rebuild();
         }
+
+        /// <summary>The gear rows last drawn, by their labels, and the names their choices showed, for the self-test.</summary>
+        [Diagnostic]
+        public static IReadOnlyList<(string Row, List<string> Names)> LoadoutNamesForTest => LoadoutNames;
+
+        private static readonly List<(string Row, List<string> Names)> LoadoutNames = new List<(string, List<string>)>();
 
         /// <summary>An item's name as the game shows it, or "Nothing" for an empty choice.</summary>
         private static string ItemName(string prefabName)

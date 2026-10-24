@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Scry
 {
@@ -169,6 +170,14 @@ namespace Scry
             secondary = item != null && item.EndsWith(SecondAttack, StringComparison.Ordinal);
             if (secondary) item = item.Substring(0, item.Length - SecondAttack.Length);
             return item != null;
+        }
+
+        /// <summary>The items whose attacks a table's lines play (<see cref="PlayAttack"/>), as a creature's attack table names them.</summary>
+        public static HashSet<string> ItemsAttacking(IEnumerable<string> links)
+        {
+            var items = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var link in links) if (PlaysAttack(link, out var item, out _)) items.Add(item);
+            return items;
         }
 
         private const string AttackPlay = "play-attack:";

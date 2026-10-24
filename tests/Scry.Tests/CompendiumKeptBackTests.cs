@@ -45,6 +45,14 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatACreatureCarriesThatItsAttackTableNamesIsNoMoreToKnow()
+        {
+            // Its attack table names each attack by its item: the carried row passes those over, the table told them.
+            var links = new[] { EntryKeys.PlayAttack("TrollSlap"), EntryKeys.PlayAttack("TrollThrow", secondary: true), EntryKeys.PlayAttack("TrollLog", step: 2), "Wood", null };
+            Assert.Equal(new[] { "TrollLog", "TrollSlap", "TrollThrow" }, EntryKeys.ItemsAttacking(links).OrderBy(i => i));
+        }
+
+        [Fact]
         public void AnAttacksDamageIsKeptBackUntilTheAttackHitTheCharacter()
         {
             var world = new World().Rule(CompendiumRule.Strict);

@@ -142,7 +142,7 @@ namespace Scry
                 }
                 else if (bit.LinkGroup != null)
                 {
-                    y = PlacedLinks(explorer, entry, bit.LinkGroup, topic.Bits.Count > 1, width, y);
+                    y = PlacedLinks(explorer, entry, facts, bit.LinkGroup, topic.Bits.Count > 1, width, y);
                     Timing.Add("facts drawn links", step);
                 }
                 if (bit.Notes.Count == 0) continue;

@@ -225,14 +225,34 @@ namespace Scry
             _linkedStamp = -1;
         }
 
-        /// <summary>A group of links a topic of In the game shows, its heading left out where it is all the topic holds.</summary>
-        private static float PlacedLinks(Explorer explorer, Entry entry, string group, bool titled, float width, float y)
+        /// <summary>
+        /// A group of links a topic of In the game shows, its heading left out where it is all the
+        /// topic holds. With the compendium on, what a creature carries that its attack table names
+        /// already, its own attacks, is passed over rather than counted as left to know, as the
+        /// table tells them.
+        /// </summary>
+        private static float PlacedLinks(Explorer explorer, Entry entry, Facts facts, string group, bool titled, float width, float y)
         {
             MakeLinkRowsFor(explorer, entry);
             if (!PlacedLinkRows.TryGetValue(group, out var items)) return y;
             CountDrawn(PanelPart.TopicLinks);
+            if (group == LinkWords.Carries && explorer.NamesOnlyMet) items = CarriedBesidesAttacks(facts, items);
             return LinkItems(explorer, group, items, width, y, titled);
         }
+
+        /// <summary>What a creature carries besides the attacks its table names, made once for its facts.</summary>
+        private static List<(string Key, string Text, string Tip, Action Click)> CarriedBesidesAttacks(Facts facts, List<(string Key, string Text, string Tip, Action Click)> items)
+        {
+            if (ReferenceEquals(_carriedOf, facts) && ReferenceEquals(_carriedFrom, items)) return _carried;
+            var attacks = EntryKeys.ItemsAttacking(facts.Rows.Where(r => r.AttackCells != null).SelectMany(r => r.Lines.Select(l => l.Link)));
+            _carriedOf = facts;
+            _carriedFrom = items;
+            _carried = items.Where(i => !attacks.Contains(i.Key)).ToList();
+            return _carried;
+        }
+
+        private static Facts _carriedOf;
+        private static List<(string Key, string Text, string Tip, Action Click)> _carriedFrom, _carried;
 
         /// <summary>Whether LINKED shows a group of the entry shown, for the self-test.</summary>
         [ForTest]
