@@ -39,9 +39,12 @@ namespace Scry
                 var hidden = row.HitReveals && cell.Tone != Tone.Quiet && explorer.HidesDamage(cell.Type);
                 if (hidden) keptBack++;
                 var at = new Rect((i % columns) * (cellW + gap), y + (i / columns) * (cellH + gap), cellW, cellH);
+                var cellSpot = Spotting ? EntryKeys.Damage(cell.Type) : null;
+                NoteSpot(cellSpot, at);
                 if (OutOfSight(at)) continue;
                 // A quiet cell (tools' damage a creature takes none of) keeps its place but stands back.
                 Skin.Box(at, cell.Tone == Tone.Quiet ? Skin.Panel : Skin.Raised);
+                LitSpot(cellSpot, at);
                 GUI.Label(new Rect(at.x + U(2f), at.y + U(3f), at.width - U(4f), U(16f)), cell.Type, Skin.CellType);
                 Skin.LabelIn(new Rect(at.x + U(2f), at.y, at.width - U(4f), at.height - U(4f)), hidden ? CompendiumWords.Hidden : cell.Value, Skin.CellValue, ToneColor(hidden ? Tone.Plain : cell.Tone));
                 if (at.Contains(Event.current.mousePosition)) AskTip("cell:" + row.Title + cell.Type + hidden, hidden ? CompendiumWords.NotYetHitWithTip(cell.Type) : cell.Tip);

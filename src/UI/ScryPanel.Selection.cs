@@ -121,6 +121,7 @@ namespace Scry
                 _sideScroll = Vector2.zero;
                 OpenLists.Clear();
                 ForgetSectionLine();
+                ArriveAtNews(explorer);
             }
 
             // What a world's catalog points at is gone once the world is: nothing to show then.
@@ -216,6 +217,7 @@ namespace Scry
             GUI.EndScrollView();
             var maxScroll = Mathf.Max(0f, _sideHeight - below.height);
             if (ArriveAtSection(maxScroll) is float section) _sideScroll.y = section;
+            else if (ArrivedAtNews(maxScroll) is float news) _sideScroll.y = news;
             _sideScroll.y = Mathf.Clamp(_sideScroll.y, 0f, maxScroll);
         }
 

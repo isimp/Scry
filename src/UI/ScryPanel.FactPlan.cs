@@ -85,6 +85,7 @@ namespace Scry
                 var top = y + U(6f);
                 NoteTopic(topic.Id, top);
                 if (TopicHeights[i] > 0f) Skin.Box(new Rect(0f, top, width, TopicHeights[i]), Skin.TopicFill);
+                if (Spotting) LitSpot(NewsArrival.Topic(topic.Id), new Rect(pad, top + U(4f), inner, U(24f)));
                 GUI.Label(new Rect(pad, top + U(6f), inner, U(20f)), topic.Heading, Skin.TopicName);
                 y = top + U(30f);
                 GUI.BeginGroup(new Rect(pad, 0f, inner, y + U(100000f)));
@@ -192,10 +193,13 @@ namespace Scry
                 {
                     var pair = facts.Pairs[tiles[i]];
                     var at = new Rect((i - first) * (tileW + gap), y, tileW, tileH);
+                    var tileSpot = Spotting && facts.Proofs.TryGetValue(pair.Key, out var shows) ? shows : null;
+                    NoteSpot(tileSpot, at);
                     if (OutOfSight(at)) continue;
                     // A tile Scry is not sure of is marked, softer, and says why on hover.
                     var unsure = facts.Unsure.TryGetValue(pair.Key, out var why);
                     Skin.Box(at, Skin.Raised);
+                    LitSpot(tileSpot, at);
                     GUI.Label(new Rect(at.x + U(8f), at.y + U(4f), valueW, U(20f)), unsure ? UnsureWords.Marked(pair.Key) : pair.Key, Skin.DimLabel);
                     var value = TileValue(explorer, facts, pair, out var kept);
                     GUI.Label(new Rect(at.x + U(8f), at.y + U(24f), valueW, valueH), value, unsure ? Skin.DimWrap : Skin.Wrap);
@@ -323,8 +327,11 @@ namespace Scry
                 var underHeight = 0f;
                 if (under != null) foreach (var faint in under) if (!explorer.NotMet(faint.Skill)) underHeight += YoursHeight(faint.Cells);
                 var line = new Rect(0f, y, width, height + underHeight);
+                var rowSpot = Spotting ? lineProof ?? AttackSpot(row, link) : null;
+                NoteSpot(rowSpot, line);
                 if (!OutOfSight(line))
                 {
+                    LitSpot(rowSpot, line);
                     var x = 0f;
                     for (var c = 0; c < cells.Length && c < ColumnWidths.Count; c++)
                     {

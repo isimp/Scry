@@ -78,6 +78,10 @@ namespace Scry
             var opened = ScryPanel.ListHeadingsForTest;
             p.Check(opened.Any(h => h.Heading.StartsWith("Day 12", System.StringComparison.Ordinal) && !h.Folded), "the selection moved into a folded day opens it",
                 string.Join("; ", opened.Select(h => h.Heading + (h.Folded ? " (folded)" : ""))));
+            // A row of Learned opens its page at what changed, the line telling it lit a moment.
+            var came = NewsArrival.You(CompendiumWords.CameLabel);
+            yield return Until(() => ScryPanel.ArrivedForTest == came, 3);
+            p.Check(ScryPanel.ArrivedForTest == came, "a row of Learned opens its page at what changed: the Troll's at how it came to be known, lit", ScryPanel.ArrivedForTest ?? "nothing arrived at");
             yield return Picture(p, "learned by day, Troll selected");
 
             // The notice in words.

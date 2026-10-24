@@ -114,9 +114,11 @@ namespace Scry
             if (_you.Count == 0 && _still.Count == 0) return y;
 
             var top = y;
+            NoteTopic(NewsArrival.YouTopic, top);
             if (_youHeight > 0f) Skin.Box(new Rect(0f, top, width, _youHeight), Skin.TopicFill);
             var pad = U(10f);
             var inner = width - pad * 2f;
+            if (Spotting) LitSpot(NewsArrival.Topic(NewsArrival.YouTopic), new Rect(pad, top + U(4f), inner, U(24f)));
             GUI.Label(new Rect(pad, top + U(6f), inner, U(20f)), CompendiumWords.YouTitle, Skin.TopicName);
             y = top + U(30f);
             var labelW = Mathf.Min(U(130f), inner * 0.36f);
@@ -124,6 +126,13 @@ namespace Scry
             foreach (var (label, value) in _you)
             {
                 var height = Mathf.Max(U(20f), Skin.Height(Skin.Wrap, value, valueW));
+                if (Spotting)
+                {
+                    var spot = NewsArrival.You(label);
+                    var at = new Rect(pad, y, inner, height);
+                    NoteSpot(spot, at);
+                    LitSpot(spot, at);
+                }
                 GUI.Label(new Rect(pad, y, labelW, height), label, Skin.DimWrap);
                 var valueRect = new Rect(pad + labelW + U(10f), y, valueW, height);
                 GUI.Label(valueRect, value, Skin.Wrap);
@@ -241,6 +250,12 @@ namespace Scry
             var label = unsure ? UnsureWords.Marked(pair.Key) : pair.Key;
             var labelH = Skin.Height(Skin.DimWrap, label, labelW);
             var height = Mathf.Max(U(20f), Mathf.Max(labelH, Skin.Height(Skin.Wrap, value, valueW)));
+            if (proof != null && Spotting)
+            {
+                var at = new Rect(0f, y, width, height);
+                NoteSpot(proof, at);
+                LitSpot(proof, at);
+            }
             GUI.Label(new Rect(0f, y, labelW, labelH), label, Skin.DimWrap);
             var valueRect = new Rect(labelW + U(10f), y, valueW, height);
             if (unsure && new Rect(0f, y, width, height).Contains(Event.current.mousePosition)) AskTip("unsure:" + pair.Key, why);

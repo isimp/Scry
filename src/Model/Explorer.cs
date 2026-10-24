@@ -230,6 +230,9 @@ namespace Scry
         /// <summary>How an entry's latest news came, in a few words for its row in the learned list (<see cref="JournalWords.LearnedNote"/>); none with the compendium off.</summary>
         public string LearnedNote(Entry entry) => NewsOf(entry) is BookNews news ? JournalWords.LearnedNote(news) : null;
 
+        /// <summary>Where an entry's row in the learned list opens its page (<see cref="NewsArrival"/>); none with the compendium off or no news.</summary>
+        public NewsArrival ArrivalOf(Entry entry) => NewsOf(entry) is BookNews news ? NewsArrival.Of(news) : null;
+
         /// <summary>An entry's latest news as a line of the notice, by the name it is shown by; seen for one with none to tell.</summary>
         public NewsLine NewsLineOf(Entry entry)
         {

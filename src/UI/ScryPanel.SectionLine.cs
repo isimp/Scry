@@ -64,6 +64,7 @@ namespace Scry
         {
             Marking.Clear();
             TopicTops.Clear();
+            StartSpotting();
             _marking = true;
         }
 

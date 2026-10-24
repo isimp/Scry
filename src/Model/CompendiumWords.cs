@@ -248,10 +248,16 @@ namespace Scry
                 Many("Made", counts.Made);
                 Many("Picked up", counts.PickedUp);
             }
-            if (!string.IsNullOrEmpty(firstSeen)) lines.Add(("First seen", firstSeen));
-            if (!string.IsNullOrEmpty(came)) lines.Add(("Came to know it", came));
+            if (!string.IsNullOrEmpty(firstSeen)) lines.Add((FirstSeenLabel, firstSeen));
+            if (!string.IsNullOrEmpty(came)) lines.Add((CameLabel, came));
             return lines;
         }
+
+        /// <summary>The You box's line telling when the thing was first seen.</summary>
+        public const string FirstSeenLabel = "First seen";
+
+        /// <summary>The You box's line telling how the thing came to be known.</summary>
+        public const string CameLabel = "Came to know it";
 
         /// <summary>
         /// How a known thing came to be known, for that box: the way kept in its book, else what

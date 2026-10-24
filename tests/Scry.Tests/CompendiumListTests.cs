@@ -386,6 +386,21 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ALearnedRowOpensItsPageAtWhatChanged()
+        {
+            // The troll was fought, the boar only seen; then the troll's health was found out.
+            var world = new World().Rule(CompendiumRule.Strict);
+            var explorer = world.Explorer;
+            Assert.Equal(NewsArrival.You(CompendiumWords.FirstSeenLabel), explorer.ArrivalOf(world.Boar).Spot);
+            world.Book.FoundOut(world.Troll.Key, EntryKeys.Did(Deed.Killed));
+            world.Rule(CompendiumRule.Strict);
+            Assert.Equal(EntryKeys.Did(Deed.Killed), explorer.ArrivalOf(world.Troll).Spot);
+            // Nothing to arrive at with the compendium off.
+            world.Rule(CompendiumRule.Off);
+            Assert.Null(explorer.ArrivalOf(world.Troll));
+        }
+
+        [Fact]
         public void TheEyePeeksAtThePageShownAloneAndGoingToAnotherEndsIt()
         {
             // A look at the one page in front of you: it shows whole, the list and the search stay as
