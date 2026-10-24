@@ -341,6 +341,7 @@ namespace Scry
             // Drawn as the troll's own chip, as under the loose rules, its count after its name.
             var chip = ScryPanel.WhereRowsForTest(X, hide).SelectMany(r => r.Items).FirstOrDefault(i => i.Prefab == troll.Name);
             p.Check(chip.Amount == "2 (1 of 1 kill)", "and draws the troll as a chip with that count", chip.Name + " " + chip.Amount);
+            yield return StrictGameShownRead(p, book, view, hide);
             // A plain word of a text is no name kept back, though an effect never met goes by it ("Fire").
             var fires = ScryPanel.AsDrawn(X, "fires Troll throw projectile");
             p.Check(!fires.StartsWith(CompendiumWords.Hidden, System.StringComparison.Ordinal), "a word of a text is no name kept back: \"fires\" stays", fires);
@@ -376,6 +377,45 @@ namespace Scry
                     "a place the map brings shows as seen from your explored ground, not written into the book", $"{place.Name}: {view.Of(place)}, book {book.Level(place.Key)}");
             }
             Session.ShowKnownInstead(null);
+        }
+
+        /// <summary>
+        /// What the game's menus show comes with the thing under the strict rules: a troll hide's
+        /// uses name a known thing made of it and a wood wall's building its cost and tool, nothing paired.
+        /// </summary>
+        private static IEnumerator StrictGameShownRead(Probe p, CompendiumBook book, CompendiumView view, Entry hide)
+        {
+            // What it is used for is the game's crafting menu: its rows name what was met, no pair asked.
+            var uses = Facts.For(hide).UseRows;
+            var made = uses.SelectMany(r => r.Items).Select(i => i.Prefab).FirstOrDefault(prefab => !string.IsNullOrEmpty(prefab) && X.Find(prefab) != null);
+            if (made != null)
+            {
+                book.Raise(made, KnownLevel.Known);
+                view.Tell(book, CompendiumRule.Strict);
+                yield return Until(() => !X.LeavesOut(made, gameShown: true), 3);
+                p.Check(uses.All(r => r.GameShown) && !X.LeavesOut(made, gameShown: true) && X.LeavesOut(made), $"what the hide is used for names {made}, known and never paired, as the crafting menu shows it");
+            }
+            else p.Note("nothing in the catalog is made of troll hide");
+            // A piece's cost and tool come with the piece, as the hammer's menu shows them.
+            var wall = Pick(Kind.Piece, "wood_wall");
+            var hammer = Pick(Kind.Item, "Hammer");
+            var wood = Pick(Kind.Item, "Wood");
+            if (wall != null && hammer != null && wood != null)
+            {
+                book.Raise(wall.Key, KnownLevel.Known);
+                book.Raise(hammer.Key, KnownLevel.Known);
+                book.Raise(wood.Key, KnownLevel.Known);
+                view.Tell(book, CompendiumRule.Strict);
+                X.Select(wall);
+                yield return Until(() => X.Selected == wall && !X.LeavesOut(hammer.Key, gameShown: true), 3);
+                var building = Facts.For(wall);
+                p.Check(building.GameShown.Contains("Built with") && building.Rows.Any(r => r.GameShown && r.Items.Any(i => i.Prefab == wood.Name)) && !X.LeavesOut(hammer.Key, gameShown: true) && !X.LeavesOut(wood.Name, gameShown: true),
+                    "a wood wall's cost and tool come with it under the strict rules, never paired");
+                yield return PictureOf(p, "building", "strict wood wall's building, nothing paired");
+                X.Select(hide);
+                yield return null;
+            }
+            else p.Note("no wood wall, hammer or wood to try a piece's building with");
         }
     }
 }

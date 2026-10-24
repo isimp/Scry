@@ -242,8 +242,9 @@ namespace Scry
         {
             var db = ObjectDB.instance;
             if (db == null) return;
-            var made = new Row { Title = "Made here" };
-            var upgraded = new Row { Title = "Upgraded and repaired here" };
+            // The station's menu shows each known recipe, so these rows name what the character has met.
+            var made = new Row { Title = "Made here", GameShown = true };
+            var upgraded = new Row { Title = "Upgraded and repaired here", GameShown = true };
             var seen = new HashSet<string>();
             foreach (var recipe in db.m_recipes)
             {
@@ -263,7 +264,7 @@ namespace Scry
 
             // The pieces built near it, as each piece says "Built near" it: found in the catalog,
             // which knows each piece's station already, rather than in every prefab of the game.
-            var built = new Row { Title = "Built near it" };
+            var built = new Row { Title = "Built near it", GameShown = true };
             var catalog = WorldCatalog.Current?.All;
             if (catalog != null)
             {
@@ -291,7 +292,8 @@ namespace Scry
             foreach (var (key, wares) in rows)
             {
                 var title = StationWords.Sells(key.Length == 0 ? null : SpawnWords.Once(key, Knowledge.BossOf));
-                var row = new Row { Title = title, TitleLink = Knowledge.BossPrefabOf(key), WaitsFor = key.Length > 0 ? key : null };
+                // The store shows its wares on offer whole once opened.
+                var row = new Row { Title = title, TitleLink = Knowledge.BossPrefabOf(key), WaitsFor = key.Length > 0 ? key : null, GameShown = true };
                 foreach (var ware in wares)
                 {
                     var amount = TraderWares.Amount(ware);

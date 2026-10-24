@@ -42,6 +42,7 @@ namespace Scry
             {
                 var upgraded = extension.m_craftingStation.gameObject;
                 Add("Upgrades", BuildWords.Upgrades(AnyName(upgraded, upgraded.name), extension.m_maxStationDistance, piece.m_spaceRequirement), upgraded.name);
+                GameShown.Add("Upgrades");
             }
 
             // Bed.Interact: claiming and sleeping, each needing a roof and 80% cover (CheckExposure).
@@ -102,12 +103,14 @@ namespace Scry
                 Add("Built with", "no tool: it is in no build menu");
                 return;
             }
+            // The hammer's menu shows the piece, so its tool comes with it.
             if (tools.Count == 1)
             {
                 Add("Built with", BuildWords.OnTab(tools[0].ToolName, tools[0].Tab), tools[0].Tool);
+                GameShown.Add("Built with");
                 return;
             }
-            var row = new Row { Title = "Built with" };
+            var row = new Row { Title = "Built with", GameShown = true };
             foreach (var tool in tools) row.Items.Add(Chip(tool.Tool, tool.Tab));
             Rows.Add(row);
         }
@@ -173,7 +176,8 @@ namespace Scry
         /// </summary>
         private static Row Requirements(string title, Piece.Requirement[] requirements, bool upgradable)
         {
-            var row = new Row { Title = title };
+            // The crafting menu and the hammer show a cost whole the moment the recipe is known.
+            var row = new Row { Title = title, GameShown = true };
             if (requirements == null) return row;
             foreach (var need in requirements)
             {
@@ -194,7 +198,8 @@ namespace Scry
         {
             foreach (var group in Knowledge.UsesOf(item))
             {
-                var row = new Row { Title = UseTitle(group), TitleLink = group.Place != null && group.Place != "hand" ? group.Place : null };
+                // The crafting menu shows each recipe needing it once that recipe is known.
+                var row = new Row { Title = UseTitle(group), TitleLink = group.Place != null && group.Place != "hand" ? group.Place : null, GameShown = true };
                 if (group.Kind == UseKind.UpgradesPastTop) row.TitleLink = Knowledge.UpgradeStation;
                 foreach (var (target, amount) in group.Targets)
                 {

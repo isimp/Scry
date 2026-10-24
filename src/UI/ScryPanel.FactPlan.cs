@@ -120,7 +120,7 @@ namespace Scry
                 foreach (var tile in topic.Tiles)
                 {
                     var named = facts.Links.TryGetValue(facts.Pairs[tile].Key, out var linked) && InCatalog(explorer, linked);
-                    if (named && explorer.LeavesOut(linked)) StrictLeft(1);
+                    if (named && explorer.LeavesOut(linked, facts.GameShown.Contains(facts.Pairs[tile].Key))) StrictLeft(1);
                     else
                     {
                         if (named && explorer.NamesOnlyMet) StrictShown(1);
@@ -245,7 +245,7 @@ namespace Scry
         {
             if (ShownCounts.TryGetValue(row, out var told) && told.Stamp == explorer.KnowStamp) return told.Said;
             var count = 0;
-            foreach (var item in row.Items) if (!explorer.LeavesOut(item.Prefab)) count++;
+            foreach (var item in row.Items) if (!explorer.LeavesOut(item.Prefab, row.GameShown)) count++;
             var said = CompendiumWords.MetCount(count);
             ShownCounts[row] = (explorer.KnowStamp, said);
             return said;
@@ -585,7 +585,7 @@ namespace Scry
             // A note goes through what a fact goes through: counted over every character's play, naming
             // what the rules leave out, or telling what is still to find out, it is left out or hinted at.
             if (explorer.LeavingOut && facts.AllPlay.Contains(pair.Key)) return y;
-            if (facts.Links.TryGetValue(pair.Key, out var linked) && explorer.LeavesOut(linked))
+            if (facts.Links.TryGetValue(pair.Key, out var linked) && explorer.LeavesOut(linked, facts.GameShown.Contains(pair.Key)))
             {
                 StrictLeft(1);
                 return y;

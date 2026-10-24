@@ -495,7 +495,7 @@ namespace Scry
             }
             for (var i = 0; i < term.Values.Length; i++)
             {
-                if (term.Key == "station" ? StationMatches(Related(entry, entry.Stations, s => s.Name, guard), term.Stations[i], term.Levels[i]) : ValueMatches(entry, term.Key, term.Values[i], guard)) return true;
+                if (term.Key == "station" ? StationMatches(Related(entry, entry.Stations, s => s.Name, guard, gameShown: true), term.Stations[i], term.Levels[i]) : ValueMatches(entry, term.Key, term.Values[i], guard)) return true;
             }
             return false;
         }
@@ -523,20 +523,21 @@ namespace Scry
                 case "playedby": return AnyContainsLeavingOutSpaces(guard == null ? entry.UsedBy : Related(entry, entry.UsedBy.ToArray(), u => u, guard).ToList(), value);
                 default:
                     if (Array.IndexOf(LinkKeys, key) < 0) return AnyWordStarts(entry.TermWords(key), value);
-                    return AnyLinked(guard == null ? entry.TermLinks(key) : entry.TermLinks(key).Where(other => guard.Keeps(entry, other)).ToList(), value);
+                    // What a thing needs is in the game's crafting menu with it: a needs: term asks no pair.
+                    return AnyLinked(guard == null ? entry.TermLinks(key) : entry.TermLinks(key).Where(other => guard.Keeps(entry, other, key == "needs")).ToList(), value);
             }
         }
 
         /// <summary>What an entry goes with, each named by a key: all of it, or with the compendium only what its page names (<see cref="Guarded.Keeps"/>).</summary>
-        private static T[] Related<T>(Entry entry, T[] values, Func<T, string> key, Guarded guard)
+        private static T[] Related<T>(Entry entry, T[] values, Func<T, string> key, Guarded guard, bool gameShown = false)
         {
             if (guard == null) return values;
-            return values.Where(v => guard.Keeps(entry, guard.View.Catalog.Find(key(v)))).ToArray();
+            return values.Where(v => guard.Keeps(entry, guard.View.Catalog.Find(key(v)), gameShown)).ToArray();
         }
 
         /// <summary>
         /// What a known entry's page names, so what a search through it may find it by
-        /// (<see cref="Explorer.LeavesOut"/>): what the character has met, seen or come to know,
+        /// (<see cref="Explorer.LeavesOut(string)"/>): what the character has met, seen or come to know,
         /// and under the strict rules only what it saw go together with the entry as well.
         /// </summary>
         private sealed class Guarded
@@ -550,8 +551,13 @@ namespace Scry
                 Strict = strict;
             }
 
-            /// <summary>Whether the entry's page names another: one in the catalog that was met, and under the strict rules seen together with it; never one not in the catalog.</summary>
-            public bool Keeps(Entry entry, Entry other) => other != null && View.Of(other) >= KnownLevel.Seen && (!Strict || View.Related(entry, other));
+            /// <summary>
+            /// Whether the entry's page names another: one in the catalog that was met, and under
+            /// the strict rules seen together with it, unless the game shows the two together the
+            /// moment the entry is known (<paramref name="gameShown"/>, as a recipe's materials and
+            /// station are, <see cref="Explorer.LeavesOut(string, bool)"/>); never one not in the catalog.
+            /// </summary>
+            public bool Keeps(Entry entry, Entry other, bool gameShown = false) => other != null && View.Of(other) >= KnownLevel.Seen && (!Strict || gameShown || View.Related(entry, other));
         }
 
         /// <summary>A kind by its name or the start of it, singular or plural; "se" is a status effect.</summary>

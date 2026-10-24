@@ -143,7 +143,7 @@ namespace Scry
             Step(Feature.CompendiumShown, "showing what the character knows", "update compendium list", ShowKnown);
         }
 
-        /// <summary>Whether a creature, by its prefab's name, is left off the stage: as the page shown would leave it out (<see cref="Explorer.NotMet"/>, <see cref="Explorer.LeavesOut"/>).</summary>
+        /// <summary>Whether a creature, by its prefab's name, is left off the stage: as the page shown would leave it out (<see cref="Explorer.NotMet"/>, <see cref="Explorer.LeavesOut(string)"/>).</summary>
         private static readonly Func<string, bool> CreatureLeftOff = key => Explorer != null && (Explorer.NotMet(key) || Explorer.LeavesOut(key));
 
         /// <summary>What the character knows of the explorer's catalog, for the compendium; made with the explorer.</summary>

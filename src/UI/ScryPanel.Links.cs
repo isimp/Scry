@@ -568,21 +568,21 @@ namespace Scry
         private static int _strictSelection;
 
         /// <summary>
-        /// What a list on the page shown keeps with the compendium on (<see cref="Explorer.LeavesOut"/>):
+        /// What a list on the page shown keeps with the compendium on (<see cref="Explorer.LeavesOut(string)"/>):
         /// what the character has met, under the strict rules only what was seen together with the
         /// page or is part of it; all of it otherwise. Worked out
         /// once for each list while what the character knows and the page stay the same. What it
         /// leaves out is counted for the section's last line (<see cref="StrictLeft"/>).
         /// </summary>
-        private static IReadOnlyList<T> ShownStrictly<T>(Explorer explorer, IReadOnlyList<T> items, Func<T, string> key)
+        private static IReadOnlyList<T> ShownStrictly<T>(Explorer explorer, IReadOnlyList<T> items, Func<T, string> key, bool gameShown = false)
         {
-            var shown = ShownStrictly(explorer, items, item => explorer.LeavesOut(key(item)));
+            var shown = ShownStrictly(explorer, items, item => explorer.LeavesOut(key(item), gameShown));
             if (!explorer.NamesOnlyMet) return shown;
             for (var i = 0; i < shown.Count; i++) if (InCatalog(explorer, key(shown[i]))) StrictShown(1);
             return shown;
         }
 
-        /// <summary>What a list keeps under the strict rules, each item left out as it says (<see cref="ShownStrictly{T}(Explorer, IReadOnlyList{T}, Func{T, string})"/>).</summary>
+        /// <summary>What a list keeps under the strict rules, each item left out as it says (<see cref="ShownStrictly{T}(Explorer, IReadOnlyList{T}, Func{T, string}, bool)"/>).</summary>
         private static IReadOnlyList<T> ShownStrictly<T>(Explorer explorer, IReadOnlyList<T> items, Func<T, bool> leftOut)
         {
             if (!explorer.NamesOnlyMet) return items;

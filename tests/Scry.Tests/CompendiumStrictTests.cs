@@ -21,6 +21,7 @@ namespace Scry.Tests
             public readonly Entry Coins = E("Coins", Kind.Item);
             public readonly Entry Grunt = E("sfx_troll_grunt", Kind.Sound);
             public readonly Entry Squeal = E("sfx_boar_squeal", Kind.Sound);
+            public readonly Entry Log = E("Troll_log", Kind.Item);
             public readonly Explorer Explorer;
             public readonly CompendiumView View;
             public readonly CompendiumBook Book = new CompendiumBook();
@@ -31,7 +32,7 @@ namespace Scry.Tests
                 Troll.AddTermLink("drops", Coins);
                 Grunt.UsedBy.Add("Troll");
                 Squeal.UsedBy.Add("Boar");
-                var all = new[] { Troll, Boar, Hide, Coins, Grunt, Squeal }.ToList();
+                var all = new[] { Troll, Boar, Hide, Coins, Grunt, Squeal, Log }.ToList();
                 Explorer = new Explorer(all, new Favourites(Path.Combine(TempDir(), "favourites.txt")));
                 View = new CompendiumView(Explorer.Entries);
                 Book.Raise(Troll.Key, KnownLevel.Known);
@@ -80,6 +81,49 @@ namespace Scry.Tests
             Assert.False(world.Explorer.LeavesOut(world.Grunt.Key));
             Assert.False(world.Explorer.LeavesOut(world.Troll.Key));
             Assert.False(world.Explorer.LeavesOut("NotInTheCatalog"));
+        }
+
+        [Fact]
+        public void AFactTheGameShowsNamesWhatWasMetWhateverWasSeenTogether()
+        {
+            // The game's menus show a recipe's materials and station, a piece's cost and tool and
+            // what a known thing is made into the moment the thing is known: such a fact names what
+            // the character has met under either rules, never waiting to be seen together, and
+            // leaves out only what was never met.
+            var world = new World().Rule(CompendiumRule.Strict);
+            world.Explorer.Select(world.Troll);
+
+            Assert.True(world.Explorer.LeavesOut(world.Hide.Key));
+            Assert.False(world.Explorer.LeavesOut(world.Hide.Key, gameShown: true));
+            Assert.False(world.Explorer.LeavesOut(world.Boar.Key, gameShown: true));
+            Assert.True(world.Explorer.LeavesOut(world.Log.Key, gameShown: true));
+            Assert.True(world.Explorer.LeavesOutAll(new[] { world.Hide.Key }));
+            Assert.False(world.Explorer.LeavesOutAll(new[] { world.Hide.Key }, gameShown: true));
+            Assert.True(world.Explorer.LeavesOutAll(new[] { world.Log.Key }, gameShown: true));
+
+            world.Rule(CompendiumRule.Loose);
+            Assert.False(world.Explorer.LeavesOut(world.Hide.Key, gameShown: true));
+            Assert.True(world.Explorer.LeavesOut(world.Log.Key, gameShown: true));
+        }
+
+        [Fact]
+        public void UnderStrictASearchFindsByWhatTheGameShowsWithoutAPair()
+        {
+            // What a thing needs is in the game's crafting menu, so a needs: term finds a known
+            // thing by a material met; what it drops waits to be seen fall.
+            var world = new World();
+            world.Hide.AddTermLink("needs", world.Coins);
+            world.Rule(CompendiumRule.Strict);
+
+            world.Explorer.Text = "needs:coins";
+            Assert.Contains(world.Hide, world.Explorer.Results);
+            world.Explorer.Text = "drops:coins";
+            Assert.DoesNotContain(world.Troll, world.Explorer.Results);
+
+            // Never by a material not met.
+            world.Hide.AddTermLink("needs", world.Log);
+            world.Explorer.Text = "needs:troll_log";
+            Assert.DoesNotContain(world.Hide, world.Explorer.Results);
         }
 
         [Fact]

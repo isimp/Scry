@@ -64,7 +64,7 @@ namespace Scry
 
         /// <summary>The title a row of wares waiting for a boss is counted under, as the compendium shows it; none for any other row.</summary>
         private static string CountedAs(Explorer explorer, Facts.Row row) =>
-            row?.WaitsFor != null && UnlockRows.Of(row.WaitsFor, explorer.NamesOnlyMet, explorer.LeavingOut, WorldKeySet) == UnlockShown.Counted ? Masked(explorer, row.Title) : null;
+            row?.WaitsFor != null && UnlockRows.Of(row.WaitsFor, explorer.NamesOnlyMet, explorer.LeavingOut && !row.GameShown, WorldKeySet) == UnlockShown.Counted ? Masked(explorer, row.Title) : null;
 
         /// <summary>Whether the world played has a key set, a boss's fall; none without a world.</summary>
         private static readonly Func<string, bool> WorldKeySet = key => ZoneSystem.instance != null && ZoneSystem.instance.GetGlobalKey(key);
@@ -90,7 +90,7 @@ namespace Scry
                 CountDrawn(PanelPart.ListLeftOut);
                 return y;
             }
-            var items = RowItems(explorer, listed);
+            var items = RowItems(explorer, listed, row.GameShown);
             if (items.Count == 0) return y;
             var title = RowTitle(explorer, row, listing, items.Count, listed.Count);
             var key = "facts:" + row.Title;
@@ -110,7 +110,8 @@ namespace Scry
         /// </summary>
         private static bool WaitingRow(Explorer explorer, Facts.Row row, float width, ref float y, IReadOnlyList<Facts.Row> rows, int rowAt)
         {
-            var unlock = UnlockRows.Of(row.WaitsFor, explorer.NamesOnlyMet, explorer.LeavingOut, WorldKeySet);
+            // A store's wares are game-shown: under the strict rules too the row keeps its title and count, as under the loose ones.
+            var unlock = UnlockRows.Of(row.WaitsFor, explorer.NamesOnlyMet, explorer.LeavingOut && !row.GameShown, WorldKeySet);
             if (unlock == UnlockShown.Folded)
             {
                 ToUnlock(row.Items.Count);
@@ -130,9 +131,9 @@ namespace Scry
         }
 
         /// <summary>The items of a row shown under the compendium's rules; a thing to bring shows once what suggests it was found out, left out quietly, as a suggestion.</summary>
-        private static IReadOnlyList<Facts.Ingredient> RowItems(Explorer explorer, IReadOnlyList<Facts.Ingredient> listed)
+        private static IReadOnlyList<Facts.Ingredient> RowItems(Explorer explorer, IReadOnlyList<Facts.Ingredient> listed, bool gameShown)
         {
-            var items = ShownStrictly(explorer, listed, i => i.Prefab);
+            var items = ShownStrictly(explorer, listed, i => i.Prefab, gameShown);
             if (!explorer.LeavingOut || !Suggests(items)) return items;
             Suggested.Clear();
             foreach (var item in items) if (!explorer.KeepsBackAll(item.ShownBy)) Suggested.Add(item);

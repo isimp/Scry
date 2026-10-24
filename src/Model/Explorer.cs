@@ -280,18 +280,26 @@ namespace Scry
         /// page, is no part of it (its sounds, effects, projectiles) and owns it not. Never a mod,
         /// always known, nor a skill the character has learned; always one it has not.
         /// </summary>
-        public bool LeavesOut(string key)
+        public bool LeavesOut(string key) => LeavesOut(key, false);
+
+        /// <summary>
+        /// As <see cref="LeavesOut(string)"/>, but a fact the game shows the moment a thing is known
+        /// (<paramref name="gameShown"/>: a recipe's materials and station, a piece's cost and tool,
+        /// what a known thing is made into, a station's recipes, a store's wares) leaves out only
+        /// what the character has not met, under either rules: the game's menus told it already.
+        /// </summary>
+        public bool LeavesOut(string key, bool gameShown)
         {
             if (!NamesOnlyMet) return false;
             var other = Find(key);
             if (other == null || other == _selected || other.Kind == Kind.Mod) return false;
             if (_view.Of(other) < KnownLevel.Seen) return !NamesAllHeld(other);
-            return other.Kind != Kind.Skill && LeavingOut && !_view.Related(_selected, other);
+            return !gameShown && other.Kind != Kind.Skill && LeavingOut && !_view.Related(_selected, other);
         }
 
         /// <summary>
         /// Whether the page shown names only what the character has met, seen or come to know
-        /// (<see cref="LeavesOut"/>): a known page with the compendium on, under either rules and
+        /// (<see cref="LeavesOut(string)"/>): a known page with the compendium on, under either rules and
         /// whatever the floor; never a mod's page, which lists only what was seen of what it adds.
         /// </summary>
         public bool NamesOnlyMet =>
@@ -457,18 +465,18 @@ namespace Scry
 
         /// <summary>
         /// Whether the page shown leaves out a line naming entries all of which it leaves out
-        /// (<see cref="LeavesOut"/>), as a creature's spawn line for biomes it was never met in;
+        /// (<see cref="LeavesOut(string)"/>), as a creature's spawn line for biomes it was never met in;
         /// never one naming none.
         /// </summary>
-        public bool LeavesOutAll(IReadOnlyList<string> keys)
+        public bool LeavesOutAll(IReadOnlyList<string> keys, bool gameShown = false)
         {
             if (keys == null || keys.Count == 0) return false;
-            foreach (var key in keys) if (!LeavesOut(key)) return false;
+            foreach (var key in keys) if (!LeavesOut(key, gameShown)) return false;
             return true;
         }
 
         /// <summary>
-        /// Whether the page shown leaves anything out (<see cref="LeavesOut"/>): under the strict
+        /// Whether the page shown leaves anything out (<see cref="LeavesOut(string)"/>): under the strict
         /// rules, a known page above the milestone floor; never a mod's page, which lists only
         /// what was seen of what it adds.
         /// </summary>

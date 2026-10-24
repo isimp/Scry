@@ -205,7 +205,7 @@ namespace Scry
                 }
                 if (row.AttackCells != null) attacks += Attacked(explorer, row, finds);
                 if (row.Tally == Tally.None) continue;
-                var notCounted = row.Items.Any(i => !explorer.LeavesOut(i.Prefab) && explorer.StrictAmount(row.Tally, row.TallyOf, i.Prefab) == CompendiumWords.Hidden)
+                var notCounted = row.Items.Any(i => !explorer.LeavesOut(i.Prefab, row.GameShown) && explorer.StrictAmount(row.Tally, row.TallyOf, i.Prefab) == CompendiumWords.Hidden)
                     || row.LineItems.Any(i => explorer.StrictAmount(row.Tally, row.TallyOf, i) == CompendiumWords.Hidden);
                 finds.Count(notCounted);
                 if (notCounted) uncounted.Add(row.Tally);
@@ -260,7 +260,7 @@ namespace Scry
             if (facts.Links.TryGetValue(pair.Key, out var linked))
             {
                 if (facts.Listing.Contains(pair.Key) && LeftOut(explorer, linked)) return y;
-                if (explorer.LeavesOut(linked))
+                if (explorer.LeavesOut(linked, facts.GameShown.Contains(pair.Key)))
                 {
                     StrictLeft(1);
                     return y;

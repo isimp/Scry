@@ -46,6 +46,14 @@ namespace Scry
             /// <summary>Left out of the page whole while every thing it names was never met, as its title alone would tell what it holds: what a boss's fall opens.</summary>
             public bool UnmetLeftOut;
 
+            /// <summary>
+            /// The game shows the row the moment the thing is known: a recipe's materials, a piece's
+            /// cost, what a thing is made into, a station's recipes, a store's wares. Such a row names
+            /// what the character has met under either rules, never waiting to be seen together
+            /// (<see cref="Explorer.LeavesOut(string, bool)"/>).
+            /// </summary>
+            public bool GameShown;
+
             /// <summary>A grid in place of chips: every damage type and the share of it taken (<see cref="ResistWords"/>).</summary>
             public List<ResistCell> Cells;
 
@@ -174,6 +182,9 @@ namespace Scry
 
         /// <summary>Values that name something in the catalog, by their label: a prefab name, or "se:" and a status effect's.</summary>
         public readonly Dictionary<string, string> Links = new Dictionary<string, string>();
+
+        /// <summary>The labels of pairs the game shows the moment the thing is known, as a piece's tool in the hammer (<see cref="Row.GameShown"/>).</summary>
+        public readonly HashSet<string> GameShown = new HashSet<string>(StringComparer.Ordinal);
 
         /// <summary>
         /// The labels of lines that only name what the page lists, as a mod's page names the
