@@ -84,6 +84,27 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatTheGameShowsComesWithAThingOnlyOnceTheGameListsItsRecipe()
+        {
+            // The crafting menu and the hammer list a recipe only once the character knows it (the
+            // station and every material known); an item's card names no station. So a recipe's
+            // rows are the game's showing only while the game lists that recipe, read live from the
+            // character; a row with no recipe of its own (a store's wares) is shown always.
+            var world = new World().Rule(CompendiumRule.Strict);
+            var explorer = world.Explorer;
+            Assert.True(explorer.RecipeListed(null));
+            Assert.True(explorer.RecipeListed("$item_bloodpudding"));
+            var listed = new HashSet<string> { "$item_bloodpudding" };
+            explorer.RecipeListedBy = token => listed.Contains(token);
+            Assert.True(explorer.RecipeListed("$item_bloodpudding"));
+            Assert.False(explorer.RecipeListed("$item_troll_leather_chest"));
+            Assert.True(explorer.RecipeListed(null));
+            explorer.Select(world.Troll);
+            Assert.False(explorer.LeavesOut(world.Hide.Key, explorer.RecipeListed("$item_bloodpudding")));
+            Assert.True(explorer.LeavesOut(world.Hide.Key, explorer.RecipeListed("$item_troll_leather_chest")));
+        }
+
+        [Fact]
         public void AFactTheGameShowsNamesWhatWasMetWhateverWasSeenTogether()
         {
             // The game's menus show a recipe's materials and station, a piece's cost and tool and

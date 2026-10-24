@@ -146,6 +146,7 @@ namespace Scry
                 var title = ModWords.AddedBy(ItemWords.RecipeTitle(station, recipe.m_minStationLevel, recipe.m_amount, recipe.m_requireOnlyOneIngredient),
                     Knowledge.RecipeMod(recipe.name), Knowledge.ModName(prefab.name));
                 var row = Requirements(title, recipe.m_resources, shared.m_maxQuality > 1);
+                row.Recipe = RecipeToken(prefab);
                 row.TitleLink = recipe.m_craftingStation != null ? recipe.m_craftingStation.gameObject.name : null;
                 Rows.Add(row);
 
@@ -490,7 +491,7 @@ namespace Scry
         /// </summary>
         private static Row UpgradeKits(Recipe recipe, int maxQuality)
         {
-            var row = new Row { Title = ItemWords.PastTop(Knowledge.UpgradeStationName), TitleLink = Knowledge.UpgradeStation, GameShown = true };
+            var row = new Row { Title = ItemWords.PastTop(Knowledge.UpgradeStationName), TitleLink = Knowledge.UpgradeStation, GameShown = true, Recipe = recipe.m_item != null ? RecipeToken(recipe.m_item.gameObject) : null };
             if (recipe.m_resources == null || maxQuality <= 1) return row;
             foreach (var need in recipe.m_resources)
             {

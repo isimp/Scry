@@ -64,6 +64,9 @@ namespace Scry.Tests
             // Under the strict rules an attack's clips wait as one chip counting them.
             Assert.Equal("1 clip waits  \u00B7  see it attack, up close or taken", ClipWords.ClipsWait(1));
             Assert.Equal("6 clips wait  \u00B7  see it attack, up close or taken", ClipWords.ClipsWait(6));
+            // The attacks table folds the attacks not yet seen or taken into one line the same way.
+            Assert.Equal("1 attack waits  \u00B7  see it attack, up close or taken", CombatWords.AttacksWait(1));
+            Assert.Equal("3 attacks wait  \u00B7  see it attack, up close or taken", CombatWords.AttacksWait(3));
             // A weapon shown on its own is put on the person first.
             Assert.Equal("Put it on the person and play this attack", ClipWords.PlayAttackTip(known: false, playing: false, wearFirst: true));
             Assert.False(EntryKeys.PlaysMusic(null, out _));

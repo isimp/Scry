@@ -163,6 +163,12 @@ namespace Scry
         /// <summary>The title of a creature's attacks table.</summary>
         public const string AttacksTitle = "Attacks";
 
+        /// <summary>One faint line under the attacks table counting the attacks not yet seen begun or taken under the strict rules, and what shows them.</summary>
+        public static string AttacksWait(int attacks) => Naming.Count(attacks, "attack waits", "attacks wait") + "  \u00B7  see it attack, up close or taken";
+
+        /// <summary>That line's tip.</summary>
+        public const string AttacksWaitTip = "Each shows once it hit you, or you saw it begun up close";
+
         /// <summary>The columns of a creature's attacks table.</summary>
         public static readonly string[] AttackColumns = { "Attack", "Damage", "How", "Reach", "Every" };
 

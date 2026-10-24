@@ -206,7 +206,7 @@ namespace Scry
                 }
                 if (row.AttackCells != null) attacks += Attacked(explorer, row, finds);
                 if (row.Tally == Tally.None) continue;
-                var notCounted = row.Items.Any(i => !explorer.LeavesOut(i.Prefab, row.GameShown) && explorer.StrictAmount(row.Tally, row.TallyOf, i.Prefab) == CompendiumWords.Hidden)
+                var notCounted = row.Items.Any(i => !explorer.LeavesOut(i.Prefab, GameShows(explorer, row, i)) && explorer.StrictAmount(row.Tally, row.TallyOf, i.Prefab) == CompendiumWords.Hidden)
                     || row.LineItems.Any(i => explorer.StrictAmount(row.Tally, row.TallyOf, i) == CompendiumWords.Hidden);
                 finds.Count(notCounted);
                 if (notCounted) uncounted.Add(row.Tally);
@@ -274,17 +274,22 @@ namespace Scry
             _youHeight = 0f;
         }
 
-        /// <summary>One labelled fact: its label in the left column, its value at its right, a link, music or a website where it is one.</summary>
+        /// <summary>One labelled fact: counted over every character's play, it stands faint under the strict rules beside the character's own counts, saying so on hover.</summary>
         private static float FactPair(Explorer explorer, Entry entry, Facts facts, KeyValuePair<string, string> pair, float width, float labelW, float y)
         {
-            // Counted over every character's play: under the strict rules the page counts this character's own.
-            if (explorer.LeavingOut && facts.AllPlay.Contains(pair.Key)) return y;
+            if (!explorer.LeavingOut || !facts.AllPlay.Contains(pair.Key)) return FactPairDrawn(explorer, entry, facts, pair, width, labelW, y);
+            return AllPlayFaint(new Rect(0f, y, width, 0f), () => FactPairDrawn(explorer, entry, facts, pair, width, labelW, y));
+        }
+
+        /// <summary>One labelled fact: its label in the left column, its value at its right, a link, music or a website where it is one.</summary>
+        private static float FactPairDrawn(Explorer explorer, Entry entry, Facts facts, KeyValuePair<string, string> pair, float width, float labelW, float y)
+        {
             // A line only naming what the page lists waits until the character has seen it; under
             // the strict rules a line naming what was not seen together with the page is left out.
             if (facts.Links.TryGetValue(pair.Key, out var linked))
             {
                 if (facts.Listing.Contains(pair.Key) && LeftOut(explorer, linked)) return y;
-                if (explorer.LeavesOut(linked, facts.GameShown.Contains(pair.Key)))
+                if (explorer.LeavesOut(linked, GameShows(explorer, facts, pair.Key)))
                 {
                     StrictLeft(1);
                     return y;

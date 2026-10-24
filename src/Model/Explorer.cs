@@ -282,6 +282,7 @@ namespace Scry
         /// </summary>
         public bool LeavesOut(string key) => LeavesOut(key, false);
 
+
         /// <summary>
         /// As <see cref="LeavesOut(string)"/>, but a fact the game shows the moment a thing is known
         /// (<paramref name="gameShown"/>: a recipe's materials and station, a piece's cost and tool,

@@ -149,6 +149,9 @@ namespace Scry
         /// <summary>The level a creature rolled on the stage stands at: under the strict rules no higher than it was seen with up close (<see cref="Explorer.StarLevelFor"/>).</summary>
         private static readonly Func<string, int, int> StarLevelFor = (key, level) => Explorer != null ? Explorer.StarLevelFor(key, level) : level;
 
+        /// <summary>Whether the game lists a recipe for the character playing, as it stands now (<see cref="CharacterRecords.RecipeListed"/>).</summary>
+        private static readonly Func<string, bool> RecipeListed = token => Player.m_localPlayer != null && CharacterRecords.RecipeListed(Player.m_localPlayer, token);
+
         /// <summary>Whether a creature's copy may wear an item: under the strict rules one it was seen carrying up close (<see cref="Explorer.WearsShown"/>).</summary>
         private static readonly Func<string, string, bool> WearsShown = (creature, item) => Explorer == null || Explorer.WearsShown(creature, item);
 
@@ -323,7 +326,7 @@ namespace Scry
             _favourites = _favourites ?? new Favourites(Path.Combine(Settings.DataFolder, "favourites.txt"));
             if (_favourites.Problem != null) Faults.Tell(Feature.Favourites, "reading the favourites", _favourites.Problem);
 
-            Explorer = new Explorer(catalog, _favourites) { RecentLimit = Settings.RecentCount };
+            Explorer = new Explorer(catalog, _favourites) { RecentLimit = Settings.RecentCount, RecipeListedBy = RecipeListed };
             WorldCatalog.Set(Explorer.Entries);
             // A creature the page shown would leave out stands on no place's copy and in no raid's crowd:
             // one the character has not met, and under the strict rules one never seen together with the page.

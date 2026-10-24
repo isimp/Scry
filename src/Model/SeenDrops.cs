@@ -225,6 +225,9 @@ namespace Scry
         /// <summary>The row of a creature's loot seen in play, with how many kills it is from.</summary>
         public static string Title(int kills) => $"Seen dropping in your play ({Kills(kills)})";
 
+        /// <summary>The tip of such a row under the strict rules, where it stands faint beside the character's own counts.</summary>
+        public const string AllPlayTip = "Seen in your play on this machine, every character's and world's; not counted for this character";
+
         /// <summary>How often an item came, and how many at a time when that is more than one.</summary>
         public static string Amount(SeenDrop drop, int kills)
         {

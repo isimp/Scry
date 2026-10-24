@@ -96,6 +96,14 @@ namespace Scry
         /// <summary>The guardian power the character chose at a boss stone, by its status effect's prefab; empty before one is chosen.</summary>
         public static string Power(Player player) => player.GetGuardianPowerName() ?? "";
 
+        /// <summary>Whether the game lists a recipe for the character, by the token it lists it by (<c>Player.m_knownRecipes</c>), read as it stands now.</summary>
+        public static bool RecipeListed(Player player, string token)
+        {
+            if (player == null || string.IsNullOrEmpty(token)) return false;
+            Bind();
+            return _recipes(player).Contains(token);
+        }
+
         private static void Bind()
         {
             if (_trophies != null) return;

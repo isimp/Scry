@@ -129,7 +129,7 @@ namespace Scry
                 foreach (var tile in topic.Tiles)
                 {
                     var named = facts.Links.TryGetValue(facts.Pairs[tile].Key, out var linked) && InCatalog(explorer, linked);
-                    if (named && explorer.LeavesOut(linked, facts.GameShown.Contains(facts.Pairs[tile].Key))) StrictLeft(1);
+                    if (named && explorer.LeavesOut(linked, GameShows(explorer, facts, facts.Pairs[tile].Key))) StrictLeft(1);
                     else
                     {
                         ShownTiles.Add(tile);
@@ -255,7 +255,7 @@ namespace Scry
         {
             if (ShownCounts.TryGetValue(row, out var told) && told.Stamp == explorer.KnowStamp) return told.Said;
             var count = 0;
-            foreach (var item in row.Items) if (!explorer.LeavesOut(item.Prefab, row.GameShown)) count++;
+            foreach (var item in row.Items) if (!explorer.LeavesOut(item.Prefab, GameShows(explorer, row, item))) count++;
             var said = CompendiumWords.MetCount(count);
             ShownCounts[row] = (explorer.KnowStamp, said);
             return said;
@@ -325,9 +325,16 @@ namespace Scry
             GUI.Label(new Rect(0f, y, width, U(20f)), Masked(explorer, row.Title), Skin.DimLabel);
             y += U(24f);
 
+            // Under the strict rules an attack not yet seen begun or taken is folded, as its clips
+            // are: the table lists the rest, and one faint line counts those that wait.
+            var waiting = 0;
+            for (var l = 0; l < row.Lines.Count; l++) if (!LineLeftOut(explorer, row.Lines[l].Link) && AttackKept(explorer, row, l)) waiting++;
             var gap = U(12f);
-            MeasureColumns(explorer, row, width - gap * (row.Columns.Length - 1));
-            y = TableHeadings(row, gap, y);
+            if (waiting < row.Lines.Count)
+            {
+                MeasureColumns(explorer, row, width - gap * (row.Columns.Length - 1));
+                y = TableHeadings(row, gap, y);
+            }
 
             for (var l = 0; l < row.Lines.Count; l++)
             {
@@ -338,9 +345,13 @@ namespace Scry
                     StrictLeft(1);
                     continue;
                 }
-                // Under the strict rules an attack that never hit the character keeps its damage
-                // back, and a line only something seen done tells (health by stars) all its numbers.
                 var attackKept = AttackKept(explorer, row, l);
+                if (attackKept)
+                {
+                    CountDrawn(PanelPart.TableKeptBack);
+                    continue;
+                }
+                // A line only something seen done tells (health by stars) keeps all its numbers back.
                 var lineKept = LineKept(explorer, row, l, out var lineProof);
                 // A line with no proof of its own lights at the first of its cells' proofs, where one is kept.
                 if (lineProof == null) lineProof = FirstCellProof(row, l);
@@ -373,9 +384,20 @@ namespace Scry
                 }
                 y += height + underHeight + U(6f);
             }
+            if (waiting > 0) y = AttacksWaitLine(waiting, width, y);
             CountDrawn(PanelPart.FactTable);
             // What a ??? waits for says so on its hover, and the You box lists it: no faint line repeats it.
             return y + U(4f);
+        }
+
+        /// <summary>One faint line under an attacks table counting the attacks not yet seen begun or taken, its hover saying what shows them.</summary>
+        private static float AttacksWaitLine(int waiting, float width, float y)
+        {
+            var line = new Rect(0f, y, width, U(20f));
+            GUI.Label(line, CombatWords.AttacksWait(waiting), Skin.FaintLabel);
+            if (line.Contains(Event.current.mousePosition)) AskTip("attacks-wait", CombatWords.AttacksWaitTip);
+            CountDrawn(PanelPart.AttacksWait);
+            return y + U(24f);
         }
 
         /// <summary>
@@ -394,7 +416,7 @@ namespace Scry
                 HeadingWidths.Add(w + U(2f));
                 for (var l = 0; l < row.Lines.Count; l++)
                 {
-                    if (LineLeftOut(explorer, row.Lines[l].Link)) continue;
+                    if (LineLeftOut(explorer, row.Lines[l].Link) || AttackKept(explorer, row, l)) continue;
                     var drawn = CellDrawn(explorer, row, l, c);
                     if (drawn != null) w = Mathf.Max(w, (drawn == CompendiumWords.Hidden ? Mathf.Max(SmudgeWidth, Skin.Width(Skin.Small, drawn)) : Skin.Width(Skin.Small, drawn)) + (drawn != CompendiumWords.Hidden && explorer.ShownByChoice(CellLink(row, l, c)) ? FloorRoom : 0f));
                     if (!row.Yours.TryGetValue(l, out var yours) || LineKept(explorer, row, l, out _) || AttackKept(explorer, row, l)) continue;
@@ -629,13 +651,18 @@ namespace Scry
         /// <summary>The tip of a number kept back in a table's line: what shows it.</summary>
         private static string KeptTip(Explorer explorer, string what, string proof) => explorer.ShowsOnce(what, proof);
 
-        /// <summary>A fact that qualifies what stands above it, told under it in a soft line.</summary>
+        /// <summary>A fact that qualifies what stands above it, told under it in a soft line; one counted over every character's play stands faint under the strict rules.</summary>
         private static float FactNote(Explorer explorer, Facts facts, KeyValuePair<string, string> pair, float width, float y)
         {
-            // A note goes through what a fact goes through: counted over every character's play, naming
-            // what the rules leave out, or telling what is still to find out, it is left out or hinted at.
-            if (explorer.LeavingOut && facts.AllPlay.Contains(pair.Key)) return y;
-            if (facts.Links.TryGetValue(pair.Key, out var linked) && explorer.LeavesOut(linked, facts.GameShown.Contains(pair.Key)))
+            if (!explorer.LeavingOut || !facts.AllPlay.Contains(pair.Key)) return FactNoteDrawn(explorer, facts, pair, width, y);
+            return AllPlayFaint(new Rect(0f, y, width, 0f), () => FactNoteDrawn(explorer, facts, pair, width, y));
+        }
+
+        private static float FactNoteDrawn(Explorer explorer, Facts facts, KeyValuePair<string, string> pair, float width, float y)
+        {
+            // A note goes through what a fact goes through: naming what the rules leave out, or
+            // telling what is still to find out, it is left out or hinted at.
+            if (facts.Links.TryGetValue(pair.Key, out var linked) && explorer.LeavesOut(linked, GameShows(explorer, facts, pair.Key)))
             {
                 StrictLeft(1);
                 return y;

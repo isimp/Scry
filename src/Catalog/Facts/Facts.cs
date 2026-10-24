@@ -54,6 +54,9 @@ namespace Scry
             /// </summary>
             public bool GameShown;
 
+            /// <summary>The recipe the game shows the row by (<see cref="GameShown"/>), by the token it lists it by; none for a row shown whatever is listed, or whose items each name their own.</summary>
+            public string Recipe;
+
             /// <summary>A grid in place of chips: every damage type and the share of it taken (<see cref="ResistWords"/>).</summary>
             public List<ResistCell> Cells;
 
@@ -142,6 +145,9 @@ namespace Scry
 
         public struct Ingredient
         {
+            /// <summary>The recipe the game shows this item of a game-shown row by, where each names its own (what a thing is made into, what a station makes); none, the row's.</summary>
+            public string Recipe;
+
             public Sprite Icon;
             public string Name;
             public string Amount;
@@ -199,6 +205,19 @@ namespace Scry
 
         /// <summary>The labels of pairs the game shows the moment the thing is known, as a piece's tool in the hammer (<see cref="Row.GameShown"/>).</summary>
         public readonly HashSet<string> GameShown = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>The recipe each game-shown pair is shown by, by its label, by the token the game lists it by (<see cref="Explorer.RecipeListed"/>).</summary>
+        public readonly Dictionary<string, string> GameShownBy = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        /// <summary>The token the game lists a thing's recipe by (<c>Player.m_knownRecipes</c>): an item's name token, a piece's name; none for anything else.</summary>
+        internal static string RecipeToken(GameObject prefab)
+        {
+            if (prefab == null) return null;
+            var item = prefab.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared?.m_name;
+            if (!string.IsNullOrEmpty(item)) return item;
+            var piece = prefab.GetComponent<global::Piece>().OrNull()?.m_name;
+            return string.IsNullOrEmpty(piece) ? null : piece;
+        }
 
         /// <summary>
         /// The labels of lines that only name what the page lists, as a mod's page names the

@@ -43,6 +43,7 @@ namespace Scry
                 var upgraded = extension.m_craftingStation.gameObject;
                 Add("Upgrades", BuildWords.Upgrades(AnyName(upgraded, upgraded.name), extension.m_maxStationDistance, piece.m_spaceRequirement), upgraded.name);
                 GameShown.Add("Upgrades");
+                GameShownBy["Upgrades"] = piece.m_name;
             }
 
             // Bed.Interact: claiming and sleeping, each needing a roof and 80% cover (CheckExposure).
@@ -56,6 +57,7 @@ namespace Scry
             {
                 var station = piece.m_craftingStation != null ? CatalogBuilder.Localize(piece.m_craftingStation.m_name) : "";
                 var row = Requirements(BuildWords.Cost(station), piece.m_resources, false);
+                row.Recipe = piece.m_name;
                 row.TitleLink = piece.m_craftingStation != null ? piece.m_craftingStation.gameObject.name : null;
                 Rows.Add(row);
                 Hooked(HookedRule.Crafting);
@@ -108,9 +110,10 @@ namespace Scry
             {
                 Add("Built with", BuildWords.OnTab(tools[0].ToolName, tools[0].Tab), tools[0].Tool);
                 GameShown.Add("Built with");
+                GameShownBy["Built with"] = RecipeToken(GamePrefabs.Named(piece));
                 return;
             }
-            var row = new Row { Title = "Built with", GameShown = true };
+            var row = new Row { Title = "Built with", GameShown = true, Recipe = RecipeToken(GamePrefabs.Named(piece)) };
             foreach (var tool in tools) row.Items.Add(Chip(tool.Tool, tool.Tab));
             Rows.Add(row);
         }
@@ -161,6 +164,7 @@ namespace Scry
             if (piece.m_resources == null || piece.m_resources.Length == 0) return;
             var station = piece.m_craftingStation != null ? CatalogBuilder.Localize(piece.m_craftingStation.m_name) : "";
             var row = Requirements(BuildWords.CostThrough(by, station), piece.m_resources, false);
+            row.Recipe = piece.m_name;
             row.TitleLink = piece.m_craftingStation != null ? piece.m_craftingStation.gameObject.name : null;
             if (row.Items.Count > 0) Rows.Add(row);
         }
@@ -207,7 +211,7 @@ namespace Scry
                     // A recipe that takes none of it at first needs it only to upgrade what it makes.
                     var name = UseWords.Target(AnyName(prefab, target), amount <= 0 && group.Kind == UseKind.Crafts);
                     var shown = amount > 0 ? Numbers.Count(amount) : "";
-                    row.Items.Add(new Ingredient { Icon = AnyIcon(prefab), Name = name, Amount = shown, Prefab = target });
+                    row.Items.Add(new Ingredient { Icon = AnyIcon(prefab), Name = name, Amount = shown, Prefab = target, Recipe = RecipeToken(prefab) });
                 }
                 if (row.Items.Count > 0) UseRows.Add(row);
             }

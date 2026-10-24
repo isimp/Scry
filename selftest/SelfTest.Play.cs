@@ -298,7 +298,7 @@ namespace Scry
             yield return Until(() => ScryPanel.Drawn(PanelPart.StillToFindOut) > still, 3);
             p.Check(X.LeavingOut && X.KeepsBack(EntryKeys.Did(Deed.Killed)) && ScryPanel.Drawn(PanelPart.FactKeptBack) > facts, "the troll's health shows as a smudge, what shows it on hover");
             p.Check(ScryPanel.Drawn(PanelPart.StillToFindOut) > still, "its You box tells what is still to find out");
-            p.Check(ScryPanel.Drawn(PanelPart.TableKeptBack) > table, "its attacks keep back their damage, a smudge in their cells");
+            p.Check(ScryPanel.Drawn(PanelPart.TableKeptBack) > table && ScryPanel.Drawn(PanelPart.AttacksWait) > 0, "its attacks not yet seen or taken fold into one faint line counting them");
             p.Check(ScryPanel.StillForTest.Any(l => l.StartsWith("Hit its weak spot", System.StringComparison.Ordinal)), "its weak spot is left out, the You box saying to hit it", string.Join("; ", ScryPanel.StillForTest));
             p.Check(X.StrictAmount(Tally.Fell, troll.Name, hide.Name) == CompendiumWords.Hidden && ScryPanel.Drawn(PanelPart.TallyCounted) > tally,
                 "how many hides it drops shows a smudge until counted, its hover saying what shows it");
@@ -399,6 +399,7 @@ namespace Scry
                 view.Tell(book, CompendiumRule.Strict);
                 yield return Until(() => !X.LeavesOut(made, gameShown: true), 3);
                 p.Check(uses.All(r => r.GameShown) && !X.LeavesOut(made, gameShown: true) && X.LeavesOut(made), $"what the hide is used for names {made}, known and never paired, as the crafting menu shows it");
+                p.Check(X.RecipeListed(null) && !X.RecipeListed("$item_no_such_recipe_" + Numbers.Count(UnityEngine.Random.Range(1000, 9999))), "a recipe the game does not list for the character keeps its rows, read live from the character");
                 var usesTopic = ScryPanel.TopicsForTest.FirstOrDefault(topic => topic.Heading == "What it is used for").Id;
                 if (usesTopic != null) yield return PictureOf(p, usesTopic, "strict TrollHide, what it is used for as the menu shows it");
             }

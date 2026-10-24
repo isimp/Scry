@@ -91,6 +91,15 @@ namespace Scry
 
         /// <summary>A value kept back under the strict rules, drawn as a soft smudge.</summary>
         Smudge,
+
+        /// <summary>The faint line under an attacks table counting the attacks not yet seen begun or taken.</summary>
+        AttacksWait,
+
+        /// <summary>A row or line counted over every character's play, drawn faint under the strict rules.</summary>
+        AllPlayFaint,
+
+        /// <summary>A recipe's row left out whole under the strict rules, the game not listing the recipe for the character yet.</summary>
+        RecipeWaits,
         TallyCounted,
         YouBox,
         YourSkillLine,

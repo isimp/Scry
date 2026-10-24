@@ -17,6 +17,13 @@ namespace Scry
 
         private static Ingredient Chip(ItemDrop item, string amount) => Chip(item.gameObject.name, amount);
 
+        /// <summary>A chip of what a recipe makes, shown by the game once it lists that recipe.</summary>
+        private static Ingredient Listed(Ingredient chip, Recipe recipe)
+        {
+            chip.Recipe = RecipeToken(recipe.m_item.gameObject);
+            return chip;
+        }
+
         /// <summary>Where an item is made other than by a recipe: each station that turns something into it, and from what.</summary>
         private void MadeIn(GameObject item)
         {
@@ -252,11 +259,11 @@ namespace Scry
                 var name = recipe.m_item.gameObject.name;
                 if (recipe.m_craftingStation != null && recipe.m_craftingStation.gameObject.name == station)
                 {
-                    if (seen.Add(name)) made.Items.Add(Chip(recipe.m_item, recipe.m_amount > 1 ? Numbers.Count(recipe.m_amount) : ""));
+                    if (seen.Add(name)) made.Items.Add(Listed(Chip(recipe.m_item, recipe.m_amount > 1 ? Numbers.Count(recipe.m_amount) : ""), recipe));
                 }
                 else if (recipe.m_craftingStation == null && recipe.m_repairStation != null && recipe.m_repairStation.gameObject.name == station)
                 {
-                    if (seen.Add(name)) upgraded.Items.Add(Chip(recipe.m_item, ""));
+                    if (seen.Add(name)) upgraded.Items.Add(Listed(Chip(recipe.m_item, ""), recipe));
                 }
             }
             if (made.Items.Count > 0) Rows.Add(made);
@@ -273,7 +280,12 @@ namespace Scry
                     if (entry.Kind != Kind.Piece || entry.Stations == null || !entry.Stations.Any(s => s.Name == station)) continue;
                     var piece = (entry.Source as GameObject).OrNull()?.GetComponent<global::Piece>();
                     if (piece == null || !piece.m_enabled) continue;
-                    if (seen.Add(entry.Name)) built.Items.Add(Chip(entry.Name, ""));
+                    if (seen.Add(entry.Name))
+                    {
+                        var chip = Chip(entry.Name, "");
+                        chip.Recipe = piece.m_name;
+                        built.Items.Add(chip);
+                    }
                 }
             }
             if (built.Items.Count > 0) Rows.Add(built);
