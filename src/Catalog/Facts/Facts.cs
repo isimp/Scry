@@ -554,7 +554,8 @@ namespace Scry
 
             Part("resource", () => Resource(prefab));
             if (Knowledge.GivesLoot(prefab)) Hooked(HookedRule.Loot);
-            if (piece != null && !piece.enabled) Part("build cost", () => MadeBuildable(piece));
+            // A switched-off piece a mod added is buildable only where a build tool's menu holds it.
+            if (piece != null && !piece.enabled && Knowledge.Tools.ToolsOf(prefab.name).Count > 0) Part("build cost", () => MadeBuildable(piece));
             Part("station", () => Station(prefab));
 
             // A spawner finds its network view among its parents (SpawnArea.Awake), so it may sit

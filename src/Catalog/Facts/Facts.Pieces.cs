@@ -146,7 +146,9 @@ namespace Scry
 
         /// <summary>
         /// One of the game's own prefabs a mod made buildable, by adding a piece to it that it
-        /// leaves switched off on the prefab (MoreVanillaBuildPrefabs does so): what it costs.
+        /// leaves switched off on the prefab and putting it in a build tool's menu
+        /// (MoreVanillaBuildPrefabs does so for those its settings enable, adding the piece to
+        /// every prefab it can make buildable): what it costs.
         /// </summary>
         private void MadeBuildable(Piece piece)
         {
