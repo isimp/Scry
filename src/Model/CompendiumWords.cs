@@ -578,6 +578,24 @@ namespace Scry
         /// <summary>Why a kept file no longer stands in place: it could not be read, so it was set aside under its new name and a new one started.</summary>
         public static string SetAside(string file) => $"it could not be read, so it was set aside as {file} and a new one started, which saves";
 
+        /// <summary>The notice of a lasting file that could not be read: what it held and what it was set aside as.</summary>
+        public static string SetAsideNotice(SetAsideKind kind, string file)
+        {
+            switch (kind)
+            {
+                case SetAsideKind.Compendium: return $"This character's compendium could not be read. It was set aside as {file} and a new one started.";
+                case SetAsideKind.Walks: return $"The maps of the dungeons this character walked could not be read. They were set aside as {file} and new ones started.";
+                default: return $"This world's dungeon records could not be read. They were set aside as {file} and new ones started.";
+            }
+        }
+
+        /// <summary>The notice's chip copying where the file set aside lies, and its tip.</summary>
+        public const string CopyPath = "Copy path";
+        public const string CopyPathTip = "Copy where the file set aside lies, to look at it or put it back with the game closed";
+
+        /// <summary>The tip of the notice's cross.</summary>
+        public const string PutSetAsideAway = "Put this away; the file set aside stays where it is";
+
         /// <summary>The tab after All listing what the character learned lately.</summary>
         public const string LearnedTab = "Learned";
 

@@ -1,4 +1,5 @@
 using System.Collections;
+using System.IO;
 using UnityEngine;
 
 namespace Scry
@@ -71,6 +72,21 @@ namespace Scry
                 Settings.SpinSpeed = speed;
             }
             _settingsBefore = null;
+        }
+
+        /// <summary>A made-up file set aside, as a book that could not be read is: the notice names it; put away, it is gone. No file is touched.</summary>
+        private static IEnumerator SetAsideTold(Probe p)
+        {
+            var file = "Scry-selftest-book.dat.unreadable-" + CompendiumKeeper.Stamp();
+            var path = Path.Combine(Settings.CacheFolder, "compendium", file);
+            SetAsideNotice.Files.Tell(SetAsideKind.Compendium, path);
+            var strips = ScryPanel.Drawn(PanelPart.SetAsideNotice);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.SetAsideNotice) > strips + 1, 3);
+            p.Check(ScryPanel.SetAsideLineForTest == CompendiumWords.SetAsideNotice(SetAsideKind.Compendium, file), "the notice says the book could not be read and what it was set aside as", ScryPanel.SetAsideLineForTest ?? "no notice");
+            yield return Picture(p, "a book set aside");
+            SetAsideNotice.Files.PutAway();
+            yield return null;
+            p.Check(ScryPanel.SetAsideLineForTest == null, "put away, the notice is gone");
         }
 
         /// <summary>The ? in the compendium's box opens its guide in the list's place; Close puts it away.</summary>

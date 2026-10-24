@@ -180,7 +180,11 @@ namespace Scry
             if (_reading.Status == TaskStatus.RanToCompletion)
             {
                 _own = _reading.Result.Maps;
-                if (_reading.Result.Aside != null) Faults.Tell(Feature.DungeonMaps, "reading the maps of the dungeons walked", CompendiumWords.SetAside(Path.GetFileName(_reading.Result.Aside)));
+                if (_reading.Result.Aside != null)
+                {
+                    Faults.Tell(Feature.DungeonMaps, "reading the maps of the dungeons walked", CompendiumWords.SetAside(Path.GetFileName(_reading.Result.Aside)));
+                    SetAsideNotice.Files.Tell(SetAsideKind.Walks, _reading.Result.Aside);
+                }
             }
             else
             {

@@ -361,21 +361,7 @@ namespace Scry
                 if (lineH > 0f) NoticeLineStrip(explorer, new Rect(pad, U(54f) + noticeH, w - pad * 2f, lineH - U(4f)));
                 noticeH += lineH;
             }
-            else
-            {
-                var offH = OffNoticeHeight();
-                if (offH > 0f) OffNotice(new Rect(pad, U(54f) + noticeH, w - pad * 2f, offH - U(4f)));
-                noticeH += offH;
-                var rulesH = RulesNoticeHeight();
-                if (rulesH > 0f) RulesNotice(new Rect(pad, U(54f) + noticeH, w - pad * 2f, rulesH - U(4f)));
-                noticeH += rulesH;
-                var knownH = CompendiumStripHeight(explorer);
-                if (knownH > 0f) CompendiumStrip(explorer, new Rect(pad, U(54f) + noticeH, w - pad * 2f, knownH - U(4f)));
-                noticeH += knownH;
-                var withH = PlayingWithNoticeHeight();
-                if (withH > 0f) PlayingWithNotice(new Rect(pad, U(54f) + noticeH, w - pad * 2f, withH - U(4f)));
-                noticeH += withH;
-            }
+            else noticeH = NoticeStrips(explorer, pad, w, noticeH);
 
             var controls = Timing.Start();
             var y = Controls(explorer, new Rect(pad, U(56f) + noticeH, w - pad * 2f, U(36f)));

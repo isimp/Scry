@@ -31,6 +31,7 @@ namespace Scry
             yield return S("held looking around with the panel open, the cursor stays captured and hidden, and is freed once let go", CursorHeldWhileLooking, 10, () => ScryPanel.LookForTest(false));
             yield return S("the gear opens the settings card, a fast stage is filmed at half the size, and the View box's speed steps", SettingsCardShown, 20, SettingsAsTheyWere);
             yield return S("the compendium's box shows its guide's ?, and the guide opens in the list's place, giving way to the list asked for", GuideShown, 10, () => { ScryPanel.ShowGuide(false); ScryPanel.HoldCompendiumBox(false); });
+            yield return S("a lasting file set aside is told under the header, naming what it was set aside as, until put away", SetAsideTold, 10, () => { while (SetAsideNotice.Files.Count > 0) SetAsideNotice.Files.PutAway(); });
             yield return S("the question of keeping a compendium draws, the book left as it was", WelcomeShown, 10, () => ScryPanel.AskWelcomeForTest(false));
             yield return S("an example of the search's help is tried with a click", HelpExamplesTried, 5, () => { ScryPanel.ShowHelp(false); X.SearchEverything(""); });
             yield return S("the View box and the sliders open, draw, and close on another selection", BoxesOpen, 10, ScryPanel.CloseBoxes);

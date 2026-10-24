@@ -463,6 +463,7 @@ namespace Scry
         {
             NoticesUp.Clear();
             if (OffNoticeHeight() > 0f) NoticesUp.Add(Notice.Off);
+            if (SetAsideNoticeHeight() > 0f) NoticesUp.Add(Notice.SetAside);
             if (RulesNoticeHeight() > 0f) NoticesUp.Add(Notice.Rules);
             if (explorer.Peeking) NoticesUp.Add(Notice.Peeking);
             if (PlayingWithNoticeHeight() > 0f) NoticesUp.Add(Notice.PlayingWith);
@@ -472,6 +473,26 @@ namespace Scry
 
         /// <summary>How tall the compact view's notices are: one strip while any is up.</summary>
         private static float NoticeLineHeight(Explorer explorer) => NoticesUpNow(explorer).Count > 0 ? U(32f) : 0f;
+
+        /// <summary>The full view's notices, each a strip of its own under the header, the most pressing first; how far down they reach.</summary>
+        private static float NoticeStrips(Explorer explorer, float pad, float w, float noticeH)
+        {
+            var offH = OffNoticeHeight();
+            if (offH > 0f) OffNotice(new Rect(pad, U(54f) + noticeH, w - pad * 2f, offH - U(4f)));
+            noticeH += offH;
+            var asideH = SetAsideNoticeHeight();
+            if (asideH > 0f) SetAsideStrip(new Rect(pad, U(54f) + noticeH, w - pad * 2f, asideH - U(4f)));
+            noticeH += asideH;
+            var rulesH = RulesNoticeHeight();
+            if (rulesH > 0f) RulesNotice(new Rect(pad, U(54f) + noticeH, w - pad * 2f, rulesH - U(4f)));
+            noticeH += rulesH;
+            var knownH = CompendiumStripHeight(explorer);
+            if (knownH > 0f) CompendiumStrip(explorer, new Rect(pad, U(54f) + noticeH, w - pad * 2f, knownH - U(4f)));
+            noticeH += knownH;
+            var withH = PlayingWithNoticeHeight();
+            if (withH > 0f) PlayingWithNotice(new Rect(pad, U(54f) + noticeH, w - pad * 2f, withH - U(4f)));
+            return noticeH + withH;
+        }
 
         /// <summary>
         /// The compact view's one notice strip: the notice shown drawn as its own strip is in the
@@ -492,6 +513,9 @@ namespace Scry
             {
                 case Notice.Off:
                     clicked = OffNotice(rect, step);
+                    break;
+                case Notice.SetAside:
+                    clicked = SetAsideStrip(rect, step);
                     break;
                 case Notice.Rules:
                     clicked = RulesNotice(rect, step);

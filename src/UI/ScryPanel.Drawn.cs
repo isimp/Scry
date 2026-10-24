@@ -33,6 +33,7 @@ namespace Scry
         ListLeftOut,
         PeekStrip,
         PeekPageStrip,
+        SetAsideNotice,
         LearnedStrip,
         FloorControl,
         CompendiumSwitch,

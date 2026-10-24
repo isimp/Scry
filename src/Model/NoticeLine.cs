@@ -8,6 +8,9 @@ namespace Scry
         /// <summary>Part of Scry is off until it is updated.</summary>
         Off,
 
+        /// <summary>A lasting file could not be read and was set aside.</summary>
+        SetAside,
+
         /// <summary>The world's server sets some of the compendium's rules, told once a world.</summary>
         Rules,
 

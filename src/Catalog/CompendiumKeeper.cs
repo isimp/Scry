@@ -602,7 +602,11 @@ namespace Scry
             if (_reading.Status == TaskStatus.RanToCompletion)
             {
                 _book = _reading.Result.Book;
-                if (_reading.Result.Aside != null) Faults.Tell(Feature.CompendiumCatchUp, "reading what the character knows", CompendiumWords.SetAside(Path.GetFileName(_reading.Result.Aside)));
+                if (_reading.Result.Aside != null)
+                {
+                    Faults.Tell(Feature.CompendiumCatchUp, "reading what the character knows", CompendiumWords.SetAside(Path.GetFileName(_reading.Result.Aside)));
+                    SetAsideNotice.Files.Tell(SetAsideKind.Compendium, _reading.Result.Aside);
+                }
             }
             else
             {

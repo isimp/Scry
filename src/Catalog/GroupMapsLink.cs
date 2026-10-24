@@ -514,7 +514,11 @@ namespace Scry
                 if (_reading.Status == TaskStatus.RanToCompletion)
                 {
                     _records = _reading.Result.Maps;
-                    if (_reading.Result.Aside != null) Faults.Tell(Feature.GroupDungeonMaps, "reading the world's dungeon records", CompendiumWords.SetAside(Path.GetFileName(_reading.Result.Aside)));
+                    if (_reading.Result.Aside != null)
+                    {
+                        Faults.Tell(Feature.GroupDungeonMaps, "reading the world's dungeon records", CompendiumWords.SetAside(Path.GetFileName(_reading.Result.Aside)));
+                        SetAsideNotice.Files.Tell(SetAsideKind.Records, _reading.Result.Aside);
+                    }
                 }
                 else
                 {

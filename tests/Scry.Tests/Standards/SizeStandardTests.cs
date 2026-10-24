@@ -35,7 +35,7 @@ namespace Scry.Tests
             ["src/UI/ScryPanel.Animations.cs ScryPanel.Clips"] = 146,
             ["src/UI/ScryPanel.Header.cs ScryPanel.BookLayout"] = 125,
             ["src/UI/ScryPanel.List.cs ScryPanel.List"] = 128,
-            ["src/UI/ScryPanel.cs ScryPanel.Draw"] = 187,
+            ["src/UI/ScryPanel.cs ScryPanel.Draw"] = 173,
             ["src/UI/Skin.cs Skin.Ensure"] = 203,
         };
 
