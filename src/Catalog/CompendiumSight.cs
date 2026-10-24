@@ -37,6 +37,7 @@ namespace Scry
             CarriedNow.Clear();
             Meshes.Clear();
             Skins.Clear();
+            Triggers.Clear();
         });
 
         /// <summary>How far beyond its own reach a place in view is seen, as far as a creature of a person's size.</summary>
@@ -147,6 +148,51 @@ namespace Scry
                 CompendiumKeeper.Saw(chest, held.m_dropPrefab.name, Tie.Holds);
                 if (chestPlace != null) CompendiumKeeper.Saw(held.m_dropPrefab.name, EntryKeys.For(Kind.Location, Utils.GetPrefabName(chestPlace.gameObject)));
             }
+        }
+
+        /// <summary>Each creature prefab's attack items by the triggers that start them (<see cref="AttackTriggers"/>), worked out once each.</summary>
+        private static readonly Dictionary<string, Dictionary<string, string>> Triggers = new Dictionary<string, Dictionary<string, string>>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// A creature's attack begun, as its animation's trigger reaches every player's game
+        /// (<c>ZSyncAnimation.RPC_SetTrigger</c>): seen up close, within the world's seen reach, in
+        /// view with nothing solid between, the attack is found out, as taking its hit finds it
+        /// out (<see cref="CompendiumKeeper.HitBy"/>). A player's own swings, a trigger that is no
+        /// attack's or that two of the creature's items share, and a creature whose book is not
+        /// open give nothing.
+        /// </summary>
+        public static void SwingSeen(Character creature, string trigger)
+        {
+            var player = Player.m_localPlayer;
+            var book = CompendiumKeeper.Book;
+            if (creature == null || player == null || book == null || creature.IsPlayer() || string.IsNullOrEmpty(trigger)) return;
+            var centre = creature.GetCenterPoint();
+            if (Vector3.Distance(player.transform.position, centre) > book.World.SeenReach) return;
+            var key = Utils.GetPrefabName(creature.gameObject);
+            var item = AttackTriggers.ItemFor(TriggersOf(key), trigger);
+            if (item == null) return;
+            Bind();
+            var view = GameCamera.instance != null ? GameCamera.instance.transform : player.transform;
+            if (!InView(view, centre) || !Clear(view.position, centre, creature.transform)) return;
+            CompendiumKeeper.FoundOut(key, EntryKeys.Attack(item));
+        }
+
+        /// <summary>A creature prefab's attack items by trigger, from the attacks of what it carries, kept once worked out.</summary>
+        private static Dictionary<string, string> TriggersOf(string prefabName)
+        {
+            if (Triggers.TryGetValue(prefabName, out var map)) return map;
+            var attacks = new List<(string, string, int)>();
+            var prefab = GamePrefabs.Named(prefabName);
+            if (prefab != null)
+            {
+                foreach (var item in Relations.CarriedItems(prefab))
+                {
+                    var shared = item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
+                    if (shared?.m_attack != null) attacks.Add((item.name, shared.m_attack.m_attackAnimation, shared.m_attack.m_attackChainLevels));
+                    if (shared?.m_secondaryAttack != null) attacks.Add((item.name, shared.m_secondaryAttack.m_attackAnimation, shared.m_secondaryAttack.m_attackChainLevels));
+                }
+            }
+            return Triggers[prefabName] = AttackTriggers.Map(attacks);
         }
 
         /// <summary>The slots of what a creature wears that every client sees (<c>VisEquipment</c> keeps each as the item's hash in the creature's data).</summary>

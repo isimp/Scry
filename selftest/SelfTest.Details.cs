@@ -28,9 +28,9 @@ namespace Scry
             told.Proofs.TryGetValue("Health", out var health);
             p.Check(health == EntryKeys.Did(Deed.Killed), "its health until one is killed", health);
             var starred = told.Rows.FirstOrDefault(r => r.Title == CombatWords.StarsTitle);
-            p.Check(starred != null && starred.LineProofs.TryGetValue(0, out var byStars) && byStars == health && starred.Lines[0].Cells[0] == "Health", "and its health by stars with it");
-            p.Check(starred != null && starred.Lines.Count > 1 && Enumerable.Range(1, starred.Lines.Count - 1).All(l => starred.LineProofs.TryGetValue(l, out var proof) && proof == EntryKeys.Did(Deed.StarredFell)),
-                "what else stars change waits until a starred one was seen to fall");
+            p.Check(starred != null && starred.CellProofs.TryGetValue((0, 1), out var byStars) && byStars == health && starred.Lines[0].Cells[0] == "Health", "and its health by stars with it");
+            p.Check(starred != null && starred.CellProofs.Any(c => c.Key.Cell > 1) && starred.CellProofs.Where(c => c.Key.Cell > 1).All(c => EntryKeys.IsStarsFell(c.Value, out var fell) && fell == c.Key.Cell - 1),
+                "what stars change waits by the cell until one with that many stars was seen to fall");
             var attacks = told.Rows.FirstOrDefault(r => r.Title == CombatWords.AttacksTitle);
             p.Check(attacks?.AttackCells != null && attacks.AttackCells.All(c => c < attacks.Columns.Length && (attacks.Columns[c] == "Damage" || attacks.Columns[c] == "On hit")),
                 "its attacks keep back their damage and what they put on you until each hit the character", attacks == null ? "no attacks" : string.Join(", ", attacks.AttackCells?.Select(c => attacks.Columns[c]) ?? Enumerable.Empty<string>()));

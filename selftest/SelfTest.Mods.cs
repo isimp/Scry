@@ -43,7 +43,7 @@ namespace Scry
             // The rest, each on an entry that tells what the rule decides.
             foreach (var (rule, entry) in new[]
             {
-                (HookedRule.Comfort, Pick(Kind.Piece, "bed", "piece_bed02")), (HookedRule.Wear, Pick(Kind.Piece, "wood_wall", "stone_wall_1x1")),
+                (HookedRule.Comfort, Pick(Kind.Piece, "bed", "piece_bed02")), (HookedRule.Wear, Pick(Kind.Piece, "woodwall", "stone_wall_1x1")),
                 (HookedRule.Smelting, Pick(Kind.Piece, "smelter")), (HookedRule.Cooking, Pick(Kind.Piece, "piece_cookingstation")),
                 (HookedRule.Fermenting, Pick(Kind.Piece, "fermenter")), (HookedRule.Burning, Pick(Kind.Piece, "fire_pit", "piece_brazierfloor01")),
                 (HookedRule.Producing, Pick(Kind.Piece, "piece_beehive")), (HookedRule.Crafting, Pick(Kind.Item, "AxeBronze", "SwordIron")),

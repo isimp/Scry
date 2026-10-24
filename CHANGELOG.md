@@ -8,6 +8,8 @@ A creature seen up close, within the 10 m at which the game names it and marks i
 
 *Learned* lists what the character met and the numbers it found out; a first pairing seen, as walking into a village, is no longer news of what stood there. A server can set how near a creature counts as seen up close (`SeenReach`).
 
+A creature's attack begun within that reach counts as seen: its damage, and its animations, which *Strict* now keeps back with it, show from then on, as after taking the hit. The crafting menu's recipe panel counts as an item's card. A step back or forward to a page left while peeked at peeks at it again. A dungeon room's card counts its creatures and loot not yet met again.
+
 ## 0.3.0
 
 Scry keeps a compendium for each character, chosen at the top of the panel and offered once on a new character. *Loose* shows only what the character has met; *Strict* also keeps back how things connect, and the numbers the game never shows, until the character found them out. The *?* in the compendium's box explains it in the game, and `is:new`, `is:seen` and `is:walked` search what the character met.

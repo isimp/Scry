@@ -183,7 +183,7 @@ namespace Scry.Tests
                 ("Kill one", "shows its health"),
                 ("Tame one", "shows how long taming and a meal take"),
                 ("Hit it with", "Pierce, Frost: how they land"),
-                ("Let it hit you", "2 attacks' damage"),
+                ("See it attack", "2 attacks' damage, up close or taken"),
                 ("Hit its weak spot", "1 not yet found"),
                 ("See it drop", "how many of each"),
             }, rows);
@@ -196,7 +196,7 @@ namespace Scry.Tests
                 ("See one grow up", "shows how long that takes"),
                 ("See one grow back", "shows how long that takes"),
                 ("Hit it with", "Fire: how it lands"),
-                ("Let it hit you", "1 attack's damage"),
+                ("See it attack", "1 attack's damage, up close or taken"),
                 ("Hit its weak spots", "2 not yet found"),
                 ("Break one", "how many of each it gives"),
             }, one);

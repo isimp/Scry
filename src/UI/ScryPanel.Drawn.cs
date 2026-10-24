@@ -85,6 +85,9 @@ namespace Scry
         StillToFindOut,
         WeakSpotsLeftOut,
         TableKeptBack,
+
+        /// <summary>An attack's clip chip kept back under the strict rules, drawn as ???.</summary>
+        ClipKeptBack,
         TallyCounted,
         YouBox,
         YourSkillLine,

@@ -191,6 +191,7 @@ namespace Scry
             ("Sadle", "ApplyControlls", 5, 0x2EF99360, Feature.YourSkillFigures),
             ("FishingFloat", "FixedUpdate", 0, 0x813C2F0E, Feature.YourSkillFigures),
             ("InventoryGui", "UpdateRecipe", 2, 0x1860A7B8, Feature.YourSkillFigures),
+            ("ZSyncAnimation", "RPC_SetTrigger", 2, 0x22181435, Feature.CompendiumSeen),
             ("InventoryGui", "DoCrafting", 1, 0xB23B2021, Feature.YourSkillFigures),
             ("CookingStation", "OnInteract", 1, 0xB79AADAA, Feature.YourSkillFigures),
             ("Pickable", "Interact", 3, 0x5ECB8AAD, Feature.YourSkillFigures),
@@ -460,6 +461,9 @@ namespace Scry
             Each("ItemDrop.s_instances", () => Member(list, "ItemDrop", "s_instances", Feature.CompendiumSeen));
             Each("Location.s_allLocations", () => Member(list, "Location", "s_allLocations", Feature.CompendiumSeen));
             Each("InventoryGui.m_currentContainer", () => Member(list, "InventoryGui", "m_currentContainer", Feature.CompendiumSeen));
+            Each("InventoryGui.m_selectedRecipe", () => Member(list, "InventoryGui", "m_selectedRecipe", Feature.CompendiumUse));
+            Each("InventoryGui+RecipeDataPair.Recipe", () => Member(list, "InventoryGui+RecipeDataPair", "Recipe", Feature.CompendiumUse));
+            Each("InventoryGui.m_recipeName", () => Member(list, "InventoryGui", "m_recipeName", Feature.CompendiumUse));
             Each("StoreGui.m_trader", () => Member(list, "StoreGui", "m_trader", Feature.CompendiumTogether));
             Each("Minimap.m_explored", () => Member(list, "Minimap", "m_explored", Feature.CompendiumMap));
             Each("Minimap.m_exploredOthers", () => Member(list, "Minimap", "m_exploredOthers", Feature.CompendiumMap));

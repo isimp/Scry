@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -158,7 +159,7 @@ namespace Scry
             {
                 CompendiumKeeper.HitBy(armed);
                 var weapon = armed.GetCurrentWeapon().m_dropPrefab.name;
-                p.Check(book.FoundOutOf(Utils.GetPrefabName(armed.gameObject)) == weapon, $"a hit taken from {Utils.GetPrefabName(armed.gameObject)} finds out its attack ({weapon})");
+                p.Check(book.FoundOutOf(Utils.GetPrefabName(armed.gameObject)) == EntryKeys.Attack(weapon), $"a hit taken from {Utils.GetPrefabName(armed.gameObject)} finds out its attack ({weapon})");
             }
 
             // Deeds near by: a birth (one not pregnant now), a regrowth, a taming.
@@ -401,7 +402,7 @@ namespace Scry
             }
             else p.Note("nothing in the catalog is made of troll hide");
             // A piece's cost and tool come with the piece, as the hammer's menu shows them.
-            var wall = Pick(Kind.Piece, "wood_wall");
+            var wall = Pick(Kind.Piece, "woodwall");
             var hammer = Pick(Kind.Item, "Hammer");
             var wood = Pick(Kind.Item, "Wood");
             if (wall != null && hammer != null && wood != null)
@@ -439,6 +440,7 @@ namespace Scry
             yield return GoTo("overview");
             yield return PictureOf(p, "overview", "strict Troll, seen with two stars up close");
             yield return PictureOf(p, "adjust", "strict Troll's adjust, the stars seen offered");
+            yield return StrictAttackClipsRead(p, book, view, troll);
 
             var boar = Pick(Kind.Creature, "Boar");
             var meadows = X.Find(EntryKeys.For(Kind.Biome, "Meadows"));
@@ -462,6 +464,34 @@ namespace Scry
             yield return Picture(p, "strict Boar, only seen, what sight gave");
             X.Select(troll);
             yield return null;
+        }
+
+        /// <summary>
+        /// Under the strict rules an attack's clips wait for the attack, as its damage does, as ???
+        /// chips that play nothing, until the attack hit the character or was seen begun up close.
+        /// </summary>
+        private static IEnumerator StrictAttackClipsRead(Probe p, CompendiumBook book, CompendiumView view, Entry troll)
+        {
+            var attackRow = Facts.For(troll).Rows.FirstOrDefault(r => r.Title == CombatWords.AttacksTitle);
+            var attackItems = attackRow != null ? EntryKeys.ItemsAttacking(attackRow.Lines.Select(l => l.Link)).ToList() : new List<string>();
+            yield return Until(() => Previews.ClipAttackItems().Count > 0, 8);
+            var clipItems = Previews.ClipAttackItems();
+            var first = attackItems.FirstOrDefault(i => clipItems.Values.Contains(i));
+            if (first == null)
+            {
+                p.Note($"no attack clip of the troll was worked out to read: {Numbers.Count(clipItems.Count)} clip items, attacks {string.Join(", ", attackItems)}");
+                yield break;
+            }
+            yield return GoTo("animations");
+            var kept = ScryPanel.Drawn(PanelPart.ClipKeptBack);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.ClipKeptBack) > kept, 3);
+            p.Check(X.KeepsBackAttackClip(first) && ScryPanel.Drawn(PanelPart.ClipKeptBack) > kept, $"the troll's attack clips wait as ??? chips until each attack was taken or seen begun up close ({first})");
+            yield return PictureOf(p, "animations", "strict Troll's animations, the attacks' clips kept back");
+            book.FoundOut(troll.Name, EntryKeys.Attack(first));
+            view.Tell(book, CompendiumRule.Strict);
+            yield return Until(() => !X.KeepsBackAttackClip(first), 3);
+            p.Check(!X.KeepsBackAttackClip(first) && X.KeepsBackAttackClip(attackItems.FirstOrDefault(i => i != first) ?? first) == (attackItems.Count > 1), "an attack seen begun up close frees its clips alone");
+            yield return GoTo("overview");
         }
 
         /// <summary>

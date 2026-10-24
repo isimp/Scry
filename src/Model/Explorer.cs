@@ -362,8 +362,9 @@ namespace Scry
         /// </summary>
         public string LeftOutLine(string topic, int count, bool alone = false)
         {
-            // Only a count the player can act on is said: drops not yet seen fall, places it lives not met in.
-            if (topic != "loot" && topic != "lives") return null;
+            // Only a count the player can act on is said: drops not yet seen fall, places it lives
+            // not met in, and what a dungeon room's card, asking with no topic, holds not yet met.
+            if (topic != null && topic != "loot" && topic != "lives") return null;
             return LeavingOut ? CompendiumWords.LeftOutOf(topic, count, alone) : CompendiumWords.NotYetMet(topic, count, alone);
         }
 
@@ -662,7 +663,7 @@ namespace Scry
             _selectedIndex = entry == null ? -1 : _results.IndexOf(entry);
             _selectionVersion++;
             _modifiers.ResetFor(entry);
-            if (endsPeek) Peeking = false;
+            if (endsPeek) EndPeek();
 
             // The recent list is not reordered under the cursor; it catches up on the next refresh.
             if (entry == null) return;
@@ -732,6 +733,9 @@ namespace Scry
             public bool LearnedOnly;
             public OriginFilter Origin;
             public Entry Selected;
+
+            /// <summary>Whether the page was peeked at alone when it was left, to be peeked at again on a step back or forward to it.</summary>
+            public bool Peeked;
         }
 
         /// <summary>The entry shown last, with the search and filters it was picked from.</summary>
@@ -762,6 +766,8 @@ namespace Scry
             _query.Origin = place.Origin;
             _recentOnly = place.RecentOnly;
             _learnedOnly = place.LearnedOnly;
+            // A page left while peeked at is peeked at again, the peek moving with the step.
+            if (place.Peeked) PeekAgain(place.Selected);
             Refresh();
             Select(place.Selected, false);
             return true;
@@ -774,7 +780,9 @@ namespace Scry
         private void Remember(List<Place> into)
         {
             if (_here == null) return;
-            into.Add(_results.Contains(_here.Selected) ? Here(_here.Selected) : _here);
+            var place = _results.Contains(_here.Selected) ? Here(_here.Selected) : _here;
+            place.Peeked = _peeking && _peekedPage != null && _peekedPage == _here.Selected;
+            into.Add(place);
             if (into.Count > HistoryLimit) into.RemoveAt(0);
         }
 

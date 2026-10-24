@@ -39,10 +39,11 @@ namespace Scry
             X.Select(mill);
             var left = ScryPanel.Drawn(PanelPart.StrictLeftOut);
             yield return GoTo("does");
-            yield return Until(() => ScryPanel.Drawn(PanelPart.StrictLeftOut) > left, 3);
+            yield return null;
+            yield return null;
             p.Check(X.NamesOnlyMet && X.LeavesOut(barley.Key) && X.LeavesOut(flour.Key) && !X.LeavingOut,
                 "under the loose rules a known windmill names neither barley nor its flour, not yet met, and keeps its numbers");
-            p.Check(!grinds || ScryPanel.Drawn(PanelPart.StrictLeftOut) > left, "and says faintly how many more were not yet met");
+            p.Check(ScryPanel.Drawn(PanelPart.StrictLeftOut) == left, "and counts them nowhere: only a creature's loot and where it lives count what was not met");
             var masked = ScryPanel.AsDrawn(X, $"Grinds {barley.ShownName} into flour");
             p.Check(!masked.Contains(barley.ShownName) && masked.Contains(CompendiumWords.Hidden), "a name not yet met reads ??? in a page's text", masked);
             yield return PictureOf(p, "does", "loose windmill, barley not yet met");
@@ -65,11 +66,12 @@ namespace Scry
                 X.Select(stone);
                 var stoneLeft = ScryPanel.Drawn(PanelPart.StrictLeftOut);
                 yield return GoTo("from");
-                yield return Until(() => ScryPanel.Drawn(PanelPart.StrictLeftOut) > stoneLeft, 3);
+                yield return null;
+                yield return null;
                 var named = givers.Count(g => !X.LeavesOut(g));
                 p.Note($"Stone: {Numbers.Count(givers.Count)} givers in the catalog, {Numbers.Count(named)} named with one met");
-                p.Check(!X.LeavesOut(givers[0]) && X.LeavesOut(givers[1]) && ScryPanel.Drawn(PanelPart.StrictLeftOut) > stoneLeft,
-                    "Stone's page names the giver met and counts the rest faintly");
+                p.Check(!X.LeavesOut(givers[0]) && X.LeavesOut(givers[1]) && ScryPanel.Drawn(PanelPart.StrictLeftOut) == stoneLeft,
+                    "Stone's page names the giver met and counts the rest nowhere");
                 yield return PictureOf(p, "from", "loose Stone, where it comes from, one giver met");
             }
             else p.Note("no stone with two givers in the catalog");
@@ -154,7 +156,8 @@ namespace Scry
             yield return null;
             p.Check(ScryPanel.Drawn(PanelPart.Command) == command, "a known troll's page offers no spawn command");
             var stars = Facts.For(troll).Rows.FirstOrDefault(r => r.Title == CombatWords.StarsTitle);
-            p.Check(stars == null || X.KeepsBackWhole(stars.LineProofs, stars.Lines.Count) != null, "its stars table waits as one faint line until one is killed");
+            p.Check(stars == null || (stars.CellProofs.TryGetValue((0, 1), out var health) && X.KeepsBack(health) && stars.CellProofs.Where(c => c.Key.Cell > 1).All(c => X.KeepsBack(c.Value))),
+                "its stars table waits by the cell until one is killed and starred ones fall");
             yield return PictureOf(p, "fight", "player view Troll's fight, nothing found out");
             yield return Picture(p, "player view list and tabs");
 

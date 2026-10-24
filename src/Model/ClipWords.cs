@@ -40,6 +40,9 @@ namespace Scry
             !known ? (wearFirst ? "Put it on the person and play this attack" : "Its animations are still being worked out; this plays once they are")
             : playing ? "Stop this attack" : "Play this attack";
 
+        /// <summary>The tip of an attack's clip, or its name in an attacks table, kept back under the strict rules.</summary>
+        public const string KeptAttackTip = "Plays once this attack hit you, or you saw it begun up close";
+
         /// <summary>The tip of an attack's name where its animations are worked out and none is its own: plain, no link.</summary>
         public const string NoAttackClip = "No animation of its own was found for this attack";
 

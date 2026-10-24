@@ -86,7 +86,8 @@ namespace Scry
             var totals = new Dictionary<int, int>();
             foreach (var row in shown) totals[row.Group] = totals.TryGetValue(row.Group, out var n) ? n + 1 : 1;
             var filtering = _clipFilter.Length > 0;
-            _firstClip = shown.Count > 0 ? shown[0].Clip : null;
+            // Enter plays the first clip the rules let play.
+            _firstClip = shown.FirstOrDefault(r => !explorer.KeepsBackAttackClip(r.Item))?.Clip;
             var group = -1;
             var inGroup = 0;
             var limit = 0;
@@ -110,10 +111,12 @@ namespace Scry
                 if (inGroup++ >= limit) continue;
 
                 // Named by the modelers; what it is follows, as far as Scry saw. The one the
-                // animator plays on its own right now is marked.
-                var text = clip == ownNow ? ClipWords.Now(row.Text) : row.Text;
+                // animator plays on its own right now is marked. Under the strict rules an attack's
+                // clip waits for the attack, as its damage does: a faint ??? chip that plays nothing.
+                var kept = explorer.KeepsBackAttackClip(row.Item);
+                var text = kept ? CompendiumWords.Hidden : clip == ownNow ? ClipWords.Now(row.Text) : row.Text;
 
-                var on = playing == clip;
+                var on = !kept && playing == clip;
                 var style = on ? Skin.ChipOn : Skin.Chip;
                 // Rows below what shows are measured a few a frame; until then their width is told
                 // from their length, which only moves rows out of sight.
@@ -124,19 +127,7 @@ namespace Scry
                 var at = flow.Place(w);
                 var chip = new Rect(at.X, at.Y, w, rowH);
                 if (OutOfSight(chip)) continue;
-                if (GUI.Button(chip, text, Skin.Fitted(style, chip)))
-                {
-                    if (on) Previews.StopClip();
-                    else
-                    {
-                        Previews.PlayClip(clip);
-                        Previews.LastClip = clip;
-                    }
-                }
-                if (chip.Contains(Event.current.mousePosition))
-                {
-                    AskTip("clip:" + row.Name + (clip == ownNow ? ":now" : ""), ClipWords.Tip(row.Name, clip.length, clip.isLooping, clip == ownNow));
-                }
+                ClipChip(row, chip, text, style, kept, on, ownNow);
             }
             if (group >= 0 && !filtering) MoreChip("clips:" + Stored.Count(group), totals[group], FirstChips, width, ref flow);
             y = flow.Below;
@@ -171,6 +162,35 @@ namespace Scry
             return y + U(10f);
         }
 
+        /// <summary>A clip's chip: a click plays or stops it and its hover tells its length; one kept back under the strict rules is faint, plays nothing and tells what frees it.</summary>
+        private static void ClipChip(ClipRow row, Rect chip, string text, GUIStyle style, bool kept, bool on, AnimationClip ownNow)
+        {
+            var clip = row.Clip;
+            if (kept)
+            {
+                var enabled = GUI.enabled;
+                GUI.enabled = false;
+                GUI.Button(chip, text, Skin.Fitted(style, chip));
+                GUI.enabled = enabled;
+                if (chip.Contains(Event.current.mousePosition)) AskTip("clip-kept:" + row.Name, ClipWords.KeptAttackTip);
+                CountDrawn(PanelPart.ClipKeptBack);
+                return;
+            }
+            if (GUI.Button(chip, text, Skin.Fitted(style, chip)))
+            {
+                if (on) Previews.StopClip();
+                else
+                {
+                    Previews.PlayClip(clip);
+                    Previews.LastClip = clip;
+                }
+            }
+            if (chip.Contains(Event.current.mousePosition))
+            {
+                AskTip("clip:" + row.Name + (clip == ownNow ? ":now" : ""), ClipWords.Tip(row.Name, clip.length, clip.isLooping, clip == ownNow));
+            }
+        }
+
         private static readonly Dictionary<string, string> NoTags = new Dictionary<string, string>();
 
         private static readonly string[] ClipHeadings = { "Attacks", "With sounds or effects", "Silent" };
@@ -182,6 +202,9 @@ namespace Scry
             public string Name;
             public string Text;
             public int Group;
+
+            /// <summary>The prefab of the item whose attack the clip plays; none for a clip that is no attack's.</summary>
+            public string Item;
         }
 
         private static List<ClipRow> _clipRows = new List<ClipRow>();
@@ -198,6 +221,7 @@ namespace Scry
         {
             var tags = sorting ? NoTags : Previews.ClipTags();
             if (ReferenceEquals(clips, _rowsClips) && ReferenceEquals(tags, _rowsTags) && sorting == _rowsSorting && _clipFilter == _rowsFilter) return _clipRows;
+            var items = sorting ? NoTags : Previews.ClipAttackItems();
 
             var rows = new List<ClipRow>(clips.Count);
             var names = Previews.ClipNames();
@@ -209,7 +233,7 @@ namespace Scry
                 var text = ClipWords.Row(name, tag);
                 if (_clipFilter.Length > 0 && text.IndexOf(_clipFilter, StringComparison.OrdinalIgnoreCase) < 0) continue;
                 var group = sorting ? 3 : tagged && ClipWords.IsAttack(tag) ? 0 : Previews.ClipSounds(clip) ? 1 : 2;
-                rows.Add(new ClipRow { Clip = clip, Name = name, Text = text, Group = group * 2 + (tagged ? 0 : 1) });
+                rows.Add(new ClipRow { Clip = clip, Name = name, Text = text, Group = group * 2 + (tagged ? 0 : 1), Item = items.TryGetValue(name, out var item) ? item : null });
             }
             rows = rows.OrderBy(r => r.Group).ToList();
             foreach (var row in rows) row.Group /= 2;

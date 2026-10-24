@@ -13,7 +13,7 @@ namespace Scry
         /// <summary>The pages audited, a kind each, by the prefab or key to pick: a creature, a boss, an item, a piece, a station, a resource, a spawner, a place and a dungeon.</summary>
         private static readonly (Kind Kind, string Name)[] AuditPages =
         {
-            (Kind.Creature, "Troll"), (Kind.Creature, "Eikthyr"), (Kind.Item, "TrollHide"), (Kind.Piece, "wood_wall"), (Kind.Piece, "piece_workbench"),
+            (Kind.Creature, "Troll"), (Kind.Creature, "Eikthyr"), (Kind.Item, "TrollHide"), (Kind.Piece, "woodwall"), (Kind.Piece, "piece_workbench"),
             (Kind.Resource, "Beech1"), (Kind.Spawner, "Spawner_GreydwarfNest"), (Kind.Location, "WoodVillage1"), (Kind.Location, "Crypt2"),
         };
 

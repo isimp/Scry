@@ -29,6 +29,9 @@ namespace Scry
             /// <summary>What each clip is, in a few words, for its chip: the attack it plays, or what the creature does in it.</summary>
             public Dictionary<string, string> Tags = new Dictionary<string, string>();
 
+            /// <summary>The prefab of the item whose attack each attack clip plays, by clip name, for what the strict rules keep back of it.</summary>
+            public Dictionary<string, string> AttackItems = new Dictionary<string, string>();
+
             /// <summary>Whether each clip plays any sound or effect, as worked out when first asked.</summary>
             public Dictionary<string, bool> Sounding = new Dictionary<string, bool>();
 
@@ -106,6 +109,14 @@ namespace Scry
             var ears = ClipPlayer.AnimatorOf(Stage.Subject).OrNull()?.GetComponent<AnimationEars>();
             var plays = ears != null ? PlaysOf(ears.Prefab, Stage.Subject, wait: false) : null;
             return plays != null ? plays.Tags : NoTags;
+        }
+
+        /// <summary>The item whose attack each attack clip of the stage copy plays, by clip name, by the item's prefab.</summary>
+        public static IReadOnlyDictionary<string, string> ClipAttackItems()
+        {
+            var ears = ClipPlayer.AnimatorOf(Stage.Subject).OrNull()?.GetComponent<AnimationEars>();
+            var plays = ears != null ? PlaysOf(ears.Prefab, Stage.Subject, wait: false) : null;
+            return plays != null ? plays.AttackItems : NoTags;
         }
 
         /// <summary>
@@ -384,7 +395,8 @@ namespace Scry
             var items = worn ?? Relations.CarriedItems(prefab);
             if (carried != null) items = items.Where(carried.Contains).Concat(items.Where(i => !carried.Contains(i))).ToList();
             var names = new Dictionary<Attack, string>();
-            var attacks = AttacksOf(prefab, animator, items, names);
+            var itemsOf = new Dictionary<Attack, string>();
+            var attacks = AttacksOf(prefab, animator, items, names, itemsOf);
             var actions = GameLists(prefab).ToList();
             if (attacks.Count == 0 && actions.Count == 0 && prefab.GetComponent<BaseAI>() == null) return plays;
             var clips = animator.runtimeAnimatorController.animationClips.Where(c => c != null).ToList();
@@ -401,7 +413,7 @@ namespace Scry
             plays.Around = AroundOf(prefab, seen, plays);
             plays.ByName = ByNameOf(body, seen, clips, plays);
             if (body != null && body.m_flying && EffectSlots.ShowsAny(body.m_flyingContinuousEffect) && !animator.parameters.Any(p => p.name == "flying")) plays.Flying = body.m_flyingContinuousEffect;
-            TagClips(plays, names, seen);
+            TagClips(plays, names, itemsOf, seen);
             if (body != null && FirstTime("lasting:" + prefab.name)) TellLasting(prefab, body);
             return plays;
         }
@@ -409,9 +421,9 @@ namespace Scry
         /// <summary>
         /// The attacks of what a prefab carries that its animator has a trigger for, each with the
         /// triggers that start it, and after them every attack's later combo steps, so a start keeps
-        /// its own clip; each attack's name put in <paramref name="names"/>.
+        /// its own clip; each attack's name put in <paramref name="names"/> and its item's prefab in <paramref name="itemsOf"/>.
         /// </summary>
-        private static List<(string, object)> AttacksOf(GameObject prefab, Animator animator, List<GameObject> items, Dictionary<Attack, string> names)
+        private static List<(string, object)> AttacksOf(GameObject prefab, Animator animator, List<GameObject> items, Dictionary<Attack, string> names, Dictionary<Attack, string> itemsOf)
         {
             var attacks = new List<(string, object)>();
             var steps = new List<(string, object)>();
@@ -432,6 +444,7 @@ namespace Scry
                     }
                     var name = (CatalogBuilder.GameName(item) ?? WeaponChoices.Readable(item.name, prefab.name)).ToLowerInvariant();
                     names[attack] = ClipWords.Attack(name, attack == shared.m_secondaryAttack);
+                    itemsOf[attack] = item.name;
                 }
             }
             attacks.AddRange(steps);
@@ -474,12 +487,14 @@ namespace Scry
         }
 
         /// <summary>What each clip is: the attack it plays, what the animator was seen to do there, what it was named for, or idling.</summary>
-        private static void TagClips(ClipPlays plays, Dictionary<Attack, string> names, Probed seen)
+        private static void TagClips(ClipPlays plays, Dictionary<Attack, string> names, Dictionary<Attack, string> itemsOf, Probed seen)
         {
             foreach (var part in plays.Attacks)
             {
-                if (part.Value.Key is Attack attack && names.TryGetValue(attack, out var name)) plays.Tags[part.Key] = name;
-                else if (part.Value.Key is ComboStep step && step.Attack is Attack stepped && names.TryGetValue(stepped, out var steppedName)) plays.Tags[part.Key] = ClipWords.Swing(steppedName, step.Step);
+                var attack = part.Value.Key as Attack ?? (part.Value.Key as ComboStep)?.Attack as Attack;
+                if (attack == null || !names.TryGetValue(attack, out var name)) continue;
+                plays.Tags[part.Key] = part.Value.Key is ComboStep step ? ClipWords.Swing(name, step.Step) : name;
+                if (itemsOf.TryGetValue(attack, out var item)) plays.AttackItems[part.Key] = item;
             }
             foreach (var pair in seen.Actions)
             {

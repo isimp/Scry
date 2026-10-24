@@ -437,7 +437,7 @@ namespace Scry
                 if (EntryKeys.IsDeed(proof, out var deed)) pending.Add(deed);
                 else if (EntryKeys.IsStarsFell(proof, out var fell)) starsPending.Add(fell);
             }
-            foreach (var fell in starsPending) rows.Add(($"See one with {Naming.Count(fell, "star", "stars")} fall", $"shows what {StarsChange(fell)}"));
+            foreach (var fell in starsPending) rows.Add(($"See {Naming.Count(fell, "star", "stars")} fall", $"shows what {StarsChange(fell)}"));
             void Pending(Deed what, string label, string value)
             {
                 if (pending.Contains(what)) rows.Add((label, value));
@@ -456,7 +456,7 @@ namespace Scry
             Pending(Deed.Grew, "See one grow", "shows how long that takes");
             Pending(Deed.Finished, "See one finish", "shows how long each takes and what it burns");
             if (types.Count > 0) rows.Add(("Hit it with", Naming.Commas(types) + (types.Count == 1 ? ": how it lands" : ": how they land")));
-            if (attacks > 0) rows.Add(("Let it hit you", Naming.Count(attacks, "attack's", "attacks'") + " damage"));
+            if (attacks > 0) rows.Add(("See it attack", Naming.Count(attacks, "attack's", "attacks'") + " damage, up close or taken"));
             if (spots > 0) rows.Add((spots == 1 ? "Hit its weak spot" : "Hit its weak spots", Numbers.Count(spots) + " not yet found"));
             var tallies = new HashSet<Tally>(uncounted);
             if (tallies.Contains(Tally.Fell)) rows.Add(("See it drop", "how many of each"));

@@ -114,7 +114,7 @@ namespace Scry.Tests
             Assert.Equal("what 2 stars change on Troll", JournalWords.FoundOutOf(EntryKeys.StarsFell(2), "Troll"));
             Assert.Equal("what 1 star changes on Troll", JournalWords.FoundOutOf(EntryKeys.StarsFell(1), "Troll"));
             var rows = CompendiumWords.StillToFindOut(new[] { EntryKeys.StarsFell(2), EntryKeys.StarsFell(1), EntryKeys.StarsFell(1) }, new string[0], 0, 0, new Tally[0]);
-            Assert.Equal(new[] { ("See one with 1 star fall", "shows what 1 star changes"), ("See one with 2 stars fall", "shows what 2 stars change") }, rows);
+            Assert.Equal(new[] { ("See 1 star fall", "shows what 1 star changes"), ("See 2 stars fall", "shows what 2 stars change") }, rows);
             Assert.Equal(new[] { "fight", "loot" }, NewsArrival.Of(new BookNews(NewsHow.FoundOut, EntryKeys.StarsFell(1), null, 12)).Topics);
             Assert.Equal("1 of 2 kills", TallyWords.Share(1, 2));
             Assert.Equal("0 of 1 kill", TallyWords.Share(0, 1));

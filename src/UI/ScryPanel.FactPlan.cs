@@ -494,6 +494,13 @@ namespace Scry
         /// </summary>
         private static void AttackCell(Explorer explorer, Rect cell, string text, string link, string item, bool second, int step)
         {
+            // Under the strict rules the attack's clips wait for the attack, as its damage does: the name stands, plain.
+            if (explorer.KeepsBackAttackClip(item))
+            {
+                GUI.Label(cell, Masked(explorer, text), Skin.SmallWrap);
+                if (cell.Contains(Event.current.mousePosition)) AskTip("table-attack-kept:" + link, ClipWords.KeptAttackTip);
+                return;
+            }
             var clip = Previews.ClipOfAttackItem(item, second, step);
             var playing = clip != null && Previews.PlayingClip() == clip;
             var wearFirst = clip == null && explorer.Selected is Entry weapon && weapon.Kind == Kind.Item && weapon.Name == item && !Looks.IsWorn(weapon);

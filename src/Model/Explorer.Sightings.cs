@@ -8,6 +8,15 @@ namespace Scry
     internal sealed partial class Explorer
     {
         /// <summary>
+        /// Whether a creature's page shown keeps back the clips of one of its attacks, by the item
+        /// the attack is made with: as its damage (<see cref="HidesAttack"/>), under the strict
+        /// rules, on a known page above the milestone floor, until the attack hit the character or
+        /// was seen begun up close (<see cref="EntryKeys.Attack"/>); such a clip is listed as ???
+        /// and does not play.
+        /// </summary>
+        public bool KeepsBackAttackClip(string item) => item != null && KeepsBack(EntryKeys.Attack(item));
+
+        /// <summary>
         /// Whether the stage may show a creature, by its key, carrying an item, by its prefab: with
         /// the compendium off, peeking, under the loose rules or on a page shown whole, any; under
         /// the strict rules one it was seen carrying up close (<see cref="CompendiumBook.WornSeen"/>).

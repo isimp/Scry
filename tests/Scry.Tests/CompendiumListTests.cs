@@ -404,7 +404,8 @@ namespace Scry.Tests
         public void TheEyePeeksAtThePageShownAloneAndGoingToAnotherEndsIt()
         {
             // A look at the one page in front of you: it shows whole, the list and the search stay as
-            // the character knows them, and going to any other entry, from the list or back, ends it.
+            // the character knows them, and going to any other entry from the list ends it; a step
+            // back to it peeks at it again.
             var world = new World().Rule(CompendiumRule.Loose);
             var explorer = world.Explorer;
             explorer.Select(world.Troll);
@@ -426,7 +427,30 @@ namespace Scry.Tests
             Assert.Null(explorer.PeekedPage);
             Assert.True(explorer.CompendiumOn);
 
-            // Going back to the page peeked at shows it as the character knows it.
+            // Stepping back to a page left while peeked at peeks at it again, and forward to a page left as known shows that as known.
+            Assert.True(explorer.Back());
+            Assert.Same(world.Boar, explorer.Selected);
+            Assert.True(explorer.Peeking);
+            Assert.Same(world.Boar, explorer.PeekedPage);
+            Assert.Equal(KnownLevel.Known, explorer.LevelOf(world.Boar));
+            Assert.True(explorer.Forward());
+            Assert.Same(world.Troll, explorer.Selected);
+            Assert.False(explorer.Peeking);
+            Assert.Equal(KnownLevel.Seen, explorer.LevelOf(world.Boar));
+        }
+
+        [Fact]
+        public void StoppingThePeekForgetsWhichPagesOfTheHistoryWerePeekedAt()
+        {
+            // The strip's cross, or the eye again, stops the peek for good: a step back to a page
+            // left while peeked at shows it as the character knows it.
+            var world = new World().Rule(CompendiumRule.Loose);
+            var explorer = world.Explorer;
+            explorer.Select(world.Troll);
+            explorer.Select(world.Boar);
+            explorer.PeekPage();
+            Assert.True(explorer.Jump(world.Fenring.Key));
+            explorer.Peeking = false;
             Assert.True(explorer.Back());
             Assert.Same(world.Boar, explorer.Selected);
             Assert.False(explorer.Peeking);
@@ -438,8 +462,9 @@ namespace Scry.Tests
         {
             // The page peeked at shows whole, so its links lead anywhere: one to a thing the
             // character has not met opens that page peeked at in turn, staying while the list is
-            // asked again though it is not listed; going back to a page it has met ends the peek,
-            // and what was looked at meanwhile is no step forward after.
+            // asked again though it is not listed; a step back or forward moves the peek with it,
+            // while going to a page met by the list ends the peek, and what was looked at
+            // meanwhile is no step after.
             var world = new World().Rule(CompendiumRule.Loose);
             var explorer = world.Explorer;
             explorer.Select(world.Troll);
@@ -454,7 +479,17 @@ namespace Scry.Tests
 
             Assert.True(explorer.Back());
             Assert.Same(world.Troll, explorer.Selected);
+            Assert.True(explorer.Peeking);
+            Assert.Same(world.Troll, explorer.PeekedPage);
+            Assert.True(explorer.CanGoForward);
+            Assert.True(explorer.Forward());
+            Assert.Same(world.Fenring, explorer.Selected);
+            Assert.Same(world.Fenring, explorer.PeekedPage);
+
+            Assert.True(explorer.Back());
+            explorer.Select(world.Boar);
             Assert.False(explorer.Peeking);
+            Assert.Null(explorer.PeekedPage);
             Assert.False(explorer.CanGoForward);
         }
 
