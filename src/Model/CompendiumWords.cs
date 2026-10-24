@@ -293,6 +293,32 @@ namespace Scry
             }
         }
 
+        /// <summary>The title row's chip of a page under the strict rules: how much of what it keeps back was found out, short where the row is narrow.</summary>
+        public static string FoundOutCount(int found, int of, bool narrow) => Numbers.Count(found) + " of " + Numbers.Count(of) + (narrow ? "" : " found out");
+
+        /// <summary>The chip of a page under the strict rules whose every number kept back was found out.</summary>
+        public const string AllFoundOut = "All found out";
+
+        /// <summary>The chip's tip of a page found out whole.</summary>
+        public const string AllFoundOutTip = "Everything this page keeps back under Strict was found out";
+
+        /// <summary>The chip of a page the strict rules would keep back from, shown whole by the floor (none) or a source of the world.</summary>
+        public static string WholeBy(WorldSource? source) => source is WorldSource by ? "Whole from " + SourcePhrase(by) : "Whole by " + FloorCaption;
+
+        /// <summary>What shows a page whole, and how to see what is still to find out, on the chip's hover.</summary>
+        public static string WholeTip(WorldSource? source) => source is WorldSource by
+            ? SourceName(by) + " shows this page whole, as the compendium's box has it show; turn it down there to see what is still to find out"
+            : FloorCaption + " shows this page whole, as it shows every page of the tiers whose bosses this character has beaten; lower it in the compendium's box to see what is still to find out";
+
+        /// <summary>The chip's tip of a page with something still to find out: each thing to do and what it shows, as its You box lists them.</summary>
+        public static string FindsTip(System.Collections.Generic.IEnumerable<(string Label, string Value)> still)
+        {
+            var lines = new System.Collections.Generic.List<string> { "Still to find out:" };
+            foreach (var (label, value) in still) lines.Add(label + " \u00b7 " + value);
+            lines.Add("A click goes to them in its You box");
+            return string.Join("\n", lines);
+        }
+
         /// <summary>A source as a sentence names it: "from your explored ground".</summary>
         private static string SourcePhrase(WorldSource source)
         {

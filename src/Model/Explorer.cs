@@ -482,6 +482,20 @@ namespace Scry
             CompendiumOn && _view.Rule == CompendiumRule.Strict && _selected != null && _selected.Kind != Kind.Mod && _selected.Kind != Kind.Skill
             && _view.Of(_selected) == KnownLevel.Known && !_view.Whole(_selected);
 
+        /// <summary>
+        /// Whether the page shown, known under the strict rules, shows whole by the player's choice
+        /// rather than keeping back as the rules say: below the floor (<paramref name="source"/>
+        /// none), or by a source of the world.
+        /// </summary>
+        public bool ShownWhole(out WorldSource? source)
+        {
+            source = null;
+            if (!CompendiumOn || _view.Rule != CompendiumRule.Strict || _selected == null || _selected.Kind == Kind.Mod || _selected.Kind == Kind.Skill
+                || _view.Of(_selected) != KnownLevel.Known || !_view.Whole(_selected)) return false;
+            if (!_view.BelowFloor(_selected)) source = _view.ByWorld(_selected);
+            return true;
+        }
+
         /// <summary>How many of a kind the character has met (seen or known), whatever is typed.</summary>
         public int FoundOf(Kind kind) => _found[(int)kind];
 

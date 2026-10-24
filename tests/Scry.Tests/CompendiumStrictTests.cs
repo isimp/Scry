@@ -225,6 +225,23 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AStrictPageShownWholeByTheFloorSaysWhy()
+        {
+            // Kept back as the rules say, it is shown whole by nothing; below the floor, by the floor.
+            var world = new World();
+            world.Rule(CompendiumRule.Strict);
+            world.Explorer.Select(world.Troll);
+            Assert.False(world.Explorer.ShownWhole(out _));
+            world.View.Milestones(new Dictionary<string, int> { { world.Troll.Key, 2 } }, 2);
+            world.Rule(CompendiumRule.Strict);
+            Assert.True(world.Explorer.ShownWhole(out var source));
+            Assert.Null(source);
+            // Only the strict rules keep back, so only they show a page whole by a choice.
+            world.Rule(CompendiumRule.Loose);
+            Assert.False(world.Explorer.ShownWhole(out _));
+        }
+
+        [Fact]
         public void BelowTheFloorAPageShowsAsUnderTheLooseRules()
         {
             var world = new World();

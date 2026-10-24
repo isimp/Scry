@@ -109,7 +109,7 @@ namespace Scry
                 _you = CompendiumWords.You(CharacterRecords.Counts(entry), came, seen, killedYou);
                 // A skill's page opens with the character's level and the way to the next.
                 if (entry.Source is SkillSource skill) _you.AddRange(YourSkills.Lines(skill));
-                _still = StillToFindOut(explorer, facts);
+                _still = FindsOf(explorer, entry).Still;
             }
             if (_you.Count == 0 && _still.Count == 0) return y;
 
@@ -142,6 +142,13 @@ namespace Scry
             foreach (var (label, value) in _still)
             {
                 var height = Mathf.Max(U(20f), Skin.Height(Skin.Wrap, value, valueW));
+                if (Spotting)
+                {
+                    var spot = NewsArrival.You(label);
+                    var at = new Rect(pad, y, inner, height);
+                    NoteSpot(spot, at);
+                    LitSpot(spot, at);
+                }
                 GUI.Label(new Rect(pad, y, labelW, height), label, Skin.DimWrap);
                 var valueRect = new Rect(pad + labelW + U(10f), y, valueW, height);
                 Skin.LabelIn(valueRect, value, Skin.Wrap, Skin.Faint);
@@ -165,16 +172,22 @@ namespace Scry
         /// <summary>
         /// What a page under the strict rules still keeps back, gathered from what it draws: the
         /// facts whose numbers wait for a deed, the weak spots not found, the damage types not told,
-        /// the attacks not taken, and the drops or yields not counted; none otherwise.
+        /// the attacks not taken, and the drops or yields not counted; none otherwise. With it, how
+        /// much of all it keeps back was found out (<see cref="PageFinds"/>), each deed's proof once.
         /// </summary>
-        private static List<(string Label, string Value)> StillToFindOut(Explorer explorer, Facts facts)
+        private static (List<(string Label, string Value)> Still, PageFinds Finds) StillToFindOut(Explorer explorer, Facts facts)
         {
-            if (!explorer.LeavingOut || facts == null) return NothingStill;
+            var finds = new PageFinds();
+            if (!explorer.LeavingOut || facts == null) return (NothingStill, finds);
             var deeds = new List<string>();
+            var counted = new HashSet<string>(System.StringComparer.Ordinal);
             var spots = 0;
             foreach (var pair in facts.Pairs)
             {
-                if (!facts.Proofs.TryGetValue(pair.Key, out var proof) || !explorer.KeepsBack(proof)) continue;
+                if (!facts.Proofs.TryGetValue(pair.Key, out var proof)) continue;
+                var kept = explorer.KeepsBack(proof);
+                if (counted.Add(proof)) finds.Count(kept);
+                if (!kept) continue;
                 if (EntryKeys.IsWeakSpot(proof)) spots++;
                 else deeds.Add(proof);
             }
@@ -183,16 +196,47 @@ namespace Scry
             var uncounted = new List<Tally>();
             foreach (var row in facts.Rows)
             {
-                if (row.HitReveals && row.Cells != null)
+                if (row.HitReveals && row.Cells != null) Typed(explorer, row, types, finds);
+                foreach (var proof in row.LineProofs.Values)
                 {
-                    foreach (var cell in row.Cells) if (cell.Tone != Tone.Quiet && explorer.HidesDamage(cell.Type)) types.Add(cell.Type);
+                    var kept = explorer.KeepsBack(proof);
+                    if (counted.Add(proof)) finds.Count(kept);
+                    if (kept) deeds.Add(proof);
                 }
-                foreach (var proof in row.LineProofs.Values) if (explorer.KeepsBack(proof)) deeds.Add(proof);
-                if (row.AttackCells != null) foreach (var (_, link) in row.Lines) if (explorer.HidesAttack(link)) attacks++;
-                if (row.Tally != Tally.None && (row.Items.Any(i => !explorer.LeavesOut(i.Prefab) && explorer.StrictAmount(row.Tally, row.TallyOf, i.Prefab) == CompendiumWords.Hidden)
-                    || row.LineItems.Any(i => explorer.StrictAmount(row.Tally, row.TallyOf, i) == CompendiumWords.Hidden))) uncounted.Add(row.Tally);
+                if (row.AttackCells != null) attacks += Attacked(explorer, row, finds);
+                if (row.Tally == Tally.None) continue;
+                var notCounted = row.Items.Any(i => !explorer.LeavesOut(i.Prefab) && explorer.StrictAmount(row.Tally, row.TallyOf, i.Prefab) == CompendiumWords.Hidden)
+                    || row.LineItems.Any(i => explorer.StrictAmount(row.Tally, row.TallyOf, i) == CompendiumWords.Hidden);
+                finds.Count(notCounted);
+                if (notCounted) uncounted.Add(row.Tally);
             }
-            return CompendiumWords.StillToFindOut(deeds, types, attacks, spots, uncounted);
+            return (CompendiumWords.StillToFindOut(deeds, types, attacks, spots, uncounted), finds);
+        }
+
+        /// <summary>Each damage type a grid a hit reveals tells, counted as found or kept back, those kept back named.</summary>
+        private static void Typed(Explorer explorer, Facts.Row row, List<string> types, PageFinds finds)
+        {
+            foreach (var cell in row.Cells)
+            {
+                if (cell.Tone == Tone.Quiet) continue;
+                var hidden = explorer.HidesDamage(cell.Type);
+                finds.Count(hidden);
+                if (hidden) types.Add(cell.Type);
+            }
+        }
+
+        /// <summary>Each attack an attack table's lines play, counted as found or kept back; how many are kept back.</summary>
+        private static int Attacked(Explorer explorer, Facts.Row row, PageFinds finds)
+        {
+            var kept = 0;
+            foreach (var (_, link) in row.Lines)
+            {
+                if (!EntryKeys.PlaysAttack(link, out _, out _)) continue;
+                var hides = explorer.HidesAttack(link);
+                finds.Count(hides);
+                if (hides) kept++;
+            }
+            return kept;
         }
 
         private static readonly List<(string Label, string Value)> NothingStill = new List<(string, string)>();

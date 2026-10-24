@@ -301,6 +301,8 @@ namespace Scry
             p.Check(ScryPanel.Drawn(PanelPart.WeakSpotsLeftOut) > spots, "its weak spot is left out and counted");
             p.Check(X.StrictAmount(Tally.Fell, troll.Name, hide.Name) == CompendiumWords.Hidden && ScryPanel.Drawn(PanelPart.TallyCounted) > tally,
                 "how many hides it drops reads ??? until counted, a faint line saying what shows it");
+            var before = ScryPanel.FindsForTest;
+            p.Check(before.Of > before.Found && (ScryPanel.FindsChipForTest?.Contains(" of ") ?? false), "its title row tells how much of what it keeps back was found out", ScryPanel.FindsChipForTest ?? "no chip");
             yield return PictureOf(p, "overview", "strict Troll, nothing found out");
             ScryPanel.TablesDrawnForTest.Clear();
             ScryPanel.KeepTablesForTest = true;
@@ -325,6 +327,8 @@ namespace Scry
             p.Check(X.StrictAmount(Tally.Fell, troll.Name, hide.Name) == "2 (1 of 1)", "counted, its hide shows how many fell and how often", X.StrictAmount(Tally.Fell, troll.Name, hide.Name));
             p.Check(X.LearnedNote(troll) == "its health found out", "and Learned says what was found out", X.LearnedNote(troll));
             p.Check(X.KeepsBack(EntryKeys.Did(Deed.StarredFell)), "what its stars change waits for a starred one to fall");
+            yield return Until(() => ScryPanel.FindsForTest.Found > before.Found, 3);
+            p.Check(ScryPanel.FindsForTest.Found > before.Found, "and its title row counts more found out", $"{ScryPanel.FindsChipForTest} after {Numbers.Count(before.Found)} of {Numbers.Count(before.Of)}");
             yield return PictureOf(p, "overview", "strict Troll, killed");
             yield return PictureOf(p, "fight", "strict Troll's fight, killed");
             yield return PictureOf(p, "loot", "strict Troll's drops, counted");

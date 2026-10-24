@@ -31,6 +31,9 @@ namespace Scry
         /// <summary>A topic's heading, as a spot lit where a page arrives at the topic alone.</summary>
         public static string Topic(string topic) => "topic:" + topic;
 
+        /// <summary>The You box's line of something still to find out, by its label, arrived at from the title row's chip.</summary>
+        public static NewsArrival AtYouLine(string label) => new NewsArrival(You(label), YouTopic);
+
         /// <summary>A line of the You box, by its label, as a spot arrived at.</summary>
         public static string You(string label) => "you:" + label;
 

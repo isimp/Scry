@@ -34,6 +34,7 @@ namespace Scry
         PeekStrip,
         PeekPageStrip,
         SetAsideNotice,
+        FindsChip,
         LearnedStrip,
         FloorControl,
         CompendiumSwitch,

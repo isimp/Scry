@@ -90,6 +90,7 @@ namespace Scry
             ForgetList();
             ForgetSelection();
             ForgetFacts();
+            ForgetFinds();
             ForgetLooks();
             ForgetLinks();
             ForgetEffects();

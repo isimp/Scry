@@ -36,11 +36,14 @@ namespace Scry
         private static string AttackSpot(Facts.Row row, string link) => row.AttackCells != null && EntryKeys.PlaysAttack(link, out var item, out _) ? item : null;
 
         /// <summary>Another page is shown: from the learned list, it opens at what changed, In the game unfolded for it; else as it is.</summary>
-        private static void ArriveAtNews(Explorer explorer)
+        private static void ArriveAtNews(Explorer explorer) => ArriveAt(explorer.LearnedOnly ? explorer.ArrivalOf(explorer.Selected) : null);
+
+        /// <summary>Opens the page shown where given, In the game unfolded for it, the line found lit (<see cref="ArrivedAtNews"/>); none, as it is.</summary>
+        private static void ArriveAt(NewsArrival arrival)
         {
             _litSpot = null;
             ArrivedForTest = null;
-            _arriving = explorer.LearnedOnly ? explorer.ArrivalOf(explorer.Selected) : null;
+            _arriving = arrival;
             _arrivingSince = Time.unscaledTime;
             if (_arriving != null && IsFolded("facts")) SetFolded("facts", false);
         }

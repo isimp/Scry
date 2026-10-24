@@ -322,7 +322,7 @@ namespace Scry
             var size = ToolbarRow;
             var starRect = new Rect(width - size, y + U(3f), size, size);
             var copyRect = new Rect(starRect.x - U(6f) - size, starRect.y, size, size);
-            var nameRect = new Rect(0f, y, copyRect.x - U(10f), U(30f));
+            var nameRect = new Rect(0f, y, FindsChip(explorer, entry, copyRect.x - U(8f), copyRect.y) - U(10f), U(30f));
             var fits = FitLabel(nameRect, primary, Skin.Big, 13f);
             // With the compendium on the prefab's name stays off the line under the name, as the list leaves it out; it shows on the name's hover.
             var prefabOff = explorer.CompendiumOn && entry.Name != primary;

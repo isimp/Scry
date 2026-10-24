@@ -10,7 +10,7 @@ The compendium shows only what the character you play has come to know, and grow
 
 *Loose* shows a thing you know with its whole page, but names only what your character has met: a creature once fought, an item once held or made, a place once stepped into. The rest of a page is left out, each section saying how many more are not yet met, and a name never met reads ??? in a page's text. What you have only seen stands on the stage with its page closed, saying how to come to know it.
 
-*Strict* also keeps back how things connect until your character saw them go together: the drops it saw fall, where it met a creature, what it made at a station. Numbers the game never shows wait until you found them out: an attack's damage until it hit you, a creature's health until you killed one, a tree's health until you broke one. Each says what shows it. Drops show what your character saw fall and how often, not the game's chances.
+*Strict* also keeps back how things connect until your character saw them go together: the drops it saw fall, where it met a creature, what it made at a station. Numbers the game never shows wait until you found them out: an attack's damage until it hit you, a creature's health until you killed one, a tree's health until you broke one. Each says what shows it, and a page's title row counts how much of it was found out, "7 of 12 found out", its hover listing what is left; where *Known up to* shows a page whole, the row says so. Drops show what your character saw fall and how often, not the game's chances.
 
 ## Known up to, peeking and Learned
 
