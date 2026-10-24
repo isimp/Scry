@@ -20,6 +20,10 @@ namespace Scry.Tests
             all.Count(kept: false);
             all.Count(kept: false);
             Assert.True(all.AllFound);
+            // A page that keeps nothing back has all of it found out too, so every known page under the strict rules carries the chip.
+            Assert.True(new PageFinds().AllFound);
+            Assert.Equal("Nothing of this page is kept back under Strict", CompendiumWords.AllFoundOutTipFor(new PageFinds()));
+            Assert.Equal("Everything this page keeps back under Strict was found out", CompendiumWords.AllFoundOutTipFor(all));
         }
 
         [Fact]

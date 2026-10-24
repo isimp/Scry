@@ -58,8 +58,8 @@ namespace Scry
         /// many of the numbers it keeps back were found out, with a small bar, its tip what is
         /// still to find out and a click going to that in the You box; lit once all were; faint
         /// where the floor or a source of the world shows the page whole, its tip saying what does
-        /// and how to see what is left. None where nothing is kept back. Where the chip begins,
-        /// else <paramref name="right"/>.
+        /// and how to see what is left; lit from the start on a page that keeps nothing back, so
+        /// every known page under the rules carries it. Where the chip begins, else <paramref name="right"/>.
         /// </summary>
         private static float FindsChip(Explorer explorer, Entry entry, float right, float y)
         {
@@ -69,7 +69,6 @@ namespace Scry
             var (still, finds) = whole ? (null, null) : FindsOf(explorer, entry);
             var found = whole ? 0 : finds.Found;
             var of = whole ? 0 : finds.Of;
-            if (!whole && of == 0) return right;
             CountDrawn(PanelPart.FindsChip);
             var height = U(24f);
             var icon = U(14f);
@@ -93,7 +92,7 @@ namespace Scry
                 GUI.Label(at, GUIContent.none, Skin.ChipOn);
                 if (MarkPicture(MarkLook.Whole).OrNull()?.texture is Texture tick) GUI.DrawTexture(new Rect(at.x + U(7f), at.y + (height - icon) / 2f, icon, icon), tick);
                 Skin.LabelIn(new Rect(at.x + U(11f) + icon, at.y, width - icon - U(15f), height), said, Skin.ChipOn, Skin.OnAccent);
-                if (at.Contains(e.mousePosition)) AskTip("finds:all", CompendiumWords.AllFoundOutTip);
+                if (at.Contains(e.mousePosition)) AskTip("finds:all" + finds.Any, CompendiumWords.AllFoundOutTipFor(finds));
                 FindsChipForTest = said;
                 return at.x;
             }

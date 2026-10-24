@@ -71,7 +71,7 @@ namespace Scry
                 var named = givers.Count(g => !X.LeavesOut(g));
                 p.Note($"Stone: {Numbers.Count(givers.Count)} givers in the catalog, {Numbers.Count(named)} named with one met");
                 p.Check(!X.LeavesOut(givers[0]) && X.LeavesOut(givers[1]) && ScryPanel.Drawn(PanelPart.StrictLeftOut) == stoneLeft,
-                    "Stone's page names the giver met and counts the rest nowhere");
+                    "Stone's page names the giver met and counts the rest nowhere", $"met named {!X.LeavesOut(givers[0])}, another left out {X.LeavesOut(givers[1])}, count lines {Numbers.Count(ScryPanel.Drawn(PanelPart.StrictLeftOut) - stoneLeft)}");
                 yield return PictureOf(p, "from", "loose Stone, where it comes from, one giver met");
             }
             else p.Note("no stone with two givers in the catalog");

@@ -302,6 +302,9 @@ namespace Scry
         /// <summary>The chip's tip of a page found out whole.</summary>
         public const string AllFoundOutTip = "Everything this page keeps back under Strict was found out";
 
+        /// <summary>That chip's tip: what was found out, or that the page keeps nothing back.</summary>
+        public static string AllFoundOutTipFor(PageFinds finds) => finds.Any ? AllFoundOutTip : "Nothing of this page is kept back under Strict";
+
         /// <summary>The chip of a page the strict rules would keep back from, shown whole by the floor (none) or a source of the world.</summary>
         public static string WholeBy(WorldSource? source) => source is WorldSource by ? "Whole from " + SourcePhrase(by) : "Whole by " + FloorCaption;
 

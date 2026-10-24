@@ -462,7 +462,9 @@ namespace Scry
             Each("Location.s_allLocations", () => Member(list, "Location", "s_allLocations", Feature.CompendiumSeen));
             Each("InventoryGui.m_currentContainer", () => Member(list, "InventoryGui", "m_currentContainer", Feature.CompendiumSeen));
             Each("InventoryGui.m_selectedRecipe", () => Member(list, "InventoryGui", "m_selectedRecipe", Feature.CompendiumUse));
-            Each("InventoryGui+RecipeDataPair.Recipe", () => Member(list, "InventoryGui+RecipeDataPair", "Recipe", Feature.CompendiumUse));
+            // The pair's Recipe is a property of a private struct, reached through the field that holds the pair.
+            Each("InventoryGui+RecipeDataPair.Recipe", () => list.Add("InventoryGui+RecipeDataPair.Recipe", Feature.CompendiumUse,
+                GameType("InventoryGui")?.GetField("m_selectedRecipe", All)?.FieldType.GetProperty("Recipe", All) != null ? Found.Present : Found.Missing));
             Each("InventoryGui.m_recipeName", () => Member(list, "InventoryGui", "m_recipeName", Feature.CompendiumUse));
             Each("StoreGui.m_trader", () => Member(list, "StoreGui", "m_trader", Feature.CompendiumTogether));
             Each("Minimap.m_explored", () => Member(list, "Minimap", "m_explored", Feature.CompendiumMap));

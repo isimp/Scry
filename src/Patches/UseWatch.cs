@@ -20,7 +20,7 @@ namespace Scry
         private static string _recipeName;
 
         private static readonly FieldInfo SelectedRecipe = TypeFields.Named(typeof(InventoryGui), "m_selectedRecipe");
-        private static readonly FieldInfo PairRecipe = SelectedRecipe != null ? TypeFields.Named(SelectedRecipe.FieldType, "Recipe") : null;
+        private static readonly PropertyInfo PairRecipe = SelectedRecipe != null ? AccessTools.Property(SelectedRecipe.FieldType, "Recipe") : null;
 
         /// <summary>
         /// The crafting menu's recipe panel showing an item's card (<c>InventoryGui.UpdateRecipe</c>
@@ -36,7 +36,7 @@ namespace Scry
             if (string.IsNullOrEmpty(name)) return;
             Guard.Run(Feature.CompendiumUse, "noting an item's card shown in the crafting menu", () =>
             {
-                var recipe = TypeFields.Value(PairRecipe, TypeFields.Value(SelectedRecipe, gui)) as Recipe;
+                var recipe = PairRecipe.GetValue(TypeFields.Value(SelectedRecipe, gui)) as Recipe;
                 var token = recipe.OrNull()?.m_item.OrNull()?.m_itemData?.m_shared?.m_name;
                 if (!string.IsNullOrEmpty(token)) CompendiumKeeper.CardShown(token);
             });

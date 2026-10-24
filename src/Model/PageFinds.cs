@@ -13,8 +13,8 @@ namespace Scry
         /// <summary>Whether the page keeps anything back at all, found or not.</summary>
         public bool Any => Of > 0;
 
-        /// <summary>Whether everything it kept back was found out.</summary>
-        public bool AllFound => Of > 0 && Found >= Of;
+        /// <summary>Whether everything it kept back was found out: so too where it keeps nothing back.</summary>
+        public bool AllFound => Found >= Of;
 
         /// <summary>One more thing the page keeps back under the rules, still kept back or found out.</summary>
         public void Count(bool kept)
