@@ -86,8 +86,11 @@ namespace Scry
         WeakSpotsLeftOut,
         TableKeptBack,
 
-        /// <summary>An attack's clip chip kept back under the strict rules, drawn as ???.</summary>
+        /// <summary>The one chip counting an attack group's clips kept back under the strict rules.</summary>
         ClipKeptBack,
+
+        /// <summary>A value kept back under the strict rules, drawn as a soft smudge.</summary>
+        Smudge,
         TallyCounted,
         YouBox,
         YourSkillLine,

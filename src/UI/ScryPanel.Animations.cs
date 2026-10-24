@@ -53,24 +53,7 @@ namespace Scry
             }
             y += rowH + U(10f);
 
-            // The clip playing, to pause and scrub through, like a sound. Its row stays, greyed out,
-            // while none plays, so starting one moves nothing below it.
-            {
-                float time = 0f, length = 0f;
-                var timed = playing != null && Previews.ClipPosition(out time, out length);
-                var enabled = GUI.enabled;
-                GUI.enabled = enabled && timed;
-                var pauseW = U(84f);
-                var pauseChip = new Rect(0f, y, pauseW, rowH);
-                if (GUI.Button(pauseChip, PanelWords.Pause(timed && Previews.ClipPaused), Skin.Fitted(timed && Previews.ClipPaused ? Skin.ChipOn : Skin.Chip, pauseChip))) Previews.PauseClip(!Previews.ClipPaused);
-                var readout = timed ? ClipWords.Readout(time, length) : "";
-                var readW = Skin.Width(Skin.DimLabel, "00.00 / 00.00 s") + U(6f);
-                var picked = TimeBar(pauseW + U(10f), y, Mathf.Max(U(40f), width - pauseW - readW - U(20f)), rowH, time, length);
-                if (picked.HasValue && timed) Previews.SeekClip(picked.Value);
-                GUI.Label(new Rect(width - readW, y, readW, rowH), readout, Skin.DimLabel);
-                GUI.enabled = enabled;
-                y += rowH + U(10f);
-            }
+            y = PlayingClipRow(playing, width, rowH, y);
 
             // Grouped by what they do: the attacks (of what is held, on a person with hundreds of
             // clips), then those that play sounds or effects, then the silent; within each, those
@@ -83,8 +66,11 @@ namespace Scry
             Timing.Add("clips rows", started);
             // Each group shows its first chips and one for the rest (a person has hundreds of
             // clips); while filtering, every match.
+            // Under the strict rules an attack's clips wait for the attack, as its damage does: one
+            // faint chip counts those that wait, in their group's place, and they count nowhere else.
             var totals = new Dictionary<int, int>();
-            foreach (var row in shown) totals[row.Group] = totals.TryGetValue(row.Group, out var n) ? n + 1 : 1;
+            foreach (var row in shown) totals[row.Group] = (totals.TryGetValue(row.Group, out var n) ? n : 0) + (explorer.KeepsBackAttackClip(row.Item) ? 0 : 1);
+            var waiting = shown.Count(r => explorer.KeepsBackAttackClip(r.Item));
             var filtering = _clipFilter.Length > 0;
             // Enter plays the first clip the rules let play.
             _firstClip = shown.FirstOrDefault(r => !explorer.KeepsBackAttackClip(r.Item))?.Clip;
@@ -108,15 +94,19 @@ namespace Scry
                     flow = new ChipFlow(0f, width, y, rowH, U(5f), U(5f));
                 }
 
+                if (explorer.KeepsBackAttackClip(row.Item))
+                {
+                    if (waiting > 0) WaitingClipsChip(waiting, width, rowH, ref flow);
+                    waiting = 0;
+                    continue;
+                }
                 if (inGroup++ >= limit) continue;
 
                 // Named by the modelers; what it is follows, as far as Scry saw. The one the
-                // animator plays on its own right now is marked. Under the strict rules an attack's
-                // clip waits for the attack, as its damage does: a faint ??? chip that plays nothing.
-                var kept = explorer.KeepsBackAttackClip(row.Item);
-                var text = kept ? CompendiumWords.Hidden : clip == ownNow ? ClipWords.Now(row.Text) : row.Text;
+                // animator plays on its own right now is marked.
+                var text = clip == ownNow ? ClipWords.Now(row.Text) : row.Text;
 
-                var on = !kept && playing == clip;
+                var on = playing == clip;
                 var style = on ? Skin.ChipOn : Skin.Chip;
                 // Rows below what shows are measured a few a frame; until then their width is told
                 // from their length, which only moves rows out of sight.
@@ -127,7 +117,7 @@ namespace Scry
                 var at = flow.Place(w);
                 var chip = new Rect(at.X, at.Y, w, rowH);
                 if (OutOfSight(chip)) continue;
-                ClipChip(row, chip, text, style, kept, on, ownNow);
+                ClipChip(row, chip, text, style, on, ownNow);
             }
             if (group >= 0 && !filtering) MoreChip("clips:" + Stored.Count(group), totals[group], FirstChips, width, ref flow);
             y = flow.Below;
@@ -162,20 +152,46 @@ namespace Scry
             return y + U(10f);
         }
 
-        /// <summary>A clip's chip: a click plays or stops it and its hover tells its length; one kept back under the strict rules is faint, plays nothing and tells what frees it.</summary>
-        private static void ClipChip(ClipRow row, Rect chip, string text, GUIStyle style, bool kept, bool on, AnimationClip ownNow)
+        /// <summary>The clip playing, to pause and scrub through, like a sound. Its row stays, greyed out, while none plays, so starting one moves nothing below it.</summary>
+        private static float PlayingClipRow(AnimationClip playing, float width, float rowH, float y)
+        {
+            float time = 0f, length = 0f;
+            var timed = playing != null && Previews.ClipPosition(out time, out length);
+            var enabled = GUI.enabled;
+            GUI.enabled = enabled && timed;
+            var pauseW = U(84f);
+            var pauseChip = new Rect(0f, y, pauseW, rowH);
+            if (GUI.Button(pauseChip, PanelWords.Pause(timed && Previews.ClipPaused), Skin.Fitted(timed && Previews.ClipPaused ? Skin.ChipOn : Skin.Chip, pauseChip))) Previews.PauseClip(!Previews.ClipPaused);
+            var readout = timed ? ClipWords.Readout(time, length) : "";
+            var readW = Skin.Width(Skin.DimLabel, "00.00 / 00.00 s") + U(6f);
+            var picked = TimeBar(pauseW + U(10f), y, Mathf.Max(U(40f), width - pauseW - readW - U(20f)), rowH, time, length);
+            if (picked.HasValue && timed) Previews.SeekClip(picked.Value);
+            GUI.Label(new Rect(width - readW, y, readW, rowH), readout, Skin.DimLabel);
+            GUI.enabled = enabled;
+            y += rowH + U(10f);
+            return y;
+        }
+
+        /// <summary>One faint chip counting an attack group's clips kept back under the strict rules, placed in the group's flow, its hover saying what frees them.</summary>
+        private static void WaitingClipsChip(int waiting, float width, float rowH, ref ChipFlow flow)
+        {
+            var text = ClipWords.ClipsWait(waiting);
+            var w = Mathf.Min(width, Skin.Width(Skin.Chip, text) + U(8f));
+            var at = flow.Place(w);
+            var chip = new Rect(at.X, at.Y, w, rowH);
+            if (OutOfSight(chip)) return;
+            var enabled = GUI.enabled;
+            GUI.enabled = false;
+            GUI.Button(chip, text, Skin.Fitted(Skin.Chip, chip));
+            GUI.enabled = enabled;
+            if (chip.Contains(Event.current.mousePosition)) AskTip("clips-wait", ClipWords.KeptClipsTip);
+            CountDrawn(PanelPart.ClipKeptBack);
+        }
+
+        /// <summary>A clip's chip: a click plays or stops it and its hover tells its length.</summary>
+        private static void ClipChip(ClipRow row, Rect chip, string text, GUIStyle style, bool on, AnimationClip ownNow)
         {
             var clip = row.Clip;
-            if (kept)
-            {
-                var enabled = GUI.enabled;
-                GUI.enabled = false;
-                GUI.Button(chip, text, Skin.Fitted(style, chip));
-                GUI.enabled = enabled;
-                if (chip.Contains(Event.current.mousePosition)) AskTip("clip-kept:" + row.Name, ClipWords.KeptAttackTip);
-                CountDrawn(PanelPart.ClipKeptBack);
-                return;
-            }
             if (GUI.Button(chip, text, Skin.Fitted(style, chip)))
             {
                 if (on) Previews.StopClip();

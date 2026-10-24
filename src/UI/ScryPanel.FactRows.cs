@@ -45,7 +45,8 @@ namespace Scry
                 Skin.Box(at, cell.Tone == Tone.Quiet ? Skin.Panel : Skin.Raised);
                 LitSpot(cellSpot, at);
                 GUI.Label(new Rect(at.x + U(2f), at.y + U(3f), at.width - U(4f), U(16f)), cell.Type, Skin.CellType);
-                Skin.LabelIn(new Rect(at.x + U(2f), at.y, at.width - U(4f), at.height - U(4f)), hidden ? CompendiumWords.Hidden : cell.Value, Skin.CellValue, ToneColor(hidden ? Tone.Plain : cell.Tone));
+                if (hidden) Smudge(new Rect(at.x, at.y + U(16f), at.width, at.height - U(18f)), centred: true);
+                else Skin.LabelIn(new Rect(at.x + U(2f), at.y, at.width - U(4f), at.height - U(4f)), cell.Value, Skin.CellValue, ToneColor(cell.Tone));
                 if (at.Contains(Event.current.mousePosition)) AskTip("cell:" + row.Title + cell.Type + hidden, hidden ? CompendiumWords.NotYetHitWithTip(cell.Type) : cell.Tip);
             }
             CountDrawn(PanelPart.ResistanceGrid);
@@ -189,13 +190,13 @@ namespace Scry
             var amount = explorer.StrictAmount(row.Tally, row.TallyOf, item.Prefab) ?? item.Amount;
             var hidden = amount == CompendiumWords.Hidden;
             if (hidden) CountDrawn(PanelPart.TallyCounted);
-            var text = DetailWords.Amounted(amount, item.Name);
+            var text = DetailWords.Amounted(hidden ? null : amount, item.Name);
             // A mark (only here, what a trader pays) in a pill of its own at the chip's end.
             var markW = item.Mark != null ? Skin.Width(Skin.Badge, item.Mark) + U(16f) : 0f;
             var itemMark = !string.IsNullOrEmpty(item.Prefab) ? ChoiceMark(explorer, item.Prefab) : null;
             var floorW = itemMark != null ? FloorRoom : 0f;
             markW += floorW;
-            var w = Mathf.Min(width, Skin.Width(Skin.Chip, text) + U(30f) + markW);
+            var w = Mathf.Min(width, Skin.Width(Skin.Chip, text) + U(30f) + markW + (hidden ? SmudgeWidth + U(4f) : 0f));
             var at = flow.Place(w);
             var chip = new Rect(at.X, at.Y, w, flow.RowHeight);
             if (OutOfSight(chip)) return hidden;
@@ -213,7 +214,10 @@ namespace Scry
             var kind = goes ? KindOf(explorer, item.Prefab) : null;
             Skin.PillBox(chip, goes ? LinkFill(kind, hover) : Skin.Raised);
             if (item.Icon != null && !Unseen(explorer, item.Prefab)) DrawSprite(item.Icon, new Rect(chip.x + U(6f), chip.y + U(4f), U(22f), U(22f)));
-            Skin.LabelIn(new Rect(chip.x + U(32f), chip.y, chip.width - U(36f) - markW, chip.height), text, Skin.Small, goes ? LinkText(kind, hover) : Skin.Text);
+            // An amount held back is a smudge before the name.
+            var textX = chip.x + U(32f) + (hidden ? SmudgeWidth + U(4f) : 0f);
+            if (hidden) Smudge(new Rect(chip.x + U(32f), chip.y, SmudgeWidth, chip.height));
+            Skin.LabelIn(new Rect(textX, chip.y, chip.xMax - textX - U(4f) - markW, chip.height), text, Skin.Small, goes ? LinkText(kind, hover) : Skin.Text);
             if (item.Mark != null)
             {
                 // A solid accent pill, its words dark on it.
@@ -226,7 +230,7 @@ namespace Scry
 
             // One with no page to go to, as an upgrade a trader sells, says on hover what it does.
             if (string.IsNullOrEmpty(item.Prefab) && hover && item.MarkTip != null) AskTip("chip:" + item.Name, item.MarkTip);
-            // An amount held back says on hover what shows it, as every ??? does.
+            // An amount held back says on hover what shows it, as every smudge does.
             var counts = hidden && row.Tally != Tally.None ? explorer.NotYetCounted(row.Tally) : null;
             if (counts != null && hover && !goes) AskTip("not-counted:" + item.Prefab, counts);
 

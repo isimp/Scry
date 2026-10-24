@@ -830,7 +830,7 @@ namespace Scry
                 p.Check(Faults.Count == strictFaults, "and draws without fault", Faults.Latest);
                 // How it takes each damage type stays back until a hit told it.
                 p.Check(X.HidesDamage("Fire") && X.HidesDamage("Blunt"), "its damage grid keeps back how it takes each type, never hit with any");
-                p.Check(ScryPanel.Drawn(PanelPart.DamageKeptBack) > 0, "each type kept back reads ??? in its cell, what shows it on hover, no faint line under the grid");
+                p.Check(ScryPanel.Drawn(PanelPart.DamageKeptBack) > 0, "each type kept back shows a smudge in its cell, what shows it on hover, no faint line under the grid");
                 // The You box gathers what is still to find out at the page's top (read again once a second).
                 var still = ScryPanel.Drawn(PanelPart.StillToFindOut);
                 yield return Until(() => ScryPanel.Drawn(PanelPart.StillToFindOut) > still, 3);

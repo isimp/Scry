@@ -218,7 +218,9 @@ namespace Scry
                     LitSpot(tileSpot, at);
                     GUI.Label(new Rect(at.x + U(8f), at.y + U(4f), valueW, U(20f)), unsure ? UnsureWords.Marked(pair.Key) : pair.Key, Skin.DimLabel);
                     var value = TileValue(explorer, facts, pair, out var kept);
-                    GUI.Label(new Rect(at.x + U(8f), at.y + U(24f), valueW, valueH), value, unsure ? Skin.DimWrap : Skin.Wrap);
+                    var valueRect = new Rect(at.x + U(8f), at.y + U(24f), valueW, valueH);
+                    if (kept != null) Smudge(valueRect);
+                    else GUI.Label(valueRect, value, unsure ? Skin.DimWrap : Skin.Wrap);
                     if (unsure && at.Contains(Event.current.mousePosition)) AskTip("unsure:" + pair.Key, why);
                     // What it comes to at the character's own skill, faint under it.
                     if (kept == null && YoursShown(explorer, facts, pair.Key, out var yours))
@@ -238,7 +240,7 @@ namespace Scry
             return y + U(2f);
         }
 
-        /// <summary>What a tile shows: ??? for a number kept back, with what shows it (<paramref name="kept"/>), else its value with names never met kept back.</summary>
+        /// <summary>What a tile shows: the hidden mark for a number kept back, drawn as a smudge, with what shows it (<paramref name="kept"/>), else its value with names never met kept back.</summary>
         private static string TileValue(Explorer explorer, Facts facts, KeyValuePair<string, string> pair, out string kept)
         {
             kept = facts.Proofs.TryGetValue(pair.Key, out var proof) && explorer.KeepsBack(proof) ? proof : null;
@@ -314,7 +316,7 @@ namespace Scry
                 y += U(6f);
                 var titleW = Skin.Width(Skin.DimLabel, row.Title) + U(10f);
                 GUI.Label(new Rect(0f, y, titleW, U(20f)), Masked(explorer, row.Title), Skin.DimLabel);
-                GUI.Label(new Rect(titleW, y, width - titleW, U(20f)), CompendiumWords.Hidden, Skin.Wrap);
+                Smudge(new Rect(titleW, y, width - titleW, U(20f)));
                 if (new Rect(0f, y, width, U(20f)).Contains(Event.current.mousePosition)) AskTip("table-kept:" + row.Title, Naming.Capital(explorer.ShowsOnce(row.Title, whole)));
                 CountDrawn(PanelPart.TableKeptBack);
                 return y + U(24f);
@@ -394,7 +396,7 @@ namespace Scry
                 {
                     if (LineLeftOut(explorer, row.Lines[l].Link)) continue;
                     var drawn = CellDrawn(explorer, row, l, c);
-                    if (drawn != null) w = Mathf.Max(w, Skin.Width(Skin.Small, drawn) + (drawn != CompendiumWords.Hidden && explorer.ShownByChoice(CellLink(row, l, c)) ? FloorRoom : 0f));
+                    if (drawn != null) w = Mathf.Max(w, (drawn == CompendiumWords.Hidden ? Mathf.Max(SmudgeWidth, Skin.Width(Skin.Small, drawn)) : Skin.Width(Skin.Small, drawn)) + (drawn != CompendiumWords.Hidden && explorer.ShownByChoice(CellLink(row, l, c)) ? FloorRoom : 0f));
                     if (!row.Yours.TryGetValue(l, out var yours) || LineKept(explorer, row, l, out _) || AttackKept(explorer, row, l)) continue;
                     foreach (var under in yours) if (c < under.Cells.Length && !explorer.NotMet(under.Skill)) w = Mathf.Max(w, Skin.Width(Skin.Small, under.Cells[c]) + (c == 0 ? YoursIndent : 0f));
                 }
@@ -446,25 +448,26 @@ namespace Scry
                 if (cell.Contains(Event.current.mousePosition)) AskTip("table:" + link, FloorTip(explorer, link, PanelWords.GoTo(cells[c])));
                 if (GUI.Button(cell, GUIContent.none, GUIStyle.none)) Go(explorer, link);
             }
-            // Counted under the strict rules (a biome's weathers): how often it was seen, or ???.
+            // Counted under the strict rules (a biome's weathers): how often it was seen, or a smudge.
             else if (c > 0 && CellShown(explorer, row, l, c, cells[c]) is string counted && !ReferenceEquals(counted, cells[c]))
             {
-                GUI.Label(cell, counted, Skin.SmallWrap);
                 var notCounted = counted == CompendiumWords.Hidden;
+                if (notCounted) Smudge(cell);
+                else GUI.Label(cell, counted, Skin.SmallWrap);
                 if (notCounted && cell.Contains(Event.current.mousePosition)) AskTip("not-counted:" + row.Title + cells[0], explorer.NotYetCounted(row.Tally));
                 if (notCounted) CountDrawn(PanelPart.TableKeptBack);
                 return notCounted;
             }
-            // A number kept back reads ??? and says on hover what shows it.
+            // A number kept back shows as a smudge and says on hover what shows it.
             else if (c > 0 && (lineKept || (attackKept && Array.IndexOf(row.AttackCells, c) >= 0)))
             {
-                GUI.Label(cell, CompendiumWords.Hidden, Skin.SmallWrap);
+                Smudge(cell);
                 if (cell.Contains(Event.current.mousePosition)) AskTip("kept:" + row.Title + cells[0] + row.Columns[c], lineKept ? KeptTip(explorer, cells[0], lineProof) : CompendiumWords.NotYetTakenTip);
             }
             // A cell kept back on its own, as a starred cell of the stars table, the same.
             else if (c > 0 && CellKept(explorer, row, l, c, out var cellProof))
             {
-                GUI.Label(cell, CompendiumWords.Hidden, Skin.SmallWrap);
+                Smudge(cell);
                 if (cell.Contains(Event.current.mousePosition)) AskTip("kept:" + row.Title + cells[0] + row.Columns[c], KeptTip(explorer, cells[0], cellProof));
                 CountDrawn(PanelPart.TableKeptBack);
             }
@@ -639,11 +642,12 @@ namespace Scry
             }
             if (facts.Proofs.TryGetValue(pair.Key, out var proof) && explorer.KeepsBack(proof))
             {
-                // Kept back: ??? in its place, what shows it on hover.
-                var kept = FactWords.Note(pair.Key, CompendiumWords.Hidden);
+                // Kept back: a smudge in its place, what shows it on hover.
+                var kept = FactWords.Note(pair.Key, "");
                 var keptH = Skin.Height(Skin.DimWrap, kept, width);
                 var keptLine = new Rect(0f, y, width, keptH);
                 GUI.Label(keptLine, kept, Skin.DimWrap);
+                Smudge(new Rect(Skin.Width(Skin.DimWrap, kept) + U(2f), y, SmudgeWidth, keptH));
                 if (keptLine.Contains(Event.current.mousePosition)) AskTip("note-kept:" + pair.Key, Naming.Capital(explorer.ShowsOnce(pair.Key, proof)));
                 CountDrawn(PanelPart.FactKeptBack);
                 return y + keptH + U(6f);

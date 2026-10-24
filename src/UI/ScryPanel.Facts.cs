@@ -333,10 +333,10 @@ namespace Scry
                 if (linkRect.Contains(Event.current.mousePosition)) AskTip("link:" + link, FloorTip(explorer, link, PanelWords.GoTo(ShownName(explorer, link, value))));
                 if (GUI.Button(linkRect, GUIContent.none, GUIStyle.none)) Go(explorer, link);
             }
-            // Kept back: ??? as any value, what shows it on hover, as every ??? does.
+            // Kept back: a smudge as its value, what shows it on hover, as every smudge does.
             else if (keptBack != null)
             {
-                GUI.Label(valueRect, CompendiumWords.Hidden, Skin.Wrap);
+                Smudge(valueRect);
                 if (new Rect(0f, y, width, height).Contains(Event.current.mousePosition)) AskTip("held:" + pair.Key, Naming.Capital(CompendiumWords.ShowsOnce(keptBack)));
             }
             else
@@ -401,8 +401,9 @@ namespace Scry
             {
                 // A line naming a prefab in the catalog is a chip that goes there; the rest is text.
                 // A line Scry is not sure of is marked and says why on hover. Under the strict rules
-                // a way with a chance in it tells the character's count in its place, or ???.
+                // a way with a chance in it tells the character's count in its place, or a smudge.
                 var counted = explorer.StrictSourceLine(source.Record);
+                var smudged = counted == CompendiumWords.Hidden;
                 var held = counted != null && counted.EndsWith(CompendiumWords.Hidden, StringComparison.Ordinal) ? SourceWords.HeldTip(source.Record) : null;
                 var text = Masked(explorer, counted ?? (source.Unsure != null ? UnsureWords.Marked(source.Text) : source.Text));
                 if (string.IsNullOrEmpty(source.Prefab) || !Goes(explorer, source.Prefab))
@@ -410,7 +411,8 @@ namespace Scry
                     var style = source.Unsure != null ? Skin.DimWrap : Skin.Wrap;
                     var height = Skin.Height(style, text, width);
                     var line = new Rect(0f, y, width, height);
-                    GUI.Label(line, text, style);
+                    if (smudged) Smudge(line);
+                    else GUI.Label(line, text, style);
                     if ((source.Unsure != null || held != null) && line.Contains(Event.current.mousePosition)) AskTip("unsure:" + source.Text, Naming.Lines(held, source.Unsure));
                     y += height + U(4f);
                     continue;
@@ -428,7 +430,8 @@ namespace Scry
                 var kind = KindOf(explorer, source.Prefab);
                 Skin.Box(chip, LinkFill(kind, hover));
                 if (icon != null) DrawSprite(icon, new Rect(U(6f), y + (chipH - U(22f)) / 2f, U(22f), U(22f)));
-                Skin.LabelIn(new Rect(textX, y, textW, chipH), text, wrapped, LinkText(kind, hover));
+                if (smudged) Smudge(new Rect(textX, y, textW, chipH));
+                else Skin.LabelIn(new Rect(textX, y, textW, chipH), text, wrapped, LinkText(kind, hover));
                 if (floor) PlateFloorMark(chip, mark);
                 if (hover) AskTip("src:" + source.Prefab + source.Unsure + text, FloorTip(explorer, source.Prefab, Naming.Lines(held, source.Unsure, PanelWords.GoTo(ShownName(explorer, source.Prefab, source.Prefab)))));
                 if (GUI.Button(chip, GUIContent.none, GUIStyle.none) && explorer.Jump(source.Prefab))

@@ -296,19 +296,21 @@ namespace Scry
 
             var tally = ScryPanel.Drawn(PanelPart.TallyCounted);
             yield return Until(() => ScryPanel.Drawn(PanelPart.StillToFindOut) > still, 3);
-            p.Check(X.LeavingOut && X.KeepsBack(EntryKeys.Did(Deed.Killed)) && ScryPanel.Drawn(PanelPart.FactKeptBack) > facts, "the troll's health reads ???, what shows it on hover");
+            p.Check(X.LeavingOut && X.KeepsBack(EntryKeys.Did(Deed.Killed)) && ScryPanel.Drawn(PanelPart.FactKeptBack) > facts, "the troll's health shows as a smudge, what shows it on hover");
             p.Check(ScryPanel.Drawn(PanelPart.StillToFindOut) > still, "its You box tells what is still to find out");
-            p.Check(ScryPanel.Drawn(PanelPart.TableKeptBack) > table, "its attacks keep back their damage, ??? in their cells");
+            p.Check(ScryPanel.Drawn(PanelPart.TableKeptBack) > table, "its attacks keep back their damage, a smudge in their cells");
             p.Check(ScryPanel.StillForTest.Any(l => l.StartsWith("Hit its weak spot", System.StringComparison.Ordinal)), "its weak spot is left out, the You box saying to hit it", string.Join("; ", ScryPanel.StillForTest));
             p.Check(X.StrictAmount(Tally.Fell, troll.Name, hide.Name) == CompendiumWords.Hidden && ScryPanel.Drawn(PanelPart.TallyCounted) > tally,
-                "how many hides it drops reads ??? until counted, its hover saying what shows it");
+                "how many hides it drops shows a smudge until counted, its hover saying what shows it");
             var before = ScryPanel.FindsForTest;
             p.Check(before.Of > before.Found && (ScryPanel.FindsChipForTest?.Contains(" of ") ?? false), "its title row tells how much of what it keeps back was found out", ScryPanel.FindsChipForTest ?? "no chip");
             yield return PictureOf(p, "overview", "strict Troll, nothing found out");
             ScryPanel.TablesDrawnForTest.Clear();
             ScryPanel.KeepTablesForTest = true;
+            var smudges = ScryPanel.Drawn(PanelPart.Smudge);
             yield return PictureOf(p, "fight", "strict Troll's fight, nothing found out");
             ScryPanel.KeepTablesForTest = false;
+            p.Check(ScryPanel.Drawn(PanelPart.Smudge) > smudges, "what the fight keeps back shows as smudges, never as text");
             // Its damage kept back reads ???, its columns no wider than their headings need.
             var attacks = Facts.For(troll).Rows.FirstOrDefault(r => r.Title == CombatWords.AttacksTitle);
             if (attacks?.AttackCells != null && ScryPanel.TablesDrawnForTest.TryGetValue(attacks.Title, out var drawn))
@@ -467,8 +469,8 @@ namespace Scry
         }
 
         /// <summary>
-        /// Under the strict rules an attack's clips wait for the attack, as its damage does, as ???
-        /// chips that play nothing, until the attack hit the character or was seen begun up close.
+        /// Under the strict rules an attack's clips wait for the attack, as its damage does, one chip
+        /// counting them, until the attack hit the character or was seen begun up close.
         /// </summary>
         private static IEnumerator StrictAttackClipsRead(Probe p, CompendiumBook book, CompendiumView view, Entry troll)
         {
@@ -485,7 +487,7 @@ namespace Scry
             yield return GoTo("animations");
             var kept = ScryPanel.Drawn(PanelPart.ClipKeptBack);
             yield return Until(() => ScryPanel.Drawn(PanelPart.ClipKeptBack) > kept, 3);
-            p.Check(X.KeepsBackAttackClip(first) && ScryPanel.Drawn(PanelPart.ClipKeptBack) > kept, $"the troll's attack clips wait as ??? chips until each attack was taken or seen begun up close ({first})");
+            p.Check(X.KeepsBackAttackClip(first) && ScryPanel.Drawn(PanelPart.ClipKeptBack) > kept, $"the troll's attack clips wait as one chip counting them until each attack was taken or seen begun up close ({first})");
             yield return PictureOf(p, "animations", "strict Troll's animations, the attacks' clips kept back");
             book.FoundOut(troll.Name, EntryKeys.Attack(first));
             view.Tell(book, CompendiumRule.Strict);
