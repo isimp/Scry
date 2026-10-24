@@ -108,24 +108,29 @@ namespace Scry
                 });
                 return;
             }
-            Guard.Run(Feature.CompendiumTogether, "noting how a creature took a hit", () =>
+            Guard.Run(Feature.CompendiumTogether, "noting how a creature took a hit", () => Told(Utils.GetPrefabName(target.gameObject), hit, target.GetDamageModifiers()));
+        }
+
+        /// <summary>
+        /// The damage types the game's popup tells of a hit of the character's on what takes it by
+        /// these modifiers (<see cref="HitTold"/>), worked out as the game works it out on receiving
+        /// the hit, by its own <c>HitData.ApplyResistance</c> on a copy, and found out of it.
+        /// </summary>
+        public static void Told(string key, HitData hit, HitData.DamageModifiers mods)
+        {
+            var copy = hit.Clone();
+            copy.ApplyResistance(mods, out var shown);
+            var d = hit.m_damage;
+            var parts = new[]
             {
-                var mods = target.GetDamageModifiers();
-                var copy = hit.Clone();
-                copy.ApplyResistance(mods, out var shown);
-                var d = hit.m_damage;
-                var parts = new[]
-                {
-                    (ResistWords.Types[0], d.m_blunt, (Degree)(int)mods.m_blunt), (ResistWords.Types[1], d.m_slash, (Degree)(int)mods.m_slash),
-                    (ResistWords.Types[2], d.m_pierce, (Degree)(int)mods.m_pierce), (ResistWords.Types[3], d.m_chop, (Degree)(int)mods.m_chop),
-                    (ResistWords.Types[4], d.m_pickaxe, (Degree)(int)mods.m_pickaxe), (ResistWords.Types[5], d.m_fire, (Degree)(int)mods.m_fire),
-                    (ResistWords.Types[6], d.m_frost, (Degree)(int)mods.m_frost), (ResistWords.Types[7], d.m_lightning, (Degree)(int)mods.m_lightning),
-                    (ResistWords.Types[8], d.m_poison, (Degree)(int)mods.m_poison), (ResistWords.Types[9], d.m_spirit, (Degree)(int)mods.m_spirit),
-                };
-                var key = Utils.GetPrefabName(target.gameObject);
-                foreach (var type in HitTold.Types(parts, (Degree)(int)shown)) CompendiumKeeper.FoundOut(key, EntryKeys.Damage(type));
-                CompendiumKeeper.Noted(PlayEvent.HitTold);
-            });
+                (ResistWords.Types[0], d.m_blunt, (Degree)(int)mods.m_blunt), (ResistWords.Types[1], d.m_slash, (Degree)(int)mods.m_slash),
+                (ResistWords.Types[2], d.m_pierce, (Degree)(int)mods.m_pierce), (ResistWords.Types[3], d.m_chop, (Degree)(int)mods.m_chop),
+                (ResistWords.Types[4], d.m_pickaxe, (Degree)(int)mods.m_pickaxe), (ResistWords.Types[5], d.m_fire, (Degree)(int)mods.m_fire),
+                (ResistWords.Types[6], d.m_frost, (Degree)(int)mods.m_frost), (ResistWords.Types[7], d.m_lightning, (Degree)(int)mods.m_lightning),
+                (ResistWords.Types[8], d.m_poison, (Degree)(int)mods.m_poison), (ResistWords.Types[9], d.m_spirit, (Degree)(int)mods.m_spirit),
+            };
+            foreach (var type in HitTold.Types(parts, (Degree)(int)shown)) CompendiumKeeper.FoundOut(key, EntryKeys.Damage(type));
+            CompendiumKeeper.Noted(PlayEvent.HitTold);
         }
 
         /// <summary>The bait on the line a fish is caught with, before the catch takes the float away.</summary>

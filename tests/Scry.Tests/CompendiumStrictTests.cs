@@ -61,11 +61,9 @@ namespace Scry.Tests
             Assert.False(world.Explorer.HidesDamage("Fire"));
             Assert.True(world.Explorer.HidesDamage("Frost"));
 
-            // Not under the loose rules, and not on a page that is no creature's.
+            // Not under the loose rules. Anything that breaks keeps it back as a creature does, its
+            // grid one a hit reveals as the page's facts say (Facts.Row.HitReveals).
             world.Rule(CompendiumRule.Loose);
-            Assert.False(world.Explorer.HidesDamage("Frost"));
-            world.Rule(CompendiumRule.Strict);
-            world.Explorer.Select(world.Hide);
             Assert.False(world.Explorer.HidesDamage("Frost"));
         }
 

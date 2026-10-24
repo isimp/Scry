@@ -366,9 +366,9 @@ namespace Scry
         }
 
         /// <summary>What it resists or is weak to, as a grid of every damage type, as a creature's, a piece's or a resource's are told.</summary>
-        private void Resists(HitData.DamageModifiers mods, string title = "Damage it takes")
+        private void Resists(HitData.DamageModifiers mods, string title = "Damage it takes", bool hitReveals = false)
         {
-            Rows.Add(new Row { Title = title, Cells = Cells(mods) });
+            Rows.Add(new Row { Title = title, HitReveals = hitReveals, Cells = Cells(mods) });
         }
 
         /// <summary>Every damage type in the game's order with the share of it taken (<see cref="ResistWords"/>); the search reads the same cells.</summary>

@@ -352,11 +352,11 @@ namespace Scry
         public string LeftOutLine(string topic, int count, bool alone = false) => LeavingOut ? CompendiumWords.LeftOutOf(topic, count, alone) : CompendiumWords.NotYetMet(topic, count, alone);
 
         /// <summary>
-        /// Whether a creature's page shown keeps back how it takes a damage type: under the strict
-        /// rules, on a known page above the milestone floor, a type the game never told the
-        /// character on a hit of it (<see cref="HitTold"/>).
+        /// Whether the page shown keeps back how it takes a damage type, where a hit's popup tells
+        /// it (a creature, or anything that breaks): under the strict rules, on a known page above
+        /// the milestone floor, a type the game never told the character on a hit of it (<see cref="HitTold"/>).
         /// </summary>
-        public bool HidesDamage(string type) => LeavingOut && _selected.Kind == Kind.Creature && !_view.HitWith(_selected, type);
+        public bool HidesDamage(string type) => LeavingOut && !_view.HitWith(_selected, type);
 
         /// <summary>
         /// Whether a creature's page shown keeps back the damage of one of its attacks (a line of

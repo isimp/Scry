@@ -11,6 +11,62 @@ namespace Scry
     /// </summary>
     internal static partial class SelfTest
     {
+        /// <summary>A hit of the character's on the nearest loaded creature tells how its damage landed, then on its weak spot finds it; killed by it, it is counted; fought, the moment is kept.</summary>
+        private static void CreatureHitTells(Probe p, CompendiumBook book, Player player, CompendiumBook real)
+        {
+            // A hit of the character's on the nearest loaded creature: how its damage landed, then its weak spot.
+            var creature = UnityEngine.Object.FindObjectsByType<Character>(FindObjectsSortMode.None).Where(c => c != null && !c.IsPlayer())
+                .OrderBy(c => (c.transform.position - player.transform.position).sqrMagnitude).FirstOrDefault();
+            if (creature == null) p.Note("no creature is loaded to hit");
+            else
+            {
+                var key = Utils.GetPrefabName(creature.gameObject);
+                var hit = new HitData();
+                hit.m_damage.m_blunt = 10f;
+                hit.m_damage.m_fire = 10f;
+                hit.SetAttacker(player);
+                TogetherWatch.Hit(creature, hit);
+                p.Check(ResistWords.Types.Any(t => book.Witnessed(key, EntryKeys.Damage(t))), $"a hit on {key} tells how its damage landed");
+                var spots = creature.m_weakSpots;
+                if (spots != null && spots.Length > 0 && spots[0] != null)
+                {
+                    hit.m_weakSpot = 0;
+                    TogetherWatch.Hit(creature, hit);
+                    p.Check(book.Witnessed(key, EntryKeys.WeakSpot(spots[0].gameObject.name)), $"a hit on its weak spot finds it ({spots[0].gameObject.name})");
+                }
+                else p.Note($"{key} has no weak spot to hit");
+
+                // Killed by it: counted against it. Fought, the moment is kept whole, as play reads it.
+                CompendiumKeeper.KilledBy(creature);
+                p.Check(book.DeathsBy(key)?.Count == 1, $"a death dealt by {key} is counted against it");
+                book.Now = real.Now;
+                CompendiumKeeper.Fought(creature);
+                var came = book.Came(key);
+                p.Note($"fought {key}: " + (came == null ? "nothing kept" : $"day {Numbers.Count(came.Value.At.Day)}, {came.Value.At.Biome}, {came.Value.At.Time}, weather {came.Value.At.Weather ?? "none"}, in hand {came.Value.At.InHand ?? "nothing"}"));
+                p.Check(came != null && came.Value.At.Day >= 0 && came.Value.At.Biome != null && came.Value.At.Time != DayPart.None && came.Value.At.Weather != null,
+                    "coming to know it keeps the day, the biome, the time of day and the weather");
+            }
+        }
+
+        /// <summary>A hit of the character's on the nearest loaded thing that breaks tells how its damage landed, as a creature's does.</summary>
+        private static void ResourceHitTells(Probe p, CompendiumBook book, Player player)
+        {
+            var thing = UnityEngine.Object.FindObjectsByType<Destructible>(FindObjectsSortMode.None).Where(d => d != null)
+                .OrderBy(d => (d.transform.position - player.transform.position).sqrMagnitude).FirstOrDefault();
+            if (thing == null)
+            {
+                p.Note("nothing that breaks is loaded to hit");
+                return;
+            }
+            var key = Utils.GetPrefabName(thing.gameObject);
+            var hit = new HitData { m_toolTier = 10 };
+            hit.m_damage.m_blunt = 10f;
+            hit.m_damage.m_fire = 10f;
+            hit.SetAttacker(player);
+            ResourceHitWatch.Hit(thing, hit, thing.m_damages, thing.m_minToolTier);
+            p.Check(ResistWords.Types.Any(t => book.Witnessed(key, EntryKeys.Damage(t))), $"a hit on {key}, a thing that breaks, tells how its damage landed");
+        }
+
         /// <summary>
         /// One rule for every event: one beyond sight counts only where the character did it, and
         /// once however often it is told; one within reach under the ground, no line from the eye
@@ -92,38 +148,8 @@ namespace Scry
 
             DeathsOutOfSight(p, book, player, me);
 
-            // A hit of the character's on the nearest loaded creature: how its damage landed, then its weak spot.
-            var creature = UnityEngine.Object.FindObjectsByType<Character>(FindObjectsSortMode.None).Where(c => c != null && !c.IsPlayer())
-                .OrderBy(c => (c.transform.position - player.transform.position).sqrMagnitude).FirstOrDefault();
-            if (creature == null) p.Note("no creature is loaded to hit");
-            else
-            {
-                var key = Utils.GetPrefabName(creature.gameObject);
-                var hit = new HitData();
-                hit.m_damage.m_blunt = 10f;
-                hit.m_damage.m_fire = 10f;
-                hit.SetAttacker(player);
-                TogetherWatch.Hit(creature, hit);
-                p.Check(ResistWords.Types.Any(t => book.Witnessed(key, EntryKeys.Damage(t))), $"a hit on {key} tells how its damage landed");
-                var spots = creature.m_weakSpots;
-                if (spots != null && spots.Length > 0 && spots[0] != null)
-                {
-                    hit.m_weakSpot = 0;
-                    TogetherWatch.Hit(creature, hit);
-                    p.Check(book.Witnessed(key, EntryKeys.WeakSpot(spots[0].gameObject.name)), $"a hit on its weak spot finds it ({spots[0].gameObject.name})");
-                }
-                else p.Note($"{key} has no weak spot to hit");
-
-                // Killed by it: counted against it. Fought, the moment is kept whole, as play reads it.
-                CompendiumKeeper.KilledBy(creature);
-                p.Check(book.DeathsBy(key)?.Count == 1, $"a death dealt by {key} is counted against it");
-                book.Now = real.Now;
-                CompendiumKeeper.Fought(creature);
-                var came = book.Came(key);
-                p.Note($"fought {key}: " + (came == null ? "nothing kept" : $"day {Numbers.Count(came.Value.At.Day)}, {came.Value.At.Biome}, {came.Value.At.Time}, weather {came.Value.At.Weather ?? "none"}, in hand {came.Value.At.InHand ?? "nothing"}"));
-                p.Check(came != null && came.Value.At.Day >= 0 && came.Value.At.Biome != null && came.Value.At.Time != DayPart.None && came.Value.At.Weather != null,
-                    "coming to know it keeps the day, the biome, the time of day and the weather");
-            }
+            CreatureHitTells(p, book, player, real);
+            ResourceHitTells(p, book, player);
 
             // An armed creature's hit taken: its attack's damage found out.
             var armed = UnityEngine.Object.FindObjectsByType<Humanoid>(FindObjectsSortMode.None).FirstOrDefault(h => h != null && !h.IsPlayer() && h.GetCurrentWeapon()?.m_dropPrefab != null);
