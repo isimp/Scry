@@ -241,12 +241,6 @@ namespace Scry
 
         private static readonly List<(string Label, string Value)> NothingStill = new List<(string, string)>();
 
-        /// <summary>What showed the fact drawn just above, where it was kept back: the next one kept back by the same says it only on hover.</summary>
-        private static string _heldAbove;
-
-        /// <summary>A section begins: no fact kept back stands above.</summary>
-        private static void HeldAboveForgotten() => _heldAbove = null;
-
         /// <summary>Lets go of the page the You box was read for, for another world.</summary>
         private static void ForgetYou()
         {
@@ -271,6 +265,7 @@ namespace Scry
                     StrictLeft(1);
                     return y;
                 }
+                if (explorer.NamesOnlyMet && InCatalog(explorer, linked)) StrictShown(1);
             }
             // Under the strict rules the names of what was not seen are kept back in its text, and
             // a number the game never shows until what shows it was seen: a weak spot no hit found
@@ -279,13 +274,10 @@ namespace Scry
             string keptBack = null;
             if (facts.Proofs.TryGetValue(pair.Key, out var proof) && explorer.KeepsBack(proof))
             {
-                if (EntryKeys.IsWeakSpot(proof))
-                {
-                    SpotLeft();
-                    return y;
-                }
+                // A weak spot no hit found is left out; the You box lists it.
+                if (EntryKeys.IsWeakSpot(proof)) return y;
                 keptBack = proof;
-                value = explorer.KeptBack(proof);
+                value = CompendiumWords.Hidden;
                 CountDrawn(PanelPart.FactKeptBack);
             }
             var valueW = width - labelW - U(10f);
@@ -342,21 +334,16 @@ namespace Scry
                 if (linkRect.Contains(Event.current.mousePosition)) AskTip("link:" + link, FloorTip(explorer, link, PanelWords.GoTo(ShownName(explorer, link, value))));
                 if (GUI.Button(linkRect, GUIContent.none, GUIStyle.none)) Go(explorer, link);
             }
-            // Kept back: ??? as any value, what shows it faint, as every other hint of the strict rules;
-            // said once for lines one after another that one deed shows, the rest saying it on hover.
+            // Kept back: ??? as any value, what shows it on hover, as every ??? does.
             else if (keptBack != null)
             {
-                var hidden = Skin.Width(Skin.Wrap, CompendiumWords.Hidden);
-                GUI.Label(new Rect(valueRect.x, valueRect.y, hidden + U(2f), height), CompendiumWords.Hidden, Skin.Wrap);
-                var hint = explorer.KeptBackHint(keptBack);
-                if (keptBack != _heldAbove) Skin.LabelIn(new Rect(valueRect.x + hidden, valueRect.y, valueRect.width - hidden, height), hint, Skin.Wrap, Skin.Faint);
-                else if (valueRect.Contains(Event.current.mousePosition)) AskTip("held:" + pair.Key, Naming.Capital(CompendiumWords.ShowsOnce(keptBack)));
+                GUI.Label(valueRect, CompendiumWords.Hidden, Skin.Wrap);
+                if (new Rect(0f, y, width, height).Contains(Event.current.mousePosition)) AskTip("held:" + pair.Key, Naming.Capital(CompendiumWords.ShowsOnce(keptBack)));
             }
             else
             {
                 GUI.Label(valueRect, value, unsure ? Skin.DimWrap : Skin.Wrap);
             }
-            _heldAbove = keptBack;
             // What it comes to at the character's own skill, faint under the game's figure; none where that is kept back.
             if (keptBack == null && YoursShown(explorer, facts, pair.Key, out var yours))
             {
@@ -411,7 +398,6 @@ namespace Scry
             }
             const int firstLines = 8;
             var shownLines = ShownOf("where", lines.Count, firstLines);
-            HeldHints.Clear();
             foreach (var source in lines.Take(shownLines))
             {
                 // A line naming a prefab in the catalog is a chip that goes there; the rest is text.
@@ -419,7 +405,6 @@ namespace Scry
                 // a way with a chance in it tells the character's count in its place, or ???.
                 var counted = explorer.StrictSourceLine(source.Record);
                 var held = counted != null && counted.EndsWith(CompendiumWords.Hidden, StringComparison.Ordinal) ? SourceWords.HeldTip(source.Record) : null;
-                if (held != null && held != TallyWords.NeverCounted && !HeldHints.Contains(held)) HeldHints.Add(held);
                 var text = Masked(explorer, counted ?? (source.Unsure != null ? UnsureWords.Marked(source.Text) : source.Text));
                 if (string.IsNullOrEmpty(source.Prefab) || !Goes(explorer, source.Prefab))
                 {
@@ -427,7 +412,7 @@ namespace Scry
                     var height = Skin.Height(style, text, width);
                     var line = new Rect(0f, y, width, height);
                     GUI.Label(line, text, style);
-                    if (source.Unsure != null && line.Contains(Event.current.mousePosition)) AskTip("unsure:" + source.Text, source.Unsure);
+                    if ((source.Unsure != null || held != null) && line.Contains(Event.current.mousePosition)) AskTip("unsure:" + source.Text, Naming.Lines(held, source.Unsure));
                     y += height + U(4f);
                     continue;
                 }
@@ -456,20 +441,8 @@ namespace Scry
             var more = new ChipFlow(0f, width, y, U(26f), U(5f), U(5f));
             MoreChip("where", lines.Count, firstLines, width, ref more);
             if (more.InRow) y = more.RowBottom + U(5f);
+            // A giver's count held back says on its chip's hover what shows it, as a line's does.
             foreach (var row in rows) y = FactRow(explorer, row, width, y);
-            // Under the strict rules a giver's chip may hold its count back as a line does.
-            if (explorer.LeavingOut && rows.Count > 0)
-            {
-                foreach (var source in where)
-                {
-                    if (source.AllPlay || !SourceGroups.Groups(source.Record) || explorer.StrictSourceAmount(source.Record) != CompendiumWords.Hidden) continue;
-                    var held = SourceWords.HeldTip(source.Record);
-                    if (held != null && held != TallyWords.NeverCounted && !HeldHints.Contains(held)) HeldHints.Add(held);
-                }
-            }
-            // What shows a count not yet seen, faintly under the lines, once for each way of counting.
-            // What shows each amount held back, faintly under the lines, once each; what nothing counts says so on hover only.
-            foreach (var hint in HeldHints) y = HintLine(hint, "not-counted:", hint, PanelPart.TallyCounted, width, y);
             return y;
         }
 
@@ -557,7 +530,9 @@ namespace Scry
             // searching; a biome's own page names none.
             if (entry.Biomes.Length > 0 && entry.Kind != Kind.Biome)
             {
-                StrictLeft(entry.Biomes.Count(b => explorer.LeavesOut(EntryKeys.For(Kind.Biome, b))));
+                var biomesLeft = entry.Biomes.Count(b => explorer.LeavesOut(EntryKeys.For(Kind.Biome, b)));
+                StrictLeft(biomesLeft);
+                if (explorer.NamesOnlyMet) StrictShown(entry.Biomes.Length - biomesLeft);
                 y = ChipRow("Biomes", entry.Biomes.Where(b => !explorer.LeavesOut(EntryKeys.For(Kind.Biome, b))).Select(b =>
                 {
                     var page = EntryKeys.For(Kind.Biome, b);
@@ -627,8 +602,6 @@ namespace Scry
             }
         }
 
-        /// <summary>What shows the amounts held back in the block of where a thing comes from being drawn, each once.</summary>
-        private static readonly List<string> HeldHints = new List<string>();
 
         /// <summary>The lines of where a thing comes from the block being drawn shows under the strict rules, those counted over every character's play left out.</summary>
         private static readonly List<Source> OwnPlay = new List<Source>();

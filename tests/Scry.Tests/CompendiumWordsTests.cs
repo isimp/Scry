@@ -6,11 +6,9 @@ namespace Scry.Tests
     public class CompendiumWordsTests
     {
         [Fact]
-        public void ADamageGridKeepingTypesBackSaysFaintlyHowMany()
+        public void ADamageGridKeepingATypeBackSaysOnItsCellWhatShowsIt()
         {
-            Assert.Equal("1 more not yet hit with", CompendiumWords.NotYetHitWith(1));
-            Assert.Equal("3 more not yet hit with", CompendiumWords.NotYetHitWith(3));
-            Assert.Null(CompendiumWords.NotYetHitWith(0));
+            // No faint count under the grid: each ??? says on hover what shows it, the You box lists them.
             Assert.Equal("Fire: how it lands shows once you hit it with fire", CompendiumWords.NotYetHitWithTip("Fire"));
         }
 

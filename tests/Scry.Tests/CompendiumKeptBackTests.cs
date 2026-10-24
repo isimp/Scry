@@ -64,8 +64,8 @@ namespace Scry.Tests
             Assert.False(world.Explorer.HidesAttack(slam));
             Assert.True(world.Explorer.HidesAttack(EntryKeys.PlayAttack("Troll_log")));
             Assert.False(world.Explorer.HidesAttack(world.Hide.Key));
-            Assert.Equal("2 more not yet taken", CompendiumWords.NotYetTaken(2));
-            Assert.Null(CompendiumWords.NotYetTaken(0));
+            // Its ??? says on hover what shows it; the You box lists what is still to find out.
+            Assert.Equal("Its damage shows once this attack has hit you", CompendiumWords.NotYetTakenTip);
 
             // Not under the loose rules, and not on a page that is no creature's.
             world.Rule(CompendiumRule.Loose);
@@ -149,13 +149,12 @@ namespace Scry.Tests
         [Fact]
         public void WhatKeepsANumberBackSaysWhatShowsIt()
         {
-            // One form for every hint of what shows a number: "shows once you have ...", after its ???.
+            // One form for every hint of what shows a number: "shows once you have ...", on its ???'s hover.
             Assert.Equal("shows once you have killed one", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Killed)));
             Assert.Equal("shows once you have tamed one", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Tamed)));
             Assert.Equal("shows once you have seen one born", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Born)));
             Assert.Equal("shows once you have seen one grow up", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.GrewUp)));
             Assert.Equal("shows once you have seen one grow back", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.GrewBack)));
-            Assert.Equal("??? · shows once you have killed one", CompendiumWords.KeptBack(EntryKeys.Did(Deed.Killed)));
             Assert.Equal("Health shows once you have killed one", CompendiumWords.ShowsOnce("Health", EntryKeys.Did(Deed.Killed)));
         }
 
@@ -370,7 +369,7 @@ namespace Scry.Tests
         {
             // A tree's or rock's health until one broke, what stars change until a starred one
             // fell, a spawner's pool and pace until it spawned, a producer's pace until collected from.
-            Assert.Equal("??? · shows once you have broken one", CompendiumWords.KeptBack(EntryKeys.Did(Deed.Broke)));
+            Assert.Equal("shows once you have broken one", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Broke)));
             Assert.Equal("shows once you have seen a starred one fall", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.StarredFell)));
             Assert.Equal("shows once you have seen it spawn", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Spawned)));
             Assert.Equal("shows once you have collected from one", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Collected)));
@@ -491,9 +490,8 @@ namespace Scry.Tests
             Assert.False(world.Explorer.KeepsBack(head));
             Assert.True(EntryKeys.IsWeakSpot(head));
             Assert.False(EntryKeys.IsWeakSpot(EntryKeys.Did(Deed.Killed)));
-            Assert.Equal("1 more weak spot not yet found", CompendiumWords.WeakSpotsNotFound(1));
-            Assert.Equal("3 more weak spots not yet found", CompendiumWords.WeakSpotsNotFound(3));
-            Assert.Null(CompendiumWords.WeakSpotsNotFound(0));
+            // One not found is left out of the page, and the You box tells how many.
+            Assert.Contains(("Hit its weak spots", "3 not yet found"), CompendiumWords.StillToFindOut(new string[0], new string[0], 0, 3, new Tally[0]));
         }
 
         [Fact]

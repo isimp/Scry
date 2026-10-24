@@ -445,12 +445,6 @@ namespace Scry
             return drop != null ? TallyWords.Line(by.Value, drop, counted.Kills(source.Giver)) : CompendiumWords.Hidden;
         }
 
-        /// <summary>The value of a fact kept back, as this character reads it (<see cref="CompendiumWords.KeptBack"/>).</summary>
-        public string KeptBack(string proof) => CompendiumWords.KeptBack(proof);
-
-        /// <summary>What follows its ???, drawn faint (<see cref="CompendiumWords.KeptBackHint"/>).</summary>
-        public string KeptBackHint(string proof) => CompendiumWords.KeptBackHint(proof);
-
         /// <summary>A faint line saying what shows a line of a table kept back (<see cref="CompendiumWords.ShowsOnce(string, string)"/>).</summary>
         public string ShowsOnce(string what, string proof) => CompendiumWords.ShowsOnce(what, proof);
 

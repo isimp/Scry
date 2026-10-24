@@ -292,15 +292,15 @@ namespace Scry
             var facts = ScryPanel.Drawn(PanelPart.FactKeptBack);
             var still = ScryPanel.Drawn(PanelPart.StillToFindOut);
             var table = ScryPanel.Drawn(PanelPart.TableKeptBack);
-            var spots = ScryPanel.Drawn(PanelPart.WeakSpotsLeftOut);
+
             var tally = ScryPanel.Drawn(PanelPart.TallyCounted);
             yield return Until(() => ScryPanel.Drawn(PanelPart.StillToFindOut) > still, 3);
-            p.Check(X.LeavingOut && X.KeepsBack(EntryKeys.Did(Deed.Killed)) && ScryPanel.Drawn(PanelPart.FactKeptBack) > facts, "the troll's health reads ??? and says what shows it");
+            p.Check(X.LeavingOut && X.KeepsBack(EntryKeys.Did(Deed.Killed)) && ScryPanel.Drawn(PanelPart.FactKeptBack) > facts, "the troll's health reads ???, what shows it on hover");
             p.Check(ScryPanel.Drawn(PanelPart.StillToFindOut) > still, "its You box tells what is still to find out");
-            p.Check(ScryPanel.Drawn(PanelPart.TableKeptBack) > table, "its attacks keep back their damage, a faint line counting them");
-            p.Check(ScryPanel.Drawn(PanelPart.WeakSpotsLeftOut) > spots, "its weak spot is left out and counted");
+            p.Check(ScryPanel.Drawn(PanelPart.TableKeptBack) > table, "its attacks keep back their damage, ??? in their cells");
+            p.Check(ScryPanel.StillForTest.Any(l => l.StartsWith("Hit its weak spot", System.StringComparison.Ordinal)), "its weak spot is left out, the You box saying to hit it", string.Join("; ", ScryPanel.StillForTest));
             p.Check(X.StrictAmount(Tally.Fell, troll.Name, hide.Name) == CompendiumWords.Hidden && ScryPanel.Drawn(PanelPart.TallyCounted) > tally,
-                "how many hides it drops reads ??? until counted, a faint line saying what shows it");
+                "how many hides it drops reads ??? until counted, its hover saying what shows it");
             var before = ScryPanel.FindsForTest;
             p.Check(before.Of > before.Found && (ScryPanel.FindsChipForTest?.Contains(" of ") ?? false), "its title row tells how much of what it keeps back was found out", ScryPanel.FindsChipForTest ?? "no chip");
             yield return PictureOf(p, "overview", "strict Troll, nothing found out");

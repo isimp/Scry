@@ -31,13 +31,12 @@ namespace Scry
             var columns = Mathf.Clamp(Mathf.FloorToInt((width + gap) / (U(62f) + gap)), 2, 5);
             var cellW = (width - gap * (columns - 1)) / columns;
             var cellH = U(38f);
-            var keptBack = 0;
             for (var i = 0; i < row.Cells.Count; i++)
             {
                 var cell = row.Cells[i];
                 // A tool's cell is no secret: tools are for trees and rocks.
                 var hidden = row.HitReveals && cell.Tone != Tone.Quiet && explorer.HidesDamage(cell.Type);
-                if (hidden) keptBack++;
+                if (hidden) CountDrawn(PanelPart.DamageKeptBack);
                 var at = new Rect((i % columns) * (cellW + gap), y + (i / columns) * (cellH + gap), cellW, cellH);
                 var cellSpot = Spotting ? EntryKeys.Damage(cell.Type) : null;
                 NoteSpot(cellSpot, at);
@@ -51,8 +50,8 @@ namespace Scry
             }
             CountDrawn(PanelPart.ResistanceGrid);
             var lines = (row.Cells.Count + columns - 1) / columns;
-            y += lines * (cellH + gap) + U(4f);
-            return HintLine(CompendiumWords.NotYetHitWith(keptBack), "damage-kept-back", "", PanelPart.DamageKeptBack, width, y);
+            // A type kept back says on its cell's hover what shows it, and the You box lists it.
+            return y + lines * (cellH + gap) + U(4f);
         }
 
         /// <summary>Whether the titles of rows told as waiting for a boss are kept as drawn (<see cref="UnlockTitlesForTest"/>), for the self-test.</summary>
@@ -98,13 +97,10 @@ namespace Scry
             var count = ShownOf(key, items.Count);
             y = RowTitleLine(explorer, row, title, width, y + U(6f));
 
-            var notCounted = false;
             var flow = new ChipFlow(0f, width, y, U(30f), U(6f), U(5f));
-            for (var i = 0; i < count; i++) notCounted |= ItemChip(explorer, row, items[i], width, ref flow);
+            for (var i = 0; i < count; i++) ItemChip(explorer, row, items[i], width, ref flow);
             MoreChip(key, items.Count, FirstChips, width, ref flow);
-            y = flow.RowBottom + U(6f);
-            if (notCounted) y = HintLine(explorer.NotYetCounted(row.Tally), "not-counted:", row.Title, PanelPart.TallyCounted, width, y - U(2f));
-            return y;
+            return flow.RowBottom + U(6f);
         }
 
         /// <summary>
@@ -191,6 +187,7 @@ namespace Scry
         {
             var amount = explorer.StrictAmount(row.Tally, row.TallyOf, item.Prefab) ?? item.Amount;
             var hidden = amount == CompendiumWords.Hidden;
+            if (hidden) CountDrawn(PanelPart.TallyCounted);
             var text = DetailWords.Amounted(amount, item.Name);
             // A mark (only here, what a trader pays) in a pill of its own at the chip's end.
             var markW = item.Mark != null ? Skin.Width(Skin.Badge, item.Mark) + U(16f) : 0f;
@@ -228,11 +225,14 @@ namespace Scry
 
             // One with no page to go to, as an upgrade a trader sells, says on hover what it does.
             if (string.IsNullOrEmpty(item.Prefab) && hover && item.MarkTip != null) AskTip("chip:" + item.Name, item.MarkTip);
+            // An amount held back says on hover what shows it, as every ??? does.
+            var counts = hidden && row.Tally != Tally.None ? explorer.NotYetCounted(row.Tally) : null;
+            if (counts != null && hover && !goes) AskTip("not-counted:" + item.Prefab, counts);
 
             // Clicking an ingredient or a drop goes to it.
             if (!string.IsNullOrEmpty(item.Prefab))
             {
-                if (hover && goes) AskTip("goto:" + item.Prefab + item.Mark, FloorTip(explorer, item.Prefab, item.MarkTip != null ? Naming.Lines(item.MarkTip, PanelWords.GoTo(item.Name)) : PanelWords.GoTo(item.Name)));
+                if (hover && goes) AskTip("goto:" + item.Prefab + item.Mark, FloorTip(explorer, item.Prefab, Naming.Lines(counts, item.MarkTip, PanelWords.GoTo(item.Name))));
                 if (GUI.Button(chip, GUIContent.none, GUIStyle.none) && explorer.Jump(item.Prefab))
                 {
                     AfterGoing();

@@ -304,7 +304,11 @@ namespace Scry
                 for (var o = 0; o < row.Owners.Count; o++)
                 {
                     if (row.Owners[o].Key != null && explorer.LeavesOut(row.Owners[o].Key)) StrictLeft(1);
-                    else KeptOwners.Add(o);
+                    else
+                    {
+                        if (row.Owners[o].Key != null && explorer.NamesOnlyMet) StrictShown(1);
+                        KeptOwners.Add(o);
+                    }
                 }
                 var ownersKey = OwnersKey(index);
                 var shownOwners = Mathf.Min(ShownOf(ownersKey, KeptOwners.Count, firstOwners), KeptOwners.Count);

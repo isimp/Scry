@@ -184,6 +184,7 @@ namespace Scry
             var cw = content.width;
             var y = 0f;
             StartMarking();
+            StartNameCount();
             // Without a stage a sound says what it is here; a status effect's card would only repeat In the game.
             if (!withStage && entry.Kind == Kind.Sound) y = Section("side card", y, at => CompactCard(entry, cw, at));
             y = Section("side actions", y, at => ActionNotes(entry, cw, at, withStage));
@@ -211,6 +212,7 @@ namespace Scry
             if (explorer.ShowsCommands) y = Section("side command", y, at => Command(explorer, entry, cw, at));
             y = Section("side details", y, at => Details(explorer, entry, cw, at));
             EndMarking();
+            EndNameCount(entry, NamingSectionFolded());
             // The height as this draw found it, so the scroll range is right from the next event on,
             // and a scroll left past the end by content that shrank comes back to the end.
             _sideHeight = y + U(8f);

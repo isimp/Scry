@@ -310,12 +310,23 @@ namespace Scry
             ? SourceName(by) + " shows this page whole, as the compendium's box has it show; turn it down there to see what is still to find out"
             : FloorCaption + " shows this page whole, as it shows every page of the tiers whose bosses this character has beaten; lower it in the compendium's box to see what is still to find out";
 
-        /// <summary>The chip's tip of a page with something still to find out: each thing to do and what it shows, as its You box lists them.</summary>
-        public static string FindsTip(System.Collections.Generic.IEnumerable<(string Label, string Value)> still)
+        /// <summary>
+        /// The chip's tip of a page with something still to find out: each thing to do and what it
+        /// shows, as its You box lists them, how many names it leaves out, and that a folded section
+        /// went uncounted.
+        /// </summary>
+        public static string FindsTip(System.Collections.Generic.IEnumerable<(string Label, string Value)> still, int namesLeft, bool folded)
         {
             var lines = new System.Collections.Generic.List<string> { "Still to find out:" };
-            foreach (var (label, value) in still) lines.Add(label + " \u00b7 " + value);
-            lines.Add("A click goes to them in its You box");
+            var todo = false;
+            foreach (var (label, value) in still)
+            {
+                lines.Add(label + " \u00b7 " + value);
+                todo = true;
+            }
+            if (namesLeft > 0) lines.Add(Numbers.Count(namesLeft) + " more it names, not yet seen together with it");
+            if (todo) lines.Add("A click goes to them in its You box");
+            if (folded) lines.Add("Folded sections are not counted");
             return string.Join("\n", lines);
         }
 
@@ -413,18 +424,8 @@ namespace Scry
         /// <summary>A thing known before its character's book was kept, from what the game kept of it.</summary>
         public const string KnownBefore = "known before Scry kept track of this character";
 
-        /// <summary>How many damage types a creature's grid keeps back under the strict rules, told faintly under it; none where it keeps none back.</summary>
-        public static string NotYetHitWith(int count) => count > 0 ? $"{Numbers.Count(count)} more not yet hit with" : null;
-
-        /// <summary>The faint line under a creature's attacks some of whose damage is kept back, until each hit the character.</summary>
-        public static string NotYetTaken(int count) => count > 0 ? $"{Numbers.Count(count)} more not yet taken" : null;
-
         /// <summary>The tip of an attack's damage kept back.</summary>
         public const string NotYetTakenTip = "Its damage shows once this attack has hit you";
-
-        /// <summary>The faint line where the weak spots a hit has not yet found are left out.</summary>
-        public static string WeakSpotsNotFound(int count) =>
-            count <= 0 ? null : $"{Numbers.Count(count)} more {(count == 1 ? "weak spot" : "weak spots")} not yet found";
 
         /// <summary>
         /// What a known page under the strict rules still keeps back, for the You box at its top,
@@ -504,12 +505,6 @@ namespace Scry
             }
             return "an attack's damage found out";
         }
-
-        /// <summary>The value of a fact the strict rules keep back (<see cref="EntryKeys.Did"/>): ??? and what shows it (<see cref="ShowsOnce(string)"/>).</summary>
-        public static string KeptBack(string proof) => Hidden + KeptBackHint(proof);
-
-        /// <summary>What follows the ??? of a fact kept back, drawn faint: what shows it.</summary>
-        public static string KeptBackHint(string proof) => " · " + ShowsOnce(proof);
 
         /// <summary>What shows a number kept back, the one form every such hint takes: "shows once you have ...".</summary>
         public static string ShowsOnce(string proof) => "shows once you have " + Seen(proof);

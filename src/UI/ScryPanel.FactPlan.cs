@@ -119,8 +119,13 @@ namespace Scry
                 ShownTiles.Clear();
                 foreach (var tile in topic.Tiles)
                 {
-                    if (facts.Links.TryGetValue(facts.Pairs[tile].Key, out var linked) && explorer.LeavesOut(linked)) StrictLeft(1);
-                    else ShownTiles.Add(tile);
+                    var named = facts.Links.TryGetValue(facts.Pairs[tile].Key, out var linked) && InCatalog(explorer, linked);
+                    if (named && explorer.LeavesOut(linked)) StrictLeft(1);
+                    else
+                    {
+                        if (named && explorer.NamesOnlyMet) StrictShown(1);
+                        ShownTiles.Add(tile);
+                    }
                 }
                 if (ShownTiles.Count > 0) y = Tiles(explorer, facts, ShownTiles, width, y);
                 Timing.Add("facts drawn tiles", step);
@@ -290,11 +295,17 @@ namespace Scry
                 return y;
             }
             // A table every line of which waits to be found out (a creature's stars before one was
-            // killed) is one faint line saying what shows it, not a table of ???.
+            // killed) is its title and ???, what shows it on hover, not a table of ???.
             var whole = explorer.KeepsBackWhole(row.LineProofs, row.Lines.Count);
             if (whole != null)
             {
-                return HintLine(explorer.ShowsOnce(row.Title, whole), "table-kept:", row.Title, PanelPart.TableKeptBack, width, y + U(6f));
+                y += U(6f);
+                var titleW = Skin.Width(Skin.DimLabel, row.Title) + U(10f);
+                GUI.Label(new Rect(0f, y, titleW, U(20f)), Masked(explorer, row.Title), Skin.DimLabel);
+                GUI.Label(new Rect(titleW, y, width - titleW, U(20f)), CompendiumWords.Hidden, Skin.Wrap);
+                if (new Rect(0f, y, width, U(20f)).Contains(Event.current.mousePosition)) AskTip("table-kept:" + row.Title, Naming.Capital(explorer.ShowsOnce(row.Title, whole)));
+                CountDrawn(PanelPart.TableKeptBack);
+                return y + U(24f);
             }
             y += U(6f);
             GUI.Label(new Rect(0f, y, width, U(20f)), Masked(explorer, row.Title), Skin.DimLabel);
@@ -304,9 +315,6 @@ namespace Scry
             MeasureColumns(explorer, row, width - gap * (row.Columns.Length - 1));
             y = TableHeadings(row, gap, y);
 
-            var attacksKept = 0;
-            var notCounted = false;
-            KeptLines.Clear();
             for (var l = 0; l < row.Lines.Count; l++)
             {
                 var (cells, link) = row.Lines[l];
@@ -316,12 +324,11 @@ namespace Scry
                     StrictLeft(1);
                     continue;
                 }
+                if (explorer.NamesOnlyMet && !string.IsNullOrEmpty(link) && InCatalog(explorer, link)) StrictShown(1);
                 // Under the strict rules an attack that never hit the character keeps its damage
                 // back, and a line only something seen done tells (health by stars) all its numbers.
                 var attackKept = AttackKept(explorer, row, l);
-                if (attackKept) attacksKept++;
                 var lineKept = LineKept(explorer, row, l, out var lineProof);
-                if (lineKept && cells.Length > 0) KeptLines.Add(explorer.ShowsOnce(cells[0], lineProof));
                 var height = U(20f);
                 for (var c = 0; c < cells.Length && c < ColumnWidths.Count; c++) height = Mathf.Max(height, Skin.Height(Skin.SmallWrap, CellDrawn(explorer, row, l, c), ColumnWidths[c]));
                 // Faint lines under it: the same at the character's skill, left out where the line
@@ -330,6 +337,7 @@ namespace Scry
                 var underHeight = 0f;
                 if (under != null) foreach (var faint in under) if (!explorer.NotMet(faint.Skill)) underHeight += YoursHeight(faint.Cells);
                 var line = new Rect(0f, y, width, height + underHeight);
+                if (lineKept || attackKept) CountDrawn(PanelPart.TableKeptBack);
                 var rowSpot = Spotting ? lineProof ?? AttackSpot(row, link) : null;
                 NoteSpot(rowSpot, line);
                 if (!OutOfSight(line))
@@ -338,7 +346,7 @@ namespace Scry
                     var x = 0f;
                     for (var c = 0; c < cells.Length && c < ColumnWidths.Count; c++)
                     {
-                        notCounted |= TableCell(explorer, row, l, c, new Rect(x, y, ColumnWidths[c], height), lineKept, attackKept, lineProof);
+                        TableCell(explorer, row, l, c, new Rect(x, y, ColumnWidths[c], height), lineKept, attackKept, lineProof);
                         x += ColumnWidths[c] + gap;
                     }
                     if (under != null)
@@ -351,11 +359,8 @@ namespace Scry
                 y += height + underHeight + U(6f);
             }
             CountDrawn(PanelPart.FactTable);
-            y += U(4f);
-            y = HintLine(CompendiumWords.NotYetTaken(attacksKept), "attacks-kept:", row.Title, PanelPart.TableKeptBack, width, y);
-            if (notCounted) y = HintLine(explorer.NotYetCounted(row.Tally), "not-counted:", row.Title, PanelPart.TallyCounted, width, y);
-            foreach (var said in KeptLines) y = HintLine(said, "line-kept:", said, PanelPart.TableKeptBack, width, y);
-            return y;
+            // What a ??? waits for says so on its hover, and the You box lists it: no faint line repeats it.
+            return y + U(4f);
         }
 
         /// <summary>
@@ -432,7 +437,10 @@ namespace Scry
             else if (c > 0 && CellShown(explorer, row, l, c, cells[c]) is string counted && !ReferenceEquals(counted, cells[c]))
             {
                 GUI.Label(cell, counted, Skin.SmallWrap);
-                return counted == CompendiumWords.Hidden;
+                var notCounted = counted == CompendiumWords.Hidden;
+                if (notCounted && cell.Contains(Event.current.mousePosition)) AskTip("not-counted:" + row.Title + cells[0], explorer.NotYetCounted(row.Tally));
+                if (notCounted) CountDrawn(PanelPart.TableKeptBack);
+                return notCounted;
             }
             // A number kept back reads ??? and says on hover what shows it.
             else if (c > 0 && (lineKept || (attackKept && Array.IndexOf(row.AttackCells, c) >= 0)))
@@ -568,9 +576,6 @@ namespace Scry
         /// <summary>Where the floor's mark goes after a cell's link: right after its text, within the cell.</summary>
         private static float FloorMarkX(Rect cell, string text) => cell.x + Mathf.Min(Skin.Width(Skin.Small, text) + U(4f), cell.width - FloorRoom);
 
-        /// <summary>What shows each line of the table being drawn whose numbers are kept back, for its faint lines.</summary>
-        private static readonly List<string> KeptLines = new List<string>();
-
         /// <summary>The tip of a number kept back in a table's line: what shows it.</summary>
         private static string KeptTip(Explorer explorer, string what, string proof) => explorer.ShowsOnce(what, proof);
 
@@ -585,9 +590,17 @@ namespace Scry
                 StrictLeft(1);
                 return y;
             }
+            if (linked != null && explorer.NamesOnlyMet && InCatalog(explorer, linked)) StrictShown(1);
             if (facts.Proofs.TryGetValue(pair.Key, out var proof) && explorer.KeepsBack(proof))
             {
-                return HintLine(explorer.ShowsOnce(pair.Key, proof), "note-kept:", pair.Key, PanelPart.FactKeptBack, width, y);
+                // Kept back: ??? in its place, what shows it on hover.
+                var kept = FactWords.Note(pair.Key, CompendiumWords.Hidden);
+                var keptH = Skin.Height(Skin.DimWrap, kept, width);
+                var keptLine = new Rect(0f, y, width, keptH);
+                GUI.Label(keptLine, kept, Skin.DimWrap);
+                if (keptLine.Contains(Event.current.mousePosition)) AskTip("note-kept:" + pair.Key, Naming.Capital(explorer.ShowsOnce(pair.Key, proof)));
+                CountDrawn(PanelPart.FactKeptBack);
+                return y + keptH + U(6f);
             }
             var unsure = facts.Unsure.TryGetValue(pair.Key, out var why);
             var text = Masked(explorer, FactWords.Note(unsure ? UnsureWords.Marked(pair.Key) : pair.Key, pair.Value));
