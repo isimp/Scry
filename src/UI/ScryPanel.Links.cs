@@ -183,7 +183,8 @@ namespace Scry
         private static float LinksSection(Explorer explorer, Entry entry, float width, float y)
         {
             MakeLinkRowsFor(explorer, entry);
-            if (LinkRows.Count == 0) return y;
+            // A section the rules leave nothing in draws neither its heading nor its count.
+            if (LinkRows.Count == 0 || LinkedCount(explorer) == 0) return y;
 
             y = SectionHeading("LINKED", width, y, null, "links", LinkedCount(explorer));
             if (IsFolded("links")) return y;

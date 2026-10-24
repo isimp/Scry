@@ -118,6 +118,17 @@ namespace Scry.Tests
             // A book never kept counts no pair as an attack.
             Assert.False(new CompendiumBook().Proved("Troll", EntryKeys.Attack("Troll_log")));
             Assert.False(CompendiumBook.Load("").Proved("Troll", EntryKeys.Attack("Troll_log")));
+            // A book kept before proofs had lines of their own is told by its format line's absence, not by
+            // whether it held proofs among its pairs: one with both counts its older pairs still.
+            var mixed = CompendiumBook.Load("know\tTroll\t3\nknow\tDraugr\t3\nsaw\tTroll\tspot:WEAKSPOT_HEAD\nsaw\tDraugr\tdraugr_axe\n");
+            Assert.True(mixed.Proved("Draugr", EntryKeys.Attack("draugr_axe")));
+            Assert.True(mixed.Proved("Troll", EntryKeys.WeakSpot("WEAKSPOT_HEAD")));
+            // One kept since says its format, and counts a pair as an attack only where it says so itself.
+            var kept = CompendiumBook.Load("format\t2\nknow\tTroll\t3\nsaw\tTroll\tTroll_log\n");
+            Assert.False(kept.Proved("Troll", EntryKeys.Attack("Troll_log")));
+            Assert.StartsWith("format\t2\n", kept.Save());
+            var migrated = CompendiumBook.Load(mixed.Save());
+            Assert.True(migrated.Proved("Draugr", EntryKeys.Attack("draugr_axe")));
         }
 
         [Fact]

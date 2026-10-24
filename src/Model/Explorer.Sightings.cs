@@ -14,7 +14,7 @@ namespace Scry
         /// was seen begun up close (<see cref="EntryKeys.Attack"/>); such a clip is listed as ???
         /// and does not play.
         /// </summary>
-        public bool KeepsBackAttackClip(string item) => item != null && KeepsBack(EntryKeys.Attack(item));
+        public bool KeepsBackAttackClip(string item) => item != null && _selected?.Kind == Kind.Creature && KeepsBack(EntryKeys.Attack(item));
 
         /// <summary>
         /// Whether the stage may show a creature, by its key, carrying an item, by its prefab: with

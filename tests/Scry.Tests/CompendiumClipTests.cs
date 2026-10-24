@@ -16,13 +16,14 @@ namespace Scry.Tests
         {
             public readonly Entry Troll = E("Troll", Kind.Creature);
             public readonly Entry Boar = E("Boar", Kind.Creature);
+            public readonly Entry Log = E("Troll_log", Kind.Item);
             public readonly Explorer Explorer;
             public readonly CompendiumView View;
             public readonly CompendiumBook Book = new CompendiumBook();
 
             public World()
             {
-                var all = new[] { Troll, Boar }.ToList();
+                var all = new[] { Troll, Boar, Log }.ToList();
                 Explorer = new Explorer(all, new Favourites(Path.Combine(TempDir(), "favourites.txt")));
                 View = new CompendiumView(Explorer.Entries);
                 foreach (var entry in all) Book.Raise(entry.Key, KnownLevel.Known);
@@ -49,6 +50,11 @@ namespace Scry.Tests
             world.Book.FoundOut(world.Troll.Key, EntryKeys.Attack("troll_punch"));
             Assert.False(world.Explorer.KeepsBackAttackClip("troll_punch"));
             Assert.True(world.Explorer.KeepsBackAttackClip("troll_throw"));
+
+            // A weapon's own page keeps no attack back: the proof is a creature's, of the attack it made with the item.
+            world.Explorer.Select(world.Log);
+            Assert.False(world.Explorer.KeepsBackAttackClip("Troll_log"));
+            world.Explorer.Select(world.Troll);
 
             // Peeking, the loose rules and the compendium off keep nothing back.
             world.Explorer.PeekPage();

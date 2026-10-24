@@ -14,8 +14,11 @@ namespace Scry
         /// <summary>How many stars a creature can have, for what they add.</summary>
         private int _stars = 2;
 
-        /// <summary>How many stars the creature can have, for what the stage still lacks of it under the strict rules.</summary>
-        public int Stars => _stars;
+        /// <summary>How many stars the creature can have, for what the stage still lacks of it under the strict rules; none for a boss, which has no stars.</summary>
+        public int Stars => Boss ? 0 : _stars;
+
+        /// <summary>Whether the creature is a boss (<c>Character.m_boss</c>).</summary>
+        public bool Boss { get; private set; }
 
         /// <summary>The gear the stage can dress the creature in, by prefab and name: what it carries that shows when worn (<see cref="PrefabGear.Shows"/>).</summary>
         public readonly List<(string Prefab, string Name)> Gear = new List<(string, string)>();
@@ -39,6 +42,7 @@ namespace Scry
             Add("Health", Numbers.Amount(character.m_health));
             Proofs["Health"] = EntryKeys.Did(Deed.Killed);
             Add("Faction", Groups.FactionName(character.m_faction.ToString()));
+            Boss = character.m_boss;
             if (character.m_boss) Add("Boss", "yes");
             if (!string.IsNullOrEmpty(character.m_bossEvent) && Knowledge.BossOfEvent(character.m_bossEvent) == prefab)
             {

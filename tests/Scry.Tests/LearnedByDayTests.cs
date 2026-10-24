@@ -103,6 +103,12 @@ namespace Scry.Tests
             Assert.Null(explorer.WorldShown(explorer.LearnedWorld(world.Boar)));
             Assert.Null(explorer.WorldShown(null));
 
+            // Under the loose rules, which list what was met, the world comes with the news the same.
+            var loose = world.Told(CompendiumRule.Loose).Explorer;
+            Assert.Equal("PipiKakaLand", loose.LearnedWorld(world.Troll));
+            Assert.Equal("Elderwood", loose.LearnedWorld(world.Boar));
+            world.Told(CompendiumRule.Strict);
+
             Assert.Equal("Day 50", JournalWords.DayHeading(50));
             Assert.Equal("PipiKakaLand  \u00B7  Day 300", JournalWords.DayHeading(300, "PipiKakaLand"));
             Assert.Equal("PipiKakaLand  \u00B7  Earlier", JournalWords.DayHeading(-1, "PipiKakaLand"));

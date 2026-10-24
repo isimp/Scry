@@ -19,6 +19,12 @@ namespace Scry
         /// </summary>
         private bool _attacksAsPairs;
 
+        /// <summary>The book's format as saved since proofs had lines of their own (a <c>format</c> line); a book without one was kept before.</summary>
+        public const int Format = 2;
+
+        /// <summary>Whether the text read said its format.</summary>
+        private bool _formatRead;
+
         /// <summary>
         /// Notes that the character saw something done to a thing, by its proof: a deed
         /// (<see cref="EntryKeys.Did"/>), a damage type a hit told (<see cref="EntryKeys.Damage"/>),

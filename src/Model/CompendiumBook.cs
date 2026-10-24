@@ -481,9 +481,10 @@ namespace Scry
             var level = Level(key);
             if (level < KnownLevel.Seen) return null;
             var day = _metDay.TryGetValue(key, out var told) ? told : -1;
+            var world = _metWorld.TryGetValue(key, out var kept) ? kept : null;
             var way = _came.TryGetValue(key, out var came) ? came.Way : (CameBy?)null;
-            if (FoundOutOf(key) == EntryKeys.OnMap) return new BookNews(NewsHow.Map, EntryKeys.OnMap, way, day);
-            return new BookNews(level == KnownLevel.Known ? NewsHow.Known : NewsHow.Seen, null, way, day);
+            if (FoundOutOf(key) == EntryKeys.OnMap) return new BookNews(NewsHow.Map, EntryKeys.OnMap, way, day, world);
+            return new BookNews(level == KnownLevel.Known ? NewsHow.Known : NewsHow.Seen, null, way, day, world);
         }
 
         /// <summary>Forgets an entry's news of meeting it, as it leaves the book.</summary>
@@ -689,6 +690,8 @@ namespace Scry
             return () =>
             {
                 var text = new StringBuilder();
+                // Says the book is kept since proofs had lines of their own: one without this line is older (CompendiumBook.Load).
+                text.Append("format\t").Append(Stored.Count(Format)).Append('\n');
                 foreach (var pair in levels.OrderBy(p => p.Key, StringComparer.Ordinal))
                 {
                     text.Append("know\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(Stored.Count((int)pair.Value)).Append('\n');
@@ -843,8 +846,9 @@ namespace Scry
                 if (LineReaders.TryGetValue(parts[0], out var read)) read(book, parts, name);
             }
             book._latelyRead = null;
-            // A book kept before attacks taken had a key holds them as pairs; one kept since says so itself.
-            book._attacksAsPairs = book._attacksAsPairs || (book._pairs.Count > 0 && book._proofs.Count == 0);
+            // A book kept before attacks taken had a key holds them as pairs, which nothing can tell from
+            // any other pair; one kept since says its format, and counts them only where it says so itself.
+            book._attacksAsPairs = book._attacksAsPairs || (!book._formatRead && book._pairs.Count > 0);
             if (book._metRead == null) book.MetFromLately();
             book._metRead = null;
             if (!book._mapApart) book.GiveBackMapPlaces();

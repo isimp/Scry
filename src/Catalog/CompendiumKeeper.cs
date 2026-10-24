@@ -267,7 +267,7 @@ namespace Scry
         /// <summary>A creature's attack hit the character: the two seen together, for the strict rules' attack table.</summary>
         public static void HitBy(Character creature)
         {
-            if (Into == null || creature == null || creature == Player.m_localPlayer) return;
+            if (Into == null || creature == null || creature.IsPlayer()) return;
             var weapon = (creature as Humanoid).OrNull()?.GetCurrentWeapon()?.m_dropPrefab.OrNull();
             if (weapon == null) return;
             Into.FoundOut(Utils.GetPrefabName(creature.gameObject), EntryKeys.Attack(weapon.name));

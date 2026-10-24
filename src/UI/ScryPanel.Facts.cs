@@ -228,11 +228,13 @@ namespace Scry
                 finds.Count(!seen);
                 if (!seen) stars.Add(level);
             }
+            // Each item counts; the rows name an item once, and one never met as any name never met.
             foreach (var (prefab, name) in facts.Gear)
             {
                 var seen = explorer.WearsShown(page.Key, prefab);
                 finds.Count(!seen);
-                if (!seen) gear.Add(name);
+                var shown = explorer.NotMet(prefab) ? CompendiumWords.Hidden : name;
+                if (!seen && !gear.Contains(shown)) gear.Add(shown);
             }
             return (stars, gear);
         }
@@ -393,7 +395,12 @@ namespace Scry
                 case FactBlock.Where:
                     return facts.Where.Count > 0 ? WhereBlock(explorer, facts, titled, width, y) : y;
                 case FactBlock.FoundIn:
-                    return places ? FoundIn(explorer, entry, width, y + U(6f)) : y;
+                {
+                    // Nothing drawn, nothing taken: the gap above goes too, so an empty topic stays empty.
+                    if (!places) return y;
+                    var below = FoundIn(explorer, entry, width, y + U(6f));
+                    return below > y + U(6f) ? below : y;
+                }
                 case FactBlock.Biomes:
                     return BiomesBlock(explorer, entry, width, y);
                 case FactBlock.Users:

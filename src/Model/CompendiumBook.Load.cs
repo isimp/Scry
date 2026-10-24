@@ -127,6 +127,10 @@ namespace Scry
             {
                 if (parts.Length == 2) book._attacksAsPairs = true;
             },
+            ["format"] = (book, parts, name) =>
+            {
+                if (parts.Length == 2) book._formatRead = true;
+            },
             ["sight"] = (book, parts, name) =>
             {
                 if (parts.Length == 3 && Stored.TryUnescaped(parts[2], out var token) && token.Length > 0) book.ReadSighting(name, token);

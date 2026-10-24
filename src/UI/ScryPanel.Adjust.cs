@@ -212,11 +212,13 @@ namespace Scry
                 Previews.Rebuild();
             }
 
-            if (loadout.Extras.Count == 0) return;
-            var extras = loadout.Extras.Select(e => _explorer != null && _explorer.NotMet(e.Name) ? CompendiumWords.Hidden : ItemName(e.Name)).ToList();
-            var clicked = Toggles("Extras", extras, loadout.ExtraOn, width, labelW, ref y);
+            // Under the strict rules an extra the creature was not seen carrying up close is not offered either.
+            var shownExtras = Enumerable.Range(0, loadout.Extras.Count).Where(i => _explorer == null || _explorer.WearsShown(creature.name, loadout.Extras[i].Name)).ToList();
+            if (shownExtras.Count == 0) return;
+            var extras = shownExtras.Select(i => _explorer != null && _explorer.NotMet(loadout.Extras[i].Name) ? CompendiumWords.Hidden : ItemName(loadout.Extras[i].Name)).ToList();
+            var clicked = Toggles("Extras", extras, i => loadout.ExtraOn(shownExtras[i]), width, labelW, ref y);
             if (clicked < 0) return;
-            loadout.ToggleExtra(clicked);
+            loadout.ToggleExtra(shownExtras[clicked]);
             Previews.Rebuild();
         }
 
