@@ -14,6 +14,15 @@ namespace Scry
 
         /// <summary>How far you walked it; none where you did not.</summary>
         public (int Walked, int Rooms)? Yours;
+
+        /// <summary>How far you and anyone on this server walked it together (<see cref="DungeonMaps.WalkedTogether"/>); none where it is not both yours and the server's.</summary>
+        public (int Walked, int Rooms)? Together;
+
+        /// <summary>Whether every room of it was walked: by you and others on this server together, by you, or, of one only others walked, on this server.</summary>
+        public bool WalkedWhole =>
+            Together is (int tw, int tr) ? tr > 0 && tw >= tr
+            : Yours is (int yw, int yr) ? yr > 0 && yw >= yr
+            : Server is (int sw, int sr, int _) && sr > 0 && sw >= sr;
         public int YourFirst = -1, YourLast = -1;
 
         /// <summary>How far anyone on this server walked it, and how many of those rooms came of traces alone; none where the server keeps no walk of it shown.</summary>
@@ -44,9 +53,10 @@ namespace Scry
         public const int FirstShown = 4;
 
         public static List<WalkLine> Of(IEnumerable<(string Id, DungeonMap Map, int Walked, int Rooms)> yours, IEnumerable<(string Id, DungeonMap Map, int Walked, int Rooms)> server,
-            Func<string, Vec3?> knownAt, Vec3 player)
+            Func<string, Vec3?> knownAt, Vec3 player, Func<DungeonMap, DungeonMap, (int Walked, int Rooms, int ByYou)> together = null)
         {
             var lines = new List<WalkLine>();
+            var mine = new Dictionary<string, DungeonMap>(StringComparer.Ordinal);
             var byId = new Dictionary<string, WalkLine>(StringComparer.Ordinal);
             WalkLine LineOf(string id, DungeonMap map)
             {
@@ -60,6 +70,7 @@ namespace Scry
             {
                 if (walked <= 0) continue;
                 var line = LineOf(id, map);
+                mine[id] = map;
                 line.Yours = (walked, rooms);
                 line.YourFirst = map.FirstDay;
                 line.YourLast = map.LastDay;
@@ -73,6 +84,11 @@ namespace Scry
                 line.ServerFirst = map.FirstDay;
                 line.ServerLast = map.LastDay;
                 line.Tally = map.Tally;
+                if (together != null && mine.TryGetValue(id, out var yourMap))
+                {
+                    var (tw, tr, _) = together(yourMap, map);
+                    line.Together = (tw, tr);
+                }
                 if (line.Yours.HasValue || !(knownAt(id) is Vec3 at)) continue;
                 line.Entrance = at;
                 line.Found = true;

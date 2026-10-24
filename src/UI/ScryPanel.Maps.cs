@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Scry
@@ -34,6 +35,10 @@ namespace Scry
         [Diagnostic]
         public static int MapLinesDrawn { get; private set; }
 
+        /// <summary>How many lines last drawn told a dungeon walked whole, with the map's ticked mark, for the self-test.</summary>
+        [Diagnostic]
+        public static int WholeLinesDrawn { get; private set; }
+
         /// <summary>The lines last built, in the order drawn, for the self-test.</summary>
         [Diagnostic]
         public static IReadOnlyList<WalkLine> WalkLinesForTest => WalkLinesBuilt;
@@ -61,6 +66,7 @@ namespace Scry
         {
             MapLinesDrawn = 0;
             GroupLinesDrawn = 0;
+            WholeLinesDrawn = 0;
             WalkHeadingForTest = null;
             if (!(entry.Source is PlaceSource place) || place.IsRoom || place.Contents?.Dungeon?.Algorithm != "Dungeon") return y;
             BuildWalkLines(entry, place);
@@ -103,10 +109,20 @@ namespace Scry
                     if (GUI.Button(onMap, DungeonMapWords.OnTheMap, Skin.Button)) ShowOnTheMap(line.Entrance);
                 }
 
-                // The dot: a walk of yours, one on this server alone, or one lying outside what you know.
-                var size = U(8f);
-                var dot = line.Yours.HasValue ? Skin.Accent : line.Found ? Skin.Alpha(Skin.Accent, 0.45f) : Skin.Alpha(Skin.Faint, 0.45f);
-                Skin.Icon(new Rect(U(2f), y + (rowH - size) / 2f, size, size), Skin.Circle, dot);
+                // The dot: a walk of yours, one on this server alone, or one lying outside what you know;
+                // one walked whole the map's ticked mark, solid where you walked in it, else hollow.
+                if (line.WalkedWhole && MarkPicture(line.Yours.HasValue ? MarkLook.Whole : MarkLook.ServerWhole).OrNull()?.texture is Texture whole)
+                {
+                    var markSize = U(13f);
+                    GUI.DrawTexture(new Rect(0f, y + (rowH - markSize) / 2f, markSize, markSize), whole);
+                    WholeLinesDrawn++;
+                }
+                else
+                {
+                    var size = U(8f);
+                    var dot = line.Yours.HasValue ? Skin.Accent : line.Found ? Skin.Alpha(Skin.Accent, 0.45f) : Skin.Alpha(Skin.Faint, 0.45f);
+                    Skin.Icon(new Rect(U(2f), y + (rowH - size) / 2f, size, size), Skin.Circle, dot);
+                }
                 var text = new Rect(U(16f), y, Mathf.Max(0f, x - U(24f)), rowH);
                 GUI.Label(text, said, Skin.Fitted(Skin.DimLabel, text));
                 if (tip != null && text.Contains(e.mousePosition)) AskTip("map:line:" + line.Id, tip);
@@ -141,18 +157,24 @@ namespace Scry
             if (of == _walkLinesOf && Time.unscaledTime - _walkLinesAt < WalkLinesEvery) return;
             _walkLinesOf = of;
             _walkLinesAt = Time.unscaledTime;
-            var yours = DungeonWalks.Maps.WalkedOf(world, place.Prefab, map => example ? ExampleLayouts.Count(map) : RoomKinds.Walked(map));
+            var yours = DungeonWalks.Maps.WalkedOf(world, place.Prefab, map => example ? ExampleLayouts.Count(map) : RoomKinds.Walked(map)).ToList();
             var server = new List<(string, DungeonMap, int, int)>();
-            if (open)
+            // The server's records of your own walks count with them whatever the compendium shows,
+            // as how far you and others walked a dungeon tells nothing of its rooms; the rest only
+            // where the compendium opens them.
+            if (!open && yours.Count > 0) GroupMapsLink.Ask(place.Prefab);
+            if (open || yours.Count > 0)
             {
                 foreach (var (id, map) in GroupMapsLink.Group.OfLocation(world, place.Prefab))
                 {
+                    if (!open && !yours.Exists(y => y.Id == id)) continue;
                     var (walked, rooms) = ExampleLayouts.Count(map);
                     server.Add((id, map, walked, rooms));
                 }
             }
             // The server's records carry no place: one lies where the ground you know holds it.
-            var lines = WalkLines.Of(yours, server, id => DungeonsInGround.MapOf(id) is DungeonMap held ? held.Entrance : (Vec3?)null, new Vec3(at.x, at.y, at.z));
+            var lines = WalkLines.Of(yours, server, id => DungeonsInGround.MapOf(id) is DungeonMap held ? held.Entrance : (Vec3?)null, new Vec3(at.x, at.y, at.z),
+                (mine, theirs) => DungeonMaps.WalkedTogether(mine, theirs, RoomKinds.Of));
             WalkLinesBuilt.Clear();
             WalkLinesBuilt.AddRange(lines);
             WalkLineWords.Clear();
@@ -171,6 +193,9 @@ namespace Scry
             AskClose();
             map.ShowPointOnMap(new Vector3(at.X, at.Y, at.Z));
         }
+
+        /// <summary>A dungeon mark's picture by its look, in the panel's colours, as the large map and a dungeon's page show it (<see cref="MarkPictures"/>).</summary>
+        internal static Sprite MarkPicture(MarkLook look) => MarkPictures.Of(look, Skin.Accent, Skin.OnAccent, Skin.Faint, Skin.Shade(Skin.Faint, 0.55f));
 
         /// <summary>The first line as last drawn, and its hover, for the self-test.</summary>
         [Diagnostic]

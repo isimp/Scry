@@ -163,6 +163,39 @@ namespace Scry
 
         public DungeonMap Of(string id) => id != null && _maps.TryGetValue(id, out var map) ? map : null;
 
+        /// <summary>
+        /// How far a dungeon was walked by you and anyone on this server together: the rooms either
+        /// walked, of its rooms, end caps and dividers left out, and how many of them you walked.
+        /// The server's record is joined room by room where its rooms are your map's; one laid out
+        /// otherwise counts whichever walked more; none, yours alone.
+        /// </summary>
+        public static (int Walked, int Rooms, int ByYou) WalkedTogether(DungeonMap yours, DungeonMap server, Func<int, RoomShape> roomOf)
+        {
+            var (walked, rooms) = Walked(yours, roomOf);
+            if (server == null) return (walked, rooms, walked);
+            if (!SameRooms(yours, server))
+            {
+                var (theirs, theirRooms) = Walked(server, roomOf);
+                return theirs > walked ? (theirs, theirRooms, walked) : (walked, rooms, walked);
+            }
+            var together = 0;
+            for (var i = 0; i < yours.Rooms.Count; i++)
+            {
+                var shape = roomOf(yours.Rooms[i].Hash);
+                if (shape != null && (shape.EndCap || shape.Divider)) continue;
+                if (yours.Walked.Contains(i) || server.Walked.Contains(i)) together++;
+            }
+            return (together, rooms, walked);
+        }
+
+        /// <summary>Whether two maps hold the same rooms, kind by kind in the same order.</summary>
+        private static bool SameRooms(DungeonMap a, DungeonMap b)
+        {
+            if (a.Rooms == null || b.Rooms == null || a.Rooms.Count != b.Rooms.Count) return false;
+            for (var i = 0; i < a.Rooms.Count; i++) if (a.Rooms[i].Hash != b.Rooms[i].Hash) return false;
+            return true;
+        }
+
         /// <summary>How many of a map's rooms were walked, of how many, end caps and dividers left out; a room of a kind not read counted as one, a walk past its rooms none.</summary>
         public static (int Walked, int Rooms) Walked(DungeonMap map, Func<int, RoomShape> roomOf)
         {
@@ -606,8 +639,11 @@ namespace Scry
         public static string Line(WalkLine line)
         {
             var said = line.Found ? Where(line.Distance, line.Direction) : NotFound;
+            // Walked whole between you and others: so said, then your share.
+            var together = line.Yours.HasValue && line.Together is (int tw, int tr) && tr > 0 && tw >= tr;
+            if (together) said += " \u00b7 walked whole on this server";
             if (line.Yours is (int walked, int rooms)) said += " \u00b7 you " + RoomsOf(walked, rooms);
-            if (line.Server is (int serverWalked, int serverRooms, int fromTraces)) said += " \u00b7 on this server " + RoomsOf(serverWalked, serverRooms) + FromTraces(serverWalked, fromTraces, ", ");
+            if (!together && line.Server is (int serverWalked, int serverRooms, int fromTraces)) said += " \u00b7 on this server " + RoomsOf(serverWalked, serverRooms) + FromTraces(serverWalked, fromTraces, ", ");
             return said;
         }
 
@@ -764,7 +800,13 @@ namespace Scry
 
         /// <summary>The words under the mark of a dungeon walked on this server, shown with insides: its name, how far anyone walked it, and how many of those rooms came of traces alone.</summary>
         public static string ServerLabel(string name, int walked, int rooms, string colour, int fromTraces) =>
-            Named(name, colour, "Walked on this server: " + MarkRooms(walked, rooms) + FromTraces(walked, fromTraces, ", "));
+            Named(name, colour, OnThisServer(walked, rooms) + MarkRooms(walked, rooms) + FromTraces(walked, fromTraces, ", "));
+
+        /// <summary>The words under the mark of a dungeon you and others on this server walked: how far all of you walked it, and how many of those rooms you did.</summary>
+        public static string TogetherLabel(string name, int walked, int rooms, int byYou, string colour) =>
+            Named(name, colour, OnThisServer(walked, rooms) + MarkRooms(walked, rooms) + "\n" + Numbers.Count(byYou) + " of them by you");
+
+        private static string OnThisServer(int walked, int rooms) => rooms > 0 && walked >= rooms ? "Walked whole on this server: " : "Walked on this server: ";
 
         /// <summary>The words under the mark of a dungeon's entrance alone: whether anyone on this server walked it, With insides then showing what was walked.</summary>
         public static string EntranceLabel(string name, bool walkedOnServer, string colour) =>

@@ -353,8 +353,40 @@ namespace Scry
                     && (ScryPanel.FirstMapTipForTest?.Contains(said) ?? false),
                     "its page's line says it lies where you stand and how far you walked it, its hover the day", $"{ScryPanel.FirstMapLineForTest} / {ScryPanel.FirstMapTipForTest}");
             }
+            yield return WalkedTogether(p, maps, id, world, saved, at, rolled, entry);
             yield return WalkedWhole(p, maps, id, rolled.Rooms.Count, entry);
             MarksAsTheyWere();
+        }
+
+        /// <summary>
+        /// The rest of a dungeon's rooms walked by others, as the server's record sends them: its
+        /// mark is ticked and says it was walked whole on this server with your share, and its
+        /// page's line says so with the ticked mark, the compendium off as it is here.
+        /// </summary>
+        private static IEnumerator WalkedTogether(Probe p, DungeonMaps maps, string id, string world, List<(int Hash, Vec3 Position, Vec3 Angles)> saved, Vec3 at, DungeonExample rolled, Entry entry)
+        {
+            var others = new DungeonMaps();
+            others.Keep(id, PlaceOf(entry).Prefab, saved, at, rolled.Site.Generator, rolled.Site.Turn);
+            for (var room = 1; room < saved.Count; room++) others.Walk(id, room);
+            var group = new DungeonMaps();
+            group.Merge(others.Only(world, new[] { PlaceOf(entry).Prefab }));
+            GroupMapsLink.GroupInsteadForTest(group);
+            // A room more of your own, so the marks are listed afresh with the record in place.
+            maps.Walk(id, 1);
+            Session.Hide();
+            Minimap.instance.SetMapMode(Minimap.MapMode.Large);
+            yield return Until(() => MapMarkButtons.LookForTest(0) == MarkLook.Whole, 5);
+            var said = MapMarkButtons.SaidForTest(0) ?? "";
+            p.Check(MapMarkButtons.LookForTest(0) == MarkLook.Whole && said.Contains("Walked whole on this server") && said.Contains("2 of them by you"),
+                "the rest of its rooms walked by others, its mark is ticked and says it was walked whole on this server, with your share", said);
+            yield return Picture(p, $"the mark of {entry.Name} walked whole together");
+            Minimap.instance.SetMapMode(Minimap.MapMode.Small);
+            Session.Show(null);
+            Select(entry);
+            yield return Until(() => (ScryPanel.FirstMapLineForTest?.Contains("walked whole on this server") ?? false) && ScryPanel.WholeLinesDrawn > 0, 5);
+            p.Check((ScryPanel.FirstMapLineForTest?.Contains("walked whole on this server") ?? false) && ScryPanel.WholeLinesDrawn > 0,
+                "its page's line says so, with the map's ticked mark, the compendium off", ScryPanel.FirstMapLineForTest);
+            GroupMapsLink.GroupInsteadForTest(null);
         }
 
         /// <summary>Every room of a dungeon walked, its mark on the map is ticked and its words say all its rooms were; with names shown always, its name alone stands under it.</summary>

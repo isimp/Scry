@@ -26,7 +26,7 @@ The compendium's box also chooses what the world itself may show as known, sourc
 
 ![The compendium's box, each source of the world at the level chosen](../images/compendium-box.webp)
 
-The pin at the end of *Ground you explored* and *Shared maps* marks every dungeon entrance lying in that ground on Valheim's large map: solid where you walked it, ticked where you walked every room of it, hollow where someone on the server did, plain for an entrance alone. A click on a mark shows that dungeon in Scry. *Marks on the map*, under the pins, turns every mark of Scry's on the map on or off.
+The pin at the end of *Ground you explored* and *Shared maps* marks every dungeon entrance lying in that ground on Valheim's large map: solid where you walked it, ticked where every room of it was walked, by you alone or by you and others on the server together, hollow where only others did, ticked in outline once they walked it all, plain for an entrance alone. A mark you walked and its page's line count the rooms others on the server walked whatever the compendium shows: "Walked whole on this server: all 9 rooms, 5 of them by you". A click on a mark shows that dungeon in Scry. *Marks on the map*, under the pins, turns every mark of Scry's on the map on or off.
 
 ## Playing together
 
