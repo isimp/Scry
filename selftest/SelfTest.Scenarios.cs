@@ -87,6 +87,7 @@ namespace Scry
             yield return S("this game sends its own events to the games they concern, the server's among them, and to no other", CompendiumEventsSent, 15);
             yield return S("a player rising again after a death stays played with, one without Scry is named after a wait, one gone is forgotten", PlayersComeAndGo, 25, PlayersAsTheyWere);
             yield return S("a made-up character's pages read under the strict rules as a player sees them", CompendiumStrictRead, 30, () => { AllKnown(); ResetList(); });
+            yield return S("one page of each kind is pictured under the strict, the loose and no rules, from one made-up book", PagesAudited, 120, () => { AllKnown(); ResetList(); });
             yield return S("a made-up character's You box tells its moments, Learned goes by day and the notice tells what happened", YouAndLearnedRead, 20, () => { X.LearnedOnly = false; AllKnown(); ResetList(); });
             yield return S("a status effect's look stands on the person where the game puts it, plays again on a click, and its text keeps plain words", StatusLookRead, 30, () => { AllKnown(); ResetList(); });
             yield return S("under the loose rules a known page names only what the character has met, and the stage stands no creature not met", CompendiumLooseRead, 90, () => { AllKnown(); ResetList(); RoomCardAsItWas(); StageAsItWas(); });

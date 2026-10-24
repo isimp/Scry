@@ -2,6 +2,12 @@
 
 ## 0.3.1
 
+The compendium follows what the game itself shows. What the game's menus show comes with the thing under *Loose* and *Strict* alike: a recipe's materials and station, a piece's cost and tool, what a known thing is made into, a station's recipes, a store's wares. *Strict* keeps back only what the game never shows of how things connect, and the numbers it never shows, each until found out; the title row counts those numbers alone, and only a creature's loot and where it lives count what was left out.
+
+A creature seen up close, within the 10 m at which the game names it and marks its stars, is kept with the stars and gear it had; under *Strict* the stage shows it only so, a place's example and a raid stand their creatures no higher, and a creature only seen opens on what sight gave. Rows of things only seen are faint. The stars table keeps back by the cell, each starred column until one with that many stars was seen to fall, a trophy's chance by stars told as your own count at those stars.
+
+*Learned* lists what the character met and the numbers it found out; a first pairing seen, as walking into a village, is no longer news of what stood there. A server can set how near a creature counts as seen up close (`SeenReach`).
+
 ## 0.3.0
 
 Scry keeps a compendium for each character, chosen at the top of the panel and offered once on a new character. *Loose* shows only what the character has met; *Strict* also keeps back how things connect, and the numbers the game never shows, until the character found them out. The *?* in the compendium's box explains it in the game, and `is:new`, `is:seen` and `is:walked` search what the character met.

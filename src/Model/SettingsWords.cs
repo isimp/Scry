@@ -82,7 +82,7 @@ namespace Scry
         /// <summary>The guide's paragraphs, each its caption and its words.</summary>
         public static readonly (string Caption, string Words)[] Guide =
         {
-            ("Off, Loose and Strict", "Off shows everything the game holds. Loose shows a thing your character knows with its whole page, naming only what it has met; what it only saw stands on the stage with its page closed. Strict also keeps back how things connect until your character saw them go together, and the numbers the game never shows until it found them out, each saying what shows it; a page's title row counts how much of it was found out."),
+            ("Off, Loose and Strict", "Off shows everything the game holds. Loose shows a thing your character knows with its whole page, naming only what it has met; what the game's own menus show, a recipe's materials, a piece's cost and tool, a store's wares, comes with the thing. What it only saw stands on the stage with its page closed, telling what sight gave. Strict also keeps back what the game never shows of how things connect until your character saw them go together, and the numbers the game never shows until it found them out, each saying what shows it; a page's title row counts how many of those were found out, and the stage shows a creature only with the stars and gear it was seen with up close."),
             ("Known up to", "Shows everything of the biomes whose bosses your character has beaten as known, tier by tier, marked with stairs where it shows something; it can be lowered again."),
             ("Peeking", "The eye beside the compendium's button shows the page you are on whole until you go to another; Every page in its notice shows every page whole until the panel closes."),
             ("Learned and You", "Learned lists what your character learned, day by day; under Strict also the numbers it found out, which Loose shows from the start. A row there opens its page at what changed, lit a moment. A page's You box tells when it first saw the thing and came to know it, and how its fights went."),
@@ -102,7 +102,7 @@ namespace Scry
         public static readonly (string Name, string Means)[] WelcomeAnswers =
         {
             ("Loose", "Known pages whole, the unmet left out"),
-            ("Strict", "Only what you saw go together"),
+            ("Strict", "Numbers and connections only as you find them out"),
             ("Not now", "Everything, as a lookup"),
         };
     }
