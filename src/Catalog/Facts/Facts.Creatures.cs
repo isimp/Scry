@@ -14,6 +14,12 @@ namespace Scry
         /// <summary>How many stars a creature can have, for what they add.</summary>
         private int _stars = 2;
 
+        /// <summary>How many stars the creature can have, for what the stage still lacks of it under the strict rules.</summary>
+        public int Stars => _stars;
+
+        /// <summary>The gear the stage can dress the creature in, by prefab and name: what it carries that shows when worn (<see cref="PrefabGear.Shows"/>).</summary>
+        public readonly List<(string Prefab, string Name)> Gear = new List<(string, string)>();
+
         /// <summary>
         /// The drop's flag that stars leave its amount alone, read by name: the game has it since
         /// 1.0.20 and sets it on every creature's trophy; null in a game before it.
@@ -43,6 +49,7 @@ namespace Scry
 
             Part("resistances", () => Rows.Add(new Row { Title = "Damage it takes", HitReveals = true, Cells = ResistWords.ForCreature(Cells(character.m_damageModifiers)) }));
             Part("weak spots", () => WeakSpots(character));
+            Part("gear", () => GearShown(prefab));
             Part("attacks", () => Attacks(prefab));
             Part("what to bring", () => Bring(prefab, character));
             // Whether it can be tamed, fought or looted is worth telling when it cannot.
@@ -408,6 +415,15 @@ namespace Scry
                 modifiers.Add((Naming.FieldLabel(field.Name).ToLowerInvariant(), DegreeOf(modifier)));
             }
             return ResistWords.ByDegree(modifiers);
+        }
+
+        /// <summary>What the creature carries that shows when worn, for the stage's looks and what sight still lacks of them.</summary>
+        private void GearShown(GameObject prefab)
+        {
+            foreach (var item in Relations.CarriedItems(prefab))
+            {
+                if (item != null && PrefabGear.Shows(item) && !Gear.Exists(g => g.Prefab == item.name)) Gear.Add((item.name, ItemName(item)));
+            }
         }
 
         /// <summary>

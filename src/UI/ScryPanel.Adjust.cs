@@ -171,20 +171,29 @@ namespace Scry
             {
                 if (!loadout.Offered(rows[i])) continue;
                 var options = loadout.Options(rows[i]);
-                var names = options.Select(ItemName).ToList();
+                // Under the strict rules an item the creature was not seen carrying up close is not
+                // offered, as the stage would not put it on; a row left with nothing to choose is left out.
+                var shown = Enumerable.Range(0, options.Count).Where(n => string.IsNullOrEmpty(options[n]) || _explorer == null || _explorer.WearsShown(creature.name, options[n])).ToList();
+                if (shown.Count < options.Count && !shown.Any(n => !string.IsNullOrEmpty(options[n]))) continue;
+                if (shown.Count < options.Count && !shown.Contains(loadout.Chosen(rows[i])))
+                {
+                    loadout.Choose(rows[i], shown[0]);
+                    Previews.Rebuild();
+                }
+                var names = shown.Select(n => ItemName(options[n])).ToList();
                 var hidden = 0;
                 for (var n = 0; n < names.Count; n++)
                 {
                     // An item never met reads ??? as in a page's text, its prefab not told either,
                     // but a weapon, whose attacks the creature's table names.
-                    if (rows[i] != Loadout.Row.Weapon && !string.IsNullOrEmpty(options[n]) && _explorer != null && _explorer.NotMet(options[n]))
+                    if (rows[i] != Loadout.Row.Weapon && !string.IsNullOrEmpty(options[shown[n]]) && _explorer != null && _explorer.NotMet(options[shown[n]]))
                     {
                         names[n] = CompendiumWords.Hidden;
                         hidden++;
                     }
-                    else if (names.Count(other => other == names[n]) > 1) names[n] = Naming.WithPrefab(names[n], options[n]);
+                    else if (names.Count(other => other == names[n]) > 1) names[n] = Naming.WithPrefab(names[n], options[shown[n]]);
                 }
-                if (hidden > 0 && hidden == options.Count(o => !string.IsNullOrEmpty(o))) continue;
+                if (hidden > 0 && hidden == shown.Count(n => !string.IsNullOrEmpty(options[n]))) continue;
                 LoadoutNames.Add((labels[i], names));
 
                 // A shield the weapon leaves no hand for is shown put away, and still chosen for later.
@@ -192,14 +201,14 @@ namespace Scry
                 var was = GUI.color;
                 if (!held) GUI.color = Skin.Alpha(was, was.a * 0.4f);
                 var top = y;
-                var chosen = Segments(labels[i], names, loadout.Chosen(rows[i]), width, labelW, ref y);
+                var chosen = Segments(labels[i], names, shown.IndexOf(loadout.Chosen(rows[i])), width, labelW, ref y);
                 GUI.color = was;
                 if (!held && new Rect(0f, top, width, y - top).Contains(Event.current.mousePosition))
                 {
                     AskTip("shield-away", "Not worn: the weapon takes both hands. Pick a one-handed weapon to wear it.");
                 }
-                if (chosen < 0 || chosen == loadout.Chosen(rows[i])) continue;
-                loadout.Choose(rows[i], chosen);
+                if (chosen < 0 || shown[chosen] == loadout.Chosen(rows[i])) continue;
+                loadout.Choose(rows[i], shown[chosen]);
                 Previews.Rebuild();
             }
 

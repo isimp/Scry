@@ -142,6 +142,14 @@ namespace Scry.Tests
             Assert.False(world.Explorer.KeepsBack(killed));
             Assert.False(world.Explorer.KeepsBack(null));
 
+            // The game prints the health of the creature ridden, so riding one shows its health as a kill does, and nothing else.
+            var ridden = new World().Rule(CompendiumRule.Strict);
+            ridden.Explorer.Select(ridden.Troll);
+            Assert.True(ridden.Explorer.KeepsBack(killed));
+            ridden.Book.Prove(ridden.Troll.Key, EntryKeys.Did(Deed.Ridden));
+            Assert.False(ridden.Explorer.KeepsBack(killed));
+            Assert.True(ridden.Explorer.KeepsBack(EntryKeys.Did(Deed.Tamed)));
+
             world.Rule(CompendiumRule.Loose);
             Assert.False(world.Explorer.KeepsBack(EntryKeys.Did(Deed.Tamed)));
         }
@@ -202,6 +210,18 @@ namespace Scry.Tests
             }, one);
 
             Assert.Empty(CompendiumWords.StillToFindOut(new string[0], new string[0], 0, 0, new Tally[0]));
+
+            // A creature that can be ridden shows its health either way; what sight still lacks for the stage comes last.
+            var ride = CompendiumWords.StillToFindOut(new[] { EntryKeys.Did(Deed.Killed), EntryKeys.Did(Deed.Ridden) }, new string[0], attacks: 0, spots: 0, new Tally[0],
+                starsUnseen: new[] { 1, 2 }, gearUnseen: new[] { "Draugr axe" });
+            Assert.Equal(new[]
+            {
+                ("Kill or ride one", "shows its health"),
+                ("Ride one", "shows its stamina and speed when ridden"),
+                ("See one with 1 star up close", "shows it so on the stage"),
+                ("See one with 2 stars up close", "shows it so on the stage"),
+                ("See one carrying Draugr axe up close", "dresses it so on the stage"),
+            }, ride);
         }
 
         [Fact]

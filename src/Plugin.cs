@@ -123,6 +123,7 @@ namespace Scry
             { typeof(ChestOpened), Feature.CompendiumTogether },
             { typeof(CardWatched), Feature.CompendiumUse },
             { typeof(RecipeCardWatched), Feature.CompendiumUse },
+            { typeof(HitOnOwnedWatched), Feature.CompendiumTogether },
             { typeof(SwingWatched), Feature.CompendiumSeen },
             { typeof(VegvisirWatched), Feature.CompendiumUse },
             { typeof(UnmoddedTooltip), Feature.TooltipFromMods },

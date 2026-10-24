@@ -17,6 +17,17 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AThingThatIsNoCreatureIsSeenOnlyWithinTheWorldsSeenReach()
+        {
+            // The game names an item, a piece or a resource only on hover, so sight makes one out
+            // only as near as a creature's stars: within the world's seen reach, whatever its size.
+            Assert.Equal(10f, Sighting.ThingReach(Sighting.Reach(1.8f), 10f));
+            Assert.Equal(10f, Sighting.ThingReach(Sighting.Reach(9f), 10f));
+            Assert.Equal(30f, Sighting.ThingReach(Sighting.Reach(0.3f), 150f));
+            Assert.Equal(0f, Sighting.ThingReach(Sighting.Reach(1.8f), 0f));
+        }
+
+        [Fact]
         public void ABiggerCreatureIsSeenAsMuchFartherAsItIsBigger()
         {
             // A troll some 4.5 m tall looks at 75 m as a person does at 30 m.

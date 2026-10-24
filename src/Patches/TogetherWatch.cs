@@ -89,17 +89,21 @@ namespace Scry
         }
 
         /// <summary>
-        /// The character hit a creature: the damage types the game's popup will tell how it takes
-        /// (<see cref="HitTold"/>), worked out as the game works it out on receiving the hit, by
-        /// its own <c>HitData.ApplyResistance</c> on a copy; paired with the creature. A hit on a
-        /// weak spot is passed over, as it lands by the weak spot's own modifiers.
+        /// A creature was hit, by the character or, on a creature this game runs, by anyone near:
+        /// the damage types the game's popup tells how it takes (<see cref="HitTold"/>), which it
+        /// shows every player within its text distance, worked out as the game works it out on
+        /// receiving the hit, by its own <c>HitData.ApplyResistance</c> on a copy; paired with the
+        /// creature. A hit on a weak spot is passed over, as it lands by the weak spot's own
+        /// modifiers, and found only by the character's own hit.
         /// </summary>
-        public static void Hit(Character target, HitData hit)
+        public static void Hit(Character target, HitData hit, bool mine = true)
         {
-            if (target == null || hit == null || target.IsPlayer() || hit.GetAttacker() != Player.m_localPlayer || Player.m_localPlayer == null) return;
+            if (target == null || hit == null || target.IsPlayer() || Player.m_localPlayer == null) return;
+            if (mine ? hit.GetAttacker() != Player.m_localPlayer : hit.GetAttacker() == Player.m_localPlayer || !PopupSeen(target)) return;
             // A weak spot hit shows how that spot takes it, not the creature: the spot is found, no more.
             if (hit.m_weakSpot >= 0)
             {
+                if (!mine) return;
                 Guard.Run(Feature.CompendiumTogether, "noting a weak spot found", () =>
                 {
                     var spots = target.m_weakSpots;
@@ -131,6 +135,13 @@ namespace Scry
             };
             foreach (var type in HitTold.Types(parts, (Degree)(int)shown)) CompendiumKeeper.FoundOut(key, EntryKeys.Damage(type));
             CompendiumKeeper.Noted(PlayEvent.HitTold);
+        }
+
+        /// <summary>Whether the game shows the character a hit's popup on a creature: within the popup's distance (<c>DamageText.m_maxTextDistance</c>, 30 m).</summary>
+        private static bool PopupSeen(Character target)
+        {
+            var reach = DamageText.instance != null ? DamageText.instance.m_maxTextDistance : 30f;
+            return Vector3.Distance(Player.m_localPlayer.transform.position, target.transform.position) <= reach;
         }
 
         /// <summary>The bait on the line a fish is caught with, before the catch takes the float away.</summary>
@@ -199,6 +210,13 @@ namespace Scry
             __state = fromInventoryGui ? (null, null) : (TogetherWatch.Carried(__instance), __instance.GetHoverObject());
 
         private static void Postfix(Humanoid __instance, (Dictionary<string, int> Before, GameObject Target) __state) => TogetherWatch.UsedWith(__instance, __state.Target, __state.Before);
+    }
+
+    /// <summary>A hit anyone lands on a creature this game runs (<c>Character.RPC_Damage</c> runs on the creature's owner): how it took it, where the character saw the popup.</summary>
+    [HarmonyPatch(typeof(Character), "RPC_Damage")]
+    internal static class HitOnOwnedWatched
+    {
+        private static void Postfix(Character __instance, HitData hit) => TogetherWatch.Hit(__instance, hit, mine: false);
     }
 
     [HarmonyPatch(typeof(Character), nameof(Character.Damage))]

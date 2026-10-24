@@ -9,8 +9,9 @@ namespace Scry
     /// <summary>
     /// What the character sees, for the compendium, by one rule for everything in the world: a
     /// thing is seen once it is in the camera's view, nothing solid between, within the reach its
-    /// size gives (<see cref="Sighting.Reach"/>, 30 m for one of a person's size or smaller), and
-    /// it is paired with the biome and the place it stands in. Creatures are looked at once a
+    /// size gives (<see cref="Sighting.Reach"/>, 30 m for one of a person's size or smaller), a
+    /// thing that is no creature or place within the world's seen reach besides
+    /// (<see cref="Sighting.ThingReach"/>), and it is paired with the biome and the place it stands in. Creatures are looked at once a
     /// second; everything else the game keeps in the world (trees, logs, rocks, deposits,
     /// buildings, pickables, nests, items on the ground) is kept as it wakes and looked at in
     /// rounds, a share each frame and all once a second (<see cref="Rounds{T}"/>), and let go once
@@ -301,9 +302,11 @@ namespace Scry
             var at = thing.transform.position;
             var middle = at + Vector3.up * shape.Height;
             var away = (middle - _from).sqrMagnitude;
-            if (away > shape.Reach * shape.Reach)
+            // Within its size's reach and the world's seen reach, as the game names a thing only on hover.
+            var reach = Sighting.ThingReach(shape.Reach, _book.World.SeenReach);
+            if (away > reach * reach)
             {
-                var beyond = shape.Reach + Viewpoint.Step;
+                var beyond = reach + Viewpoint.Step;
                 return Unchanged(shape, away > beyond * beyond);
             }
             if (_letGo && _book.Level(shape.Key) >= KnownLevel.Seen && CompendiumKeeper.PairedIn(shape.Key, at)) return Looked.LetGo;

@@ -172,8 +172,9 @@ namespace Scry
         /// <summary>
         /// What a page under the strict rules still keeps back, gathered from what it draws: the
         /// facts whose numbers wait for a deed, the weak spots not found, the damage types not told,
-        /// the attacks not taken, and the drops or yields not counted; none otherwise. With it, how
-        /// much of all it keeps back was found out (<see cref="PageFinds"/>), each deed's proof once.
+        /// the attacks not taken, the drops or yields not counted, and the star levels and gear the
+        /// stage still lacks; none otherwise. With it, how much of all it keeps back was found out
+        /// (<see cref="PageFinds"/>), each deed's proof once.
         /// </summary>
         private static (List<(string Label, string Value)> Still, PageFinds Finds) StillToFindOut(Explorer explorer, Facts facts)
         {
@@ -210,7 +211,30 @@ namespace Scry
                 finds.Count(notCounted);
                 if (notCounted) uncounted.Add(row.Tally);
             }
-            return (CompendiumWords.StillToFindOut(deeds, types, attacks, spots, uncounted), finds);
+            var (starsUnseen, gearUnseen) = SightLacks(explorer, facts, finds);
+            return (CompendiumWords.StillToFindOut(deeds, types, attacks, spots, uncounted, starsUnseen, gearUnseen), finds);
+        }
+
+        /// <summary>What sight still lacks for a creature's stage: the star levels and the gear not seen up close, each counted as found or kept back.</summary>
+        private static (List<int> Stars, List<string> Gear) SightLacks(Explorer explorer, Facts facts, PageFinds finds)
+        {
+            var stars = new List<int>();
+            var gear = new List<string>();
+            if (!(explorer.Selected is Entry page) || page.Kind != Kind.Creature) return (stars, gear);
+            var offered = explorer.StarsOffered(page);
+            for (var level = 1; level <= facts.Stars; level++)
+            {
+                var seen = offered.Contains(level + 1);
+                finds.Count(!seen);
+                if (!seen) stars.Add(level);
+            }
+            foreach (var (prefab, name) in facts.Gear)
+            {
+                var seen = explorer.WearsShown(page.Key, prefab);
+                finds.Count(!seen);
+                if (!seen) gear.Add(name);
+            }
+            return (stars, gear);
         }
 
         /// <summary>Each damage type a grid a hit reveals tells, counted as found or kept back, those kept back named.</summary>

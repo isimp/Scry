@@ -22,6 +22,13 @@ namespace Scry
         public static float Reach(float size) => Math.Min(MostReach, PersonReach * Math.Max(1f, size / PersonSize));
 
         /// <summary>
+        /// How far a thing that is no creature or place is seen: within its size's reach, and
+        /// within the world's seen reach, as the game names an item, a piece or a resource only on
+        /// hover, nearer still than it names a creature.
+        /// </summary>
+        public static float ThingReach(float reach, float seenReach) => Math.Min(reach, seenReach);
+
+        /// <summary>
         /// Where a place is looked for, from its middle: there and four points half way out to its
         /// edge, a person's height over its ground, so one in a dip or behind a low wall is looked
         /// for where it stands up, and a big one half hidden is still found.

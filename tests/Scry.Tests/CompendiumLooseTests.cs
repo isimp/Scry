@@ -256,7 +256,7 @@ namespace Scry.Tests
             Assert.Equal("2 more not yet met", world.Explorer.LeftOutLine(null, 2));
             Assert.Null(world.Explorer.LeftOutLine(null, 0));
             world.Rule(CompendiumRule.Strict);
-            Assert.Equal("7 not yet seen together", world.Explorer.LeftOutLine(null, 7, alone: true));
+            Assert.Equal("7 not yet seen here", world.Explorer.LeftOutLine(null, 7, alone: true));
         }
 
         [Fact]
