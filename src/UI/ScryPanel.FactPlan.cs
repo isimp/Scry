@@ -43,8 +43,11 @@ namespace Scry
             // What a part tells is left out whole, its label handed in as none, while the thing it
             // hinges on was not met (Facts.PartHinges).
             bool Hidden(string part) => part != null && facts.PartHinges.TryGetValue(part, out var hinge) && explorer.HidesHinged(hinge);
+            // A line only naming what the page lists, left out while that was not met, is no part of
+            // its topic, so a topic of nothing else is left out whole (FactPair).
+            bool Unlisted(string key) => facts.Listing.Contains(key) && facts.Links.TryGetValue(key, out var linked) && LeftOut(explorer, linked);
             PlanPairs.Clear();
-            for (var i = 0; i < facts.Pairs.Count; i++) PlanPairs.Add((Hidden(facts.PairParts[i]) ? null : facts.Pairs[i].Key, facts.PairParts[i]));
+            for (var i = 0; i < facts.Pairs.Count; i++) PlanPairs.Add((Hidden(facts.PairParts[i]) || Unlisted(facts.Pairs[i].Key) ? null : facts.Pairs[i].Key, facts.PairParts[i]));
             PlanRows.Clear();
             foreach (var row in facts.Rows) PlanRows.Add((Hidden(row.Part) || UnmetWhole(explorer, row) ? null : row.Title, row.Part ?? ""));
             PlanLinks.Clear();

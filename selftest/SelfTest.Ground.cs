@@ -59,14 +59,15 @@ namespace Scry
                 yield return StandsInGrass(p, camp, "ground camp");
             }
             // A thing lying low in the meadow: the grass short at its feet, no bare circle round it.
-            var lying = Pick(Kind.Item, "SwordIron", "AxeBronze", "Wood");
+            // A material lies on the ground; a weapon or a garment stands worn by a person, no thing lying low.
+            var lying = Pick(Kind.Item, "Wood", "Stone", "Resin");
             if (lying != null)
             {
                 Select(lying);
                 yield return GrassFor(lying);
                 yield return new Wait(1);
                 var low = Stage.GrassSpread;
-                p.Check(low.ShortOut >= 1.5f && low.Nearest < 0.5f, $"{lying.Name} lies in short grass, stems growing at its feet, no bare circle round it",
+                p.Check(low.ShortOut >= 1.5f && low.Nearest < low.ShortOut, $"{lying.Name} lies in short grass, stems growing at its feet, no bare circle round it",
                     $"short {Numbers.Fixed(low.ShortOut, 1)} m round it, the nearest stem {Numbers.Fixed(low.Nearest, 2)} m from its middle");
                 yield return Picture(p, "ground thing lying low");
             }

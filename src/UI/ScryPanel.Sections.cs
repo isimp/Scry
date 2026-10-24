@@ -111,6 +111,12 @@ namespace Scry
         /// <summary>How many rows of segments could not stand on one line beside their label, counted at each repaint.</summary>
         private static int _rowsWrapped;
 
+        /// <summary>How wide the widest row of segments drawn since <see cref="RowsStart"/> needs to stand on one line beside its label.</summary>
+        private static float _widestRow;
+
+        /// <summary>A card of rows begins: none measured yet.</summary>
+        private static void RowsStart() => _widestRow = 0f;
+
         /// <summary>A labelled row of segments, one of them on; returns the one clicked, or -1.</summary>
         private static int Segments(string label, List<string> names, int selected, float width, float labelW, ref float y) => SegmentRow(label, names, selected, null, width, labelW, ref y);
 
@@ -135,6 +141,7 @@ namespace Scry
                 widths[i] = Skin.Width(Skin.SegmentOn, names[i]) + U(10f);
                 whole += widths[i] + 1f;
             }
+            _widestRow = Mathf.Max(_widestRow, labelW + whole);
             if (labelW + whole <= width)
             {
                 var x = labelW;

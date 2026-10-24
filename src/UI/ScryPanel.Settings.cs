@@ -14,6 +14,10 @@ namespace Scry
         private static Vector2 _settingsScroll, _guideScroll, _welcomeScroll;
         private static float _settingsHeight, _guideHeight, _welcomeHeight;
 
+        /// <summary>How wide the settings card's widest row needs to be to stand on one line, and how wide the card is, as last drawn; for the self-test.</summary>
+        [Diagnostic]
+        public static (float Needed, float Width) SettingsFitForTest { get; private set; }
+
         /// <summary>Whether the next key pressed becomes the one opening the panel.</summary>
         private static bool _keyWaiting;
 
@@ -73,6 +77,7 @@ namespace Scry
             var labelW = LabelColumn.Width(SettingsLabels(), U(14f), width);
             var y = body.Y;
             var wrapped = _rowsWrapped;
+            RowsStart();
 
             // The size follows the slider once it is let go, as the panel changing size under a
             // dragged slider moves the slider away from the mouse.
@@ -134,6 +139,7 @@ namespace Scry
             RowTip(top, y, width, "settings-mark-names", SettingsWords.MarkNamesTip);
 
             if (_rowsWrapped > wrapped) CountDrawn(PanelPart.SettingsRowWrapped);
+            SettingsFitForTest = (_widestRow, width);
             var keptH = Skin.DimWrap.CalcHeight(new GUIContent(SettingsWords.Kept), width);
             GUI.Label(new Rect(0f, y + U(4f), width, keptH), SettingsWords.Kept, Skin.DimWrap);
             y += keptH + U(16f);

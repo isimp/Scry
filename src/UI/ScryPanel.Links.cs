@@ -423,7 +423,8 @@ namespace Scry
         private static bool Unseen(Explorer explorer, string key)
         {
             if (!LeftOut(explorer, key)) return false;
-            CountDrawn(PanelPart.UnseenName);
+            // A mod is always known: one the compendium lists nowhere is named plainly, no name kept back.
+            if (KindOf(explorer, key) != Kind.Mod) CountDrawn(PanelPart.UnseenName);
             return true;
         }
 

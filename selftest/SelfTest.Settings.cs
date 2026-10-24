@@ -31,7 +31,10 @@ namespace Scry
             var wrapped = ScryPanel.Drawn(PanelPart.SettingsRowWrapped);
             cards = ScryPanel.Drawn(PanelPart.SettingsCard);
             yield return Until(() => ScryPanel.Drawn(PanelPart.SettingsCard) > cards + 3, 3);
-            p.Check(ScryPanel.Drawn(PanelPart.SettingsRowWrapped) == wrapped, "every row of the settings card stands on one line beside its label",
+            // Rows wrap where the list is too narrow for them, as they should; where it is wide enough, none does.
+            var fit = ScryPanel.SettingsFitForTest;
+            if (fit.Needed > fit.Width) p.Note($"the list is {Numbers.Fixed(fit.Width, 0)} wide and the widest row needs {Numbers.Fixed(fit.Needed, 0)}, so rows wrap");
+            else p.Check(ScryPanel.Drawn(PanelPart.SettingsRowWrapped) == wrapped, "every row of the settings card stands on one line beside its label where the list is wide enough",
                 $"{Numbers.Count(ScryPanel.Drawn(PanelPart.SettingsRowWrapped) - wrapped)} rows wrapped over {Numbers.Count(ScryPanel.Drawn(PanelPart.SettingsCard) - cards)} frames");
             yield return Picture(p, "settings card");
             ScryPanel.ShowSettings(false);

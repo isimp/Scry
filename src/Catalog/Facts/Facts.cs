@@ -591,7 +591,7 @@ namespace Scry
             // The Forsaken power a trophy gives on its boss stone.
             var (power, stone) = Knowledge.PowerOf(prefab.name);
             var powerEffect = power != null && ObjectDB.instance != null ? ObjectDB.instance.GetStatusEffect(power.GetStableHashCode()) : null;
-            if (powerEffect != null) Add("On its boss stone", ItemWords.Gives(EffectName(powerEffect)), EntryKeys.For(Kind.StatusEffect, power));
+            if (powerEffect != null) AddListed("On its boss stone", ItemWords.Gives(EffectName(powerEffect)), EntryKeys.For(Kind.StatusEffect, power));
 
             Part("machines", () => Machines(prefab));
 
