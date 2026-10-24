@@ -39,25 +39,7 @@ namespace Scry
                 Add("Boss fight", "music and weather while its health bar shows", EntryKeys.For(Kind.Raid, character.m_bossEvent));
             }
 
-            // What stars add: its health once more for each, and half as much again to each hit.
-            if (!character.m_boss)
-            {
-                var stars = new Row { Title = CombatWords.StarsTitle, Columns = CombatWords.StarColumns(_stars) };
-                var told = (prefab.GetComponent<CharacterDrop>().OrNull()?.m_drops ?? new List<CharacterDrop.Drop>()).Where(d => d?.m_prefab != null).ToList();
-                var grow = told.Any(d => WithStars(d) == StarDrop.Grows);
-                foreach (var line in CombatWords.StarLines(character.m_health, _stars, grow)) stars.Lines.Add((line, null));
-                // A drop that only gets likelier, such as every trophy, has a line of its chances.
-                foreach (var drop in told.Where(d => WithStars(d) == StarDrop.Likelier).OrderBy(d => d.m_chance))
-                {
-                    var line = CombatWords.StarChance(ItemName(drop.m_prefab), drop.m_chance, _stars);
-                    if (line != null) stars.Lines.Add((line, EntryKeys.For(Kind.Item, drop.m_prefab.name)));
-                }
-                // Its health by its stars, the first line, shows when its health does; what else
-                // stars change, a drop's chances among it, once a starred one was seen to fall.
-                if (stars.Lines.Count > 0) stars.LineProofs[0] = EntryKeys.Did(Deed.Killed);
-                for (var line = 1; line < stars.Lines.Count; line++) stars.LineProofs[line] = EntryKeys.Did(Deed.StarredFell);
-                if (stars.Lines.Count > 0) Rows.Add(stars);
-            }
+            if (!character.m_boss) StarsTable(prefab, character);
 
             Part("resistances", () => Rows.Add(new Row { Title = "Damage it takes", HitReveals = true, Cells = ResistWords.ForCreature(Cells(character.m_damageModifiers)) }));
             Part("weak spots", () => WeakSpots(character));
@@ -144,6 +126,37 @@ namespace Scry
             if (drops == null || !drops.m_drops.Any(d => d?.m_prefab != null)) Add("Drops", "nothing");
             Hooked(HookedRule.Drops);
             if (Knowledge.IsPlacedByWorld(prefab.name) || Knowledge.WhereLines(prefab.name).Count > 0) Hooked(HookedRule.Spawns);
+        }
+
+        /// <summary>
+        /// What stars add (<see cref="CombatWords.StarLines"/>): its health once more for each,
+        /// half as much again to each hit, its drops doubled, and a line of chances for each drop
+        /// that only gets likelier; under the strict rules kept back by the cell.
+        /// </summary>
+        private void StarsTable(GameObject prefab, Character character)
+        {
+            var stars = new Row { Title = CombatWords.StarsTitle, Columns = CombatWords.StarColumns(_stars), TallyOf = prefab.name };
+            var told = (prefab.GetComponent<CharacterDrop>().OrNull()?.m_drops ?? new List<CharacterDrop.Drop>()).Where(d => d?.m_prefab != null).ToList();
+            var grow = told.Any(d => WithStars(d) == StarDrop.Grows);
+            foreach (var line in CombatWords.StarLines(character.m_health, _stars, grow)) stars.Lines.Add((line, null));
+            // Its health without stars shows when its health does; each starred cell, of its
+            // health, its damage and its drops, once one with that many stars was seen to fall;
+            // without stars what it hits and drops is the creature itself, nothing to find out.
+            for (var line = 0; line < stars.Lines.Count; line++)
+            {
+                if (line == 0) stars.CellProofs[(line, 1)] = EntryKeys.Did(Deed.Killed);
+                for (var star = 1; star <= _stars; star++) stars.CellProofs[(line, star + 1)] = EntryKeys.StarsFell(star);
+            }
+            // A drop that only gets likelier, such as every trophy, has a line of its chances,
+            // which the strict rules tell as the character's own counts at each count of stars.
+            foreach (var drop in told.Where(d => WithStars(d) == StarDrop.Likelier).OrderBy(d => d.m_chance))
+            {
+                var line = CombatWords.StarChance(ItemName(drop.m_prefab), drop.m_chance, _stars);
+                if (line == null) continue;
+                stars.StarItems[stars.Lines.Count] = drop.m_prefab.name;
+                stars.Lines.Add((line, EntryKeys.For(Kind.Item, drop.m_prefab.name)));
+            }
+            if (stars.Lines.Count > 0) Rows.Add(stars);
         }
 
         /// <summary>

@@ -329,6 +329,8 @@ namespace Scry
                 // back, and a line only something seen done tells (health by stars) all its numbers.
                 var attackKept = AttackKept(explorer, row, l);
                 var lineKept = LineKept(explorer, row, l, out var lineProof);
+                // A line with no proof of its own lights at the first of its cells' proofs, where one is kept.
+                if (lineProof == null) lineProof = FirstCellProof(row, l);
                 var height = U(20f);
                 for (var c = 0; c < cells.Length && c < ColumnWidths.Count; c++) height = Mathf.Max(height, Skin.Height(Skin.SmallWrap, CellDrawn(explorer, row, l, c), ColumnWidths[c]));
                 // Faint lines under it: the same at the character's skill, left out where the line
@@ -448,6 +450,13 @@ namespace Scry
                 GUI.Label(cell, CompendiumWords.Hidden, Skin.SmallWrap);
                 if (cell.Contains(Event.current.mousePosition)) AskTip("kept:" + row.Title + cells[0] + row.Columns[c], lineKept ? KeptTip(explorer, cells[0], lineProof) : CompendiumWords.NotYetTakenTip);
             }
+            // A cell kept back on its own, as a starred cell of the stars table, the same.
+            else if (c > 0 && CellKept(explorer, row, l, c, out var cellProof))
+            {
+                GUI.Label(cell, CompendiumWords.Hidden, Skin.SmallWrap);
+                if (cell.Contains(Event.current.mousePosition)) AskTip("kept:" + row.Title + cells[0] + row.Columns[c], KeptTip(explorer, cells[0], cellProof));
+                CountDrawn(PanelPart.TableKeptBack);
+            }
             // A cell naming what was not seen together with the page keeps the name back.
             else if (c > 0 && row.CellLinks.TryGetValue((l, c), out var hidden) && explorer.LeavesOut(hidden))
             {
@@ -536,11 +545,31 @@ namespace Scry
             return y + height;
         }
 
-        /// <summary>A table's cell as the page shows it: under the strict rules, a counted one's count in place of the game's share (<see cref="Facts.Row.Tally"/>); else the cell itself.</summary>
-        private static string CellShown(Explorer explorer, Facts.Row row, int line, int cell, string text) =>
-            row.Tally != Tally.None && cell == row.TallyColumn && line < row.LineItems.Count
+        /// <summary>
+        /// A table's cell as the page shows it: under the strict rules, a counted one's count in
+        /// place of the game's share (<see cref="Facts.Row.Tally"/>), a drop's chance by stars the
+        /// character's own count at those stars (<see cref="Facts.Row.StarItems"/>); else the cell itself.
+        /// </summary>
+        private static string CellShown(Explorer explorer, Facts.Row row, int line, int cell, string text)
+        {
+            if (cell > 0 && row.StarItems.TryGetValue(line, out var item)) return explorer.StrictStarShare(row.TallyOf, item, cell - 1) ?? text;
+            return row.Tally != Tally.None && cell == row.TallyColumn && line < row.LineItems.Count
                 ? explorer.StrictAmount(row.Tally, row.TallyOf, row.LineItems[line]) ?? text
                 : text;
+        }
+
+        /// <summary>Whether a table's cell keeps its number back on its own, as a starred cell of the stars table until one with that many stars fell (<see cref="Facts.Row.CellProofs"/>).</summary>
+        private static bool CellKept(Explorer explorer, Facts.Row row, int line, int cell, out string proof) => row.CellProofs.TryGetValue((line, cell), out proof) && explorer.KeepsBack(proof);
+
+        /// <summary>The proof of the first cell of a line kept back on its own; none where no cell of it is.</summary>
+        private static string FirstCellProof(Facts.Row row, int line)
+        {
+            for (var cell = 1; cell < row.Columns.Length; cell++)
+            {
+                if (row.CellProofs.TryGetValue((line, cell), out var proof)) return proof;
+            }
+            return null;
+        }
 
         /// <summary>Whether a table's line is left out, what it names not seen together with the page (an attack never seen).</summary>
         private static bool LineLeftOut(Explorer explorer, string link) => !string.IsNullOrEmpty(link) && explorer.LeavesOut(link);
@@ -564,7 +593,7 @@ namespace Scry
             if (cell == 0) return string.IsNullOrEmpty(row.Lines[line].Link) ? Masked(explorer, text) : text;
             var counted = CellShown(explorer, row, line, cell, text);
             if (!ReferenceEquals(counted, text)) return counted;
-            if (LineKept(explorer, row, line, out _) || (AttackKept(explorer, row, line) && Array.IndexOf(row.AttackCells, cell) >= 0)) return CompendiumWords.Hidden;
+            if (LineKept(explorer, row, line, out _) || (AttackKept(explorer, row, line) && Array.IndexOf(row.AttackCells, cell) >= 0) || CellKept(explorer, row, line, cell, out _)) return CompendiumWords.Hidden;
             if (row.CellLinks.TryGetValue((line, cell), out var to)) return explorer.LeavesOut(to) ? CompendiumWords.Hidden : Goes(explorer, to) ? text : Masked(explorer, text);
             return Masked(explorer, text);
         }

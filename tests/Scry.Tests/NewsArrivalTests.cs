@@ -17,10 +17,6 @@ namespace Scry.Tests
             Assert.Equal(EntryKeys.Damage("Fire"), fire.Spot);
             Assert.Equal(new[] { "fight" }, fire.Topics);
 
-            // A drop seen fall has no line of its own: the loot.
-            var drop = NewsArrival.Of(new BookNews(NewsHow.FoundOut, EntryKeys.With(Tie.Drops), null, 12));
-            Assert.Equal(new[] { "loot" }, drop.Topics);
-
             var tamed = NewsArrival.Of(new BookNews(NewsHow.FoundOut, EntryKeys.Did(Deed.Tamed), null, 12));
             Assert.Equal(new[] { "taming" }, tamed.Topics);
         }

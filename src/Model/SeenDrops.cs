@@ -199,6 +199,9 @@ namespace Scry
         /// <summary>How often a weather was seen in a biome, of all the weathers seen there.</summary>
         public static string Seen(SeenDrop weather, int times) => $"{Numbers.Count(weather.Times)} of {Numbers.Count(times)} seen";
 
+        /// <summary>A drop's share of the kills of a creature with so many stars, as the stars table's cell tells it: "1 of 2 kills".</summary>
+        public static string Share(int times, int kills) => $"{Numbers.Count(times)} of {Naming.Count(kills, "kill", "kills")}";
+
         private static string Of(Tally tally, int times)
         {
             switch (tally)

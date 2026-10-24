@@ -71,6 +71,20 @@ namespace Scry
             public int[] AttackCells;
 
             /// <summary>
+            /// A table's cells kept back under the strict rules each until its own thing was seen
+            /// done, by line and cell: a creature's health at one star until one with one star was
+            /// seen to fall (<see cref="EntryKeys.StarsFell"/>).
+            /// </summary>
+            public readonly Dictionary<(int Line, int Cell), string> CellProofs = new Dictionary<(int, int), string>();
+
+            /// <summary>
+            /// A table's lines whose cells past the first are a drop's chances by stars, by line and
+            /// the drop's prefab: under the strict rules each cell tells the character's own count
+            /// at that many stars (<see cref="Explorer.StrictStarShare"/>), of the creature <see cref="TallyOf"/> names.
+            /// </summary>
+            public readonly Dictionary<int, string> StarItems = new Dictionary<int, string>();
+
+            /// <summary>
             /// What a row's amounts are counted from under the strict rules, of which prefab, and
             /// how its title begins ("When felled, "): what the character saw fall or given, in
             /// place of the game's chances (<see cref="Explorer.StrictAmount"/>).

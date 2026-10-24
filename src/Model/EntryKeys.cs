@@ -109,6 +109,19 @@ namespace Scry
             return key != null && key.StartsWith(Deeds, StringComparison.Ordinal) && Enum.TryParse(key.Substring(Deeds.Length), out deed);
         }
 
+        /// <summary>A creature with so many stars seen to fall, kept only as a proof on the creature (<see cref="StarsFell"/>); no entry goes by it.</summary>
+        private const string Fell = "fell:";
+
+        /// <summary>The key a fall of one with so many stars is proved under: what that many stars change shows once one was seen to fall.</summary>
+        public static string StarsFell(int stars) => Fell + Stored.Count(stars);
+
+        /// <summary>Whether a key is a starred fall's (<see cref="StarsFell"/>), and how many stars.</summary>
+        public static bool IsStarsFell(string key, out int stars)
+        {
+            stars = 0;
+            return key != null && key.StartsWith(Fell, StringComparison.Ordinal) && Stored.TryCount(key.Substring(Fell.Length), out stars);
+        }
+
         /// <summary>The note of what a reading of the explored map brought (<see cref="CompendiumBook.NoteNews"/>); no entry goes by it.</summary>
         public const string OnMap = "map:explored";
 

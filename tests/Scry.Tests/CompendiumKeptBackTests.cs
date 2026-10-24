@@ -327,41 +327,50 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void UnderTheStrictRulesWhatWasSeenGoTogetherIsNewsOfTheThingActedOn()
+        public void WhatWasSeenGoTogetherMakesNoNews()
         {
-            // A drop seen fall from a Troll, what a tree gave, what a tame ate, what a chest held,
-            // where a thing is found, what broke a rock: each shows on the strict page of the thing
-            // acted on, so it is news there, once, by how they go together.
+            // A drop seen fall, what a chest held, where a thing stands: each pairs the two for the
+            // strict page of the thing acted on, and is no news of it: Learned lists what was met
+            // and the numbers found out, never that a thing known for ages stood in a village.
             var book = new CompendiumBook();
             book.Now = () => new Moment(7, "Meadows");
             book.Raise("Troll", KnownLevel.Known);
+            book.Raise("Boar", KnownLevel.Known);
+            var mark = book.Learned;
             Assert.True(book.SawWith("Troll", "Coins", Tie.Drops));
             Assert.True(book.Witnessed("Troll", "Coins"));
-            Assert.Equal(EntryKeys.With(Tie.Drops), book.FoundOutOf("Troll"));
-            Assert.Equal(NewsHow.FoundOut, book.NewsOf("Troll")?.How);
             Assert.False(book.SawWith("Troll", "Coins", Tie.Drops));
-            // Never met news: the loose rules show the pairing whole already.
-            Assert.Equal(NewsHow.Known, book.MetNewsOf("Troll")?.How);
-            // Caught up from the game's records, paired with no news.
-            book.CatchingUp = true;
-            Assert.True(book.SawWith("Troll", "TrollHide", Tie.Drops));
-            Assert.Equal(EntryKeys.With(Tie.Drops), book.FoundOutOf("Troll"));
-            book.CatchingUp = false;
-
-            Assert.Equal("a drop seen fall", CompendiumWords.FoundOutNote(EntryKeys.With(Tie.Drops)));
-            Assert.Equal("what it gives seen", CompendiumWords.FoundOutNote(EntryKeys.With(Tie.Gives)));
-            Assert.Equal("what it eats seen", CompendiumWords.FoundOutNote(EntryKeys.With(Tie.Eats)));
-            Assert.Equal("what it holds seen", CompendiumWords.FoundOutNote(EntryKeys.With(Tie.Holds)));
-            Assert.Equal("where it is found seen", CompendiumWords.FoundOutNote(EntryKeys.With(Tie.Where)));
-            Assert.Equal("what breaks it seen", CompendiumWords.FoundOutNote(EntryKeys.With(Tie.BrokenWith)));
-            Assert.Equal("a drop of Troll", JournalWords.FoundOutOf(EntryKeys.With(Tie.Drops), "Troll"));
-            Assert.Equal("what Beech gives", JournalWords.FoundOutOf(EntryKeys.With(Tie.Gives), "Beech"));
-            Assert.Equal("what Boar eats", JournalWords.FoundOutOf(EntryKeys.With(Tie.Eats), "Boar"));
-            Assert.Equal("what Chest holds", JournalWords.FoundOutOf(EntryKeys.With(Tie.Holds), "Chest"));
-            Assert.Equal("where Greyling is found", JournalWords.FoundOutOf(EntryKeys.With(Tie.Where), "Greyling"));
-            Assert.Equal("what breaks Rock", JournalWords.FoundOutOf(EntryKeys.With(Tie.BrokenWith), "Rock"));
-            Assert.False(EntryKeys.IsDeed(EntryKeys.With(Tie.Drops), out _));
+            Assert.Null(book.FoundOutOf("Troll"));
+            Assert.Equal(NewsHow.Known, book.NewsOf("Troll")?.How);
+            Assert.Equal(new[] { "Boar", "Troll" }, book.Lately.ToArray());
+            Assert.Empty(book.LearnedSince(mark));
             Assert.True(EntryKeys.IsWith(EntryKeys.With(Tie.Where), out var tie) && tie == Tie.Where);
+            Assert.False(EntryKeys.IsDeed(EntryKeys.With(Tie.Drops), out _));
+        }
+
+        [Fact]
+        public void AnOlderBookDropsItsPairNewsAndPutsWhatWasMetBackInItsPlace()
+        {
+            // Books kept before held a first pair as the latest news of the thing, which took it to
+            // the top of Learned: read, that news goes, a thing met goes back to where it was met,
+            // and one never met (known before the book kept meetings) leaves Learned.
+            var text = string.Join("\n", new[]
+            {
+                "know\tTroll\t3", "know\tWood\t3", "know\tBoar\t3", "know\tbed\t3",
+                "lately\tWood\t368", "lately\tbed\t368", "lately\tBoar\t367", "lately\tTroll\t12",
+                "met\tBoar\t20", "met\tTroll\t12",
+                "found\tWood\twith:Where", "found\tbed\twith:Where", "found\tBoar\twith:Where", "found\tTroll\tdid:Killed",
+                "saw\tWood\tloc:WoodVillage1",
+            });
+            var book = CompendiumBook.Load(text);
+            Assert.Equal(new[] { "Boar", "Troll" }, book.Lately.ToArray());
+            Assert.Null(book.FoundOutOf("Boar"));
+            Assert.Equal(20, book.NewsOf("Boar")?.Day);
+            Assert.Equal(NewsHow.Known, book.NewsOf("Boar")?.How);
+            Assert.Equal(NewsHow.FoundOut, book.NewsOf("Troll")?.How);
+            Assert.True(book.Witnessed("Wood", "loc:WoodVillage1"));
+            Assert.True(book.Changed);
+            Assert.DoesNotContain("with:", book.Save());
         }
 
         [Fact]

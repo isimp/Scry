@@ -437,7 +437,13 @@ namespace Scry
         {
             var rows = new List<(string, string)>();
             var pending = new HashSet<Deed>();
-            foreach (var proof in deeds) if (EntryKeys.IsDeed(proof, out var deed)) pending.Add(deed);
+            var starsPending = new SortedSet<int>();
+            foreach (var proof in deeds)
+            {
+                if (EntryKeys.IsDeed(proof, out var deed)) pending.Add(deed);
+                else if (EntryKeys.IsStarsFell(proof, out var fell)) starsPending.Add(fell);
+            }
+            foreach (var fell in starsPending) rows.Add(($"See one with {Naming.Count(fell, "star", "stars")} fall", $"shows what {StarsChange(fell)}"));
             void Pending(Deed what, string label, string value)
             {
                 if (pending.Contains(what)) rows.Add((label, value));
@@ -471,6 +477,7 @@ namespace Scry
         {
             if (string.IsNullOrEmpty(proof)) return null;
             if (proof == EntryKeys.OnMap) return "seen on your explored map";
+            if (EntryKeys.IsStarsFell(proof, out var fell)) return $"what {StarsChange(fell)} found out";
             if (EntryKeys.IsDeed(proof, out var deed))
             {
                 switch (deed)
@@ -491,20 +498,11 @@ namespace Scry
             }
             if (EntryKeys.IsWeakSpot(proof)) return "a weak spot found";
             if (EntryKeys.IsDamage(proof, out var type)) return $"how {type} lands found out";
-            if (EntryKeys.IsWith(proof, out var tie))
-            {
-                switch (tie)
-                {
-                    case Tie.Drops: return "a drop seen fall";
-                    case Tie.Gives: return "what it gives seen";
-                    case Tie.Eats: return "what it eats seen";
-                    case Tie.Holds: return "what it holds seen";
-                    case Tie.Where: return "where it is found seen";
-                    default: return "what breaks it seen";
-                }
-            }
             return "an attack's damage found out";
         }
+
+        /// <summary>What so many stars change, as a sentence has it: "1 star changes", "2 stars change".</summary>
+        public static string StarsChange(int stars) => Naming.Count(stars, "star", "stars") + (stars == 1 ? " changes" : " change");
 
         /// <summary>What shows a number kept back, the one form every such hint takes: "shows once you have ...".</summary>
         public static string ShowsOnce(string proof) => "shows once you have " + Seen(proof);
@@ -514,6 +512,7 @@ namespace Scry
 
         private static string Seen(string proof)
         {
+            if (EntryKeys.IsStarsFell(proof, out var fell)) return $"seen one with {Naming.Count(fell, "star", "stars")} fall";
             EntryKeys.IsDeed(proof, out var deed);
             switch (deed)
             {

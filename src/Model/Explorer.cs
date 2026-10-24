@@ -455,6 +455,22 @@ namespace Scry
             return drop != null ? TallyWords.Line(by.Value, drop, counted.Kills(source.Giver)) : CompendiumWords.Hidden;
         }
 
+        /// <summary>
+        /// A drop's chance at so many stars in the creature's stars table under the strict rules,
+        /// on a known page above the milestone floor: the character's own count, how many of the
+        /// kills of one with that many stars dropped it (<see cref="TallyWords.Share"/>), ??? while
+        /// none with that many stars was seen to fall; none otherwise, when the game's chance shows.
+        /// </summary>
+        public string StrictStarShare(string creature, string item, int stars)
+        {
+            if (!LeavingOut) return null;
+            var kills = _view.Book.StarredKills(creature, stars);
+            if (kills == 0) return CompendiumWords.Hidden;
+            var times = 0;
+            foreach (var drop in _view.Book.StarredDrops(creature, stars)) if (drop.Item == item) times = drop.Times;
+            return TallyWords.Share(times, kills);
+        }
+
         /// <summary>A faint line saying what shows a line of a table kept back (<see cref="CompendiumWords.ShowsOnce(string, string)"/>).</summary>
         public string ShowsOnce(string what, string proof) => CompendiumWords.ShowsOnce(what, proof);
 

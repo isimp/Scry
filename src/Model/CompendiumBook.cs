@@ -387,13 +387,26 @@ namespace Scry
 
         private static readonly SeenDrops NoTally = new SeenDrops();
 
-        /// <summary>A creature's loot seen to fall as it died, counted as one kill.</summary>
-        public void Dropped(string creature, IEnumerable<(string Item, int Amount)> loot)
+        /// <summary>A creature's loot seen to fall as it died, counted as one kill, and as one kill of one with the stars its <paramref name="level"/> gives (1 for none).</summary>
+        public void Dropped(string creature, IEnumerable<(string Item, int Amount)> loot, int level = 1)
         {
             if (string.IsNullOrEmpty(creature)) return;
-            _fell.Record(creature, loot);
+            var fallen = loot as IList<(string, int)> ?? loot.ToList();
+            _fell.Record(creature, fallen);
+            _starFell.Record(StarKey(creature, Math.Max(0, level - 1)), fallen);
             Changed = true;
         }
+
+        /// <summary>What creatures were seen to drop by the stars each had as it fell, keyed by the creature and its stars (<see cref="StarKey"/>), for the strict rules' stars table.</summary>
+        private readonly SeenDrops _starFell = new SeenDrops();
+
+        private static string StarKey(string creature, int stars) => creature + "@" + Stored.Count(stars);
+
+        /// <summary>How many of a creature with so many stars the character saw fall.</summary>
+        public int StarredKills(string creature, int stars) => string.IsNullOrEmpty(creature) ? 0 : _starFell.Kills(StarKey(creature, stars));
+
+        /// <summary>What a creature with so many stars was seen to drop, over those kills.</summary>
+        public IReadOnlyList<SeenDrop> StarredDrops(string creature, int stars) => string.IsNullOrEmpty(creature) ? Array.Empty<SeenDrop>() : _starFell.Of(StarKey(creature, stars));
 
         /// <summary>What a resource was seen to give as it broke, counted as one time where it gave anything.</summary>
         public void Yielded(string resource, IEnumerable<(string Item, int Amount)> loot)
@@ -492,19 +505,10 @@ namespace Scry
         /// <summary>
         /// The character saw a thing go together with another in play, the other shown on the
         /// thing's page under the strict rules by how they go together (<paramref name="tie"/>):
-        /// paired and, the first time, news of the strict rules on the thing, first among the
-        /// latest learned again, saying what was seen (<see cref="EntryKeys.With"/>); caught up
-        /// from the game's records, paired only. True when the pair is new.
+        /// paired, and no news of the thing, as Learned lists what was met and the numbers found
+        /// out, not that a thing long known stood somewhere. True when the pair is new.
         /// </summary>
-        public bool SawWith(string key, string other, Tie tie)
-        {
-            if (!Witness(key, other)) return false;
-            if (CatchingUp) return true;
-            Newest(key, met: false);
-            _found[key] = EntryKeys.With(tie);
-            Changed = true;
-            return true;
-        }
+        public bool SawWith(string key, string other, Tie tie) => Witness(key, other);
 
         /// <summary>
         /// Takes back an entry that only a record no longer telling of it made known, as a kill
@@ -665,6 +669,7 @@ namespace Scry
             var newsDay = new Dictionary<string, int>(_newsDay, StringComparer.Ordinal);
             var found = _found.ToArray();
             var fell = _fell.Save();
+            var starFell = _starFell.Save();
             var gave = _gave.Save();
             var held = _held.Save();
             var weathers = _weathers.Save();
@@ -738,6 +743,7 @@ namespace Scry
                     text.Append("found\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(Stored.Escaped(pair.Value)).Append('\n');
                 }
                 foreach (var line in fell.Split('\n')) if (line.Length > 0) text.Append("fell\t").Append(line).Append('\n');
+                foreach (var line in starFell.Split('\n')) if (line.Length > 0) text.Append("starfell\t").Append(line).Append('\n');
                 foreach (var line in gave.Split('\n')) if (line.Length > 0) text.Append("gave\t").Append(line).Append('\n');
                 foreach (var line in held.Split('\n')) if (line.Length > 0) text.Append("held\t").Append(line).Append('\n');
                 foreach (var line in weathers.Split('\n')) if (line.Length > 0) text.Append("weather\t").Append(line).Append('\n');
@@ -793,17 +799,20 @@ namespace Scry
             book._latelyRead = new HashSet<string>(StringComparer.Ordinal);
             // The counts of what fell and was given, each its own text inside the book's.
             var fell = new StringBuilder();
+            var starFell = new StringBuilder();
             var gave = new StringBuilder();
             var held = new StringBuilder();
             var weathers = new StringBuilder();
             foreach (var line in text.Split('\n'))
             {
                 if (line.StartsWith("fell\t", StringComparison.Ordinal)) fell.Append(line, 5, line.Length - 5).Append('\n');
+                else if (line.StartsWith("starfell\t", StringComparison.Ordinal)) starFell.Append(line, 9, line.Length - 9).Append('\n');
                 else if (line.StartsWith("gave\t", StringComparison.Ordinal)) gave.Append(line, 5, line.Length - 5).Append('\n');
                 else if (line.StartsWith("held\t", StringComparison.Ordinal)) held.Append(line, 5, line.Length - 5).Append('\n');
                 else if (line.StartsWith("weather\t", StringComparison.Ordinal)) weathers.Append(line, 8, line.Length - 8).Append('\n');
             }
             book._fell.Take(SeenDrops.Load(fell.ToString()));
+            book._starFell.Take(SeenDrops.Load(starFell.ToString()));
             book._gave.Take(SeenDrops.Load(gave.ToString()));
             book._held.Take(SeenDrops.Load(held.ToString()));
             book._weathers.Take(SeenDrops.Load(weathers.ToString()));
@@ -819,167 +828,8 @@ namespace Scry
             if (book._metRead == null) book.MetFromLately();
             book._metRead = null;
             if (!book._mapApart) book.GiveBackMapPlaces();
+            book.DropPairNews();
             return book;
-        }
-
-        /// <summary>The names of the met list read so far while the book loads, so each is listed once; none where the book holds no met list (<see cref="MetFromLately"/>).</summary>
-        private HashSet<string> _metRead;
-
-        /// <summary>
-        /// For a book kept before what was met was kept apart from what was found out: the met list
-        /// in the order of the learned list, on the day of its news where that was a meeting, with
-        /// no day where it was something found out.
-        /// </summary>
-        private void MetFromLately()
-        {
-            foreach (var key in _lately)
-            {
-                _metLately.Add(key);
-                var proof = FoundOutOf(key);
-                if ((proof == null || proof == EntryKeys.OnMap) && _newsDay.TryGetValue(key, out var day)) _metDay[key] = day;
-            }
-        }
-
-        /// <summary>The names of the learned list read so far while the book loads, so each is listed once; none otherwise.</summary>
-        private HashSet<string> _latelyRead;
-
-        /// <summary>
-        /// How each kind of a saved book's lines is read, by its first word: each takes the book,
-        /// the line's parts and its name (its second part, unescaped), and passes over a line it
-        /// cannot read. A first word no reader takes is passed over.
-        /// </summary>
-        private static readonly Dictionary<string, Action<CompendiumBook, string[], string>> LineReaders = new Dictionary<string, Action<CompendiumBook, string[], string>>(StringComparer.Ordinal)
-        {
-            ["opened"] = (book, parts, name) =>
-            {
-                if (parts.Length == 2 && !ChestByNumber(name)) book._opened.Add(name);
-            },
-            ["found"] = (book, parts, name) =>
-            {
-                if (parts.Length == 3 && Stored.TryUnescaped(parts[2], out var proof) && proof.Length > 0) book._found[name] = proof;
-            },
-            ["know"] = (book, parts, name) =>
-            {
-                if (parts.Length == 3 && Stored.TryCount(parts[2], out var level) && level > (int)KnownLevel.Unknown && level <= (int)KnownLevel.Known) book._levels[name] = (KnownLevel)level;
-            },
-            ["lately"] = (book, parts, name) =>
-            {
-                if ((parts.Length != 2 && parts.Length != 3) || !book._latelyRead.Add(name)) return;
-                book._lately.Add(name);
-                if (parts.Length == 3 && Stored.TryCount(parts[2], out var newsDay)) book._newsDay[name] = newsDay;
-            },
-            ["met"] = (book, parts, name) =>
-            {
-                if (book._metRead == null) book._metRead = new HashSet<string>(StringComparer.Ordinal);
-                if ((parts.Length != 2 && parts.Length != 3) || !book._metRead.Add(name)) return;
-                book._metLately.Add(name);
-                if (parts.Length == 3 && Stored.TryCount(parts[2], out var metDay)) book._metDay[name] = metDay;
-            },
-            ["mapped"] = (book, parts, name) =>
-            {
-                if (parts.Length == 2) book._mapped.Add(name);
-            },
-            ["read"] = (book, parts, name) =>
-            {
-                if (parts.Length == 2) book._read.Add(name);
-            },
-            ["place"] = (book, parts, name) =>
-            {
-                if (parts.Length != 4 || !Enum.TryParse(parts[2], out WorldSource source) || !Enum.IsDefined(typeof(WorldSource), source)
-                    || !Stored.TryUnescaped(parts[3], out var kind) || kind.Length == 0) return;
-                if (!book._foundIn.TryGetValue((name, source), out var found)) book._foundIn[(name, source)] = found = new HashSet<string>(StringComparer.Ordinal);
-                found.Add(kind);
-            },
-            ["shows"] = (book, parts, name) =>
-            {
-                if (parts.Length == 3 && Enum.TryParse(name, out WorldSource shown) && Enum.IsDefined(typeof(WorldSource), shown)
-                    && Enum.TryParse(parts[2], out SourceLevel level) && Enum.IsDefined(typeof(SourceLevel), level) && WorldSources.Allows(shown, level)) book._shows[shown] = level;
-            },
-            ["marks"] = (book, parts, name) =>
-            {
-                if (parts.Length == 2 && Enum.TryParse(name, out WorldSource marked) && Enum.IsDefined(typeof(WorldSource), marked) && WorldSources.HasGround(marked)) book._marks.Add(marked);
-            },
-            ["welcomed"] = (book, parts, name) =>
-            {
-                if (parts.Length == 2) book._welcomed = true;
-            },
-            ["mapapart"] = (book, parts, name) =>
-            {
-                if (parts.Length == 2) book._mapApart = true;
-            },
-            ["ruled"] = (book, parts, name) =>
-            {
-                if (parts.Length == 3 && Stored.TryUnescaped(parts[2], out var ruled) && ruled.Length > 0) book._rulesTold[name] = ruled;
-            },
-            ["rule"] = (book, parts, name) =>
-            {
-                if (parts.Length == 2 && (name == nameof(CompendiumRule.Loose) || name == nameof(CompendiumRule.Strict)))
-                    book._rule = name == nameof(CompendiumRule.Loose) ? CompendiumRule.Loose : CompendiumRule.Strict;
-            },
-            ["floor"] = (book, parts, name) =>
-            {
-                if (parts.Length == 2 && Stored.TryCount(parts[1], out var floor)) book._floor = Math.Max(0, Math.Min(Tiers.Last, floor));
-            },
-            ["saw"] = (book, parts, name) =>
-            {
-                if (parts.Length != 3 || !Stored.TryUnescaped(parts[2], out var other) || other.Length == 0 || other == name) return;
-                // A book kept before held deeds, damage types and weak spots as pairs, either way round.
-                if (IsProof(other)) book._proofs.Add((name, other));
-                else if (IsProof(name)) book._proofs.Add((other, name));
-                else book._pairs.Add(Pair(name, other));
-            },
-            ["did"] = (book, parts, name) =>
-            {
-                if (parts.Length == 3 && Stored.TryUnescaped(parts[2], out var proof) && proof.Length > 0) book._proofs.Add((name, proof));
-            },
-            ["attacksaspairs"] = (book, parts, name) =>
-            {
-                if (parts.Length == 2) book._attacksAsPairs = true;
-            },
-            ["sight"] = (book, parts, name) =>
-            {
-                if (parts.Length == 3 && Stored.TryUnescaped(parts[2], out var token) && token.Length > 0) book.ReadSighting(name, token);
-            },
-            ["came"] = (book, parts, name) =>
-            {
-                if (parts.Length >= 5 && Enum.TryParse(parts[2], out CameBy way) && Enum.IsDefined(typeof(CameBy), way) && Read(parts, 3, out var cameAt)) book._came[name] = (way, cameAt);
-            },
-            ["seen"] = (book, parts, name) =>
-            {
-                if (parts.Length == 8 && Stored.TryCount(parts[2], out var stars) && Read(parts, 3, out var seenAt)) book._seen[name] = (seenAt, stars);
-            },
-            ["died"] = (book, parts, name) =>
-            {
-                if (parts.Length == 4 && Stored.TryCount(parts[2], out var deaths) && deaths > 0 && Stored.TryCount(parts[3], out var lastDay)) book._deaths[name] = (deaths, lastDay);
-            },
-        };
-
-        /// <summary>Whether the places this book once took off the explored map were given back (<see cref="GiveBackMapPlaces"/>); a new book has none to give.</summary>
-        private bool _mapApart = true;
-
-        /// <summary>
-        /// Gives back what a book kept off the explored map while the map wrote its places as seen:
-        /// each place only ever seen off it, with no sighting, leaves the book and its Learned list,
-        /// and every world is read again, so they come back as found in the character's ground
-        /// (<see cref="MapCatchUp.Apply"/>). Biomes and places seen, known or met another way stay.
-        /// </summary>
-        private void GiveBackMapPlaces()
-        {
-            _mapApart = true;
-            var given = _levels.Where(p => p.Value == KnownLevel.Seen && p.Key.StartsWith(EntryKeys.Location, StringComparison.Ordinal)
-                                           && !_seen.ContainsKey(p.Key) && FoundOutOf(p.Key) == EntryKeys.OnMap).Select(p => p.Key).ToList();
-            foreach (var key in given)
-            {
-                _levels.Remove(key);
-                _lately.Remove(key);
-                _learnedAt.Remove(key);
-                _newsDay.Remove(key);
-                _found.Remove(key);
-                ForgetMet(key);
-            }
-            _mapped.Clear();
-            Version++;
-            Changed = true;
         }
     }
 }

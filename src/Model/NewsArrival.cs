@@ -48,7 +48,7 @@ namespace Scry
             var proof = news.Proof;
             if (proof == null || proof == EntryKeys.OnMap) return new NewsArrival(null, "lives", "where", YouTopic);
             if (EntryKeys.IsDeed(proof, out var deed)) return new NewsArrival(proof, DeedTopics(deed));
-            if (EntryKeys.IsWith(proof, out var tie)) return new NewsArrival(proof, TieTopics(tie));
+            if (EntryKeys.IsStarsFell(proof, out _)) return new NewsArrival(proof, DeedTopics(Deed.StarredFell));
             // A weak spot, a damage type's landing or an attack's damage.
             return new NewsArrival(proof, "fight");
         }
@@ -72,20 +72,6 @@ namespace Scry
                 case Deed.Collected:
                 case Deed.Finished: return new[] { "does", "works", "making" };
                 default: return Nowhere;
-            }
-        }
-
-        /// <summary>The topics what was seen go together with a thing stands in.</summary>
-        private static string[] TieTopics(Tie tie)
-        {
-            switch (tie)
-            {
-                case Tie.Drops: return new[] { "loot" };
-                case Tie.Holds: return new[] { "contents", "loot" };
-                case Tie.Gives: return new[] { "given", "from", "loot" };
-                case Tie.Eats: return new[] { "taming", "food" };
-                case Tie.Where: return new[] { "lives", "where" };
-                default: return new[] { "breaking" };
             }
         }
 

@@ -127,6 +127,7 @@ namespace Scry
         /// <summary>What was found out of a thing, named in a sentence of the news: "how fire lands on Neck", "the health of Troll".</summary>
         public static string FoundOutOf(string proof, string name)
         {
+            if (EntryKeys.IsStarsFell(proof, out var fell)) return $"what {CompendiumWords.StarsChange(fell)} on {name}";
             if (EntryKeys.IsDeed(proof, out var deed))
             {
                 switch (deed)
@@ -146,18 +147,6 @@ namespace Scry
                 }
             }
             if (EntryKeys.IsWeakSpot(proof)) return $"a weak spot of {name}";
-            if (EntryKeys.IsWith(proof, out var tie))
-            {
-                switch (tie)
-                {
-                    case Tie.Drops: return $"a drop of {name}";
-                    case Tie.Gives: return $"what {name} gives";
-                    case Tie.Eats: return $"what {name} eats";
-                    case Tie.Holds: return $"what {name} holds";
-                    case Tie.Where: return $"where {name} is found";
-                    default: return $"what breaks {name}";
-                }
-            }
             if (EntryKeys.IsDamage(proof, out var type)) return $"how {type} lands on {name}";
             return $"what an attack of {name} deals";
         }

@@ -188,10 +188,12 @@ namespace Scry
             {
                 case Happened.Died:
                     foreach (var (item, _) in told.Came) book.SawWith(told.Thing, item, Tie.Drops);
-                    book.Dropped(told.Thing, told.Came);
+                    book.Dropped(told.Thing, told.Came, told.Level);
                     counts?.Note(PlayEvent.LootCounted);
                     if (told.Level <= 1) return;
+                    // A starred fall shows what stars change at all, and what that many stars change.
                     book.FoundOut(told.Thing, EntryKeys.Did(Deed.StarredFell));
+                    book.FoundOut(told.Thing, EntryKeys.StarsFell(told.Level - 1));
                     counts?.Note(PlayEvent.StarredFell);
                     return;
                 case Happened.Broke:

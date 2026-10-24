@@ -197,11 +197,11 @@ namespace Scry
             foreach (var row in facts.Rows)
             {
                 if (row.HitReveals && row.Cells != null) Typed(explorer, row, types, finds);
-                foreach (var proof in row.LineProofs.Values)
+                foreach (var proof in row.LineProofs.Values.Concat(row.CellProofs.Values))
                 {
                     var kept = explorer.KeepsBack(proof);
                     if (counted.Add(proof)) finds.Count(kept);
-                    if (kept) deeds.Add(proof);
+                    if (kept && !deeds.Contains(proof)) deeds.Add(proof);
                 }
                 if (row.AttackCells != null) attacks += Attacked(explorer, row, finds);
                 if (row.Tally == Tally.None) continue;

@@ -343,6 +343,7 @@ namespace Scry
             p.Check(chip.Amount == "2 (1 of 1 kill)", "and draws the troll as a chip with that count", chip.Name + " " + chip.Amount);
             yield return StrictGameShownRead(p, book, view, hide);
             yield return StrictSightingsRead(p, book, view, troll);
+            yield return StrictStarsRead(p, book, view, troll, hide);
             // A plain word of a text is no name kept back, though an effect never met goes by it ("Fire").
             var fires = ScryPanel.AsDrawn(X, "fires Troll throw projectile");
             p.Check(!fires.StartsWith(CompendiumWords.Hidden, System.StringComparison.Ordinal), "a word of a text is no name kept back: \"fires\" stays", fires);
@@ -458,6 +459,40 @@ namespace Scry
             yield return Picture(p, "strict Boar, only seen, what sight gave");
             X.Select(troll);
             yield return null;
+        }
+
+        /// <summary>
+        /// Under the strict rules the stars table keeps back by the cell: killed, the health without
+        /// stars shows while each starred column waits for one with that many stars to fall, and a
+        /// trophy's chance by stars is the character's own count at those stars.
+        /// </summary>
+        private static IEnumerator StrictStarsRead(Probe p, CompendiumBook book, CompendiumView view, Entry troll, Entry hide)
+        {
+            X.Select(troll);
+            yield return Until(() => X.Selected == troll, 3);
+            var table = Facts.For(troll).Rows.FirstOrDefault(r => r.Title == CombatWords.StarsTitle);
+            if (table == null)
+            {
+                p.Note("the troll has no stars table");
+                yield break;
+            }
+            p.Check(table.CellProofs.ContainsKey((0, 1)) && table.CellProofs.ContainsValue(EntryKeys.StarsFell(1)) && table.LineProofs.Count == 0,
+                "the stars table keeps back by the cell: health without stars until a kill, each starred column until one with that many stars fell");
+            p.Check(!X.KeepsBack(EntryKeys.Did(Deed.Killed)) && X.KeepsBack(EntryKeys.StarsFell(1)) && X.KeepsBack(EntryKeys.StarsFell(2)), "killed, its health without stars shows while the starred columns wait");
+            book.Dropped(troll.Name, new[] { (hide.Name, 3) }, 2);
+            book.FoundOut(troll.Name, EntryKeys.StarsFell(1));
+            view.Tell(book, CompendiumRule.Strict);
+            yield return Until(() => !X.KeepsBack(EntryKeys.StarsFell(1)), 3);
+            p.Check(!X.KeepsBack(EntryKeys.StarsFell(1)) && X.KeepsBack(EntryKeys.StarsFell(2)), "one with one star fallen, the one-star column shows and the two-star one waits");
+            var trophy = table.StarItems.Values.FirstOrDefault();
+            if (trophy != null)
+            {
+                p.Check(X.StrictStarShare(troll.Name, trophy, 1) == "0 of 1 kill" && X.StrictStarShare(troll.Name, trophy, 2) == CompendiumWords.Hidden,
+                    "its trophy's chance at one star is the character's own count, at two stars ???", X.StrictStarShare(troll.Name, trophy, 1));
+            }
+            else p.Note("no drop of the troll's gets likelier with stars");
+            p.Check(X.LearnedNote(troll) == "what 1 star changes found out", "and Learned says what was found out", X.LearnedNote(troll));
+            yield return PictureOf(p, "fight", "strict Troll's fight, one star fallen");
         }
     }
 }

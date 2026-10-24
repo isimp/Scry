@@ -124,8 +124,12 @@ namespace Scry.Tests
         [Fact]
         public void AStarredCreatureFallingShowsWhatItsStarsChange()
         {
-            Assert.Equal(EntryKeys.Did(Deed.StarredFell), Told(Death(10f, level: 2)).FoundOutOf("Troll"));
+            var book = Told(Death(10f, level: 2));
+            Assert.Equal(EntryKeys.StarsFell(1), book.FoundOutOf("Troll"));
+            Assert.True(book.Proved("Troll", EntryKeys.Did(Deed.StarredFell)));
+            Assert.Equal(1, book.StarredKills("Troll", 1));
             Assert.False(Told(Death(10f)).Proved("Troll", EntryKeys.Did(Deed.StarredFell)));
+            Assert.Equal(1, Told(Death(10f)).StarredKills("Troll", 0));
         }
 
         [Fact]
