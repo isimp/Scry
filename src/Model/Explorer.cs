@@ -363,8 +363,8 @@ namespace Scry
         public string LeftOutLine(string topic, int count, bool alone = false)
         {
             // Only a count the player can act on is said: drops not yet seen fall, places it lives
-            // not met in, and what a dungeon room's card, asking with no topic, holds not yet met.
-            if (topic != null && topic != "loot" && topic != "lives") return null;
+            // not met in, and what a dungeon room's card holds not yet met.
+            if (topic != "loot" && topic != "lives" && topic != "room") return null;
             return LeavingOut ? CompendiumWords.LeftOutOf(topic, count, alone) : CompendiumWords.NotYetMet(topic, count, alone);
         }
 

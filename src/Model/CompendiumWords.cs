@@ -468,8 +468,8 @@ namespace Scry
             if (tallies.Contains(Tally.Gave)) rows.Add(("Break one", "how many of each it gives"));
             if (tallies.Contains(Tally.Held)) rows.Add(("Open one", "how many of each it holds"));
             if (tallies.Contains(Tally.Weather)) rows.Add(("Spend time in it", "how often each weather comes"));
-            foreach (var stars in starsUnseen ?? Array.Empty<int>()) rows.Add(($"See one with {Naming.Count(stars, "star", "stars")} up close", "shows it so on the stage"));
-            foreach (var gear in gearUnseen ?? Array.Empty<string>()) rows.Add(($"See one carrying {gear} up close", "dresses it so on the stage"));
+            foreach (var stars in starsUnseen ?? Array.Empty<int>()) rows.Add(($"See {Naming.Count(stars, "star", "stars")} up close", "shows it so on the stage"));
+            foreach (var gear in gearUnseen ?? Array.Empty<string>()) rows.Add(("See it carry", $"{gear} up close: dresses it so on the stage"));
             return rows;
         }
 
@@ -552,7 +552,7 @@ namespace Scry
                 case "loot": return more + " not yet seen fall";
                 case "lives": return more + (count == 1 ? " place" : " places") + " it lives not yet met in";
                 case "from": return more + " not yet seen give it";
-                case null: return more + " not yet seen here";
+                case "room": return more + " not yet seen here";
                 default: return more + " not yet seen together";
             }
         }

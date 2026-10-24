@@ -248,15 +248,17 @@ namespace Scry.Tests
         [Fact]
         public void ARoomCardCountsWhatWasNotMetWithNoTopicOfItsOwn()
         {
-            // A dungeon room's card asks with no topic: the creatures and loot of the room not met
-            // are counted on it under either rule, a count the player can act on by going in.
+            // A dungeon room's card asks for its room: the creatures and loot of the room not met
+            // are counted on it under either rule, a count the player can act on by going in. A
+            // section with no topic counts nothing.
             var world = new World().Rule(CompendiumRule.Loose);
             world.Explorer.Select(world.Windmill);
-            Assert.Equal("7 not yet met", world.Explorer.LeftOutLine(null, 7, alone: true));
-            Assert.Equal("2 more not yet met", world.Explorer.LeftOutLine(null, 2));
-            Assert.Null(world.Explorer.LeftOutLine(null, 0));
+            Assert.Equal("7 not yet met", world.Explorer.LeftOutLine("room", 7, alone: true));
+            Assert.Equal("2 more not yet met", world.Explorer.LeftOutLine("room", 2));
+            Assert.Null(world.Explorer.LeftOutLine("room", 0));
+            Assert.Null(world.Explorer.LeftOutLine(null, 7));
             world.Rule(CompendiumRule.Strict);
-            Assert.Equal("7 not yet seen here", world.Explorer.LeftOutLine(null, 7, alone: true));
+            Assert.Equal("7 not yet seen here", world.Explorer.LeftOutLine("room", 7, alone: true));
         }
 
         [Fact]

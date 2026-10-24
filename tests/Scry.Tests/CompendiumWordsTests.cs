@@ -143,7 +143,8 @@ namespace Scry.Tests
             Assert.Equal("2 more not yet seen give it", CompendiumWords.LeftOutOf("from", 2));
             // Any other section, or one with no name of its own, says it of being seen together.
             Assert.Equal("4 more not yet seen together", CompendiumWords.LeftOutOf("making", 4));
-            Assert.Equal("1,200 more not yet seen here", CompendiumWords.LeftOutOf(null, 1200));
+            Assert.Equal("1,200 more not yet seen together", CompendiumWords.LeftOutOf(null, 1200));
+            Assert.Equal("3 not yet seen here", CompendiumWords.LeftOutOf("room", 3, alone: true));
         }
 
         [Fact]

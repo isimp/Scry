@@ -20,7 +20,7 @@ namespace Scry
         {
             if (_smudge != null) return _smudge;
             const int width = 64, height = 24;
-            const float feather = 7f;
+            const float feather = 10f;
             var texture = new Texture2D(width, height, TextureFormat.RGBA32, false)
             {
                 wrapMode = TextureWrapMode.Clamp,
@@ -34,8 +34,8 @@ namespace Scry
                 for (var x = 0; x < width; x++)
                 {
                     // How far outside the core bar, softened over the feather.
-                    var dx = Mathf.Max(0f, Mathf.Abs(x + 0.5f - width / 2f) - (width / 2f - feather - 4f));
-                    var dy = Mathf.Max(0f, Mathf.Abs(y + 0.5f - height / 2f) - (height / 2f - feather - 2f));
+                    var dx = Mathf.Max(0f, Mathf.Abs(x + 0.5f - width / 2f) - (width / 2f - feather - 2f));
+                    var dy = Mathf.Max(0f, Mathf.Abs(y + 0.5f - height / 2f) - (height / 2f - feather));
                     var alpha = Mathf.Clamp01(1f - Mathf.Sqrt(dx * dx + dy * dy) / feather);
                     alpha *= alpha * (3f - 2f * alpha);
                     var at = (y * width + x) * 4;
@@ -57,7 +57,7 @@ namespace Scry
             if (Event.current.type == EventType.Repaint)
             {
                 var was = GUI.color;
-                GUI.color = Skin.Faint;
+                GUI.color = Skin.Alpha(Skin.Faint, 0.8f);
                 GUI.DrawTexture(rect, SmudgeTexture(), ScaleMode.StretchToFill, true);
                 GUI.color = was;
             }

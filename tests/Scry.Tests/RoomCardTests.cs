@@ -23,7 +23,7 @@ namespace Scry.Tests
         {
             // Five creatures rolled, none met: the list says "5 not yet met", not also that the roll put none there.
             Assert.Equal(new[] { "5 not yet met" }, RoomCardWords.ListLines(new string[0], CompendiumWords.NotYetMet(null, 5, alone: true)));
-            Assert.Equal(new[] { "5 not yet seen here" }, RoomCardWords.ListLines(new string[0], CompendiumWords.LeftOutOf(null, 5, alone: true)));
+            Assert.Equal(new[] { "5 not yet seen here" }, RoomCardWords.ListLines(new string[0], CompendiumWords.LeftOutOf("room", 5, alone: true)));
             // Some listed, the rest counted as more.
             Assert.Equal(new[] { "Draugr ×2", "3 more not yet met" }, RoomCardWords.ListLines(new[] { "Draugr ×2" }, CompendiumWords.NotYetMet(null, 3)));
             // Nothing rolled at all.

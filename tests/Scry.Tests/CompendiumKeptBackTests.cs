@@ -218,9 +218,9 @@ namespace Scry.Tests
             {
                 ("Kill or ride one", "shows its health"),
                 ("Ride one", "shows its stamina and speed when ridden"),
-                ("See one with 1 star up close", "shows it so on the stage"),
-                ("See one with 2 stars up close", "shows it so on the stage"),
-                ("See one carrying Draugr axe up close", "dresses it so on the stage"),
+                ("See 1 star up close", "shows it so on the stage"),
+                ("See 2 stars up close", "shows it so on the stage"),
+                ("See it carry", "Draugr axe up close: dresses it so on the stage"),
             }, ride);
         }
 

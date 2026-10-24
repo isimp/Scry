@@ -500,7 +500,7 @@ namespace Scry
             // Under the strict rules the attack's clips wait for the attack, as its damage does: the name stands, plain.
             if (explorer.KeepsBackAttackClip(item))
             {
-                GUI.Label(cell, Masked(explorer, text), Skin.SmallWrap);
+                GUI.Label(cell, text, Skin.SmallWrap);
                 if (cell.Contains(Event.current.mousePosition)) AskTip("table-attack-kept:" + link, ClipWords.KeptAttackTip);
                 return;
             }
