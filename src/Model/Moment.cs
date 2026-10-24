@@ -12,8 +12,9 @@ namespace Scry
 
     /// <summary>
     /// A moment of play, kept with what the character saw or came to know then: the game's day,
-    /// the biome it stood in, the time of day, the weather (the game's name for it) and what it
-    /// had in hand (an item's prefab, none bare-handed). Each part is open where it was not known.
+    /// the biome it stood in, the time of day, the weather (the game's name for it), what it
+    /// had in hand (an item's prefab, none bare-handed) and the world's name, as a character's
+    /// book spans worlds whose days run apart. Each part is open where it was not known.
     /// </summary>
     internal readonly struct Moment
     {
@@ -22,14 +23,16 @@ namespace Scry
         public readonly DayPart Time;
         public readonly string Weather;
         public readonly string InHand;
+        public readonly string World;
 
-        public Moment(int day, string biome, DayPart time = DayPart.None, string weather = null, string inHand = null)
+        public Moment(int day, string biome, DayPart time = DayPart.None, string weather = null, string inHand = null, string world = null)
         {
             Day = day;
             Biome = string.IsNullOrEmpty(biome) ? null : biome;
             Time = time;
             Weather = string.IsNullOrEmpty(weather) ? null : weather;
             InHand = string.IsNullOrEmpty(inHand) ? null : inHand;
+            World = string.IsNullOrEmpty(world) ? null : world;
         }
 
         /// <summary>A moment nothing is known of.</summary>
@@ -61,8 +64,8 @@ namespace Scry
     /// <summary>
     /// An entry's latest news in its character's book: how it came, what was found out of it
     /// (<see cref="EntryKeys"/>' proof, or the explored map's mark), the way it came to be known
-    /// where one was kept, and the game's day, -1 where none was (caught up from the game's
-    /// records, or kept before days were).
+    /// where one was kept, the game's day, -1 where none was (caught up from the game's
+    /// records, or kept before days were), and the world that day was in, none where it was not kept.
     /// </summary>
     internal readonly struct BookNews
     {
@@ -70,13 +73,15 @@ namespace Scry
         public readonly string Proof;
         public readonly CameBy? Way;
         public readonly int Day;
+        public readonly string World;
 
-        public BookNews(NewsHow how, string proof, CameBy? way, int day)
+        public BookNews(NewsHow how, string proof, CameBy? way, int day, string world = null)
         {
             How = how;
             Proof = proof;
             Way = way;
             Day = day;
+            World = world;
         }
     }
 

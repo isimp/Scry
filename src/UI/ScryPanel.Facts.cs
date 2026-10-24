@@ -98,11 +98,11 @@ namespace Scry
                     var record = book.Came(entry.Key);
                     var at = record?.At ?? Moment.None;
                     came = CompendiumWords.CameLine(record?.Way, at.Day, BiomeShown(explorer, at.Biome), explorer.Compendium.Because(entry)?.ShownName, explorer.FloorOf(entry),
-                        explorer.LevelOf(entry) == KnownLevel.Known, at.Time, at.Weather, InHandShown(explorer, at.InHand), explorer.ByWorld(entry));
+                        explorer.LevelOf(entry) == KnownLevel.Known, at.Time, at.Weather, InHandShown(explorer, at.InHand), explorer.ByWorld(entry), explorer.WorldShown(at.World));
                     if (book.FirstSeen(entry.Key) is var first && first != null)
                     {
                         var sight = first.Value.At;
-                        seen = JournalWords.FirstSeen(sight.Day, sight.Time, sight.Weather, BiomeShown(explorer, sight.Biome), first.Value.Stars);
+                        seen = JournalWords.FirstSeen(sight.Day, sight.Time, sight.Weather, BiomeShown(explorer, sight.Biome), first.Value.Stars, explorer.WorldShown(sight.World));
                     }
                     if (book.DeathsBy(entry.Key) is var deaths && deaths != null) killedYou = JournalWords.KilledYou(deaths.Value.Count, deaths.Value.LastDay);
                 }

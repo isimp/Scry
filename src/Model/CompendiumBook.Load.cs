@@ -21,7 +21,11 @@ namespace Scry
             {
                 _metLately.Add(key);
                 var proof = FoundOutOf(key);
-                if ((proof == null || proof == EntryKeys.OnMap) && _newsDay.TryGetValue(key, out var day)) _metDay[key] = day;
+                if ((proof == null || proof == EntryKeys.OnMap) && _newsDay.TryGetValue(key, out var day))
+                {
+                    _metDay[key] = day;
+                    if (_newsWorld.TryGetValue(key, out var world)) _metWorld[key] = world;
+                }
             }
         }
 
@@ -49,16 +53,18 @@ namespace Scry
             },
             ["lately"] = (book, parts, name) =>
             {
-                if ((parts.Length != 2 && parts.Length != 3) || !book._latelyRead.Add(name)) return;
+                if (parts.Length < 2 || parts.Length > 4 || !book._latelyRead.Add(name)) return;
                 book._lately.Add(name);
-                if (parts.Length == 3 && Stored.TryCount(parts[2], out var newsDay)) book._newsDay[name] = newsDay;
+                if (parts.Length >= 3 && Stored.TryCount(parts[2], out var newsDay)) book._newsDay[name] = newsDay;
+                if (parts.Length == 4 && Stored.TryUnescaped(parts[3], out var newsWorld) && newsWorld.Length > 0) book._newsWorld[name] = newsWorld;
             },
             ["met"] = (book, parts, name) =>
             {
                 if (book._metRead == null) book._metRead = new HashSet<string>(StringComparer.Ordinal);
-                if ((parts.Length != 2 && parts.Length != 3) || !book._metRead.Add(name)) return;
+                if (parts.Length < 2 || parts.Length > 4 || !book._metRead.Add(name)) return;
                 book._metLately.Add(name);
-                if (parts.Length == 3 && Stored.TryCount(parts[2], out var metDay)) book._metDay[name] = metDay;
+                if (parts.Length >= 3 && Stored.TryCount(parts[2], out var metDay)) book._metDay[name] = metDay;
+                if (parts.Length == 4 && Stored.TryUnescaped(parts[3], out var metWorld) && metWorld.Length > 0) book._metWorld[name] = metWorld;
             },
             ["mapped"] = (book, parts, name) =>
             {
@@ -131,7 +137,7 @@ namespace Scry
             },
             ["seen"] = (book, parts, name) =>
             {
-                if (parts.Length == 8 && Stored.TryCount(parts[2], out var stars) && Read(parts, 3, out var seenAt)) book._seen[name] = (seenAt, stars);
+                if ((parts.Length == 8 || parts.Length == 9) && Stored.TryCount(parts[2], out var stars) && Read(parts, 3, out var seenAt)) book._seen[name] = (seenAt, stars);
             },
             ["died"] = (book, parts, name) =>
             {
@@ -173,6 +179,7 @@ namespace Scry
                 }
                 _lately.Insert(at, key);
                 if (_metDay.TryGetValue(key, out var day)) _newsDay[key] = day;
+                if (_metWorld.TryGetValue(key, out var world)) _newsWorld[key] = world;
             }
             Changed = true;
         }

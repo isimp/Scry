@@ -171,7 +171,7 @@ namespace Scry
         /// and the biome it stood in, each where known ("day 12, at night, fighting it with your
         /// Flint spear in the Black Forest").
         /// </summary>
-        public static string CameToKnow(CameBy way, int day, string biome, DayPart time = DayPart.None, string weather = null, string inHand = null)
+        public static string CameToKnow(CameBy way, int day, string biome, DayPart time = DayPart.None, string weather = null, string inHand = null, string world = null)
         {
             var said = CameWay(way);
             var handed = way == CameBy.Fought || way == CameBy.Killed || way == CameBy.Hit;
@@ -179,7 +179,9 @@ namespace Scry
             if (!string.IsNullOrEmpty(biome)) said += " in the " + biome;
             var when = JournalWords.When(time, weather);
             if (when != null) said = when + ", " + said;
-            return day >= 0 ? $"day {Numbers.Count(day)}, {said}" : said;
+            // The world named where it is not the one played now, as a character's book spans worlds.
+            if (day >= 0) return $"day {Numbers.Count(day)}{JournalWords.InWorld(world)}, {said}";
+            return world != null ? $"in {world}, {said}" : said;
         }
 
         /// <summary>How often, as a count reads: "once", "twice", "14 times".</summary>
@@ -265,9 +267,9 @@ namespace Scry
         /// before the book was kept; none for one not known.
         /// </summary>
         public static string CameLine(CameBy? way, int day, string biome, string owner, int floor, bool known, DayPart time = DayPart.None, string weather = null, string inHand = null,
-            WorldSource? byWorld = null)
+            WorldSource? byWorld = null, string world = null)
         {
-            if (way is CameBy by) return CameToKnow(by, day, biome, time, weather, inHand);
+            if (way is CameBy by) return CameToKnow(by, day, biome, time, weather, inHand, world);
             if (!string.IsNullOrEmpty(owner)) return CameWith(owner);
             if (floor > 0) return $"shown as {FloorCaption.ToLowerInvariant()} the {FloorName(floor)} tier";
             if (byWorld is WorldSource source) return "shown as known from " + SourcePhrase(source);

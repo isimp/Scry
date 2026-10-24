@@ -42,6 +42,8 @@ namespace Scry.Tests
             Assert.Equal("day 9, at night, in the Black Forest; it had 2 stars", JournalWords.FirstSeen(9, DayPart.Night, "Clear", "Black Forest", 2));
             Assert.Equal("day 9, in the Meadows", JournalWords.FirstSeen(9, DayPart.None, null, "Meadows", -1));
             Assert.Equal("at dawn", JournalWords.FirstSeen(-1, DayPart.Dawn, null, null, -1));
+            Assert.Equal("day 9 in Elderwood, in the Meadows", JournalWords.FirstSeen(9, DayPart.None, null, "Meadows", -1, "Elderwood"));
+            Assert.Equal("in Elderwood, at dawn", JournalWords.FirstSeen(-1, DayPart.Dawn, null, null, -1, "Elderwood"));
         }
 
         [Fact]
@@ -121,11 +123,11 @@ namespace Scry.Tests
         {
             Assert.Equal("Day 14", JournalWords.DayHeading(14));
             Assert.Equal("Earlier", JournalWords.DayHeading(-1));
-            // The newest day and the one before stay open; older days and what has no day fold away.
-            Assert.False(JournalWords.FoldedAtFirst(14, newest: 14));
-            Assert.False(JournalWords.FoldedAtFirst(13, newest: 14));
-            Assert.True(JournalWords.FoldedAtFirst(12, newest: 14));
-            Assert.True(JournalWords.FoldedAtFirst(-1, newest: 14));
+            // The newest two groups, in the order things were learned, stay open; older ones and what has no day fold away.
+            Assert.False(JournalWords.FoldedAtFirst(groupRank: 0, day: 14));
+            Assert.False(JournalWords.FoldedAtFirst(groupRank: 1, day: 13));
+            Assert.True(JournalWords.FoldedAtFirst(groupRank: 2, day: 12));
+            Assert.True(JournalWords.FoldedAtFirst(groupRank: 0, day: -1));
         }
 
         private static NewsLine N(string name, NewsHow how, int day, string proof = null) => new NewsLine(name, how, proof, day);

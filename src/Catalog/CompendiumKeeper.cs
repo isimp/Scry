@@ -638,7 +638,8 @@ namespace Scry
             var weapon = player != null ? player.GetCurrentWeapon() : null;
             var bare = weapon == null || player.m_unarmedWeapon != null && ReferenceEquals(weapon, player.m_unarmedWeapon.m_itemData);
             var inHand = bare ? null : weapon.m_dropPrefab != null ? weapon.m_dropPrefab.name : null;
-            return new Moment(day, biome == Heightmap.Biome.None ? null : biome.ToString(), time, weather, inHand);
+            var world = ZNet.instance != null ? ZNet.instance.GetWorldName() : null;
+            return new Moment(day, biome == Heightmap.Biome.None ? null : biome.ToString(), time, weather, inHand, world);
         }
 
         /// <summary>The book kept for a character, an empty one for a character never kept, and where one that could not be read was set aside (<see cref="KeptFile"/>). On a worker thread.</summary>

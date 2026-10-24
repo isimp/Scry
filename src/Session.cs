@@ -326,7 +326,7 @@ namespace Scry
             _favourites = _favourites ?? new Favourites(Path.Combine(Settings.DataFolder, "favourites.txt"));
             if (_favourites.Problem != null) Faults.Tell(Feature.Favourites, "reading the favourites", _favourites.Problem);
 
-            Explorer = new Explorer(catalog, _favourites) { RecentLimit = Settings.RecentCount, RecipeListedBy = RecipeListed };
+            Explorer = new Explorer(catalog, _favourites) { RecentLimit = Settings.RecentCount, RecipeListedBy = RecipeListed, WorldNow = ZNet.instance != null ? ZNet.instance.GetWorldName() : null };
             WorldCatalog.Set(Explorer.Entries);
             // A creature the page shown would leave out stands on no place's copy and in no raid's crowd:
             // one the character has not met, and under the strict rules one never seen together with the page.

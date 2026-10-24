@@ -81,6 +81,41 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void DaysOfAnotherWorldAreNamedAndComeByWhenTheyWereLearnedNotByTheirNumber()
+        {
+            // A character's book spans worlds, whose days run apart: day 50 of the world played now
+            // may be newer than day 300 of another. The list keeps the order things were learned
+            // in, names the world on a day of another world, and folds by that order.
+            var world = new World();
+            var book = world.Book;
+            book.Now = () => new Moment(300, "Meadows", DayPart.Day, null, null, "PipiKakaLand");
+            book.Raise(world.Troll.Key, KnownLevel.Known, way: CameBy.Killed);
+            book.Now = () => new Moment(50, "Meadows", DayPart.Day, null, null, "Elderwood");
+            book.Raise(world.Boar.Key, KnownLevel.Seen);
+            var explorer = world.Told(CompendiumRule.Strict).Explorer;
+            explorer.WorldNow = "Elderwood";
+            explorer.LearnedOnly = true;
+
+            Assert.Equal(new[] { world.Boar, world.Troll }, explorer.Results.ToArray());
+            Assert.Equal("PipiKakaLand", explorer.LearnedWorld(world.Troll));
+            Assert.Equal("Elderwood", explorer.LearnedWorld(world.Boar));
+            Assert.Equal("PipiKakaLand", explorer.WorldShown(explorer.LearnedWorld(world.Troll)));
+            Assert.Null(explorer.WorldShown(explorer.LearnedWorld(world.Boar)));
+            Assert.Null(explorer.WorldShown(null));
+
+            Assert.Equal("Day 50", JournalWords.DayHeading(50));
+            Assert.Equal("PipiKakaLand  \u00B7  Day 300", JournalWords.DayHeading(300, "PipiKakaLand"));
+            Assert.Equal("PipiKakaLand  \u00B7  Earlier", JournalWords.DayHeading(-1, "PipiKakaLand"));
+            Assert.Equal("day:50", ListWords.DayGroup(50));
+            Assert.Equal("day:300:PipiKakaLand", ListWords.DayGroup(300, "PipiKakaLand"));
+            // The newest two groups of the list start open, whatever their day numbers; what has no day starts folded.
+            Assert.False(JournalWords.FoldedAtFirst(0, 50));
+            Assert.False(JournalWords.FoldedAtFirst(1, 300));
+            Assert.True(JournalWords.FoldedAtFirst(2, 299));
+            Assert.True(JournalWords.FoldedAtFirst(0, -1));
+        }
+
+        [Fact]
         public void TheNewsNamesWhatWasLearnedAsTheListDoes()
         {
             var world = Learned();

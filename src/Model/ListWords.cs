@@ -46,7 +46,7 @@ namespace Scry
         public static string Group(string heading, bool folded) => (folded ? "\u25B8 " : "\u25BE ") + heading;
 
         /// <summary>The key a day's group of the learned list is folded by, apart from any kind's group.</summary>
-        public static string DayGroup(int day) => "day:" + Stored.Count(day);
+        public static string DayGroup(int day, string world = null) => "day:" + Stored.Count(day) + (world != null ? ":" + world : "");
 
         /// <summary>A group heading's tip.</summary>
         public static string GroupTip(bool folded) => folded ? "Show this group" : "Fold this group away";

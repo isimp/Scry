@@ -322,21 +322,28 @@ namespace Scry
         private static string FoldKey(Explorer explorer, string group) => explorer.KindFilter + "|" + group;
 
         /// <summary>The group an entry is listed under: in the learned list its day (<see cref="ListWords.DayGroup"/>), else its own group.</summary>
-        private static string GroupOf(Explorer explorer, Entry entry) => explorer.LearnedOnly ? ListWords.DayGroup(explorer.LearnedDay(entry)) : entry.Group;
+        private static string GroupOf(Explorer explorer, Entry entry) =>
+            explorer.LearnedOnly ? ListWords.DayGroup(explorer.LearnedDay(entry), explorer.WorldShown(explorer.LearnedWorld(entry))) : entry.Group;
 
-        /// <summary>The results the newest learned day was last worked out for, and that day.</summary>
-        private static IReadOnlyList<Entry> _newestOf;
-        private static int _newestDay = -1;
+        /// <summary>The results the learned groups' order was last worked out for, and each group's rank in it, newest first.</summary>
+        private static IReadOnlyList<Entry> _ranksOf;
+        private static readonly Dictionary<string, int> GroupRanks = new Dictionary<string, int>(StringComparer.Ordinal);
 
-        /// <summary>The newest day in the learned list, whose group and the one before start open (<see cref="JournalWords.FoldedAtFirst"/>).</summary>
-        private static int NewestLearned(Explorer explorer)
+        /// <summary>A learned group's rank in the order things were learned, 0 the newest: the newest two start open (<see cref="JournalWords.FoldedAtFirst"/>).</summary>
+        private static int GroupRank(Explorer explorer, Entry entry)
         {
             var results = explorer.Results;
-            if (ReferenceEquals(results, _newestOf)) return _newestDay;
-            _newestOf = results;
-            _newestDay = -1;
-            foreach (var entry in results) _newestDay = Math.Max(_newestDay, explorer.LearnedDay(entry));
-            return _newestDay;
+            if (!ReferenceEquals(results, _ranksOf))
+            {
+                _ranksOf = results;
+                GroupRanks.Clear();
+                foreach (var listed in results)
+                {
+                    var group = GroupOf(explorer, listed);
+                    if (!GroupRanks.ContainsKey(group)) GroupRanks[group] = GroupRanks.Count;
+                }
+            }
+            return GroupRanks.TryGetValue(GroupOf(explorer, entry), out var rank) ? rank : int.MaxValue;
         }
 
         /// <summary>
@@ -345,7 +352,7 @@ namespace Scry
         /// </summary>
         private static bool IsFolded(Explorer explorer, Entry entry)
         {
-            if (explorer.LearnedOnly) return JournalWords.FoldedAtFirst(explorer.LearnedDay(entry), NewestLearned(explorer)) != FoldedGroups.Contains(FoldKey(explorer, GroupOf(explorer, entry)));
+            if (explorer.LearnedOnly) return JournalWords.FoldedAtFirst(GroupRank(explorer, entry), explorer.LearnedDay(entry)) != FoldedGroups.Contains(FoldKey(explorer, GroupOf(explorer, entry)));
             return Grouped(explorer) && FoldedGroups.Contains(FoldKey(explorer, entry.Group));
         }
 
@@ -444,7 +451,7 @@ namespace Scry
                     {
                         var count = 1;
                         while (i + count < results.Count && GroupOf(explorer, results[i + count]) == group) count++;
-                        var name = byDay ? JournalWords.DayHeading(explorer.LearnedDay(results[i])) : results[i].Group.Length > 0 ? results[i].Group : "Ungrouped";
+                        var name = byDay ? JournalWords.DayHeading(explorer.LearnedDay(results[i]), explorer.WorldShown(explorer.LearnedWorld(results[i]))) : results[i].Group.Length > 0 ? results[i].Group : "Ungrouped";
                         _listRows.Add(new ListRow { Entry = -1, Heading = PanelWords.Heading(name, count), Group = group, Folded = folded });
                     }
                 }

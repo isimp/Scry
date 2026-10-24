@@ -162,6 +162,9 @@ namespace Scry
         private readonly Dictionary<string, (int Count, int LastDay)> _deaths = new Dictionary<string, (int, int)>(StringComparer.Ordinal);
         private readonly Dictionary<string, int> _newsDay = new Dictionary<string, int>(StringComparer.Ordinal);
 
+        /// <summary>The world each key's latest news came in, by key; none where it was not kept.</summary>
+        private readonly Dictionary<string, string> _newsWorld = new Dictionary<string, string>(StringComparer.Ordinal);
+
         /// <summary>The moment the character is in now, for what it sees or comes to know; none outside a game. Not kept.</summary>
         public Func<Moment> Now { get; set; }
 
@@ -200,11 +203,12 @@ namespace Scry
             var level = Level(key);
             if (level < KnownLevel.Seen) return null;
             var day = _newsDay.TryGetValue(key, out var told) ? told : -1;
+            var world = _newsWorld.TryGetValue(key, out var kept) ? kept : null;
             var way = _came.TryGetValue(key, out var came) ? came.Way : (CameBy?)null;
             var proof = FoundOutOf(key);
-            if (proof == EntryKeys.OnMap) return new BookNews(NewsHow.Map, proof, way, day);
-            if (proof != null) return new BookNews(NewsHow.FoundOut, proof, way, day);
-            return new BookNews(level == KnownLevel.Known ? NewsHow.Known : NewsHow.Seen, null, way, day);
+            if (proof == EntryKeys.OnMap) return new BookNews(NewsHow.Map, proof, way, day, world);
+            if (proof != null) return new BookNews(NewsHow.FoundOut, proof, way, day, world);
+            return new BookNews(level == KnownLevel.Known ? NewsHow.Known : NewsHow.Seen, null, way, day, world);
         }
 
         /// <summary>Counts up with every entry learned more of, so what tells the compendium tells it again.</summary>
@@ -444,19 +448,22 @@ namespace Scry
             _learnedAt[key] = ++Learned;
             _lately.Remove(key);
             _lately.Insert(0, key);
-            var day = CatchingUp ? -1 : Now?.Invoke().Day ?? -1;
-            _newsDay[key] = day;
+            var at = CatchingUp ? Moment.None : Now?.Invoke() ?? Moment.None;
+            _newsDay[key] = at.Day;
+            _newsWorld[key] = at.World;
             if (!met) return;
             _metAt[key] = Learned;
             _metLately.Remove(key);
             _metLately.Insert(0, key);
-            _metDay[key] = day;
+            _metDay[key] = at.Day;
+            _metWorld[key] = at.World;
         }
 
         /// <summary>What was met, newest first: the learned list under the loose rules, which leaves out what was found out.</summary>
         private readonly List<string> _metLately = new List<string>();
         private readonly Dictionary<string, int> _metAt = new Dictionary<string, int>(StringComparer.Ordinal);
         private readonly Dictionary<string, int> _metDay = new Dictionary<string, int>(StringComparer.Ordinal);
+        private readonly Dictionary<string, string> _metWorld = new Dictionary<string, string>(StringComparer.Ordinal);
 
         /// <summary>The keys met, seen or known, newest first, leaving out what was only found out (<see cref="Lately"/> holds both).</summary>
         public IEnumerable<string> MetLately => _metLately;
@@ -651,6 +658,7 @@ namespace Scry
             var lately = _lately.ToArray();
             var metLately = _metLately.ToArray();
             var metDay = new Dictionary<string, int>(_metDay, StringComparer.Ordinal);
+            var metWorld = new Dictionary<string, string>(_metWorld, StringComparer.Ordinal);
             var mapped = _mapped.ToArray();
             var read = _read.ToArray();
             var foundIn = _foundIn.SelectMany(p => p.Value.Select(kind => (p.Key.World, p.Key.Source, Kind: kind))).ToArray();
@@ -667,6 +675,7 @@ namespace Scry
             var seen = _seen.ToArray();
             var deaths = _deaths.ToArray();
             var newsDay = new Dictionary<string, int>(_newsDay, StringComparer.Ordinal);
+            var newsWorld = new Dictionary<string, string>(_newsWorld, StringComparer.Ordinal);
             var found = _found.ToArray();
             var fell = _fell.Save();
             var starFell = _starFell.Save();
@@ -687,13 +696,21 @@ namespace Scry
                 foreach (var key in lately)
                 {
                     text.Append("lately\t").Append(Stored.Escaped(key));
-                    if (newsDay.TryGetValue(key, out var day) && day >= 0) text.Append('\t').Append(Stored.Count(day));
+                    if (newsDay.TryGetValue(key, out var day) && day >= 0)
+                    {
+                        text.Append('\t').Append(Stored.Count(day));
+                        if (newsWorld.TryGetValue(key, out var world) && !string.IsNullOrEmpty(world)) text.Append('\t').Append(Stored.Escaped(world));
+                    }
                     text.Append('\n');
                 }
                 foreach (var key in metLately)
                 {
                     text.Append("met\t").Append(Stored.Escaped(key));
-                    if (metDay.TryGetValue(key, out var day) && day >= 0) text.Append('\t').Append(Stored.Count(day));
+                    if (metDay.TryGetValue(key, out var day) && day >= 0)
+                    {
+                        text.Append('\t').Append(Stored.Count(day));
+                        if (metWorld.TryGetValue(key, out var world) && !string.IsNullOrEmpty(world)) text.Append('\t').Append(Stored.Escaped(world));
+                    }
                     text.Append('\n');
                 }
                 foreach (var world in mapped.OrderBy(w => w, StringComparer.Ordinal)) text.Append("mapped\t").Append(Stored.Escaped(world)).Append('\n');
@@ -763,7 +780,7 @@ namespace Scry
         private static void Written(StringBuilder text, Moment at)
         {
             text.Append(Stored.Count(at.Day)).Append('\t').Append(Stored.Escaped(at.Biome ?? "")).Append('\t').Append(at.Time)
-                .Append('\t').Append(Stored.Escaped(at.Weather ?? "")).Append('\t').Append(Stored.Escaped(at.InHand ?? ""));
+                .Append('\t').Append(Stored.Escaped(at.Weather ?? "")).Append('\t').Append(Stored.Escaped(at.InHand ?? "")).Append('\t').Append(Stored.Escaped(at.World ?? ""));
         }
 
         /// <summary>
@@ -773,7 +790,7 @@ namespace Scry
         private static bool Read(string[] parts, int from, out Moment at)
         {
             at = Moment.None;
-            if (parts.Length != from + 2 && parts.Length != from + 5) return false;
+            if (parts.Length != from + 2 && parts.Length != from + 5 && parts.Length != from + 6) return false;
             if (!Stored.TryCount(parts[from], out var day) || !Stored.TryUnescaped(parts[from + 1], out var biome)) return false;
             if (parts.Length == from + 2)
             {
@@ -782,7 +799,10 @@ namespace Scry
             }
             if (!Enum.TryParse(parts[from + 2], out DayPart time) || !Enum.IsDefined(typeof(DayPart), time)) return false;
             if (!Stored.TryUnescaped(parts[from + 3], out var weather) || !Stored.TryUnescaped(parts[from + 4], out var inHand)) return false;
-            at = new Moment(day, biome, time, weather, inHand);
+            // The world's name came with 0.3.1; a moment kept before has none.
+            var world = "";
+            if (parts.Length == from + 6 && !Stored.TryUnescaped(parts[from + 5], out world)) return false;
+            at = new Moment(day, biome, time, weather, inHand, world);
             return true;
         }
 

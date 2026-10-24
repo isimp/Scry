@@ -30,10 +30,11 @@ namespace Scry
         /// A first sighting: "day 9, at dusk in the rain, in the Black Forest; it had 1 star", each
         /// part where known, the stars where it had any.
         /// </summary>
-        public static string FirstSeen(int day, DayPart time, string weather, string biome, int stars)
+        public static string FirstSeen(int day, DayPart time, string weather, string biome, int stars, string world = null)
         {
             var parts = new List<string>();
-            if (day >= 0) parts.Add("day " + Numbers.Count(day));
+            if (day >= 0) parts.Add("day " + Numbers.Count(day) + InWorld(world));
+            else if (world != null) parts.Add("in " + world);
             var when = When(time, weather);
             if (when != null) parts.Add(when);
             if (!string.IsNullOrEmpty(biome)) parts.Add("in the " + biome);
@@ -118,11 +119,18 @@ namespace Scry
             }
         }
 
-        /// <summary>A day's heading in the Learned list; "Earlier" for what has no day.</summary>
-        public static string DayHeading(int day) => day >= 0 ? "Day " + Numbers.Count(day) : "Earlier";
+        /// <summary>A day's heading in the Learned list, "Earlier" for what has no day; named by its world where that is not the one played now.</summary>
+        public static string DayHeading(int day, string world = null)
+        {
+            var said = day >= 0 ? "Day " + Numbers.Count(day) : "Earlier";
+            return world != null ? world + "  \u00B7  " + said : said;
+        }
 
-        /// <summary>Whether a day's group in the Learned list starts folded: all but the newest day and the one before, and what has no day.</summary>
-        public static bool FoldedAtFirst(int day, int newest) => day < 0 || day < newest - 1;
+        /// <summary>" in Elderwood" after a day, where the world is named; nothing otherwise.</summary>
+        public static string InWorld(string world) => world != null ? " in " + world : "";
+
+        /// <summary>Whether a group of the Learned list starts folded: all but the newest two groups in the order things were learned (a newer day of another world first), and what has no day.</summary>
+        public static bool FoldedAtFirst(int groupRank, int day) => day < 0 || groupRank >= 2;
 
         /// <summary>What was found out of a thing, named in a sentence of the news: "how fire lands on Neck", "the health of Troll".</summary>
         public static string FoundOutOf(string proof, string name)

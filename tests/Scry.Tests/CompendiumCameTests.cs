@@ -75,6 +75,9 @@ namespace Scry.Tests
         {
             Assert.Equal("day 12, fighting it in the Black Forest", CompendiumWords.CameToKnow(CameBy.Fought, 12, "Black Forest"));
             Assert.Equal("fighting it in the Black Forest", CompendiumWords.CameToKnow(CameBy.Fought, -1, "Black Forest"));
+            // The world named where it is not the one played now, as a character's book spans worlds.
+            Assert.Equal("day 12 in Elderwood, fighting it in the Black Forest", CompendiumWords.CameToKnow(CameBy.Fought, 12, "Black Forest", world: "Elderwood"));
+            Assert.Equal("in Elderwood, fighting it in the Black Forest", CompendiumWords.CameToKnow(CameBy.Fought, -1, "Black Forest", world: "Elderwood"));
             Assert.Equal("day 3, unlocking its recipe", CompendiumWords.CameToKnow(CameBy.Recipe, 3, null));
             Assert.Equal("day 1, stepping inside", CompendiumWords.CameToKnow(CameBy.WentInside, 1, ""));
             Assert.Equal("with Troll", CompendiumWords.CameWith("Troll"));

@@ -41,6 +41,31 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AMomentKeepsTheWorldItFellInThroughSaveAndLoad()
+        {
+            // A character's book spans worlds, whose days run apart: each moment keeps its world's
+            // name, as does the news of each thing learned, for the page and the Learned list to
+            // name it where it is not the world played now. A book written before keeps none.
+            var book = Book(new Moment(300, "Meadows", DayPart.Day, "Clear", null, "PipiKakaLand"));
+            book.Raise("Troll", KnownLevel.Seen, stars: 1);
+            book.Raise("Troll", KnownLevel.Known, way: CameBy.Fought);
+            Assert.Equal("PipiKakaLand", book.FirstSeen("Troll")?.At.World);
+            Assert.Equal("PipiKakaLand", book.Came("Troll")?.At.World);
+            Assert.Equal("PipiKakaLand", book.NewsOf("Troll")?.World);
+
+            var read = CompendiumBook.Load(book.Save());
+            Assert.Equal("PipiKakaLand", read.FirstSeen("Troll")?.At.World);
+            Assert.Equal("PipiKakaLand", read.Came("Troll")?.At.World);
+            Assert.Equal("PipiKakaLand", read.NewsOf("Troll")?.World);
+            Assert.Equal(300, read.NewsOf("Troll")?.Day);
+
+            var old = CompendiumBook.Load("know\tTroll\t3\ncame\tTroll\tFought\t12\tBlackForest\nlately\tTroll\t12\n");
+            Assert.Null(old.Came("Troll")?.At.World);
+            Assert.Null(old.NewsOf("Troll")?.World);
+            Assert.Equal(12, old.NewsOf("Troll")?.Day);
+        }
+
+        [Fact]
         public void AThingKnownAtOnceHasNoFirstSighting()
         {
             var book = Book(Dusk);
