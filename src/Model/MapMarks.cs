@@ -1,5 +1,17 @@
 namespace Scry
 {
+    /// <summary>What a mark's label on the large map shows.</summary>
+    internal enum MarkWords
+    {
+        None,
+
+        /// <summary>Its name alone, as the game names a pin.</summary>
+        Name,
+
+        /// <summary>Its name and how far it was walked, on a dark plate.</summary>
+        All,
+    }
+
     /// <summary>
     /// Where a dungeon been in is marked on Valheim's large map: its entrance placed as the game
     /// places its pins (<c>Minimap.WorldToMapPoint</c> turns a world point into one of the map's
@@ -8,6 +20,9 @@ namespace Scry
     /// </summary>
     internal static class MapMarks
     {
+        /// <summary>What a mark's words show: all of them while the pointer rests on it, its name alone where the settings show names always, else nothing.</summary>
+        public static MarkWords WordsOf(bool pointedAt, bool namesAlways) => pointedAt ? MarkWords.All : namesAlways ? MarkWords.Name : MarkWords.None;
+
         /// <summary>
         /// Where an entrance is on the large map's pin layer, from its lower left corner; false where
         /// the window the map shows leaves it out.

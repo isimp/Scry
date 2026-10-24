@@ -11,6 +11,17 @@ namespace Scry.Tests
         private static readonly (float XMin, float YMin, float Width, float Height) Whole = (0f, 0f, 1f, 1f);
 
         [Fact]
+        public void AMarksNameShowsUnderItAlwaysOrWhileThePointerRestsOnIt()
+        {
+            // Pointed at, all its words on their plate, whatever the setting; else its name alone, as
+            // the game names a pin, where names always show, and nothing where they show on pointing.
+            Assert.Equal(MarkWords.All, MapMarks.WordsOf(pointedAt: true, namesAlways: false));
+            Assert.Equal(MarkWords.All, MapMarks.WordsOf(pointedAt: true, namesAlways: true));
+            Assert.Equal(MarkWords.Name, MapMarks.WordsOf(pointedAt: false, namesAlways: true));
+            Assert.Equal(MarkWords.None, MapMarks.WordsOf(pointedAt: false, namesAlways: false));
+        }
+
+        [Fact]
         public void AMarkStandsWhereTheGameWouldPinItsEntrance()
         {
             // A 256 texel map of 64 m texels: the world's middle in the map's middle.

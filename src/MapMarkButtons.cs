@@ -20,7 +20,8 @@ namespace Scry
     /// never ticks or adds a pin of the player's. A click closes the map and opens Scry on the
     /// dungeon's page, its map on the stage where anyone walked it, the page alone for an entrance.
     /// Its name and who walked it how far stand under it as
-    /// the game names a pin, in a copy of the game's pin name, while the pointer rests on it. It is no pin of the game's: nothing is added to
+    /// the game names a pin, in a copy of the game's pin name, while the pointer rests on it, and
+    /// its name alone at all times where <c>DungeonMarkNamesAlways</c> is on. It is no pin of the game's: nothing is added to
     /// the player's pins, saved with the world or shared. No rooms are drawn on the map.
     /// <c>DungeonMarksOnMap</c> turns the marks off.
     /// </summary>
@@ -34,7 +35,7 @@ namespace Scry
             public GameObject Made;
             public RectTransform Rect;
 
-            /// <summary>The words under it, a copy of the game's own pin name, shown while the pointer rests on it; none where the map has none.</summary>
+            /// <summary>The words under it, a copy of the game's own pin name, shown while the pointer rests on it, and its name alone where names always show; none where the map has none.</summary>
             public GameObject Label;
             public RectTransform LabelRect;
             public Image Picture;
@@ -45,6 +46,12 @@ namespace Scry
 
             /// <summary>Its words as last set, for the self-test.</summary>
             public string Said;
+
+            /// <summary>Its name alone, as the game names a pin, for names always shown.</summary>
+            public string Plain;
+
+            /// <summary>What its label holds now; none until set.</summary>
+            public string Showing;
         }
 
         /// <summary>What the game makes a pin's name from (<c>Minimap.m_pinNamePrefab</c>), its words set as it sets them.</summary>
@@ -77,6 +84,10 @@ namespace Scry
         /// <summary>A mark's words, for the self-test; none for one not shown.</summary>
         [Diagnostic]
         public static string SaidForTest(int mark) => mark >= 0 && mark < Marks.Count && Marks[mark].Made.activeSelf ? Marks[mark].Said : null;
+
+        /// <summary>What a mark's label shows, for the self-test; none for one not shown or whose label is put away.</summary>
+        [Diagnostic]
+        public static string ShowingForTest(int mark) => mark >= 0 && mark < Marks.Count && Marks[mark].Label != null && Marks[mark].Label.activeSelf ? Marks[mark].Showing : null;
 
         /// <summary>How a mark looks, for the self-test; none for one not shown.</summary>
         [Diagnostic]
@@ -208,16 +219,16 @@ namespace Scry
                     mark.Id = kept.Id;
                     mark.Look = kept.Look;
                     if (mark.Picture != null) mark.Picture.sprite = SpriteOf(kept.Look);
-                    Name(mark, Said(kept));
+                    mark.Said = Said(kept);
+                    mark.Plain = Shown(kept.Map.Location);
+                    mark.Showing = null;
                 }
                 // Its words stand where it stands, as the game's pin names do, the name's own layout putting them under it.
                 if (mark.LabelRect != null) mark.LabelRect.anchoredPosition = mark.Rect.anchoredPosition;
                 if (!mark.Made.activeSelf) mark.Made.SetActive(true);
+                ShowWords(mark);
             }
-            for (var i = shown; i < Marks.Count; i++)
-            {
-                if (Marks[i].Made.activeSelf) Marks[i].Made.SetActive(false);
-            }
+            for (var i = shown; i < Marks.Count; i++) Hide(Marks[i]);
             MarksShown = shown;
             HollowShown = hollow;
             EntrancesShown = entrances;
@@ -244,15 +255,43 @@ namespace Scry
         {
             var over = Input.GetMouseButton(0) ? null : MarkAt(ZInput.pointerPosition);
             if (over == _hovered) return;
-            HideName();
+            var was = _hovered;
             _hovered = over;
-            if (over?.Label != null) over.Label.SetActive(true);
+            if (was != null) ShowWords(was);
+            if (over != null) ShowWords(over);
         }
 
         private static void HideName()
         {
-            if (_hovered?.Label != null) _hovered.Label.SetActive(false);
+            var was = _hovered;
             _hovered = null;
+            if (was != null) ShowWords(was);
+        }
+
+        /// <summary>A mark's label as it should stand now (<see cref="MapMarks.WordsOf"/>): all its words while the pointer rests on it, its name alone where names always show, else put away.</summary>
+        private static void ShowWords(Mark mark)
+        {
+            if (mark.Label == null) return;
+            var words = MapMarks.WordsOf(mark == _hovered, Settings.MarkNamesAlways);
+            if (words == MarkWords.None)
+            {
+                if (mark.Label.activeSelf) mark.Label.SetActive(false);
+                return;
+            }
+            var said = words == MarkWords.All ? mark.Said : mark.Plain;
+            if (!ReferenceEquals(said, mark.Showing))
+            {
+                SetText(mark.Label, said);
+                mark.Showing = said;
+            }
+            if (!mark.Label.activeSelf) mark.Label.SetActive(true);
+        }
+
+        /// <summary>Puts a mark away with its label.</summary>
+        private static void Hide(Mark mark)
+        {
+            if (mark.Made != null && mark.Made.activeSelf) mark.Made.SetActive(false);
+            if (mark.Label != null && mark.Label.activeSelf) mark.Label.SetActive(false);
         }
 
         /// <summary>A mark's words, by its look, on a dark plate: how far you walked it, how far anyone on this server did, or whether anyone did.</summary>
@@ -273,15 +312,13 @@ namespace Scry
         }
 
         /// <summary>
-        /// Sets a mark's words (<see cref="DungeonMapWords.MarkLabel"/>), in the accent. The
-        /// game's pin name writes with TextMeshPro, which Scry does not build against, so its text
-        /// is set by the name the game's own code sets it by.
+        /// Sets a mark's label's words (<see cref="DungeonMapWords.MarkLabel"/>, in the accent, or
+        /// its name alone). The game's pin name writes with TextMeshPro, which Scry does not build
+        /// against, so its text is set by the name the game's own code sets it by.
         /// </summary>
-        private static void Name(Mark mark, string said)
+        private static void SetText(GameObject label, string said)
         {
-            mark.Said = said;
-            if (mark.Label == null) return;
-            var text = mark.Label.GetComponentsInChildren<Component>(true).FirstOrDefault(c => c != null && IsText(c.GetType()));
+            var text = label.GetComponentsInChildren<Component>(true).FirstOrDefault(c => c != null && IsText(c.GetType()));
             if (text == null) return;
             text.GetType().GetProperty("text")?.SetValue(text, said);
         }
@@ -329,10 +366,7 @@ namespace Scry
             EntrancesShown = 0;
             if (MarksShown == 0) return;
             HideName();
-            foreach (var mark in Marks)
-            {
-                if (mark.Made != null && mark.Made.activeSelf) mark.Made.SetActive(false);
-            }
+            foreach (var mark in Marks) Hide(mark);
             MarksShown = 0;
         }
 

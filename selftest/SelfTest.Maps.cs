@@ -353,13 +353,14 @@ namespace Scry
                     && (ScryPanel.FirstMapTipForTest?.Contains(said) ?? false),
                     "its page's line says it lies where you stand and how far you walked it, its hover the day", $"{ScryPanel.FirstMapLineForTest} / {ScryPanel.FirstMapTipForTest}");
             }
-            yield return WalkedWhole(p, maps, id, rolled.Rooms.Count, entry.Name);
+            yield return WalkedWhole(p, maps, id, rolled.Rooms.Count, entry);
             MarksAsTheyWere();
         }
 
-        /// <summary>Every room of a dungeon walked, its mark on the map is ticked and its words say all its rooms were.</summary>
-        private static IEnumerator WalkedWhole(Probe p, DungeonMaps maps, string id, int rooms, string name)
+        /// <summary>Every room of a dungeon walked, its mark on the map is ticked and its words say all its rooms were; with names shown always, its name alone stands under it.</summary>
+        private static IEnumerator WalkedWhole(Probe p, DungeonMaps maps, string id, int rooms, Entry entry)
         {
+            var name = entry.Name;
             for (var room = 0; room < rooms; room++) maps.Walk(id, room);
             Session.Hide();
             Minimap.instance.SetMapMode(Minimap.MapMode.Large);
@@ -367,6 +368,13 @@ namespace Scry
             p.Check(MapMarkButtons.LookForTest(0) == MarkLook.Whole && (MapMarkButtons.SaidForTest(0)?.Contains("Walked by you: all ") ?? false),
                 "every room walked, its mark is ticked and its words say all its rooms were", MapMarkButtons.SaidForTest(0));
             yield return Picture(p, $"the mark of {name} walked whole");
+            var always = Settings.MarkNamesAlways;
+            Settings.MarkNamesAlways = true;
+            PointerTo(new Vector2(4f, 4f));
+            yield return Until(() => MapMarkButtons.ShowingForTest(0) == entry.ShownName, 3);
+            p.Check(MapMarkButtons.ShowingForTest(0) == entry.ShownName, "with names shown always, its name alone stands under it, as the game names a pin", MapMarkButtons.ShowingForTest(0) ?? "no name shown");
+            yield return Picture(p, $"the mark of {name} named always");
+            Settings.MarkNamesAlways = always;
             Minimap.instance.SetMapMode(Minimap.MapMode.Small);
         }
 

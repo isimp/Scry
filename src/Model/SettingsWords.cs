@@ -40,6 +40,11 @@ namespace Scry
         public const string LearnedOnly = "Learned tab only";
         public const string NewsTip = "Whether the notice under the header tells what the character learned, or the Learned tab alone";
 
+        public const string MarkNames = "Dungeon marks' names";
+        public const string WhenPointedAt = "When pointed at";
+        public const string Always = "Always";
+        public const string MarkNamesTip = "Whether each dungeon mark on the large map shows its name under it always, as the game's pins do, or only while the pointer rests on it";
+
         public const string SizeTip = "How big the panel is drawn, on top of its scaling to the screen's height; it takes the size as the slider is let go";
 
         /// <summary>The panel's sizes the slider reaches, on top of the scaling by screen height, as the config file allows them.</summary>

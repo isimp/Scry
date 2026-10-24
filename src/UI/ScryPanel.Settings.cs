@@ -128,6 +128,11 @@ namespace Scry
             if (news >= 0) Settings.NewsNotice = news == 0;
             RowTip(top, y, width, "settings-news", SettingsWords.NewsTip);
 
+            top = y;
+            var names = Segments(SettingsWords.MarkNames, new List<string> { SettingsWords.WhenPointedAt, SettingsWords.Always }, Settings.MarkNamesAlways ? 1 : 0, width, labelW, ref y);
+            if (names >= 0) Settings.MarkNamesAlways = names == 1;
+            RowTip(top, y, width, "settings-mark-names", SettingsWords.MarkNamesTip);
+
             if (_rowsWrapped > wrapped) CountDrawn(PanelPart.SettingsRowWrapped);
             var keptH = Skin.DimWrap.CalcHeight(new GUIContent(SettingsWords.Kept), width);
             GUI.Label(new Rect(0f, y + U(4f), width, keptH), SettingsWords.Kept, Skin.DimWrap);
@@ -137,7 +142,7 @@ namespace Scry
             if (EndCard(rect, out _)) ShowSettings(false);
         }
 
-        private static readonly string[] SettingsLabelNames = { SettingsWords.Size, SettingsWords.Key, SettingsWords.WhileOpen, SettingsWords.Opening, SettingsWords.Sounds, SettingsWords.Tips, SettingsWords.Stage, SettingsWords.News };
+        private static readonly string[] SettingsLabelNames = { SettingsWords.Size, SettingsWords.Key, SettingsWords.WhileOpen, SettingsWords.Opening, SettingsWords.Sounds, SettingsWords.Tips, SettingsWords.Stage, SettingsWords.News, SettingsWords.MarkNames };
         private static readonly float[] SettingsLabelWidths = new float[SettingsLabelNames.Length];
 
         /// <summary>How wide each of the settings card's labels is drawn, for their column to be as wide as the widest.</summary>
