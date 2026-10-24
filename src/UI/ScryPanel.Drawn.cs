@@ -29,6 +29,9 @@ namespace Scry
         StageChip,
         ViewMenu,
         ClosedPage,
+
+        /// <summary>A page only seen telling what sight gave: its stars and gear seen up close, where it was seen.</summary>
+        SeenLines,
         UnseenName,
         ListLeftOut,
         PeekStrip,

@@ -10,6 +10,8 @@ A server with Scry, a dedicated one or a game hosting, can set what the compendi
 
 `KnownUpTo` (true by default) is whether players may raise *Known up to*, showing everything of the tiers below the bosses they beat as known.
 
+`SeenReach` (10 by default) is how near, in metres, a creature in view counts as seen up close, its stars and what it carries kept for the compendium: as far as the game names a creature and marks its stars over it. Under *Strict* the stage shows a creature only with the stars and gear it was seen with so; 0 keeps none.
+
 The rest cap how far each source of the world may show in the compendium's box; a player choosing above the cap gets the cap.
 
 `ExploredUpTo`, for *Ground you explored*: `Off`, `Seen`, `Known` or `WithInsides` (the default). `MarkedUpTo`, for *Places marked for you*: `Off`, `Seen`, `Known` or `WithInsides` (the default).

@@ -31,13 +31,14 @@ namespace Scry
         public static WorldRules Open => new WorldRules();
 
         /// <summary>The rules from the server's settings: its rules or the players' choice, peeking and *Known up to* allowed or not, and each source's highest level.</summary>
-        public static WorldRules From(WorldRule rule, bool peeking, bool floor, Func<WorldSource, SourceLevel> upTo)
+        public static WorldRules From(WorldRule rule, bool peeking, bool floor, Func<WorldSource, SourceLevel> upTo, float seenReach = SeenReachSetting.Default)
         {
             var rules = new WorldRules
             {
                 Rule = rule == WorldRule.Off ? CompendiumRule.Off : rule == WorldRule.Loose ? CompendiumRule.Loose : rule == WorldRule.Strict ? CompendiumRule.Strict : (CompendiumRule?)null,
                 Peeking = peeking,
                 FloorAllowed = floor,
+                SeenReach = Math.Max(0f, seenReach),
             };
             foreach (var source in WorldSources.All) rules.UpTo(source, upTo(source));
             return rules;
@@ -51,6 +52,19 @@ namespace Scry
 
         /// <summary>Whether *Known up to* is allowed.</summary>
         public bool FloorAllowed { get; set; } = true;
+
+        /// <summary>
+        /// How near, in metres, a creature in view is seen up close, its stars and what it carries
+        /// kept with the book (<see cref="CompendiumBook.Sighted"/>): as far as the game names a
+        /// creature and marks its stars over it, 10 m, unless the server sets otherwise; 0 never.
+        /// </summary>
+        public float SeenReach { get; set; } = SeenReachSetting.Default;
+
+        /// <summary>What the seen reach starts at: the game's own, its enemy hud's 10 m.</summary>
+        public static class SeenReachSetting
+        {
+            public const float Default = 10f;
+        }
 
         private readonly Dictionary<WorldSource, SourceLevel> _upTo = new Dictionary<WorldSource, SourceLevel>();
 
@@ -84,7 +98,7 @@ namespace Scry
         /// <summary>Whether other rules allow the same in every way.</summary>
         public bool SameAs(WorldRules other)
         {
-            if (other == null || other.Rule != Rule || other.Peeking != Peeking || other.FloorAllowed != FloorAllowed) return false;
+            if (other == null || other.Rule != Rule || other.Peeking != Peeking || other.FloorAllowed != FloorAllowed || !other.SeenReach.Equals(SeenReach)) return false;
             foreach (var source in WorldSources.All) if (Highest(source) != other.Highest(source)) return false;
             return true;
         }
@@ -92,7 +106,7 @@ namespace Scry
         /// <summary>A copy, unchanged by what is set on this one later.</summary>
         public WorldRules Copy()
         {
-            var copy = new WorldRules { Rule = Rule, Peeking = Peeking, FloorAllowed = FloorAllowed };
+            var copy = new WorldRules { Rule = Rule, Peeking = Peeking, FloorAllowed = FloorAllowed, SeenReach = SeenReach };
             foreach (var pair in _upTo) copy._upTo[pair.Key] = pair.Value;
             return copy;
         }

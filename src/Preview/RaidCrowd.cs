@@ -21,6 +21,9 @@ namespace Scry
         /// <summary>Whether a creature, by its prefab's name, is left out of the crowd, as of a place's copy (<see cref="Stage.CreatureLeftOff"/>); told by the session.</summary>
         public static System.Func<string, bool> LeftOff;
 
+        /// <summary>The level a creature of the crowd stands at, by its prefab's name and the level rolled, as of a place's copy (<see cref="Stage.StarLevelFor"/>); told by the session.</summary>
+        public static System.Func<string, int, int> StarLevelFor;
+
         /// <summary>Whether a raid brings any creature to roll.</summary>
         public static bool Brings(RandomEvent raid) => raid?.m_spawn != null && raid.m_spawn.Exists(s => s != null && s.m_enabled && s.m_prefab != null);
 
@@ -87,7 +90,7 @@ namespace Scry
                     if (creatureEntry == null) continue;
                     var modifiers = new Modifiers();
                     modifiers.ResetFor(creatureEntry);
-                    modifiers.Level = creature.Level;
+                    modifiers.Level = StarLevelFor != null ? StarLevelFor(creature.Prefab, creature.Level) : creature.Level;
                     var turned = Quaternion.Euler(0f, Random.Range(-30f, 30f), 0f);
                     Looks.Copy(creatureEntry, modifiers, holder.transform, origin + new Vector3(place.X, 0f, place.Z), turned, layer, null);
                 }

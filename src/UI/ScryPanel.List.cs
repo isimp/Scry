@@ -532,13 +532,20 @@ namespace Scry
         /// </summary>
         private static string RowSecondary(Explorer explorer, Entry entry, string primary) =>
             (explorer.LearnedOnly ? explorer.LearnedNote(entry) : null)
-            ?? (explorer.CompendiumOn ? Masked(explorer, explorer.AlikeOf(entry)) ?? ""
+            ?? (explorer.CompendiumOn ? SeenTagged(explorer, entry, Masked(explorer, explorer.AlikeOf(entry))) ?? ""
                 : (entry.TagNamesCarrier ? entry.Alike : null) ?? entry.Tag ?? (primary == entry.Name ? "" : entry.Name));
 
+        /// <summary>A row's note with "seen" before it where the entry is only seen, its page closed, so a row tells knowing a thing from knowing its page.</summary>
+        private static string SeenTagged(Explorer explorer, Entry entry, string note)
+        {
+            if (explorer.LevelOf(entry) != KnownLevel.Seen) return note;
+            return CompendiumWords.SeenRowNote(note);
+        }
+
         /// <summary>
-        /// A row's name, cut with an ellipsis where too long, faint where only seen in the learned list
-        /// or where there is nothing to see, and after it what tells it apart while there is room, the
-        /// search's matches lit in both. Whether either was cut.
+        /// A row's name, cut with an ellipsis where too long, faint where only seen with the
+        /// compendium on or where there is nothing to see, and after it what tells it apart while
+        /// there is room, the search's matches lit in both. Whether either was cut.
         /// </summary>
         private static bool RowNames(Explorer explorer, Entry entry, Rect text, string primary, string secondary)
         {
@@ -553,8 +560,8 @@ namespace Scry
             // A name too long for the row is cut at its end with an ellipsis, whole on hover.
             var shownName = fullW > textW ? Skin.Fit(nameStyle, primary, textW) : primary;
             if (lit) LightMatches(nameRect, shownName, nameStyle);
-            // In the learned list what was only seen is faint, as is what has nothing to see.
-            var faint = entry.Empty || explorer.LearnedOnly && explorer.LevelOf(entry) < KnownLevel.Known;
+            // With the compendium on what was only seen is faint, its page closed, as is what has nothing to see.
+            var faint = entry.Empty || explorer.CompendiumOn && explorer.LevelOf(entry) < KnownLevel.Known;
             Skin.LabelIn(nameRect, shownName, nameStyle, faint ? Skin.Faint : Skin.Text);
 
             var cut = fullW > textW;

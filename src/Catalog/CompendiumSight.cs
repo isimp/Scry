@@ -34,6 +34,7 @@ namespace Scry
             _from = _eye = _forward = Vector3.zero;
             _sweepStarted = 0;
             Bodies.Clear();
+            CarriedNow.Clear();
             Meshes.Clear();
             Skins.Clear();
         });
@@ -111,12 +112,15 @@ namespace Scry
             {
                 if (creature == null || creature.IsPlayer()) continue;
                 var centre = creature.GetCenterPoint();
-                if (Vector3.Distance(player.transform.position, centre) <= Sighting.Reach(creature.GetHeight()) && InView(view, centre) && Clear(view.position, centre, null))
+                var away = Vector3.Distance(player.transform.position, centre);
+                if (away <= Sighting.Reach(creature.GetHeight()) && InView(view, centre) && Clear(view.position, centre, null))
                 {
                     var key = Utils.GetPrefabName(creature.gameObject);
                     // Its level less one is its stars, as the game shows them over it.
                     catchUp.Met(key, KnownLevel.Seen, book, stars: creature.GetLevel() - 1);
                     CompendiumKeeper.MetIn(key, creature.transform.position);
+                    // Near enough for the game to name it and mark its stars, it is seen up close: its stars and what it carries are kept.
+                    if (away <= book.World.SeenReach && catchUp.Lists(key)) CompendiumKeeper.Sighted(key, creature.GetLevel() - 1, Carried(creature));
                 }
             }
             foreach (var place in _places())
@@ -143,6 +147,31 @@ namespace Scry
                 CompendiumKeeper.Saw(chest, held.m_dropPrefab.name, Tie.Holds);
                 if (chestPlace != null) CompendiumKeeper.Saw(held.m_dropPrefab.name, EntryKeys.For(Kind.Location, Utils.GetPrefabName(chestPlace.gameObject)));
             }
+        }
+
+        /// <summary>The slots of what a creature wears that every client sees (<c>VisEquipment</c> keeps each as the item's hash in the creature's data).</summary>
+        private static readonly int[] WornSlots = { ZDOVars.s_rightItem, ZDOVars.s_leftItem, ZDOVars.s_chestItem, ZDOVars.s_legItem, ZDOVars.s_helmetItem, ZDOVars.s_shoulderItem };
+
+        private static readonly List<string> CarriedNow = new List<string>();
+
+        /// <summary>
+        /// What a creature carries, by the prefabs of the items in its hands and on its body, as
+        /// the game shows them on it to every player (<c>VisEquipment</c>); none for one with
+        /// nothing on, or whose data is not loaded. The list is reused: read it before the next look.
+        /// </summary>
+        private static List<string> Carried(Character creature)
+        {
+            CarriedNow.Clear();
+            var zdo = creature.GetComponent<ZNetView>().OrNull()?.GetZDO();
+            if (zdo == null) return CarriedNow;
+            foreach (var slot in WornSlots)
+            {
+                var hash = zdo.GetInt(slot);
+                if (hash == 0) continue;
+                var item = GamePrefabs.Hashed(hash);
+                if (item != null && !CarriedNow.Contains(item.name)) CarriedNow.Add(item.name);
+            }
+            return CarriedNow;
         }
 
         /// <summary>

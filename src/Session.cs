@@ -146,6 +146,12 @@ namespace Scry
         /// <summary>Whether a creature, by its prefab's name, is left off the stage: as the page shown would leave it out (<see cref="Explorer.NotMet"/>, <see cref="Explorer.LeavesOut(string)"/>).</summary>
         private static readonly Func<string, bool> CreatureLeftOff = key => Explorer != null && (Explorer.NotMet(key) || Explorer.LeavesOut(key));
 
+        /// <summary>The level a creature rolled on the stage stands at: under the strict rules no higher than it was seen with up close (<see cref="Explorer.StarLevelFor"/>).</summary>
+        private static readonly Func<string, int, int> StarLevelFor = (key, level) => Explorer != null ? Explorer.StarLevelFor(key, level) : level;
+
+        /// <summary>Whether a creature's copy may wear an item: under the strict rules one it was seen carrying up close (<see cref="Explorer.WearsShown"/>).</summary>
+        private static readonly Func<string, string, bool> WearsShown = (creature, item) => Explorer == null || Explorer.WearsShown(creature, item);
+
         /// <summary>What the character knows of the explorer's catalog, for the compendium; made with the explorer.</summary>
         private static CompendiumView _known;
 
@@ -323,6 +329,9 @@ namespace Scry
             // one the character has not met, and under the strict rules one never seen together with the page.
             Stage.CreatureLeftOff = CreatureLeftOff;
             RaidCrowd.LeftOff = CreatureLeftOff;
+            Stage.StarLevelFor = StarLevelFor;
+            RaidCrowd.StarLevelFor = StarLevelFor;
+            Gear.WearsShown = WearsShown;
             if (_carried.HasValue)
             {
                 var carried = _carried.Value;

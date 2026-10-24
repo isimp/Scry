@@ -24,6 +24,9 @@ namespace Scry
         /// <summary>A choice of stars to show a creature with.</summary>
         public static string StarChoice(int stars) => stars == 0 ? "No stars" : Stars(stars);
 
+        /// <summary>Stars a creature was seen with, in a sentence's words: "no stars", "1 star".</summary>
+        public static string StarsSeen(int stars) => stars == 0 ? "no stars" : Stars(stars);
+
         /// <summary>The title of the table of what stars add.</summary>
         public const string StarsTitle = "With stars";
 

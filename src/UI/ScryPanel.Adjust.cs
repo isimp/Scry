@@ -41,7 +41,10 @@ namespace Scry
             var model = Adjustable(entry, withStage, out var staged);
 
             // Volume and size are the header's (ScryPanel.Slide); the section shows only with something else to adjust.
-            var stars = model && entry.Kind == Kind.Creature && modifiers.MaxLevel > 1;
+            // Under the strict rules only the stars the creature was seen with up close are offered, and it stands at no other.
+            var starsOffered = model && entry.Kind == Kind.Creature && modifiers.MaxLevel > 1 ? StarsOffered(entry, modifiers) : NoLevels;
+            if (starsOffered.Count > 0 && !starsOffered.Contains(modifiers.Level)) modifiers.Level = _explorer != null ? _explorer.StarLevelFor(entry.Key, modifiers.Level) : 1;
+            var stars = starsOffered.Count > 1;
             if (!stars && !(model && modifiers.WearAvailable) && !(model && modifiers.LookAvailable) && !projectile) return y;
 
             // Reset is offered only while the section is open and something differs from the prefab.
@@ -58,9 +61,9 @@ namespace Scry
             if (open && stars)
             {
                 var names = new List<string>();
-                for (var level = 1; level <= modifiers.MaxLevel; level++) names.Add(CombatWords.StarChoice(level - 1));
-                var chosen = Segments("Stars", names, modifiers.Level - 1, width, labelW, ref y);
-                if (chosen >= 0) modifiers.Level = chosen + 1;
+                foreach (var level in starsOffered) names.Add(CombatWords.StarChoice(level - 1));
+                var chosen = Segments("Stars", names, starsOffered.IndexOf(modifiers.Level), width, labelW, ref y);
+                if (chosen >= 0) modifiers.Level = starsOffered[chosen];
             }
 
             if (open && model && modifiers.WearAvailable)
@@ -95,6 +98,21 @@ namespace Scry
         }
 
         private static readonly List<AnimationClip> NoClips = new List<AnimationClip>();
+
+        private static readonly List<int> NoLevels = new List<int>();
+
+        /// <summary>The levels the stage offers the creature shown at (<see cref="Explorer.StarsOffered"/>), every one without the compendium.</summary>
+        private static List<int> StarsOffered(Entry entry, Modifiers modifiers)
+        {
+            if (_explorer != null) return _explorer.StarsOffered(entry);
+            var all = new List<int>();
+            for (var level = 1; level <= modifiers.MaxLevel; level++) all.Add(level);
+            return all;
+        }
+
+        /// <summary>The levels the stage last offered the creature shown, for the self-test.</summary>
+        [ForTest]
+        public static List<int> StarsOfferedForTest => _explorer != null && _explorer.Selected != null ? _explorer.StarsOffered(_explorer.Selected) : NoLevels;
 
         private static bool _looksHidden;
 

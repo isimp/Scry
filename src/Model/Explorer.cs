@@ -316,7 +316,9 @@ namespace Scry
         /// <summary>
         /// The looks of a creature's gear the stage offers, by their place among all its looks: each
         /// whose items, by their keys (<paramref name="itemsOf"/>), were all met, as a set's look
-        /// shows them and its name tells their attacks; every look with the compendium off.
+        /// shows them and its name tells their attacks; under the strict rules each the creature
+        /// shown was seen carrying every item of (<see cref="WearsShown"/>); every look with the
+        /// compendium off.
         /// </summary>
         public List<int> LooksShown(int looks, Func<int, IReadOnlyList<string>> itemsOf)
         {
@@ -324,7 +326,7 @@ namespace Scry
             for (var look = 0; look < looks; look++)
             {
                 var hidden = false;
-                foreach (var item in itemsOf(look)) hidden |= HidesHinged(item);
+                foreach (var item in itemsOf(look)) hidden |= HidesHinged(item) || (Find(item) != null && !WearsShown(_selected?.Key, item));
                 if (!hidden) shown.Add(look);
             }
             return shown;

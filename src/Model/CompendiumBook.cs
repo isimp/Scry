@@ -657,6 +657,7 @@ namespace Scry
             var floor = _floor;
             var pairs = _pairs.ToArray();
             var proofs = _proofs.ToArray();
+            var sightings = SightingLines().ToArray();
             var attacksAsPairs = _attacksAsPairs;
             var came = _came.ToArray();
             var seen = _seen.ToArray();
@@ -712,6 +713,10 @@ namespace Scry
                     text.Append("did\t").Append(Stored.Escaped(key)).Append('\t').Append(Stored.Escaped(proof)).Append('\n');
                 }
                 if (attacksAsPairs) text.Append("attacksaspairs\tyes\n");
+                foreach (var (key, token) in sightings.OrderBy(s => s.Key, StringComparer.Ordinal).ThenBy(s => s.Token, StringComparer.Ordinal))
+                {
+                    text.Append("sight\t").Append(Stored.Escaped(key)).Append('\t').Append(Stored.Escaped(token)).Append('\n');
+                }
                 foreach (var pair in came.OrderBy(p => p.Key, StringComparer.Ordinal))
                 {
                     text.Append("came\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(pair.Value.Way).Append('\t');
@@ -930,6 +935,10 @@ namespace Scry
             ["attacksaspairs"] = (book, parts, name) =>
             {
                 if (parts.Length == 2) book._attacksAsPairs = true;
+            },
+            ["sight"] = (book, parts, name) =>
+            {
+                if (parts.Length == 3 && Stored.TryUnescaped(parts[2], out var token) && token.Length > 0) book.ReadSighting(name, token);
             },
             ["came"] = (book, parts, name) =>
             {

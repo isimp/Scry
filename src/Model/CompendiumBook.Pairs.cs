@@ -45,6 +45,69 @@ namespace Scry
         [ForTest]
         public int Proofs => _proofs.Count;
 
+        /// <summary>What was seen of each creature up close, by its key: the stars it had and what it carried, as tokens (<see cref="Sighted"/>).</summary>
+        private readonly Dictionary<string, HashSet<string>> _sightings = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+
+        private const string StarsSeenToken = "stars:";
+        private const string WearsToken = "wears:";
+
+        /// <summary>
+        /// The character saw a creature up close, as the game shows one: with so many
+        /// <paramref name="stars"/> (none is a sighting too) and carrying <paramref name="items"/>,
+        /// by their prefabs. Kept apart from its level and its pairs: what the stage may show of it
+        /// under the strict rules. True when any of it was new.
+        /// </summary>
+        public bool Sighted(string key, int stars, IEnumerable<string> items)
+        {
+            if (string.IsNullOrEmpty(key)) return false;
+            var added = false;
+            if (stars >= 0) added |= Sight(key, StarsSeenToken + Stored.Count(stars));
+            foreach (var item in items ?? Array.Empty<string>()) if (!string.IsNullOrEmpty(item)) added |= Sight(key, WearsToken + item);
+            if (!added) return false;
+            PairsVersion++;
+            Changed = true;
+            return true;
+        }
+
+        private bool Sight(string key, string token)
+        {
+            if (!_sightings.TryGetValue(key, out var seen)) _sightings[key] = seen = new HashSet<string>(StringComparer.Ordinal);
+            return seen.Add(token);
+        }
+
+        /// <summary>The stars a creature was seen with up close, each once; none for one never seen so.</summary>
+        public IEnumerable<int> StarsSeen(string key)
+        {
+            if (string.IsNullOrEmpty(key) || !_sightings.TryGetValue(key, out var seen)) yield break;
+            foreach (var token in seen)
+            {
+                if (token.StartsWith(StarsSeenToken, StringComparison.Ordinal) && Stored.TryCount(token.Substring(StarsSeenToken.Length), out var stars)) yield return stars;
+            }
+        }
+
+        /// <summary>The items a creature was seen carrying up close, by their prefabs, each once; none for one never seen so.</summary>
+        public IEnumerable<string> WornSeen(string key)
+        {
+            if (string.IsNullOrEmpty(key) || !_sightings.TryGetValue(key, out var seen)) yield break;
+            foreach (var token in seen) if (token.StartsWith(WearsToken, StringComparison.Ordinal)) yield return token.Substring(WearsToken.Length);
+        }
+
+        /// <summary>Every sighting as its lines are kept, for the book's text.</summary>
+        private IEnumerable<(string Key, string Token)> SightingLines()
+        {
+            foreach (var pair in _sightings) foreach (var token in pair.Value) yield return (pair.Key, token);
+        }
+
+        /// <summary>A sighting's line read back: a stars or wears token of a creature's key.</summary>
+        private void ReadSighting(string key, string token)
+        {
+            if (token.StartsWith(StarsSeenToken, StringComparison.Ordinal))
+            {
+                if (Stored.TryCount(token.Substring(StarsSeenToken.Length), out _)) Sight(key, token);
+            }
+            else if (token.StartsWith(WearsToken, StringComparison.Ordinal) && token.Length > WearsToken.Length) Sight(key, token);
+        }
+
         /// <summary>
         /// Notes that the character saw two entries go together, either way round: a drop fall
         /// from a creature, a creature in a biome or a place, an item made at a station, a chest's

@@ -342,6 +342,7 @@ namespace Scry
             var chip = ScryPanel.WhereRowsForTest(X, hide).SelectMany(r => r.Items).FirstOrDefault(i => i.Prefab == troll.Name);
             p.Check(chip.Amount == "2 (1 of 1 kill)", "and draws the troll as a chip with that count", chip.Name + " " + chip.Amount);
             yield return StrictGameShownRead(p, book, view, hide);
+            yield return StrictSightingsRead(p, book, view, troll);
             // A plain word of a text is no name kept back, though an effect never met goes by it ("Fire").
             var fires = ScryPanel.AsDrawn(X, "fires Troll throw projectile");
             p.Check(!fires.StartsWith(CompendiumWords.Hidden, System.StringComparison.Ordinal), "a word of a text is no name kept back: \"fires\" stays", fires);
@@ -416,6 +417,47 @@ namespace Scry
                 yield return null;
             }
             else p.Note("no wood wall, hammer or wood to try a piece's building with");
+        }
+
+        /// <summary>
+        /// Under the strict rules the stage offers a creature's stars as it was seen with up close,
+        /// and a creature only seen opens on what sight gave: its stars and gear seen, where it was seen.
+        /// </summary>
+        private static IEnumerator StrictSightingsRead(Probe p, CompendiumBook book, CompendiumView view, Entry troll)
+        {
+            X.Select(troll);
+            yield return Until(() => X.Selected == troll, 3);
+            p.Check(string.Join(",", X.StarsOffered(troll).Select(level => Numbers.Count(level))) == "1" && X.StarLevelFor(troll.Name, 3) == 1, "with none seen up close, the stage offers the troll without stars alone and stands a rolled one so", string.Join(",", X.StarsOffered(troll).Select(level => Numbers.Count(level))));
+            book.Sighted(troll.Name, 2, null);
+            view.Tell(book, CompendiumRule.Strict);
+            yield return Until(() => X.StarsOffered(troll).Count == 2, 3);
+            p.Check(string.Join(",", X.StarsOffered(troll).Select(level => Numbers.Count(level))) == "1,3" && X.StarLevelFor(troll.Name, 3) == 3 && X.StarLevelFor(troll.Name, 2) == 1,
+                "seen with two stars up close, the stage offers no stars and two, a one-star roll standing without", string.Join(",", X.StarsOffered(troll).Select(level => Numbers.Count(level))));
+            yield return GoTo("overview");
+            yield return PictureOf(p, "overview", "strict Troll, seen with two stars up close");
+
+            var boar = Pick(Kind.Creature, "Boar");
+            var meadows = X.Find(EntryKeys.For(Kind.Biome, "Meadows"));
+            if (boar == null || meadows == null)
+            {
+                p.Note("no boar or meadows to read a page only seen with");
+                yield break;
+            }
+            book.Raise(boar.Key, KnownLevel.Seen);
+            book.Sighted(boar.Key, 0, null);
+            book.Sighted(boar.Key, 1, null);
+            book.Witness(boar.Key, meadows.Key);
+            view.Tell(book, CompendiumRule.Strict);
+            yield return Until(() => X.LevelOf(boar) == KnownLevel.Seen, 3);
+            X.Select(boar);
+            var seenLines = ScryPanel.Drawn(PanelPart.SeenLines);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.SeenLines) > seenLines, 3);
+            var lines = X.SeenLines(boar);
+            p.Check(ScryPanel.Drawn(PanelPart.SeenLines) > seenLines && lines.Count == 2 && lines[0].Value == "no stars, 1 star" && lines[1].Value == meadows.ShownName,
+                "a boar only seen opens on what sight gave: its stars seen up close and where it was seen", string.Join(" | ", lines.Select(l => l.Label + ": " + l.Value)));
+            yield return Picture(p, "strict Boar, only seen, what sight gave");
+            X.Select(troll);
+            yield return null;
         }
     }
 }

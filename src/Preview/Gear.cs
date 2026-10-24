@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -42,6 +43,9 @@ namespace Scry
             }
             return items.Distinct().ToList();
         }
+
+        /// <summary>Whether a creature's copy may wear an item, by the creature's prefab and the item's: under the strict rules one it was seen carrying up close (<see cref="Explorer.WearsShown"/>). Told by the session; none lets every item on.</summary>
+        public static Func<string, string, bool> WearsShown { get; set; }
 
         /// <summary>Puts the gear of a look on the copy: 1 is the first set, or the only one.</summary>
         public static void Dress(GameObject prefab, GameObject copy, int look)
@@ -105,6 +109,8 @@ namespace Scry
             // What draws nothing (a creature's unseen attacks) has no place on the copy, and must
             // not take the hand from a weapon that shows.
             items.RemoveAll(i => i == null || !PrefabGear.Shows(i));
+            // Under the strict rules only what the creature was seen carrying up close is put on it.
+            if (WearsShown != null) items.RemoveAll(i => !WearsShown(prefab.name, i.name));
 
             // Each item is equipped as it is handed out, taking the place of one worn in the same
             // slot, so what comes later is what shows.

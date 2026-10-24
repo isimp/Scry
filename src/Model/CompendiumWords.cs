@@ -623,6 +623,23 @@ namespace Scry
         /// <summary>That tab's tip, by whether the list shows it.</summary>
         public static string LearnedTip(bool on) => (on ? "Showing" : "Show") + " what this character learned lately, newest first";
 
+        /// <summary>A list row's note of an entry only seen, its page closed.</summary>
+        public const string SeenRowTag = "seen";
+
+        /// <summary>A list row's note of an entry only seen, before what else the row tells, where it tells anything: "seen · 2 of 3".</summary>
+        public static string SeenRowNote(string note) => string.IsNullOrEmpty(note) ? SeenRowTag : SeenRowTag + " · " + note;
+
+        /// <summary>The lines of a page only seen telling what sight gave (<see cref="Explorer.SeenLines"/>).</summary>
+        public const string SeenWithLabel = "Seen with";
+        public const string SeenCarryingLabel = "Seen carrying";
+        public const string SeenInLabel = "Seen in";
+
+        /// <summary>The tip of a star level the stage does not offer under the strict rules: what shows it.</summary>
+        public static string StarsNotSeenTip(int stars) => $"Shows once you have seen one with {Naming.Count(stars, "star", "stars")} up close";
+
+        /// <summary>The tip of a gear look the stage does not offer under the strict rules: what shows it.</summary>
+        public const string LookNotSeenTip = "Shows once you have seen one carrying each of its items up close";
+
         /// <summary>The first line of a page not yet open, by how much the character knows of it.</summary>
         public static string Closed(KnownLevel level)
         {

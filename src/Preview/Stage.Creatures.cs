@@ -62,6 +62,13 @@ namespace Scry
             set => Creatures.LeftOff = value;
         }
 
+        /// <summary>
+        /// The level a creature rolled on a place's copy stands at, by its prefab's name and the
+        /// level rolled: under the strict rules no higher than it was seen with up close
+        /// (<see cref="Explorer.StarLevelFor"/>). Told by the session; none keeps the level rolled.
+        /// </summary>
+        public static Func<string, int, int> StarLevelFor { get; set; }
+
         /// <summary>How many creatures rolled were left off the stage, not met yet, for the self-test.</summary>
         [ForTest]
         public static int CreaturesLeftOff => Creatures.LeftOffCount;
@@ -151,7 +158,7 @@ namespace Scry
             {
                 var modifiers = new Modifiers();
                 modifiers.ResetFor(entry);
-                modifiers.Level = level;
+                modifiers.Level = StarLevelFor != null ? StarLevelFor(prefab.name, level) : level;
                 copy = Looks.Copy(entry, modifiers, _root.transform, standing, turn, _layer);
             }
             else

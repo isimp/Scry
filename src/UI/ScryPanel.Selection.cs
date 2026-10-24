@@ -249,7 +249,9 @@ namespace Scry
         {
             CountDrawn(PanelPart.ClosedPage);
             var top = rect.y;
-            if (withStage && level == KnownLevel.Seen && CardHeight(entry) <= 0f) top += SideStage(explorer, entry, rect, U(ClosedPageHeight));
+            // What sight gave of it, a line each: its stars and gear seen up close, where it was seen.
+            var seen = level == KnownLevel.Seen ? explorer.SeenLines(entry) : NoSeenLines;
+            if (withStage && level == KnownLevel.Seen && CardHeight(entry) <= 0f) top += SideStage(explorer, entry, rect, U(ClosedPageHeight + 24f * seen.Count));
             Skin.Box(new Rect(rect.x, top, rect.width, rect.yMax - top), Skin.Panel);
             var x = rect.x + U(16f);
             var width = rect.width - U(32f);
@@ -259,7 +261,19 @@ namespace Scry
             GUI.Label(new Rect(x, top + U(70f), width, U(22f)), CompendiumWords.HowToKnow(entry.Kind), Skin.FaintLabel);
             // Under the strict rules, coming to know it opens its page, but not all of it at once.
             if (explorer.CompendiumOn && explorer.Compendium.Rule == CompendiumRule.Strict) GUI.Label(new Rect(x, top + U(92f), width, U(22f)), CompendiumWords.ClosedStrict, Skin.FaintLabel);
+            var y = top + U(ClosedPageHeight);
+            var labelW = Mathf.Min(U(130f), width * 0.36f);
+            foreach (var (label, value) in seen)
+            {
+                GUI.Label(new Rect(x, y, labelW, U(22f)), label, Skin.DimLabel);
+                var valueRect = new Rect(x + labelW + U(10f), y, width - labelW - U(10f), U(22f));
+                if (!FitLabel(valueRect, value, Skin.Label, 10f) && valueRect.Contains(Event.current.mousePosition)) AskTip("seen:" + label, value);
+                y += U(24f);
+            }
+            if (seen.Count > 0) CountDrawn(PanelPart.SeenLines);
         }
+
+        private static readonly List<(string Label, string Value)> NoSeenLines = new List<(string, string)>();
 
         /// <summary>
         /// Draws one section of the side, timed. A section that fails is left out, told once in the

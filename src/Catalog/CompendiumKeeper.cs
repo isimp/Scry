@@ -389,6 +389,9 @@ namespace Scry
             Noted(PlayEvent.Collected);
         }
 
+        /// <summary>A creature seen up close, as the game shows one: its stars and what it carries kept with the book (<see cref="CompendiumBook.Sighted"/>).</summary>
+        public static void Sighted(string creature, int stars, IEnumerable<string> items) => Into?.Sighted(creature, stars, items);
+
         /// <summary>Something the strict rules keep back of an entry, found out in play, as news (<see cref="CompendiumBook.FoundOut"/>).</summary>
         public static void FoundOut(string key, string proof) => Into?.FoundOut(key, proof);
 

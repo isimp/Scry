@@ -150,6 +150,7 @@ namespace Scry
         /// <summary>What the world's server allows the compendium, synced to every player by ServerSync (see src/ServerSync/README.md).</summary>
         private static ConfigEntry<WorldRule> _worldRules;
         private static ConfigEntry<bool> _worldPeeking, _worldFloor;
+        private static ConfigEntry<float> _worldSeenReach;
         private static readonly Dictionary<WorldSource, ConfigEntry<SourceLevel>> WorldUpTo = new Dictionary<WorldSource, ConfigEntry<SourceLevel>>();
         private static ServerSync.ConfigSync _sync;
 
@@ -160,7 +161,7 @@ namespace Scry
         /// <summary>The world's rules (<see cref="WorldRules"/>): as the server's Scry sets them while connected to it, else as this game's own settings, which a game running the world sets for those joining it.</summary>
         public static WorldRules World() =>
             _worldRules == null ? WorldRules.Open
-            : WorldRules.From(_worldRules.Value, _worldPeeking.Value, _worldFloor.Value, source => WorldUpTo.TryGetValue(source, out var entry) ? entry.Value : SourceLevel.WithInsides);
+            : WorldRules.From(_worldRules.Value, _worldPeeking.Value, _worldFloor.Value, source => WorldUpTo.TryGetValue(source, out var entry) ? entry.Value : SourceLevel.WithInsides, _worldSeenReach.Value);
 
         /// <summary>Binds every setting to BepInEx's config file, with its section, default, range and description.</summary>
         public static void Bind(ConfigFile config)
@@ -230,9 +231,13 @@ namespace Scry
                 "Whether players may peek, the page shown showing whole until they go to another, or every page until the panel closes.");
             _worldFloor = config.Bind("4 - World", "KnownUpTo", true,
                 "Whether players may raise Known up to, showing everything of the tiers below as known.");
+            _worldSeenReach = config.Bind("4 - World", "SeenReach", WorldRules.SeenReachSetting.Default,
+                new ConfigDescription("How near, in metres, a creature in view counts as seen up close, its stars and what it carries kept for the compendium: as far as the game names a creature and marks its stars, 10 m. 0 keeps none.",
+                    new AcceptableValueRange<float>(0f, 150f)));
             Sync(_worldRules);
             Sync(_worldPeeking);
             Sync(_worldFloor);
+            Sync(_worldSeenReach);
             foreach (var source in WorldSources.All)
             {
                 var offered = WorldSources.Offered(source);
