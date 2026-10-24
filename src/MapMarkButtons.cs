@@ -20,7 +20,8 @@ namespace Scry
     /// never ticks or adds a pin of the player's. A click closes the map and opens Scry on the
     /// dungeon's page, its map on the stage where anyone walked it, the page alone for an entrance.
     /// Its name and who walked it how far stand under it as
-    /// the game names a pin, in a copy of the game's pin name, while the pointer rests on it, and
+    /// the game names a pin, in a copy of the game's pin name, while the pointer rests on it, drawn
+    /// above every other name on the map, and
     /// its name alone at all times where <c>DungeonMarkNamesAlways</c> is on. It is no pin of the game's: nothing is added to
     /// the player's pins, saved with the world or shared. No rooms are drawn on the map.
     /// <c>DungeonMarksOnMap</c> turns the marks off.
@@ -108,6 +109,11 @@ namespace Scry
         /// <summary>Whether the pointer rests on a mark, its words shown, for the self-test.</summary>
         [Diagnostic]
         public static bool NameShownForTest => _hovered?.Label != null && _hovered.Label.activeSelf;
+
+        /// <summary>Whether the words of the mark the pointer rests on stand above every other name on the map, for the self-test.</summary>
+        public static bool NameOnTopForTest => NameShownForTest && OnTop(_hovered.LabelRect);
+
+        private static bool OnTop(RectTransform rect) => rect != null && rect.parent != null && rect.GetSiblingIndex() == rect.parent.childCount - 1;
 
         /// <summary>Where a mark's middle is on the screen, for the self-test to put the pointer on it; none for one not shown.</summary>
         [Diagnostic]
@@ -253,7 +259,12 @@ namespace Scry
         private static void Hover()
         {
             var over = Input.GetMouseButton(0) ? null : MarkAt(ZInput.pointerPosition);
-            if (over == _hovered) return;
+            if (over == _hovered)
+            {
+                // The game adds a pin's name to the layer as the pin comes into view, above what stands there: the words hovered go back on top.
+                if (over?.LabelRect != null && over.Label.activeSelf && !OnTop(over.LabelRect)) over.LabelRect.SetAsLastSibling();
+                return;
+            }
             var was = _hovered;
             _hovered = over;
             if (was != null) ShowWords(was);
@@ -284,6 +295,8 @@ namespace Scry
                 mark.Showing = said;
             }
             if (!mark.Label.activeSelf) mark.Label.SetActive(true);
+            // The words hovered stand above every other name on the map, as a hover should.
+            if (words == MarkWords.All && mark.LabelRect != null) mark.LabelRect.SetAsLastSibling();
         }
 
         /// <summary>Puts a mark away with its label.</summary>
