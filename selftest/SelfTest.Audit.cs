@@ -46,6 +46,15 @@ namespace Scry
                 book.Dropped(troll.Name, new[] { ("TrollHide", 2) });
                 book.Sighted(troll.Name, 1, null);
             }
+            // A creature only seen, for the list's faint row and its page of what sight gave.
+            var boar = Pick(Kind.Creature, "Boar");
+            var meadows = X.Find(EntryKeys.For(Kind.Biome, "Meadows"));
+            if (boar != null)
+            {
+                book.Raise(boar.Key, KnownLevel.Seen);
+                book.Sighted(boar.Name, 0, null);
+                if (meadows != null) book.Witness(boar.Key, meadows.Key);
+            }
             var view = new CompendiumView(X.Entries);
             if (!Session.IsOpen) Session.Show(null);
             KeepView();
@@ -55,15 +64,45 @@ namespace Scry
                 view.Tell(book, rule);
                 Session.ShowKnownInstead(view);
                 yield return Until(() => ReferenceEquals(X.Compendium, view) && X.Compendium.Rule == rule, 3);
+                var ruleName = CompendiumWords.RuleName(rule);
                 foreach (var page in pages)
                 {
                     X.Select(page);
                     yield return Until(() => X.Selected == page, 3);
                     yield return null;
                     yield return null;
-                    p.Check(X.LevelOf(page) == KnownLevel.Known && X.Selected == page, $"{page.ShownName} opens under {CompendiumWords.RuleName(rule)}");
-                    yield return Picture(p, $"audit {CompendiumWords.RuleName(rule)} {page.ShownName}");
+                    p.Check(X.LevelOf(page) == KnownLevel.Known && X.Selected == page, $"{page.ShownName} opens under {ruleName}");
+                    yield return Picture(p, $"audit {ruleName} {page.ShownName}");
+                    // Every topic of the page with the compendium on, each gone to and pictured where it stands.
+                    if (rule == CompendiumRule.Off) continue;
+                    foreach (var (id, heading) in ScryPanel.TopicsForTest.ToList())
+                    {
+                        if (heading == null) continue;
+                        ScryPanel.GoToSection(id);
+                        yield return Until(() => ScryPanel.StandsAt(id), 2);
+                        if (!ScryPanel.StandsAt(id))
+                        {
+                            p.Note($"{page.ShownName} under {ruleName}: its {heading} was not gone to");
+                            continue;
+                        }
+                        yield return Picture(p, $"audit {ruleName} {page.ShownName} {heading}");
+                    }
                 }
+                // The list with a row only seen, faint and noted so, and that creature's page of what sight gave.
+                if (boar != null && rule != CompendiumRule.Off)
+                {
+                    X.Select(boar);
+                    yield return Until(() => X.Selected == boar, 3);
+                    yield return null;
+                    yield return Picture(p, $"audit {ruleName} list with Boar only seen");
+                }
+                // Learned, by day, under this rule.
+                X.LearnedOnly = true;
+                yield return null;
+                yield return null;
+                yield return Picture(p, $"audit {ruleName} Learned");
+                X.LearnedOnly = false;
+                yield return null;
             }
         }
     }

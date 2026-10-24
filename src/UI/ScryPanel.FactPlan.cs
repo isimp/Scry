@@ -279,6 +279,10 @@ namespace Scry
         [ForTest]
         public static List<string> TopicHeadingsForTest => _plan == null ? new List<string>() : _plan.ConvertAll(t => t.Heading);
 
+        /// <summary>The page's topics as last laid out, each its id to go to and its heading, none for a topic without one, for the self-test.</summary>
+        [ForTest]
+        public static List<(string Id, string Heading)> TopicsForTest => _plan == null ? new List<(string, string)>() : _plan.ConvertAll(t => (t.Id, t.Heading));
+
         /// <summary>Whether each table's widths are kept as drawn (<see cref="TablesDrawnForTest"/>), for the self-test.</summary>
         [Diagnostic]
         public static bool KeepTablesForTest { get; set; }

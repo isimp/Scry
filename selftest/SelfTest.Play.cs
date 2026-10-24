@@ -396,6 +396,8 @@ namespace Scry
                 view.Tell(book, CompendiumRule.Strict);
                 yield return Until(() => !X.LeavesOut(made, gameShown: true), 3);
                 p.Check(uses.All(r => r.GameShown) && !X.LeavesOut(made, gameShown: true) && X.LeavesOut(made), $"what the hide is used for names {made}, known and never paired, as the crafting menu shows it");
+                var usesTopic = ScryPanel.TopicsForTest.FirstOrDefault(topic => topic.Heading == "What it is used for").Id;
+                if (usesTopic != null) yield return PictureOf(p, usesTopic, "strict TrollHide, what it is used for as the menu shows it");
             }
             else p.Note("nothing in the catalog is made of troll hide");
             // A piece's cost and tool come with the piece, as the hammer's menu shows them.
@@ -436,6 +438,7 @@ namespace Scry
                 "seen with two stars up close, the stage offers no stars and two, a one-star roll standing without", string.Join(",", X.StarsOffered(troll).Select(level => Numbers.Count(level))));
             yield return GoTo("overview");
             yield return PictureOf(p, "overview", "strict Troll, seen with two stars up close");
+            yield return PictureOf(p, "adjust", "strict Troll's adjust, the stars seen offered");
 
             var boar = Pick(Kind.Creature, "Boar");
             var meadows = X.Find(EntryKeys.For(Kind.Biome, "Meadows"));
@@ -493,6 +496,7 @@ namespace Scry
             else p.Note("no drop of the troll's gets likelier with stars");
             p.Check(X.LearnedNote(troll) == "what 1 star changes found out", "and Learned says what was found out", X.LearnedNote(troll));
             yield return PictureOf(p, "fight", "strict Troll's fight, one star fallen");
+            yield return PictureOf(p, "overview", "strict Troll, one star fallen, what is still to find out");
         }
     }
 }
