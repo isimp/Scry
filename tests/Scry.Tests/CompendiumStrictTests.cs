@@ -54,7 +54,7 @@ namespace Scry.Tests
             // The game's popup on a hit tells how its damage landed (Weak, Resistant, Immune, or
             // a plain number): a type so told shows, the rest read ??? under the strict rules.
             var world = new World();
-            world.Book.Witness(world.Troll.Key, EntryKeys.Damage("Fire"));
+            world.Book.Prove(world.Troll.Key, EntryKeys.Damage("Fire"));
             world.Rule(CompendiumRule.Strict);
             world.Explorer.Select(world.Troll);
 

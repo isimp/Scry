@@ -508,7 +508,7 @@ namespace Scry
             // its grid and attacks table keep the rest back.
             if (strict != null && entry.Kind == Kind.Creature)
             {
-                if (key == "damage") return AnyWordStarts(SearchFight.DealtBy(entry.Attacks, item => strict.Book.Witnessed(entry.Key, item)), value);
+                if (key == "damage") return AnyWordStarts(SearchFight.DealtBy(entry.Attacks, item => strict.Book.Proved(entry.Key, EntryKeys.Attack(item))), value);
                 if (key == "weak" || key == "resists" || key == "immune")
                 {
                     return AnyWordStarts(entry.TermWords(key).Where(type => strict.HitWith(entry, ResistWords.TypeNamed(type))).ToArray(), value);

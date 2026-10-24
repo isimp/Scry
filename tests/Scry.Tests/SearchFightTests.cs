@@ -64,7 +64,7 @@ namespace Scry.Tests
 
             Assert.Equal(new[] { "Weapons dealing fire", "Gear resisting frost" }, bring.Select(b => b.Text));
             Assert.Equal(new[] { EntryKeys.Damage("Fire") }, bring[0].ShownBy);
-            Assert.Equal(new[] { "Breath", "Frostlog" }, bring[1].ShownBy);
+            Assert.Equal(new[] { EntryKeys.Attack("Breath"), EntryKeys.Attack("Frostlog") }, bring[1].ShownBy);
         }
 
         [Fact]

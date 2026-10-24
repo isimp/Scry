@@ -26,13 +26,13 @@ namespace Scry
                 hit.m_damage.m_fire = 10f;
                 hit.SetAttacker(player);
                 TogetherWatch.Hit(creature, hit);
-                p.Check(ResistWords.Types.Any(t => book.Witnessed(key, EntryKeys.Damage(t))), $"a hit on {key} tells how its damage landed");
+                p.Check(ResistWords.Types.Any(t => book.Proved(key, EntryKeys.Damage(t))), $"a hit on {key} tells how its damage landed");
                 var spots = creature.m_weakSpots;
                 if (spots != null && spots.Length > 0 && spots[0] != null)
                 {
                     hit.m_weakSpot = 0;
                     TogetherWatch.Hit(creature, hit);
-                    p.Check(book.Witnessed(key, EntryKeys.WeakSpot(spots[0].gameObject.name)), $"a hit on its weak spot finds it ({spots[0].gameObject.name})");
+                    p.Check(book.Proved(key, EntryKeys.WeakSpot(spots[0].gameObject.name)), $"a hit on its weak spot finds it ({spots[0].gameObject.name})");
                 }
                 else p.Note($"{key} has no weak spot to hit");
 
@@ -64,7 +64,7 @@ namespace Scry
             hit.m_damage.m_fire = 10f;
             hit.SetAttacker(player);
             ResourceHitWatch.Hit(thing, hit, thing.m_damages, thing.m_minToolTier);
-            p.Check(ResistWords.Types.Any(t => book.Witnessed(key, EntryKeys.Damage(t))), $"a hit on {key}, a thing that breaks, tells how its damage landed");
+            p.Check(ResistWords.Types.Any(t => book.Proved(key, EntryKeys.Damage(t))), $"a hit on {key}, a thing that breaks, tells how its damage landed");
         }
 
         /// <summary>
@@ -113,7 +113,7 @@ namespace Scry
             }
             var key = Utils.GetPrefabName(parent.gameObject);
             DeedWatch.Procreated(parent, wasPregnant: true);
-            p.Check(book.Witnessed(key, EntryKeys.Did(Deed.Born)), "a birth seen near by shows how long it is pregnant");
+            p.Check(book.Proved(key, EntryKeys.Did(Deed.Born)), "a birth seen near by shows how long it is pregnant");
             var young = parent.m_offspring != null ? Utils.GetPrefabName(parent.m_offspring) : null;
             if (young == null)
             {
@@ -170,7 +170,7 @@ namespace Scry
             else
             {
                 DeedWatch.SetPicked(bush, wasPicked: true, picked: false);
-                p.Check(book.Witnessed(Utils.GetPrefabName(bush.gameObject), EntryKeys.Did(Deed.GrewBack)), "a pickable seen growing back shows how long that takes");
+                p.Check(book.Proved(Utils.GetPrefabName(bush.gameObject), EntryKeys.Did(Deed.GrewBack)), "a pickable seen growing back shows how long that takes");
             }
             // A taming: one creature near by told wild, then tame; every other as the game has it.
             var tame = UnityEngine.Object.FindObjectsByType<Tameable>(FindObjectsSortMode.None)
@@ -181,7 +181,7 @@ namespace Scry
             {
                 CompendiumKeeper.Tamings(player, c => c != tame && c.IsTamed());
                 CompendiumKeeper.Tamings(player, c => c == tame || c.IsTamed());
-                p.Check(book.Witnessed(Utils.GetPrefabName(tame.gameObject), EntryKeys.Did(Deed.Tamed)), "a creature near by seen wild, then tame, shows how long taming takes");
+                p.Check(book.Proved(Utils.GetPrefabName(tame.gameObject), EntryKeys.Did(Deed.Tamed)), "a creature near by seen wild, then tame, shows how long taming takes");
             }
             p.Note("growing up is seen in play only, as a young creature has to be gone for it");
 
@@ -207,7 +207,7 @@ namespace Scry
                 YieldWatch.ItemMade(item);
                 YieldWatch.End();
                 var pickKey = Utils.GetPrefabName(picked.gameObject);
-                p.Check(book.Tallied(Tally.Gave).Kills(pickKey) == 1 && !book.Witnessed(pickKey, EntryKeys.Did(Deed.Broke)), $"picking {pickKey} is counted as what it gave, and is no break");
+                p.Check(book.Tallied(Tally.Gave).Kills(pickKey) == 1 && !book.Proved(pickKey, EntryKeys.Did(Deed.Broke)), $"picking {pickKey} is counted as what it gave, and is no break");
 
             }
 
@@ -230,14 +230,14 @@ namespace Scry
             else
             {
                 DeedWatch.Spawned(spawner, spawned: true);
-                p.Check(book.Witnessed(Utils.GetPrefabName(spawner.gameObject), EntryKeys.Did(Deed.Spawned)), "a spawn seen near by shows its pool and pace");
+                p.Check(book.Proved(Utils.GetPrefabName(spawner.gameObject), EntryKeys.Did(Deed.Spawned)), "a spawn seen near by shows its pool and pace");
             }
             var hive = Nearest<Beehive>(player);
             if (hive == null) p.Note("no beehive is loaded to collect from");
             else
             {
                 DeedWatch.Collected(hive, player, held: true);
-                p.Check(book.Witnessed(Utils.GetPrefabName(hive.gameObject), EntryKeys.Did(Deed.Collected)), "collecting from a beehive shows its pace");
+                p.Check(book.Proved(Utils.GetPrefabName(hive.gameObject), EntryKeys.Did(Deed.Collected)), "collecting from a beehive shows its pace");
             }
 
             // A map read keeps what it brings as found in the character's ground, never in its book.

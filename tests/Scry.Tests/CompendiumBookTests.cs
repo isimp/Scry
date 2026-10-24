@@ -104,11 +104,11 @@ namespace Scry.Tests
             Assert.True(book.TakeBack("Greydwarf_Frozen", killed));
 
             Assert.Equal(KnownLevel.Unknown, book.Level("Greydwarf_Frozen"));
-            Assert.False(book.Witnessed("Greydwarf_Frozen", killed));
+            Assert.False(book.Proved("Greydwarf_Frozen", killed));
             Assert.Null(book.FoundOutOf("Greydwarf_Frozen"));
             Assert.DoesNotContain("Greydwarf_Frozen", book.Lately);
             Assert.Equal(KnownLevel.Known, book.Level("Greydwarf"));
-            Assert.True(book.Witnessed("Greydwarf", killed));
+            Assert.True(book.Proved("Greydwarf", killed));
             Assert.True(book.Version > version && book.PairsVersion > pairs && book.Changed);
             Assert.False(book.TakeBack("Greydwarf_Frozen", killed));
             Assert.False(book.TakeBack(null, killed));
@@ -123,7 +123,7 @@ namespace Scry.Tests
 
             var kept = CompendiumBook.Load(book.Save());
             Assert.Equal(KnownLevel.Unknown, kept.Level("Greydwarf_Frozen"));
-            Assert.False(kept.Witnessed("Greydwarf_Frozen", killed));
+            Assert.False(kept.Proved("Greydwarf_Frozen", killed));
             Assert.Equal(KnownLevel.Known, kept.Level("Greydwarf"));
         }
 

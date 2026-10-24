@@ -187,7 +187,7 @@ namespace Scry
                     return Of(entry) == KnownLevel.Seen;
                 case "left":
                     if (_rule != CompendiumRule.Strict || Of(entry) != KnownLevel.Known || _byFloor.ContainsKey(entry)) return false;
-                    foreach (var deed in entry.Deeds) if (!_book.Witnessed(entry.Key, EntryKeys.Did(deed))) return true;
+                    foreach (var deed in entry.Deeds) if (!_book.Proved(entry.Key, EntryKeys.Did(deed))) return true;
                     return false;
                 case "walked":
                     if (entry.Kind != Kind.Location) return false;
@@ -306,7 +306,7 @@ namespace Scry
         public bool Witnessed(Entry a, Entry b) => a != null && b != null && _book != null && _book.Witnessed(a.Key, b.Key);
 
         /// <summary>Whether the game told the character how a creature takes a damage type, on a hit of it (<see cref="HitTold"/>).</summary>
-        public bool HitWith(Entry hit, string type) => hit != null && _book != null && _book.Witnessed(hit.Key, EntryKeys.Damage(type));
+        public bool HitWith(Entry hit, string type) => hit != null && _book != null && _book.Proved(hit.Key, EntryKeys.Damage(type));
 
         /// <summary>Whether an entry's tier is at or below the floor, so it shows whatever the book holds of it; never one placed only to be glimpsed (<see cref="OnlyGlimpsed"/>).</summary>
         public bool BelowFloor(Entry entry) => entry != null && _floor > 0 && !OnlyGlimpsed(entry) && _tiers != null && _tiers.TryGetValue(entry.Key, out var tier) && tier <= _floor;

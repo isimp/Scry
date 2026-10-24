@@ -58,12 +58,13 @@ namespace Scry
     /// What one character has come to know, entry by entry (by <see cref="Entry.Key"/>), each
     /// only ever rising; everything learned, newest first, with the day of its latest news; the
     /// worlds whose explored map was caught up with; the rules the player chose for the
-    /// compendium and the floor they raised it to; the pairs seen together; the moment each
+    /// compendium and the floor they raised it to; the pairs seen together and, apart from them,
+    /// the proofs of what was seen done (<see cref="Prove"/>); the moment each
     /// thing was first seen and came to be known in play (<see cref="Moment"/>); and the deaths
     /// each creature dealt the character. Kept from session to session as text
     /// (<see cref="Save"/>, <see cref="Load"/>).
     /// </summary>
-    internal sealed class CompendiumBook
+    internal sealed partial class CompendiumBook
     {
         private readonly Dictionary<string, KnownLevel> _levels = new Dictionary<string, KnownLevel>(StringComparer.Ordinal);
         private readonly List<string> _lately = new List<string>();
@@ -155,7 +156,7 @@ namespace Scry
         }
         private int _floor;
         private CompendiumRule _rule;
-        private readonly HashSet<(string, string)> _pairs = new HashSet<(string, string)>();
+
         private readonly Dictionary<string, (CameBy Way, Moment At)> _came = new Dictionary<string, (CameBy, Moment)>(StringComparer.Ordinal);
         private readonly Dictionary<string, (Moment At, int Stars)> _seen = new Dictionary<string, (Moment, int)>(StringComparer.Ordinal);
         private readonly Dictionary<string, (int Count, int LastDay)> _deaths = new Dictionary<string, (int, int)>(StringComparer.Ordinal);
@@ -481,7 +482,7 @@ namespace Scry
         /// </summary>
         public bool FoundOut(string key, string proof)
         {
-            if (!Witness(key, proof)) return false;
+            if (!Prove(key, proof)) return false;
             Newest(key, met: false);
             _found[key] = proof;
             Changed = true;
@@ -515,7 +516,7 @@ namespace Scry
         public bool TakeBack(string key, string proof)
         {
             if (string.IsNullOrEmpty(key) || !_levels.Remove(key)) return false;
-            if (!string.IsNullOrEmpty(proof) && _pairs.Remove(Pair(key, proof))) PairsVersion++;
+            if (!string.IsNullOrEmpty(proof) && _proofs.Remove((key, proof))) PairsVersion++;
             _came.Remove(key);
             _seen.Remove(key);
             _newsDay.Remove(key);
@@ -626,29 +627,6 @@ namespace Scry
         [ForTest]
         public CompendiumRule ChosenRule => _rule;
 
-        /// <summary>
-        /// Notes that the character saw two entries go together, either way round: a drop fall
-        /// from a creature, a creature in a biome or a place, an item made at a station, a chest's
-        /// loot, a creature's attack hit it. True when it was not noted before. What the strict
-        /// rules show of how a known entry connects.
-        /// </summary>
-        public bool Witness(string a, string b)
-        {
-            if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b) || a == b || !_pairs.Add(Pair(a, b))) return false;
-            PairsVersion++;
-            Changed = true;
-            return true;
-        }
-
-        /// <summary>Whether the character saw two entries go together, either way round.</summary>
-        public bool Witnessed(string a, string b) => !string.IsNullOrEmpty(a) && !string.IsNullOrEmpty(b) && _pairs.Contains(Pair(a, b));
-
-        /// <summary>How many pairs the character saw go together.</summary>
-        [ForTest]
-        public int Pairs => _pairs.Count;
-
-        private static (string, string) Pair(string a, string b) => string.CompareOrdinal(a, b) <= 0 ? (a, b) : (b, a);
-
         /// <summary>Forgets that a world's map was caught up with, so the catch-up runs again.</summary>
         public void Unmap(string world)
         {
@@ -678,6 +656,8 @@ namespace Scry
             var rule = _rule;
             var floor = _floor;
             var pairs = _pairs.ToArray();
+            var proofs = _proofs.ToArray();
+            var attacksAsPairs = _attacksAsPairs;
             var came = _came.ToArray();
             var seen = _seen.ToArray();
             var deaths = _deaths.ToArray();
@@ -727,6 +707,11 @@ namespace Scry
                 {
                     text.Append("saw\t").Append(Stored.Escaped(a)).Append('\t').Append(Stored.Escaped(b)).Append('\n');
                 }
+                foreach (var (key, proof) in proofs.OrderBy(p => p.Item1, StringComparer.Ordinal).ThenBy(p => p.Item2, StringComparer.Ordinal))
+                {
+                    text.Append("did\t").Append(Stored.Escaped(key)).Append('\t').Append(Stored.Escaped(proof)).Append('\n');
+                }
+                if (attacksAsPairs) text.Append("attacksaspairs\tyes\n");
                 foreach (var pair in came.OrderBy(p => p.Key, StringComparer.Ordinal))
                 {
                     text.Append("came\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(pair.Value.Way).Append('\t');
@@ -762,7 +747,6 @@ namespace Scry
         /// made, so two characters never share one, not even one made under the name of one deleted.
         /// </summary>
         public static string FileName(string characterFile, string source, long id) => $"{characterFile}-{source}-{Stored.Count(id)}.dat";
-
 
         /// <summary>A moment as a line's last fields: day, biome, time of day, weather, what was in hand.</summary>
         private static void Written(StringBuilder text, Moment at)
@@ -825,6 +809,8 @@ namespace Scry
                 if (LineReaders.TryGetValue(parts[0], out var read)) read(book, parts, name);
             }
             book._latelyRead = null;
+            // A book kept before attacks taken had a key holds them as pairs; one kept since says so itself.
+            book._attacksAsPairs = book._attacksAsPairs || (book._pairs.Count > 0 && book._proofs.Count == 0);
             if (book._metRead == null) book.MetFromLately();
             book._metRead = null;
             if (!book._mapApart) book.GiveBackMapPlaces();
@@ -931,7 +917,19 @@ namespace Scry
             },
             ["saw"] = (book, parts, name) =>
             {
-                if (parts.Length == 3 && Stored.TryUnescaped(parts[2], out var other) && other.Length > 0 && other != name) book._pairs.Add(Pair(name, other));
+                if (parts.Length != 3 || !Stored.TryUnescaped(parts[2], out var other) || other.Length == 0 || other == name) return;
+                // A book kept before held deeds, damage types and weak spots as pairs, either way round.
+                if (IsProof(other)) book._proofs.Add((name, other));
+                else if (IsProof(name)) book._proofs.Add((other, name));
+                else book._pairs.Add(Pair(name, other));
+            },
+            ["did"] = (book, parts, name) =>
+            {
+                if (parts.Length == 3 && Stored.TryUnescaped(parts[2], out var proof) && proof.Length > 0) book._proofs.Add((name, proof));
+            },
+            ["attacksaspairs"] = (book, parts, name) =>
+            {
+                if (parts.Length == 2) book._attacksAsPairs = true;
             },
             ["came"] = (book, parts, name) =>
             {

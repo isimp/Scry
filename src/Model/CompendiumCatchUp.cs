@@ -123,7 +123,7 @@ namespace Scry
             // A creature the character killed shows its health under the strict rules: found out, as news after the first reading.
             foreach (var creature in killed)
             {
-                if (firstLoad) book.Witness(creature.Key, EntryKeys.Did(Deed.Killed));
+                if (firstLoad) book.Prove(creature.Key, EntryKeys.Did(Deed.Killed));
                 else book.FoundOut(creature.Key, EntryKeys.Did(Deed.Killed));
             }
             foreach (var stray in Unkilled(records, book, known.Select(k => k.Entry))) book.TakeBack(stray.Key, EntryKeys.Did(Deed.Killed));
@@ -456,7 +456,7 @@ namespace Scry
                 foreach (var entry in entries)
                 {
                     if (entry.Kind != Kind.Creature || told.Contains(entry) || stray.Contains(entry)) continue;
-                    if (!book.Witnessed(entry.Key, EntryKeys.Did(Deed.Killed)) || book.Came(entry.Key) != null) continue;
+                    if (!book.Proved(entry.Key, EntryKeys.Did(Deed.Killed)) || book.Came(entry.Key) != null) continue;
                     if (biomes.Any(b => book.Witnessed(entry.Key, b.Key))) continue;
                     stray.Add(entry);
                 }

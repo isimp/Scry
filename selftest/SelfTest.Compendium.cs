@@ -835,7 +835,7 @@ namespace Scry
                 var still = ScryPanel.Drawn(PanelPart.StillToFindOut);
                 yield return Until(() => ScryPanel.Drawn(PanelPart.StillToFindOut) > still, 3);
                 p.Check(ScryPanel.Drawn(PanelPart.StillToFindOut) > still, "its You box says what is still to find out and what to do for it");
-                book.Witness(fought.Key, EntryKeys.Damage("Fire"));
+                book.Prove(fought.Key, EntryKeys.Damage("Fire"));
                 p.Check(!X.HidesDamage("Fire") && X.HidesDamage("Blunt"), "a hit the game told how fire lands shows fire alone");
                 var drawn = ScryPanel.AsDrawn(X, $"Feared by {unseen.ShownName} alone.");
                 p.Check(drawn.Contains(CompendiumWords.Hidden) && !drawn.Contains(unseen.ShownName), $"its text keeps back the name of {unseen.Name}, never met", drawn);

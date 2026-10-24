@@ -270,7 +270,7 @@ namespace Scry
             if (Into == null || creature == null || creature == Player.m_localPlayer) return;
             var weapon = (creature as Humanoid).OrNull()?.GetCurrentWeapon()?.m_dropPrefab.OrNull();
             if (weapon == null) return;
-            Into.FoundOut(Utils.GetPrefabName(creature.gameObject), weapon.name);
+            Into.FoundOut(Utils.GetPrefabName(creature.gameObject), EntryKeys.Attack(weapon.name));
             Noted(PlayEvent.HitTaken);
         }
 

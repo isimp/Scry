@@ -60,7 +60,7 @@ namespace Scry.Tests
             var slam = EntryKeys.PlayAttack("Troll_groundslam");
 
             Assert.True(world.Explorer.HidesAttack(slam));
-            world.Book.Witness(world.Troll.Key, "Troll_groundslam");
+            world.Book.Prove(world.Troll.Key, EntryKeys.Attack("Troll_groundslam"));
             Assert.False(world.Explorer.HidesAttack(slam));
             Assert.True(world.Explorer.HidesAttack(EntryKeys.PlayAttack("Troll_log")));
             Assert.False(world.Explorer.HidesAttack(world.Hide.Key));
@@ -85,8 +85,8 @@ namespace Scry.Tests
             world.Troll.SetTermWords("resists", new[] { "frost" });
             world.Troll.SetTermWords("damage", new[] { "blunt", "frost" });
             world.Troll.Attacks = new[] { ("Troll_log", new[] { "blunt" }), ("Troll_breath", new[] { "frost" }) };
-            world.Book.Witness(world.Troll.Key, EntryKeys.Damage("Fire"));
-            world.Book.Witness(world.Troll.Key, "Troll_log");
+            world.Book.Prove(world.Troll.Key, EntryKeys.Damage("Fire"));
+            world.Book.Prove(world.Troll.Key, EntryKeys.Attack("Troll_log"));
             world.Rule(CompendiumRule.Strict);
 
             bool Finds(string text)
@@ -113,15 +113,15 @@ namespace Scry.Tests
         public void WhatToBringShowsOnlyOnceWhatSuggestsItWasFoundOut()
         {
             var world = new World();
-            world.Book.Witness(world.Troll.Key, EntryKeys.Damage("Fire"));
+            world.Book.Prove(world.Troll.Key, EntryKeys.Damage("Fire"));
             world.Rule(CompendiumRule.Strict);
             world.Explorer.Select(world.Troll);
 
             Assert.False(world.Explorer.KeepsBackAll(new[] { EntryKeys.Damage("Fire") }));
             Assert.True(world.Explorer.KeepsBackAll(new[] { EntryKeys.Damage("Pierce") }));
-            Assert.True(world.Explorer.KeepsBackAll(new[] { "Troll_breath", "Troll_frostlog" }));
-            world.Book.Witness(world.Troll.Key, "Troll_frostlog");
-            Assert.False(world.Explorer.KeepsBackAll(new[] { "Troll_breath", "Troll_frostlog" }));
+            Assert.True(world.Explorer.KeepsBackAll(new[] { EntryKeys.Attack("Troll_breath"), EntryKeys.Attack("Troll_frostlog") }));
+            world.Book.Prove(world.Troll.Key, EntryKeys.Attack("Troll_frostlog"));
+            Assert.False(world.Explorer.KeepsBackAll(new[] { EntryKeys.Attack("Troll_breath"), EntryKeys.Attack("Troll_frostlog") }));
             Assert.False(world.Explorer.KeepsBackAll(null));
             Assert.False(world.Explorer.KeepsBackAll(new string[0]));
 
@@ -138,7 +138,7 @@ namespace Scry.Tests
 
             Assert.True(world.Explorer.KeepsBack(killed));
             Assert.True(world.Explorer.KeepsBack(EntryKeys.Did(Deed.Tamed)));
-            world.Book.Witness(world.Troll.Key, killed);
+            world.Book.Prove(world.Troll.Key, killed);
             Assert.False(world.Explorer.KeepsBack(killed));
             Assert.False(world.Explorer.KeepsBack(null));
 
@@ -216,7 +216,7 @@ namespace Scry.Tests
             Assert.Equal(new[] { "Troll", "Boar" }, book.Lately);
             Assert.Equal(new[] { "Troll" }, book.LearnedSince(mark));
             Assert.Equal(EntryKeys.Did(Deed.Killed), book.FoundOutOf("Troll"));
-            Assert.True(book.Witnessed("Troll", EntryKeys.Did(Deed.Killed)));
+            Assert.True(book.Proved("Troll", EntryKeys.Did(Deed.Killed)));
             Assert.True(book.Changed);
             // Found out once; again is nothing new.
             Assert.False(book.FoundOut("Troll", EntryKeys.Did(Deed.Killed)));
@@ -470,7 +470,7 @@ namespace Scry.Tests
             var hive = SourceFacts.Made("piece_beehive", "Beehive", 1200f, 4, "");
             Assert.Equal("Made by Beehive, ???", world.Explorer.StrictSourceLine(hive));
             Assert.Equal("Its pace shows once you have collected from one", SourceWords.HeldTip(hive));
-            world.Book.Witness("piece_beehive", EntryKeys.Did(Deed.Collected));
+            world.Book.Prove("piece_beehive", EntryKeys.Did(Deed.Collected));
             world.Rule(CompendiumRule.Strict);
             Assert.Null(world.Explorer.StrictSourceLine(hive));
             Assert.Equal(TallyWords.NeverCounted, SourceWords.HeldTip(SourceFacts.FromTable("x", "x", TableOf.Other, roll, roll.Drops[0])));
@@ -486,7 +486,7 @@ namespace Scry.Tests
             var head = EntryKeys.WeakSpot("head");
 
             Assert.True(world.Explorer.KeepsBack(head));
-            world.Book.Witness(world.Troll.Key, head);
+            world.Book.Prove(world.Troll.Key, head);
             Assert.False(world.Explorer.KeepsBack(head));
             Assert.True(EntryKeys.IsWeakSpot(head));
             Assert.False(EntryKeys.IsWeakSpot(EntryKeys.Did(Deed.Killed)));

@@ -364,14 +364,14 @@ namespace Scry
         /// known page above the milestone floor, one that never hit the character.
         /// </summary>
         public bool HidesAttack(string link) =>
-            LeavingOut && _selected.Kind == Kind.Creature && EntryKeys.PlaysAttack(link, out var item, out _) && !_view.Book.Witnessed(_selected.Key, item);
+            LeavingOut && _selected.Kind == Kind.Creature && EntryKeys.PlaysAttack(link, out var item, out _) && !_view.Book.Proved(_selected.Key, EntryKeys.Attack(item));
 
         /// <summary>
         /// Whether the page shown keeps back what only something seen done tells (a deed,
         /// <see cref="EntryKeys.Did"/>, or a weak spot a hit found, <see cref="EntryKeys.WeakSpot"/>):
         /// under the strict rules, on a known page above the milestone floor, until it was seen.
         /// </summary>
-        public bool KeepsBack(string proof) => LeavingOut && proof != null && !_view.Book.Witnessed(_selected.Key, proof);
+        public bool KeepsBack(string proof) => LeavingOut && proof != null && !_view.Book.Proved(_selected.Key, proof);
 
         /// <summary>
         /// What shows a table every line of which the page shown keeps back (<see cref="KeepsBack"/>),
@@ -395,7 +395,7 @@ namespace Scry
         public bool KeepsBackAll(IReadOnlyList<string> proofs)
         {
             if (proofs == null || proofs.Count == 0 || !LeavingOut) return false;
-            foreach (var proof in proofs) if (_view.Book.Witnessed(_selected.Key, proof)) return false;
+            foreach (var proof in proofs) if (_view.Book.Proved(_selected.Key, proof)) return false;
             return true;
         }
 
@@ -436,7 +436,7 @@ namespace Scry
             if (!LeavingOut) return null;
             // A producer's pace: as the game tells it once collected from, ??? before.
             var shownBy = SourceWords.ShownBy(source);
-            if (shownBy != null) return _view.Book.Witnessed(source.Giver, shownBy) ? null : CompendiumWords.Hidden;
+            if (shownBy != null) return _view.Book.Proved(source.Giver, shownBy) ? null : CompendiumWords.Hidden;
             var by = SourceWords.CountedBy(source);
             if (by == null) return null;
             // A way nothing counts reads an empty count (CompendiumBook.Tallied), so ???.

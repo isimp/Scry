@@ -21,7 +21,7 @@ namespace Scry
         /// What to bring against a creature, each a search with its words and what shows it under
         /// the strict rules: the weapons dealing a type it takes more of, once a hit told how that
         /// type lands (<see cref="EntryKeys.Damage"/>), and the gear resisting an element its
-        /// attacks deal, once one of the attacks dealing it hit the character (their items).
+        /// attacks deal, once one of the attacks dealing it hit the character (their attacks' keys, <see cref="EntryKeys.Attack"/>).
         /// </summary>
         /// <param name="weakTo">The types it takes more of (<see cref="Taking"/>).</param>
         /// <param name="attacks">Its attacks, each by its item and the types it deals (<see cref="Dealt"/>).</param>
@@ -35,7 +35,7 @@ namespace Scry
             var all = attacks.ToList();
             foreach (var type in all.SelectMany(a => a.Types).Distinct().Where(t => Elements.Contains(t)))
             {
-                var dealing = all.Where(a => a.Types.Contains(type)).Select(a => a.Item).Distinct().ToArray();
+                var dealing = all.Where(a => a.Types.Contains(type)).Select(a => EntryKeys.Attack(a.Item)).Distinct().ToArray();
                 bring.Add(("Gear resisting " + type, SearchHelp.Term("resists", type) + " " + SearchHelp.Term("is", "wearable"), dealing));
             }
             return bring;

@@ -134,6 +134,19 @@ namespace Scry
         /// <summary>Whether a key is a weak spot's (<see cref="WeakSpot"/>).</summary>
         public static bool IsWeakSpot(string key) => key != null && key.StartsWith(Spot, StringComparison.Ordinal);
 
+        /// <summary>A creature's attack taken, kept only as a proof on the creature it hit the character with (<see cref="Attack"/>); no entry goes by it.</summary>
+        private const string Attacks = "attack:";
+
+        /// <summary>The key an attack taken is proved under, by its weapon's prefab: its damage shows once it hit the character.</summary>
+        public static string Attack(string item) => Attacks + item;
+
+        /// <summary>Whether a key is an attack taken (<see cref="Attack"/>), and its weapon's prefab.</summary>
+        public static bool IsAttack(string key, out string item)
+        {
+            item = key != null && key.StartsWith(Attacks, StringComparison.Ordinal) ? key.Substring(Attacks.Length) : null;
+            return item != null;
+        }
+
         /// <summary>A value's link that plays the entry's own music rather than going to an entry.</summary>
         public const string PlayMusic = "play:music";
 

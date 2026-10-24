@@ -125,7 +125,7 @@ namespace Scry.Tests
         public void AStarredCreatureFallingShowsWhatItsStarsChange()
         {
             Assert.Equal(EntryKeys.Did(Deed.StarredFell), Told(Death(10f, level: 2)).FoundOutOf("Troll"));
-            Assert.False(Told(Death(10f)).Witnessed("Troll", EntryKeys.Did(Deed.StarredFell)));
+            Assert.False(Told(Death(10f)).Proved("Troll", EntryKeys.Did(Deed.StarredFell)));
         }
 
         [Fact]
@@ -144,7 +144,7 @@ namespace Scry.Tests
             var book = Told(Event(Happened.Picked, "RaspberryBush", 2f, came: new[] { ("Raspberry", 1) }, doers: new[] { Me }));
             Assert.Equal(1, book.Tallied(Tally.Gave).Kills("RaspberryBush"));
             Assert.True(book.Witnessed("RaspberryBush", "Raspberry"));
-            Assert.False(book.Witnessed("RaspberryBush", EntryKeys.Did(Deed.Broke)));
+            Assert.False(book.Proved("RaspberryBush", EntryKeys.Did(Deed.Broke)));
         }
 
         [Fact]

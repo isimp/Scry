@@ -31,14 +31,14 @@ namespace Scry.Tests
             Assert.Equal(KnownLevel.Known, book.Level(noArcher.Key));
             Assert.Equal(KnownLevel.Unknown, book.Level(troll.Key));
             // Killed by the character, so the strict rules show its health, found out as news.
-            Assert.True(book.Witnessed(skeleton.Key, EntryKeys.Did(Deed.Killed)));
-            Assert.True(book.Witnessed(noArcher.Key, EntryKeys.Did(Deed.Killed)));
-            Assert.False(book.Witnessed(troll.Key, EntryKeys.Did(Deed.Killed)));
+            Assert.True(book.Proved(skeleton.Key, EntryKeys.Did(Deed.Killed)));
+            Assert.True(book.Proved(noArcher.Key, EntryKeys.Did(Deed.Killed)));
+            Assert.False(book.Proved(troll.Key, EntryKeys.Did(Deed.Killed)));
             Assert.Equal(EntryKeys.Did(Deed.Killed), book.FoundOutOf(skeleton.Key));
             // Read as a character loads, its kills are news by the creatures learned, not by their health as well.
             var (first, firstBook) = Fresh(skeleton, noArcher, troll);
             first.Fill(records, firstBook, firstLoad: true);
-            Assert.True(firstBook.Witnessed(skeleton.Key, EntryKeys.Did(Deed.Killed)));
+            Assert.True(firstBook.Proved(skeleton.Key, EntryKeys.Did(Deed.Killed)));
             Assert.Null(firstBook.FoundOutOf(skeleton.Key));
             Assert.Contains(skeleton.Key, firstBook.Lately);
         }
@@ -69,10 +69,10 @@ namespace Scry.Tests
             catchUp.Fill(records, book, firstLoad: false);
 
             Assert.Equal(KnownLevel.Known, book.Level(greydwarf.Key));
-            Assert.True(book.Witnessed(greydwarf.Key, EntryKeys.Did(Deed.Killed)));
+            Assert.True(book.Proved(greydwarf.Key, EntryKeys.Did(Deed.Killed)));
             Assert.Equal(KnownLevel.Known, book.Level(shaman.Key));
             Assert.Equal(KnownLevel.Unknown, book.Level(frozen.Key));
-            Assert.False(book.Witnessed(frozen.Key, EntryKeys.Did(Deed.Killed)));
+            Assert.False(book.Proved(frozen.Key, EntryKeys.Did(Deed.Killed)));
             Assert.Equal(KnownLevel.Unknown, book.Level(frozenShaman.Key));
 
             // Only creatures tell where the kill was: a ragdoll going by the name, in the forest, does not.
@@ -121,10 +121,10 @@ namespace Scry.Tests
             // Counted before by the rule that took every one, the aspect's roots are taken back.
             var (again, older) = Fresh(elder, roots, aspect, aspectRoots);
             older.Raise(aspectRoots.Key, KnownLevel.Known);
-            older.Witness(aspectRoots.Key, EntryKeys.Did(Deed.Killed));
+            older.Prove(aspectRoots.Key, EntryKeys.Did(Deed.Killed));
             again.Fill(records, older, firstLoad: false);
             Assert.Equal(KnownLevel.Unknown, older.Level(aspectRoots.Key));
-            Assert.False(older.Witnessed(aspectRoots.Key, EntryKeys.Did(Deed.Killed)));
+            Assert.False(older.Proved(aspectRoots.Key, EntryKeys.Did(Deed.Killed)));
 
             // Where nothing going by the name comes about in the world, a kill was still one of them.
             var (alone, aloneBook) = Fresh(aspect, aspectRoots);
@@ -157,10 +157,10 @@ namespace Scry.Tests
             foreach (var creature in new[] { greydwarf, frozen, northSkeleton })
             {
                 book.Raise(creature.Key, KnownLevel.Known);
-                book.Witness(creature.Key, killed);
+                book.Prove(creature.Key, killed);
             }
             book.Raise(frozenShaman.Key, KnownLevel.Known, way: CameBy.Fought);
-            book.Witness(frozenShaman.Key, killed);
+            book.Prove(frozenShaman.Key, killed);
             book.Witness(northSkeleton.Key, forest.Key);
             var records = new CompendiumRecords();
             records.Killed.Add("$enemy_greydwarf");
@@ -171,17 +171,17 @@ namespace Scry.Tests
             catchUp.Fill(records, book, firstLoad: false);
 
             Assert.Equal(KnownLevel.Unknown, book.Level(frozen.Key));
-            Assert.False(book.Witnessed(frozen.Key, killed));
+            Assert.False(book.Proved(frozen.Key, killed));
             Assert.Equal(KnownLevel.Known, book.Level(greydwarf.Key));
             Assert.Equal(KnownLevel.Known, book.Level(frozenShaman.Key));
-            Assert.True(book.Witnessed(frozenShaman.Key, killed));
+            Assert.True(book.Proved(frozenShaman.Key, killed));
             Assert.Equal(KnownLevel.Known, book.Level(northSkeleton.Key));
             Assert.Equal(KnownLevel.Known, book.Level(hildirSkeleton.Key));
 
             // Where none sharing the name lives where the character went, the kill was still one of them: none is taken back.
             var (early, earlyBook) = Fresh(greydwarf, frozen, forest);
             earlyBook.Raise(frozen.Key, KnownLevel.Known);
-            earlyBook.Witness(frozen.Key, killed);
+            earlyBook.Prove(frozen.Key, killed);
             var before = new CompendiumRecords();
             before.Killed.Add("$enemy_greydwarf");
             early.Fill(before, earlyBook, firstLoad: false);
