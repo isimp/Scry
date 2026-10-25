@@ -175,11 +175,16 @@ namespace Scry
             Guard.Run(Feature.Stage, "drawing the stage", Session.LateUpdate, "render");
         }
 
+        /// <summary>How often the panel was repainted this session: the panel draws once per event, so what it allocates is told per repaint, not per frame.</summary>
+        [Diagnostic]
+        public static int Repaints { get; private set; }
+
         private void OnGUI()
         {
             if (_server) return;
             var started = Timing.Start();
             var kind = Event.current.type;
+            if (kind == EventType.Repaint) Repaints++;
             // The panel catches its own sections; this is for a panel that cannot run at all,
             // which is told once rather than an error every frame.
             Guard.Run(Feature.Panel, "the panel", ScryPanel.OnGUI, "panel");

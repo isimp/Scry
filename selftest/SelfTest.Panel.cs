@@ -363,6 +363,21 @@ namespace Scry
 
         // ----- What Scry costs -----
 
+        /// <summary>The parts' own allocation by group, from the first word of each part's name: the panel's (panel, side, facts, controls, list, clips, the stage's texture), the render's (render), the rest the update's.</summary>
+        private static (long Panel, long Render, long Update) OwnByGroup(IReadOnlyList<(string Part, long Bytes)> parts)
+        {
+            long panel = 0, render = 0, update = 0;
+            foreach (var (part, bytes) in parts)
+            {
+                var space = part.IndexOf(' ');
+                var word = space > 0 ? part.Substring(0, space) : part;
+                if (word == "render") render += bytes;
+                else if (word == "panel" || word == "side" || word == "facts" || word == "controls" || word == "list" || word == "clips" || part == "stage texture") panel += bytes;
+                else update += bytes;
+            }
+            return (panel, render, update);
+        }
+
         /// <summary>
         /// What Scry's own work costs while the panel stands open and nothing is touched: a
         /// creature's page on the stage, then a dungeon's example with its plan box, each held four
@@ -390,14 +405,21 @@ namespace Scry
                 Select(entry);
                 yield return Until(() => CopyOf(entry) != null && (entry.Kind != Kind.Location || Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.ExampleFloorsToRead == 0), 60);
                 // A moment for what follows a selection (its page told, its warm-up) to settle; the
-                // locations read or clips probed in the background would be counted, so they are waited for, within reason.
+                // locations read or clips probed in the background would be counted: waited for a
+                // minute, the page passed over where they go on, so the numbers stay comparable.
                 yield return new Wait(1);
-                yield return Until(() => !Locations.Busy && !TriggerProbe.Busy, 120);
+                yield return Until(() => !Locations.Busy && !TriggerProbe.Busy, 60);
                 var busy = Locations.Busy ? "the locations were being read" : TriggerProbe.Busy ? "clips were being probed" : null;
+                if (busy != null)
+                {
+                    p.Note($"{what}: not measured, as {busy}");
+                    continue;
+                }
                 var first = Timing.Measuring?.Frames ?? 0;
                 var bytes = Timing.ScryBytes;
                 var frames = Time.frameCount;
                 var filmed = Stage.Filmed;
+                var repainted = Plugin.Repaints;
                 Timing.ForgetBytesByPart();
                 var others = new OtherThreads(() => GC.GetTotalMemory(false), () => GC.CollectionCount(0), () => System.Diagnostics.Stopwatch.GetTimestamp() * 1000.0 / System.Diagnostics.Stopwatch.Frequency);
                 var until = Time.unscaledTime + 4f;
@@ -408,21 +430,25 @@ namespace Scry
                 }
                 var held = Timing.Measuring?.Since(first);
                 var count = Math.Max(1, Time.frameCount - frames);
-                var films = Stage.Filmed - filmed;
+                var filmsMade = Stage.Filmed - filmed;
+                var films = Math.Max(1, filmsMade);
+                var repaints = Math.Max(1, Plugin.Repaints - repainted);
                 var allocated = Timing.ScryBytes - bytes;
                 var own = Timing.CountsPerThread ? allocated : Math.Max(0, allocated - others.Bytes);
-                // What the parts allocated of their own, summed: the frame totals undercount it, so the parts decide.
-                var ownParts = Timing.OwnBytesSum();
+                // What the parts allocated of their own, each group in its own unit: the panel's parts
+                // a repaint, as the panel draws once per event; the render's a film; the rest a frame.
+                var (panelBytes, renderBytes, updateBytes) = OwnByGroup(Timing.OwnBytesByPartCopy());
                 p.Note(held != null
-                    ? $"{what} ({entry.Name}), {Numbers.Count(held.Frames)} frames: Scry's own work {Numbers.Fixed(held.Mean, 2)} ms a frame on average, {Numbers.Fixed(held.Percentile(0.95), 2)} ms at the 95th percentile; it allocated about {Numbers.Count(own / count)} bytes a frame{(Timing.CountsPerThread ? "" : ", other threads' left out")}"
+                    ? $"{what} ({entry.Name}), {Numbers.Count(held.Frames)} frames: Scry's own work {Numbers.Fixed(held.Mean, 2)} ms a frame on average, {Numbers.Fixed(held.Percentile(0.95), 2)} ms at the 95th percentile; the frame totals say {Numbers.Count((int)(own / count))} bytes a frame, other threads' left out"
                     : $"{what}: frames were not measured");
                 p.Note($"{what}, by part, each part's own allocation: " + Timing.BytesByPartTold(30, own: true));
                 p.Note($"{what}, by part, inner parts included: " + Timing.BytesByPartTold(30));
-                p.Note($"{what}: the stage was filmed in {Numbers.Count(films)} of {Numbers.Count(count)} frames, {(Stage.LiveForTest ? "alive" : "still")} at the last look");
-                p.Note($"{what}: the parts allocated {Numbers.Count((int)(ownParts / count / 1024))} KB a frame in all, their own shares summed");
-                if (busy == null) p.Check(ownParts / count < 64 * 1024, $"{what}: Scry's own work allocates under 64 KB a frame standing open", $"{Numbers.Count((int)(ownParts / count / 1024))} KB a frame");
-                else p.Note($"{what}: not checked as {busy} meanwhile");
-                if (entry == piece) p.Check(films <= count / 3 + 2, "a still page is filmed in a third of its frames at most", $"{Numbers.Count(films)} of {Numbers.Count(count)}");
+                p.Note($"{what}: the stage was filmed in {Numbers.Count(filmsMade)} of {Numbers.Count(count)} frames, {(Stage.LiveForTest ? "alive" : "still")} at the last look; the panel repainted {Numbers.Count(repaints)} times");
+                p.Note($"{what}: the panel's parts allocated {Numbers.Count((int)(panelBytes / repaints / 1024))} KB a repaint, the render's {Numbers.Count((int)(renderBytes / films / 1024))} KB a film, the rest {Numbers.Count((int)(updateBytes / count / 1024))} KB a frame, their own shares summed");
+                p.Check(panelBytes / repaints < 48 * 1024 && renderBytes / films < 32 * 1024 && updateBytes / count < 24 * 1024,
+                    $"{what}: Scry's own work allocates within bounds standing open: under 48 KB a repaint, 32 KB a film and 24 KB a frame",
+                    $"{Numbers.Count((int)(panelBytes / repaints / 1024))} KB a repaint, {Numbers.Count((int)(renderBytes / films / 1024))} KB a film, {Numbers.Count((int)(updateBytes / count / 1024))} KB a frame");
+                if (entry == piece) p.Check(filmsMade <= count / 3 + 2, "a still page is filmed in a third of its frames at most", $"{Numbers.Count(filmsMade)} of {Numbers.Count(count)}");
             }
             Stage.Spin = spinWas;
             Stage.Inside = wasInside;

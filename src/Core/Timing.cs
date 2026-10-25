@@ -92,6 +92,15 @@ namespace Scry
             return sum;
         }
 
+        /// <summary>What every part allocated of its own since the self-test last forgot them, by part, the self-test's own left out.</summary>
+        [Diagnostic, ForTest]
+        public static List<(string Part, long Bytes)> OwnBytesByPartCopy()
+        {
+            var parts = new List<(string, long)>();
+            foreach (var part in OwnBytesByPart) if (part.Key != SelfTestPart) parts.Add((part.Key, part.Value));
+            return parts;
+        }
+
         /// <summary>The time of the inner parts so far this frame, for <see cref="Own"/>.</summary>
         public static double InnerMs()
         {

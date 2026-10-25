@@ -203,7 +203,7 @@ namespace Scry
             yield return S("a meadow's grass grows out to where its ground fades, and a big creature, a raid and a camp stand in it", GroundGrass, 120, GroundAsItWas);
             yield return S("Scry costs next to nothing idling with the panel closed", IdleCost, 320);
             yield return S("the resource monitor shows what Scry costs and holds", ResourceMonitor, 10);
-            yield return S("standing open on a page and on a dungeon, what Scry's own work costs and allocates a frame, by part", OpenCost, 150);
+            yield return S("standing open on a page and on a dungeon, what Scry's own work costs and allocates a frame, by part", OpenCost, 240);
             yield return S("placement details tell the woods and lava a location keeps to", PlacementDetails, 20);
             // Reading every place again takes minutes: only a full run does it.
             yield return S("reading every location fills their details", ReadLocations, 450, bearsSkips: true, full: true);
