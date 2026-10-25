@@ -26,6 +26,12 @@ namespace Scry.Tests
             Assert.Equal(1.25f, SettingsWords.SizeStep(1.26f), 3);
             Assert.Equal(0.6f, SettingsWords.SizeStep(0.1f), 3);
             Assert.Equal(2f, SettingsWords.SizeStep(5f), 3);
+            // The dungeon marks' size goes in tenths of a pin, from half to twice one.
+            Assert.Equal(1f, SettingsWords.MarkSizeStep(1.04f), 3);
+            Assert.Equal(1.3f, SettingsWords.MarkSizeStep(1.26f), 3);
+            Assert.Equal(0.5f, SettingsWords.MarkSizeStep(0.1f), 3);
+            Assert.Equal(2f, SettingsWords.MarkSizeStep(5f), 3);
+            Assert.Equal("1.3", SettingsWords.SizeName(SettingsWords.MarkSizeStep(1.26f)));
         }
 
         [Fact]

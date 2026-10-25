@@ -45,6 +45,24 @@ namespace Scry
         public const string Always = "Always";
         public const string MarkNamesTip = "Whether each dungeon mark on the large map shows its name under it always, as the game's pins do, or only while the pointer rests on it";
 
+        public const string MarkSize = "Dungeon marks' size";
+        public const string MarkSizeTip = "How big each dungeon mark on the map is, as a share of a map pin; its name grows with it";
+        public const string MarksShown = "Dungeon marks shown";
+        public const string WalkedByYou = "Walked by you";
+        public const string WalkedOnServer = "Walked on this server";
+        public const string Entrances = "Entrances";
+        public const string MarksShownTip = "Which dungeon marks the map shows: those you walked, those others on this server walked where a source shows them with insides, and the entrances of dungeons nobody walked, faint until the pointer rests on one";
+        public const string Minimap = "Marks on the minimap";
+        public const string Off = "Off";
+        public const string On = "On";
+        public const string MinimapTip = "Whether the minimap shows the marks of dungeons you walked too, at its pins' size, without names";
+
+        /// <summary>The dungeon marks' sizes the slider reaches, as a share of a map pin.</summary>
+        public const float SmallestMarkSize = 0.5f, LargestMarkSize = 2f;
+
+        /// <summary>A mark size dragged to, in tenths within those the slider reaches.</summary>
+        public static float MarkSizeStep(float size) => Math.Max(SmallestMarkSize, Math.Min(LargestMarkSize, (float)Math.Round(size * 10f) / 10f));
+
         public const string SizeTip = "How big the panel is drawn, on top of its scaling to the screen's height; it takes the size as the slider is let go";
 
         /// <summary>The panel's sizes the slider reaches, on top of the scaling by screen height, as the config file allows them.</summary>

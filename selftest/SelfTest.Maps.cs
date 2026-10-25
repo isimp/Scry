@@ -338,6 +338,21 @@ namespace Scry
             Minimap.instance.SetMapMode(Minimap.MapMode.Large);
             yield return Until(() => MapMarkButtons.MarksShown > 0 && MapMarkButtons.FirstListedForTest == id, 5);
             p.Check(MapMarkButtons.MarksShown == 1, "the large map has a mark for the map of this world alone", $"{Numbers.Count(MapMarkButtons.MarksShown)} marks");
+            // The mark carries the glyph of the dungeon's kind, is a pin's size scaled as the settings say, and goes with its switch.
+            p.Check(MapMarkButtons.GlyphForTest(0) == MarkGlyphs.Of(PlaceOf(entry).Prefab), "the mark carries the glyph of the dungeon's kind", MapMarkButtons.GlyphForTest(0)?.ToString() ?? "none");
+            var pinSize = Minimap.instance.m_pinSizeLarge;
+            var sizeWas = Settings.DungeonMarkSize;
+            Settings.DungeonMarkSize = 2f;
+            yield return Until(() => Mathf.Approximately(MapMarkButtons.SizeForTest(0), pinSize * 2f), 3);
+            p.Check(Mathf.Approximately(MapMarkButtons.SizeForTest(0), pinSize * 2f), "the marks' size setting scales the mark from a pin's size", $"{Numbers.Fixed(MapMarkButtons.SizeForTest(0), 0)} against a pin's {Numbers.Fixed(pinSize, 0)}");
+            Settings.DungeonMarkSize = sizeWas;
+            yield return Until(() => Mathf.Approximately(MapMarkButtons.SizeForTest(0), pinSize * sizeWas), 3);
+            var byYouWas = Settings.DungeonMarksWalkedByYou;
+            Settings.DungeonMarksWalkedByYou = false;
+            yield return Until(() => MapMarkButtons.MarksShown == 0, 3);
+            p.Check(MapMarkButtons.MarksShown == 0, "switched off, the marks of dungeons walked by you go from the map", $"{Numbers.Count(MapMarkButtons.MarksShown)} marks");
+            Settings.DungeonMarksWalkedByYou = byYouWas;
+            yield return Until(() => MapMarkButtons.MarksShown == 1, 3);
             // A dungeon's end caps and dividers are no rooms to walk, so its words count without them.
             var walkable = rolled.Rooms.Count(r => !r.Room.EndCap && !r.Room.Divider);
             p.Check(MapMarkButtons.SaidForTest(0)?.Contains("Walked by you: 1 of " + Numbers.Count(walkable) + " room") ?? false,

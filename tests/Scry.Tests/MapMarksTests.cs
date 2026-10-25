@@ -4,9 +4,9 @@ namespace Scry.Tests
 {
     public class MapMarksTests
     {
-        // On Valheim's large map, each dungeon been in has a small mark just above its entrance,
-        // placed as the game places its pins: a world point to a point of the map's texture, then
-        // into the window of it the large map shows.
+        // On Valheim's large map, each dungeon been in has a mark on its entrance, placed as the
+        // game places its pins: a world point to a point of the map's texture, then into the window
+        // of it the map shows; as big as a pin, scaled as the settings say.
 
         private static readonly (float XMin, float YMin, float Width, float Height) Whole = (0f, 0f, 1f, 1f);
 
@@ -54,10 +54,47 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void AMarkIsAsBigAsAPinAndStandsJustAboveOneAtTheEntrance()
+        public void AMarkIsAPinsSizeScaledBySettingAndStandsOnItsEntrance()
         {
-            Assert.Equal(48f, MapMarks.Size(48f), 3);
-            Assert.Equal(48f, MapMarks.Lift(48f), 3);
+            Assert.Equal(48f, MapMarks.Size(48f, 1f), 3);
+            Assert.Equal(96f, MapMarks.Size(48f, 2f), 3);
+            Assert.Equal(24f, MapMarks.Size(48f, 0.5f), 3);
+            // The name under a mark grows with it.
+            Assert.Equal(2f, MapMarks.NameScale(2f), 3);
+        }
+
+        [Fact]
+        public void WhichMarksShowFollowsThreeSwitches()
+        {
+            // Walked by you, walked on this server, and entrances alone, each shown or not as its switch says.
+            Assert.True(MapMarks.Shown(MarkLook.Yours, walkedByYou: true, walkedOnServer: false, entrances: false));
+            Assert.True(MapMarks.Shown(MarkLook.Whole, walkedByYou: true, walkedOnServer: false, entrances: false));
+            Assert.False(MapMarks.Shown(MarkLook.Yours, walkedByYou: false, walkedOnServer: true, entrances: true));
+            Assert.True(MapMarks.Shown(MarkLook.Server, walkedByYou: false, walkedOnServer: true, entrances: false));
+            Assert.True(MapMarks.Shown(MarkLook.ServerWhole, walkedByYou: false, walkedOnServer: true, entrances: false));
+            Assert.False(MapMarks.Shown(MarkLook.Server, walkedByYou: true, walkedOnServer: false, entrances: true));
+            Assert.True(MapMarks.Shown(MarkLook.Entrance, walkedByYou: false, walkedOnServer: false, entrances: true));
+            Assert.False(MapMarks.Shown(MarkLook.Entrance, walkedByYou: true, walkedOnServer: true, entrances: false));
+        }
+
+        [Fact]
+        public void AnEntranceMarkIsFaintUntilThePointerRestsOnIt()
+        {
+            Assert.Equal(MapMarks.FaintAlpha, MapMarks.Alpha(MarkLook.Entrance, pointedAt: false), 3);
+            Assert.Equal(1f, MapMarks.Alpha(MarkLook.Entrance, pointedAt: true), 3);
+            Assert.Equal(1f, MapMarks.Alpha(MarkLook.Yours, pointedAt: false), 3);
+            Assert.Equal(1f, MapMarks.Alpha(MarkLook.Server, pointedAt: false), 3);
+            Assert.True(MapMarks.FaintAlpha > 0.3f && MapMarks.FaintAlpha < 0.6f);
+        }
+
+        [Fact]
+        public void TheSmallMapShowsOnlyTheMarksYouWalked()
+        {
+            Assert.True(MapMarks.OnSmallMap(MarkLook.Yours));
+            Assert.True(MapMarks.OnSmallMap(MarkLook.Whole));
+            Assert.False(MapMarks.OnSmallMap(MarkLook.Server));
+            Assert.False(MapMarks.OnSmallMap(MarkLook.ServerWhole));
+            Assert.False(MapMarks.OnSmallMap(MarkLook.Entrance));
         }
 
         [Fact]

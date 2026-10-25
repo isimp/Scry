@@ -42,8 +42,13 @@ namespace Scry
             public Image Picture;
             public string Id;
 
-            /// <summary>How it looks (<see cref="MarkLook"/>), as last drawn.</summary>
+            /// <summary>How it looks (<see cref="MarkLook"/>) and which glyph it carries (<see cref="MarkGlyph"/>), as last drawn.</summary>
             public MarkLook Look;
+            public MarkGlyph Glyph;
+
+            /// <summary>Its name's size as the game's pin names have it, and the scale it was last drawn at; 0 until read.</summary>
+            public float NameSize;
+            public float NameScaled;
 
             /// <summary>Its words as last set, for the self-test.</summary>
             public string Said;
@@ -92,6 +97,18 @@ namespace Scry
         /// <summary>How a mark looks, for the self-test; none for one not shown.</summary>
         [Diagnostic]
         public static MarkLook? LookForTest(int mark) => mark >= 0 && mark < Marks.Count && Marks[mark].Made.activeSelf ? Marks[mark].Look : (MarkLook?)null;
+
+        /// <summary>Which glyph a mark carries, for the self-test; none for one not shown.</summary>
+        [Diagnostic]
+        public static MarkGlyph? GlyphForTest(int mark) => mark >= 0 && mark < Marks.Count && Marks[mark].Made.activeSelf ? Marks[mark].Glyph : (MarkGlyph?)null;
+
+        /// <summary>How big a mark is drawn, in the map's units, for the self-test; 0 for one not shown.</summary>
+        [Diagnostic]
+        public static float SizeForTest(int mark) => mark >= 0 && mark < Marks.Count && Marks[mark].Made.activeSelf ? Marks[mark].Rect.rect.width : 0f;
+
+        /// <summary>How faint a mark is drawn, for the self-test; 0 for one not shown.</summary>
+        [Diagnostic]
+        public static float AlphaForTest(int mark) => mark >= 0 && mark < Marks.Count && Marks[mark].Made.activeSelf && Marks[mark].Picture != null ? Marks[mark].Picture.color.a : 0f;
 
         /// <summary>The mark the pointer rests on, whose words are shown; none.</summary>
         private static Mark _hovered;
@@ -166,17 +183,24 @@ namespace Scry
             EntrancesShown = 0;
         }
 
-        /// <summary>Each frame: the marks placed where the large map shows them while it is open, the words of the one the pointer rests on; put away, and nothing more, while it is not.</summary>
+        /// <summary>
+        /// Each frame: the marks placed where the large map shows them while it is open, the words
+        /// of the one the pointer rests on, and on the small map, where the settings ask, the marks
+        /// of dungeons you walked at its pins' size, no words; put away, and nothing more, otherwise.
+        /// </summary>
         public static void Update()
         {
             var map = Minimap.instance;
-            if (map == null || map.m_mode != Minimap.MapMode.Large || !Settings.DungeonMarksOnMap)
+            var large = map != null && map.m_mode == Minimap.MapMode.Large;
+            var small = map != null && map.m_mode == Minimap.MapMode.Small && Settings.DungeonMarksOnMinimap;
+            if (map == null || !(large || small) || !Settings.DungeonMarksOnMap)
             {
                 PutAway();
                 return;
             }
             var world = CompendiumMap.World;
-            var layer = map.m_pinNameRootLarge != null ? map.m_pinNameRootLarge : map.m_pinRootLarge;
+            var names = large ? map.m_pinNameRootLarge : map.m_pinNameRootSmall;
+            var layer = names != null ? names : large ? map.m_pinRootLarge : map.m_pinRootSmall;
             if (layer != _layer)
             {
                 Forget();
@@ -201,37 +225,46 @@ namespace Scry
                 foreach (var location in Kept.Select(k => k.Map.Location).Distinct()) GroupMapsLink.Ask(location);
             }
 
-            var image = map.m_mapImageLarge;
+            var image = large ? map.m_mapImageLarge : map.m_mapImageSmall;
             var window = image.uvRect;
             var area = image.rectTransform.rect;
-            var size = MapMarks.Size(map.m_pinSizeLarge);
-            var lift = MapMarks.Lift(map.m_pinSizeLarge);
+            var scale = Settings.DungeonMarkSize;
+            var size = MapMarks.Size(large ? map.m_pinSizeLarge : map.m_pinSizeSmall, scale);
             var shown = 0;
             var hollow = 0;
             var entrances = 0;
             foreach (var kept in Kept)
             {
+                if (!MapMarks.Shown(kept.Look, Settings.DungeonMarksWalkedByYou, Settings.DungeonMarksWalkedOnServer, Settings.DungeonMarkEntrances)) continue;
+                if (small && !MapMarks.OnSmallMap(kept.Look)) continue;
                 if (!MapMarks.Place(kept.Map.Entrance, map.m_pixelSize, map.m_textureSize, (window.xMin, window.yMin, window.width, window.height), (area.width, area.height), out var at)) continue;
                 var mark = MarkFor(shown++, map);
                 if (mark == null) break;
-                mark.Rect.anchoredPosition = new Vector2(at.X, at.Y + lift);
+                // On its entrance: a pin placed there stands under it.
+                mark.Rect.anchoredPosition = new Vector2(at.X, at.Y);
                 mark.Rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, size);
                 mark.Rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, size);
                 if (kept.Look == MarkLook.Server || kept.Look == MarkLook.ServerWhole) hollow++;
                 if (kept.Look == MarkLook.Entrance) entrances++;
-                if (mark.Id != kept.Id || mark.Look != kept.Look)
+                var glyph = MarkGlyphs.Of(kept.Map.Location);
+                if (mark.Id != kept.Id || mark.Look != kept.Look || mark.Glyph != glyph)
                 {
                     mark.Id = kept.Id;
                     mark.Look = kept.Look;
-                    if (mark.Picture != null) mark.Picture.sprite = ScryPanel.MarkPicture(kept.Look);
+                    mark.Glyph = glyph;
+                    if (mark.Picture != null) mark.Picture.sprite = ScryPanel.MarkPicture(glyph, kept.Look);
                     mark.Said = Said(kept);
                     mark.Plain = Shown(kept.Map.Location);
                     mark.Showing = null;
                 }
-                // Its words stand where it stands, as the game's pin names do, the name's own layout putting them under it.
+                // An entrance alone stands faint until the pointer rests on it.
+                if (mark.Picture != null) mark.Picture.color = new Color(1f, 1f, 1f, MapMarks.Alpha(kept.Look, mark == _hovered));
+                // Its words stand where it stands, as the game's pin names do, the name's own layout putting them under it, as big as the mark is scaled.
                 if (mark.LabelRect != null) mark.LabelRect.anchoredPosition = mark.Rect.anchoredPosition;
+                SizeName(mark, MapMarks.NameScale(scale));
                 if (!mark.Made.activeSelf) mark.Made.SetActive(true);
-                ShowWords(mark);
+                if (small) Hide(mark.Label);
+                else ShowWords(mark);
             }
             for (var i = shown; i < Marks.Count; i++) Hide(Marks[i]);
             MarksShown = shown;
@@ -258,7 +291,8 @@ namespace Scry
         /// </summary>
         private static void Hover()
         {
-            var over = Input.GetMouseButton(0) ? null : MarkAt(ZInput.pointerPosition);
+            // The small map takes no pointer: nothing is pointed at there.
+            var over = Input.GetMouseButton(0) || Minimap.instance == null || Minimap.instance.m_mode != Minimap.MapMode.Large ? null : MarkAt(ZInput.pointerPosition);
             if (over == _hovered)
             {
                 // The game adds a pin's name to the layer as the pin comes into view, above what stands there: the words hovered go back on top.
@@ -303,7 +337,26 @@ namespace Scry
         private static void Hide(Mark mark)
         {
             if (mark.Made != null && mark.Made.activeSelf) mark.Made.SetActive(false);
-            if (mark.Label != null && mark.Label.activeSelf) mark.Label.SetActive(false);
+            Hide(mark.Label);
+        }
+
+        /// <summary>Puts a mark's label away.</summary>
+        private static void Hide(GameObject label)
+        {
+            if (label != null && label.activeSelf) label.SetActive(false);
+        }
+
+        /// <summary>Draws a mark's name as big as the mark is scaled, from the size the game's pin names have, read once.</summary>
+        private static void SizeName(Mark mark, float scale)
+        {
+            if (mark.Label == null || Mathf.Approximately(mark.NameScaled, scale)) return;
+            var text = mark.Label.GetComponentsInChildren<Component>(true).FirstOrDefault(c => c != null && IsText(c.GetType()));
+            if (text == null) return;
+            var property = text.GetType().GetProperty("fontSize");
+            if (property == null || property.PropertyType != typeof(float)) return;
+            if (mark.NameSize <= 0f) mark.NameSize = (float)property.GetValue(text);
+            property.SetValue(text, mark.NameSize * scale);
+            mark.NameScaled = scale;
         }
 
         /// <summary>A mark's words, by its look, on a dark plate: how far you walked it, how far anyone on this server did, or whether anyone did.</summary>
@@ -400,7 +453,7 @@ namespace Scry
             rect.pivot = pin.pivot;
             // A picture taking no rays, so the map under it gets every click to hand on.
             var picture = made.AddComponent<Image>();
-            picture.sprite = ScryPanel.MarkPicture(MarkLook.Yours);
+            picture.sprite = ScryPanel.MarkPicture(MarkGlyph.Doorway, MarkLook.Yours);
             picture.preserveAspect = true;
             picture.raycastTarget = false;
             var mark = new Mark { Made = made, Rect = rect, Picture = picture };

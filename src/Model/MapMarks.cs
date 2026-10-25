@@ -13,10 +13,11 @@ namespace Scry
     }
 
     /// <summary>
-    /// Where a dungeon been in is marked on Valheim's large map: its entrance placed as the game
+    /// Where a dungeon been in is marked on Valheim's map: its entrance placed as the game
     /// places its pins (<c>Minimap.WorldToMapPoint</c> turns a world point into one of the map's
-    /// texture, <c>Minimap.MapPointToLocalGuiPos</c> into the window of it the large map shows),
-    /// the mark as big as a pin and standing just above where a pin there stands, so it leaves the pin clear.
+    /// texture, <c>Minimap.MapPointToLocalGuiPos</c> into the window of it the map shows), the
+    /// mark on the entrance, as big as a pin scaled as the settings say; which marks show, how an
+    /// entrance alone stands faint, and which the small map shows.
     /// </summary>
     internal static class MapMarks
     {
@@ -36,11 +37,33 @@ namespace Scry
             return mx > window.XMin && mx < window.XMin + window.Width && my > window.YMin && my < window.YMin + window.Height;
         }
 
-        /// <summary>How far above the entrance the mark stands, by the size of a pin on the large map: a pin's height, clear of one there.</summary>
-        public static float Lift(float pinSize) => pinSize;
+        /// <summary>How big the mark is: a pin's size on the map shown, scaled as the settings say.</summary>
+        public static float Size(float pinSize, float scale) => pinSize * scale;
 
-        /// <summary>How big the mark is: as big as a pin on the large map.</summary>
-        public static float Size(float pinSize) => pinSize;
+        /// <summary>How much bigger a mark's name is drawn than the game's pin names: as the mark is.</summary>
+        public static float NameScale(float scale) => scale;
+
+        /// <summary>Whether a mark shows, by its look, as the settings' three switches say: walked by you, walked on this server, entrances alone.</summary>
+        public static bool Shown(MarkLook look, bool walkedByYou, bool walkedOnServer, bool entrances)
+        {
+            switch (look)
+            {
+                case MarkLook.Yours:
+                case MarkLook.Whole: return walkedByYou;
+                case MarkLook.Server:
+                case MarkLook.ServerWhole: return walkedOnServer;
+                default: return entrances;
+            }
+        }
+
+        /// <summary>How faint an entrance alone stands until the pointer rests on it.</summary>
+        public const float FaintAlpha = 0.45f;
+
+        /// <summary>A mark's opacity: an entrance alone faint until pointed at, every other whole.</summary>
+        public static float Alpha(MarkLook look, bool pointedAt) => look == MarkLook.Entrance && !pointedAt ? FaintAlpha : 1f;
+
+        /// <summary>Whether the small map shows a mark, by its look: those of dungeons you walked alone.</summary>
+        public static bool OnSmallMap(MarkLook look) => look == MarkLook.Yours || look == MarkLook.Whole;
 
         /// <summary>
         /// Whether a press let go is a click of a mark: the pointer moved no more than half a mark

@@ -476,6 +476,9 @@ namespace Scry
             Each("Minimap.m_exploredOthers", () => Member(list, "Minimap", "m_exploredOthers", Feature.CompendiumMap));
             Each("Player.m_knownTexts", () => Member(list, "Player", "m_knownTexts", Feature.CompendiumTextsRead));
             Each("Minimap.m_pinNamePrefab", () => Member(list, "Minimap", "m_pinNamePrefab", Feature.DungeonMarksOnMap));
+            Each("Minimap.m_pinNameRootSmall", () => Member(list, "Minimap", "m_pinNameRootSmall", Feature.DungeonMarksOnMap));
+            Each("Minimap.m_mapImageSmall", () => Member(list, "Minimap", "m_mapImageSmall", Feature.DungeonMarksOnMap));
+            Each("Minimap.m_pinSizeSmall", () => Member(list, "Minimap", "m_pinSizeSmall", Feature.DungeonMarksOnMap));
             Each("ClutterSystem.m_quality", () => Member(list, "ClutterSystem", "m_quality", Feature.StageGround));
             Each("ZoneSystem.m_locationInstances", () => Member(list, "ZoneSystem", "m_locationInstances", Feature.CompendiumMap));
             Each("the patches", () => Patches(list));

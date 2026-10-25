@@ -1,95 +1,95 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Scry
 {
     /// <summary>
-    /// The pictures of the dungeons' marks on Valheim's large map, one for each look
-    /// (<see cref="MarkLook"/>), made once in the colours given and kept, so the map and a
-    /// dungeon's page show the same mark.
+    /// The pictures of the dungeons' marks on Valheim's map, one for each glyph and look
+    /// (<see cref="MarkGlyph"/>, <see cref="MarkLook"/>), drawn once at 128 pixels in the colours
+    /// given and kept, so the map and a dungeon's page show the same mark: the glyph filled on the
+    /// accent disc for one walked by you, a tick in its place for one walked whole, the glyph in
+    /// outline on a dark disc ringed in the accent for one walked on this server, and ringed faint
+    /// for an entrance alone (<see cref="MarkRaster"/>).
     /// </summary>
     internal static class MarkPictures
     {
-        private static Sprite _sprite, _whole, _hollow, _hollowWhole, _entrance;
+        private const int Side = 128;
+
+        /// <summary>Leaving a world lets go of the pictures made, drawn again as the next world's map opens (<see cref="WorldCaches"/>).</summary>
+        static MarkPictures() => WorldCaches.Register(nameof(MarkPictures), () => Made.Clear());
+
+        private static readonly Dictionary<(MarkGlyph Glyph, MarkLook Look), Sprite> Made = new Dictionary<(MarkGlyph, MarkLook), Sprite>();
         private static Color _accent, _dark, _faint, _ring;
 
-        /// <summary>A mark's picture by its look: the accent, the dark it is outlined in, the faint of an entrance alone and its ring.</summary>
-        public static Sprite Of(MarkLook look, Color accent, Color dark, Color faint, Color ring)
+        /// <summary>A mark's picture by its glyph and look: the accent, the dark it is outlined in, the faint of an entrance alone and its ring.</summary>
+        public static Sprite Of(MarkGlyph glyph, MarkLook look, Color accent, Color dark, Color faint, Color ring)
         {
             _accent = accent;
             _dark = dark;
             _faint = faint;
             _ring = ring;
-            return SpriteOf(look);
+            if (Made.TryGetValue((glyph, look), out var made) && made != null) return made;
+            made = Make(glyph, look);
+            Made[(glyph, look)] = made;
+            return made;
         }
 
-        /// <summary>A mark's picture by its look.</summary>
-        private static Sprite SpriteOf(MarkLook look)
+        /// <summary>A mark's picture by its look alone, with the doorway glyph: for the ticks and the marks beside a page's lines.</summary>
+        public static Sprite Of(MarkLook look, Color accent, Color dark, Color faint, Color ring) => Of(MarkGlyph.Doorway, look, accent, dark, faint, ring);
+
+        /// <summary>Draws a picture: each pixel the average of four, so the disc's edge and the glyph's are soft.</summary>
+        private static Sprite Make(MarkGlyph glyph, MarkLook look)
         {
+            var twice = Side * 2;
+            var filled = look == MarkLook.Yours ? MarkRaster.FilledBits(glyph, twice) : null;
+            var outline = look == MarkLook.Server || look == MarkLook.Entrance ? MarkRaster.OutlineBits(glyph, twice) : null;
+            var texture = Scry.Kept.Add(new Texture2D(Side, Side, TextureFormat.RGBA32, false) { name = "Scry dungeon mark " + glyph + " " + look, filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp });
+            var pixels = new Color32[Side * Side];
+            for (var y = 0; y < Side; y++)
+            {
+                for (var x = 0; x < Side; x++)
+                {
+                    float r = 0f, g = 0f, b = 0f, a = 0f;
+                    for (var sy = 0; sy < 2; sy++)
+                    {
+                        for (var sx = 0; sx < 2; sx++)
+                        {
+                            // The texture's rows go up; the bits' rows go down.
+                            var tx = x * 2 + sx;
+                            var ty = y * 2 + sy;
+                            var bit = (twice - 1 - ty) * twice + tx;
+                            var ux = (tx + 0.5f) * 64f / twice - 32f;
+                            var uy = (ty + 0.5f) * 64f / twice - 32f;
+                            var colour = Pixel(look, filled != null && filled[bit], outline != null && outline[bit], ux, uy);
+                            r += colour.r * colour.a;
+                            g += colour.g * colour.a;
+                            b += colour.b * colour.a;
+                            a += colour.a;
+                        }
+                    }
+                    pixels[y * Side + x] = a <= 0f ? default : (Color32)new Color(r / a, g / a, b / a, a / 4f);
+                }
+            }
+            texture.SetPixels32(pixels);
+            texture.Apply(false, true);
+            return Scry.Kept.Add(Sprite.Create(texture, new Rect(0f, 0f, Side, Side), new Vector2(0.5f, 0.5f)));
+        }
+
+        /// <summary>A point's colour by the look: the disc and its ring by the distance from the middle, the glyph or the tick within.</summary>
+        private static Color Pixel(MarkLook look, bool filled, bool outline, float ux, float uy)
+        {
+            var r = Mathf.Sqrt(ux * ux + uy * uy);
+            if (r > 31f) return Color.clear;
+            // A tick of two strokes with round ends, its corner low and left of the middle, in the mark's 64 units from its lower left.
+            var tick = Mathf.Min(ToStroke(ux + 32f, uy + 32f, 18f, 31f, 28f, 21f), ToStroke(ux + 32f, uy + 32f, 28f, 21f, 46f, 42f));
             switch (look)
             {
-                case MarkLook.Yours: return MarkSprite();
-                case MarkLook.Whole: return WholeSprite();
-                case MarkLook.Server: return HollowSprite();
-                case MarkLook.ServerWhole: return HollowWholeSprite();
-                default: return EntranceSprite();
+                case MarkLook.Yours: return r > 27f ? _dark : filled ? _dark : _accent;
+                case MarkLook.Whole: return r > 27f ? _dark : tick <= 3.5f ? _dark : _accent;
+                case MarkLook.Server: return r > 26f ? _accent : outline ? _accent : _dark;
+                case MarkLook.ServerWhole: return r > 26f ? _accent : tick <= 3.5f ? (tick <= 1.5f ? _dark : _accent) : _dark;
+                default: return r > 27f ? _ring : outline ? _faint : _dark;
             }
-        }
-
-        /// <summary>The picture of a mark of a dungeon you walked whole: the walked mark's accent disc, outlined dark, with a tick where its doorway is, made once.</summary>
-        private static Sprite WholeSprite()
-        {
-            if (_whole != null) return _whole;
-            const int side = 64;
-            var texture = Scry.Kept.Add(new Texture2D(side, side, TextureFormat.RGBA32, false) { name = "Scry dungeon mark whole", filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp });
-            var pixels = new Color32[side * side];
-            var accent = (Color32)_accent;
-            var dark = (Color32)_dark;
-            var clear = default(Color32);
-            for (var y = 0; y < side; y++)
-            {
-                for (var x = 0; x < side; x++)
-                {
-                    var px = x + 0.5f;
-                    var py = y + 0.5f;
-                    var r = Mathf.Sqrt((px - side / 2f) * (px - side / 2f) + (py - side / 2f) * (py - side / 2f));
-                    // A tick of two strokes 7 wide with round ends, its corner low and left of the middle.
-                    var tick = Mathf.Min(ToStroke(px, py, 18f, 31f, 28f, 21f), ToStroke(px, py, 28f, 21f, 46f, 42f)) <= 3.5f;
-                    pixels[y * side + x] = r > 31f ? clear : r > 27f ? dark : tick ? dark : accent;
-                }
-            }
-            texture.SetPixels32(pixels);
-            texture.Apply(false, true);
-            _whole = Scry.Kept.Add(Sprite.Create(texture, new Rect(0f, 0f, side, side), new Vector2(0.5f, 0.5f)));
-            return _whole;
-        }
-
-
-        /// <summary>The picture of a mark of a dungeon others on this server walked whole: the hollow mark's dark disc ringed in the accent, with the tick in the accent where its doorway is, made once.</summary>
-        private static Sprite HollowWholeSprite()
-        {
-            if (_hollowWhole != null) return _hollowWhole;
-            const int side = 64;
-            var texture = Scry.Kept.Add(new Texture2D(side, side, TextureFormat.RGBA32, false) { name = "Scry dungeon mark hollow whole", filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp });
-            var pixels = new Color32[side * side];
-            var accent = (Color32)_accent;
-            var dark = (Color32)_dark;
-            var clear = default(Color32);
-            for (var y = 0; y < side; y++)
-            {
-                for (var x = 0; x < side; x++)
-                {
-                    var px = x + 0.5f;
-                    var py = y + 0.5f;
-                    var r = Mathf.Sqrt((px - side / 2f) * (px - side / 2f) + (py - side / 2f) * (py - side / 2f));
-                    // The walked whole mark's tick, a little thinner, as the hollow mark's doorway is drawn in outline.
-                    var tick = Mathf.Min(ToStroke(px, py, 18f, 31f, 28f, 21f), ToStroke(px, py, 28f, 21f, 46f, 42f)) <= 3f;
-                    pixels[y * side + x] = r > 31f ? clear : r > 26f ? accent : tick ? accent : dark;
-                }
-            }
-            texture.SetPixels32(pixels);
-            texture.Apply(false, true);
-            _hollowWhole = Scry.Kept.Add(Sprite.Create(texture, new Rect(0f, 0f, side, side), new Vector2(0.5f, 0.5f)));
-            return _hollowWhole;
         }
 
         /// <summary>How far a point is from a stroke between two points.</summary>
@@ -101,93 +101,6 @@ namespace Scry
             var cx = ax + t * vx - px;
             var cy = ay + t * vy - py;
             return Mathf.Sqrt(cx * cx + cy * cy);
-        }
-
-        /// <summary>The mark's picture: an accent disc, outlined dark, with a doorway in it, made once.</summary>
-        private static Sprite MarkSprite()
-        {
-            if (_sprite != null) return _sprite;
-            const int side = 64;
-            var texture = Scry.Kept.Add(new Texture2D(side, side, TextureFormat.RGBA32, false) { name = "Scry dungeon mark", filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp });
-            var pixels = new Color32[side * side];
-            var accent = (Color32)_accent;
-            var dark = (Color32)_dark;
-            var clear = default(Color32);
-            for (var y = 0; y < side; y++)
-            {
-                for (var x = 0; x < side; x++)
-                {
-                    var dx = x + 0.5f - side / 2f;
-                    var dy = y + 0.5f - side / 2f;
-                    var r = Mathf.Sqrt(dx * dx + dy * dy);
-                    // A rounded doorway: an arch over an opening, in the disc's middle.
-                    var arch = dy > 4f ? Mathf.Sqrt(dx * dx + (dy - 4f) * (dy - 4f)) <= 12f : Mathf.Abs(dx) <= 12f && dy >= -16f;
-                    pixels[y * side + x] = r > 31f ? clear : r > 27f ? dark : arch ? dark : accent;
-                }
-            }
-            texture.SetPixels32(pixels);
-            texture.Apply(false, true);
-            _sprite = Scry.Kept.Add(Sprite.Create(texture, new Rect(0f, 0f, side, side), new Vector2(0.5f, 0.5f)));
-            return _sprite;
-        }
-
-        /// <summary>The picture of a mark of a dungeon's entrance alone: a dark disc ringed faint, the doorway's outline faint in it, made once.</summary>
-        private static Sprite EntranceSprite()
-        {
-            if (_entrance != null) return _entrance;
-            const int side = 64;
-            var texture = Scry.Kept.Add(new Texture2D(side, side, TextureFormat.RGBA32, false) { name = "Scry dungeon mark entrance", filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp });
-            var pixels = new Color32[side * side];
-            var faint = (Color32)_faint;
-            var ring = (Color32)_ring;
-            var dark = (Color32)_dark;
-            var clear = default(Color32);
-            for (var y = 0; y < side; y++)
-            {
-                for (var x = 0; x < side; x++)
-                {
-                    var dx = x + 0.5f - side / 2f;
-                    var dy = y + 0.5f - side / 2f;
-                    var r = Mathf.Sqrt(dx * dx + dy * dy);
-                    // The same doorway as the others', its outline alone, faint.
-                    var outer = dy > 4f ? Mathf.Sqrt(dx * dx + (dy - 4f) * (dy - 4f)) <= 12f : Mathf.Abs(dx) <= 12f && dy >= -16f;
-                    var inner = dy > 4f ? Mathf.Sqrt(dx * dx + (dy - 4f) * (dy - 4f)) <= 8.5f : Mathf.Abs(dx) <= 8.5f && dy >= -12.5f;
-                    pixels[y * side + x] = r > 31f ? clear : r > 27f ? ring : outer && !inner ? faint : dark;
-                }
-            }
-            texture.SetPixels32(pixels);
-            texture.Apply(false, true);
-            _entrance = Scry.Kept.Add(Sprite.Create(texture, new Rect(0f, 0f, side, side), new Vector2(0.5f, 0.5f)));
-            return _entrance;
-        }
-
-        /// <summary>The picture of a mark of a dungeon walked on this server, shown with insides: a dark disc ringed in the accent, the doorway drawn in its outline, made once.</summary>
-        private static Sprite HollowSprite()
-        {
-            if (_hollow != null) return _hollow;
-            const int side = 64;
-            var texture = Scry.Kept.Add(new Texture2D(side, side, TextureFormat.RGBA32, false) { name = "Scry dungeon mark hollow", filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp });
-            var pixels = new Color32[side * side];
-            var accent = (Color32)_accent;
-            var dark = (Color32)_dark;
-            var clear = default(Color32);
-            for (var y = 0; y < side; y++)
-            {
-                for (var x = 0; x < side; x++)
-                {
-                    var dx = x + 0.5f - side / 2f;
-                    var dy = y + 0.5f - side / 2f;
-                    var r = Mathf.Sqrt(dx * dx + dy * dy);
-                    // The same doorway as the walked mark's, its outline alone.
-                    var outer = dy > 4f ? Mathf.Sqrt(dx * dx + (dy - 4f) * (dy - 4f)) <= 12f : Mathf.Abs(dx) <= 12f && dy >= -16f;
-                    var inner = dy > 4f ? Mathf.Sqrt(dx * dx + (dy - 4f) * (dy - 4f)) <= 8.5f : Mathf.Abs(dx) <= 8.5f && dy >= -12.5f;
-                    pixels[y * side + x] = r > 31f ? clear : r > 26f ? accent : outer && !inner ? accent : dark;
-                }
-            }
-            texture.SetPixels32(pixels);
-            texture.Apply(false, true);
-            _hollow = Scry.Kept.Add(Sprite.Create(texture, new Rect(0f, 0f, side, side), new Vector2(0.5f, 0.5f)));
-            return _hollow;
         }
     }
 }

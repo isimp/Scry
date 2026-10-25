@@ -14,6 +14,9 @@ namespace Scry
         private static Vector2 _settingsScroll, _guideScroll, _welcomeScroll;
         private static float _settingsHeight, _guideHeight, _welcomeHeight;
 
+        /// <summary>The dungeon marks' size while its slider is dragged, taken once it is let go; none.</summary>
+        private static float? _markSizeHeld;
+
         /// <summary>How wide the settings card's widest row needs to be to stand on one line, and how wide the card is, as last drawn; for the self-test.</summary>
         [Diagnostic]
         public static (float Needed, float Width) SettingsFitForTest { get; private set; }
@@ -138,6 +141,31 @@ namespace Scry
             if (names >= 0) Settings.MarkNamesAlways = names == 1;
             RowTip(top, y, width, "settings-mark-names", SettingsWords.MarkNamesTip);
 
+            // The marks' size follows the slider once it is let go, as the panel's does.
+            top = y;
+            var markSize = _markSizeHeld ?? Settings.DungeonMarkSize;
+            var markDragged = SettingsWords.MarkSizeStep(SliderRow(SettingsWords.MarkSize, SettingsWords.SizeName(markSize), markSize, SettingsWords.SmallestMarkSize, SettingsWords.LargestMarkSize, width, labelW, ref y));
+            if (!Mathf.Approximately(markDragged, markSize)) _markSizeHeld = markDragged;
+            if (_markSizeHeld.HasValue && GUIUtility.hotControl == 0)
+            {
+                Settings.DungeonMarkSize = _markSizeHeld.Value;
+                _markSizeHeld = null;
+            }
+            RowTip(top, y, width, "settings-mark-size", SettingsWords.MarkSizeTip);
+
+            top = y;
+            var marks = new List<string> { SettingsWords.WalkedByYou, SettingsWords.WalkedOnServer, SettingsWords.Entrances };
+            var markFlipped = Toggles(SettingsWords.MarksShown, marks, i => i == 0 ? Settings.DungeonMarksWalkedByYou : i == 1 ? Settings.DungeonMarksWalkedOnServer : Settings.DungeonMarkEntrances, width, labelW, ref y);
+            if (markFlipped == 0) Settings.DungeonMarksWalkedByYou = !Settings.DungeonMarksWalkedByYou;
+            if (markFlipped == 1) Settings.DungeonMarksWalkedOnServer = !Settings.DungeonMarksWalkedOnServer;
+            if (markFlipped == 2) Settings.DungeonMarkEntrances = !Settings.DungeonMarkEntrances;
+            RowTip(top, y, width, "settings-marks-shown", SettingsWords.MarksShownTip);
+
+            top = y;
+            var minimap = Segments(SettingsWords.Minimap, new List<string> { SettingsWords.Off, SettingsWords.On }, Settings.DungeonMarksOnMinimap ? 1 : 0, width, labelW, ref y);
+            if (minimap >= 0) Settings.DungeonMarksOnMinimap = minimap == 1;
+            RowTip(top, y, width, "settings-minimap", SettingsWords.MinimapTip);
+
             if (_rowsWrapped > wrapped) CountDrawn(PanelPart.SettingsRowWrapped);
             SettingsFitForTest = (_widestRow, width);
             var keptH = Skin.DimWrap.CalcHeight(new GUIContent(SettingsWords.Kept), width);
@@ -148,7 +176,7 @@ namespace Scry
             if (EndCard(rect, out _)) ShowSettings(false);
         }
 
-        private static readonly string[] SettingsLabelNames = { SettingsWords.Size, SettingsWords.Key, SettingsWords.WhileOpen, SettingsWords.Opening, SettingsWords.Sounds, SettingsWords.Tips, SettingsWords.Stage, SettingsWords.News, SettingsWords.MarkNames };
+        private static readonly string[] SettingsLabelNames = { SettingsWords.Size, SettingsWords.Key, SettingsWords.WhileOpen, SettingsWords.Opening, SettingsWords.Sounds, SettingsWords.Tips, SettingsWords.Stage, SettingsWords.News, SettingsWords.MarkNames, SettingsWords.MarkSize, SettingsWords.MarksShown, SettingsWords.Minimap };
         private static readonly float[] SettingsLabelWidths = new float[SettingsLabelNames.Length];
 
         /// <summary>How wide each of the settings card's labels is drawn, for their column to be as wide as the widest.</summary>

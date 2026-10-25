@@ -32,7 +32,7 @@ Each world can show more as known, source by source in the compendium's box: exp
 
 The gear in the title row holds the panel's settings, written to the config file as they are chosen, among them *Stage* set to *Fast* for big dungeons on weaker machines. The spin's speed and the lights below a dungeon's cut are in the View box, reading locations in every world is beside *Find where things are*, and the map's marks are in the compendium's box.
 
-Dungeons are laid out room by room, with a plan to go into each room. The dungeon you are in shows as it was saved, your walks are kept and marked on the large map, and a server reads what was left inside dungeons walked before Scry.
+Dungeons are laid out room by room, with a plan to go into each room. The dungeon you are in shows as it was saved, your walks are kept and marked on the large map, and a server reads what was left inside dungeons walked before Scry. Each mark on the large map carries a glyph for the dungeon's kind and stands on its entrance; the settings size the marks, choose which show, and put those you walked on the minimap too; an entrance nobody walked is faint until the pointer rests on it, and a mark's name grows with it.
 
 Skills and traders have tabs of their own, and every figure a skill changes shows what it comes to at your level.
 
