@@ -131,11 +131,14 @@ namespace Scry
                 var offered = WorldSources.Offered(source);
                 if (rules.Highest(source) < offered[offered.Length - 1]) limits = true;
             }
-            if (!rules.RulesSet && off.Count == 0 && !limits) return null;
+            var reach = !rules.SeenReach.Equals(WorldRules.SeenReachSetting.Default);
+            if (!rules.RulesSet && off.Count == 0 && !limits && !reach) return null;
             var said = rules.RulesSet ? "This server plays " + CompendiumWords.RuleName(rules.Rule.Value) : "This server";
             if (off.Count > 0) said += rules.RulesSet ? "; " + Naming.Joined(off) + (off.Count == 1 ? " is off" : " are off") : " keeps " + Naming.Joined(off) + " off";
             if (limits) said += off.Count > 0 ? (rules.RulesSet ? ", and it limits" : ", and limits") : rules.RulesSet ? "; it limits" : " limits";
             if (limits) said += " what its world shows as known";
+            // The reach where the server sets it apart from the game's 10 m: at 0 nothing is seen up close.
+            if (reach) said += (rules.RulesSet || off.Count > 0 || limits ? "; " : " ") + (rules.SeenReach <= 0f ? "it keeps no stars, gear or attacks seen up close" : $"it sees up close within {Numbers.Count((long)Math.Round(rules.SeenReach))} m");
             return said + ".";
         }
 

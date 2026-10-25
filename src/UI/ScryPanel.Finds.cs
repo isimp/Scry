@@ -111,6 +111,8 @@ namespace Scry
             var whole = explorer.ShownWhole(out var source);
             if (!whole && !explorer.LeavingOut) return right;
             var (still, finds) = whole ? (null, null) : FindsOf(explorer, entry);
+            // A page that keeps nothing back has nothing to count: no chip.
+            if (!whole && !finds.Any) return right;
             var found = whole ? 0 : finds.Found;
             var of = whole ? 0 : finds.Of;
             CountDrawn(PanelPart.FindsChip);

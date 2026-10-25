@@ -47,37 +47,37 @@ namespace Scry.Tests
             Assert.Equal("Compendium · Off  ▾", CompendiumWords.Button(CompendiumRule.Off));
             Assert.Equal("Compendium · Loose  ▾", CompendiumWords.Button(CompendiumRule.Loose));
             Assert.Equal("Compendium · Strict  ▾", CompendiumWords.Button(CompendiumRule.Strict));
-            Assert.Equal("What this character knows, shown in the catalog", CompendiumWords.BoxCaption);
+            Assert.Equal("What your character knows, shown in the catalog", CompendiumWords.BoxCaption);
             Assert.Equal("Rules", CompendiumWords.RulesCaption);
-            Assert.Equal("Loose: only what this character has met shows; a page opens whole once it has fought, held, built, used or entered it", CompendiumWords.StepTip(CompendiumRule.Loose));
-            Assert.Equal("Show only what this character has come to know, by the rules chosen for it here; each character keeps its own", CompendiumWords.ModeTip);
-            Assert.Equal("show everything. What this character comes to know is kept all the same, so turning the compendium on later shows everything met meanwhile", CompendiumWords.RuleTip(CompendiumRule.Off));
-            Assert.Equal("only what this character has met shows; a page opens whole once it has fought, held, built, used or entered it", CompendiumWords.RuleTip(CompendiumRule.Loose));
-            Assert.Equal("as Loose, but a page shows only what this character saw go together, and keeps back the numbers the game never shows until it finds them out", CompendiumWords.RuleTip(CompendiumRule.Strict));
+            Assert.Equal("Loose: only what your character has met shows; a page opens whole once it has fought, held, built, used or entered it", CompendiumWords.StepTip(CompendiumRule.Loose));
+            Assert.Equal("Show only what your character has come to know, by the rules chosen for it here; each character keeps its own", CompendiumWords.ModeTip);
+            Assert.Equal("show everything. What your character comes to know is kept all the same, so turning the compendium on later shows everything met meanwhile", CompendiumWords.RuleTip(CompendiumRule.Off));
+            Assert.Equal("only what your character has met shows; a page opens whole once it has fought, held, built, used or entered it", CompendiumWords.RuleTip(CompendiumRule.Loose));
+            Assert.Equal("as Loose, but a page shows only what your character saw go together, and keeps back the numbers the game never shows until it finds them out", CompendiumWords.RuleTip(CompendiumRule.Strict));
         }
 
         [Fact]
         public void PeekingWarnsThatEverythingShowsAndUntilWhen()
         {
             // Peeking shows the page looked at whole, not the whole catalog: the list stays as the character knows it.
-            Assert.Equal("Show each page whole for now, its links leading anywhere and a whole name in quotes finding what this character has not met; the list stays as it knows it, and it stops when the panel closes", CompendiumWords.PeekTip(false, pageShown: false));
-            Assert.Equal("Show only what this character has met again", CompendiumWords.PeekTip(true, pageShown: true));
+            Assert.Equal("Show each page whole for now, its links leading anywhere and a whole name in quotes finding what your character has not met; the list stays as it knows it, and it stops when the panel closes", CompendiumWords.PeekTip(false, pageShown: false));
+            Assert.Equal("Show only what your character has met again", CompendiumWords.PeekTip(true, pageShown: true));
             // With a page shown, the eye peeks at that page alone; its strip can widen it.
             Assert.Equal("Show this page whole for now, its links leading anywhere, until you go to another page; its notice can show every page whole until the panel closes", CompendiumWords.PeekTip(false, pageShown: true));
             Assert.Equal("Peeking at Troll: this page shows whole until you go to another", CompendiumWords.PeekingPageLine("Troll", compact: false));
             Assert.Equal("Peeking at Troll", CompendiumWords.PeekingPageLine("Troll", compact: true));
-            Assert.Equal("Until you go to another page, this one shows whole and its links lead anywhere; the list stays as this character knows it", CompendiumWords.PeekingPageTip);
+            Assert.Equal("Until you go to another page, this one shows whole and its links lead anywhere; the list stays as your character knows it", CompendiumWords.PeekingPageTip);
             Assert.Equal("Every page", CompendiumWords.EveryPage);
-            Assert.Equal("Show every page whole until the panel closes, a whole name in quotes finding what this character has not met", CompendiumWords.EveryPageTip);
+            Assert.Equal("Show every page whole until the panel closes, a whole name in quotes finding what your character has not met", CompendiumWords.EveryPageTip);
             // The strip says it short; the rest in the tip of its line.
             Assert.Equal("Peeking: pages show whole until the panel closes", CompendiumWords.Peeking);
-            Assert.Equal("Each page shows whole, its links lead anywhere and a whole name in quotes finds what this character has not met; the list stays as it knows it", CompendiumWords.PeekingTip);
+            Assert.Equal("Each page shows whole, its links lead anywhere and a whole name in quotes finds what your character has not met; the list stays as it knows it", CompendiumWords.PeekingTip);
             Assert.Equal("Stop peeking", CompendiumWords.StopPeeking);
             // The compact view's strip says it short enough not to slide; how long it lasts moves to the tip.
             Assert.Equal(CompendiumWords.Peeking, CompendiumWords.PeekingLine(compact: false));
             Assert.Equal("Peeking: pages show whole", CompendiumWords.PeekingLine(compact: true));
             Assert.Equal(CompendiumWords.PeekingTip, CompendiumWords.PeekingLineTip(compact: false));
-            Assert.Equal("Until the panel closes, each page shows whole, its links lead anywhere and a whole name in quotes finds what this character has not met; the list stays as it knows it", CompendiumWords.PeekingLineTip(compact: true));
+            Assert.Equal("Until the panel closes, each page shows whole, its links lead anywhere and a whole name in quotes finds what your character has not met; the list stays as it knows it", CompendiumWords.PeekingLineTip(compact: true));
         }
 
         [Fact]
@@ -91,15 +91,15 @@ namespace Scry.Tests
         [Fact]
         public void CatchingUpFromTheMapSaysWhatItDidAndWhyNot()
         {
-            Assert.Equal("the explored map will be read again for this character in this world", CompendiumWords.MapAgain);
+            Assert.Equal("the explored map will be read again for your character in this world", CompendiumWords.MapAgain);
             Assert.Equal("the explored map can be read only in a world", CompendiumWords.MapNoWorld);
             Assert.Equal("caught up from the explored map: 1,200 kinds of place lie in explored ground, 3 of them new to it", CompendiumWords.MapRead(1200, 3, fromServer: false));
             Assert.Equal("caught up from the explored map with the server's answer: 12 kinds of place lie in explored ground, 0 of them new to it", CompendiumWords.MapRead(12, 0, fromServer: true));
             Assert.Equal("answered a player's explored map: 12 kinds of place lie in it", CompendiumWords.MapAnswered(12));
             Assert.Equal("the server did not answer on the explored map (it has no Scry, or one too old): places count as the character meets them", CompendiumWords.MapNoServerScry);
             Assert.Equal("Look at the map again", CompendiumWords.ReadMap);
-            Assert.Equal("Places in the ground this character explored show as Ground you explored says, read again each session", CompendiumWords.MapBar);
-            Assert.Equal("Read again which kinds of place lie in the ground this character explored in this world, as on its first visit with Scry", CompendiumWords.ReadMapTip);
+            Assert.Equal("Places in the ground your character explored show as Ground you explored says, read again each session", CompendiumWords.MapBar);
+            Assert.Equal("Read again which kinds of place lie in the ground your character explored in this world, as on its first visit with Scry", CompendiumWords.ReadMapTip);
             Assert.Equal("on a dedicated server Scry only answers players' explored maps, the world's census and their Scry's hello, sends the world's settings for the compendium, keeps how far and on which days they walk its dungeons, reads what was left inside them, and runs the self-test's made-up events for the player asking", CompendiumWords.ServerPart);
         }
 
@@ -110,14 +110,14 @@ namespace Scry.Tests
             // Its lowest value is a label like the others, capitalised as every value in the box is.
             Assert.Equal(("Known up to", "No tier", "Black Forest"), (CompendiumWords.FloorCaption, CompendiumWords.FloorName(0), CompendiumWords.FloorName(2)));
             // What it shows that the character never came to know is marked, on its row and page, named as the control is.
-            Assert.Equal("Shown as known up to the Black Forest tier, not yet come to know by this character", CompendiumWords.ByFloor(2));
+            Assert.Equal("Shown as known up to the Black Forest tier, not yet come to know by your character", CompendiumWords.ByFloor(2));
             // A link to such a thing says so above where it goes.
-            Assert.Equal("Shown as known up to the Black Forest tier, not yet come to know by this character\nGo to Troll", CompendiumWords.FloorTip(2, "Go to Troll"));
-            Assert.Equal("Show everything of the Swamp as known: Bonemass fell for this character", CompendiumWords.RaiseFloor(3, "Bonemass"));
+            Assert.Equal("Shown as known up to the Black Forest tier, not yet come to know by your character\nGo to Troll", CompendiumWords.FloorTip(2, "Go to Troll"));
+            Assert.Equal("Show everything of the Swamp as known: Bonemass fell for your character", CompendiumWords.RaiseFloor(3, "Bonemass"));
             Assert.Equal("Show everything of the Swamp as known", CompendiumWords.RaiseFloor(3, null));
             Assert.Equal("Show the Meadows and what came before as known, not the Black Forest", CompendiumWords.LowerFloor(1));
-            Assert.Equal("Show only what this character has met again", CompendiumWords.LowerFloor(0));
-            Assert.Equal("The next tier opens once The Elder falls for this character", CompendiumWords.FloorWaits("The Elder"));
+            Assert.Equal("Show only what your character has met again", CompendiumWords.LowerFloor(0));
+            Assert.Equal("The next tier opens once The Elder falls for your character", CompendiumWords.FloorWaits("The Elder"));
         }
 
         [Fact]
@@ -171,8 +171,8 @@ namespace Scry.Tests
         public void TheListOfWhatWasLearnedLatelySaysWhatItHolds()
         {
             Assert.Equal("Learned", CompendiumWords.LearnedTab);
-            Assert.Equal("Show what this character learned lately, newest first", CompendiumWords.LearnedTip(false));
-            Assert.Equal("Showing what this character learned lately, newest first", CompendiumWords.LearnedTip(true));
+            Assert.Equal("Show what your character learned lately, newest first", CompendiumWords.LearnedTip(false));
+            Assert.Equal("Showing what your character learned lately, newest first", CompendiumWords.LearnedTip(true));
         }
 
         [Fact]
@@ -182,7 +182,7 @@ namespace Scry.Tests
             Assert.Equal("Heard of, not met yet", CompendiumWords.Closed(KnownLevel.HeardOf));
             Assert.Equal("Seen, not yet come to know", CompendiumWords.Closed(KnownLevel.Seen));
             // Every way that makes it known, by one verb for a page: come to know.
-            Assert.Equal("Fight it, tame it or hold its trophy to come to know it.", CompendiumWords.HowToKnow(Kind.Creature));
+            Assert.Equal("Fight it, see it tamed, pet it or hold its trophy to come to know it.", CompendiumWords.HowToKnow(Kind.Creature));
             Assert.Equal("Hold it, make it, eat it, unlock its recipe or read its card to come to know it.", CompendiumWords.HowToKnow(Kind.Item));
             Assert.Equal("Have it on you or choose it at its stone to come to know it.", CompendiumWords.HowToKnow(Kind.StatusEffect));
             Assert.Equal("It comes along once you come to know what it belongs to.", CompendiumWords.HowToKnow(Kind.Sound));

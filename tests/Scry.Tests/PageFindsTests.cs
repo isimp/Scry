@@ -32,13 +32,13 @@ namespace Scry.Tests
             Assert.Equal("7 of 12 found out", CompendiumWords.FoundOutCount(7, 12, narrow: false));
             Assert.Equal("7 of 12", CompendiumWords.FoundOutCount(7, 12, narrow: true));
             Assert.Equal("All found out", CompendiumWords.AllFoundOut);
-            Assert.Equal("Whole by Known up to", CompendiumWords.WholeBy(null));
-            Assert.Equal("Whole from shared maps", CompendiumWords.WholeBy(WorldSource.SharedMaps));
+            Assert.Equal("Shown whole by Known up to", CompendiumWords.WholeBy(null));
+            Assert.Equal("Shown whole from shared maps", CompendiumWords.WholeBy(WorldSource.SharedMaps));
             Assert.Equal("Still to find out:\nKill one · shows its health\nSee it attack · 2 attacks' damage, up close or taken\nA click goes to them in its You box",
                 CompendiumWords.FindsTip(new[] { ("Kill one", "shows its health"), ("See it attack", "2 attacks' damage, up close or taken") }));
             // Nothing still to do: nothing in the You box to go to.
             Assert.Equal("Still to find out:", CompendiumWords.FindsTip(new (string, string)[0]));
-            Assert.Equal("Known up to shows this page whole, as it shows every page of the tiers whose bosses this character has beaten; lower it in the compendium's box to see what is still to find out",
+            Assert.Equal("Known up to shows this page whole, as it shows every page of the tiers whose bosses your character has beaten; lower it in the compendium's box to see what is still to find out",
                 CompendiumWords.WholeTip(null));
             Assert.Equal("Shared maps shows this page whole, as the compendium's box has it show; turn it down there to see what is still to find out",
                 CompendiumWords.WholeTip(WorldSource.SharedMaps));

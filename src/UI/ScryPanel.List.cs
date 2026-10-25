@@ -312,8 +312,8 @@ namespace Scry
             public bool Folded;
         }
 
-        /// <summary>The groups folded away, by kind and name; they stay folded while the game runs.</summary>
-        private static readonly HashSet<string> FoldedGroups = new HashSet<string>(StringComparer.Ordinal);
+        /// <summary>The groups the player folded or opened by hand, by key: true folded; a group not here stands as it starts.</summary>
+        private static readonly Dictionary<string, bool> FoldChoices = new Dictionary<string, bool>(StringComparer.Ordinal);
 
         /// <summary>The selection a folded group was last opened for, and the list it was in, so one is opened once, when the selection moves into it or the list turns to another kind or to what was learned.</summary>
         private static Entry _foldChecked;
@@ -352,16 +352,16 @@ namespace Scry
         /// </summary>
         private static bool IsFolded(Explorer explorer, Entry entry)
         {
-            if (explorer.LearnedOnly) return JournalWords.FoldedAtFirst(GroupRank(explorer, entry), explorer.LearnedDay(entry)) != FoldedGroups.Contains(FoldKey(explorer, GroupOf(explorer, entry)));
-            return Grouped(explorer) && FoldedGroups.Contains(FoldKey(explorer, entry.Group));
+            // The player's own choice stands whatever the group's rank comes to; else as the group starts.
+            if (explorer.LearnedOnly) return FoldChoices.TryGetValue(FoldKey(explorer, GroupOf(explorer, entry)), out var chosen) ? chosen : JournalWords.FoldedAtFirst(GroupRank(explorer, entry), explorer.LearnedDay(entry));
+            return Grouped(explorer) && FoldChoices.TryGetValue(FoldKey(explorer, entry.Group), out var folded) && folded;
         }
 
         /// <summary>Opens the group an entry is in; true when it was folded.</summary>
         private static bool Unfold(Explorer explorer, Entry entry)
         {
             if (!IsFolded(explorer, entry)) return false;
-            var key = FoldKey(explorer, GroupOf(explorer, entry));
-            if (!FoldedGroups.Remove(key)) FoldedGroups.Add(key);
+            FoldChoices[FoldKey(explorer, GroupOf(explorer, entry))] = false;
             return true;
         }
 
@@ -378,8 +378,7 @@ namespace Scry
             if (hover) AskTip("group:" + row.Group, ListWords.GroupTip(row.Folded));
             if (GUI.Button(at, GUIContent.none, GUIStyle.none))
             {
-                var key = FoldKey(explorer, row.Group);
-                if (!FoldedGroups.Remove(key)) FoldedGroups.Add(key);
+                FoldChoices[FoldKey(explorer, row.Group)] = !row.Folded;
                 _rowsFor = null;
             }
         }
@@ -390,7 +389,7 @@ namespace Scry
         [Diagnostic]
         public static void FoldsAsAtFirstForTest()
         {
-            FoldedGroups.Clear();
+            FoldChoices.Clear();
             _rowsFor = null;
         }
 
@@ -598,13 +597,16 @@ namespace Scry
             var e = Event.current;
             if (choice != null && floorMark.Contains(e.mousePosition))
             {
-                AskTip("choice-mark:" + entry.Key, explorer.ByFloor(entry) || !(explorer.ByWorld(entry) is WorldSource from)
-                    ? CompendiumWords.ByFloor(explorer.FloorOf(entry))
-                    : CompendiumWords.ByWorld(from, explorer.LevelOf(entry)));
+                // As the mark itself: what the book holds, peeking or not.
+                AskTip("choice-mark:" + entry.Key, explorer.BookByFloor(entry) || !(explorer.BookByWorld(entry) is WorldSource from)
+                    ? CompendiumWords.ByFloor(explorer.BookFloorOf(entry))
+                    : CompendiumWords.ByWorld(from, explorer.BookLevelOf(entry)));
             }
-            else if ((cut || entry.Empty) && !star.Contains(e.mousePosition))
+            else if ((cut || entry.Empty || explorer.BookLevelOf(entry) == KnownLevel.Seen && explorer.CompendiumSet) && !star.Contains(e.mousePosition))
             {
-                AskTip(entry.Key, Naming.Lines(primary, secondary, entry.Empty ? ListWords.Silent : null));
+                // A faint row says why: nothing to see or hear of it, or only seen, its page closed.
+                var seenOnly = explorer.CompendiumSet && explorer.BookLevelOf(entry) == KnownLevel.Seen ? CompendiumWords.Closed(KnownLevel.Seen) : null;
+                AskTip(entry.Key, Naming.Lines(primary, secondary, entry.Empty ? ListWords.Silent : null, seenOnly));
             }
         }
 

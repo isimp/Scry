@@ -196,7 +196,7 @@ namespace Scry
             return by == null ? null : by == Tally.None ? TallyWords.NeverCounted : TallyWords.NotYetCounted(by.Value);
         }
 
-        /// <summary>A line of a way counted (<see cref="CountedBy"/>), its amount the character's count or ???, in the game's form.</summary>
+        /// <summary>A line of a way counted (<see cref="CountedBy"/>), its amount the character's count or a smudge, in the game's form.</summary>
         public static string Counted(SourceFacts source, string amount)
         {
             switch (source.Way)

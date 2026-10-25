@@ -19,7 +19,7 @@ namespace Scry.Tests
             ("Love", "breeding"), ("Ridden with", "riding"), ("Keeps its distance", "behaviour"),
         };
 
-        private static readonly (string Title, string Part)[] TrollRows = { ("With stars", ""), ("Damage it takes", "resistances"), ("Eats", ""), ("Drops", ""), ("Seen dropping in your play (3 kills)", "") };
+        private static readonly (string Title, string Part)[] TrollRows = { ("With stars", ""), ("Damage it takes", "resistances"), ("Eats", ""), ("Drops", ""), ("Seen dropping in all your play (3 kills)", "") };
 
         private static List<FactTopicPlan> Troll(params FactBlock[] blocks) =>
             FactLayout.Plan(Kind.Creature, TrollPairs, TrollRows, blocks.Length > 0 ? blocks : new[] { FactBlock.Where, FactBlock.Biomes, FactBlock.Hooks });
@@ -126,7 +126,7 @@ namespace Scry.Tests
         public void WhatQualifiesItsDropsIsToldUnderThem()
         {
             var loot = Troll().Single(t => t.Heading == "Loot");
-            Assert.Equal(new[] { "row Drops", "row Seen dropping in your play (3 kills)" }, loot.Bits.Select(Bit));
+            Assert.Equal(new[] { "row Drops", "row Seen dropping in all your play (3 kills)" }, loot.Bits.Select(Bit));
             Assert.Equal(new[] { "Drops with stars", "In this world" }, loot.Bits[0].Notes.Select(Pair));
 
             // With nothing dropped, the world's note stands under the line saying so.

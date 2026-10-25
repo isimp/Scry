@@ -16,7 +16,7 @@ namespace Scry
         /// A grid of every damage type: up to five cells a row, fewer where the side is narrow so
         /// none is cut, each its type over the share taken, coloured by how it lands, with the
         /// game's word on hover. Under the strict rules a creature's grid keeps back each type the
-        /// game never told the character on a hit, ??? in its cell, and says faintly under it how
+        /// game never told the character on a hit, a smudge in its cell, and says faintly under it how
         /// many it keeps back.
         /// </summary>
         private static float GridRow(Explorer explorer, Facts.Row row, float width, float y)
@@ -88,7 +88,7 @@ namespace Scry
             // A recipe's row the game does not list for the character yet is its own to find: left out whole, under either rules.
             if (row.GameShown && explorer.RecipeWaits(row.Recipe))
             {
-                StrictLeft(1);
+                RecipeWaiting();
                 CountDrawn(PanelPart.RecipeWaits);
                 return y;
             }
@@ -127,7 +127,7 @@ namespace Scry
             // A store's wares are game-shown: under the strict rules too the row keeps its title and count, as under the loose ones.
             var unlock = UnlockRows.Of(row.WaitsFor, explorer.NamesOnlyMet, WorldKeySet);
             if (unlock != UnlockShown.Counted) return false;
-            // Rows whose titles read the same once names not met are kept back ("Sells once ??? is
+            // Rows whose titles read the same once names not met are kept back ("Sells once a smudge is
             // defeated") are one wherever they stand: the first tells them all, the others add to its count.
             var countedAs = Masked(explorer, row.Title);
             var waiting = rows != null && rowAt >= 0 ? UnlockRows.Told(rows, rowAt, r => CountedAs(explorer, r), r => r.Items.Count) : row.Items.Count;
@@ -268,13 +268,13 @@ namespace Scry
             return false;
         }
 
-        /// <summary>Each chain as last drawn, by its title: its steps' keys in turn, and whether each read ??? as not met; for the self-test.</summary>
+        /// <summary>Each chain as last drawn, by its title: its steps' keys in turn, and whether each read a smudge as not met; for the self-test.</summary>
         [Diagnostic]
         public static Dictionary<string, List<(string Key, bool Unmet)>> ChainsDrawnForTest { get; } = new Dictionary<string, List<(string, bool)>>();
 
         /// <summary>
         /// A chain's steps, an arrow between each, the page's own lit and each other one going to its
-        /// page; with the compendium on, a step not met reads ???, going nowhere, so the chain stands
+        /// page; with the compendium on, a step not met reads a smudge, going nowhere, so the chain stands
         /// whole whatever the character met of it.
         /// </summary>
         private static float ChainRow(Explorer explorer, Facts.Row row, float width, float y)
@@ -309,6 +309,7 @@ namespace Scry
                         {
                             LinkChip(hidden, "", null, false, false);
                             Smudge(new Rect(hidden.x + U(12f), hidden.y, SmudgeWidth, hidden.height));
+                            if (hidden.Contains(Event.current.mousePosition)) AskTip("chain-kept:" + key, CompendiumWords.NotSeenTogetherTip);
                         }
                         continue;
                     }

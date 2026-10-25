@@ -34,7 +34,7 @@ namespace Scry
         {
             var parts = new List<string>();
             if (day >= 0) parts.Add("day " + Numbers.Count(day) + InWorld(world));
-            else if (world != null) parts.Add("in " + world);
+            else if (world != null) parts.Add(InWorld(world).Trim());
             var when = When(time, weather);
             if (when != null) parts.Add(when);
             if (!string.IsNullOrEmpty(biome)) parts.Add("in the " + biome);
@@ -66,7 +66,7 @@ namespace Scry
         {
             var often = CompendiumWords.Often(count);
             if (lastDay < 0) return often;
-            var when = world != null ? $"day {Numbers.Count(lastDay)} in {world}" : $"day {Numbers.Count(lastDay)}";
+            var when = $"day {Numbers.Count(lastDay)}{InWorld(world)}";
             return count == 1 ? $"{often}, on {when}" : $"{often}, last on {when}";
         }
 
@@ -86,7 +86,7 @@ namespace Scry
                 case CameBy.Recipe: return "recipe unlocked";
                 case CameBy.Card: return "card read";
                 case CameBy.Used: return "used";
-                case CameBy.Near: return "near";
+                case CameBy.Near: return "been near";
                 case CameBy.Built: return "built";
                 case CameBy.Hit: return "hit";
                 case CameBy.Picked: return "picked";
@@ -182,23 +182,17 @@ namespace Scry
         /// </summary>
         public static string News(IReadOnlyList<NewsLine> news, int places, int biomes)
         {
-            // The days are the world played's: a line of another world is told, but counts no day here.
+            // The days are the world played's: a line of another world is told as that world's, after this one's.
             var dated = news.Where(n => n.Day >= 0 && n.World == null).ToList();
-            var told = news.Where(n => n.Day >= 0).ToList();
-            var known = told.Where(n => n.How == NewsHow.Known).Select(n => n.Name).ToList();
-            var seen = told.Where(n => n.How == NewsHow.Seen).Select(n => n.Name).ToList();
-            var found = told.Where(n => n.How == NewsHow.FoundOut).ToList();
             var before = news.Count(n => n.Day < 0 && n.How != NewsHow.Map);
 
-            var parts = new List<string>();
-            if (known.Count > 0) parts.Add("came to know " + Named(known));
-            if (seen.Count > 0)
+            var parts = Clauses(dated);
+            foreach (var world in news.Where(n => n.Day >= 0 && n.World != null).Select(n => n.World).Distinct())
             {
-                if (known.Count == 0 || known.Count + seen.Count <= 3) parts.Add("saw " + Named(seen));
-                else parts.Add($"saw {Numbers.Count(seen.Count)} more");
+                var there = Clauses(news.Where(n => n.Day >= 0 && n.World == world).ToList());
+                if (there.Count > 0) parts.Add("in " + world + " " + Joined(there));
             }
-            if (found.Count > 0) parts.Add("found out " + FoundOutOf(found[0].Proof, found[0].Name) + (found.Count > 1 ? $" and {Numbers.Count(found.Count - 1)} more" : ""));
-            if (before > 0) parts.Add($"read {Naming.Count(before, "thing", "things")} from the game's records of this character");
+            if (before > 0) parts.Add($"read {Naming.Count(before, "thing", "things")} from the game's records of your character");
             if (places + biomes > 0)
             {
                 var counted = places > 0 && biomes > 0 ? $"{Naming.Count(places, "place", "places")} and {Naming.Count(biomes, "biome", "biomes")}"
@@ -207,11 +201,32 @@ namespace Scry
             }
             if (parts.Count == 0) return "";
 
-            var said = parts.Count == 1 ? parts[0] : string.Join(", ", parts.Take(parts.Count - 1).ToArray()) + ", and " + parts[parts.Count - 1];
+            var said = Joined(parts);
             if (dated.Count == 0) return Naming.Capital(said);
             var first = dated.Min(n => n.Day);
             var last = dated.Max(n => n.Day);
             return (first == last ? "Day " : "Since day ") + Numbers.Count(first) + ": " + said;
         }
+
+        /// <summary>The clauses of what some lines tell: what came to be known, what was seen, what was found out.</summary>
+        private static List<string> Clauses(IReadOnlyList<NewsLine> lines)
+        {
+            var known = lines.Where(n => n.How == NewsHow.Known).Select(n => n.Name).ToList();
+            var seen = lines.Where(n => n.How == NewsHow.Seen).Select(n => n.Name).ToList();
+            var found = lines.Where(n => n.How == NewsHow.FoundOut).ToList();
+            var parts = new List<string>();
+            if (known.Count > 0) parts.Add("came to know " + Named(known));
+            if (seen.Count > 0)
+            {
+                if (known.Count == 0 || known.Count + seen.Count <= 3) parts.Add("saw " + Named(seen));
+                else parts.Add($"saw {Numbers.Count(seen.Count)} more");
+            }
+            if (found.Count > 0) parts.Add("found out " + FoundOutOf(found[0].Proof, found[0].Name) + (found.Count > 1 ? $" and {Numbers.Count(found.Count - 1)} more" : ""));
+            return parts;
+        }
+
+        /// <summary>Clauses as one sentence: the last after "and".</summary>
+        private static string Joined(IReadOnlyList<string> parts) =>
+            parts.Count == 1 ? parts[0] : string.Join(", ", parts.Take(parts.Count - 1).ToArray()) + ", and " + parts[parts.Count - 1];
     }
 }

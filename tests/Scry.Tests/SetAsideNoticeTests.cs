@@ -29,7 +29,7 @@ namespace Scry.Tests
         {
             Assert.Equal("This character's compendium could not be read. It was set aside as Hilde-Cloud-1.dat.unreadable-20261024-141205 and a new one started.",
                 CompendiumWords.SetAsideNotice(SetAsideKind.Compendium, "Hilde-Cloud-1.dat.unreadable-20261024-141205"));
-            Assert.Equal("The maps of the dungeons this character walked could not be read. They were set aside as x.unreadable-1 and new ones started.",
+            Assert.Equal("The maps of the dungeons your character walked could not be read. They were set aside as x.unreadable-1 and new ones started.",
                 CompendiumWords.SetAsideNotice(SetAsideKind.Walks, "x.unreadable-1"));
             Assert.Equal("This world's dungeon records could not be read. They were set aside as y.unreadable-2 and new ones started.",
                 CompendiumWords.SetAsideNotice(SetAsideKind.Records, "y.unreadable-2"));

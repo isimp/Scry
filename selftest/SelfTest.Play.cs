@@ -362,6 +362,9 @@ namespace Scry
             // A plain word of a text is no name kept back, though an effect never met goes by it ("Fire").
             var fires = ScryPanel.AsDrawn(X, "fires Troll throw projectile");
             p.Check(!fires.StartsWith(CompendiumWords.Hidden, System.StringComparison.Ordinal), "a word of a text is no name kept back: \"fires\" stays", fires);
+            // The hide's own page again: the readings between went back to the troll's.
+            X.Select(hide);
+            yield return null;
             yield return PictureOf(p, "from", "strict TrollHide, where it comes from");
             WhereCounted(p);
 

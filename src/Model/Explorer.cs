@@ -312,7 +312,7 @@ namespace Scry
         /// Whether what hinges on the entry a key names is left out whole, a topic of a page or a
         /// look on the stage that exists only through it, as a lox's riding and saddled look through
         /// its saddle: with the compendium on, until the character met it, seen counting, so no
-        /// ??? where it would be named tells it is there. None for no key.
+        /// a smudge where it would be named tells it is there. None for no key.
         /// </summary>
         public bool HidesHinged(string key) => !string.IsNullOrEmpty(key) && NotMet(key);
 
@@ -418,7 +418,7 @@ namespace Scry
         /// <summary>
         /// An item's amount in a row counted from what the character saw (<see cref="Tally"/>) of
         /// a creature or resource: under the strict rules, on a known page above the milestone
-        /// floor, how many came and how often, ??? where it was never counted; none otherwise,
+        /// floor, how many came and how often, a smudge where it was never counted; none otherwise,
         /// when the game's own amount shows.
         /// </summary>
         public string StrictAmount(Tally tally, string of, string item)
@@ -433,7 +433,7 @@ namespace Scry
         /// <summary>
         /// A line of where the item shown comes from under the strict rules, on a known page above
         /// the milestone floor: a way with a chance in it told with the character's count in its
-        /// place (<see cref="SourceWords.CountedBy"/>), ??? where nothing was counted or nothing
+        /// place (<see cref="SourceWords.CountedBy"/>), a smudge where nothing was counted or nothing
         /// counts; none otherwise, when the game's own line shows.
         /// </summary>
         public string StrictSourceLine(SourceFacts source)
@@ -445,24 +445,24 @@ namespace Scry
         /// <summary>
         /// The amount a line of where the item shown comes from tells under the strict rules
         /// (<see cref="StrictSourceLine"/>), alone, as its giver's chip says it: the character's
-        /// count, or ???; none where the game's own amount shows.
+        /// count, or a smudge; none where the game's own amount shows.
         /// </summary>
         public string StrictSourceAmount(SourceFacts source)
         {
             if (!LeavingOut) return null;
-            // A producer's pace: as the game tells it once collected from, ??? before.
+            // A producer's pace: as the game tells it once collected from, a smudge before.
             var shownBy = SourceWords.ShownBy(source);
             if (shownBy != null) return _view.Book.Proved(source.Giver, shownBy) ? null : CompendiumWords.Hidden;
             var by = SourceWords.CountedBy(source);
             if (by == null) return null;
-            // A way nothing counts reads an empty count (CompendiumBook.Tallied), so ???.
+            // A way nothing counts reads an empty count (CompendiumBook.Tallied), so a smudge.
             var counted = _view.Book.Tallied(by.Value);
             var drop = counted.Of(source.Giver).FirstOrDefault(d => d.Item == _selected.Name);
             return drop != null ? TallyWords.Line(by.Value, drop, counted.Kills(source.Giver)) : CompendiumWords.Hidden;
         }
 
         /// <summary>A faint line saying what shows a line of a table kept back (<see cref="CompendiumWords.ShowsOnce(string, string)"/>).</summary>
-        public string ShowsOnce(string what, string proof) => CompendiumWords.ShowsOnce(what, proof);
+        public string ShowsOnce(string what, string proof) => CompendiumWords.ShowsOnce(what, proof, _selected != null && Array.IndexOf(_selected.Deeds, Deed.Ridden) >= 0);
 
         /// <summary>The faint line under a counted row where an amount is not yet known (<see cref="TallyWords.NotYetCounted"/>).</summary>
         public string NotYetCounted(Tally tally) => TallyWords.NotYetCounted(tally);

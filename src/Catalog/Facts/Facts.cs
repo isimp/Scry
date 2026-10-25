@@ -65,7 +65,7 @@ namespace Scry
 
             /// <summary>
             /// A table's lines kept back under the strict rules until something was seen done
-            /// (<see cref="EntryKeys.Did"/>), by line: their cells past the first read ???, as a
+            /// (<see cref="EntryKeys.Did"/>), by line: their cells past the first read a smudge, as a
             /// creature's health by its stars until one was killed.
             /// </summary>
             public readonly Dictionary<int, string> LineProofs = new Dictionary<int, string>();
@@ -368,7 +368,7 @@ namespace Scry
 
         /// <summary>
         /// What shows a pair under the strict rules, by its label: a deed seen (<see cref="EntryKeys.Did"/>),
-        /// the pair reading ??? until then and saying so, or a weak spot a hit found
+        /// the pair reading a smudge until then and saying so, or a weak spot a hit found
         /// (<see cref="EntryKeys.WeakSpot"/>), the pair left out until then and counted.
         /// </summary>
         public readonly Dictionary<string, string> Proofs = new Dictionary<string, string>();

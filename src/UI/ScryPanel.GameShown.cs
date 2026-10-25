@@ -53,9 +53,11 @@ namespace Scry
         {
             var was = GUI.color;
             GUI.color = Skin.Alpha(was, 0.55f);
+            var asked = TipAskedCount;
             var bottom = draw();
             GUI.color = was;
-            if (new Rect(at.x, at.y, at.width, bottom - at.y).Contains(Event.current.mousePosition)) AskTip("all-play", SeenWords.AllPlayTip);
+            // The row's own tip, unless what it drew asked for one of its own under the pointer.
+            if (TipAskedCount == asked && new Rect(at.x, at.y, at.width, bottom - at.y).Contains(Event.current.mousePosition)) AskTip("all-play", SeenWords.AllPlayTip);
             CountDrawn(PanelPart.AllPlayFaint);
             return bottom;
         }

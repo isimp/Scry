@@ -60,7 +60,7 @@ namespace Scry
             LastFor = entry;
             LastRoll = rolled;
             // Counted as the raid's card counts: the kinds of creature left off, not how many of each the roll brought.
-            LastNotMet = LeftOff == null ? 0 : all.Select(r => r.Prefab).Distinct().Count(p => LeftOff(p));
+            LastNotMet = LeftOff == null ? 0 : spawns.Select(s => s.Prefab).Distinct().Count(p => LeftOff(p));
 
             var holder = new GameObject("Scry raid");
             holder.transform.SetParent(parent, false);

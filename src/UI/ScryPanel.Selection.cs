@@ -253,7 +253,7 @@ namespace Scry
             Skin.Box(new Rect(rect.x, top, rect.width, rect.yMax - top), Skin.Panel);
             var x = rect.x + U(16f);
             var width = rect.width - U(32f);
-            var name = level == KnownLevel.Unknown ? CompendiumWords.Unknown(entry.Kind) : entry.ShownName;
+            var name = level == KnownLevel.Unknown ? (entry.IsRoom ? DungeonWords.RoomNotWalked : CompendiumWords.Unknown(entry.Kind)) : entry.ShownName;
             FitLabel(new Rect(x, top + U(12f), width, U(30f)), name, Skin.Big, 13f);
             GUI.Label(new Rect(x, top + U(46f), width, U(22f)), CompendiumWords.Closed(level), Skin.DimLabel);
             GUI.Label(new Rect(x, top + U(70f), width, U(22f)), CompendiumWords.HowToKnow(entry.Kind), Skin.FaintLabel);
@@ -300,8 +300,8 @@ namespace Scry
 
         /// <summary>What shows an entry by the player's choice, the floor or a source of the world, as the line under its title says; none for what the character met itself.</summary>
         private static string ShownBy(Explorer explorer, Entry entry) =>
-            explorer.ByFloor(entry) ? CompendiumWords.ByFloor(explorer.FloorOf(entry))
-            : explorer.ByWorld(entry) is WorldSource source ? CompendiumWords.ByWorld(source, explorer.LevelOf(entry)) : null;
+            explorer.BookByFloor(entry) ? CompendiumWords.ByFloor(explorer.BookFloorOf(entry))
+            : explorer.BookByWorld(entry) is WorldSource source ? CompendiumWords.ByWorld(source, explorer.BookLevelOf(entry)) : null;
 
         /// <summary>
         /// A place's line of how many there are (<see cref="CensusWords.Line"/>), with the compendium
@@ -393,7 +393,7 @@ namespace Scry
             var shownBy = ShownBy(explorer, entry);
             if (shownBy != null)
             {
-                var choice = explorer.ByFloor(entry) ? Skin.Steps : Skin.FoldedMap;
+                var choice = explorer.BookByFloor(entry) ? Skin.Steps : Skin.FoldedMap;
                 CountMark(choice, PanelPart.FloorLine);
                 var mark = U(16f);
                 Skin.Icon(new Rect(0f, y + (U(22f) - mark) / 2f, mark, mark), choice, Skin.Faint);

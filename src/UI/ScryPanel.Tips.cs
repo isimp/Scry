@@ -19,6 +19,9 @@ namespace Scry
             if (Event.current.type == EventType.Repaint) _askedTipKey = null;
         }
 
+        /// <summary>How many tips were asked for this event, so a row drawn faint knows whether what it drew asked for one of its own.</summary>
+        private static int TipAskedCount;
+
         /// <summary>
         /// Asks for a tooltip at the mouse, shown once the mouse has rested on the same thing for a
         /// moment. A tip draws plain text, so what the game's or a mod's words mark up is left out
@@ -27,6 +30,7 @@ namespace Scry
         private static void AskTip(string key, string text)
         {
             if (Event.current.type != EventType.Repaint || _drag != Drag.None || string.IsNullOrEmpty(text)) return;
+            TipAskedCount++;
             _askedTipKey = key;
             _askedTipText = Naming.Plain(text);
             _askedTipAt = GUIUtility.GUIToScreenPoint(Event.current.mousePosition);

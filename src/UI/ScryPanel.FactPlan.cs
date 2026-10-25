@@ -184,8 +184,8 @@ namespace Scry
         /// <summary>
         /// A topic's headline numbers as tiles, a small label over each value, up to four in a
         /// row and fewer where the side is narrow, each row as tall as its tallest value. Under
-        /// the strict rules a number kept back reads ??? and says on hover what shows it, as a
-        /// table's cell does, and names never met read ???.
+        /// the strict rules a number kept back reads a smudge and says on hover what shows it, as a
+        /// table's cell does, and names never met read a smudge.
         /// </summary>
         private static float Tiles(Explorer explorer, Facts facts, List<int> tiles, float width, float y)
         {
@@ -296,7 +296,7 @@ namespace Scry
         /// <summary>
         /// A table: its title, a faint line of column headings, then a line for each of its
         /// lines, the first cell going to what it names. Columns are as wide as what they show
-        /// (??? where the compendium keeps a number back, nothing of a line left out), narrowed
+        /// (a smudge where the compendium keeps a number back, nothing of a line left out), narrowed
         /// together where the side is narrower, a cell wrapping where it must.
         /// </summary>
         private static float TableRow(Explorer explorer, Facts.Row row, float width, float y)
@@ -309,7 +309,7 @@ namespace Scry
                 return y;
             }
             // A table every line of which waits to be found out (a creature's stars before one was
-            // killed) is its title and ???, what shows it on hover, not a table of ???.
+            // killed) is its title and a smudge, what shows it on hover, not a table of a smudge.
             var whole = explorer.KeepsBackWhole(row.LineProofs, row.Lines.Count);
             if (whole != null)
             {
@@ -386,7 +386,7 @@ namespace Scry
             }
             if (waiting > 0) y = AttacksWaitLine(waiting, width, y);
             CountDrawn(PanelPart.FactTable);
-            // What a ??? waits for says so on its hover, and the You box lists it: no faint line repeats it.
+            // What a a smudge waits for says so on its hover, and the You box lists it: no faint line repeats it.
             return y + U(4f);
         }
 
@@ -403,7 +403,7 @@ namespace Scry
         /// <summary>
         /// The widths of a table's columns for the room given (<see cref="ColumnWidths"/>), each as
         /// wide as its heading and every cell drawn under it, a line left out taking no room and a
-        /// number kept back that of ???; too wide, each gives up what it wants beyond its heading,
+        /// number kept back that of a smudge; too wide, each gives up what it wants beyond its heading,
         /// so the headings stay whole.
         /// </summary>
         private static void MeasureColumns(Explorer explorer, Facts.Row row, float room)
@@ -443,7 +443,7 @@ namespace Scry
         /// <summary>
         /// One cell of a table's line: the first an attack playing on the stage, music playing, or
         /// a link to what it names; a later one counted under the strict rules, a number kept back
-        /// as ??? saying what shows it, a name not seen with the page kept back, or a link to what
+        /// as a smudge saying what shows it, a name not seen with the page kept back, or a link to what
         /// it names; else its words. True where it is a count not yet taken.
         /// </summary>
         private static bool TableCell(Explorer explorer, Facts.Row row, int l, int c, Rect cell, bool lineKept, bool attackKept, string lineProof)
@@ -497,6 +497,7 @@ namespace Scry
             else if (c > 0 && row.CellLinks.TryGetValue((l, c), out var hidden) && explorer.LeavesOut(hidden))
             {
                 Smudge(cell);
+                if (cell.Contains(Event.current.mousePosition)) AskTip("kept-name:" + row.Title + cells[0] + Stored.Count(c), CompendiumWords.NotSeenTogetherTip);
             }
             // A later cell naming something in the catalog goes there: an attack's projectile, what it puts on you.
             else if (c > 0 && row.CellLinks.TryGetValue((l, c), out var to) && Goes(explorer, to))
@@ -625,7 +626,7 @@ namespace Scry
 
         /// <summary>
         /// What a cell of a line drawn shows, in the order the table tries them: its name, the
-        /// strict count, ??? for a number or name kept back, a link's name, else its text with
+        /// strict count, a smudge for a number or name kept back, a link's name, else its text with
         /// names not met kept back; none past the line's cells.
         /// </summary>
         private static string CellDrawn(Explorer explorer, Facts.Row row, int line, int cell)

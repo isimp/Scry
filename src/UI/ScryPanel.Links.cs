@@ -356,6 +356,7 @@ namespace Scry
                 var at = flow.Place(w);
                 var rect = new Rect(at.X, at.Y, w, flow.RowHeight);
                 if (OutOfSight(rect)) continue;
+                if (chip.Value != null && rect.Contains(Event.current.mousePosition)) AskTip("chips:" + title + chip.Key, PanelWords.GoTo(chip.Key));
                 if (chip.Value == null) LinkChip(rect, chip.Key, null, false, false);
                 else if (GUI.Button(rect, chip.Key, Skin.Fitted(Skin.Chip, rect))) chip.Value();
             }
@@ -486,7 +487,18 @@ namespace Scry
         private static void StrictSectionStarts()
         {
             _strictLeft = 0;
+            _recipesWait = 0;
+            _strictNamed = 0;
         }
+
+        /// <summary>How many things the section being drawn named, for its count line to say "N not yet met" alone where it named none.</summary>
+        private static int _strictNamed;
+
+        /// <summary>How many recipe rows the section being drawn left out, waiting for the game to list them.</summary>
+        private static int _recipesWait;
+
+        /// <summary>Counts a recipe row the section being drawn leaves out, waiting for the game to list it, for its last line.</summary>
+        private static void RecipeWaiting() => _recipesWait++;
 
         /// <summary>Counts things the strict rules left out of the section being drawn.</summary>
         private static void StrictLeft(int count)
@@ -502,11 +514,15 @@ namespace Scry
         private static float StrictLeftLine(Explorer explorer, string topic, float width, float y)
         {
             var left = _strictLeft;
+            var waiting = _recipesWait;
             _strictLeft = 0;
+            _recipesWait = 0;
             if (!explorer.NamesOnlyMet) return y;
             // Names left out alone are said here, as they are gone from the page; a weak spot not
-            // found, as every number held back, is in the You box's list.
-            return HintLine(explorer.LeftOutLine(topic, left), "strict-left:", topic, PanelPart.StrictLeftOut, width, y);
+            // found, as every number held back, is in the You box's list. A recipe row waiting for
+            // the game to list it is said the same way, so the page does not go silent on it.
+            y = HintLine(explorer.LeftOutLine(topic, left, alone: _strictNamed == 0), "strict-left:", topic, PanelPart.StrictLeftOut, width, y, CompendiumWords.LeftOutTip(explorer.LeavingOut));
+            return HintLine(waiting > 0 ? CompendiumWords.RecipeRowsWait(waiting) : null, "recipe-wait:", topic, PanelPart.RecipeWaits, width, y);
         }
 
         /// <summary>
@@ -516,7 +532,7 @@ namespace Scry
         /// whole text on hover where it does not fit, the tip told apart by its kind and what it is
         /// of; nothing for none.
         /// </summary>
-        private static float HintLine(string said, string tipKind, string tipOf, PanelPart part, float width, float y)
+        private static float HintLine(string said, string tipKind, string tipOf, PanelPart part, float width, float y, string tip = null)
         {
             if (said == null) return y;
             CountDrawn(part);
@@ -524,7 +540,9 @@ namespace Scry
             Skin.Fill(new Rect(U(6f), y + U(4f), U(2f), U(16f)), Skin.Accent);
             Skin.Icon(new Rect(U(12f), y + U(5f), U(14f), U(14f)), Skin.Compass, Skin.Accent);
             var line = new Rect(U(30f), y + U(2f), width - U(30f), U(20f));
-            if (!FitLabel(line, said, Skin.HintLabel, 10f) && line.Contains(Event.current.mousePosition)) AskTip(tipKind + tipOf, said);
+            // On hover the whole line where it was cut, and what frees what it counts, where that is told.
+            var fit = FitLabel(line, said, Skin.HintLabel, 10f);
+            if ((!fit || tip != null) && line.Contains(Event.current.mousePosition)) AskTip(tipKind + tipOf, Naming.Lines(fit ? null : said, tip));
             return y + U(24f);
         }
 
@@ -559,11 +577,13 @@ namespace Scry
             if (StrictLists.TryGetValue(items, out var had))
             {
                 StrictLeft(items.Count - ((IReadOnlyList<T>)had).Count);
+                _strictNamed += ((IReadOnlyList<T>)had).Count;
                 return (IReadOnlyList<T>)had;
             }
             var kept = new List<T>();
             foreach (var item in items) if (!leftOut(item)) kept.Add(item);
             IReadOnlyList<T> shown = kept.Count == items.Count ? items : kept;
+            _strictNamed += shown.Count;
             StrictLists[items] = shown;
             StrictLeft(items.Count - shown.Count);
             return shown;

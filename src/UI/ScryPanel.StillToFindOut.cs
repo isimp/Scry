@@ -61,7 +61,7 @@ namespace Scry
             }
             Sourced(explorer, facts, deeds, uncounted, finds);
             var (starsUnseen, gearUnseen) = SightLacks(explorer, facts, finds);
-            return (CompendiumWords.StillToFindOut(deeds, types, attacks, spots, uncounted, starsUnseen, gearUnseen), finds);
+            return (CompendiumWords.StillToFindOut(deeds, types, attacks, spots, uncounted, starsUnseen, gearUnseen, explorer.Selected?.Kind == Kind.Item), finds);
         }
 
         /// <summary>A counted cell of a row, as found or kept back; whether it is kept back.</summary>
@@ -106,7 +106,8 @@ namespace Scry
         {
             var stars = new List<int>();
             var gear = new List<string>();
-            if (!(explorer.Selected is Entry page) || page.Kind != Kind.Creature) return (stars, gear);
+            // Where the server keeps nothing seen up close, nothing of the sort is to find: the rows would never come true.
+            if (!(explorer.Selected is Entry page) || page.Kind != Kind.Creature || explorer.SeenReach <= 0f) return (stars, gear);
             var offered = explorer.StarsOffered(page);
             // Only the stars the stage can stand (StarsOffered, by the creature's level looks): one it cannot show is nothing to see.
             var most = Math.Min(facts.Stars, Math.Max(0, page.ExtraLevels));

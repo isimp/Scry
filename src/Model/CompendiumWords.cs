@@ -40,13 +40,13 @@ namespace Scry
         public static string Button(CompendiumRule rule) => ModeCaption + " · " + RuleName(rule) + "  ▾";
 
         /// <summary>The caption over the compendium's box.</summary>
-        public const string BoxCaption = "What this character knows, shown in the catalog";
+        public const string BoxCaption = "What your character knows, shown in the catalog";
 
         /// <summary>The caption of the rules' segments in the compendium's box.</summary>
         public const string RulesCaption = "Rules";
 
         /// <summary>The mode's tip.</summary>
-        public const string ModeTip = "Show only what this character has come to know, by the rules chosen for it here; each character keeps its own";
+        public const string ModeTip = "Show only what your character has come to know, by the rules chosen for it here; each character keeps its own";
 
         /// <summary>The tip of the arrow stepping the mode to a rule: its name and what it shows.</summary>
         public static string StepTip(CompendiumRule rule) => RuleName(rule) + ": " + RuleTip(rule);
@@ -65,40 +65,40 @@ namespace Scry
         /// <summary>What a rule shows, told after its name when stepping to it.</summary>
         public static string RuleTip(CompendiumRule rule) => rule switch
         {
-            CompendiumRule.Loose => "only what this character has met shows; a page opens whole once it has fought, held, built, used or entered it",
-            CompendiumRule.Strict => "as Loose, but a page shows only what this character saw go together, and keeps back the numbers the game never shows until it finds them out",
-            _ => "show everything. What this character comes to know is kept all the same, so turning the compendium on later shows everything met meanwhile",
+            CompendiumRule.Loose => "only what your character has met shows; a page opens whole once it has fought, held, built, used or entered it",
+            CompendiumRule.Strict => "as Loose, but a page shows only what your character saw go together, and keeps back the numbers the game never shows until it finds them out",
+            _ => "show everything. What your character comes to know is kept all the same, so turning the compendium on later shows everything met meanwhile",
         };
 
         /// <summary>The tip of the eye beside the mode, by whether it is peeking and whether a page is shown for it to peek at alone, else at each page.</summary>
         public static string PeekTip(bool peeking, bool pageShown) => peeking
-            ? "Show only what this character has met again"
+            ? "Show only what your character has met again"
             : pageShown
                 ? "Show this page whole for now, its links leading anywhere, until you go to another page; its notice can show every page whole until the panel closes"
-                : "Show each page whole for now, its links leading anywhere and a whole name in quotes finding what this character has not met; the list stays as it knows it, and it stops when the panel closes";
+                : "Show each page whole for now, its links leading anywhere and a whole name in quotes finding what your character has not met; the list stays as it knows it, and it stops when the panel closes";
 
         /// <summary>The warning strip while peeking at the page shown alone: in the compact view its name alone, the rest in its tip.</summary>
         public static string PeekingPageLine(string name, bool compact) => compact ? "Peeking at " + name : "Peeking at " + name + ": this page shows whole until you go to another";
 
         /// <summary>The tip of the strip's line while peeking at one page.</summary>
-        public const string PeekingPageTip = "Until you go to another page, this one shows whole and its links lead anywhere; the list stays as this character knows it";
+        public const string PeekingPageTip = "Until you go to another page, this one shows whole and its links lead anywhere; the list stays as your character knows it";
 
         /// <summary>The strip's chip widening a peek at one page to every page.</summary>
         public const string EveryPage = "Every page";
 
         /// <summary>That chip's tip.</summary>
-        public const string EveryPageTip = "Show every page whole until the panel closes, a whole name in quotes finding what this character has not met";
+        public const string EveryPageTip = "Show every page whole until the panel closes, a whole name in quotes finding what your character has not met";
 
         /// <summary>The warning strip while peeking, short; the rest in its tip.</summary>
         public const string Peeking = "Peeking: pages show whole until the panel closes";
-        public const string PeekingTip = "Each page shows whole, its links lead anywhere and a whole name in quotes finds what this character has not met; the list stays as it knows it";
+        public const string PeekingTip = "Each page shows whole, its links lead anywhere and a whole name in quotes finds what your character has not met; the list stays as it knows it";
 
         /// <summary>The peeking strip's line: in the compact view short enough for its strip not to slide, how long it lasts moved to the tip (<see cref="PeekingLineTip"/>).</summary>
         public static string PeekingLine(bool compact) => compact ? "Peeking: pages show whole" : Peeking;
 
         /// <summary>The peeking strip's tip: in the compact view saying too how long it lasts, as its line does not.</summary>
         public static string PeekingLineTip(bool compact) => compact
-            ? "Until the panel closes, each page shows whole, its links lead anywhere and a whole name in quotes finds what this character has not met; the list stays as it knows it"
+            ? "Until the panel closes, each page shows whole, its links lead anywhere and a whole name in quotes finds what your character has not met; the list stays as it knows it"
             : PeekingTip;
 
         /// <summary>The strip's chip that stops peeking.</summary>
@@ -111,7 +111,7 @@ namespace Scry
         public const string ShowLearned = "Show what was learned";
 
         /// <summary>The reply to <c>/scry map</c> in a world.</summary>
-        public const string MapAgain = "the explored map will be read again for this character in this world";
+        public const string MapAgain = "the explored map will be read again for your character in this world";
 
         /// <summary>The reply to <c>/scry map</c> outside a world.</summary>
         public const string MapNoWorld = "the explored map can be read only in a world";
@@ -130,13 +130,13 @@ namespace Scry
         public static string MapNoServerScry => "the server did not answer on the explored map (it has no Scry, or one too old): places count as the character meets them";
 
         /// <summary>The line above the Locations tab's list with the compendium on, beside the button reading the explored map again.</summary>
-        public const string MapBar = "Places in the ground this character explored show as Ground you explored says, read again each session";
+        public const string MapBar = "Places in the ground your character explored show as Ground you explored says, read again each session";
 
         /// <summary>The button reading the explored map again, in the Locations tab's bar.</summary>
         public const string ReadMap = "Look at the map again";
 
         /// <summary>That chip's tip.</summary>
-        public const string ReadMapTip = "Read again which kinds of place lie in the ground this character explored in this world, as on its first visit with Scry";
+        public const string ReadMapTip = "Read again which kinds of place lie in the ground your character explored in this world, as on its first visit with Scry";
 
         /// <summary>The log's line on a dedicated server.</summary>
         public static string ServerPart => "on a dedicated server Scry only answers players' explored maps, the world's census and their Scry's hello, sends the world's settings for the compendium, keeps how far and on which days they walk its dungeons, reads what was left inside them, and runs the self-test's made-up events for the player asking";
@@ -148,22 +148,22 @@ namespace Scry
         public static string FloorName(int floor) => floor > 0 ? BiomeWords.Shown(Tiers.BiomeOf(floor)) : "No tier";
 
         /// <summary>The tip of the mark on a row, and the line under a page's title, of what shows as known only by the floor, named by its control: "Shown as known up to Black forest".</summary>
-        public static string ByFloor(int floor) => $"Shown as {FloorCaption.ToLowerInvariant()} the {FloorName(floor)} tier, not yet come to know by this character";
+        public static string ByFloor(int floor) => $"Shown as {FloorCaption.ToLowerInvariant()} the {FloorName(floor)} tier, not yet come to know by your character";
 
         /// <summary>The tip of a link or chip on a page going to what shows as known only by the floor: that, above its own tip.</summary>
         public static string FloorTip(int floor, string tip) => Naming.Lines(ByFloor(floor), tip);
 
         /// <summary>The tip of raising the floor to a tier, with the boss that fell for it where known.</summary>
         public static string RaiseFloor(int to, string boss) =>
-            $"Show everything of the {BiomeWords.Shown(Tiers.BiomeOf(to))} as known" + (string.IsNullOrEmpty(boss) ? "" : $": {boss} fell for this character");
+            $"Show everything of the {BiomeWords.Shown(Tiers.BiomeOf(to))} as known" + (string.IsNullOrEmpty(boss) ? "" : $": {boss} fell for your character");
 
         /// <summary>The tip of lowering the floor to a tier, or off.</summary>
         public static string LowerFloor(int to) => to > 0
             ? $"Show the {BiomeWords.Shown(Tiers.BiomeOf(to))} and what came before as known, not the {BiomeWords.Shown(Tiers.BiomeOf(to + 1))}"
-            : "Show only what this character has met again";
+            : "Show only what your character has met again";
 
         /// <summary>The floor's tip while the next boss has not fallen.</summary>
-        public static string FloorWaits(string boss) => $"The next tier opens once {boss} falls for this character";
+        public static string FloorWaits(string boss) => $"The next tier opens once {boss} falls for your character";
 
         /// <summary>
         /// How the character came to know a thing, on its page: the game's day, the time of day
@@ -181,7 +181,7 @@ namespace Scry
             if (when != null) said = when + ", " + said;
             // The world named where it is not the one played now, as a character's book spans worlds.
             if (day >= 0) return $"day {Numbers.Count(day)}{JournalWords.InWorld(world)}, {said}";
-            return world != null ? $"in {world}, {said}" : said;
+            return world != null ? $"{JournalWords.InWorld(world).Trim()}, {said}" : said;
         }
 
         /// <summary>How often, as a count reads: "once", "twice", "14 times".</summary>
@@ -216,6 +216,8 @@ namespace Scry
                 case CameBy.Given: return "from what gives it";
                 case CameBy.Gives: return "taking what it gives";
                 case CameBy.Chosen: return "choosing it at its stone";
+                case CameBy.Born: return "seeing it born";
+                case CameBy.GrewUp: return "seeing it grow up";
                 default: return "meeting it";
             }
         }
@@ -236,7 +238,7 @@ namespace Scry
         {
             var lines = new List<(string, string)>();
             if (counts != null && counts.Killed > 0) lines.Add((KilledLabel, JournalWords.Kills(counts.Killed, counts.Melee, counts.Ranged, counts.Magic, counts.Unarmed)));
-            if (!string.IsNullOrEmpty(killedYou)) lines.Add(("Killed you", killedYou));
+            if (!string.IsNullOrEmpty(killedYou)) lines.Add(("It killed you", killedYou));
             if (counts != null)
             {
                 void Times(string label, int count)
@@ -311,12 +313,12 @@ namespace Scry
         public static string AllFoundOutTipFor(PageFinds finds) => finds.Any ? AllFoundOutTip : "Nothing of this page is kept back under Strict";
 
         /// <summary>The chip of a page the strict rules would keep back from, shown whole by the floor (none) or a source of the world.</summary>
-        public static string WholeBy(WorldSource? source) => source is WorldSource by ? "Whole from " + SourcePhrase(by) : "Whole by " + FloorCaption;
+        public static string WholeBy(WorldSource? source) => source is WorldSource by ? "Shown whole from " + SourcePhrase(by) : "Shown whole by " + FloorCaption;
 
         /// <summary>What shows a page whole, and how to see what is still to find out, on the chip's hover.</summary>
         public static string WholeTip(WorldSource? source) => source is WorldSource by
             ? SourceName(by) + " shows this page whole, as the compendium's box has it show; turn it down there to see what is still to find out"
-            : FloorCaption + " shows this page whole, as it shows every page of the tiers whose bosses this character has beaten; lower it in the compendium's box to see what is still to find out";
+            : FloorCaption + " shows this page whole, as it shows every page of the tiers whose bosses your character has beaten; lower it in the compendium's box to see what is still to find out";
 
         /// <summary>The chip's tip of a page with something still to find out: each thing to do and what it shows, as its You box lists them.</summary>
         public static string FindsTip(System.Collections.Generic.IEnumerable<(string Label, string Value)> still)
@@ -414,20 +416,20 @@ namespace Scry
 
         /// <summary>The tip on what a source shows: from where, and as what (<see cref="CompendiumView.ByWorld"/>).</summary>
         public static string ByWorld(WorldSource source, KnownLevel shown) =>
-            shown < KnownLevel.Seen ? $"Heard of from {SourcePhrase(source)}, not yet met by this character"
-            : $"Shown as {(shown == KnownLevel.Known ? "known" : "seen")} from {SourcePhrase(source)}, not yet met by this character";
+            shown < KnownLevel.Seen ? $"Heard of from {SourcePhrase(source)}, not yet met by your character"
+            : $"Shown as {(shown == KnownLevel.Known ? "known" : "seen")} from {SourcePhrase(source)}, not yet met by your character";
 
         /// <summary>A tip on a chip or link to what a source shows, its own tip under it.</summary>
         public static string WorldTip(WorldSource source, KnownLevel shown, string tip) => Naming.Lines(ByWorld(source, shown), tip);
 
         /// <summary>A thing known because something known brings it along, as a creature its attacks.</summary>
-        public static string CameWith(string owner) => "with " + owner;
+        public static string CameWith(string owner) => "along with " + owner;
 
         /// <summary>A thing known before its character's book was kept, from what the game kept of it.</summary>
-        public const string KnownBefore = "known before Scry kept track of this character";
+        public const string KnownBefore = "known before Scry kept track of your character";
 
         /// <summary>The tip of an attack's damage kept back.</summary>
-        public const string NotYetTakenTip = "Its damage shows once this attack has hit you";
+        public const string NotYetTakenTip = "Its damage shows once this attack hit you";
 
         /// <summary>
         /// What a known page under the strict rules still keeps back, for the You box at its top,
@@ -437,7 +439,7 @@ namespace Scry
         /// stage, the star levels and the gear not yet seen up close.
         /// </summary>
         public static List<(string Label, string Value)> StillToFindOut(IEnumerable<string> deeds, IReadOnlyList<string> types, int attacks, int spots, IEnumerable<Tally> uncounted,
-            IEnumerable<int> starsUnseen = null, IEnumerable<string> gearUnseen = null)
+            IEnumerable<int> starsUnseen = null, IEnumerable<string> gearUnseen = null, bool ofItem = false)
         {
             var rows = new List<(string, string)>();
             var pending = new HashSet<Deed>();
@@ -469,9 +471,10 @@ namespace Scry
             if (attacks > 0) rows.Add(("See it attack", Naming.Count(attacks, "attack's", "attacks'") + " damage, up close or taken"));
             if (spots > 0) rows.Add((spots == 1 ? "Hit its weak spot" : "Hit its weak spots", Numbers.Count(spots) + " not yet found"));
             var tallies = new HashSet<Tally>(uncounted);
-            if (tallies.Contains(Tally.Fell)) rows.Add(("See it drop", "how many of each"));
-            if (tallies.Contains(Tally.Gave)) rows.Add(("Break one", "how many of each it gives"));
-            if (tallies.Contains(Tally.Held)) rows.Add(("Open one", "how many of each it holds"));
+            // On an item's page the counts are its givers': the rows name them, not the item.
+            if (tallies.Contains(Tally.Fell)) rows.Add(ofItem ? ("See it fall", "from what drops it: how many") : ("See it drop", "how many of each"));
+            if (tallies.Contains(Tally.Gave)) rows.Add(ofItem ? ("See it given", "by what gives it: how many") : ("See it give", "how many of each"));
+            if (tallies.Contains(Tally.Held)) rows.Add(ofItem ? ("Find it in a chest", "how many it holds") : ("Open one", "how many of each it holds"));
             if (tallies.Contains(Tally.Weather)) rows.Add(("Spend time in it", "how often each weather comes"));
             foreach (var stars in starsUnseen ?? Array.Empty<int>()) rows.Add(($"See {Naming.Count(stars, "star", "stars")} up close", "shows it so on the stage"));
             foreach (var gear in gearUnseen ?? Array.Empty<string>()) rows.Add(("See it carry", $"{gear} up close: dresses it so on the stage"));
@@ -502,7 +505,7 @@ namespace Scry
                     default: return "its health found out";
                 }
             }
-            if (EntryKeys.IsWeakSpot(proof)) return "a weak spot found";
+            if (EntryKeys.IsWeakSpot(proof)) return "a weak spot found out";
             if (EntryKeys.IsDamage(proof, out var type)) return $"how {type} lands found out";
             return "an attack's damage found out";
         }
@@ -515,6 +518,20 @@ namespace Scry
 
         /// <summary>A faint line saying what shows a line of a table kept back, as a creature's health by its stars.</summary>
         public static string ShowsOnce(string what, string proof) => $"{what} {ShowsOnce(proof)}";
+
+        /// <summary>As <see cref="ShowsOnce(string, string)"/>, a creature that can be ridden showing its health once killed or ridden, as the game prints the health of the one ridden.</summary>
+        public static string ShowsOnce(string what, string proof, bool rideable) =>
+            rideable && proof == EntryKeys.Did(Deed.Killed) ? $"{what} shows once you have killed or ridden one" : ShowsOnce(what, proof);
+
+        /// <summary>The hover of a name kept back in a table's cell or a chain's chip under the strict rules.</summary>
+        public const string NotSeenTogetherTip = "Named once you see it together with this page";
+
+        /// <summary>The hover of a section's line counting what the rules left out: what names them here.</summary>
+        public static string LeftOutTip(bool strict) =>
+            strict ? "Named here once you see each together with this page; met elsewhere, it stays left out here" : "Named here once you meet each";
+
+        /// <summary>The faint line under a section whose recipe rows wait for the game to list them for the character.</summary>
+        public static string RecipeRowsWait(int rows) => rows == 1 ? "1 recipe row waits for the game to list it" : $"{Numbers.Count(rows)} recipe rows wait for the game to list them";
 
         private static string Seen(string proof)
         {
@@ -608,7 +625,7 @@ namespace Scry
             switch (kind)
             {
                 case SetAsideKind.Compendium: return $"This character's compendium could not be read. It was set aside as {file} and a new one started.";
-                case SetAsideKind.Walks: return $"The maps of the dungeons this character walked could not be read. They were set aside as {file} and new ones started.";
+                case SetAsideKind.Walks: return $"The maps of the dungeons your character walked could not be read. They were set aside as {file} and new ones started.";
                 default: return $"This world's dungeon records could not be read. They were set aside as {file} and new ones started.";
             }
         }
@@ -624,7 +641,7 @@ namespace Scry
         public const string LearnedTab = "Learned";
 
         /// <summary>That tab's tip, by whether the list shows it.</summary>
-        public static string LearnedTip(bool on) => (on ? "Showing" : "Show") + " what this character learned lately, newest first";
+        public static string LearnedTip(bool on) => (on ? "Showing" : "Show") + " what your character learned lately, newest first";
 
         /// <summary>A list row's note of an entry only seen, its page closed.</summary>
         public const string SeenRowTag = "seen";
@@ -662,10 +679,10 @@ namespace Scry
         {
             switch (kind)
             {
-                case Kind.Creature: return "Fight it, tame it or hold its trophy to come to know it.";
+                case Kind.Creature: return "Fight it, see it tamed, pet it or hold its trophy to come to know it.";
                 case Kind.Trader: return "Open its store to come to know it.";
                 case Kind.Item: return "Hold it, make it, eat it, unlock its recipe or read its card to come to know it.";
-                case Kind.Piece: return "Build it, use it or unlock it to come to know it.";
+                case Kind.Piece: return "Build it, use it, stand near it or unlock it to come to know it.";
                 case Kind.Resource: return "Hit it, pick it or hold what it gives to come to know it.";
                 case Kind.Spawner: return "Hit it to come to know it.";
                 case Kind.StatusEffect: return "Have it on you or choose it at its stone to come to know it.";

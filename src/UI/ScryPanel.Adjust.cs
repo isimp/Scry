@@ -157,7 +157,7 @@ namespace Scry
         /// The weapon, shield and armour a creature can roll, one row each, and the extras it may
         /// be given, each put on or taken off. Only rows with a choice are shown. With the
         /// compendium on, a weapon is named as the creature's attack table names its attacks, any
-        /// other item never met reads ???, and a row whose every item reads so is left out, as it
+        /// other item never met reads a smudge, and a row whose every item reads so is left out, as it
         /// gives nothing to choose by.
         /// </summary>
         private static void LoadoutRows(GameObject creature, int look, float width, float labelW, ref float y)
@@ -184,7 +184,7 @@ namespace Scry
                 var hidden = 0;
                 for (var n = 0; n < names.Count; n++)
                 {
-                    // An item never met reads ??? as in a page's text, its prefab not told either,
+                    // An item never met reads a smudge as in a page's text, its prefab not told either,
                     // but a weapon, whose attacks the creature's table names.
                     if (rows[i] != Loadout.Row.Weapon && !string.IsNullOrEmpty(options[shown[n]]) && _explorer != null && _explorer.NotMet(options[shown[n]]))
                     {

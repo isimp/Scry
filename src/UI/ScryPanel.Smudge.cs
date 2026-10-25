@@ -6,7 +6,7 @@ namespace Scry
     /// A value the strict rules keep back shows as a soft smudge where it would stand, never as
     /// text: a bar with soft edges, the same width for every value, so it tells nothing of the
     /// value's length; its hover says what frees it, as the cell's or line's tip. A name kept
-    /// back in running text still reads ??? (<see cref="CompendiumWords.Hidden"/>).
+    /// back in running text still reads a smudge (<see cref="CompendiumWords.Hidden"/>).
     /// </summary>
     internal static partial class ScryPanel
     {
@@ -53,7 +53,9 @@ namespace Scry
         {
             var w = Mathf.Min(SmudgeWidth, cell.width);
             var h = U(12f);
-            var rect = new Rect(centred ? cell.x + (cell.width - w) / 2f : cell.x, cell.y + (cell.height - h) / 2f, w, h);
+            // On the first line of text, as a wrapped neighbour's first line is; across the cell's height only where that is one line.
+            var line = Mathf.Min(cell.height, U(20f));
+            var rect = new Rect(centred ? cell.x + (cell.width - w) / 2f : cell.x, cell.y + (line - h) / 2f, w, h);
             if (Event.current.type == EventType.Repaint)
             {
                 var was = GUI.color;

@@ -137,6 +137,9 @@ namespace Scry
         /// <summary>The type names of the components on the prefab, each once.</summary>
         public string[] Components = Array.Empty<string>();
 
+        /// <summary>Whether this is a dungeon's room, a location with a room among its components.</summary>
+        public bool IsRoom => Kind == Kind.Location && Array.IndexOf(Components, "Room") >= 0;
+
         /// <summary>The deeds whose numbers its page keeps back under the strict rules until seen (<see cref="Deed"/>), as its components have them: its health until one is killed or broken, how long taming, a birth or growing back take, and the rest.</summary>
         public Deed[] Deeds = Array.Empty<Deed>();
 

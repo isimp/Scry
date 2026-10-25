@@ -24,10 +24,13 @@ namespace Scry
         /// Whether a creature's page shown keeps back the clips of one of its attacks, by the item
         /// the attack is made with: as its damage (<see cref="HidesAttack"/>), under the strict
         /// rules, on a known page above the milestone floor, until the attack hit the character or
-        /// was seen begun up close (<see cref="EntryKeys.Attack"/>); such a clip is listed as ???
+        /// was seen begun up close (<see cref="EntryKeys.Attack"/>); such a clip is listed as a smudge
         /// and does not play.
         /// </summary>
         public bool KeepsBackAttackClip(string item) => item != null && _selected?.Kind == Kind.Creature && KeepsBack(EntryKeys.Attack(item));
+
+        /// <summary>The world's seen reach, within which stars, gear and attacks are seen up close; 0 where the server keeps none.</summary>
+        public float SeenReach => _view?.Book?.World.SeenReach ?? WorldRules.SeenReachSetting.Default;
 
         /// <summary>
         /// Whether the stage may show a creature, by its key, carrying an item, by its prefab: with
@@ -113,7 +116,7 @@ namespace Scry
         /// <summary>
         /// A drop's chance at so many stars in the creature's stars table under the strict rules,
         /// on a known page above the milestone floor: the character's own count, how many of the
-        /// kills of one with that many stars dropped it (<see cref="TallyWords.Share"/>), ??? while
+        /// kills of one with that many stars dropped it (<see cref="TallyWords.Share"/>), a smudge while
         /// none with that many stars was seen to fall; none otherwise, when the game's chance shows.
         /// </summary>
         public string StrictStarShare(string creature, string item, int stars)

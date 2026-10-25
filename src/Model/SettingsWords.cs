@@ -94,9 +94,9 @@ namespace Scry
         // ----- Asking a character whether to keep a compendium -----
 
         /// <summary>The question, naming the character.</summary>
-        public static string WelcomeTitle(string character) => string.IsNullOrEmpty(character) ? "Keep a compendium for this character?" : "Keep a compendium for " + character + "?";
+        public static string WelcomeTitle(string character) => string.IsNullOrEmpty(character) ? "Keep a compendium for your character?" : "Keep a compendium for " + character + "?";
 
-        public const string WelcomeWords = "Scry can show only what this character has met, growing as you play. Change it any time in the Compendium box at the top of the panel.";
+        public const string WelcomeWords = "Scry can show only what your character has met, growing as you play. Change it any time in the Compendium box at the top of the panel.";
 
         /// <summary>The answers, each its name and what it means.</summary>
         public static readonly (string Name, string Means)[] WelcomeAnswers =

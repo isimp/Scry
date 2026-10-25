@@ -18,21 +18,21 @@ namespace Scry.Tests
         [Fact]
         public void APlayerWithoutScryIsNamed()
         {
-            Assert.Equal("Ana plays without Scry: what runs in Ana's game counts nothing for you.", PlayingWithWords.Notice(new[] { "Ana" }, new string[0]));
-            Assert.Equal("Ana and Bjorn play without Scry: what runs in their games counts nothing for you.", PlayingWithWords.Notice(new[] { "Ana", "Bjorn" }, new string[0]));
+            Assert.Equal("Ana plays without Scry: a death in Ana's game you see by its remains, but breaks, births and station work there go unlearned.", PlayingWithWords.Notice(new[] { "Ana" }, new string[0]));
+            Assert.Equal("Ana and Bjorn play without Scry: a death in their games you see by its remains, but breaks, births and station work there go unlearned.", PlayingWithWords.Notice(new[] { "Ana", "Bjorn" }, new string[0]));
         }
 
         [Fact]
         public void AScryOfOtherMessagesIsToldToNeedUpdating()
         {
-            Assert.Equal("Bjorn's Scry needs updating: what runs in Bjorn's game counts nothing for you.", PlayingWithWords.Notice(new string[0], new[] { "Bjorn" }));
-            Assert.Equal("Bjorn's and Cara's Scry need updating: what runs in their games counts nothing for you.", PlayingWithWords.Notice(new string[0], new[] { "Bjorn", "Cara" }));
+            Assert.Equal("Bjorn's Scry needs updating: a death in Bjorn's game you see by its remains, but breaks, births and station work there go unlearned.", PlayingWithWords.Notice(new string[0], new[] { "Bjorn" }));
+            Assert.Equal("Bjorn's and Cara's Scry need updating: a death in their games you see by its remains, but breaks, births and station work there go unlearned.", PlayingWithWords.Notice(new string[0], new[] { "Bjorn", "Cara" }));
         }
 
         [Fact]
         public void BothAreToldInOneNotice()
         {
-            Assert.Equal("Ana plays without Scry and Bjorn's Scry needs updating: what runs in their games counts nothing for you.",
+            Assert.Equal("Ana plays without Scry and Bjorn's Scry needs updating: a death in their games you see by its remains, but breaks, births and station work there go unlearned.",
                 PlayingWithWords.Notice(new[] { "Ana" }, new[] { "Bjorn" }));
         }
 

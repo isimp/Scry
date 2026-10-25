@@ -26,14 +26,14 @@ namespace Scry
         public const string WhoHasScry = "Who has Scry";
 
         /// <summary>The faint line under the row.</summary>
-        public const string RowHint = "What runs in a game without Scry counts nothing for you.";
+        public const string RowHint = "A game without Scry tells you less: see the guide for what still counts.";
 
         /// <summary>The tip of the notice's cross.</summary>
         public const string PutAway = "Put this away until another player without Scry joins";
 
         /// <summary>
         /// The notice naming the players whose games run no Scry, or Scry of other messages, and
-        /// that what runs in their games counts nothing for this character; none where every
+        /// what of their games still reaches the character and what does not; none where every
         /// player's game has Scry.
         /// </summary>
         public static string Notice(IReadOnlyList<string> without, IReadOnlyList<string> outdated)
@@ -49,7 +49,7 @@ namespace Scry
             if (parts.Count == 0) return null;
             var one = without.Count + outdated.Count == 1;
             var whose = one ? (without.Count == 1 ? without[0] : outdated[0]) + "'s game" : "their games";
-            return Naming.Joined(parts) + ": what runs in " + whose + " counts nothing for you.";
+            return Naming.Joined(parts) + ": a death in " + whose + " you see by its remains, but breaks, births and station work there go unlearned.";
         }
 
         /// <summary>The notice for the players played with (<see cref="ScryPeers.PlayingWith"/>); none where every one's game has Scry.</summary>

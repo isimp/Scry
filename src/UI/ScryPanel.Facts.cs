@@ -202,7 +202,7 @@ namespace Scry
             }
             // Under the strict rules the names of what was not seen are kept back in its text, and
             // a number the game never shows until what shows it was seen: a weak spot no hit found
-            // is left out and counted, anything else reads ??? and says what shows it.
+            // is left out and counted, anything else reads a smudge and says what shows it.
             var value = Masked(explorer, pair.Value);
             string keptBack = null;
             if (facts.Proofs.TryGetValue(pair.Key, out var proof) && explorer.KeepsBack(proof))
@@ -322,9 +322,10 @@ namespace Scry
             // A line of where it spawns or grows shows only where it was met in one of its biomes;
             // one counted over every character's play is left out quietly under the strict rules, the
             // page counting this character's own, and under the loose rules where its giver was not met.
-            // One counted over every character's play stands faint under the strict rules, as a creature's rows do, uncounted for this character.
+            // One counted over every character's play stands faint under the strict rules, as a creature's rows do, uncounted for your character;
+            // its giver not met, it is left out as any line naming one not met is.
             var where = ShownStrictly(explorer, facts.Where, s => s.AllPlay
-                ? !explorer.LeavingOut && explorer.LeavesOut(s.Prefab)
+                ? explorer.NotMet(s.Prefab)
                 : explorer.LeavesOut(s.Prefab, false, TieOfSource(s.Record)) || explorer.LeavesOutAll(s.MetIn));
             if (where.Count == 0) return y;
             var (lines, rows) = SplitWhere(explorer, where);
@@ -335,23 +336,20 @@ namespace Scry
                 y += U(24f);
             }
             const int firstLines = 8;
-            var shownLines = ShownOf("where", lines.Count, firstLines);
-            foreach (var source in lines.Take(shownLines))
-            {
-                // One counted over every character's play stands faint under the strict rules, as a creature's rows do, uncounted for this character.
-                if (source.AllPlay && explorer.LeavingOut)
-                {
-                    var top = y;
-                    y = AllPlayFaint(new Rect(0f, top, width, 0f), () => WhereLine(explorer, source, width, top));
-                    continue;
-                }
-                y = WhereLine(explorer, source, width, y);
-            }
+            // The character's own lines and rows first; what was seen in all your play stands faint after them, as on a creature's page.
+            var own = lines.Where(s => !s.AllPlay).ToList();
+            var shownLines = ShownOf("where", own.Count, firstLines);
+            foreach (var source in own.Take(shownLines)) y = WhereLine(explorer, source, width, y);
             var more = new ChipFlow(0f, width, y, U(26f), U(5f), U(5f));
-            MoreChip("where", lines.Count, firstLines, width, ref more);
+            MoreChip("where", own.Count, firstLines, width, ref more);
             if (more.InRow) y = more.RowBottom + U(5f);
             // A giver's count held back says on its chip's hover what shows it, as a line's does.
             foreach (var row in rows) y = FactRow(explorer, row, width, y);
+            foreach (var source in lines.Where(s => s.AllPlay))
+            {
+                var top = y;
+                y = explorer.LeavingOut ? AllPlayFaint(new Rect(0f, top, width, 0f), () => WhereLine(explorer, source, width, top)) : WhereLine(explorer, source, width, y);
+            }
             return y;
         }
 
@@ -362,7 +360,6 @@ namespace Scry
             // A line Scry is not sure of is marked and says why on hover. Under the strict rules
             // a way with a chance in it tells the character's count in its place, or a smudge.
             var counted = explorer.StrictSourceLine(source.Record);
-            var smudged = counted == CompendiumWords.Hidden;
             var held = counted != null && counted.EndsWith(CompendiumWords.Hidden, StringComparison.Ordinal) ? SourceWords.HeldTip(source.Record) : null;
             var text = Masked(explorer, counted ?? (source.Unsure != null ? UnsureWords.Marked(source.Text) : source.Text));
             if (string.IsNullOrEmpty(source.Prefab) || !Goes(explorer, source.Prefab))
@@ -370,8 +367,7 @@ namespace Scry
                 var style = source.Unsure != null ? Skin.DimWrap : Skin.Wrap;
                 var height = Skin.Height(style, text, width);
                 var line = new Rect(0f, y, width, height);
-                if (smudged) Smudge(line);
-                else GUI.Label(line, text, style);
+                GUI.Label(line, text, style);
                 if ((source.Unsure != null || held != null) && line.Contains(Event.current.mousePosition)) AskTip("unsure:" + source.Text, Naming.Lines(held, source.Unsure));
                 return y + height + U(4f);
             }
@@ -388,8 +384,7 @@ namespace Scry
             var kind = KindOf(explorer, source.Prefab);
             Skin.Box(chip, LinkFill(kind, hover));
             if (icon != null) DrawSprite(icon, new Rect(U(6f), y + (chipH - U(22f)) / 2f, U(22f), U(22f)));
-            if (smudged) Smudge(new Rect(textX, y, textW, chipH));
-            else Skin.LabelIn(new Rect(textX, y, textW, chipH), text, wrapped, LinkText(kind, hover));
+            Skin.LabelIn(new Rect(textX, y, textW, chipH), text, wrapped, LinkText(kind, hover));
             if (floor) PlateFloorMark(chip, mark);
             if (hover) AskTip("src:" + source.Prefab + source.Unsure + text, FloorTip(explorer, source.Prefab, Naming.Lines(held, source.Unsure, PanelWords.GoTo(ShownName(explorer, source.Prefab, source.Prefab)))));
             if (GUI.Button(chip, GUIContent.none, GUIStyle.none) && explorer.Jump(source.Prefab))
@@ -444,7 +439,7 @@ namespace Scry
             }
             if (explorer.LeavingOut)
             {
-                // Each giver its own chip, its amount the character's count or ???, the line and how
+                // Each giver its own chip, its amount the character's count or a smudge, the line and how
                 // the count comes to show on its hover.
                 foreach (var record in grouped)
                 {
@@ -733,27 +728,19 @@ namespace Scry
         {
             // A place with no entry of its own can never be met or seen together with the page: left out under either rules.
             var strict = explorer.CompendiumOn;
-            if (ReferenceEquals(_foundInFor, entry) && ReferenceEquals(_foundInOf, entry.FoundIn) && ReferenceEquals(_foundInIn, explorer) && strict == _foundInStrict)
-            {
-                StrictLeft(_foundInLeft);
-                return FoundInItems;
-            }
+            if (ReferenceEquals(_foundInFor, entry) && ReferenceEquals(_foundInOf, entry.FoundIn) && ReferenceEquals(_foundInIn, explorer) && strict == _foundInStrict) return FoundInItems;
             _foundInFor = entry;
             _foundInOf = entry.FoundIn;
             _foundInIn = explorer;
             _foundInStrict = strict;
-            _foundInLeft = 0;
             // A new list each time, as lists are told apart by identity where they are kept.
             FoundInItems = new List<(string, string, string, Action)>();
             foreach (var place in entry.FoundIn)
             {
                 var name = Places.NameOf(place);
                 var location = Places.LocationNamed(explorer.Catalog, place);
-                if (location == null && strict)
-                {
-                    _foundInLeft++;
-                    continue;
-                }
+                // A place with no page of its own can never be met: left out, and counted nowhere, as nothing could ever name it.
+                if (location == null && strict) continue;
                 if (location != null)
                 {
                     var key = location.Key;
@@ -772,7 +759,6 @@ namespace Scry
         private static Entry _foundInFor;
         private static string[] _foundInOf;
         private static bool _foundInStrict;
-        private static int _foundInLeft;
         private static Explorer _foundInIn;
 
         private const string LocationsButtonText = "Find where things are";

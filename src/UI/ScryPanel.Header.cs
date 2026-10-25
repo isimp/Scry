@@ -849,7 +849,7 @@ namespace Scry
                         else GUI.Button(drawnAt, name, style);
                     }
                     NoteBookCell(CompendiumWords.SourceName(source), name, BookColumns.Of(level).First, at, shows == level, words: true);
-                    if (at.Contains(mouse)) AskTip("source-level-" + level, capped ? WorldRulesWords.UpTo(source, book.World.Highest(source)) : dimmed ? CompendiumWords.NoInsides(source) : CompendiumWords.LevelTip(level));
+                    if (at.Contains(mouse)) AskTip("source-level-" + source + level, capped ? WorldRulesWords.UpTo(source, book.World.Highest(source)) : dimmed ? CompendiumWords.NoInsides(source) : CompendiumWords.LevelTip(level));
                 }
                 DrawPin(book, source, SourcePins[s], mouse, repaint);
             }

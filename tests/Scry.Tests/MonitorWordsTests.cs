@@ -63,7 +63,7 @@ namespace Scry.Tests
         public void WhatIsKeptForTheNextSessionIsCountedAndSaysWhileItsFilesAreReadOrWritten()
         {
             Assert.Equal("kept for next time: 550 places read, the floors of 142 kinds of place", MonitorWords.KeptForNextTime(550, 142, busy: false));
-            Assert.Equal("kept for next time: 1 places read, the floors of 0 kinds of place; their files being read or written", MonitorWords.KeptForNextTime(1, 0, busy: true));
+            Assert.Equal("kept for next time: 1 place read, the floors of 0 kinds of place; their files being read or written", MonitorWords.KeptForNextTime(1, 0, busy: true));
         }
     }
 }

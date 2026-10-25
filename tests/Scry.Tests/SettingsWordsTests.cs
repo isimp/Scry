@@ -44,7 +44,7 @@ namespace Scry.Tests
         public void TheQuestionNamesTheCharacterWhereItHasAName()
         {
             Assert.Equal("Keep a compendium for Ragna?", SettingsWords.WelcomeTitle("Ragna"));
-            Assert.Equal("Keep a compendium for this character?", SettingsWords.WelcomeTitle(""));
+            Assert.Equal("Keep a compendium for your character?", SettingsWords.WelcomeTitle(""));
         }
     }
 }

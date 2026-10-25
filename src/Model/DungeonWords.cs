@@ -112,7 +112,7 @@ namespace Scry
         }
 
         /// <summary>How many rooms from the entrance a room may stand at the nearest (<c>Room.m_minPlaceOrder</c>).</summary>
-        public static string NotBefore(int order) => $"{Numbers.Count(order)} rooms from the entrance";
+        public static string NotBefore(int order) => Naming.Count(order, "room", "rooms") + " from the entrance";
 
         public static string BuiltOf(int kinds) => $"Built of {Numbers.Count(kinds)} kinds of room";
 

@@ -76,8 +76,18 @@ namespace Scry.Tests
         {
             // A thing learned on day 300 of another world is told, but the notice's days are this world's.
             var lines = new[] { new NewsLine("Troll", NewsHow.Known, null, 300, "Elderwood"), new NewsLine("Boar", NewsHow.Seen, null, 14) };
-            Assert.Equal("Day 14: came to know Troll, and saw Boar", JournalWords.News(lines, 0, 0));
-            Assert.Equal("Came to know Troll", JournalWords.News(new[] { lines[0] }, 0, 0));
+            // What came in another world is said as that world's, after this one's.
+            Assert.Equal("Day 14: saw Boar, and in Elderwood came to know Troll", JournalWords.News(lines, 0, 0));
+            Assert.Equal("In Elderwood came to know Troll", JournalWords.News(new[] { lines[0] }, 0, 0));
+        }
+
+        [Fact]
+        public void ASectionsLeftOutLineSaysOnHoverWhatNamesThem()
+        {
+            Assert.Equal("Named here once you meet each", CompendiumWords.LeftOutTip(strict: false));
+            Assert.Equal("Named here once you see each together with this page; met elsewhere, it stays left out here", CompendiumWords.LeftOutTip(strict: true));
+            Assert.Equal("1 recipe row waits for the game to list it", CompendiumWords.RecipeRowsWait(1));
+            Assert.Equal("2 recipe rows wait for the game to list them", CompendiumWords.RecipeRowsWait(2));
         }
 
         [Fact]
@@ -111,7 +121,7 @@ namespace Scry.Tests
             Assert.Equal(new[]
             {
                 ("Killed", "14 times: 9 in melee, 3 with arrows or bolts, 2 with mixed attacks"),
-                ("Killed you", "twice, last on day 21"),
+                ("It killed you", "twice, last on day 21"),
                 ("Built", "twice"),
                 ("First seen", "day 9, in the Black Forest"),
                 ("Came to know it", "day 12, fighting it in the Black Forest"),
@@ -193,9 +203,9 @@ namespace Scry.Tests
         public void WhatTheGamesRecordsToldIsCountedNotNamed()
         {
             var before = Enumerable.Range(0, 900).Select(i => N("Thing" + i, NewsHow.Known, -1)).ToList();
-            Assert.Equal("Read 900 things from the game's records of this character", JournalWords.News(before, 0, 0));
+            Assert.Equal("Read 900 things from the game's records of your character", JournalWords.News(before, 0, 0));
             before.Add(N("Troll", NewsHow.Known, 14));
-            Assert.Equal("Day 14: came to know Troll, and read 900 things from the game's records of this character", JournalWords.News(before, 0, 0));
+            Assert.Equal("Day 14: came to know Troll, and read 900 things from the game's records of your character", JournalWords.News(before, 0, 0));
         }
     }
 }

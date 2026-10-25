@@ -81,13 +81,21 @@ namespace Scry.Tests
             Assert.Equal("day 3, unlocking its recipe", CompendiumWords.CameToKnow(CameBy.Recipe, 3, null));
             // The game's record of stations fills by being near one, not by using it.
             Assert.Equal("day 3, being near it", CompendiumWords.CameToKnow(CameBy.Near, 3, null));
-            Assert.Equal("near", JournalWords.LearnedNote(new BookNews(NewsHow.Known, null, CameBy.Near, 3)));
+            Assert.Equal("been near", JournalWords.LearnedNote(new BookNews(NewsHow.Known, null, CameBy.Near, 3)));
             // A taming seen is not the character's own taming, and petting one is neither.
             Assert.Equal("seen tamed", JournalWords.LearnedNote(new BookNews(NewsHow.Known, null, CameBy.SeenTamed, 3)));
             Assert.Equal("petted", JournalWords.LearnedNote(new BookNews(NewsHow.Known, null, CameBy.Petted, 3)));
             Assert.Equal("day 1, stepping inside", CompendiumWords.CameToKnow(CameBy.WentInside, 1, ""));
-            Assert.Equal("with Troll", CompendiumWords.CameWith("Troll"));
-            Assert.Equal("known before Scry kept track of this character", CompendiumWords.KnownBefore);
+            Assert.Equal("along with Troll", CompendiumWords.CameWith("Troll"));
+            // The You box has a word for every way Learned has one: a creature seen born or grown up came to be known so, not by "meeting it".
+            foreach (CameBy way in System.Enum.GetValues(typeof(CameBy)))
+            {
+                var line = CompendiumWords.CameLine(way, 3, null, null, 0, true, DayPart.None, null, null, null, null);
+                if (way != CameBy.Fought && way != CameBy.Killed) Assert.DoesNotContain("meeting it", line);
+            }
+            Assert.Contains("seeing it born", CompendiumWords.CameLine(CameBy.Born, 3, null, null, 0, true, DayPart.None, null, null, null, null));
+            Assert.Contains("seeing it grow up", CompendiumWords.CameLine(CameBy.GrewUp, 3, null, null, 0, true, DayPart.None, null, null, null, null));
+            Assert.Equal("known before Scry kept track of your character", CompendiumWords.KnownBefore);
         }
 
         [Fact]

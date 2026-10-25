@@ -142,7 +142,7 @@ namespace Scry.Tests
         [Theory]
         [InlineData(3, 40, 1, 1, "in 3 of 40 kills")]
         [InlineData(1, 1, 5, 5, "in 1 of 1 kill, 5 each time")]
-        [InlineData(12, 40, 1, 3, "in 12 of 40 kills, 1 to 3 each time")]
+        [InlineData(12, 40, 1, 3, "in 12 of 40 kills, 1\u20133 each time")]
         public void AnItemSeenIsToldByHowOftenAndHowMany(int times, int kills, int least, int most, string told)
         {
             Assert.Equal(told, SeenWords.Amount(new SeenDrop { Times = times, Least = least, Most = most }, kills));
@@ -150,7 +150,7 @@ namespace Scry.Tests
 
         [Theory]
         [InlineData(3, 40, 1, 1, "3 of 40")]
-        [InlineData(12, 40, 1, 3, "1 to 3, 12 of 40")]
+        [InlineData(12, 40, 1, 3, "1\u20133, 12 of 40")]
         [InlineData(1, 1, 5, 5, "5, 1 of 1")]
         public void AChipInTheRowTellsHowManyAndInHowManyKills(int times, int kills, int least, int most, string told)
         {
@@ -160,8 +160,8 @@ namespace Scry.Tests
         [Fact]
         public void TheRowAndLinesSayItWasSeenInYourPlay()
         {
-            Assert.Equal("Seen dropping in your play (40 kills)", SeenWords.Title(40));
-            Assert.Equal("Seen dropping in your play (1 kill)", SeenWords.Title(1));
+            Assert.Equal("Seen dropping in all your play (40 kills)", SeenWords.Title(40));
+            Assert.Equal("Seen dropping in all your play (1 kill)", SeenWords.Title(1));
             Assert.Equal("Seen dropped by Greydwarf in your play, in 3 of 40 kills", SeenWords.Line("Greydwarf", new SeenDrop { Times = 3, Least = 1, Most = 1 }, 40));
         }
     }

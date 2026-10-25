@@ -65,7 +65,7 @@ namespace Scry.Tests
             Assert.True(world.Explorer.HidesAttack(EntryKeys.PlayAttack("Troll_log")));
             Assert.False(world.Explorer.HidesAttack(world.Hide.Key));
             // Its –– says on hover what shows it; the You box lists what is still to find out.
-            Assert.Equal("Its damage shows once this attack has hit you", CompendiumWords.NotYetTakenTip);
+            Assert.Equal("Its damage shows once this attack hit you", CompendiumWords.NotYetTakenTip);
 
             // Not under the loose rules, and not on a page that is no creature's.
             world.Rule(CompendiumRule.Loose);
@@ -206,7 +206,7 @@ namespace Scry.Tests
                 ("Hit it with", "Fire: how it lands"),
                 ("See it attack", "1 attack's damage, up close or taken"),
                 ("Hit its weak spots", "2 not yet found"),
-                ("Break one", "how many of each it gives"),
+                ("See it give", "how many of each"),
             }, one);
 
             Assert.Empty(CompendiumWords.StillToFindOut(new string[0], new string[0], 0, 0, new Tally[0]));
@@ -263,7 +263,7 @@ namespace Scry.Tests
             Assert.Equal("its riding found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.Ridden)));
             Assert.Equal("how Lox rides", JournalWords.FoundOutOf(EntryKeys.Did(Deed.Ridden), "Lox"));
             Assert.Equal("shows once you have ridden one", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Ridden)));
-            Assert.Equal("a weak spot found", CompendiumWords.FoundOutNote(EntryKeys.WeakSpot("head")));
+            Assert.Equal("a weak spot found out", CompendiumWords.FoundOutNote(EntryKeys.WeakSpot("head")));
             Assert.Equal("how Fire lands found out", CompendiumWords.FoundOutNote(EntryKeys.Damage("Fire")));
             Assert.Equal("an attack's damage found out", CompendiumWords.FoundOutNote("Troll_log"));
             Assert.Null(CompendiumWords.FoundOutNote(null));
@@ -538,8 +538,8 @@ namespace Scry.Tests
             Assert.Equal("10 (1 of 3)", world.Explorer.StrictAmount(Tally.Fell, "Troll", "Coins"));
             Assert.Equal("––", world.Explorer.StrictAmount(Tally.Fell, "Troll", "Wood"));
             // The kills counted here are those whose loot was seen to fall, which the title says, its hover telling them from the game's own count.
-            Assert.Equal("3 kills whose loot you saw fall; the game counts 14 kills of yours in all", TallyWords.KillsSeenTip(3, 14));
-            Assert.Equal("1 kill whose loot you saw fall; the game counts 1 kill of yours in all", TallyWords.KillsSeenTip(1, 1));
+            Assert.Equal("3 kills whose loot you saw fall, your own or others'; the game counts 14 kills by you", TallyWords.KillsSeenTip(3, 14));
+            Assert.Equal("1 kill whose loot you saw fall, your own or others'; the game counts 1 kill by you", TallyWords.KillsSeenTip(1, 1));
             Assert.Equal("Drops you saw fall (3 kills seen)", world.Explorer.StrictTitle(Tally.Fell, "Troll", null));
             Assert.Null(world.Explorer.StrictAmount(Tally.None, "Troll", "TrollHide"));
             Assert.Null(world.Explorer.StrictTitle(Tally.None, "Troll", null));
@@ -614,7 +614,7 @@ namespace Scry.Tests
             Assert.Null(SourceWords.CountedBy(SourceFacts.Of(SourceWay.Picked, "x", "x")));
             Assert.Null(SourceWords.CountedBy(SourceFacts.Made("x", "x", 60f, 4, "")));
             Assert.Null(SourceWords.CountedBy(null));
-            Assert.Equal("Held back: what falls and what breaks are counted, not this", TallyWords.NeverCounted);
+            Assert.Equal("Kept back: what falls and what breaks are counted, not this", TallyWords.NeverCounted);
             // What a line held back says on hover: how it comes to show, or that nothing counts it.
             Assert.Equal(TallyWords.NeverCounted, TallyWords.HeldTip(Tally.None));
             Assert.Equal("How many shows once you have seen it fall", TallyWords.HeldTip(Tally.Fell));

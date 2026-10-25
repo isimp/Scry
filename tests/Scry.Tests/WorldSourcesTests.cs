@@ -437,8 +437,8 @@ namespace Scry.Tests
         [Fact]
         public void AMarkSaysWhichSourceShowsItAndHow()
         {
-            Assert.Equal("Shown as known from your explored ground, not yet met by this character", CompendiumWords.ByWorld(WorldSource.Explored, KnownLevel.Known));
-            Assert.Equal("Shown as seen from shared maps, not yet met by this character", CompendiumWords.ByWorld(WorldSource.SharedMaps, KnownLevel.Seen));
+            Assert.Equal("Shown as known from your explored ground, not yet met by your character", CompendiumWords.ByWorld(WorldSource.Explored, KnownLevel.Known));
+            Assert.Equal("Shown as seen from shared maps, not yet met by your character", CompendiumWords.ByWorld(WorldSource.SharedMaps, KnownLevel.Seen));
             Assert.Equal("shown as known from the places every map shows", CompendiumWords.CameLine(null, -1, null, owner: null, floor: 0, known: true, byWorld: WorldSource.OnEveryMap));
         }
 
@@ -489,7 +489,7 @@ namespace Scry.Tests
             Assert.Equal(KnownLevel.Unknown, s.Book.Level(s.Crypt.Key));
             // Nothing it brings along: heard of is no more than a name.
             Assert.True(s.View.Of(s.Glow) < KnownLevel.HeardOf || s.View.ByWorld(s.Glow) == null);
-            Assert.Equal("Heard of from this world's census, not yet met by this character", CompendiumWords.ByWorld(WorldSource.WholeWorld, KnownLevel.HeardOf));
+            Assert.Equal("Heard of from this world's census, not yet met by your character", CompendiumWords.ByWorld(WorldSource.WholeWorld, KnownLevel.HeardOf));
 
             // Seen for real, or shown seen by another source, it stays so and is not the census's.
             var t = new Setup().Found(WorldSource.WholeWorld, "Crypt2").Found(WorldSource.SharedMaps, "Crypt2");

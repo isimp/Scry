@@ -177,7 +177,7 @@ namespace Scry
 
         /// <summary>The hover of the drops' title: the kills whose loot was seen to fall against the game's own count of the character's kills, which a far kill or a friend's sets apart.</summary>
         public static string KillsSeenTip(int seen, int counted) =>
-            $"{Naming.Count(seen, "kill", "kills")} whose loot you saw fall; the game counts {Naming.Count(counted, "kill", "kills")} of yours in all";
+            $"{Naming.Count(seen, "kill", "kills")} whose loot you saw fall, your own or others'; the game counts {Naming.Count(counted, "kill", "kills")} by you";
 
         /// <summary>The faint line under such a row where an amount is not yet known.</summary>
         public static string NotYetCounted(Tally tally)
@@ -221,24 +221,24 @@ namespace Scry
         public static string HeldTip(Tally? by) => by == null ? null : by == Tally.None ? NeverCounted : NotYetCounted(by.Value);
 
         /// <summary>The tip of an amount held back that nothing counts, as what a chest holds.</summary>
-        public const string NeverCounted = "Held back: what falls and what breaks are counted, not this";
+        public const string NeverCounted = "Kept back: what falls and what breaks are counted, not this";
     }
 
     /// <summary>How what was seen dropping is told.</summary>
     internal static class SeenWords
     {
         /// <summary>The row of a creature's loot seen in play, with how many kills it is from.</summary>
-        public static string Title(int kills) => $"Seen dropping in your play ({Kills(kills)})";
+        public static string Title(int kills) => $"Seen dropping in all your play ({Kills(kills)})";
 
         /// <summary>The tip of such a row under the strict rules, where it stands faint beside the character's own counts.</summary>
-        public const string AllPlayTip = "Seen in your play on this machine, every character's and world's; not counted for this character";
+        public const string AllPlayTip = "Seen in your play on this machine, every character's and world's; not counted for your character";
 
         /// <summary>How often an item came, and how many at a time when that is more than one.</summary>
         public static string Amount(SeenDrop drop, int kills)
         {
             var told = $"in {Numbers.Count(drop.Times)} of {Kills(kills)}";
             if (drop.Most <= 1) return told;
-            return drop.Least == drop.Most ? $"{told}, {Numbers.Count(drop.Most)} each time" : $"{told}, {Numbers.Count(drop.Least)} to {Numbers.Count(drop.Most)} each time";
+            return $"{told}, {Numbers.CountRange(drop.Least, drop.Most)} each time";
         }
 
         /// <summary>An item's chip in a creature's row, whose title tells the kills: how many at a time when more than one, and in how many kills.</summary>
@@ -246,7 +246,7 @@ namespace Scry
         {
             var often = $"{Numbers.Count(drop.Times)} of {Numbers.Count(kills)}";
             if (drop.Most <= 1) return often;
-            return drop.Least == drop.Most ? $"{Numbers.Count(drop.Most)}, {often}" : $"{Numbers.Count(drop.Least)} to {Numbers.Count(drop.Most)}, {often}";
+            return $"{Numbers.CountRange(drop.Least, drop.Most)}, {often}";
         }
 
         /// <summary>An item's line among where it comes from.</summary>
