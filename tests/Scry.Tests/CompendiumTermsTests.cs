@@ -78,6 +78,23 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheBookWordsOfIsAreOfferedWithTheCompendiumOn()
+        {
+            // is:new, is:seen and is:walked ask the book, not a thing's details, so no entry
+            // carries them: they are offered as fixed words, each with a note in place of a count,
+            // is:left under the strict rules alone, and none with the compendium off.
+            var world = new World();
+            Assert.Equal(new[] { "New", "Seen", "Walked" }, Labels(world.Suggest("is:")));
+            Assert.Equal(new[] { "Left", "New", "Seen", "Walked" }, Labels(world.SuggestStrict("is:")));
+            Assert.Empty(world.SuggestAll("is:"));
+            var seen = world.Suggest("is:se").Single();
+            Assert.Equal("is:seen", seen.Insert);
+            Assert.Equal("seen, not yet known", seen.Note);
+            Assert.False(seen.IsKey);
+            Assert.Equal("is:new,walked", world.Suggest("is:new,w").Single().Insert);
+        }
+
+        [Fact]
         public void WhatWasOnlySeenGivesNoTermButItsKind()
         {
             // The boar, only seen: its page is closed, so nothing on it is offered or counted; its kind is plain to see.

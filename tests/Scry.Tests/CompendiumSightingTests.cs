@@ -156,6 +156,29 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AnAttackTakenOrSeenBegunCountsAsItsWeaponSeenCarried()
+        {
+            // The clip of an attack taken plays once the attack is proved; the stage dresses the
+            // creature with the weapon it hit with, and the page says it was seen carrying it.
+            var world = new World().Rule(CompendiumRule.Strict);
+            world.Explorer.Select(world.Draugr);
+            Assert.False(world.Explorer.WearsShown(world.Draugr.Key, "draugr_axe"));
+            Assert.Empty(world.Explorer.SeenLines(world.Draugr));
+
+            Assert.True(world.Book.FoundOut(world.Draugr.Key, EntryKeys.Attack("draugr_axe")));
+            world.Rule(CompendiumRule.Strict);
+            Assert.True(world.Explorer.WearsShown(world.Draugr.Key, "draugr_axe"));
+            Assert.False(world.Explorer.WearsShown(world.Draugr.Key, "draugr_bow"));
+            var lines = world.Explorer.SeenLines(world.Draugr);
+            Assert.Equal(new[] { "Seen carrying" }, lines.Select(l => l.Label));
+            Assert.Equal(world.Axe.ShownName, lines[0].Value);
+            // Seen carrying the bow up close too: each once, in name order, after the stars seen.
+            world.Book.Sighted(world.Draugr.Key, 0, new[] { "draugr_bow", "draugr_axe" });
+            world.Rule(CompendiumRule.Strict);
+            Assert.Equal(world.Axe.ShownName + ", " + world.Bow.ShownName, world.Explorer.SeenLines(world.Draugr).Single(l => l.Label == "Seen carrying").Value);
+        }
+
+        [Fact]
         public void ASeenPageTellsWhatSightGave()
         {
             var world = new World();

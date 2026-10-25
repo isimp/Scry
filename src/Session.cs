@@ -152,7 +152,7 @@ namespace Scry
         /// <summary>Whether the game lists a recipe for the character playing, as it stands now (<see cref="CharacterRecords.RecipeListed"/>).</summary>
         private static readonly Func<string, bool> RecipeListed = token => Player.m_localPlayer != null && CharacterRecords.RecipeListed(Player.m_localPlayer, token);
 
-        /// <summary>Whether a creature's copy may wear an item: under the strict rules one it was seen carrying up close (<see cref="Explorer.WearsShown"/>).</summary>
+        /// <summary>Whether a creature's copy may wear an item: under the strict rules one it was seen carrying up close or attack with (<see cref="Explorer.WearsShown"/>).</summary>
         private static readonly Func<string, string, bool> WearsShown = (creature, item) => Explorer == null || Explorer.WearsShown(creature, item);
 
         /// <summary>What the character knows of the explorer's catalog, for the compendium; made with the explorer.</summary>

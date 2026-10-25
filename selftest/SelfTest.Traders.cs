@@ -83,7 +83,7 @@ namespace Scry
             ScryPanel.KeepUnlockTitlesForTest = true;
             yield return PictureOf(p, "facts", "trader Haldor loose");
             ScryPanel.KeepUnlockTitlesForTest = false;
-            // Rows reading alike once a boss not met is kept back ("Sells once ??? is defeated") are told as one.
+            // Rows reading alike once a boss not met is kept back ("Sells once a boss not yet met is defeated") are told as one.
             var twice = ScryPanel.UnlockTitlesForTest.GroupBy(t => t).Where(g => g.Count() > 1).Select(g => g.Key.Title).Distinct().ToList();
             p.Note("waiting rows drawn: " + string.Join("; ", ScryPanel.UnlockTitlesForTest.Select(t => t.Title).Distinct()));
             p.Check(twice.Count == 0, "rows waiting for bosses not met, alike once kept back, are told as one", string.Join("; ", twice));

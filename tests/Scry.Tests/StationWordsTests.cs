@@ -62,6 +62,8 @@ namespace Scry.Tests
         {
             Assert.Equal("Sells", StationWords.Sells(null));
             Assert.Equal("Sells once Eikthyr is slain", StationWords.Sells("once Eikthyr is slain"));
+            // A boss not met is not named by a dash inside the title; the title says so.
+            Assert.Equal("Sells once a boss not yet met is defeated", StationWords.SellsOnceNotMet);
         }
 
         [Fact]

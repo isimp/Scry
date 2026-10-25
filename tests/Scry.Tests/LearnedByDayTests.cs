@@ -102,6 +102,10 @@ namespace Scry.Tests
             Assert.Equal("PipiKakaLand", explorer.WorldShown(explorer.LearnedWorld(world.Troll)));
             Assert.Null(explorer.WorldShown(explorer.LearnedWorld(world.Boar)));
             Assert.Null(explorer.WorldShown(null));
+            // A page names a moment's world the same way: another world by name, the one played or none by nothing.
+            Assert.Equal("PipiKakaLand", explorer.MomentWorldShown("PipiKakaLand"));
+            Assert.Null(explorer.MomentWorldShown("Elderwood"));
+            Assert.Null(explorer.MomentWorldShown(null));
 
             // Under the loose rules, which list what was met, the world comes with the news the same.
             var loose = world.Told(CompendiumRule.Loose).Explorer;

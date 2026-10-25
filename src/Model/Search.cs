@@ -146,6 +146,19 @@ namespace Scry
         /// </summary>
         public static readonly string[] MineWords = { "new", "seen", "walked", "left" };
 
+        /// <summary>What a word of <see cref="MineWords"/> asks, as a suggestion notes it in place of a count the index cannot know.</summary>
+        public static string MineNote(string word)
+        {
+            switch (word)
+            {
+                case "new": return "learned today";
+                case "seen": return "seen, not yet known";
+                case "walked": return "a room walked";
+                case "left": return "something left to find out";
+                default: return null;
+            }
+        }
+
         /// <summary>Whether a term asks what the character met: an is: term each of whose values is one of <see cref="MineWords"/>, which it gives.</summary>
         public static bool AsksMine(string key, string value, out string[] words)
         {

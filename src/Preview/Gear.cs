@@ -44,7 +44,7 @@ namespace Scry
             return items.Distinct().ToList();
         }
 
-        /// <summary>Whether a creature's copy may wear an item, by the creature's prefab and the item's: under the strict rules one it was seen carrying up close (<see cref="Explorer.WearsShown"/>). Told by the session; none lets every item on.</summary>
+        /// <summary>Whether a creature's copy may wear an item, by the creature's prefab and the item's: under the strict rules one it was seen carrying up close or attack with (<see cref="Explorer.WearsShown"/>). Told by the session; none lets every item on.</summary>
         public static Func<string, string, bool> WearsShown { get; set; }
 
         /// <summary>Puts the gear of a look on the copy: 1 is the first set, or the only one.</summary>

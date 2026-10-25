@@ -290,10 +290,11 @@ namespace Scry.Tests
                 },
                 new[] { ("Build cost", "piece"), ("Damage it takes", "resistances"), ("Made here", "station") },
                 FactBlock.Where, FactBlock.Hooks);
+            // Building reads as the hammer's menu does: the cost first, then the tool, then where it stands.
             Assert.Equal(new[] { null, "What it does", "Building", "Resting", "Standing", "Where it comes from", null }, plan.Select(t => t.Heading));
             Assert.Equal(new[] { "Health", "Comfort", "Material", "Support" }, plan[0].Shown);
             Assert.Equal(new[] { "Makes", "row Made here" }, plan[1].Shown);
-            Assert.Equal(new[] { "Placed", "Stands near a fire", "Upgrades", "Built with", "row Build cost" }, plan[2].Shown);
+            Assert.Equal(new[] { "row Build cost", "Built with", "Placed", "Stands near a fire", "Upgrades" }, plan[2].Shown);
             // Comfort, its group and sleeping all go to resting.
             Assert.Equal(new[] { "Comfort group", "Sleeping in it" }, plan[3].Shown);
             Assert.Equal(new[] { "Support lost", "Rain", "row Damage it takes" }, plan[4].Shown);

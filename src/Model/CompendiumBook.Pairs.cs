@@ -107,6 +107,13 @@ namespace Scry
             foreach (var token in seen) if (token.StartsWith(WearsToken, StringComparison.Ordinal)) yield return token.Substring(WearsToken.Length);
         }
 
+        /// <summary>The items a creature was seen attack with, by their prefabs (<see cref="Proved"/> with <see cref="EntryKeys.Attack"/>), each once; none for one never seen so.</summary>
+        public IEnumerable<string> AttackedWith(string key)
+        {
+            if (string.IsNullOrEmpty(key)) yield break;
+            foreach (var (proved, proof) in _proofs) if (proved == key && EntryKeys.IsAttack(proof, out var item)) yield return item;
+        }
+
         /// <summary>Every sighting as its lines are kept, for the book's text.</summary>
         private IEnumerable<(string Key, string Token)> SightingLines()
         {

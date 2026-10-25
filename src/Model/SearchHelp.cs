@@ -48,6 +48,9 @@ namespace Scry
             public string Label;
             public int Count;
 
+            /// <summary>What the value asks, shown in place of its count where the index cannot count it: the book's is: words.</summary>
+            public string Note;
+
             /// <summary>The entries that have it, by place in the catalog, each once.</summary>
             public readonly List<int> Entries = new List<int>();
         }
@@ -99,6 +102,16 @@ namespace Scry
 
             // The kinds are a fixed set, offered whether any are listed or not.
             foreach (Kind kind in Enum.GetValues(typeof(Kind))) Intern("kind", kind.ToString(), Kinds.Label(kind));
+            // The book's is: words ask what the character met, so no entry carries them: offered as
+            // fixed words with the compendium on, is:left under the strict rules alone, which guard pages.
+            if (met != null)
+            {
+                foreach (var word in Search.MineWords)
+                {
+                    if (word == "left" && guarded == null) continue;
+                    Intern("is", word, Naming.Capital(word)).Note = Search.MineNote(word);
+                }
+            }
 
             var seen = new HashSet<string>(StringComparer.Ordinal);
             for (var at = 0; at < Catalog.Count; at++)
@@ -436,6 +449,7 @@ namespace Scry
                     Label = value.Label,
                     Insert = minus + term,
                     Count = index.Finds(name, before + value.Token),
+                    Note = value.Note,
                 });
             }
             return found;

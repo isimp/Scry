@@ -35,13 +35,15 @@ namespace Scry
         /// <summary>
         /// Whether the stage may show a creature, by its key, carrying an item, by its prefab: with
         /// the compendium off, peeking, under the loose rules or on a page shown whole, any; under
-        /// the strict rules one it was seen carrying up close (<see cref="CompendiumBook.WornSeen"/>).
+        /// the strict rules one it was seen carrying up close (<see cref="CompendiumBook.WornSeen"/>)
+        /// or seen attack with, the attack taken or begun up close (<see cref="CompendiumBook.Proved"/>),
+        /// so the clip of an attack that plays shows the weapon it is made with.
         /// </summary>
         public bool WearsShown(string creature, string item)
         {
             if (!StageFollowsSightings(creature)) return true;
             foreach (var worn in _view.Book.WornSeen(creature)) if (worn == item) return true;
-            return false;
+            return _view.Book.Proved(creature, EntryKeys.Attack(item));
         }
 
         /// <summary>
@@ -92,8 +94,8 @@ namespace Scry
 
         /// <summary>
         /// What sight gave of an entry, for its page while it is only seen, each line where there is
-        /// one: the stars it was seen with up close, what it was seen carrying, and the biomes and
-        /// places it was seen in; none with the compendium off.
+        /// one: the stars it was seen with up close, what it was seen carrying or attack with, and
+        /// the biomes and places it was seen in; none with the compendium off.
         /// </summary>
         public List<(string Label, string Value)> SeenLines(Entry entry)
         {
@@ -102,7 +104,7 @@ namespace Scry
             var book = _view.Book;
             var stars = book.StarsSeen(entry.Key).Distinct().OrderBy(s => s).Select(CombatWords.StarsSeen).ToList();
             if (stars.Count > 0) lines.Add((CompendiumWords.SeenWithLabel, string.Join(", ", stars)));
-            var worn = book.WornSeen(entry.Key).Select(item => Find(item)?.ShownName ?? Naming.Readable(item)).Distinct().OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList();
+            var worn = book.WornSeen(entry.Key).Concat(book.AttackedWith(entry.Key)).Select(item => Find(item)?.ShownName ?? Naming.Readable(item)).Distinct().OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList();
             if (worn.Count > 0) lines.Add((CompendiumWords.SeenCarryingLabel, string.Join(", ", worn)));
             var where = new List<string>();
             foreach (var other in _catalog)

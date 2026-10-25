@@ -62,6 +62,8 @@ namespace Scry
             public readonly List<(string Key, string[] Ids)> Orders = new List<(string, string[])>();
             /// <summary>What leads a topic, in this order, ahead of the rest in the order placed: a fact's label, a row's title or a group of links.</summary>
             public readonly Dictionary<string, string[]> Leads = new Dictionary<string, string[]>(StringComparer.Ordinal);
+            /// <summary>The topics whose rows stand first, ahead of what leads them: a piece's cost, titled by its station, before its tool.</summary>
+            public readonly HashSet<string> RowsFirst = new HashSet<string>(StringComparer.Ordinal);
             /// <summary>Groups of the entry's links shown in a topic, not under Linked, by the topic.</summary>
             public readonly Dictionary<string, string> LinkGroups = new Dictionary<string, string>(StringComparer.Ordinal);
         }
@@ -205,6 +207,9 @@ namespace Scry
             Tile(plan, "overview", "Building reach", "Building reach", "Health", "Material");
             Tile(plan, "overview", null, "Health", "Comfort", "Material", "Support");
             Label(plan, "building", "Build cost", "Built with", "Placed", "Upgrades", "Claiming it");
+            // As the hammer's menu reads: the cost first, then the tool, then where it stands.
+            RowsFirst(plan, "building");
+            Lead(plan, "building", "Built with");
             // What it is for: a station's making, a machine's work, an area's, what it holds and opens with.
             Label(plan, "does", "Slots", "Opened with");
             Part(plan, "does", "station", "machines", "areas", "chest");
@@ -444,6 +449,12 @@ namespace Scry
 
         private static void Lead(KindPlan plan, string topic, params string[] first) => plan.Leads[topic] = first;
 
+        private static void RowsFirst(KindPlan plan, string topic)
+        {
+            plan.RowsFirst.Add(topic);
+            if (!plan.Leads.ContainsKey(topic)) plan.Leads[topic] = Array.Empty<string>();
+        }
+
         private static void Links(KindPlan plan, string topic, params string[] groups)
         {
             foreach (var group in groups) plan.LinkGroups[group] = topic;
@@ -551,13 +562,15 @@ namespace Scry
                 if (plan.LinkGroups.TryGetValue(group, out var topic)) topics[topic].Bits.Add(new FactBit { LinkGroup = group });
             }
 
-            // What leads a topic comes first, in the lead's order; the rest keep theirs.
+            // What leads a topic comes first, in the lead's order, its rows before that where they stand first; the rest keep theirs.
             foreach (var pair in plan.Leads)
             {
                 var first = pair.Value;
+                var rowsFirst = plan.RowsFirst.Contains(pair.Key);
                 string NameOf(FactBit b) => b.LinkGroup ?? (b.Pair >= 0 ? pairs[b.Pair].Label : b.Row >= 0 ? rows[b.Row].Title : null);
                 int Rank(FactBit b)
                 {
+                    if (rowsFirst && b.Row >= 0) return -1;
                     var at = Array.IndexOf(first, NameOf(b));
                     return at < 0 ? first.Length : at;
                 }

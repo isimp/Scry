@@ -84,6 +84,9 @@ namespace Scry
         /// <summary>The title of what a trader sells, with when it sells them where a world key holds them back.</summary>
         public static string Sells(string when) => string.IsNullOrEmpty(when) ? "Sells" : "Sells " + when;
 
+        /// <summary>The title of wares waiting for a boss the character never met, which the compendium's rules name by no name.</summary>
+        public const string SellsOnceNotMet = "Sells once a boss not yet met is defeated";
+
         public static string Summons(string boss) => $"Summons {boss} with";
 
         /// <summary>The title of what is offered at an altar, on its item stands where it takes them there.</summary>

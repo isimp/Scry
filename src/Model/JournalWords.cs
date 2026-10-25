@@ -138,7 +138,7 @@ namespace Scry
             world == null ? (worldNow != null ? WorldUnkept : null) : world != worldNow ? world : null;
 
         /// <summary>" in Elderwood" after a day, where the world is named; nothing otherwise.</summary>
-        public static string InWorld(string world) => world == WorldUnkept ? " in a world not kept" : world != null ? " in " + world : "";
+        public static string InWorld(string world) => world != null ? " in " + world : "";
 
         /// <summary>Whether a group of the Learned list starts folded: all but the newest two groups in the order things were learned (a newer day of another world first), and what has no day.</summary>
         public static bool FoldedAtFirst(int groupRank, int day) => day < 0 || groupRank >= 2;

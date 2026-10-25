@@ -75,8 +75,8 @@ namespace Scry.Tests
         public void RowsWaitingForBossesNotMetAreToldAsOneWhereverTheyStand()
         {
             // Haldor in a world where The Elder and Moder fell: the rows for Yagluth and the Queen
-            // both read "Sells once –– is defeated", with Moder's row, now whole, between them.
-            const string Alike = "Sells once –– is defeated";
+            // both read "Sells once a boss not yet met is defeated", with Moder's row, now whole, between them.
+            var Alike = StationWords.SellsOnceNotMet;
             var rows = new (string CountedAs, int Wares)[] { (null, 7), (null, 2), (Alike, 1), (null, 1), (Alike, 1) };
             Assert.Equal(2, UnlockRows.Told(rows, 2, r => r.CountedAs, r => r.Wares));
             Assert.Null(UnlockRows.Told(rows, 4, r => r.CountedAs, r => r.Wares));
@@ -87,7 +87,7 @@ namespace Scry.Tests
         [Fact]
         public void RowsWaitingForDifferentBossesStayApart()
         {
-            var rows = new (string CountedAs, int Wares)[] { ("Sells once Moder is defeated", 1), ("Sells once –– is defeated", 1) };
+            var rows = new (string CountedAs, int Wares)[] { ("Sells once Moder is defeated", 1), (StationWords.SellsOnceNotMet, 1) };
             Assert.Equal(1, UnlockRows.Told(rows, 0, r => r.CountedAs, r => r.Wares));
             Assert.Equal(1, UnlockRows.Told(rows, 1, r => r.CountedAs, r => r.Wares));
         }

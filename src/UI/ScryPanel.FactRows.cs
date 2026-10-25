@@ -63,9 +63,9 @@ namespace Scry
         [Diagnostic]
         public static List<(int Frame, string Title)> UnlockTitlesForTest { get; } = new List<(int, string)>();
 
-        /// <summary>The title a row of wares waiting for a boss is counted under, as the compendium shows it; none for any other row.</summary>
+        /// <summary>The title a row of wares waiting for a boss is counted under: its own, or one saying the boss is not yet met (<see cref="StationWords.SellsOnceNotMet"/>) rather than a dash for its name; none for any other row.</summary>
         private static string CountedAs(Explorer explorer, Facts.Row row) =>
-            row?.WaitsFor != null && UnlockRows.Of(row.WaitsFor, explorer.NamesOnlyMet, WorldKeySet) == UnlockShown.Counted ? Masked(explorer, row.Title) : null;
+            row?.WaitsFor != null && UnlockRows.Of(row.WaitsFor, explorer.NamesOnlyMet, WorldKeySet) == UnlockShown.Counted ? (explorer.NotMet(row.TitleLink) ? StationWords.SellsOnceNotMet : row.Title) : null;
 
         /// <summary>Whether the world played has a key set, a boss's fall; none without a world.</summary>
         private static readonly Func<string, bool> WorldKeySet = key => ZoneSystem.instance != null && ZoneSystem.instance.GetGlobalKey(key);
@@ -127,9 +127,9 @@ namespace Scry
             // A store's wares are game-shown: under the strict rules too the row keeps its title and count, as under the loose ones.
             var unlock = UnlockRows.Of(row.WaitsFor, explorer.NamesOnlyMet, WorldKeySet);
             if (unlock != UnlockShown.Counted) return false;
-            // Rows whose titles read the same once names not met are kept back ("Sells once a smudge is
-            // defeated") are one wherever they stand: the first tells them all, the others add to its count.
-            var countedAs = Masked(explorer, row.Title);
+            // Rows whose titles read the same once a boss not met is kept back ("Sells once a boss not
+            // yet met is defeated") are one wherever they stand: the first tells them all, the others add to its count.
+            var countedAs = CountedAs(explorer, row);
             var waiting = rows != null && rowAt >= 0 ? UnlockRows.Told(rows, rowAt, r => CountedAs(explorer, r), r => r.Items.Count) : row.Items.Count;
             if (waiting == null) return true;
             if (KeepUnlockTitlesForTest) UnlockTitlesForTest.Add((Time.frameCount, countedAs));

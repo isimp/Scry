@@ -340,8 +340,9 @@ namespace Scry
                     var name = suggestion.Label;
                     var nameW = Mathf.Min(row.width * 0.62f, Skin.Width(Skin.Label, name) + U(4f));
                     GUI.Label(new Rect(row.x + U(8f), row.y, nameW, row.height), name, Skin.Label);
-                    var side = suggestion.IsKey ? suggestion.Note : Numbers.Count(suggestion.Count);
-                    GUI.Label(new Rect(row.x + U(8f) + nameW + U(8f), row.y, row.width - nameW - U(24f), row.height), side, suggestion.IsKey ? Skin.DimLabel : Skin.DimRight);
+                    // A key and the book's is: words carry a note where a value carries its count.
+                    var side = suggestion.Note ?? Numbers.Count(suggestion.Count);
+                    GUI.Label(new Rect(row.x + U(8f) + nameW + U(8f), row.y, row.width - nameW - U(24f), row.height), side, suggestion.Note != null ? Skin.DimLabel : Skin.DimRight);
                 }
             }
         }
