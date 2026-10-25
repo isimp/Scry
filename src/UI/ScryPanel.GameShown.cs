@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Scry
 {
     /// <summary>
-    /// What the game shows the moment a thing is known comes with it (<see cref="Explorer.LeavesOut(string, bool)"/>),
+    /// What the game shows the moment a thing is known comes with it (<see cref="Explorer.LeavesOut(string, bool, System.Nullable{Tie})"/>),
     /// but only while the game lists the recipe it shows it by (<see cref="Explorer.RecipeListed"/>);
     /// and what was counted over every character's play stands faint under the strict rules
     /// beside the character's own counts.

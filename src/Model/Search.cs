@@ -560,7 +560,7 @@ namespace Scry
             /// Whether the entry's page names another: one in the catalog that was met, and under
             /// the strict rules seen together with it, unless the game shows the two together the
             /// moment the entry is known (<paramref name="gameShown"/>, as a recipe's materials and
-            /// station are, <see cref="Explorer.LeavesOut(string, bool)"/>); never one not in the catalog.
+            /// station are, <see cref="Explorer.LeavesOut(string, bool, System.Nullable{Tie})"/>); never one not in the catalog.
             /// </summary>
             public bool Keeps(Entry entry, Entry other, bool gameShown = false) =>
                 other != null && (View.Of(other) >= KnownLevel.Seen || HeldByPage(other)) && (!Strict || gameShown && View.RecipeListed(entry.Tokens.Length > 0 ? entry.Tokens[0] : null) || View.Related(entry, other));

@@ -50,7 +50,7 @@ namespace Scry
             /// The game shows the row the moment the thing is known: a recipe's materials, a piece's
             /// cost, what a thing is made into, a station's recipes, a store's wares. Such a row names
             /// what the character has met under either rules, never waiting to be seen together
-            /// (<see cref="Explorer.LeavesOut(string, bool)"/>).
+            /// (<see cref="Explorer.LeavesOut(string, bool, System.Nullable{Tie})"/>).
             /// </summary>
             public bool GameShown;
 
