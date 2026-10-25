@@ -27,9 +27,13 @@ namespace Scry
                 hit.m_damage.m_fire = 10f;
                 hit.SetAttacker(player);
                 TogetherWatch.Hit(creature, hit);
-                p.Check(ResistWords.Types.Any(t => book.Proved(key, EntryKeys.Damage(t))), $"a hit on {key} tells how its damage landed");
+                // The popup tells a hit no farther than 30 m: a creature loaded farther off tells nothing, as in play.
+                var popup = TogetherWatch.PopupSeen(creature);
+                if (popup) p.Check(ResistWords.Types.Any(t => book.Proved(key, EntryKeys.Damage(t))), $"a hit on {key} tells how its damage landed");
+                else p.Note($"{key} stands {Numbers.Amount(Vector3.Distance(player.transform.position, creature.transform.position), 0)} m off, past the popup's reach: its hit tells nothing");
                 var spots = creature.m_weakSpots;
-                if (spots != null && spots.Length > 0 && spots[0] != null)
+                if (!popup) p.Note("its weak spot is not tried");
+                else if (spots != null && spots.Length > 0 && spots[0] != null)
                 {
                     hit.m_weakSpot = 0;
                     TogetherWatch.Hit(creature, hit);

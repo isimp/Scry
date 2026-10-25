@@ -259,9 +259,10 @@ namespace Scry
                 watch.Stop();
                 var here = generator.GetBiome(player.transform.position).ToString();
                 p.Check(biomes.Contains(here), $"the biomes under its explored ground ({string.Join(", ", biomes)}) hold the one it stands in, {here}", $"worked out in {Numbers.Amount(watch.Elapsed.TotalMilliseconds)} ms");
-                yield return Until(() => book != null && biomes.All(b => book.Level(EntryKeys.For(Kind.Biome, b)) >= KnownLevel.Seen), 15);
-                var unseen = biomes.Where(b => book == null || book.Level(EntryKeys.For(Kind.Biome, b)) < KnownLevel.Seen).ToList();
-                p.Check(unseen.Count == 0, "and each is seen at least in the character's book", string.Join(", ", unseen));
+                // The explored ground shows through its source alone: a biome under it is found in the ground, never written into the book.
+                yield return Until(() => book != null && biomes.All(b => book.Found(world, WorldSource.Explored).Contains(EntryKeys.For(Kind.Biome, b))), 15);
+                var unfound = biomes.Where(b => book == null || !book.Found(world, WorldSource.Explored).Contains(EntryKeys.For(Kind.Biome, b))).ToList();
+                p.Check(unfound.Count == 0, "and each is found in the character's explored ground", string.Join(", ", unfound));
                 p.Check(biomes.All(b => X.Find(EntryKeys.For(Kind.Biome, b)) != null), "each has an entry");
             }
 

@@ -79,6 +79,10 @@ namespace Scry.Tests
             // What came in another world is said as that world's, after this one's.
             Assert.Equal("Day 14: saw Boar, and in Elderwood came to know Troll", JournalWords.News(lines, 0, 0));
             Assert.Equal("In Elderwood came to know Troll", JournalWords.News(new[] { lines[0] }, 0, 0));
+            // A moment kept before worlds were, grouped under the heading of a world not kept, is said so in words.
+            var unkept = new NewsLine("Troll", NewsHow.Known, null, 12, JournalWords.WorldUnkept);
+            Assert.Equal("In a world not kept came to know Troll", JournalWords.News(new[] { unkept }, 0, 0));
+            Assert.Equal("Day 14: saw Boar, and in a world not kept came to know Troll", JournalWords.News(new[] { unkept, lines[1] }, 0, 0));
         }
 
         [Fact]

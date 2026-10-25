@@ -27,15 +27,17 @@ namespace Scry
                 p.Skip("there is no troll, boar, wood or flint spear");
                 yield break;
             }
+            // Its moments are of the world played, as a character's are: a moment of no world would stand under a heading of its own.
+            var world = CompendiumMap.World;
             var book = new CompendiumBook();
-            book.Now = () => new Moment(9, "BlackForest", DayPart.Dusk, "Rain");
+            book.Now = () => new Moment(9, "BlackForest", DayPart.Dusk, "Rain", null, world);
             book.Raise(troll.Key, KnownLevel.Seen, stars: 1);
-            book.Now = () => new Moment(12, "BlackForest", DayPart.Night, "Clear", spear.Name);
+            book.Now = () => new Moment(12, "BlackForest", DayPart.Night, "Clear", spear.Name, world);
             book.Raise(troll.Key, KnownLevel.Known, way: CameBy.Fought);
             book.Died(troll.Key);
-            book.Now = () => new Moment(21, "BlackForest");
+            book.Now = () => new Moment(21, "BlackForest", world: world);
             book.Died(troll.Key);
-            book.Now = () => new Moment(22, "Meadows", DayPart.Day);
+            book.Now = () => new Moment(22, "Meadows", DayPart.Day, world: world);
             book.Raise(boar.Key, KnownLevel.Seen);
             book.CatchingUp = true;
             book.Raise(wood.Key, KnownLevel.Known);
@@ -56,7 +58,7 @@ namespace Scry
             string Line(string label) => lines.FirstOrDefault(l => l.Label == label).Value;
             p.Check(Line("First seen") == "day 9, at dusk in the rain, in the Black Forest; it had 1 star", "the first sighting tells its day, time, weather, biome and stars", Line("First seen"));
             p.Check(Line("Came to know it") == $"day 12, at night, fighting it with your {spear.ShownName} in the Black Forest", "coming to know it tells its moment and what was in hand", Line("Came to know it"));
-            p.Check(Line("Killed you") == "twice, last on day 21", "the deaths it dealt are counted with the last", Line("Killed you"));
+            p.Check(Line("It killed you") == "twice, last on day 21", "the deaths it dealt are counted with the last", Line("It killed you"));
             yield return PictureOf(p, "facts", "you Troll, first seen, came to know and killed you");
 
             // Learned, by day, the folds as the list starts them, the selection in the newest day.
@@ -85,7 +87,7 @@ namespace Scry
             yield return Picture(p, "learned by day, Troll selected");
 
             // The notice in words.
-            p.Check(ScryPanel.NewsLine == "Since day 12: came to know Troll, saw Boar, and read 1 thing from the game's records of this character", "the notice tells what happened in words", ScryPanel.NewsLine);
+            p.Check(ScryPanel.NewsLine == "Since day 12: came to know Troll, saw Boar, and read 1 thing from the game's records of your character", "the notice tells what happened in words", ScryPanel.NewsLine);
             X.LearnedOnly = false;
         }
     }

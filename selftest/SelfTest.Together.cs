@@ -120,7 +120,7 @@ namespace Scry
             var notice = ScryPanel.Drawn(PanelPart.PlayingWithNotice);
             yield return Until(() => ScryPanel.Drawn(PanelPart.PlayingWithNotice) > notice + 1, 3);
             p.Check(ScryPanel.Drawn(PanelPart.PlayingWithNotice) > notice
-                && ScryPanel.PlayingWithLine == "Ana plays without Scry and Bjorn's Scry needs updating: what runs in their games counts nothing for you.",
+                && ScryPanel.PlayingWithLine == PlayingWithWords.Notice(players),
                 "a notice under the header names the players whose games lack Scry", ScryPanel.PlayingWithLine);
             yield return Picture(p, "playing with notice");
 

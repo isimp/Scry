@@ -190,7 +190,8 @@ namespace Scry
             foreach (var world in news.Where(n => n.Day >= 0 && n.World != null).Select(n => n.World).Distinct())
             {
                 var there = Clauses(news.Where(n => n.Day >= 0 && n.World == world).ToList());
-                if (there.Count > 0) parts.Add("in " + world + " " + Joined(there));
+                // A moment kept before worlds were comes grouped under the heading of a world not kept (WorldGroup): said so in words.
+                if (there.Count > 0) parts.Add((world == WorldUnkept ? "in a world not kept " : "in " + world + " ") + Joined(there));
             }
             if (before > 0) parts.Add($"read {Naming.Count(before, "thing", "things")} from the game's records of your character");
             if (places + biomes > 0)
