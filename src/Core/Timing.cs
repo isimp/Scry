@@ -83,6 +83,15 @@ namespace Scry
             return told.Count > 0 ? string.Join(", ", told) : "none";
         }
 
+        /// <summary>What every part allocated of its own since the self-test last forgot them, the self-test's own left out: Scry's whole allocation, told by part.</summary>
+        [Diagnostic, ForTest]
+        public static long OwnBytesSum()
+        {
+            var sum = 0L;
+            foreach (var part in OwnBytesByPart) if (part.Key != SelfTestPart) sum += part.Value;
+            return sum;
+        }
+
         /// <summary>The time of the inner parts so far this frame, for <see cref="Own"/>.</summary>
         public static double InnerMs()
         {

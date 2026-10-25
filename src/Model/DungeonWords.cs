@@ -131,10 +131,15 @@ namespace Scry
         /// </summary>
         public static string Progress(bool insideKnown, bool laidOut, int read, int kinds, int shown, int total)
         {
-            if (!laidOut) return insideKnown ? Reading(read, kinds) : Entrance;
-            if (shown >= total) return null;
-            return insideKnown ? Building(shown, total) : Entrance;
+            var key = (insideKnown, laidOut, read, kinds, shown, total);
+            if (Progresses.TryGet(key, out var said)) return said;
+            said = !laidOut ? (insideKnown ? Reading(read, kinds) : Entrance) : shown >= total ? null : insideKnown ? Building(shown, total) : Entrance;
+            Progresses.Set(key, said);
+            return said;
         }
+
+        /// <summary>The progress lines by what they tell, kept: the stage's side asks every frame.</summary>
+        private static readonly RecentCache<(bool, bool, int, int, int, int), string> Progresses = new RecentCache<(bool, bool, int, int, int, int), string>(64);
 
         /// <summary>What the stage says while a dungeon seen only from outside is built.</summary>
         public const string Entrance = "Building its entrance on the stage";

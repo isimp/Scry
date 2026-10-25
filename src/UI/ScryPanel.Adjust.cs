@@ -60,8 +60,14 @@ namespace Scry
 
             if (open && stars)
             {
-                var names = new List<string>();
-                foreach (var level in starsOffered) names.Add(CombatWords.StarChoice(level - 1));
+                // The names follow the stars offered, which the explorer keeps as one list while nothing changes.
+                if (!ReferenceEquals(_starNamesOf, starsOffered))
+                {
+                    _starNames = new List<string>();
+                    foreach (var level in starsOffered) _starNames.Add(CombatWords.StarChoice(level - 1));
+                    _starNamesOf = starsOffered;
+                }
+                var names = _starNames;
                 var chosen = Segments("Stars", names, starsOffered.IndexOf(modifiers.Level), width, labelW, ref y);
                 if (chosen >= 0) modifiers.Level = starsOffered[chosen];
             }
@@ -167,33 +173,27 @@ namespace Scry
             var rows = new[] { Loadout.Row.Holding, Loadout.Row.Weapon, Loadout.Row.Shield, Loadout.Row.Armour };
             var labels = new[] { "Holding", "Weapon", "Shield", "Armour" };
             LoadoutNames.Clear();
+            // The rows' lists are kept by creature, look and what is known, as the rows draw every frame.
+            var know = _explorer?.KnowStamp ?? 0;
+            if (LoadoutLists.Count > 64) LoadoutLists.Clear();
             for (var i = 0; i < rows.Length; i++)
             {
                 if (!loadout.Offered(rows[i])) continue;
                 var options = loadout.Options(rows[i]);
-                // Under the strict rules an item the creature was not seen carrying up close is not
-                // offered, as the stage would not put it on; a row left with nothing to choose is left out.
-                var shown = Enumerable.Range(0, options.Count).Where(n => string.IsNullOrEmpty(options[n]) || _explorer == null || _explorer.WearsShown(creature.name, options[n])).ToList();
-                if (shown.Count < options.Count && !shown.Any(n => !string.IsNullOrEmpty(options[n]))) continue;
+                if (!LoadoutLists.TryGetValue((creature.name, look, know, i), out var lists))
+                {
+                    lists = LoadoutRowLists(creature.name, rows[i], options);
+                    LoadoutLists[(creature.name, look, know, i)] = lists;
+                }
+                var (shown, names, hidden, offered) = lists;
+                // A row left with nothing to choose is left out.
+                if (shown.Count < options.Count && offered == 0) continue;
                 if (shown.Count < options.Count && !shown.Contains(loadout.Chosen(rows[i])))
                 {
                     loadout.Choose(rows[i], shown[0]);
                     Previews.Rebuild();
                 }
-                var names = shown.Select(n => ItemName(options[n])).ToList();
-                var hidden = 0;
-                for (var n = 0; n < names.Count; n++)
-                {
-                    // An item never met reads a smudge as in a page's text, its prefab not told either,
-                    // but a weapon, whose attacks the creature's table names.
-                    if (rows[i] != Loadout.Row.Weapon && !string.IsNullOrEmpty(options[shown[n]]) && _explorer != null && _explorer.NotMet(options[shown[n]]))
-                    {
-                        names[n] = CompendiumWords.Hidden;
-                        hidden++;
-                    }
-                    else if (names.Count(other => other == names[n]) > 1) names[n] = Naming.WithPrefab(names[n], options[shown[n]]);
-                }
-                if (hidden > 0 && hidden == shown.Count(n => !string.IsNullOrEmpty(options[n]))) continue;
+                if (hidden > 0 && hidden == offered) continue;
                 LoadoutNames.Add((labels[i], names));
 
                 // A shield the weapon leaves no hand for is shown put away, and still chosen for later.
@@ -213,14 +213,53 @@ namespace Scry
             }
 
             // Under the strict rules an extra the creature was not seen carrying up close is not offered either.
-            var shownExtras = Enumerable.Range(0, loadout.Extras.Count).Where(i => _explorer == null || _explorer.WearsShown(creature.name, loadout.Extras[i].Name)).ToList();
+            if (!ExtraLists.TryGetValue((creature.name, know), out var extraLists))
+            {
+                if (ExtraLists.Count > 64) ExtraLists.Clear();
+                var shownNow = Enumerable.Range(0, loadout.Extras.Count).Where(i => _explorer == null || _explorer.WearsShown(creature.name, loadout.Extras[i].Name)).ToList();
+                var extrasNow = shownNow.Select(i => _explorer != null && _explorer.NotMet(loadout.Extras[i].Name) ? CompendiumWords.Hidden : ItemName(loadout.Extras[i].Name)).ToList();
+                extraLists = (shownNow, extrasNow);
+                ExtraLists[(creature.name, know)] = extraLists;
+            }
+            var (shownExtras, extras) = extraLists;
             if (shownExtras.Count == 0) return;
-            var extras = shownExtras.Select(i => _explorer != null && _explorer.NotMet(loadout.Extras[i].Name) ? CompendiumWords.Hidden : ItemName(loadout.Extras[i].Name)).ToList();
             var clicked = Toggles("Extras", extras, i => loadout.ExtraOn(shownExtras[i]), width, labelW, ref y);
             if (clicked < 0) return;
             loadout.ToggleExtra(shownExtras[clicked]);
             Previews.Rebuild();
         }
+
+        /// <summary>
+        /// A loadout row's lists: which options are shown (under the strict rules those the creature was
+        /// seen carrying up close, as the stage would not put the others on), their names, how many
+        /// read as a smudge (an item never met, its prefab not told either, but a weapon, whose
+        /// attacks the creature's table names), and how many options there are besides none.
+        /// </summary>
+        private static (List<int> Shown, List<string> Names, int Hidden, int Offered) LoadoutRowLists(string creature, Loadout.Row row, IReadOnlyList<string> options)
+        {
+            var shown = Enumerable.Range(0, options.Count).Where(n => string.IsNullOrEmpty(options[n]) || _explorer == null || _explorer.WearsShown(creature, options[n])).ToList();
+            var names = shown.Select(n => ItemName(options[n])).ToList();
+            var hidden = 0;
+            for (var n = 0; n < names.Count; n++)
+            {
+                if (row != Loadout.Row.Weapon && !string.IsNullOrEmpty(options[shown[n]]) && _explorer != null && _explorer.NotMet(options[shown[n]]))
+                {
+                    names[n] = CompendiumWords.Hidden;
+                    hidden++;
+                }
+                else if (names.Count(other => other == names[n]) > 1) names[n] = Naming.WithPrefab(names[n], options[shown[n]]);
+            }
+            return (shown, names, hidden, shown.Count(n => !string.IsNullOrEmpty(options[n])));
+        }
+
+        /// <summary>The loadout rows' lists by creature, look, what is known and row, and the extras' by creature and what is known.</summary>
+        private static readonly Dictionary<(string Creature, int Look, int Know, int Row), (List<int> Shown, List<string> Names, int Hidden, int Offered)> LoadoutLists =
+            new Dictionary<(string, int, int, int), (List<int>, List<string>, int, int)>();
+        private static readonly Dictionary<(string Creature, int Know), (List<int> Shown, List<string> Names)> ExtraLists = new Dictionary<(string, int), (List<int>, List<string>)>();
+
+        /// <summary>The stars' names, and the list of stars offered they were made for.</summary>
+        private static List<int> _starNamesOf;
+        private static List<string> _starNames;
 
         /// <summary>The gear rows last drawn, by their labels, and the names their choices showed, for the self-test.</summary>
         [Diagnostic]

@@ -131,6 +131,22 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheStarsOfferedAreOneListWhileNothingChanges()
+        {
+            // The Adjust rows ask every frame: the same list is given again until a sighting, the selection or a peek changes it.
+            var world = new World().Rule(CompendiumRule.Strict);
+            world.Explorer.Select(world.Draugr);
+            var offered = world.Explorer.StarsOffered(world.Draugr);
+            Assert.Same(offered, world.Explorer.StarsOffered(world.Draugr));
+            Assert.Equal(new[] { 1 }, offered);
+            world.Book.Sighted(world.Draugr.Key, 2, null);
+            world.Rule(CompendiumRule.Strict);
+            var again = world.Explorer.StarsOffered(world.Draugr);
+            Assert.NotSame(offered, again);
+            Assert.Equal(new[] { 1, 3 }, again);
+        }
+
+        [Fact]
         public void UnderStrictALookShowsOnlyWithEveryItemSeenCarried()
         {
             // Under the loose rules a look of met items is offered, as before; under the strict

@@ -263,18 +263,10 @@ namespace Scry
             }
         }
 
-        private static void Draw(Explorer explorer)
+        /// <summary>The header: the name, the way back and forward, the locations' button, the compendium's, Clear world, the gear, the view switch and the close button; it drags the panel. Timed as a part of its own.</summary>
+        private static void Header(Explorer explorer, float w, float h, float pad, Event e)
         {
-            var win = Win;
-            _drawn = win;
-            Skin.Box(win, Skin.Backdrop, Skin.Outline);
-
-            GUI.BeginGroup(win);
-            var w = win.width;
-            var h = win.height;
-            var pad = U(16f);
-            var e = Event.current;
-
+            var timed = Timing.Start();
             // Header: the name, the catalog size, the view switch and a close button. It drags the panel.
             var viewText = PanelWords.ViewButton(_compact);
             var viewW = Skin.Width(Skin.Button, viewText) + U(10f);
@@ -339,6 +331,22 @@ namespace Scry
                 StartDrag(Drag.Move);
                 e.Use();
             }
+            Timing.Add("panel header", timed);
+        }
+
+        private static void Draw(Explorer explorer)
+        {
+            var win = Win;
+            _drawn = win;
+            Skin.Box(win, Skin.Backdrop, Skin.Outline);
+
+            GUI.BeginGroup(win);
+            var w = win.width;
+            var h = win.height;
+            var pad = U(16f);
+            var e = Event.current;
+
+            Header(explorer, w, h, pad, e);
 
             // Search, favourites and origin, then the kind tabs, across the whole width.
             // The mouse's side buttons, as the panel's own events see them.
@@ -348,6 +356,7 @@ namespace Scry
                 Event.current.Use();
             }
 
+            var notices = Timing.Start();
             // The self-test and what is off, in strips under the header, the rest moved down to make room.
             var testH = SelfTestHost.StripShown ? U(32f) : 0f;
             if (testH > 0f)
@@ -364,6 +373,7 @@ namespace Scry
                 noticeH += lineH;
             }
             else noticeH = NoticeStrips(explorer, pad, w, noticeH);
+            Timing.Add("panel notices", notices);
 
             var controls = Timing.Start();
             var y = Controls(explorer, new Rect(pad, U(56f) + noticeH, w - pad * 2f, U(36f)));
@@ -413,7 +423,9 @@ namespace Scry
                 Side(explorer, new Rect(rightX, bodyTop, w - rightX - pad, bodyH), withStage: true);
             }
 
+            var footer = Timing.Start();
             Footer(new Rect(pad, h - pad - footerH + U(6f), w - pad * 2f, footerH));
+            Timing.Add("panel footer", footer);
 
             // Over everything below the search box; its clicks were taken before any of it drew.
             Assist.Draw();

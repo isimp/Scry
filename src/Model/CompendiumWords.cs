@@ -37,7 +37,14 @@ namespace Scry
         public const string ModeCaption = "Compendium";
 
         /// <summary>The compendium's button in the title row: the rules chosen, and that a box of its settings opens under it.</summary>
-        public static string Button(CompendiumRule rule) => ModeCaption + " · " + RuleName(rule) + "  ▾";
+        public static string Button(CompendiumRule rule)
+        {
+            if (Buttons.TryGetValue(rule, out var button)) return button;
+            return Buttons[rule] = ModeCaption + " · " + RuleName(rule) + "  ▾";
+        }
+
+        /// <summary>The compendium's button by rule, made once: the header draws it every frame.</summary>
+        private static readonly Dictionary<CompendiumRule, string> Buttons = new Dictionary<CompendiumRule, string>();
 
         /// <summary>The caption over the compendium's box.</summary>
         public const string BoxCaption = "What your character knows, shown in the catalog";
@@ -650,7 +657,17 @@ namespace Scry
         public const string SeenRowTag = "seen";
 
         /// <summary>A list row's note of an entry only seen, before what else the row tells, where it tells anything: "seen · 2 of 3".</summary>
-        public static string SeenRowNote(string note) => string.IsNullOrEmpty(note) ? SeenRowTag : SeenRowTag + " · " + note;
+        public static string SeenRowNote(string note)
+        {
+            if (string.IsNullOrEmpty(note)) return SeenRowTag;
+            if (SeenRowNotes.TryGet(note, out var said)) return said;
+            said = SeenRowTag + " · " + note;
+            SeenRowNotes.Set(note, said);
+            return said;
+        }
+
+        /// <summary>The seen rows' notes by their note, kept: the list draws them every frame.</summary>
+        private static readonly RecentCache<string, string> SeenRowNotes = new RecentCache<string, string>(512, StringComparer.Ordinal);
 
         /// <summary>The lines of a page only seen telling what sight gave (<see cref="Explorer.SeenLines"/>).</summary>
         public const string SeenWithLabel = "Seen with";

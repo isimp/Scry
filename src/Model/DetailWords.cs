@@ -43,7 +43,17 @@ namespace Scry
         public static string MadeOf(string components) => "Made of: " + components;
 
         /// <summary>An ingredient's or a drop's chip: its amount, where it has one, and its name.</summary>
-        public static string Amounted(string amount, string name) => string.IsNullOrEmpty(amount) ? name : $"{amount}  {name}";
+        public static string Amounted(string amount, string name)
+        {
+            if (string.IsNullOrEmpty(amount)) return name;
+            if (Amounteds.TryGet((amount, name), out var said)) return said;
+            said = $"{amount}  {name}";
+            Amounteds.Set((amount, name), said);
+            return said;
+        }
+
+        /// <summary>The chips' texts by amount and name, kept: a page's rows draw them every frame.</summary>
+        private static readonly RecentCache<(string Amount, string Name), string> Amounteds = new RecentCache<(string, string), string>(4096);
 
         /// <summary>The console command's heading: one that gives an item, or one that spawns.</summary>
         public static string CommandHeading(bool give) => give ? "GIVE COMMAND" : "SPAWN COMMAND";

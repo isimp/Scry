@@ -126,6 +126,9 @@ namespace Scry
             return DungeonWords.Progress(!Stage.InsideUnknown, ExampleLayouts.Example != null, ExampleLayouts.Read, ExampleLayouts.Total, Stage.ExampleRoomsShown, Stage.ExampleRoomsTotal);
         }
 
+        /// <summary>The row of what the stage shows, filled afresh each frame into one list rather than a new one.</summary>
+        private static readonly List<string> ShowsRow = new List<string>();
+
         private static void StageArea(Explorer explorer, Entry entry, Rect rect)
         {
             Skin.Box(rect, Skin.Stage);
@@ -441,7 +444,8 @@ namespace Scry
 
             // Everything the row will hold, measured first, so it can move clear of the kind badge.
             var showsInside = Stage.HasOutside && !Stage.InsideUnknown;
-            var shows = new List<string>();
+            var shows = ShowsRow;
+            shows.Clear();
             if (showsInside) shows.Add(StageWords.Inside(Stage.Inside));
             var inside = Stage.HasInside && Stage.ShowsInside;
             // The world's own dungeon inside is its layout alone, with no creatures to show.

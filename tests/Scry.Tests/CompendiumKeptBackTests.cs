@@ -479,6 +479,11 @@ namespace Scry.Tests
             Assert.Equal("––", world.Explorer.StrictAmount(Tally.Weather, "Meadows", "Misty"));
             Assert.Equal("How often shows as you see its weathers", TallyWords.NotYetCounted(Tally.Weather));
             Assert.Equal(3, CompendiumBook.Load(world.Book.Save()).Tallied(Tally.Weather).Kills("Meadows"));
+            // Asked every frame by the chips, the amount is the same string again while nothing changed, and new once a count came.
+            Assert.Same(world.Explorer.StrictAmount(Tally.Weather, "Meadows", "Clear"), world.Explorer.StrictAmount(Tally.Weather, "Meadows", "Clear"));
+            world.Book.Weathered("Meadows", "Clear");
+            world.Rule(CompendiumRule.Strict);
+            Assert.Equal("3 of 4 seen", world.Explorer.StrictAmount(Tally.Weather, "Meadows", "Clear"));
         }
 
         [Fact]

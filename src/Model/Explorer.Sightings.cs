@@ -29,6 +29,34 @@ namespace Scry
         /// </summary>
         public bool KeepsBackAttackClip(string item) => item != null && _selected?.Kind == Kind.Creature && KeepsBack(EntryKeys.Attack(item));
 
+        /// <summary>
+        /// An item's amount in a row counted from what the character saw (<see cref="Tally"/>) of
+        /// a creature or resource: under the strict rules, on a known page above the milestone
+        /// floor, how many came and how often, a smudge where it was never counted; none otherwise,
+        /// when the game's own amount shows. Kept by item while what is known and the selection
+        /// stay, as a page's chips ask every frame.
+        /// </summary>
+        public string StrictAmount(Tally tally, string of, string item)
+        {
+            if (tally == Tally.None || !LeavingOut) return null;
+            if (_strictAmountsOf != (KnowStamp, SelectionVersion))
+            {
+                _strictAmounts.Clear();
+                _strictAmountsOf = (KnowStamp, SelectionVersion);
+            }
+            var key = (tally, of, item);
+            if (_strictAmounts.TryGet(key, out var amount)) return amount;
+            var counted = _view.Book.Tallied(tally);
+            var drop = counted.Of(of).FirstOrDefault(d => d.Item == item);
+            amount = drop == null ? CompendiumWords.Hidden : tally == Tally.Weather ? TallyWords.Seen(drop, counted.Kills(of)) : TallyWords.Chip(drop, counted.Kills(of));
+            _strictAmounts.Set(key, amount);
+            return amount;
+        }
+
+        /// <summary>The strict amounts by tally, source and item, and what is known and selected they were worked out at.</summary>
+        private readonly RecentCache<(Tally Tally, string Of, string Item), string> _strictAmounts = new RecentCache<(Tally, string, string), string>(2048);
+        private (int Know, int Selection) _strictAmountsOf = (-1, -1);
+
         /// <summary>The world's seen reach, within which stars, gear and attacks are seen up close; 0 where the server keeps none.</summary>
         public float SeenReach => _view?.Book?.World.SeenReach ?? WorldRules.SeenReachSetting.Default;
 
@@ -50,8 +78,23 @@ namespace Scry
         /// The levels the stage offers a creature at, 1 being no stars: every one up to its most
         /// with the compendium off, peeking, under the loose rules or on a page shown whole; under
         /// the strict rules no stars and each count of stars it was seen with up close.
+        /// Kept as one list while what is known, the selection and peeking stay, as the Adjust rows ask every frame.
         /// </summary>
         public List<int> StarsOffered(Entry entry)
+        {
+            if (entry == null) return new List<int>();
+            if (_starsOffered.TryGetValue(entry.Key, out var kept) && kept.Know == KnowStamp && kept.Selection == SelectionVersion && kept.Peeking == Peeking) return kept.Offered;
+            if (_starsOffered.Count > 256) _starsOffered.Clear();
+            var offered = StarsOfferedNow(entry);
+            _starsOffered[entry.Key] = (KnowStamp, SelectionVersion, Peeking, offered);
+            return offered;
+        }
+
+        /// <summary>The stars offered by entry, with what they were worked out at (<see cref="StarsOffered"/>).</summary>
+        private readonly Dictionary<string, (int Know, int Selection, bool Peeking, List<int> Offered)> _starsOffered = new Dictionary<string, (int, int, bool, List<int>)>(StringComparer.Ordinal);
+
+        /// <summary>The levels offered, worked out afresh (<see cref="StarsOffered"/>).</summary>
+        private List<int> StarsOfferedNow(Entry entry)
         {
             var most = 1 + Math.Max(0, entry?.ExtraLevels ?? 0);
             var offered = new List<int>();

@@ -416,21 +416,6 @@ namespace Scry
         }
 
         /// <summary>
-        /// An item's amount in a row counted from what the character saw (<see cref="Tally"/>) of
-        /// a creature or resource: under the strict rules, on a known page above the milestone
-        /// floor, how many came and how often, a smudge where it was never counted; none otherwise,
-        /// when the game's own amount shows.
-        /// </summary>
-        public string StrictAmount(Tally tally, string of, string item)
-        {
-            if (tally == Tally.None || !LeavingOut) return null;
-            var counted = _view.Book.Tallied(tally);
-            var drop = counted.Of(of).FirstOrDefault(d => d.Item == item);
-            if (drop == null) return CompendiumWords.Hidden;
-            return tally == Tally.Weather ? TallyWords.Seen(drop, counted.Kills(of)) : TallyWords.Chip(drop, counted.Kills(of));
-        }
-
-        /// <summary>
         /// A line of where the item shown comes from under the strict rules, on a known page above
         /// the milestone floor: a way with a chance in it told with the character's count in its
         /// place (<see cref="SourceWords.CountedBy"/>), a smudge where nothing was counted or nothing

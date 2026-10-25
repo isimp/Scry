@@ -26,7 +26,17 @@ namespace Scry
         public const string NotPlaced = "Scry found nothing for these; the mod's own code may still place them";
         public const string ModSettings = "The mod's own settings, as its config holds them now; only the mod knows what it does with them";
 
-        public static string Marked(string label) => Mark + label;
+        public static string Marked(string label)
+        {
+            if (label == null) return Mark;
+            if (Markeds.TryGet(label, out var said)) return said;
+            said = Mark + label;
+            Markeds.Set(label, said);
+            return said;
+        }
+
+        /// <summary>The marked labels by label, kept: the rows draw them every frame.</summary>
+        private static readonly RecentCache<string, string> Markeds = new RecentCache<string, string>(256, System.StringComparer.Ordinal);
 
         /// <summary>Whether the clue a mod was named by is the mod's own word; no clue (a mod's own page) is too.</summary>
         public static bool IsSureClue(string clue) => string.IsNullOrEmpty(clue) || clue == RegistryClue;

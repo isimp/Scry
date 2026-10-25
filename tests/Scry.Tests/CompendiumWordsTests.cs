@@ -191,5 +191,21 @@ namespace Scry.Tests
             // Under the strict rules a page known still keeps some back: said too.
             Assert.Equal("Under Strict, numbers and connections show as you see them.", CompendiumWords.ClosedStrict);
         }
+
+        [Fact]
+        public void TextsDrawnEveryFrameAreTheSameStringAgain()
+        {
+            // The panel draws these each frame: made once for their inputs and given again, they add no garbage a frame.
+            Assert.Same(CompendiumWords.Button(CompendiumRule.Strict), CompendiumWords.Button(CompendiumRule.Strict));
+            Assert.NotEqual(CompendiumWords.Button(CompendiumRule.Loose), CompendiumWords.Button(CompendiumRule.Strict));
+            Assert.Same(CompendiumWords.SeenRowNote("log"), CompendiumWords.SeenRowNote("log"));
+            Assert.Same(CompendiumWords.SeenRowNote(null), CompendiumWords.SeenRowNote(""));
+            Assert.Same(DetailWords.Amounted("2", "Wood"), DetailWords.Amounted("2", "Wood"));
+            Assert.Equal("Wood", DetailWords.Amounted(null, "Wood"));
+            Assert.Same(UnsureWords.Marked("Sells"), UnsureWords.Marked("Sells"));
+            Assert.Same(CensusWords.TabTip(2, 3, 9), CensusWords.TabTip(2, 3, 9));
+            Assert.Same(DungeonWords.Progress(true, true, 12, 12, 4, 20), DungeonWords.Progress(true, true, 12, 12, 4, 20));
+            Assert.Null(DungeonWords.Progress(true, true, 12, 12, 20, 20));
+        }
     }
 }

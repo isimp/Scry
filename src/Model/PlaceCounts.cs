@@ -112,7 +112,15 @@ namespace Scry
         }
 
         /// <summary>The Locations tab's tip with the census: how many kinds of place were found, of those the world holds, of all the game and its mods can place.</summary>
-        public static string TabTip(int found, int held, int all) =>
-            $"{Numbers.Count(found)} kinds of place found, of the {Numbers.Count(held)} this world holds; the game and its mods can place {Numbers.Count(all)}";
+        public static string TabTip(int found, int held, int all)
+        {
+            if (TabTips.TryGet((found, held, all), out var tip)) return tip;
+            tip = $"{Numbers.Count(found)} kinds of place found, of the {Numbers.Count(held)} this world holds; the game and its mods can place {Numbers.Count(all)}";
+            TabTips.Set((found, held, all), tip);
+            return tip;
+        }
+
+        /// <summary>The tips by their counts, kept: the tabs are laid out every frame.</summary>
+        private static readonly RecentCache<(int, int, int), string> TabTips = new RecentCache<(int, int, int), string>(64);
     }
 }

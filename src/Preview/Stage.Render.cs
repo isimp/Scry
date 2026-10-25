@@ -112,7 +112,9 @@ namespace Scry
                 RenderSettings.ambientSkyColor = light;
                 RenderSettings.ambientEquatorColor = light;
                 RenderSettings.ambientGroundColor = light * 0.7f;
+                step = Timing.Start();
                 KeepWorldLightsOff(mask);
+                Timing.Add("render lights", step);
 
                 _camera.cullingMask = mask;
                 // The water reads the depth of what is under it.
@@ -123,7 +125,9 @@ namespace Scry
                 // The outlines are drawn at the end of the frame's last film.
                 var creaturesAgain = _aboveCut != null && CreatureLayer != _layer && Creatures.AnyMade;
                 // A dungeon's level opened whole that one cut cannot open is filmed a group at a time.
+                step = Timing.Start();
                 var films = FilmsNow();
+                Timing.Add("render films list", step);
                 step = Timing.Start();
                 var filming = System.Diagnostics.Stopwatch.GetTimestamp();
                 if (films != null) FilmGroups(films, creaturesAgain);
