@@ -219,7 +219,8 @@ namespace Scry
                 if (effect != null) _catchUp.Met(EntryKeys.For(Kind.StatusEffect, Utils.GetPrefabName(effect.name)), KnownLevel.Known, _book, CameBy.OnYou);
             }
             var raid = RandEventSystem.instance.OrNull()?.GetActiveEvent();
-            if (raid != null) _catchUp.LivedThrough(EntryKeys.For(Kind.Raid, raid.m_name), _book);
+            RaidNow = raid != null ? EntryKeys.For(Kind.Raid, raid.m_name) : null;
+            if (raid != null) _catchUp.LivedThrough(RaidNow, _book);
             // A trader's store open: the trader known, its wares on show seen and paired with it.
             var trader = StoreGui.IsVisible() && StoreGui.instance != null ? TraderOf(StoreGui.instance) : null;
             if (trader != null) _catchUp.Traded(Utils.GetPrefabName(trader.gameObject), trader.GetAvailableItems().Where(t => t?.m_prefab != null).Select(t => t.m_prefab.name), _book);
@@ -238,7 +239,8 @@ namespace Scry
             }
             var hovered = player.GetHoverObject();
             var thing = hovered != null ? hovered.GetComponentInParent<ZNetView>() : null;
-            if (thing != null)
+            // A creature under the crosshair is the sight's, which keeps its stars with its first sighting.
+            if (thing != null && thing.GetComponent<Character>() == null)
             {
                 var key = Utils.GetPrefabName(thing.gameObject);
                 _catchUp.Met(key, KnownLevel.Seen, _book);
@@ -247,10 +249,16 @@ namespace Scry
             Guard.Run(Feature.CompendiumSeen, "looking at what the character sees", () => CompendiumSight.Look(player, _catchUp, _book));
         }
 
-        /// <summary>Learns of a creature the character fought, hitting it or hit by it, as news, and that it met it where it stands.</summary>
+        /// <summary>The raid running now, by its key, for the sight to pair the creatures seen in it; none while none runs.</summary>
+        public static string RaidNow { get; private set; }
+
+        /// <summary>Whether a raid running now brings a creature (<see cref="CompendiumCatchUp.RaidBrings"/>).</summary>
+        public static bool RaidBrings(string creature) => RaidNow != null && _catchUp != null && _catchUp.RaidBrings(RaidNow, creature);
+
+        /// <summary>Learns of a creature the character fought, hitting it or hit by it, as news, and that it met it where it stands; never a player.</summary>
         public static void Fought(Character creature)
         {
-            if (Into == null || _catchUp == null || creature == null || creature == Player.m_localPlayer) return;
+            if (Into == null || _catchUp == null || creature == null || creature.IsPlayer()) return;
             var key = Utils.GetPrefabName(creature.gameObject);
             _catchUp.Met(key, KnownLevel.Known, Into, CameBy.Fought);
             MetIn(key, creature.transform.position);
@@ -381,7 +389,7 @@ namespace Scry
             var player = Player.m_localPlayer;
             if (Into == null || told == null || player == null) return;
             var at = player.transform.position;
-            EventRule.Tell(told, ZNet.GetUID(), at.x, at.y, at.z, Told, Into, _into == null ? Play : null, CompendiumSight.SeesDeed);
+            EventRule.Tell(told, ZNet.GetUID(), at.x, at.y, at.z, Told, Into, _into == null ? Play : null, CompendiumSight.SeesDeed, Time.realtimeSinceStartup);
         }
 
         /// <summary>A producer the character collected from shows its pace (<see cref="Deed.Collected"/>).</summary>
@@ -426,7 +434,13 @@ namespace Scry
                 loot[held.m_dropPrefab.name] = so + held.m_stack;
             }
             Into.Held(chest, loot.Select(l => (l.Key, l.Value)));
-            foreach (var item in loot.Keys) Into.SawWith(chest, item, Tie.Holds);
+            // What the world put there was found in the chest, and in the place it stands in: once, as the chest is counted.
+            var place = Location.GetLocation(container.transform.position);
+            foreach (var item in loot.Keys)
+            {
+                Into.SawWith(chest, item, Tie.Holds);
+                if (place != null) Into.Witness(item, EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject)));
+            }
             Noted(PlayEvent.ChestCounted);
         }
 

@@ -74,9 +74,9 @@ namespace Scry.Tests
         [Fact]
         public void DeathsACreatureDealtAreCountedWithTheLast()
         {
-            Assert.Equal("once, on day 21", JournalWords.KilledYou(1, 21));
-            Assert.Equal("twice, last on day 21", JournalWords.KilledYou(2, 21));
-            Assert.Equal("3 times", JournalWords.KilledYou(3, -1));
+            Assert.Equal("once, on day 21", JournalWords.KilledYou(1, 21, null));
+            Assert.Equal("twice, last on day 21", JournalWords.KilledYou(2, 21, null));
+            Assert.Equal("3 times", JournalWords.KilledYou(3, -1, null));
         }
 
         [Fact]

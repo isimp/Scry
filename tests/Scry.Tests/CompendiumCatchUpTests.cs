@@ -286,8 +286,9 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void ATrophyHeldIsKnownAndSoIsTheCreatureItFallsFrom()
+        public void ATrophyHeldIsKnownAndTheCreatureItFallsFromSeenAndPairedWithNothing()
         {
+            // Play would only see the creature before a fight: the records make it seen, with no sighting kept, and pair nothing with it.
             // Not the chest it can also be found in, nor a creature it falls from that lives in
             // no biome the character entered: the game's own TheHive, placed nowhere in the world,
             // drops the drake's trophy too.
@@ -302,6 +303,7 @@ namespace Scry.Tests
             trophy.AddTermLink("from", hive);
             trophy.AddTermLink("from", chest);
             var (catchUp, book) = Fresh(trophy, drake, hive, chest, mountain);
+            book.Now = () => new Moment(3, "Mountain");
             var records = new CompendiumRecords();
             records.Trophies.Add("TrophyHatchling");
             records.Biomes.Add("$biome_mountain");
@@ -309,10 +311,12 @@ namespace Scry.Tests
             catchUp.Fill(records, book, firstLoad: false);
 
             Assert.Equal(KnownLevel.Known, book.Level(trophy.Key));
-            Assert.Equal(KnownLevel.Known, book.Level(drake.Key));
+            Assert.Equal(KnownLevel.Seen, book.Level(drake.Key));
+            Assert.Null(book.FirstSeen(drake.Key));
+            Assert.Null(book.Came(drake.Key));
             Assert.Equal(KnownLevel.Unknown, book.Level(chest.Key));
             Assert.Equal(KnownLevel.Unknown, book.Level(hive.Key));
-            Assert.True(book.Witnessed(trophy.Key, drake.Key));
+            Assert.False(book.Witnessed(trophy.Key, drake.Key));
             Assert.False(book.Witnessed(trophy.Key, hive.Key));
         }
 
@@ -338,6 +342,7 @@ namespace Scry.Tests
             wood.AddTermLink("from", greydwarf);
             resin.AddTermLink("from", fir);
             var (catchUp, book) = Fresh(berries, bush, wood, beech, greydwarf, resin, fir, meadows);
+            book.Now = () => new Moment(3, "Meadows");
             var records = new CompendiumRecords();
             records.Biomes.Add("$biome_meadows");
             records.Picked.Add("Raspberry");
@@ -776,7 +781,7 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void ATrophyAFoodEatenAndAThingPickedPairWithWhereTheyCameFrom()
+        public void AFoodEatenAndAThingPickedPairWithWhereTheyCameFromATrophyWithNothing()
         {
             var troll = E(Kind.Creature, "Troll", "$enemy_troll");
             var trophy = E(Kind.Item, "TrophyFrostTroll", "$item_trophy_troll");
@@ -809,7 +814,9 @@ namespace Scry.Tests
 
             catchUp.Fill(records, book, firstLoad: true);
 
-            Assert.True(book.Witnessed(trophy.Key, troll.Key));
+            // A trophy held makes its creature seen, as 26A has it, and pairs nothing with it.
+            Assert.False(book.Witnessed(trophy.Key, troll.Key));
+            Assert.Equal(KnownLevel.Seen, book.Level(troll.Key));
             Assert.False(book.Witnessed(trophy.Key, chest.Key));
             // The records cannot tell which bush: each that gives it, as the loose rules know them all.
             Assert.False(book.Witnessed(berries.Key, bush.Key));
@@ -1014,8 +1021,9 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void ARaidLivedThroughIsKnownAndPairedWithTheCreaturesItBringsThatWereMet()
+        public void ARaidLivedThroughIsKnownAndPairedWithNothingUntilACreatureIsSeenInIt()
         {
+            // The pairs come of the creatures seen while the raid runs (CompendiumSight.Look), not of every creature met before.
             var greydwarf = E(Kind.Creature, "Greydwarf");
             var shaman = E(Kind.Creature, "Greydwarf_Shaman");
             var raid = new Entry { Kind = Kind.Raid, Name = "foresttrolls" };
@@ -1028,13 +1036,14 @@ namespace Scry.Tests
 
             Assert.Equal(KnownLevel.Known, book.Level(raid.Key));
             Assert.Equal(raid.Key, book.Lately.First());
-            Assert.True(book.Witnessed(raid.Key, greydwarf.Key));
-            // A creature it brings that the character never met is no part of what it lived through.
+            Assert.False(book.Witnessed(raid.Key, greydwarf.Key));
             Assert.False(book.Witnessed(raid.Key, shaman.Key));
-            // Lived through again, it is no news, and what was met meanwhile is paired.
-            book.Raise(shaman.Key, KnownLevel.Known);
+            // Lived through again, it is no news.
             Assert.False(catchUp.LivedThrough(raid.Key, book));
-            Assert.True(book.Witnessed(raid.Key, shaman.Key));
+            // The sight asks whether the raid brings a creature before pairing the two.
+            Assert.True(catchUp.RaidBrings(raid.Key, greydwarf.Key));
+            Assert.False(catchUp.RaidBrings(raid.Key, "Troll"));
+            Assert.False(catchUp.RaidBrings("raid:none", greydwarf.Key));
         }
 
         [Fact]

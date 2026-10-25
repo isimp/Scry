@@ -61,12 +61,13 @@ namespace Scry
             return often + ": " + string.Join(", ", told.ToArray());
         }
 
-        /// <summary>The deaths a creature dealt the character: "twice, last on day 21", "once, on day 21"; the count alone where no day was known.</summary>
-        public static string KilledYou(int count, int lastDay)
+        /// <summary>The deaths a creature dealt the character: "twice, last on day 21", "once, on day 21 in Elderwood" with the world where it is to be named; the count alone where no day was known.</summary>
+        public static string KilledYou(int count, int lastDay, string world)
         {
             var often = CompendiumWords.Often(count);
             if (lastDay < 0) return often;
-            return count == 1 ? $"{often}, on day {Numbers.Count(lastDay)}" : $"{often}, last on day {Numbers.Count(lastDay)}";
+            var when = world != null ? $"day {Numbers.Count(lastDay)} in {world}" : $"day {Numbers.Count(lastDay)}";
+            return count == 1 ? $"{often}, on {when}" : $"{often}, last on {when}";
         }
 
         /// <summary>A way of coming to know a thing as done, for its row in the Learned list.</summary>

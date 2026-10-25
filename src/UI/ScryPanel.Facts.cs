@@ -105,7 +105,7 @@ namespace Scry
                         var sight = first.Value.At;
                         seen = JournalWords.FirstSeen(sight.Day, sight.Time, sight.Weather, BiomeShown(explorer, sight.Biome), first.Value.Stars, explorer.WorldShown(sight.World));
                     }
-                    if (book.DeathsBy(entry.Key) is var deaths && deaths != null) killedYou = JournalWords.KilledYou(deaths.Value.Count, deaths.Value.LastDay);
+                    if (book.DeathsBy(entry.Key) is var deaths && deaths != null) killedYou = JournalWords.KilledYou(deaths.Value.Count, deaths.Value.LastDay, explorer.WorldShown(book.DeathsWorld(entry.Key)));
                 }
                 _you = CompendiumWords.You(CharacterRecords.Counts(entry), came, seen, killedYou);
                 // A skill's page opens with the character's level and the way to the next.

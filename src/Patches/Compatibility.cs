@@ -453,7 +453,8 @@ namespace Scry
             Each("SpawnSystem.m_instances", () => Member(list, "SpawnSystem", "m_instances", Feature.WhereCreaturesSpawn));
             Each("ZSFX.m_fadeOutTimer", () => Member(list, "ZSFX", "m_fadeOutTimer", Feature.SoundsAfterSeek));
             Each("CharacterDrop.m_dropsEnabled", () => Member(list, "CharacterDrop", "m_dropsEnabled", Feature.DropsSeenInPlay));
-            Each("Pickable.m_pickedLocal", () => Member(list, "Pickable", "m_pickedLocal", Feature.CompendiumTogether));
+            Each("Pickable.m_picked", () => Member(list, "Pickable", "m_picked", Feature.CompendiumTogether));
+            Each("Pickable.m_enabled", () => Member(list, "Pickable", "m_enabled", Feature.CompendiumTogether));
             Each("Player.m_knownMaterial", () => Member(list, "Player", "m_knownMaterial", Feature.CompendiumCatchUp));
             Each("Character.m_lastHit", () => Member(list, "Character", "m_lastHit", Feature.CompendiumDeaths));
             Each("Player.m_knownRecipes", () => Member(list, "Player", "m_knownRecipes", Feature.CompendiumCatchUp));

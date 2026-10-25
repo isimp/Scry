@@ -140,6 +140,9 @@ namespace Scry
         /// <summary>The deeds whose numbers its page keeps back under the strict rules until seen (<see cref="Deed"/>), as its components have them: its health until one is killed or broken, how long taming, a birth or growing back take, and the rest.</summary>
         public Deed[] Deeds = Array.Empty<Deed>();
 
+        /// <summary>The thing a deed's topic hinges on, by the deed (<see cref="Facts.PartHinges"/>): riding on the saddle, a birth on the young, growing up on the grown form; the topic is left out whole while it was not met.</summary>
+        public Dictionary<Deed, string> DeedHinges = new Dictionary<Deed, string>();
+
         /// <summary>
         /// A creature's attacks, each by the item it is made with and the damage types it deals,
         /// in small letters; for the strict rules' search, which finds a creature by what it deals

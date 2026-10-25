@@ -298,6 +298,7 @@ namespace Scry
                 Registered = registeredOrigin,
                 Components = found.Components.ToArray(),
                 Deeds = found.Deeds.ToArray(),
+                DeedHinges = Hinges(found.Prefab),
                 Tokens = found.Tokens.ToArray(),
                 Biomes = Knowledge.Biomes(name),
                 ModName = Knowledge.ModName(name),
@@ -445,6 +446,20 @@ namespace Scry
         private static void Named(Found found, string token)
         {
             if (!string.IsNullOrEmpty(token)) found.Tokens.Add(token);
+        }
+
+        /// <summary>What a prefab's deeds hinge on (<see cref="Entry.DeedHinges"/>): the saddle for riding, the young for a birth, the grown form for growing up.</summary>
+        private static Dictionary<Deed, string> Hinges(GameObject prefab)
+        {
+            var hinges = new Dictionary<Deed, string>();
+            if (prefab == null) return hinges;
+            var tame = prefab.GetComponent<Tameable>();
+            if (tame != null && tame.m_saddleItem != null) hinges[Deed.Ridden] = tame.m_saddleItem.gameObject.name;
+            var breed = prefab.GetComponent<Procreation>();
+            if (breed != null && breed.m_offspring != null) hinges[Deed.Born] = breed.m_offspring.name;
+            var grow = prefab.GetComponent<Growup>();
+            if (grow != null && grow.m_grownPrefab != null) hinges[Deed.GrewUp] = grow.m_grownPrefab.name;
+            return hinges;
         }
 
         /// <summary>

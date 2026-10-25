@@ -97,12 +97,33 @@ namespace Scry.Tests
         {
             var book = Book(new Moment(18, "BlackForest"));
             book.Died("Troll");
-            book.Now = () => new Moment(21, "BlackForest");
+            book.Now = () => new Moment(21, "BlackForest", world: "Elderwood");
             book.Died("Troll");
 
             Assert.Equal((2, 21), book.DeathsBy("Troll"));
+            Assert.Equal("Elderwood", book.DeathsWorld("Troll"));
             Assert.Null(book.DeathsBy("Boar"));
             Assert.True(book.Changed);
+            // Told with the world where it differs from the one played, as every other moment is.
+            Assert.Equal("twice, last on day 21", JournalWords.KilledYou(2, 21, null));
+            Assert.Equal("once, on day 21 in Elderwood", JournalWords.KilledYou(1, 21, "Elderwood"));
+        }
+
+        [Fact]
+        public void AThingSeenOffTheMapOrTheRecordsIsFirstSightedWhenReallySeen()
+        {
+            // Seen before with no sighting kept, the first real sighting is the first.
+            var book = Book(Dusk);
+            book.Raise("loc:Crypt2", KnownLevel.Seen, sighted: false);
+            Assert.Null(book.FirstSeen("loc:Crypt2"));
+            Assert.False(book.Raise("loc:Crypt2", KnownLevel.Seen));
+            Assert.Equal((Dusk, -1), book.FirstSeen("loc:Crypt2"));
+            // Not while catching up, which keeps no moment.
+            book.Raise("Wood", KnownLevel.Seen, sighted: false);
+            book.CatchingUp = true;
+            book.Raise("Wood", KnownLevel.Seen);
+            book.CatchingUp = false;
+            Assert.Null(book.FirstSeen("Wood"));
         }
 
         [Fact]
@@ -137,6 +158,7 @@ namespace Scry.Tests
             var book = Book(Dusk);
             book.Raise("Troll", KnownLevel.Seen, stars: 2);
             book.Raise("Troll", KnownLevel.Known, way: CameBy.Fought);
+            book.Now = () => new Moment(9, "BlackForest", DayPart.Dusk, "Rain", "SpearFlint", "Elderwood");
             book.Died("Troll");
             book.Now = null;
             book.Raise("Boar", KnownLevel.Seen);
@@ -146,6 +168,10 @@ namespace Scry.Tests
             Assert.Equal((Dusk, 2), read.FirstSeen("Troll"));
             Assert.Equal((CameBy.Fought, Dusk), read.Came("Troll"));
             Assert.Equal((1, 9), read.DeathsBy("Troll"));
+            Assert.Equal("Elderwood", read.DeathsWorld("Troll"));
+            // A line kept before worlds were: the deaths and the day, no world.
+            Assert.Null(CompendiumBook.Load("format\t2\ndied\tTroll\t3\t5\n").DeathsWorld("Troll"));
+            Assert.Equal((3, 5), CompendiumBook.Load("format\t2\ndied\tTroll\t3\t5\n").DeathsBy("Troll"));
             Assert.Equal(9, read.NewsOf("Troll")?.Day);
             Assert.Equal(-1, read.NewsOf("Boar")?.Day);
             Assert.Equal(book.Lately, read.Lately);

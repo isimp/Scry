@@ -162,7 +162,18 @@ namespace Scry
 
         private readonly Dictionary<string, (CameBy Way, Moment At)> _came = new Dictionary<string, (CameBy, Moment)>(StringComparer.Ordinal);
         private readonly Dictionary<string, (Moment At, int Stars)> _seen = new Dictionary<string, (Moment, int)>(StringComparer.Ordinal);
-        private readonly Dictionary<string, (int Count, int LastDay)> _deaths = new Dictionary<string, (int, int)>(StringComparer.Ordinal);
+        private readonly Dictionary<string, (int Count, int LastDay, string World)> _deaths = new Dictionary<string, (int, int, string)>(StringComparer.Ordinal);
+
+        /// <summary>The deaths' lines of a save: the creature, how often, the day of the last, and its world where one was kept.</summary>
+        private static void DiedLines(System.Text.StringBuilder text, IEnumerable<KeyValuePair<string, (int Count, int LastDay, string World)>> deaths)
+        {
+            foreach (var pair in deaths.OrderBy(p => p.Key, StringComparer.Ordinal))
+            {
+                text.Append("died\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(Stored.Count(pair.Value.Count)).Append('\t').Append(Stored.Count(pair.Value.LastDay));
+                if (pair.Value.World != null) text.Append('\t').Append(Stored.Escaped(pair.Value.World));
+                text.Append('\n');
+            }
+        }
         private readonly Dictionary<string, int> _newsDay = new Dictionary<string, int>(StringComparer.Ordinal);
 
         /// <summary>The world each key's latest news came in, by key; none where it was not kept.</summary>
@@ -185,14 +196,18 @@ namespace Scry
         public (Moment At, int Stars)? FirstSeen(string key) => !string.IsNullOrEmpty(key) && _seen.TryGetValue(key, out var seen) ? seen : ((Moment, int)?)null;
 
         /// <summary>How often a creature killed the character, and the game's day of the last (-1 where none was known); none for one that never did.</summary>
-        public (int Count, int LastDay)? DeathsBy(string key) => !string.IsNullOrEmpty(key) && _deaths.TryGetValue(key, out var deaths) ? deaths : ((int, int)?)null;
+        public (int Count, int LastDay)? DeathsBy(string key) => !string.IsNullOrEmpty(key) && _deaths.TryGetValue(key, out var deaths) ? (deaths.Count, deaths.LastDay) : ((int, int)?)null;
+
+        /// <summary>The world the last death a creature dealt the character was in; none where none is kept.</summary>
+        public string DeathsWorld(string key) => !string.IsNullOrEmpty(key) && _deaths.TryGetValue(key, out var deaths) ? deaths.World : null;
 
         /// <summary>A creature killed the character: counted, with the day.</summary>
         public void Died(string key)
         {
             if (string.IsNullOrEmpty(key)) return;
             _deaths.TryGetValue(key, out var deaths);
-            _deaths[key] = (deaths.Count + 1, Now?.Invoke().Day ?? -1);
+            var now = Now?.Invoke();
+            _deaths[key] = (deaths.Count + 1, now?.Day ?? -1, now?.World);
             Changed = true;
         }
 
@@ -240,9 +255,21 @@ namespace Scry
         /// </summary>
         public bool Raise(string key, KnownLevel level, bool quietly = false, CameBy? way = null, int stars = -1, bool sighted = true)
         {
-            if (string.IsNullOrEmpty(key) || level <= Level(key)) return false;
-            _levels[key] = level;
+            if (string.IsNullOrEmpty(key)) return false;
             var inPlay = !quietly && !CatchingUp;
+            var held = Level(key);
+            if (level <= held)
+            {
+                // Seen before by the map or the game's records, with no sighting kept: the first real sighting is the first.
+                if (inPlay && sighted && level == KnownLevel.Seen && held == KnownLevel.Seen && !_seen.ContainsKey(key))
+                {
+                    _seen[key] = (Now?.Invoke() ?? Moment.None, stars);
+                    Version++;
+                    Changed = true;
+                }
+                return false;
+            }
+            _levels[key] = level;
             if (inPlay && level == KnownLevel.Known && way is CameBy by) _came[key] = (by, Now?.Invoke() ?? Moment.None);
             // A thing is raised to seen once, so this is its first sighting.
             if (inPlay && sighted && level == KnownLevel.Seen) _seen[key] = (Now?.Invoke() ?? Moment.None, stars);
@@ -669,6 +696,7 @@ namespace Scry
             var shows = _shows.Where(p => p.Value != WorldSources.Starts(p.Key)).ToArray();
             var mapApart = _mapApart;
             var biomesApart = _biomesApart;
+            var keptLines = _keptLines.ToArray();
             var marks = _marks.ToArray();
             var rule = _rule;
             var floor = _floor;
@@ -759,10 +787,7 @@ namespace Scry
                     Written(text, pair.Value.At);
                     text.Append('\n');
                 }
-                foreach (var pair in deaths.OrderBy(p => p.Key, StringComparer.Ordinal))
-                {
-                    text.Append("died\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(Stored.Count(pair.Value.Count)).Append('\t').Append(Stored.Count(pair.Value.LastDay)).Append('\n');
-                }
+                DiedLines(text, deaths);
                 foreach (var pair in found.OrderBy(p => p.Key, StringComparer.Ordinal))
                 {
                     text.Append("found\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(Stored.Escaped(pair.Value)).Append('\n');
@@ -773,6 +798,8 @@ namespace Scry
                 foreach (var line in held.Split('\n')) if (line.Length > 0) text.Append("held\t").Append(line).Append('\n');
                 foreach (var line in weathers.Split('\n')) if (line.Length > 0) text.Append("weather\t").Append(line).Append('\n');
                 foreach (var id in opened.OrderBy(o => o, StringComparer.Ordinal)) text.Append("opened\t").Append(Stored.Escaped(id)).Append('\n');
+                // What a later Scry wrote and this one cannot read, carried along for it.
+                foreach (var line in keptLines) text.Append(line).Append('\n');
                 return text.ToString();
             };
         }
@@ -850,6 +877,7 @@ namespace Scry
                 var parts = line.TrimEnd('\r').Split('\t');
                 if (parts.Length < 2 || !Stored.TryUnescaped(parts[1], out var name) || name.Length == 0) continue;
                 if (LineReaders.TryGetValue(parts[0], out var read)) read(book, parts, name);
+                else if (book._formatSeen > Format && !DropLines.Contains(parts[0])) book._keptLines.Add(line.TrimEnd('\r'));
             }
             book._latelyRead = null;
             // A book kept before attacks taken had a key holds them as pairs, which nothing can tell from

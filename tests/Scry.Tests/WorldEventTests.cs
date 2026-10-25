@@ -282,6 +282,45 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AMarkOutlivesNothingPastTwoMinutesSoARegrownThingPickedAgainCounts()
+        {
+            // A pickable keeps its id as it regrows: its second pick, minutes later, is another pick.
+            var told = new EventLedger();
+            var book = new CompendiumBook();
+            var first = Event(Happened.Picked, "RaspberryBush", 2f, 1, new[] { ("Raspberry", 1) }, doers: new[] { Me }, mark: "7:30");
+            var again = Event(Happened.Picked, "RaspberryBush", 2f, 2, new[] { ("Raspberry", 1) }, doers: new[] { Me }, mark: "7:30");
+            EventRule.Tell(first, Me, 0f, 0f, 0f, told, book, null, now: 10.0);
+            EventRule.Tell(again, Me, 0f, 0f, 0f, told, book, null, now: 10.0 + EventLedger.MarkLife + 1.0);
+            Assert.Equal(2, book.Tallied(Tally.Gave).Kills("RaspberryBush"));
+            // Within its life a mark still folds the two tellings into one.
+            var soon = Event(Happened.Picked, "RaspberryBush", 2f, 3, new[] { ("Raspberry", 1) }, doers: new[] { Me }, mark: "7:31");
+            var twin = Event(Happened.Picked, "RaspberryBush", 2f, 4, new[] { ("Raspberry", 1) }, doers: new[] { Me }, game: OtherGame, mark: "7:31");
+            EventRule.Tell(soon, Me, 0f, 0f, 0f, told, book, null, now: 500.0);
+            EventRule.Tell(twin, Me, 0f, 0f, 0f, told, book, null, now: 501.0);
+            Assert.Equal(3, book.Tallied(Tally.Gave).Kills("RaspberryBush"));
+        }
+
+        [Fact]
+        public void ADeathUpCloseBehindSomethingSolidIsNoSightingOfItsStars()
+        {
+            // Credited, the kill counts however it fell; its stars were seen only with a line to it.
+            var told = new EventLedger();
+            var book = new CompendiumBook();
+            EventRule.Tell(Death(5f, doers: new[] { Me }, level: 2), Me, 0f, 0f, 0f, told, book, null, (x, y, z) => false);
+            Assert.Equal(1, book.Tallied(Tally.Fell).Kills("Troll"));
+            Assert.Empty(book.StarsSeen("Troll"));
+            Assert.False(book.Proved("Troll", EntryKeys.StarsFell(1)));
+        }
+
+        [Fact]
+        public void ADeathUpCloseOfACreatureWithoutStarsIsASightingOfNoStars()
+        {
+            // As a look at one is: the stars table's first line opens on it.
+            var book = Told(Death(5f, level: 1));
+            Assert.Contains(0, book.StarsSeen("Troll"));
+        }
+
+        [Fact]
         public void PlayCountsTellEachEventCountedOnce()
         {
             var counts = new PlayCounts();

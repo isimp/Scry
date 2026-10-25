@@ -133,7 +133,9 @@ namespace Scry
             },
             ["format"] = (book, parts, name) =>
             {
-                if (parts.Length == 2) book._formatRead = true;
+                if (parts.Length != 2) return;
+                book._formatRead = true;
+                if (Stored.TryCount(name, out var seen)) book._formatSeen = (int)seen;
             },
             ["sight"] = (book, parts, name) =>
             {
@@ -149,7 +151,9 @@ namespace Scry
             },
             ["died"] = (book, parts, name) =>
             {
-                if (parts.Length == 4 && Stored.TryCount(parts[2], out var deaths) && deaths > 0 && Stored.TryCount(parts[3], out var lastDay)) book._deaths[name] = (deaths, lastDay);
+                if ((parts.Length != 4 && parts.Length != 5) || !Stored.TryCount(parts[2], out var deaths) || deaths <= 0 || !Stored.TryCount(parts[3], out var lastDay)) return;
+                var world = parts.Length == 5 && Stored.TryUnescaped(parts[4], out var named) && named.Length > 0 ? named : null;
+                book._deaths[name] = (deaths, lastDay, world);
             },
         };
 
@@ -191,6 +195,15 @@ namespace Scry
             }
             Changed = true;
         }
+
+        /// <summary>The format the book read said it was kept in (<see cref="Format"/>); this one's where it said none.</summary>
+        private int _formatSeen = Format;
+
+        /// <summary>The lines of a book of a later format this Scry cannot read, kept as they are for its next save, so the later Scry finds them again.</summary>
+        private readonly List<string> _keptLines = new List<string>();
+
+        /// <summary>The first words of the lines the drops' records read on their own, no reader of theirs in the list.</summary>
+        private static readonly HashSet<string> DropLines = new HashSet<string>(StringComparer.Ordinal) { "fell", "starfell", "gave", "held", "weather" };
 
         /// <summary>Whether the places this book once took off the explored map were given back (<see cref="GiveBackMapPlaces"/>); a new book has none to give.</summary>
         private bool _mapApart = true;

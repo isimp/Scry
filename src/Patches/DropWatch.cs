@@ -112,7 +112,8 @@ namespace Scry
         {
             var view = ragdoll != null ? ragdoll.GetComponent<ZNetView>().OrNull() : null;
             var zdo = view != null && view.IsValid() ? view.GetZDO() : null;
-            if (zdo == null || view.IsOwner()) return;
+            // A ragdoll that takes no loot (Ragdoll.m_dropItems off) is no telling of the death: its game drops the loot at once and tells that itself.
+            if (zdo == null || view.IsOwner() || !ragdoll.m_dropItems) return;
             var creature = RemainsSeen.CreatureOf(Utils.GetPrefabName(ragdoll.gameObject), CompendiumKeeper.LeftBy);
             if (creature == null) return;
             var loot = new List<(string, int)>();

@@ -35,20 +35,29 @@ namespace Scry
             Breaking.Add((Utils.GetPrefabName(thing.gameObject), new List<ItemDrop>(), Time.frameCount, picked, doers, thing.transform.position, picked ? WorldEvents.MarkOf(thing) : null));
         }
 
-        /// <summary>Whether the game has counted a pickable as picked by this character (<c>Pickable.m_pickedLocal</c>), found the first time; a game without the field has it told as a fault, and no pick of the character's told from here.</summary>
-        private static AccessTools.FieldRef<Pickable, bool> _pickedLocal;
-        private static bool _triedField;
+        /// <summary>Whether a pickable stands picked (<c>Pickable.m_picked</c>) and whether it is on (<c>Pickable.m_enabled</c>), found the first time; a game without the fields has them told as a fault, and no pick of the character's told from here.</summary>
+        private static AccessTools.FieldRef<Pickable, bool> _picked;
+        private static AccessTools.FieldRef<Pickable, int> _enabled;
+        private static bool _triedFields;
 
-        /// <summary>Whether the game counts a pickable as picked by this character.</summary>
-        public static bool PickedByMe(Pickable pickable)
+        /// <summary>
+        /// Whether a pickable can be picked now, as the game's own interaction decides it before
+        /// asking the game running it to pick (<c>Pickable.Interact</c>): in the world, on, not yet
+        /// picked, and not stuck in tar.
+        /// </summary>
+        public static bool CanPick(Pickable pickable)
         {
             if (pickable == null) return false;
-            if (!_triedField)
+            if (!_triedFields)
             {
-                _triedField = true;
-                Guard.Each(Feature.CompendiumTogether, "a pick of the character's own", "Pickable.m_pickedLocal", () => _pickedLocal = AccessTools.FieldRefAccess<Pickable, bool>("m_pickedLocal"));
+                _triedFields = true;
+                Guard.Each(Feature.CompendiumTogether, "a pick of the character's own", "Pickable.m_picked", () => _picked = AccessTools.FieldRefAccess<Pickable, bool>("m_picked"));
+                Guard.Each(Feature.CompendiumTogether, "a pick of the character's own", "Pickable.m_enabled", () => _enabled = AccessTools.FieldRefAccess<Pickable, int>("m_enabled"));
             }
-            return _pickedLocal != null && _pickedLocal(pickable);
+            if (_picked == null || _enabled == null || _picked(pickable) || _enabled(pickable) == 0) return false;
+            var view = pickable.GetComponent<ZNetView>().OrNull();
+            if (view == null || !view.IsValid()) return false;
+            return !pickable.m_tarPreventsPicking || pickable.GetComponent<Floating>().OrNull()?.IsInTar() != true;
         }
 
         /// <summary>
@@ -57,9 +66,9 @@ namespace Scry
         /// that the game running it, where it has Scry, adds what fell beyond that rather than
         /// counting again. One this game runs is told by its loot as it comes out.
         /// </summary>
-        public static void PickedHere(Pickable pickable, Humanoid who, bool countedBefore)
+        public static void PickedHere(Pickable pickable, Humanoid who, bool couldPick)
         {
-            if (pickable == null || who == null || who != Player.m_localPlayer || countedBefore || !PickedByMe(pickable)) return;
+            if (pickable == null || who == null || who != Player.m_localPlayer || !couldPick) return;
             var view = pickable.GetComponent<ZNetView>().OrNull();
             if (view == null || !view.IsValid() || view.IsOwner()) return;
             var item = pickable.m_itemPrefab;
@@ -153,7 +162,7 @@ namespace Scry
     [HarmonyPatch(typeof(Pickable), nameof(Pickable.Interact))]
     internal static class PickedHereWatched
     {
-        private static void Prefix(Pickable __instance, out bool __state) => __state = YieldWatch.PickedByMe(__instance);
+        private static void Prefix(Pickable __instance, out bool __state) => __state = YieldWatch.CanPick(__instance);
 
         private static void Postfix(Pickable __instance, Humanoid character, bool __state) =>
             Guard.Run(Feature.CompendiumTogether, "noting a pick of the character's own", () => YieldWatch.PickedHere(__instance, character, __state));

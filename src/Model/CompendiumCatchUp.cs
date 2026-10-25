@@ -96,9 +96,10 @@ namespace Scry
             Add(Named(records.PickedUp, Kind.Item), CameBy.Held);
             Add(Prefabs(records.Picked, Kind.Item), CameBy.Picked);
             Add(Prefabs(records.Trophies, Kind.Item), CameBy.Held);
-            // The creatures a trophy held falls from, those living in a biome the character entered:
-            // not the game's own TheHive, placed nowhere, which drops the drake's trophy too.
-            foreach (var trophy in Prefabs(records.Trophies, Kind.Item)) Add(CreaturesDropping(trophy, entered), CameBy.Trophy);
+            // The creatures a trophy held falls from, those living in a biome the character entered
+            // (not the game's own TheHive, placed nowhere, which drops the drake's trophy too): seen,
+            // not known, as play would only see one before a fight, and paired with nothing.
+            var trophied = Prefabs(records.Trophies, Kind.Item).SelectMany(trophy => CreaturesDropping(trophy, entered)).Distinct().ToList();
             // What gives an item is seen, not known, as play would only see a tree before it was hit:
             // only where it grows in a biome the character entered, as Wood picked up in the Meadows
             // says nothing of the Ashlands' logs.
@@ -121,7 +122,8 @@ namespace Scry
             Add(held, CameBy.Held);
             var raised = known.Count(k => book.Raise(k.Entry.Key, KnownLevel.Known, way: firstLoad ? null : k.Way))
                 + Raise(book, materials.Except(held), KnownLevel.Seen)
-                + Raise(book, growing, KnownLevel.Seen);
+                + Raise(book, growing, KnownLevel.Seen)
+                + Raise(book, trophied, KnownLevel.Seen);
             Pair(records, book, entered);
             // A creature the character killed shows its health under the strict rules: found out, as news after the first reading.
             foreach (var creature in killed)
@@ -177,10 +179,6 @@ namespace Scry
                     var place = _catalog.Find(station.Name);
                     if (place != null) book.Witness(thing.Key, place.Key);
                 }
-            }
-            foreach (var trophy in Prefabs(records.Trophies, Kind.Item))
-            {
-                foreach (var creature in CreaturesDropping(trophy, entered)) book.Witness(trophy.Key, creature.Key);
             }
             // The records keep what was placed, not with what: a piece one tool alone builds was built with it.
             if (_toolsOf != null)
@@ -284,12 +282,14 @@ namespace Scry
         {
             var entry = _catalog.Find(raid);
             if (entry == null) return false;
-            var raised = book.Raise(entry.Key, KnownLevel.Known, way: CameBy.LivedThrough);
-            foreach (var creature in entry.TermLinks("spawns"))
-            {
-                if (book.Level(creature.Key) >= KnownLevel.Seen) book.Witness(entry.Key, creature.Key);
-            }
-            return raised;
+            return book.Raise(entry.Key, KnownLevel.Known, way: CameBy.LivedThrough);
+        }
+
+        /// <summary>Whether a raid brings a creature, for the sight to pair the two as the creature is seen while the raid runs (<see cref="CompendiumSight.Look"/>).</summary>
+        public bool RaidBrings(string raid, string creature)
+        {
+            var entry = _catalog.Find(raid);
+            return entry != null && entry.TermLinks("spawns").Any(c => c.Key == creature);
         }
 
         /// <summary>The biomes the character entered, as the game names them (<see cref="Entry.Biomes"/>).</summary>
@@ -481,7 +481,8 @@ namespace Scry
         private IEnumerable<Entry> Prefabs(IEnumerable<string> names, Kind kind) =>
             names.Select(_catalog.Find).Where(e => e != null && e.Kind == kind);
 
+        /// <summary>Raises what the records tell, as no sighting: the records say nothing of when or where.</summary>
         private static int Raise(CompendiumBook book, IEnumerable<Entry> entries, KnownLevel level) =>
-            entries.Count(e => book.Raise(e.Key, level));
+            entries.Count(e => book.Raise(e.Key, level, sighted: false));
     }
 }

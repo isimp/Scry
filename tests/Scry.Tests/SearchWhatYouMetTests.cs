@@ -55,6 +55,20 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void IsLeftPassesOverADeedThatHingesOnAThingNotMet()
+        {
+            // Riding hinges on the saddle: the page leaves the topic out whole while it was not met, so nothing of it is left to find.
+            var world = new World();
+            world.Troll.Deeds = new[] { Deed.Ridden };
+            world.Troll.DeedHinges[Deed.Ridden] = world.Neck.Key;
+            world.Rule(CompendiumRule.Strict);
+            Assert.Empty(world.Found("is:left"));
+            world.Book.Raise(world.Neck.Key, KnownLevel.Seen);
+            world.Rule(CompendiumRule.Strict);
+            Assert.Equal(new[] { world.Troll }, world.Found("is:left"));
+        }
+
+        [Fact]
         public void IsLeftFindsWhatStillHasANumberToFindOutUnderTheStrictRules()
         {
             // A to-do list for the strict rules: a known Troll whose health waits for a kill, and a

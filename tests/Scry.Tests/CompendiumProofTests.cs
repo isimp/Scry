@@ -132,6 +132,17 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ABookOfALaterFormatKeepsTheLinesThisScryCannotReadForItsNextSave()
+        {
+            // A newer Scry's book opened by this one: what this one reads, it keeps; the rest it carries along unread, so the newer Scry finds it again.
+            var later = CompendiumBook.Load("format\t3\nknow\tTroll\t3\nfuture\tTroll\tx\ty\n");
+            Assert.Equal(KnownLevel.Known, later.Level("Troll"));
+            Assert.Contains("future\tTroll\tx\ty\n", later.Save());
+            // A book of this format drops a line it cannot read, as ever.
+            Assert.DoesNotContain("future", CompendiumBook.Load("format\t2\nknow\tTroll\t3\nfuture\tTroll\tx\n").Save());
+        }
+
+        [Fact]
         public void TakingBackAnEntryForgetsItsProof()
         {
             var killed = EntryKeys.Did(Deed.Killed);

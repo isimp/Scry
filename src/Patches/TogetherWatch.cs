@@ -140,8 +140,8 @@ namespace Scry
             CompendiumKeeper.Noted(PlayEvent.HitTold);
         }
 
-        /// <summary>Whether the game shows the character a hit's popup on a creature: within the popup's distance (<c>DamageText.m_maxTextDistance</c>, 30 m).</summary>
-        private static bool PopupSeen(Character target)
+        /// <summary>Whether the game shows the character a hit's popup on a thing, a creature or a resource alike: within the popup's distance (<c>DamageText.m_maxTextDistance</c>, 30 m).</summary>
+        public static bool PopupSeen(Component target)
         {
             var reach = DamageText.instance != null ? DamageText.instance.m_maxTextDistance : 30f;
             return Vector3.Distance(Player.m_localPlayer.transform.position, target.transform.position) <= reach;

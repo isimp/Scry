@@ -126,19 +126,26 @@ namespace Scry
     {
         private readonly HashSet<(long Game, int Number)> _told = new HashSet<(long, int)>();
 
-        /// <summary>The marks of the events recorded (<see cref="WorldEvent.Mark"/>), for the same event told from another side.</summary>
-        private readonly HashSet<string> _marked = new HashSet<string>();
+        /// <summary>The marks of the events recorded (<see cref="WorldEvent.Mark"/>), for the same event told from another side, each with when it was.</summary>
+        private readonly Dictionary<string, double> _marked = new Dictionary<string, double>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// How long a mark stands, in seconds: longer than the two tellings of one event lie apart
+        /// (a ragdoll's loot comes out within its time to live), shorter than a thing takes to
+        /// regrow, as a pickable keeps its id and is picked again.
+        /// </summary>
+        public const double MarkLife = 120.0;
 
         /// <summary>True the first time an event is told, false every time after.</summary>
         public bool First(WorldEvent told) => _told.Add((told.Game, told.Number));
 
-        /// <summary>Whether an event of this mark was recorded already, from whichever side.</summary>
-        public bool Marked(WorldEvent told) => told.Mark != null && _marked.Contains(told.Mark);
+        /// <summary>Whether an event of this mark was recorded within a mark's life, from whichever side.</summary>
+        public bool Marked(WorldEvent told, double now) => told.Mark != null && _marked.TryGetValue(told.Mark, out var at) && now - at <= MarkLife;
 
-        /// <summary>An event recorded, its mark kept.</summary>
-        public void Recorded(WorldEvent told)
+        /// <summary>An event recorded, its mark kept from now.</summary>
+        public void Recorded(WorldEvent told, double now)
         {
-            if (told.Mark != null) _marked.Add(told.Mark);
+            if (told.Mark != null) _marked[told.Mark] = now;
         }
 
         /// <summary>On leaving a world.</summary>
@@ -179,22 +186,24 @@ namespace Scry
         /// how it concerns the character, none when told before.
         /// </summary>
         public static EventShare Tell(WorldEvent told, long me, float x, float y, float z, EventLedger ledger, CompendiumBook book, PlayCounts counts,
-            Func<float, float, float, bool> inSight = null)
+            Func<float, float, float, bool> inSight = null, double now = 0.0)
         {
             if (told == null || book == null || !ledger.First(told)) return EventShare.None;
             var share = Of(told, me, x, y, z);
             // Seen only with a line from the eye to it, as a place or a thing is (Sighting.DeedInSight).
-            if (share == EventShare.Saw && inSight != null && !inSight(told.X, told.Y, told.Z)) share = EventShare.None;
-            // Up close, where the game marks a creature's stars: a death there is a sighting of them.
+            var seen = inSight == null || inSight(told.X, told.Y, told.Z);
+            if (share == EventShare.Saw && !seen) share = EventShare.None;
+            // Up close, where the game marks a creature's stars, and in sight: a death there is a
+            // sighting of them, as a look at the creature is; a kill credited from behind a wall is not.
             float ax = told.X - x, ay = told.Y - y, az = told.Z - z;
             var reach = book.World.SeenReach;
-            var upClose = reach > 0f && ax * ax + ay * ay + az * az <= reach * reach;
+            var upClose = seen && reach > 0f && ax * ax + ay * ay + az * az <= reach * reach;
             if (share == EventShare.None) return share;
-            if (ledger.Marked(told)) Paired(told, book);
+            if (ledger.Marked(told, now)) Paired(told, book);
             else
             {
                 Record(told, book, counts, upClose);
-                ledger.Recorded(told);
+                ledger.Recorded(told, now);
             }
             return share;
         }
@@ -244,11 +253,12 @@ namespace Scry
                     foreach (var (item, _) in told.Came) book.SawWith(told.Thing, item, Tie.Drops);
                     book.Dropped(told.Thing, told.Came, told.Level);
                     counts?.Note(PlayEvent.LootCounted);
+                    // A death up close is a sighting of the creature's stars, none included, as a look at it is.
+                    if (upClose) book.Sighted(told.Thing, told.Level - 1, null);
                     if (told.Level <= 1) return;
                     // A starred fall shows what stars change at all, and what that many stars change,
                     // but only where those stars were seen up close, as the game marks them: before,
-                    // or at the death itself, which is a sighting of them.
-                    if (upClose) book.Sighted(told.Thing, told.Level - 1, null);
+                    // or at the death itself.
                     if (!book.StarsSeen(told.Thing).Contains(told.Level - 1)) return;
                     book.FoundOut(told.Thing, EntryKeys.Did(Deed.StarredFell));
                     book.FoundOut(told.Thing, EntryKeys.StarsFell(told.Level - 1));

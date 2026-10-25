@@ -105,6 +105,8 @@ namespace Scry
         {
             foreach (var deed in entry.Deeds)
             {
+                // A deed whose topic hinges on a thing not met is left out of the page whole, nothing of it to find (Explorer.HidesHinged).
+                if (entry.DeedHinges.TryGetValue(deed, out var hinge) && _catalog.Find(hinge) is Entry hinged && Of(hinged) < KnownLevel.Seen) continue;
                 if (_book.Proved(entry.Key, EntryKeys.Did(deed))) continue;
                 if (deed == Deed.Killed && _book.Proved(entry.Key, EntryKeys.Did(Deed.Ridden))) continue;
                 return true;
@@ -203,6 +205,10 @@ namespace Scry
         /// <summary>The day the character's world is on now, for <see cref="Is"/>; none before a book is told, or where it cannot tell.</summary>
         public int Today => _book?.Now != null ? _book.Now().Day : -1;
 
+        /// <summary>Whether a moment is today's: the day, in the world played, as a day of another world is no today (<see cref="Moment.World"/>).</summary>
+        private static bool OnToday(Moment? at, int today, string world) =>
+            at is Moment moment && moment.Day == today && (moment.World == null || world == null || moment.World == world);
+
         /// <summary>
         /// Whether an entry answers a word of an is: term asking what the character met (<see
         /// cref="Search.MineWords"/>): new, seen or come to know on the day given; seen, seen but not
@@ -216,7 +222,9 @@ namespace Scry
             switch (word)
             {
                 case "new":
-                    return today >= 0 && (_book.Came(entry.Key)?.At.Day == today || _book.FirstSeen(entry.Key)?.At.Day == today);
+                    if (today < 0) return false;
+                    var world = _book.Now?.Invoke().World;
+                    return OnToday(_book.Came(entry.Key)?.At, today, world) || OnToday(_book.FirstSeen(entry.Key)?.At, today, world);
                 case "seen":
                     return Of(entry) == KnownLevel.Seen;
                 case "left":

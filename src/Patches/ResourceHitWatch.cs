@@ -19,7 +19,8 @@ namespace Scry
             {
                 if (hit.GetAttacker() != Player.m_localPlayer) return;
                 CompendiumKeeper.Hit(resource);
-                if (hit.CheckToolTier(minToolTier)) TogetherWatch.Told(Utils.GetPrefabName(resource.gameObject), hit, mods);
+                // How a type lands is told by the popup, which shows no farther on a tree than on a creature.
+                if (hit.CheckToolTier(minToolTier) && TogetherWatch.PopupSeen(resource)) TogetherWatch.Told(Utils.GetPrefabName(resource.gameObject), hit, mods);
             });
         }
     }
