@@ -17,7 +17,7 @@ namespace Scry
         /// <summary>Every page shows whole while peeking.</summary>
         Peeking,
 
-        /// <summary>Players whose games lack Scry, as what runs in them counts nothing for the character.</summary>
+        /// <summary>Players whose games lack Scry, as what runs in them reaches the character only as its own game sees it.</summary>
         PlayingWith,
 
         /// <summary>What the character learned since last told.</summary>

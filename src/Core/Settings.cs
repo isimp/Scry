@@ -203,7 +203,7 @@ namespace Scry
             _readLocations = config.Bind("1 - General", "ReadLocationsAutomatically", true,
                 "Reads where things are found in each world's locations and dungeons by itself, in the background once the prefabs are read, taking a few minutes the first time in a world and kept for the next. Off, they are read only when asked, with Find where things are or /scry locations.");
             _dungeonMarks = config.Bind("1 - General", "DungeonMarksOnMap", true,
-                "Marks each dungeon you have been in on Valheim's large map, just above its entrance, telling how much of it you walked; a click on a mark opens its map in Scry. Off, the map shows nothing of Scry's.");
+                "Marks each dungeon you have been in on Valheim's large map, on its entrance, telling how much of it you walked; a click on a mark opens its map in Scry. Off, the map shows nothing of Scry's.");
             _newsNotice = config.Bind("1 - General", "NewsNotice", true,
                 "The notice under the header tells what the character learned, as it learns it. Off, the Learned tab alone tells it.");
             _markNames = config.Bind("1 - General", "DungeonMarkNamesAlways", false,

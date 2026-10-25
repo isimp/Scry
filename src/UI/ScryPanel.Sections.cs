@@ -423,7 +423,7 @@ namespace Scry
 
         /// <summary>
         /// A strip under the header naming the players whose games lack Scry, as what runs in
-        /// their games counts nothing for the character: a chip opening the compendium's box,
+        /// their games reaches the character only as its own game sees it: a chip opening the compendium's box,
         /// which lists everyone played with, and a cross putting it away until another such
         /// player joins; the compact view's step at its end where given. What was clicked.
         /// </summary>

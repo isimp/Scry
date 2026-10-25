@@ -10,11 +10,11 @@ Install Scry from a mod manager, or put `Scry.dll` in `BepInEx/plugins`. Press F
 
 A new character starts with the compendium off, and Scry is then a lookup of everything in the game. The first time the panel opens for it, Scry asks whether to keep a compendium: *Loose*, *Strict* or *Not now* ([the compendium's rules](rules.md)). The choice can be changed any time under *Compendium* at the top of the panel. Each character keeps its own choice and its own knowledge.
 
-The gear beside *Compendium* holds the panel's settings: its size, the key opening it, walking and looking while it is open, sounds, tips, and *Stage* set to *Fast* for a big dungeon on a weaker machine. They are kept in `BepInEx/config/isimp.Scry.cfg` with the rest, which a mod manager's config editor shows too.
+The gear beside *Compendium* holds the panel's settings: its size, the key opening it, walking and looking while it is open, sounds, tips, the dungeon marks on the large map, and *Stage* set to *Fast* for a big dungeon on a weaker machine. They are kept in `BepInEx/config/isimp.Scry.cfg` with the rest, which a mod manager's config editor shows too.
 
 ## Playing with friends
 
-Every player should run the same version of Scry. Where a friend's game has Scry, what happens around you in their game (a kill, a drop, a pick) counts for you as it would alone; what runs in a game without Scry counts nothing. *Who has Scry* in the compendium's box lists everyone you play with and whether their game has it.
+Every player should run the same version of Scry. Where a friend's game has Scry, what happens around you in their game (a kill, a drop, a pick) counts for you as it would alone. What runs in a game without Scry reaches you only as your own game sees it, a creature's death by its remains and your own pick; the rest goes unlearned. *Who has Scry* in the compendium's box lists everyone you play with and whether their game has it.
 
 ## On a dedicated server
 

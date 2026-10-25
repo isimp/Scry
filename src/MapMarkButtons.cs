@@ -9,7 +9,7 @@ using UnityEngine.UI;
 namespace Scry
 {
     /// <summary>
-    /// While Valheim's large map is open, a mark of Scry's just above the entrance of each dungeon
+    /// While Valheim's large map is open, a mark of Scry's on the entrance of each dungeon
     /// the character has been in in the world played (<see cref="DungeonWalks"/>), and of each lying
     /// in a ground whose pin is on (<see cref="DungeonMarks"/>), placed as the game
     /// places its pins and as big as one (<see cref="MapMarks"/>), on the layer of the pins' names
