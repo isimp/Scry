@@ -186,6 +186,7 @@ namespace Scry
             {
                 part.Ms = 0;
                 part.Bytes = 0;
+                part.Own = 0;
                 part.Cleanups = 0;
                 part.Rebuilds = 0;
             }

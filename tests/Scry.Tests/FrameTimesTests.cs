@@ -227,6 +227,25 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APartsOwnAllocationIsSummedApartAndStartsEachFrameAtNothing()
+        {
+            // A part's own allocation, its inner parts' taken off, is summed by part like the whole; a part told no own counts its whole as its own.
+            var own = new Dictionary<string, long>();
+            var frame = new FrameTimes();
+            frame.Add("update", 1, 600, 0, 0, 200);
+            frame.Add("update probe", 1, 400, 0, 0, 400);
+            frame.Add("render", 1, 50, 0);
+            frame.AddOwnBytesTo(own);
+            frame.Clear();
+            frame.Add("update", 1, 300, 0, 0, 300);
+            frame.AddOwnBytesTo(own);
+
+            Assert.Equal(500, own["update"]);
+            Assert.Equal(400, own["update probe"]);
+            Assert.Equal(50, own["render"]);
+        }
+
+        [Fact]
         public void ReadingAFramesTotalsAllocatesNothingSoTheMeasuringIsNotTakenForScrysOwn()
         {
             // The measuring reads a frame's totals several times a frame, inside the update it

@@ -260,6 +260,10 @@ namespace Scry
             if (Seen.TryGetValue(job.Key, out var seen) && ReferenceEquals(seen, job.Seen)) Seen.Remove(job.Key);
         }
 
+        /// <summary>Whether any clip is being probed, for the self-test to measure an idle stage.</summary>
+        [ForTest]
+        public static bool Busy => Jobs.Count > 0;
+
         /// <summary>Goes on with the probes under way, a run at a time, for as long as this frame allows.</summary>
         public static void Update()
         {

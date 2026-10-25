@@ -389,8 +389,11 @@ namespace Scry
                 if (entry == piece) Stage.Spin = false;
                 Select(entry);
                 yield return Until(() => CopyOf(entry) != null && (entry.Kind != Kind.Location || Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.ExampleFloorsToRead == 0), 60);
-                // A moment for what follows a selection (its page told, its warm-up) to settle.
+                // A moment for what follows a selection (its page told, its warm-up) to settle; the
+                // locations read or clips probed in the background would be counted, so they are waited for, within reason.
                 yield return new Wait(1);
+                yield return Until(() => !Locations.Busy && !TriggerProbe.Busy, 120);
+                var busy = Locations.Busy ? "the locations were being read" : TriggerProbe.Busy ? "clips were being probed" : null;
                 var first = Timing.Measuring?.Frames ?? 0;
                 var bytes = Timing.ScryBytes;
                 var frames = Time.frameCount;
@@ -414,7 +417,8 @@ namespace Scry
                 p.Note($"{what}, by part, each part's own allocation: " + Timing.BytesByPartTold(30, own: true));
                 p.Note($"{what}, by part, inner parts included: " + Timing.BytesByPartTold(30));
                 p.Note($"{what}: the stage was filmed in {Numbers.Count(films)} of {Numbers.Count(count)} frames, {(Stage.LiveForTest ? "alive" : "still")} at the last look");
-                p.Check(own / count < 64 * 1024, $"{what}: Scry's own work allocates under 64 KB a frame standing open", $"{Numbers.Count((int)(own / count / 1024))} KB a frame");
+                if (busy == null) p.Check(own / count < 64 * 1024, $"{what}: Scry's own work allocates under 64 KB a frame standing open", $"{Numbers.Count((int)(own / count / 1024))} KB a frame");
+                else p.Note($"{what}: {Numbers.Count((int)(own / count / 1024))} KB a frame, not checked as {busy} meanwhile");
                 if (entry == piece) p.Check(films <= count / 3 + 2, "a still page is filmed in a third of its frames at most", $"{Numbers.Count(films)} of {Numbers.Count(count)}");
             }
             Stage.Spin = spinWas;
