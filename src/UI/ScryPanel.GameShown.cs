@@ -14,6 +14,18 @@ namespace Scry
         /// <summary>Whether the game shows a row now: a game-shown row whose recipe the game lists for the character.</summary>
         private static bool GameShows(Explorer explorer, Facts.Row row) => row.GameShown && explorer.RecipeListed(row.Recipe);
 
+        /// <summary>The way a counted row's items go with the page (<see cref="Tie"/>): what fell, what was given, what a chest held; none for a row of no such way.</summary>
+        private static Tie? TieOf(Facts.Row row)
+        {
+            switch (row.Tally)
+            {
+                case Tally.Fell: return Tie.Drops;
+                case Tally.Gave: return Tie.Gives;
+                case Tally.Held: return Tie.Holds;
+                default: return null;
+            }
+        }
+
         /// <summary>Whether the game shows a row's item now: by the item's own recipe where it names one, else the row's.</summary>
         private static bool GameShows(Explorer explorer, Facts.Row row, Facts.Ingredient item) => row.GameShown && explorer.RecipeListed(item.Recipe ?? row.Recipe);
 

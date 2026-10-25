@@ -6,8 +6,17 @@ namespace Scry
     /// <summary>The book's pairs and proofs: what the character saw go together, and what it saw done, kept apart.</summary>
     internal sealed partial class CompendiumBook
     {
-        /// <summary>What was seen go together, either way round (<see cref="Witness"/>).</summary>
-        private readonly HashSet<(string, string)> _pairs = new HashSet<(string, string)>();
+        /// <summary>
+        /// What was seen go together, either way round, with the ways it was seen together as
+        /// bits of <see cref="Tie"/> (<see cref="SawWith"/>); every bit set where no way was named
+        /// (<see cref="Witness"/>, or a pair kept before ways were), which answers for any way.
+        /// </summary>
+        private readonly Dictionary<(string, string), int> _pairs = new Dictionary<(string, string), int>();
+
+        /// <summary>A pair seen together with no way named: every way.</summary>
+        private const int AnyWay = -1;
+
+        private static int Bit(Tie tie) => 1 << (int)tie;
 
         /// <summary>What was seen done to a thing, by the thing and the proof (<see cref="Prove"/>): a deed, a damage type told, a weak spot found, an attack taken.</summary>
         private readonly HashSet<(string, string)> _proofs = new HashSet<(string, string)>();
@@ -44,7 +53,7 @@ namespace Scry
         {
             if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(proof)) return false;
             if (_proofs.Contains((key, proof))) return true;
-            return _attacksAsPairs && EntryKeys.IsAttack(proof, out var item) && _pairs.Contains(Pair(key, item));
+            return _attacksAsPairs && EntryKeys.IsAttack(proof, out var item) && _pairs.ContainsKey(Pair(key, item));
         }
 
         /// <summary>How many proofs the character holds.</summary>
@@ -120,16 +129,52 @@ namespace Scry
         /// loot, a creature's attack hit it. True when it was not noted before. What the strict
         /// rules show of how a known entry connects.
         /// </summary>
-        public bool Witness(string a, string b)
+        public bool Witness(string a, string b) => Saw(a, b, AnyWay);
+
+        /// <summary>
+        /// Notes that the character saw two entries go together one way (<see cref="Tie"/>): a drop
+        /// fall from a creature, an item given by a tree, held in a chest, met in a biome. True when
+        /// the pair or the way was not noted before. A row with a way of its own asks by it
+        /// (<see cref="Witnessed(string, string, Tie)"/>).
+        /// </summary>
+        public bool SawWith(string a, string b, Tie tie) => Saw(a, b, Bit(tie));
+
+        private bool Saw(string a, string b, int ways)
         {
-            if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b) || a == b || !_pairs.Add(Pair(a, b))) return false;
+            if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b) || a == b) return false;
+            var pair = Pair(a, b);
+            _pairs.TryGetValue(pair, out var had);
+            if ((had | ways) == had && _pairs.ContainsKey(pair)) return false;
+            _pairs[pair] = had | ways;
             PairsVersion++;
             Changed = true;
             return true;
         }
 
-        /// <summary>Whether the character saw two entries go together, either way round.</summary>
-        public bool Witnessed(string a, string b) => !string.IsNullOrEmpty(a) && !string.IsNullOrEmpty(b) && _pairs.Contains(Pair(a, b));
+        /// <summary>Whether the character saw two entries go together, either way round, any way.</summary>
+        public bool Witnessed(string a, string b) => !string.IsNullOrEmpty(a) && !string.IsNullOrEmpty(b) && _pairs.ContainsKey(Pair(a, b));
+
+        /// <summary>Whether the character saw two entries go together one way, or with no way named.</summary>
+        public bool Witnessed(string a, string b, Tie tie) =>
+            !string.IsNullOrEmpty(a) && !string.IsNullOrEmpty(b) && _pairs.TryGetValue(Pair(a, b), out var ways) && (ways & Bit(tie)) != 0;
+
+        /// <summary>The ways a pair was seen together as a line keeps them, "drops,gives"; none for any way.</summary>
+        private static string WaysKept(int ways)
+        {
+            if (ways == AnyWay) return null;
+            var named = new List<string>();
+            foreach (Tie tie in Enum.GetValues(typeof(Tie))) if ((ways & Bit(tie)) != 0) named.Add(TieWords.Kept(tie));
+            return string.Join(",", named);
+        }
+
+        /// <summary>The ways a line keeps read back: any way where none is named, or none this Scry knows.</summary>
+        private static int WaysRead(string kept)
+        {
+            if (string.IsNullOrEmpty(kept)) return AnyWay;
+            var ways = 0;
+            foreach (var word in kept.Split(',')) if (TieWords.Read(word) is Tie tie) ways |= Bit(tie);
+            return ways == 0 ? AnyWay : ways;
+        }
 
         /// <summary>How many pairs the character saw go together.</summary>
         [ForTest]

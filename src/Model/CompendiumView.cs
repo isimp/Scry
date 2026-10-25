@@ -346,15 +346,16 @@ namespace Scry
         /// <summary>Whether an entry is one of a known owner's own parts: what it plays, leaves behind or links to as its own.</summary>
         public bool Owns(Entry owner, Entry owned) => owner != null && owned != null && _owns.Contains((owner, owned));
 
-        /// <summary>Whether two entries go together for the strict rules: seen together, or one a part of the other.</summary>
-        public bool Related(Entry a, Entry b) => Witnessed(a, b) || Owns(a, b) || Owns(b, a);
+        /// <summary>Whether two entries go together for the strict rules: seen together, the way given where a row has one, or one a part of the other.</summary>
+        public bool Related(Entry a, Entry b, Tie? tie = null) => Witnessed(a, b, tie) || Owns(a, b) || Owns(b, a);
 
         /// <summary>The locations going by a label (<see cref="Places.LabelOf"/>), as the catalog was last indexed.</summary>
         public IReadOnlyList<Entry> PlacesLabelled(string label) =>
             label != null && _places.TryGetValue(label, out var places) ? places : (IReadOnlyList<Entry>)Array.Empty<Entry>();
 
-        /// <summary>Whether the character saw two entries go together, either way round (<see cref="CompendiumBook.Witness"/>).</summary>
-        public bool Witnessed(Entry a, Entry b) => a != null && b != null && _book != null && _book.Witnessed(a.Key, b.Key);
+        /// <summary>Whether the character saw two entries go together, either way round, the way given where one is (<see cref="CompendiumBook.Witness"/>, <see cref="CompendiumBook.SawWith"/>).</summary>
+        public bool Witnessed(Entry a, Entry b, Tie? tie = null) =>
+            a != null && b != null && _book != null && (tie is Tie way ? _book.Witnessed(a.Key, b.Key, way) : _book.Witnessed(a.Key, b.Key));
 
         /// <summary>Whether the game told the character how a creature takes a damage type, on a hit of it (<see cref="HitTold"/>).</summary>
         public bool HitWith(Entry hit, string type) => hit != null && _book != null && _book.Proved(hit.Key, EntryKeys.Damage(type));

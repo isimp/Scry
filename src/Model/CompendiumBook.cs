@@ -164,6 +164,17 @@ namespace Scry
         private readonly Dictionary<string, (Moment At, int Stars)> _seen = new Dictionary<string, (Moment, int)>(StringComparer.Ordinal);
         private readonly Dictionary<string, (int Count, int LastDay, string World)> _deaths = new Dictionary<string, (int, int, string)>(StringComparer.Ordinal);
 
+        /// <summary>The pairs' lines of a save: the two seen together, and the ways where any was named.</summary>
+        private static void SawLines(System.Text.StringBuilder text, IEnumerable<(string A, string B, string Ways)> pairs)
+        {
+            foreach (var (a, b, ways) in pairs.OrderBy(p => p.A, StringComparer.Ordinal).ThenBy(p => p.B, StringComparer.Ordinal))
+            {
+                text.Append("saw\t").Append(Stored.Escaped(a)).Append('\t').Append(Stored.Escaped(b));
+                if (ways != null) text.Append('\t').Append(ways);
+                text.Append('\n');
+            }
+        }
+
         /// <summary>The deaths' lines of a save: the creature, how often, the day of the last, and its world where one was kept.</summary>
         private static void DiedLines(System.Text.StringBuilder text, IEnumerable<KeyValuePair<string, (int Count, int LastDay, string World)>> deaths)
         {
@@ -541,14 +552,6 @@ namespace Scry
         }
 
         /// <summary>
-        /// The character saw a thing go together with another in play, the other shown on the
-        /// thing's page under the strict rules by how they go together (<paramref name="tie"/>):
-        /// paired, and no news of the thing, as Learned lists what was met and the numbers found
-        /// out, not that a thing long known stood somewhere. True when the pair is new.
-        /// </summary>
-        public bool SawWith(string key, string other, Tie tie) => Witness(key, other);
-
-        /// <summary>
         /// Takes back an entry that only a record no longer telling of it made known, as a kill
         /// once counted for a creature it never stood for: its level, what it was found out by
         /// (<paramref name="proof"/>), and its news. A count on top only raises levels, so what was
@@ -700,7 +703,7 @@ namespace Scry
             var marks = _marks.ToArray();
             var rule = _rule;
             var floor = _floor;
-            var pairs = _pairs.ToArray();
+            var pairs = _pairs.Select(p => (p.Key.Item1, p.Key.Item2, Ways: WaysKept(p.Value))).ToArray();
             var proofs = _proofs.ToArray();
             var sightings = SightingLines().ToArray();
             var attacksAsPairs = _attacksAsPairs;
@@ -762,10 +765,7 @@ namespace Scry
                 if (mapApart) text.Append("mapapart\tyes\n");
                 if (biomesApart) text.Append("biomesapart\tyes\n");
                 foreach (var told in rulesTold.OrderBy(t => t.Key, StringComparer.Ordinal)) text.Append("ruled\t").Append(Stored.Escaped(told.Key)).Append('\t').Append(Stored.Escaped(told.Value)).Append('\n');
-                foreach (var (a, b) in pairs.OrderBy(p => p.Item1, StringComparer.Ordinal).ThenBy(p => p.Item2, StringComparer.Ordinal))
-                {
-                    text.Append("saw\t").Append(Stored.Escaped(a)).Append('\t').Append(Stored.Escaped(b)).Append('\n');
-                }
+                SawLines(text, pairs);
                 foreach (var (key, proof) in proofs.OrderBy(p => p.Item1, StringComparer.Ordinal).ThenBy(p => p.Item2, StringComparer.Ordinal))
                 {
                     text.Append("did\t").Append(Stored.Escaped(key)).Append('\t').Append(Stored.Escaped(proof)).Append('\n');

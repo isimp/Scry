@@ -142,7 +142,7 @@ namespace Scry
         /// <summary>The items of a row shown under the compendium's rules; a thing to bring shows once what suggests it was found out, left out quietly, as a suggestion.</summary>
         private static IReadOnlyList<Facts.Ingredient> RowItems(Explorer explorer, IReadOnlyList<Facts.Ingredient> listed, Facts.Row row)
         {
-            var items = ShownStrictly(explorer, listed, i => explorer.LeavesOut(i.Prefab, GameShows(explorer, row, i)));
+            var items = ShownStrictly(explorer, listed, i => explorer.LeavesOut(i.Prefab, GameShows(explorer, row, i), TieOf(row)));
             if (!explorer.LeavingOut || !Suggests(items)) return items;
             Suggested.Clear();
             foreach (var item in items) if (!explorer.KeepsBackAll(item.ShownBy)) Suggested.Add(item);

@@ -255,7 +255,7 @@ namespace Scry
         {
             if (ShownCounts.TryGetValue(row, out var told) && told.Stamp == explorer.KnowStamp) return told.Said;
             var count = 0;
-            foreach (var item in row.Items) if (!explorer.LeavesOut(item.Prefab, GameShows(explorer, row, item))) count++;
+            foreach (var item in row.Items) if (!explorer.LeavesOut(item.Prefab, GameShows(explorer, row, item), TieOf(row))) count++;
             var said = CompendiumWords.MetCount(count);
             ShownCounts[row] = (explorer.KnowStamp, said);
             return said;

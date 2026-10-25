@@ -117,11 +117,17 @@ namespace Scry
             },
             ["saw"] = (book, parts, name) =>
             {
-                if (parts.Length != 3 || !Stored.TryUnescaped(parts[2], out var other) || other.Length == 0 || other == name) return;
+                if ((parts.Length != 3 && parts.Length != 4) || !Stored.TryUnescaped(parts[2], out var other) || other.Length == 0 || other == name) return;
                 // A book kept before held deeds, damage types and weak spots as pairs, either way round.
                 if (IsProof(other)) book._proofs.Add((name, other));
                 else if (IsProof(name)) book._proofs.Add((other, name));
-                else book._pairs.Add(Pair(name, other));
+                else
+                {
+                    // The ways the two were seen together, where the line names them; any way where it does not.
+                    var pair = Pair(name, other);
+                    book._pairs.TryGetValue(pair, out var had);
+                    book._pairs[pair] = had | WaysRead(parts.Length == 4 ? parts[3] : null);
+                }
             },
             ["did"] = (book, parts, name) =>
             {

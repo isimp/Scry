@@ -53,7 +53,7 @@ namespace Scry
                 var notCounted = false;
                 foreach (var item in row.Items)
                 {
-                    if (explorer.LeavesOut(item.Prefab, GameShows(explorer, row, item))) continue;
+                    if (explorer.LeavesOut(item.Prefab, GameShows(explorer, row, item), TieOf(row))) continue;
                     notCounted |= Counted(explorer, row, item.Prefab, finds);
                 }
                 foreach (var item in row.LineItems) notCounted |= Counted(explorer, row, item, finds);

@@ -288,14 +288,16 @@ namespace Scry
         /// (<paramref name="gameShown"/>: a recipe's materials and station, a piece's cost and tool,
         /// what a known thing is made into, a station's recipes, a store's wares) leaves out only
         /// what the character has not met, under either rules: the game's menus told it already.
+        /// A row with a way of its own (<paramref name="tie"/>: what fell, what was given, what a
+        /// chest held) asks whether the two were seen together that way.
         /// </summary>
-        public bool LeavesOut(string key, bool gameShown)
+        public bool LeavesOut(string key, bool gameShown, Tie? tie = null)
         {
             if (!NamesOnlyMet) return false;
             var other = Find(key);
             if (other == null || other == _selected || other.Kind == Kind.Mod) return false;
             if (_view.Of(other) < KnownLevel.Seen) return !NamesAllHeld(other);
-            return !gameShown && other.Kind != Kind.Skill && LeavingOut && !_view.Related(_selected, other);
+            return !gameShown && other.Kind != Kind.Skill && LeavingOut && !_view.Related(_selected, other, tie);
         }
 
         /// <summary>
