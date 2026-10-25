@@ -62,12 +62,13 @@ namespace Scry.Tests
         [InlineData("defeated_gdking", true, false, "Whole")]
         [InlineData("defeated_gdking", true, true, "Whole")]
         [InlineData("defeated_bonemass", true, false, "Counted")]
-        [InlineData("defeated_bonemass", true, true, "Folded")]
+        [InlineData("defeated_bonemass", true, true, "Counted")]
         public void WaresWaitingForABossNotYetFallenAreCountedNotNamed(string key, bool namesOnlyMet, bool strict, string shown)
         {
             // The Elder has fallen in this world, Bonemass not.
             bool Fallen(string k) => k == "defeated_gdking";
-            Assert.Equal(shown, UnlockRows.Of(key, namesOnlyMet, strict, Fallen).ToString());
+            // Under either rules the same: a store's wares are what the game shows.
+            Assert.Equal(shown, UnlockRows.Of(key, namesOnlyMet, Fallen).ToString());
         }
 
         [Fact]
@@ -97,8 +98,6 @@ namespace Scry.Tests
             Assert.Equal("2 more to unlock", CompendiumWords.ToUnlock(2));
             Assert.Equal("1 more to unlock", CompendiumWords.ToUnlock(1));
             Assert.Null(CompendiumWords.ToUnlock(0));
-            Assert.Equal("5 more to unlock as bosses fall", CompendiumWords.ToUnlockAsBossesFall(5));
-            Assert.Null(CompendiumWords.ToUnlockAsBossesFall(0));
         }
     }
 }

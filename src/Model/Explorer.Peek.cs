@@ -35,6 +35,15 @@ namespace Scry
         /// <summary>How much the character's book knows of an entry, peeking or not: what the list's rows and the You box's own lines go by, as a peek shows a page whole but hides nothing the book knows.</summary>
         public KnownLevel BookLevelOf(Entry entry) => CompendiumSet ? _view.Of(entry) : KnownLevel.Known;
 
+        /// <summary>Whether an entry shows as known only by the compendium's floor, peeking or not (<see cref="ByFloor"/>): the list's marks and the You box tell what the book holds.</summary>
+        public bool BookByFloor(Entry entry) => CompendiumSet && _view.ByFloor(entry);
+
+        /// <summary>The lowest tier the floor shows an entry by, peeking or not (<see cref="FloorOf"/>).</summary>
+        public int BookFloorOf(Entry entry) => CompendiumSet ? _view.FloorOf(entry) : 0;
+
+        /// <summary>The source of the world an entry shows from only, peeking or not (<see cref="ByWorld"/>).</summary>
+        public WorldSource? BookByWorld(Entry entry) => CompendiumSet ? _view.ByWorld(entry) : null;
+
         /// <summary>Whether every page shows whole until the peek is stopped, not the page shown alone.</summary>
         public bool PeekingEvery => _peeking && _peekedPage == null;
 

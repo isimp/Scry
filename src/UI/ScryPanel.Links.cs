@@ -56,7 +56,7 @@ namespace Scry
 
         /// <summary>The mark of what shows only by the player's choice: the floor's stairs, or a folded map for what a source of the world shows; none for anything else.</summary>
         private static Texture2D ChoiceMark(Explorer explorer, Entry entry) =>
-            entry == null ? null : explorer.ByFloor(entry) ? Skin.Steps : explorer.ByWorld(entry) != null ? Skin.FoldedMap : null;
+            entry == null ? null : explorer.BookByFloor(entry) ? Skin.Steps : explorer.BookByWorld(entry) != null ? Skin.FoldedMap : null;
 
         /// <summary>The mark of what a key goes to, as <see cref="ChoiceMark(Explorer, Entry)"/>.</summary>
         private static Texture2D ChoiceMark(Explorer explorer, string key) => ChoiceMark(explorer, explorer.Find(key));
@@ -430,7 +430,7 @@ namespace Scry
         }
 
         /// <summary>Whether a list of what there is leaves out the entry a key names: one in the catalog the character has not seen.</summary>
-        private static bool LeftOut(Explorer explorer, string key) => InCatalog(explorer, key) && !explorer.Reaches(key);
+        private static bool LeftOut(Explorer explorer, string key) => InCatalog(explorer, key) && !explorer.Reaches(key) && !explorer.NamedAsHeld(explorer.Find(key));
 
         /// <summary>A text as the page shown would draw it (<see cref="Masked"/>), for the self-test.</summary>
         [ForTest]
@@ -446,9 +446,10 @@ namespace Scry
         /// met kept back (<see cref="NameMask"/>); as it is otherwise. The mask is made again when
         /// what the character knows changes, each text masked once.
         /// </summary>
-        private static string Masked(Explorer explorer, string text)
+        private static string Masked(Explorer explorer, string text, bool always = false)
         {
-            if (string.IsNullOrEmpty(text) || !explorer.NamesOnlyMet) return text;
+            // The page's text masks on a known page alone; a list's row masks whatever page is shown (always).
+            if (string.IsNullOrEmpty(text) || !(always || explorer.NamesOnlyMet)) return text;
             if (!ReferenceEquals(_maskIn, explorer) || _maskStamp != explorer.KnowStamp)
             {
                 _maskIn = explorer;
@@ -462,7 +463,8 @@ namespace Scry
                     // never met, and its name ("Fire") is often a plain word of the text ("fires").
                     // A name made of a prefab's words ("Rock heath", the Swamp's "Well") is no name a text holds.
                     if (!NameMask.Keeps(entry, entry.Source is PlaceSource place && Places.NamedByWords(place.Contents, place.IsRoom))) continue;
-                    var met = explorer.LevelOf(entry) >= KnownLevel.Seen;
+                    // Named too as one of all a room or place shown whole holds (Explorer.NamedAsHeld), as the chips name it.
+                    var met = explorer.LevelOf(entry) >= KnownLevel.Seen || explorer.NamedAsHeld(entry);
                     // A skill's name is mostly a word of what one does (run, swim, sneak), so text keeps it; facts naming one not learned are left out instead.
                     if (!met && entry.Kind == Kind.Skill) continue;
                     (met ? seen : unseen).Add(entry.ShownName);
@@ -481,7 +483,6 @@ namespace Scry
         private static void StrictSectionStarts()
         {
             _strictLeft = 0;
-            _toUnlock = 0;
         }
 
         /// <summary>Counts things the strict rules left out of the section being drawn.</summary>
@@ -498,23 +499,11 @@ namespace Scry
         private static float StrictLeftLine(Explorer explorer, string topic, float width, float y)
         {
             var left = _strictLeft;
-            var locked = _toUnlock;
             _strictLeft = 0;
-            _toUnlock = 0;
             if (!explorer.NamesOnlyMet) return y;
             // Names left out alone are said here, as they are gone from the page; a weak spot not
             // found, as every number held back, is in the You box's list.
-            y = HintLine(explorer.LeftOutLine(topic, left), "strict-left:", topic, PanelPart.StrictLeftOut, width, y);
-            return HintLine(CompendiumWords.ToUnlockAsBossesFall(locked), "to-unlock:", topic, PanelPart.ToUnlock, width, y);
-        }
-
-        /// <summary>How many wares the section being drawn left out under the strict rules, waiting for bosses not yet fallen (<see cref="UnlockShown.Folded"/>).</summary>
-        private static int _toUnlock;
-
-        /// <summary>Counts wares the section being drawn leaves out, waiting for bosses not yet fallen, for its last line.</summary>
-        private static void ToUnlock(int count)
-        {
-            if (count > 0) _toUnlock += count;
+            return HintLine(explorer.LeftOutLine(topic, left), "strict-left:", topic, PanelPart.StrictLeftOut, width, y);
         }
 
         /// <summary>

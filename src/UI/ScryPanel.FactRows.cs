@@ -65,7 +65,7 @@ namespace Scry
 
         /// <summary>The title a row of wares waiting for a boss is counted under, as the compendium shows it; none for any other row.</summary>
         private static string CountedAs(Explorer explorer, Facts.Row row) =>
-            row?.WaitsFor != null && UnlockRows.Of(row.WaitsFor, explorer.NamesOnlyMet, explorer.LeavingOut && !GameShows(explorer, row), WorldKeySet) == UnlockShown.Counted ? Masked(explorer, row.Title) : null;
+            row?.WaitsFor != null && UnlockRows.Of(row.WaitsFor, explorer.NamesOnlyMet, WorldKeySet) == UnlockShown.Counted ? Masked(explorer, row.Title) : null;
 
         /// <summary>Whether the world played has a key set, a boss's fall; none without a world.</summary>
         private static readonly Func<string, bool> WorldKeySet = key => ZoneSystem.instance != null && ZoneSystem.instance.GetGlobalKey(key);
@@ -125,12 +125,7 @@ namespace Scry
         private static bool WaitingRow(Explorer explorer, Facts.Row row, float width, ref float y, IReadOnlyList<Facts.Row> rows, int rowAt)
         {
             // A store's wares are game-shown: under the strict rules too the row keeps its title and count, as under the loose ones.
-            var unlock = UnlockRows.Of(row.WaitsFor, explorer.NamesOnlyMet, explorer.LeavingOut && !GameShows(explorer, row), WorldKeySet);
-            if (unlock == UnlockShown.Folded)
-            {
-                ToUnlock(row.Items.Count);
-                return true;
-            }
+            var unlock = UnlockRows.Of(row.WaitsFor, explorer.NamesOnlyMet, WorldKeySet);
             if (unlock != UnlockShown.Counted) return false;
             // Rows whose titles read the same once names not met are kept back ("Sells once ??? is
             // defeated") are one wherever they stand: the first tells them all, the others add to its count.

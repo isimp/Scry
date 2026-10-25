@@ -81,9 +81,6 @@ namespace Scry
 
         /// <summary>Its title and how many it holds, none named.</summary>
         Counted,
-
-        /// <summary>Not drawn, counted into the section's line at its end.</summary>
-        Folded,
     }
 
     /// <summary>The rule for rows of wares waiting for a boss: named once it has fallen in the world, before that counted, by the compendium's rules.</summary>
@@ -91,14 +88,11 @@ namespace Scry
     {
         /// <summary>
         /// A row waiting for a world key: whole where it waits for none, its key is set, or the
-        /// page names more than what was met; else under the loose rules its title and how many,
-        /// under the strict rules only counted at the section's end.
+        /// page names more than what was met; else its title and how many, under either rules, as
+        /// a store's wares are what the game shows.
         /// </summary>
-        public static UnlockShown Of(string key, bool namesOnlyMet, bool strict, Func<string, bool> has)
-        {
-            if (string.IsNullOrEmpty(key) || !namesOnlyMet || (has != null && has(key))) return UnlockShown.Whole;
-            return strict ? UnlockShown.Folded : UnlockShown.Counted;
-        }
+        public static UnlockShown Of(string key, bool namesOnlyMet, Func<string, bool> has) =>
+            string.IsNullOrEmpty(key) || !namesOnlyMet || (has != null && has(key)) ? UnlockShown.Whole : UnlockShown.Counted;
 
         /// <summary>
         /// How many wares a row counted under a title tells, rows counted under one title (as names

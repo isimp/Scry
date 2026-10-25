@@ -59,7 +59,8 @@ namespace Scry
             if (StarLevelFor != null) rolled = rolled.Select(r => { r.Level = StarLevelFor(r.Prefab, r.Level); return r; }).ToList();
             LastFor = entry;
             LastRoll = rolled;
-            LastNotMet = all.Count - rolled.Count;
+            // Counted as the raid's card counts: the kinds of creature left off, not how many of each the roll brought.
+            LastNotMet = LeftOff == null ? 0 : all.Select(r => r.Prefab).Distinct().Count(p => LeftOff(p));
 
             var holder = new GameObject("Scry raid");
             holder.transform.SetParent(parent, false);

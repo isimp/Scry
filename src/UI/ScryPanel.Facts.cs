@@ -98,8 +98,8 @@ namespace Scry
                 {
                     var record = book.Came(entry.Key);
                     var at = record?.At ?? Moment.None;
-                    came = CompendiumWords.CameLine(record?.Way, at.Day, BiomeShown(explorer, at.Biome), explorer.Compendium.Because(entry)?.ShownName, explorer.FloorOf(entry),
-                        explorer.BookLevelOf(entry) == KnownLevel.Known, at.Time, at.Weather, InHandShown(explorer, at.InHand), explorer.ByWorld(entry), explorer.WorldShown(at.World));
+                    came = CompendiumWords.CameLine(record?.Way, at.Day, BiomeShown(explorer, at.Biome), explorer.Compendium.Because(entry)?.ShownName, explorer.BookFloorOf(entry),
+                        explorer.BookLevelOf(entry) == KnownLevel.Known, at.Time, at.Weather, InHandShown(explorer, at.InHand), explorer.BookByWorld(entry), explorer.WorldShown(at.World));
                     if (book.FirstSeen(entry.Key) is var first && first != null)
                     {
                         var sight = first.Value.At;

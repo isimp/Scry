@@ -354,6 +354,9 @@ namespace Scry
         /// </summary>
         private bool NamesAllHeld(Entry other) => other.Kind != Kind.Skill && (_view.HoldsNamed(_selected) || _view.HeldByWalks(_selected, other));
 
+        /// <summary>Whether the page shown names an entry never met as one of all it holds (<see cref="NamesAllHeld"/>), for every site that names things: text, cards and lists as chips.</summary>
+        public bool NamedAsHeld(Entry other) => CompendiumOn && _selected != null && other != null && NamesAllHeld(other);
+
         /// <summary>
         /// The faint line at a section's end telling how many things its page left out, in the
         /// words of the rules leaving them out: what the character has not met, or under the

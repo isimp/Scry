@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -21,9 +22,12 @@ namespace Scry
             var deeds = new List<string>();
             var counted = new HashSet<string>(System.StringComparer.Ordinal);
             var spots = 0;
-            foreach (var pair in facts.Pairs)
+            // A topic that hinges on a thing not met is left out whole (Facts.PartHinges): nothing of it to find.
+            bool Hinged(string part) => part != null && facts.PartHinges.TryGetValue(part, out var hinge) && explorer.HidesHinged(hinge);
+            for (var i = 0; i < facts.Pairs.Count; i++)
             {
-                if (!facts.Proofs.TryGetValue(pair.Key, out var proof)) continue;
+                var pair = facts.Pairs[i];
+                if (Hinged(facts.PairParts[i]) || !facts.Proofs.TryGetValue(pair.Key, out var proof)) continue;
                 var kept = explorer.KeepsBack(proof);
                 if (counted.Add(proof)) finds.Count(kept);
                 if (!kept) continue;
@@ -35,6 +39,7 @@ namespace Scry
             var uncounted = new List<Tally>();
             foreach (var row in facts.Rows)
             {
+                if (Hinged(row.Part)) continue;
                 if (row.HitReveals && row.Cells != null) Typed(explorer, row, types, finds);
                 foreach (var proof in row.LineProofs.Values.Concat(row.CellProofs.Values))
                 {
@@ -103,7 +108,9 @@ namespace Scry
             var gear = new List<string>();
             if (!(explorer.Selected is Entry page) || page.Kind != Kind.Creature) return (stars, gear);
             var offered = explorer.StarsOffered(page);
-            for (var level = 1; level <= facts.Stars; level++)
+            // Only the stars the stage can stand (StarsOffered, by the creature's level looks): one it cannot show is nothing to see.
+            var most = Math.Min(facts.Stars, Math.Max(0, page.ExtraLevels));
+            for (var level = 1; level <= most; level++)
             {
                 var seen = offered.Contains(level + 1);
                 finds.Count(!seen);

@@ -78,7 +78,8 @@ namespace Scry
                 var said = CompendiumWords.WholeBy(source);
                 var at = new Rect(right - (Skin.Width(Skin.Small, said) + icon + U(22f)), y, Skin.Width(Skin.Small, said) + icon + U(22f), height);
                 Skin.Box(at, Skin.Raised);
-                Skin.Icon(new Rect(at.x + U(8f), at.y + (height - icon) / 2f, icon, icon), Skin.Steps, Skin.Faint);
+                // The floor's stairs, or the folded map of a source of the world, as the list's rows mark it.
+                Skin.Icon(new Rect(at.x + U(8f), at.y + (height - icon) / 2f, icon, icon), source != null ? Skin.FoldedMap : Skin.Steps, Skin.Faint);
                 Skin.LabelIn(new Rect(at.x + U(12f) + icon, at.y, at.width - icon - U(16f), height), said, Skin.Small, Skin.Faint);
                 if (at.Contains(e.mousePosition)) AskTip("finds:whole", CompendiumWords.WholeTip(source));
                 FindsChipForTest = said;

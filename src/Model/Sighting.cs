@@ -22,10 +22,10 @@ namespace Scry
         public static float Reach(float size) => Math.Min(MostReach, PersonReach * Math.Max(1f, size / PersonSize));
 
         /// <summary>
-        /// How far a thing that is no creature or place is seen: within its size's reach, and
-        /// within the world's seen reach, as the game names an item, a piece or a resource only on
-        /// hover, nearer still than it names a creature. A seen reach of 0 keeps no stars or gear
-        /// but blinds no sight: the size's reach stands alone then.
+        /// How far a creature or a thing is seen, a place not: within its size's reach, and within
+        /// the world's seen reach, as the game names a creature within it and an item, a piece or a
+        /// resource only on hover. A seen reach of 0 keeps no stars or gear but blinds no sight:
+        /// the size's reach stands alone then.
         /// </summary>
         public static float ThingReach(float reach, float seenReach) => seenReach <= 0f ? reach : Math.Min(reach, seenReach);
 

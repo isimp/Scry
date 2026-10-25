@@ -539,13 +539,13 @@ namespace Scry
         /// </summary>
         private static string RowSecondary(Explorer explorer, Entry entry, string primary) =>
             (explorer.LearnedOnly ? explorer.LearnedNote(entry) : null)
-            ?? (explorer.CompendiumSet ? SeenTagged(explorer, entry, Masked(explorer, explorer.AlikeOf(entry))) ?? ""
+            ?? (explorer.CompendiumSet ? SeenTagged(explorer, entry, Masked(explorer, explorer.AlikeOf(entry), always: explorer.CompendiumOn)) ?? ""
                 : (entry.TagNamesCarrier ? entry.Alike : null) ?? entry.Tag ?? (primary == entry.Name ? "" : entry.Name));
 
         /// <summary>A row's note with "seen" before it where the entry is only seen, its page closed, so a row tells knowing a thing from knowing its page.</summary>
         private static string SeenTagged(Explorer explorer, Entry entry, string note)
         {
-            if (explorer.LevelOf(entry) != KnownLevel.Seen) return note;
+            if (explorer.BookLevelOf(entry) != KnownLevel.Seen) return note;
             return CompendiumWords.SeenRowNote(note);
         }
 

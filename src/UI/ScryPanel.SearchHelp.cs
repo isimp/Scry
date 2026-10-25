@@ -129,7 +129,8 @@ namespace Scry
                 var met = new Dictionary<Entry, KnownLevel>();
                 foreach (var entry in explorer.Catalog)
                 {
-                    var level = explorer.LevelOf(entry);
+                    // What the book holds, peeking or not: the terms offered are the names met.
+                    var level = explorer.BookLevelOf(entry);
                     if (level >= KnownLevel.Seen) met[entry] = level;
                 }
                 return met;

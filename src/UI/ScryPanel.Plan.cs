@@ -207,7 +207,7 @@ namespace Scry
                 var key = EntryKeys.For(Kind.Location, hovered.Room.Name);
                 var known = Goes(explorer, key);
                 // A room not met is named by its kind alone, as a closed page is.
-                var name = explorer.NotMet(key) ? CompendiumWords.Unknown(Kind.Location) : ShownName(explorer, key, LocationWords.RoomName(hovered.Room.Name));
+                var name = explorer.NotMet(key) ? DungeonWords.RoomNotWalked : ShownName(explorer, key, LocationWords.RoomName(hovered.Room.Name));
                 AskTip("plan:" + hovered.Room.Name, StageWords.RoomTip(name, known));
                 if (known && e.type == EventType.MouseDown && e.button == 0)
                 {

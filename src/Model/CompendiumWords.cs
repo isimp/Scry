@@ -569,9 +569,6 @@ namespace Scry
         /// <summary>The faint line under a row's title whose wares wait for a boss not yet fallen, under the loose rules: "2 more to unlock"; null for none.</summary>
         public static string ToUnlock(int count) => count > 0 ? $"{Numbers.Count(count)} more to unlock" : null;
 
-        /// <summary>The faint line at a section's end counting the wares waiting for bosses not yet fallen, under the strict rules: "5 more to unlock as bosses fall"; null for none.</summary>
-        public static string ToUnlockAsBossesFall(int count) => count > 0 ? $"{Numbers.Count(count)} more to unlock as bosses fall" : null;
-
         /// <summary>
         /// What the loose rules left out of a section, said at its end: how many more things the
         /// character has not met, a creature's places by what they are; without "more" where

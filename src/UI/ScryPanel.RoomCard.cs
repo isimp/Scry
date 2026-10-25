@@ -124,6 +124,7 @@ namespace Scry
         /// <summary>The peek last worked out, for the room it is of, as the mouse rests on a room.</summary>
         private static PlacedRoom _peekFor;
         private static string _peekText;
+        private static int _peekStamp;
         private static int _peekRead = -1;
         private static bool _peekInside;
 
@@ -131,14 +132,18 @@ namespace Scry
         private static string Peek(Explorer explorer, PlacedRoom room)
         {
             var inside = room == Stage.RoomGoneInto;
-            if (room == _peekFor && _peekRead == Stage.ExampleRoomsRead && _peekInside == inside && _peekText != null) return _peekText;
+            if (room == _peekFor && _peekRead == Stage.ExampleRoomsRead && _peekInside == inside && _peekStamp == explorer.KnowStamp && _peekText != null) return _peekText;
             _peekFor = room;
             _peekRead = Stage.ExampleRoomsRead;
             _peekInside = inside;
+            _peekStamp = explorer.KnowStamp;
             var ways = Stage.ExampleWays;
             var rise = ways?.Entrance != null ? Stage.ExampleRoomGround(room) - Stage.ExampleRoomGround(ways.Entrance) : 0f;
             var where = RoomCardWords.Where(rise, ways != null ? ways.StepsIn(room) : -1, ways != null ? ways.WaysOf(room).Count : 0);
-            _peekText = StageWords.RoomPeek(BoxRoomName(explorer, room), where, Stage.RoomCreatures(room).Count, Stage.RoomLoot(room).Count, inside, ExampleLayouts.ShowsWorlds);
+            // Counted as the room's card counts: what the character met, under the strict rules what was seen together with the page.
+            var creatures = Stage.RoomCreatures(room).Count(c => !explorer.LeavesOut(c));
+            var loot = Stage.RoomLoot(room).Count(l => !explorer.LeavesOut(l.Prefab));
+            _peekText = StageWords.RoomPeek(BoxRoomName(explorer, room), where, creatures, loot, inside, ExampleLayouts.ShowsWorlds);
             return _peekText;
         }
 

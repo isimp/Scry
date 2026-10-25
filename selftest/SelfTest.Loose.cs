@@ -43,7 +43,7 @@ namespace Scry
             yield return null;
             p.Check(X.NamesOnlyMet && X.LeavesOut(barley.Key) && X.LeavesOut(flour.Key) && !X.LeavingOut,
                 "under the loose rules a known windmill names neither barley nor its flour, not yet met, and keeps its numbers");
-            p.Check(ScryPanel.Drawn(PanelPart.StrictLeftOut) == left, "and counts them nowhere: only a creature's loot and where it lives count what was not met");
+            p.Check(ScryPanel.Drawn(PanelPart.StrictLeftOut) == left, "and counts them nowhere but where a section counts what it leaves out: a creature's loot, where it lives, a room, a raid");
             var masked = ScryPanel.AsDrawn(X, $"Grinds {barley.ShownName} into flour");
             p.Check(!masked.Contains(barley.ShownName) && masked.Contains(CompendiumWords.Hidden), "a name not yet met reads as a dash in a page's text", masked);
             yield return PictureOf(p, "does", "loose windmill, barley not yet met");
