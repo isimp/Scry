@@ -27,8 +27,8 @@ namespace Scry
                 p.Skip("there is no troll, boar, wood or flint spear");
                 yield break;
             }
-            // Its moments are of the world played, as a character's are: a moment of no world would stand under a heading of its own.
-            var world = CompendiumMap.World;
+            // Its moments are of the world played, by its name as a character's are: a moment of no world would stand under a heading of its own.
+            var world = X.WorldNow;
             var book = new CompendiumBook();
             book.Now = () => new Moment(9, "BlackForest", DayPart.Dusk, "Rain", null, world);
             book.Raise(troll.Key, KnownLevel.Seen, stars: 1);

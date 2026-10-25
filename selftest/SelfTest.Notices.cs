@@ -65,10 +65,12 @@ namespace Scry
             p.Check(ScryPanel.NoticeLineForTest == (Notice.Peeking, 1, 2), "and round to the warning again", ScryPanel.NoticeLineForTest.ToString());
 
             X.Peeking = false;
-            yield return Until(() => ScryPanel.NoticeLineForTest.Of == 1, 3);
-            p.Check(ScryPanel.NoticeLineForTest == (Notice.PlayingWith, 1, 1), "the peek stopped, the players' notice stands alone, with no step", ScryPanel.NoticeLineForTest.ToString());
+            // The news of what was learned is put away while peeking and may come back with the peek's end: the players' notice stands first, the news after it where there is any.
+            yield return Until(() => ScryPanel.NoticeLineForTest.Shown == Notice.PlayingWith, 3);
+            var up = ScryPanel.NoticesUpForTest.Count;
+            p.Check(ScryPanel.NoticeLineForTest == (Notice.PlayingWith, 1, up), up > 1 ? "the peek stopped, the players' notice stands first, the news after it" : "the peek stopped, the players' notice stands alone, with no step", ScryPanel.NoticeLineForTest.ToString());
             X.Peeking = true;
-            yield return Until(() => ScryPanel.NoticeLineForTest.Of == 2, 3);
+            yield return Until(() => ScryPanel.NoticeLineForTest.Shown == Notice.Peeking, 3);
             p.Check(ScryPanel.NoticeLineForTest == (Notice.Peeking, 1, 2), "peeking again, the warning takes the strip at once", ScryPanel.NoticeLineForTest.ToString());
             NoticesAsTheyWere();
         }

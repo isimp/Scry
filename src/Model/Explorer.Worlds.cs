@@ -15,7 +15,7 @@ namespace Scry
         /// <summary>A moment's world as a page names it after the day (<see cref="WorldShown"/>): another world by name; none for the world played or a moment kept before worlds were, which the Learned list's heading alone sets apart.</summary>
         public string MomentWorldShown(string world) => WorldShown(world);
 
-        /// <summary>The world an entry's Learned group is headed by (<see cref="JournalWords.WorldGroup"/>): a moment kept before worlds were stands apart.</summary>
-        public string LearnedWorldShown(Entry entry) => JournalWords.WorldGroup(LearnedWorld(entry), WorldNow);
+        /// <summary>The world an entry's Learned group is headed by (<see cref="JournalWords.WorldGroup"/>): a moment kept before worlds were stands apart; a record with no day, headed Earlier, names none.</summary>
+        public string LearnedWorldShown(Entry entry) => LearnedDay(entry) >= 0 ? JournalWords.WorldGroup(LearnedWorld(entry), WorldNow) : null;
     }
 }

@@ -458,6 +458,10 @@ namespace Scry
         [Diagnostic]
         public static (Notice? Shown, int Which, int Of) NoticeLineForTest { get; private set; }
 
+        /// <summary>The notices up at the last frame, in the strip's order, for the self-test.</summary>
+        [Diagnostic]
+        public static IReadOnlyList<Notice> NoticesUpForTest => NoticesUp;
+
         /// <summary>Steps the compact view's strip on to the next notice, as its step does; for the self-test.</summary>
         [Diagnostic]
         public static void StepNoticeForTest()

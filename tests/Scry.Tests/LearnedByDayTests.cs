@@ -106,6 +106,15 @@ namespace Scry.Tests
             Assert.Equal("PipiKakaLand", explorer.MomentWorldShown("PipiKakaLand"));
             Assert.Null(explorer.MomentWorldShown("Elderwood"));
             Assert.Null(explorer.MomentWorldShown(null));
+            // A record from the game's records, with no day, is headed Earlier and names no world: the heading has nothing to set apart.
+            book.CatchingUp = true;
+            book.Raise(world.Wood.Key, KnownLevel.Known);
+            book.CatchingUp = false;
+            var caught = world.Told(CompendiumRule.Strict).Explorer;
+            caught.WorldNow = "Elderwood";
+            Assert.Equal(-1, caught.LearnedDay(world.Wood));
+            Assert.Null(caught.LearnedWorldShown(world.Wood));
+            Assert.Equal("PipiKakaLand", caught.LearnedWorldShown(world.Troll));
 
             // Under the loose rules, which list what was met, the world comes with the news the same.
             var loose = world.Told(CompendiumRule.Loose).Explorer;
