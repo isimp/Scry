@@ -85,12 +85,15 @@ namespace Scry
         /// <summary>Whether the compendium's floor opens the server's records of the location shown (<see cref="GroupMapsLink"/>).</summary>
         public static bool GroupOpen => _groupOpen;
 
-        /// <summary>How often rooms newly walked lay the dungeon out again while it is shown, in seconds, as the stage builds it afresh.</summary>
+        /// <summary>How often rooms newly walked lay the fog again on the dungeon shown, in seconds.</summary>
         private const float RefogEvery = 5f;
 
-        /// <summary>When the fog was last laid, and the room gone into then, by its place in the saved rooms, gone into again once the stage stands it afresh; -1 for none.</summary>
+        /// <summary>When the fog was last laid.</summary>
         private static float _refoggedAt = float.NegativeInfinity;
-        private static int _reenter = -1;
+
+        /// <summary>How often the fog laid again changed the rooms shown in place, for the self-test.</summary>
+        [Diagnostic]
+        public static int Relaid { get; private set; }
 
         /// <summary>The rooms shown only as peeked, by their place in the saved rooms.</summary>
         private static readonly HashSet<int> PeekedAt = new HashSet<int>();
@@ -219,7 +222,6 @@ namespace Scry
             _wholeId = null;
             _fogOf = default;
             _refoggedAt = float.NegativeInfinity;
-            _reenter = -1;
             PeekedAt.Clear();
             PeekedRooms = 0;
             Fogged = false;
@@ -296,7 +298,6 @@ namespace Scry
             // Its rooms' copies on the stage, from the bundles of the kinds it uses.
             HoldFor(Example);
             Stage.StepExample(_entry, Example, plan, RoomModel);
-            if (_reenter >= 0 && Stage.StandsExample(Example)) GoBackInto();
             if (_releaseFrom >= 0 && Time.frameCount >= _releaseFrom) LetGoOfUnused();
         }
 
@@ -463,9 +464,9 @@ namespace Scry
                 _wholeId = _world.Id;
                 ShowsWorlds = true;
                 Unread = unread;
+                // Laid out afresh: the fog is laid on a new example, which the stage builds.
+                Example = null;
                 Refog();
-                // Laid out afresh, no room of another layout is gone into again.
-                _reenter = -1;
             }
             else
             {
@@ -493,15 +494,6 @@ namespace Scry
             }
         }
 
-        /// <summary>Goes into the room gone into before the fog was laid again, where it still stands.</summary>
-        private static void GoBackInto()
-        {
-            var ways = Stage.ExampleWays;
-            var room = ways?.Rooms.FirstOrDefault(r => r.SavedAt == _reenter);
-            _reenter = -1;
-            if (room != null) Stage.GoInto(room);
-        }
-
         /// <summary>The kinds of room read for the location shown, by their names' hashes, as a world saves its rooms.</summary>
         private static Dictionary<int, RoomShape> RoomsByHash()
         {
@@ -520,17 +512,30 @@ namespace Scry
         private static Dictionary<int, RoomShape> _byHash;
         private static int _byHashOf = -1;
 
-        /// <summary>The world's own dungeon as the fog shows it, the stage building it afresh: its rooms walked, the rest only while peeking; every one with the compendium off.</summary>
+        /// <summary>
+        /// The world's own dungeon as the fog shows it: its rooms walked, the rest only while
+        /// peeking; every one with the compendium off. Laid first, on a new example, which the
+        /// stage builds; laid again, the rooms shown change in place and the stage follows them
+        /// (<see cref="DungeonFog.Relay"/>, <see cref="Stage.FollowExample"/>), standing still where
+        /// nothing changed, as for a day's end or the server's answer with nothing new.
+        /// </summary>
         private static void Refog()
         {
             _fogOf = (DungeonWalks.Maps.Stamp, GroupMapsLink.Group.Stamp, _fogged, _peeking, _groupOpen);
             _refoggedAt = Time.unscaledTime;
-            _reenter = Stage.RoomGoneInto?.SavedAt ?? -1;
             // The rooms the character walked, and where the floor or a source with insides opens them, the rooms anyone on the server walked.
             var walked = DungeonWalks.Maps.Of(_wholeId)?.Walked;
             var group = _groupOpen ? GroupMapsLink.Group.Of(_wholeId)?.Walked ?? DungeonsInGround.MapOf(_wholeId)?.Walked : null;
             bool IsWalked(PlacedRoom room) => walked != null && walked.Contains(room.SavedAt) || group != null && group.Contains(room.SavedAt);
-            Example = DungeonFog.Shown(_whole, IsWalked, _fogged, _peeking, out var peeked);
+            HashSet<PlacedRoom> peeked;
+            if (Example == null) Example = DungeonFog.Shown(_whole, IsWalked, _fogged, _peeking, out peeked);
+            else if (DungeonFog.Relay(Example, _whole, IsWalked, _fogged, _peeking, out peeked, out var added, out var removed))
+            {
+                Relaid++;
+                // The kinds of room that joined are held for the stage's copies.
+                _heldFor = null;
+                Stage.FollowExample(Example, added, removed);
+            }
             PeekedAt.Clear();
             foreach (var room in peeked) PeekedAt.Add(room.SavedAt);
             PeekedRooms = peeked.Count(r => !r.Room.EndCap && !r.Room.Divider);

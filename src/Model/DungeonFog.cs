@@ -38,18 +38,45 @@ namespace Scry
         /// <summary>The dungeon as it shows, its rooms the same as the whole one's and in its order, and the rooms shown only as peeked.</summary>
         public static DungeonExample Shown(DungeonExample whole, Func<PlacedRoom, bool> walked, bool fogged, bool peeking, out HashSet<PlacedRoom> peeked)
         {
-            peeked = new HashSet<PlacedRoom>();
             var shown = new DungeonExample { Site = whole.Site };
+            shown.Rooms.AddRange(Lit(whole, walked, fogged, peeking, out peeked));
+            shown.Doors.AddRange(whole.Doors);
+            return shown;
+        }
+
+        /// <summary>
+        /// Lays the fog again on the dungeon as shown (<see cref="Shown"/>), in place: the rooms
+        /// newly shown join it after those standing, in the whole's order, and the rooms hidden
+        /// again leave it, so the stage keeps the rooms standing; true when any joined or left,
+        /// those rooms given, with the rooms shown only as peeked.
+        /// </summary>
+        public static bool Relay(DungeonExample shown, DungeonExample whole, Func<PlacedRoom, bool> walked, bool fogged, bool peeking,
+            out HashSet<PlacedRoom> peeked, out List<PlacedRoom> added, out List<PlacedRoom> removed)
+        {
+            var lit = new HashSet<PlacedRoom>(Lit(whole, walked, fogged, peeking, out peeked));
+            var standing = new HashSet<PlacedRoom>(shown.Rooms);
+            removed = shown.Rooms.Where(r => !lit.Contains(r)).ToList();
+            added = whole.Rooms.Where(r => lit.Contains(r) && !standing.Contains(r)).ToList();
+            if (removed.Count == 0 && added.Count == 0) return false;
+            shown.Rooms.RemoveAll(r => !lit.Contains(r));
+            shown.Rooms.AddRange(added);
+            return true;
+        }
+
+        /// <summary>The rooms the fog shows, in the whole's order, and among them those shown only as peeked; an end cap or divider shows as the room it is joined to does.</summary>
+        private static List<PlacedRoom> Lit(DungeonExample whole, Func<PlacedRoom, bool> walked, bool fogged, bool peeking, out HashSet<PlacedRoom> peeked)
+        {
+            peeked = new HashSet<PlacedRoom>();
+            var lit = new List<PlacedRoom>();
             foreach (var room in whole.Rooms)
             {
                 var own = room.Room.EndCap || room.Room.Divider ? room.JoinedTo : room;
                 var fog = Of(fogged, peeking, own != null && walked(own));
                 if (fog == RoomFog.Dark) continue;
                 if (fog == RoomFog.Peeked) peeked.Add(room);
-                shown.Rooms.Add(room);
+                lit.Add(room);
             }
-            shown.Doors.AddRange(whole.Doors);
-            return shown;
+            return lit;
         }
 
         /// <summary>Each way from a room walked to one not, at the doorway they share, in the order the rooms were placed.</summary>

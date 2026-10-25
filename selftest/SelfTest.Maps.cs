@@ -161,21 +161,25 @@ namespace Scry
             yield return Until(() => Stage.RoomGoneInto == null && !Stage.Gliding, 5);
 
             // Peeking, every room stands, those not walked dimmed and dashed under the peek's warning.
+            var walkedCount = fogged.Rooms.Count;
+            var relaid = ExampleLayouts.Relaid;
             X.Peeking = true;
-            yield return Until(() => ExampleLayouts.Example != fogged && Stage.ExampleRoomsTotal == rolled.Rooms.Count && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 60);
+            yield return Until(() => ExampleLayouts.Relaid > relaid && Stage.ExampleRoomsTotal == rolled.Rooms.Count && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 60);
             var peekedRoom = Stage.ExampleWays?.Rooms.FirstOrDefault(ExampleLayouts.IsPeeked);
             p.Check(ExampleLayouts.PeekedRooms == rooms - 2 && peekedRoom != null, "peeking, the rooms not walked stand, marked as peeked", $"{Numbers.Count(ExampleLayouts.PeekedRooms)} peeked of {Numbers.Count(rooms)}");
             if (peekedRoom != null) p.Check(Stage.ExampleRoomLook(peekedRoom) != RoomLook.Whole, "and stand dimmed on the stage", Stage.ExampleRoomLook(peekedRoom).ToString());
             yield return Picture(p, $"fog {entry.Name} peeking");
             X.Peeking = false;
-            yield return Until(() => ExampleLayouts.Example.Rooms.Count == fogged.Rooms.Count, 10);
-            p.Check(ExampleLayouts.PeekedRooms == 0 && ExampleLayouts.Example.Rooms.Count == fogged.Rooms.Count, "the peek ended, the fog is back");
-            // Laid out again, the dungeon still switches to its entrance, drawn.
+            yield return Until(() => ExampleLayouts.Example.Rooms.Count == walkedCount, 10);
+            p.Check(ExampleLayouts.PeekedRooms == 0 && ExampleLayouts.Example.Rooms.Count == walkedCount && ReferenceEquals(ExampleLayouts.Example, fogged), "the peek ended, the fog is back on the example standing");
+            // The fog laid again in place, the dungeon still switches to its entrance, drawn.
             yield return Until(() => Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 30);
             Stage.Inside = false;
             yield return null;
             p.Check(Stage.HasOutside && !Stage.ShowsInside && Stage.OutsidePartsDrawn > 0, "after the peek, Outside still shows its entrance", $"has outside {Stage.HasOutside}, {Numbers.Count(Stage.OutsidePartsDrawn)} parts drawn");
             Stage.Inside = true;
+
+            yield return WalkedWhileShown(p, ways, next, rolled, fogged, maps, id, first, rooms, entry);
 
             // A dungeon of the world nobody walked: the fog leaves no room, so its entrance shows,
             // before a peek and after one, never nothing.
@@ -196,6 +200,29 @@ namespace Scry
             p.Check(!Stage.ShowsInside && Stage.OutsidePartsDrawn > 0, "the peek ended, the stage shows its entrance again", $"{Numbers.Count(Stage.OutsidePartsDrawn)} parts drawn");
             yield return Picture(p, $"fog {entry.Name} nobody walked after peeking");
             DungeonFogAsItWas();
+        }
+
+        /// <summary>A room walked while the world's own dungeon is shown joins it in place: the rooms standing keep their copies, and the stage is not shown anew.</summary>
+        private static IEnumerator WalkedWhileShown(Probe p, DungeonWays ways, PlacedRoom next, DungeonExample rolled, DungeonExample fogged, DungeonMaps maps, string id, int first, int rooms, Entry entry)
+        {
+            // A room walked while the dungeon is shown joins it in place: the rooms standing keep
+            // their copies, and the stage is not shown anew, so nothing flickers.
+            var third = ways.WaysOf(next).FirstOrDefault(r => r != ways.Entrance && !r.Room.EndCap && !r.Room.Divider);
+            if (third != null)
+            {
+                var thirdAt = rolled.Rooms.IndexOf(third);
+                var firstCopy = Stage.ExampleCopyAt(first);
+                var shows = Stage.Shows;
+                var relaid = ExampleLayouts.Relaid;
+                maps.Walk(id, thirdAt);
+                yield return Until(() => ExampleLayouts.Relaid > relaid && Stage.ExampleCopyAt(thirdAt) != null && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 15);
+                p.Check(firstCopy != null && ReferenceEquals(Stage.ExampleCopyAt(first), firstCopy) && Stage.ExampleCopyAt(thirdAt) != null && ReferenceEquals(ExampleLayouts.Example, fogged) && Stage.Shows == shows,
+                    "a room walked while the dungeon is shown joins it, the rooms standing kept and the stage not shown anew",
+                    $"relaid {Numbers.Count(ExampleLayouts.Relaid - relaid)}, shown anew {Numbers.Count(Stage.Shows - shows)}, third stands {Stage.ExampleCopyAt(thirdAt) != null}");
+                p.Check(ExampleLayouts.Walked == (3, rooms), "and it counts as walked", $"{Numbers.Count(ExampleLayouts.Walked.Walked)} of {Numbers.Count(ExampleLayouts.Walked.Rooms)}");
+                yield return Picture(p, $"fog {entry.Name} third room walked while shown");
+            }
+            else p.Note("the second room leads on to no third: a room walked while shown is not tried");
         }
 
         /// <summary>

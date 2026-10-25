@@ -103,6 +103,68 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheFogLaidAgainChangesTheDungeonShownInPlace()
+        {
+            // Rooms walked while the dungeon is shown join it, and rooms the fog hides again leave
+            // it, the example staying the one the stage stands: a stage made anew would flicker.
+            var line = Line();
+            var walked = new HashSet<int> { 0 };
+            var shown = DungeonFog.Shown(line, r => walked.Contains(r.SavedAt), fogged: true, peeking: false, out _);
+            Assert.Equal(new[] { 0 }, shown.Rooms.Select(r => r.SavedAt));
+
+            walked.Add(2);
+            Assert.True(DungeonFog.Relay(shown, line, r => walked.Contains(r.SavedAt), fogged: true, peeking: false, out var peeked, out var added, out var removed));
+            Assert.Equal(new[] { 0, 2 }, shown.Rooms.Select(r => r.SavedAt));
+            Assert.Same(line.Rooms[1], Assert.Single(added));
+            Assert.Empty(removed);
+            Assert.Empty(peeked);
+
+            // A peek adds the rest as peeked, after the rooms standing; its end takes them out again.
+            Assert.True(DungeonFog.Relay(shown, line, r => walked.Contains(r.SavedAt), fogged: true, peeking: true, out peeked, out added, out removed));
+            Assert.Equal(new[] { 0, 2, 3, 4 }, shown.Rooms.Select(r => r.SavedAt));
+            Assert.Equal(new[] { line.Rooms[2], line.Rooms[3] }, added);
+            Assert.Equal(new[] { line.Rooms[2], line.Rooms[3] }, peeked.OrderBy(r => r.SavedAt));
+            Assert.True(DungeonFog.Relay(shown, line, r => walked.Contains(r.SavedAt), fogged: true, peeking: false, out peeked, out added, out removed));
+            Assert.Equal(new[] { 0, 2 }, shown.Rooms.Select(r => r.SavedAt));
+            Assert.Empty(added);
+            Assert.Equal(new[] { line.Rooms[2], line.Rooms[3] }, removed);
+            Assert.Same(line.Site, shown.Site);
+        }
+
+        [Fact]
+        public void TheFogLaidAgainWithNothingChangedSaysSo()
+        {
+            // The maps' stamp moves for a day's end or the server's answer with nothing new in it:
+            // the relay says nothing changed, and the stage keeps still.
+            var line = Line();
+            var walked = new HashSet<int> { 0, 2 };
+            var shown = DungeonFog.Shown(line, r => walked.Contains(r.SavedAt), fogged: true, peeking: false, out _);
+            Assert.False(DungeonFog.Relay(shown, line, r => walked.Contains(r.SavedAt), fogged: true, peeking: false, out var peeked, out var added, out var removed));
+            Assert.Equal(new[] { 0, 2 }, shown.Rooms.Select(r => r.SavedAt));
+            Assert.Empty(added);
+            Assert.Empty(removed);
+            Assert.Empty(peeked);
+        }
+
+        [Fact]
+        public void ARoomAddedLaterStandsFromTheGeneratorAsTheWholeDoes()
+        {
+            // A room joining an example standing is placed from the generator as every room was at
+            // first, joined to the room standing that it was joined to.
+            var line = Line();
+            var staged = line.FromGenerator();
+            var placed = new Dictionary<int, PlacedRoom>();
+            foreach (var room in staged.Rooms) placed[room.SavedAt] = room;
+            // The end cap is joined to the hall before it.
+            var later = line.FromGenerator(line.Rooms[3], r => placed.TryGetValue(r.SavedAt, out var p) ? p : null);
+            Assert.Equal(staged.Rooms[3].Position, later.Position);
+            Assert.Equal(staged.Rooms[3].Rotation, later.Rotation);
+            Assert.Equal(4, later.SavedAt);
+            Assert.Same(placed[3], later.JoinedTo);
+            Assert.Null(line.FromGenerator(line.Rooms[3], r => null).JoinedTo);
+        }
+
+        [Fact]
         public void PeekShowsEveryRoomTheOnesNotWalkedPeeked()
         {
             var line = Line();

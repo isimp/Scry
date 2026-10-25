@@ -83,7 +83,7 @@ namespace Scry
         [ForTest]
         public PlacedRoom RoomAt(float x, float z) => BottomUp.LastOrDefault(r => r.Covers(x, z));
 
-        /// <summary>A point of the world where it stands from the generator, as <see cref="FromGenerator"/> stands the rooms.</summary>
+        /// <summary>A point of the world where it stands from the generator, as <see cref="FromGenerator()"/> stands the rooms.</summary>
         public Vec3 FromGeneratorPoint(Vec3 point) => Site.Turn.Inverse() * (point - Site.Generator);
 
         /// <summary>A heading of the world, in degrees about the upright, as it is from the generator.</summary>
@@ -109,7 +109,7 @@ namespace Scry
             var moved = new Dictionary<PlacedRoom, PlacedRoom>();
             foreach (var room in Rooms)
             {
-                var placed = new PlacedRoom { Room = room.Room, Position = Local(room.Position), Rotation = back * room.Rotation, PlaceOrder = room.PlaceOrder, SavedAt = room.SavedAt };
+                var placed = FromGenerator(room, null);
                 moved[room] = placed;
                 staged.Rooms.Add(placed);
             }
@@ -118,6 +118,19 @@ namespace Scry
                 if (room.JoinedTo != null && moved.TryGetValue(room.JoinedTo, out var to)) moved[room].JoinedTo = to;
             }
             return staged;
+        }
+
+        /// <summary>
+        /// One room of this dungeon as it stands from the generator (<see cref="FromGenerator()"/>),
+        /// joined to the room standing that <paramref name="placedOf"/> gives for the one it was
+        /// joined to, or to none: for a room joining an example standing.
+        /// </summary>
+        public PlacedRoom FromGenerator(PlacedRoom room, Func<PlacedRoom, PlacedRoom> placedOf)
+        {
+            var back = Site.Turn.Inverse();
+            var placed = new PlacedRoom { Room = room.Room, Position = back * (room.Position - Site.Generator), Rotation = back * room.Rotation, PlaceOrder = room.PlaceOrder, SavedAt = room.SavedAt };
+            if (room.JoinedTo != null && placedOf != null) placed.JoinedTo = placedOf(room.JoinedTo);
+            return placed;
         }
 
         /// <summary>

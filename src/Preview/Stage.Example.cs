@@ -452,9 +452,6 @@ namespace Scry
         [Diagnostic]
         public static int ExampleLevelOfRoomForTest(PlacedRoom room) => TheExample.LevelOfRoom(room);
 
-        /// <summary>Whether the example the stage stands is this one.</summary>
-        public static bool StandsExample(DungeonExample example) => example != null && ReferenceEquals(TheExample.Of, example);
-
         /// <summary>How many of the example's rooms have had their rays read, which their grounds and levels come from.</summary>
         public static int ExampleRoomsRead => TheExample.GroundRead;
 
@@ -826,6 +823,35 @@ namespace Scry
 
         /// <summary>Lets go of the room last come out of, as the mouse moves.</summary>
         public static void LetGoOfCameOut() => CameOutOf = null;
+
+        /// <summary>
+        /// The example standing follows the fog laid again in place (<see cref="StageExample.Follow"/>):
+        /// out of a room taken down first, as *Whole dungeon* comes out; the floors read again from
+        /// the rooms left, and the entrance shown where none is left.
+        /// </summary>
+        public static void FollowExample(DungeonExample example, IReadOnlyList<PlacedRoom> added, IReadOnlyList<PlacedRoom> removed)
+        {
+            if (TheExample.Holder == null || !ReferenceEquals(TheExample.Of, example)) return;
+            bool Leaves(PlacedRoom room)
+            {
+                if (room == null || room.SavedAt < 0) return false;
+                foreach (var gone in removed) if (gone.SavedAt == room.SavedAt) return true;
+                return false;
+            }
+            if (Leaves(TheExample.Focused)) ComeOut();
+            if (Leaves(PickedRoom)) PickedRoom = null;
+            if (Leaves(CameOutOf)) CameOutOf = null;
+            var copies = TheExample.Copies;
+            TheExample.Follow(example, added, removed);
+            if (TheExample.IsDungeon) foreach (var room in added) FloorRecords.Want(room.Room.Name, true);
+            if (TheExample.Copies == copies) return;
+            if (TheExample.Copies == 0) ShowInsideOrOut();
+            else if (InsideWanted && TheExample.Copies > 1) RefreshExampleFloors();
+        }
+
+        /// <summary>A room's copy of the example standing, by the room's place in the saved rooms, for the self-test; none for a room not standing.</summary>
+        [ForTest]
+        public static GameObject ExampleCopyAt(int savedAt) => TheExample.CopyAt(savedAt);
 
         /// <summary>The ruler's mark opening the level of the plan a room is on, for the self-test; -1 for a room on none.</summary>
         [Diagnostic]

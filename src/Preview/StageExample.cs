@@ -14,7 +14,7 @@ namespace Scry
     /// the floors those make. It keeps all of it and lets go of it itself; the stage copies each
     /// room and frames the example.
     /// </summary>
-    internal sealed class StageExample
+    internal sealed partial class StageExample
     {
         /// <summary>A few milliseconds a frame for putting rooms away and back as floors are opened.</summary>
         private const double KeepBudgetMs = 4.0;
