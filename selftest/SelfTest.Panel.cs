@@ -377,12 +377,16 @@ namespace Scry
             ScryPanel.Compact = false;
             var creature = Pick(Kind.Creature, "Troll", "Greydwarf");
             var dungeon = LocationNamed("MountainCave02", "Crypt2");
+            var piece = Pick(Kind.Piece, "woodwall", "piece_workbench");
             if (creature == null && dungeon == null) p.Skip("neither a troll nor a dungeon is in the catalog");
             var wasInside = Stage.Inside;
             Stage.Inside = true;
-            foreach (var (entry, what) in new[] { (creature, "a creature's page"), (dungeon, "a dungeon's example with its plan box") })
+            // A piece stands still: with the spin off, the stage is filmed only now and then.
+            var spinWas = Stage.Spin;
+            foreach (var (entry, what) in new[] { (creature, "a creature's page"), (dungeon, "a dungeon's example with its plan box"), (piece, "a piece's page, the spin off") })
             {
                 if (entry == null) continue;
+                if (entry == piece) Stage.Spin = false;
                 Select(entry);
                 yield return Until(() => CopyOf(entry) != null && (entry.Kind != Kind.Location || Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal && Stage.ExampleFloorsToRead == 0), 60);
                 // A moment for what follows a selection (its page told, its warm-up) to settle.
@@ -390,6 +394,7 @@ namespace Scry
                 var first = Timing.Measuring?.Frames ?? 0;
                 var bytes = Timing.ScryBytes;
                 var frames = Time.frameCount;
+                var filmed = Stage.Filmed;
                 Timing.ForgetBytesByPart();
                 var others = new OtherThreads(() => GC.GetTotalMemory(false), () => GC.CollectionCount(0), () => System.Diagnostics.Stopwatch.GetTimestamp() * 1000.0 / System.Diagnostics.Stopwatch.Frequency);
                 var until = Time.unscaledTime + 4f;
@@ -400,13 +405,19 @@ namespace Scry
                 }
                 var held = Timing.Measuring?.Since(first);
                 var count = Math.Max(1, Time.frameCount - frames);
+                var films = Stage.Filmed - filmed;
                 var allocated = Timing.ScryBytes - bytes;
                 var own = Timing.CountsPerThread ? allocated : Math.Max(0, allocated - others.Bytes);
                 p.Note(held != null
                     ? $"{what} ({entry.Name}), {Numbers.Count(held.Frames)} frames: Scry's own work {Numbers.Fixed(held.Mean, 2)} ms a frame on average, {Numbers.Fixed(held.Percentile(0.95), 2)} ms at the 95th percentile; it allocated about {Numbers.Count(own / count)} bytes a frame{(Timing.CountsPerThread ? "" : ", other threads' left out")}"
                     : $"{what}: frames were not measured");
-                p.Note($"{what}, by part: " + Timing.BytesByPartTold(30));
+                p.Note($"{what}, by part, each part's own allocation: " + Timing.BytesByPartTold(30, own: true));
+                p.Note($"{what}, by part, inner parts included: " + Timing.BytesByPartTold(30));
+                p.Note($"{what}: the stage was filmed in {Numbers.Count(films)} of {Numbers.Count(count)} frames, {(Stage.LiveForTest ? "alive" : "still")} at the last look");
+                p.Check(own / count < 64 * 1024, $"{what}: Scry's own work allocates under 64 KB a frame standing open", $"{Numbers.Count((int)(own / count / 1024))} KB a frame");
+                if (entry == piece) p.Check(films <= count / 3 + 2, "a still page is filmed in a third of its frames at most", $"{Numbers.Count(films)} of {Numbers.Count(count)}");
             }
+            Stage.Spin = spinWas;
             Stage.Inside = wasInside;
             p.Check(true, "the panel stood open on each and was measured");
         }

@@ -56,9 +56,9 @@ namespace Scry
             var lines = ScryPanel.YouLinesForTest;
             p.Note("the Troll's You box: " + string.Join("; ", lines.Select(l => l.Label + ": " + l.Value)));
             string Line(string label) => lines.FirstOrDefault(l => l.Label == label).Value;
-            p.Check(Line("First seen") == "day 9, at dusk in the rain, in the Black Forest; it had 1 star", "the first sighting tells its day, time, weather, biome and stars", Line("First seen"));
-            p.Check(Line("Came to know it") == $"day 12, at night, fighting it with your {spear.ShownName} in the Black Forest", "coming to know it tells its moment and what was in hand", Line("Came to know it"));
-            p.Check(Line("It killed you") == "twice, last on day 21", "the deaths it dealt are counted with the last", Line("It killed you"));
+            p.Check(Line("First seen") == "day 9, at dusk in the rain, in the Black Forest, with 1 star", "the first sighting tells its day, time, weather, biome and stars", Line("First seen"));
+            p.Check(Line("Came to know it") == $"day 12, at night, in the Black Forest, fighting it with your {spear.ShownName}", "coming to know it tells its moment and what was in hand", Line("Came to know it"));
+            p.Check(Line("Killed by it") == "twice, last on day 21", "the deaths it dealt are counted with the last", Line("Killed by it"));
             yield return PictureOf(p, "facts", "you Troll, first seen, came to know and killed you");
 
             // Learned, by day, the folds as the list starts them, the selection in the newest day.

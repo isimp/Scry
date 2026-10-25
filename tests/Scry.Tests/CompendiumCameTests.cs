@@ -73,11 +73,11 @@ namespace Scry.Tests
         [Fact]
         public void HowItCameToBeKnownIsToldByTheWayTheDayAndTheBiome()
         {
-            Assert.Equal("day 12, fighting it in the Black Forest", CompendiumWords.CameToKnow(CameBy.Fought, 12, "Black Forest"));
-            Assert.Equal("fighting it in the Black Forest", CompendiumWords.CameToKnow(CameBy.Fought, -1, "Black Forest"));
+            Assert.Equal("day 12, in the Black Forest, fighting it", CompendiumWords.CameToKnow(CameBy.Fought, 12, "Black Forest"));
+            Assert.Equal("in the Black Forest, fighting it", CompendiumWords.CameToKnow(CameBy.Fought, -1, "Black Forest"));
             // The world named where it is not the one played now, as a character's book spans worlds.
-            Assert.Equal("day 12 in Elderwood, fighting it in the Black Forest", CompendiumWords.CameToKnow(CameBy.Fought, 12, "Black Forest", world: "Elderwood"));
-            Assert.Equal("in Elderwood, fighting it in the Black Forest", CompendiumWords.CameToKnow(CameBy.Fought, -1, "Black Forest", world: "Elderwood"));
+            Assert.Equal("day 12 in Elderwood, in the Black Forest, fighting it", CompendiumWords.CameToKnow(CameBy.Fought, 12, "Black Forest", world: "Elderwood"));
+            Assert.Equal("in Elderwood, in the Black Forest, fighting it", CompendiumWords.CameToKnow(CameBy.Fought, -1, "Black Forest", world: "Elderwood"));
             Assert.Equal("day 3, unlocking its recipe", CompendiumWords.CameToKnow(CameBy.Recipe, 3, null));
             // The game's record of stations fills by being near one, not by using it.
             Assert.Equal("day 3, being near it", CompendiumWords.CameToKnow(CameBy.Near, 3, null));

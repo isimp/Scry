@@ -36,10 +36,11 @@ namespace Scry.Tests
         [Fact]
         public void AFirstSightingTellsItsMoment()
         {
-            Assert.Equal("day 9, at dusk in the rain, in the Black Forest; it had 1 star",
+            // The stars as a phrase among the others, no clause of its own.
+            Assert.Equal("day 9, at dusk in the rain, in the Black Forest, with 1 star",
                 JournalWords.FirstSeen(9, DayPart.Dusk, "Rain", "Black Forest", 1));
             Assert.Equal("day 9, in the rain, in the Black Forest", JournalWords.FirstSeen(9, DayPart.Day, "Rain", "Black Forest", 0));
-            Assert.Equal("day 9, at night, in the Black Forest; it had 2 stars", JournalWords.FirstSeen(9, DayPart.Night, "Clear", "Black Forest", 2));
+            Assert.Equal("day 9, at night, in the Black Forest, with 2 stars", JournalWords.FirstSeen(9, DayPart.Night, "Clear", "Black Forest", 2));
             Assert.Equal("day 9, in the Meadows", JournalWords.FirstSeen(9, DayPart.None, null, "Meadows", -1));
             Assert.Equal("at dawn", JournalWords.FirstSeen(-1, DayPart.Dawn, null, null, -1));
             Assert.Equal("day 9 in Elderwood, in the Meadows", JournalWords.FirstSeen(9, DayPart.None, null, "Meadows", -1, "Elderwood"));
@@ -49,14 +50,15 @@ namespace Scry.Tests
         [Fact]
         public void ComingToKnowTellsItsMomentAndWhatWasInHandForAFight()
         {
-            Assert.Equal("day 12, at night, fighting it with your Flint spear in the Black Forest",
+            // When, where, then how: the deed and what was in hand come last.
+            Assert.Equal("day 12, at night, in the Black Forest, fighting it with your Flint spear",
                 CompendiumWords.CameToKnow(CameBy.Fought, 12, "Black Forest", DayPart.Night, null, "Flint spear"));
-            Assert.Equal("day 12, at dusk in the rain, killing it with your Bow in the Black Forest",
+            Assert.Equal("day 12, at dusk in the rain, in the Black Forest, killing it with your Bow",
                 CompendiumWords.CameToKnow(CameBy.Killed, 12, "Black Forest", DayPart.Dusk, "Rain", "Bow"));
             // What is in hand only where a hand did it.
-            Assert.Equal("day 3, picking it in the Meadows", CompendiumWords.CameToKnow(CameBy.Picked, 3, "Meadows", DayPart.Day, "Clear", "Club"));
+            Assert.Equal("day 3, in the Meadows, picking it", CompendiumWords.CameToKnow(CameBy.Picked, 3, "Meadows", DayPart.Day, "Clear", "Club"));
             // Kept before moments were, it reads as it did.
-            Assert.Equal("day 12, fighting it in the Black Forest", CompendiumWords.CameToKnow(CameBy.Fought, 12, "Black Forest"));
+            Assert.Equal("day 12, in the Black Forest, fighting it", CompendiumWords.CameToKnow(CameBy.Fought, 12, "Black Forest"));
         }
 
         [Fact]
@@ -64,10 +66,11 @@ namespace Scry.Tests
         {
             // The game counts a kill under melee, ranged, magic or bare hands where every hit was
             // of that kind (Character.ApplyDamage, KillModifiers), else only in the total.
-            Assert.Equal("14 times: 9 in melee, 3 with arrows or bolts, 2 with mixed attacks", JournalWords.Kills(14, melee: 9, ranged: 3, magic: 0, unarmed: 0));
+            // The split follows its count as more of the same phrase, the last after "and".
+            Assert.Equal("14 times, 9 in melee, 3 with arrows or bolts and 2 with mixed attacks", JournalWords.Kills(14, melee: 9, ranged: 3, magic: 0, unarmed: 0));
             Assert.Equal("5 times, all in melee", JournalWords.Kills(5, melee: 5, ranged: 0, magic: 0, unarmed: 0));
             Assert.Equal("once, by magic", JournalWords.Kills(1, melee: 0, ranged: 0, magic: 1, unarmed: 0));
-            Assert.Equal("4 times: 3 bare-handed, 1 by magic", JournalWords.Kills(4, melee: 0, ranged: 0, magic: 1, unarmed: 3));
+            Assert.Equal("4 times, 3 bare-handed and 1 by magic", JournalWords.Kills(4, melee: 0, ranged: 0, magic: 1, unarmed: 3));
             Assert.Equal("twice", JournalWords.Kills(2, 0, 0, 0, 0));
         }
 
@@ -124,8 +127,8 @@ namespace Scry.Tests
 
             Assert.Equal(new[]
             {
-                ("Killed", "14 times: 9 in melee, 3 with arrows or bolts, 2 with mixed attacks"),
-                ("It killed you", "twice, last on day 21"),
+                ("Killed", "14 times, 9 in melee, 3 with arrows or bolts and 2 with mixed attacks"),
+                ("Killed by it", "twice, last on day 21"),
                 ("Built", "twice"),
                 ("First seen", "day 9, in the Black Forest"),
                 ("Came to know it", "day 12, fighting it in the Black Forest"),

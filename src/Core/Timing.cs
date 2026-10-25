@@ -24,7 +24,13 @@ namespace Scry
             public long Bytes;
             public int Cleanups;
             public int Rebuilds;
+
+            /// <summary>Its place among the parts open (<see cref="Nesting"/>).</summary>
+            public int Id;
         }
+
+        /// <summary>Which parts are open inside which, so a part's own allocation is told apart from its inner parts' (<see cref="PartNesting"/>).</summary>
+        private static readonly PartNesting Nesting = new PartNesting();
 
         /// <summary>
         /// How often a font's texture has been rebuilt this session. A font out of room in its
@@ -57,18 +63,23 @@ namespace Scry
         /// <summary>The self-test's own checks, taken out of the frame it measures (<see cref="Own"/>).</summary>
         public const string SelfTestPart = "update self-test";
 
-        /// <summary>What each part allocated while the self-test measures, to tell which part allocates.</summary>
+        /// <summary>What each part allocated while the self-test measures, whole and its own, to tell which part allocates.</summary>
         private static readonly Dictionary<string, long> BytesByPart = new Dictionary<string, long>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, long> OwnBytesByPart = new Dictionary<string, long>(StringComparer.Ordinal);
 
         /// <summary>Forgets what each part allocated, as the self-test starts counting afresh.</summary>
         [ForTest]
-        public static void ForgetBytesByPart() => BytesByPart.Clear();
-
-        /// <summary>The parts that allocated most since the self-test last forgot them, inner ones too and its own left out, each with its kilobytes.</summary>
-        [Diagnostic, ForTest]
-        public static string BytesByPartTold(int most)
+        public static void ForgetBytesByPart()
         {
-            var told = BytesByPart.Where(p => p.Key != SelfTestPart).OrderByDescending(p => p.Value).Take(most).Select(p => $"{p.Key} {Numbers.Fixed(p.Value / 1024f, 1)} KB").ToList();
+            BytesByPart.Clear();
+            OwnBytesByPart.Clear();
+        }
+
+        /// <summary>The parts that allocated most since the self-test last forgot them, each with its kilobytes: its own, the inner parts' taken off, or the whole; the self-test's own left out.</summary>
+        [Diagnostic, ForTest]
+        public static string BytesByPartTold(int most, bool own = false)
+        {
+            var told = (own ? OwnBytesByPart : BytesByPart).Where(p => p.Key != SelfTestPart).OrderByDescending(p => p.Value).Take(most).Select(p => $"{p.Key} {Numbers.Fixed(p.Value / 1024f, 1)} KB").ToList();
             return told.Count > 0 ? string.Join(", ", told) : "none";
         }
 
@@ -90,8 +101,9 @@ namespace Scry
             var ms = (Stopwatch.GetTimestamp() - started.Ticks) * 1000.0 / Stopwatch.Frequency;
             // All it allocated, inner parts and all, so what it asked of Scry is left out with it.
             var bytes = GC.CollectionCount(0) > started.Cleanups && !CountsPerThread ? 0 : Allocated() - started.Bytes;
+            var (own, _) = Nesting.Close(started.Id, Math.Max(0, bytes), ms);
             Roll();
-            Frame.Add(part, Math.Max(0, ms - (Frame.InnerMs - innerBefore)), Math.Max(0, bytes), 0);
+            Frame.Add(part, Math.Max(0, ms - (Frame.InnerMs - innerBefore)), Math.Max(0, bytes), 0, 0, own);
         }
 
         private static bool On => Settings.LogPreviews || Measuring != null || Settings.ShowMonitor;
@@ -124,7 +136,7 @@ namespace Scry
         public static Mark Start()
         {
             if (!On) return default;
-            return new Mark { Ticks = Stopwatch.GetTimestamp(), Bytes = Allocated(), Cleanups = GC.CollectionCount(0), Rebuilds = _fontRebuilds };
+            return new Mark { Ticks = Stopwatch.GetTimestamp(), Bytes = Allocated(), Cleanups = GC.CollectionCount(0), Rebuilds = _fontRebuilds, Id = Nesting.Open() };
         }
 
         /// <summary>
@@ -138,8 +150,9 @@ namespace Scry
             var ms = (Stopwatch.GetTimestamp() - started.Ticks) * 1000.0 / Stopwatch.Frequency;
             var cleanups = GC.CollectionCount(0) - started.Cleanups;
             var bytes = cleanups > 0 && !CountsPerThread ? 0 : Allocated() - started.Bytes;
+            var (own, _) = Nesting.Close(started.Id, Math.Max(0, bytes), ms);
             Roll();
-            Frame.Add(part, ms, bytes, cleanups, _fontRebuilds - started.Rebuilds);
+            Frame.Add(part, ms, bytes, cleanups, _fontRebuilds - started.Rebuilds, own);
         }
 
         /// <summary>
@@ -162,7 +175,10 @@ namespace Scry
                 Measuring.Add(total, slowest.Name, slowest.Ms, outer.Name, outer.Ms, Frame.Cleanups, total >= SlowMs ? Frame.Line(Time.unscaledDeltaTime * 1000f) : null);
                 Measuring.AddTest(Frame.MsOf(SelfTestPart));
                 Frame.AddBytesTo(BytesByPart);
+                Frame.AddOwnBytesTo(OwnBytesByPart);
             }
+            // A part open across the frame's end is told whole when it closes.
+            Nesting.Clear();
             if (!Settings.LogPreviews)
             {
                 Frame.Clear();

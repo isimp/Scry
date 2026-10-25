@@ -18,6 +18,9 @@ namespace Scry
             public string Name;
             public double Ms;
             public long Bytes;
+
+            /// <summary>What it allocated less what the parts timed inside it did.</summary>
+            public long Own;
             public int Cleanups;
             public int Rebuilds;
             public bool Outer => Name.IndexOf(' ') < 0;
@@ -146,8 +149,19 @@ namespace Scry
             }
         }
 
-        /// <summary>Adds to a part: its time, what it allocated, how many cleanups ran inside it, and how often a font's texture was rebuilt in it.</summary>
-        public void Add(string part, double ms, long bytes, int cleanups, int rebuilds = 0)
+        /// <summary>What each part allocated less its inner parts', added to a sum by part.</summary>
+        public void AddOwnBytesTo(Dictionary<string, long> byPart)
+        {
+            foreach (var part in _parts)
+            {
+                if (part.Own <= 0) continue;
+                byPart.TryGetValue(part.Name, out var sum);
+                byPart[part.Name] = sum + part.Own;
+            }
+        }
+
+        /// <summary>Adds to a part: its time, what it allocated (and of that what was its own, the inner parts' taken off; the whole where not told), how many cleanups ran inside it, and how often a font's texture was rebuilt in it.</summary>
+        public void Add(string part, double ms, long bytes, int cleanups, int rebuilds = 0, long own = -1)
         {
             if (!_byName.TryGetValue(part, out var known))
             {
@@ -157,6 +171,7 @@ namespace Scry
             }
             known.Ms += ms;
             known.Bytes += Math.Max(0, bytes);
+            known.Own += Math.Max(0, own < 0 ? bytes : own);
             known.Cleanups += Math.Max(0, cleanups);
             known.Rebuilds += Math.Max(0, rebuilds);
         }

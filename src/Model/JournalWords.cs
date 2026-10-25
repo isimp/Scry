@@ -27,7 +27,7 @@ namespace Scry
         }
 
         /// <summary>
-        /// A first sighting: "day 9, at dusk in the rain, in the Black Forest; it had 1 star", each
+        /// A first sighting: "day 9, at dusk in the rain, in the Black Forest, with 1 star", each
         /// part where known, the stars where it had any.
         /// </summary>
         public static string FirstSeen(int day, DayPart time, string weather, string biome, int stars, string world = null)
@@ -39,12 +39,12 @@ namespace Scry
             if (when != null) parts.Add(when);
             if (!string.IsNullOrEmpty(biome)) parts.Add("in the " + biome);
             var said = string.Join(", ", parts.ToArray());
-            return stars > 0 ? $"{said}; it had {Naming.Count(stars, "star", "stars")}" : said;
+            return stars > 0 ? $"{said}, with {Naming.Count(stars, "star", "stars")}" : said;
         }
 
         /// <summary>
-        /// The game's kills of a creature for the character, by how they were dealt: "14 times: 9 in
-        /// melee, 3 with arrows or bolts, 2 with mixed attacks", the most first; "5 times, all in
+        /// The game's kills of a creature for the character, by how they were dealt: "14 times, 9 in
+        /// melee, 3 with arrows or bolts and 2 with mixed attacks", the most first; "5 times, all in
         /// melee"; only the count where the game split none. The game counts a kill under one kind
         /// only where every hit was of it, the rest only in the total.
         /// </summary>
@@ -58,7 +58,7 @@ namespace Scry
             if (kinds.Count == 1 && mixed <= 0) return killed == 1 ? $"{often}, {kinds[0].Said}" : $"{often}, all {kinds[0].Said}";
             var told = kinds.Select(k => Numbers.Count(k.Count) + " " + k.Said).ToList();
             if (mixed > 0) told.Add(Numbers.Count(mixed) + " with mixed attacks");
-            return often + ": " + string.Join(", ", told.ToArray());
+            return often + ", " + Naming.Joined(told);
         }
 
         /// <summary>The deaths a creature dealt the character: "twice, last on day 21", "once, on day 21 in Elderwood" with the world where it is to be named; the count alone where no day was known.</summary>

@@ -370,6 +370,7 @@ namespace Scry
                 var was = _dimmed.TryGetValue(copy, out var dimmedAs) ? dimmedAs : (RoomLook?)null;
                 if (copy.activeSelf == standing && was == dimAs) continue;
                 if (copy.activeSelf != standing) copy.SetActive(standing);
+                Stage.Touch();
                 if (was != dimAs)
                 {
                     Dim.Set(copy, dimAs is RoomLook dim ? Dim.ShareOf(dim) : (float?)null);

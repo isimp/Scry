@@ -78,6 +78,7 @@ namespace Scry
         public static void Show(Entry entry, Modifiers modifiers)
         {
             Shows++;
+            Touch();
             ClearSubject();
             if (entry != _lastShown)
             {
@@ -236,6 +237,7 @@ namespace Scry
         private static void Present(Entry entry, Modifiers modifiers)
         {
             CopiesMade++;
+            Touch();
             Tune(_subject, entry.Kind == Kind.Effect);
 
             var started = Timing.Start();
@@ -274,6 +276,7 @@ namespace Scry
         /// <summary>The modifiers that change without making a new copy.</summary>
         public static void Apply(Modifiers modifiers)
         {
+            Touch();
             if (_subject == null) return;
 
             _scale = modifiers.Scale;

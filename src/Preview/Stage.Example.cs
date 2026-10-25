@@ -223,6 +223,7 @@ namespace Scry
                 if (TheExample.Copies == 1 && TheExample.IsDungeon) ShowInsideOrOut();
                 else if (TheExample.Holder.activeInHierarchy) _bounds.Encapsulate(Unscaled(Measure(copy)));
             }
+            if (placedAny) Touch();
             if (placedAny && TheExample.IsDungeon && InsideWanted && TheExample.Copies > 1) RefreshExampleFloors();
             Timing.Add("stage example", made);
         }
@@ -844,6 +845,7 @@ namespace Scry
             var copies = TheExample.Copies;
             TheExample.Follow(example, added, removed);
             if (TheExample.IsDungeon) foreach (var room in added) FloorRecords.Want(room.Room.Name, true);
+            Touch();
             if (TheExample.Copies == copies) return;
             if (TheExample.Copies == 0) ShowInsideOrOut();
             else if (InsideWanted && TheExample.Copies > 1) RefreshExampleFloors();

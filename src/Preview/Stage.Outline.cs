@@ -47,6 +47,7 @@ namespace Scry
             var key = TheCut.Held ? CutAt : room.Position.Y + room.Room.Size.Y / 2f;
             if (_outline != null && _outline.gameObject.activeSelf && ReferenceEquals(room, _outlinedRoom) && key == _outlinedTop) return;
             if (!EnsureOutline()) return;
+            Touch();
 
             var tops = TopsOf(room, TheCut.Held);
             Lay(_outline, holder.transform, room, TheExample.FocusGround, tops, 1f);

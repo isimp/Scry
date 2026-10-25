@@ -173,15 +173,18 @@ namespace Scry
         /// </summary>
         public static string CameToKnow(CameBy way, int day, string biome, DayPart time = DayPart.None, string weather = null, string inHand = null, string world = null)
         {
+            // When, where, then how, as the first sighting reads; the world named where it is not the one played now, as a character's book spans worlds.
+            var parts = new List<string>();
+            if (day >= 0) parts.Add("day " + Numbers.Count(day) + JournalWords.InWorld(world));
+            else if (world != null) parts.Add(JournalWords.InWorld(world).Trim());
+            var when = JournalWords.When(time, weather);
+            if (when != null) parts.Add(when);
+            if (!string.IsNullOrEmpty(biome)) parts.Add("in the " + biome);
             var said = CameWay(way);
             var handed = way == CameBy.Fought || way == CameBy.Killed || way == CameBy.Hit;
             if (handed && !string.IsNullOrEmpty(inHand)) said += " with your " + inHand;
-            if (!string.IsNullOrEmpty(biome)) said += " in the " + biome;
-            var when = JournalWords.When(time, weather);
-            if (when != null) said = when + ", " + said;
-            // The world named where it is not the one played now, as a character's book spans worlds.
-            if (day >= 0) return $"day {Numbers.Count(day)}{JournalWords.InWorld(world)}, {said}";
-            return world != null ? $"{JournalWords.InWorld(world).Trim()}, {said}" : said;
+            parts.Add(said);
+            return string.Join(", ", parts.ToArray());
         }
 
         /// <summary>How often, as a count reads: "once", "twice", "14 times".</summary>
@@ -238,7 +241,7 @@ namespace Scry
         {
             var lines = new List<(string, string)>();
             if (counts != null && counts.Killed > 0) lines.Add((KilledLabel, JournalWords.Kills(counts.Killed, counts.Melee, counts.Ranged, counts.Magic, counts.Unarmed)));
-            if (!string.IsNullOrEmpty(killedYou)) lines.Add(("It killed you", killedYou));
+            if (!string.IsNullOrEmpty(killedYou)) lines.Add(("Killed by it", killedYou));
             if (counts != null)
             {
                 void Times(string label, int count)

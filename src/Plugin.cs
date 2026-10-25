@@ -149,11 +149,13 @@ namespace Scry
 
         private void Update()
         {
+            var links = Timing.Start();
             Guard.Run(Feature.CompendiumMap, "Scry's messages with the server", CompendiumLink.Update);
             Guard.Run(Feature.CompendiumMap, "the asks about ground players send the server", GroundAsks.Update);
             Guard.Run(Feature.GroupDungeonMaps, "the server's records of the dungeons walked", GroupMapsLink.Update);
             Guard.Run(Feature.CompendiumTogether, "Scry's messages with the other players' games", EventLink.Update);
             Guard.Run(Feature.DungeonMaps, "the dungeons in the ground shown with insides", DungeonsInGround.Update);
+            Timing.Add("links", links);
             if (_server) return;
             var started = Timing.Start();
             Guard.Run(Feature.World, "the frame", Session.Update);

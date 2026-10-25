@@ -83,25 +83,11 @@ namespace Scry
 
             if (Spin && !Dragging && _subject != null) TurnTo(Yaw + SpinDegreesPerSecond * Time.unscaledDeltaTime, Pitch);
 
-            // Each step timed on its own, so a slow film says which step it was.
-            var step = Timing.Start();
-            EnsureTexture();
-            Settle();
-            Timing.Add("render settle", step);
+            KeepBeforeFilm();
+            // Nothing moved or changed: the last film stays on the panel.
+            if (!FilmDue()) return;
             _camera.renderingPath = PathOverride ?? RenderingPath.UsePlayerSettings;
-            step = Timing.Start();
-            if (!Guard.Run(Feature.StageGround, GroundPart, KeepGround)) PutGroundAway();
-            Timing.Add("render ground", step);
-            step = Timing.Start();
-            Frame();
-            KeepOutline();
-            KeepLitOutline();
-            KeepGhosts();
-            KeepYouMark();
-            Timing.Add("render frame", step);
-            step = Timing.Start();
-            KeepCreaturesToCut();
-            Timing.Add("render creatures", step);
+            var step = Timing.Start();
 
             var mask = StageMask;
             var hidden = HiddenMask;

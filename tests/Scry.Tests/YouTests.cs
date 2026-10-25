@@ -35,7 +35,7 @@ namespace Scry.Tests
         [Fact]
         public void HowItCameToBeKnownIsTheWayKeptOrWhatBroughtItAlongOrTheFloor()
         {
-            Assert.Equal("day 12, fighting it in the Black Forest", CompendiumWords.CameLine(CameBy.Fought, 12, "Black Forest", owner: "Troll", floor: 2, known: true));
+            Assert.Equal("day 12, in the Black Forest, fighting it", CompendiumWords.CameLine(CameBy.Fought, 12, "Black Forest", owner: "Troll", floor: 2, known: true));
             Assert.Equal("along with Troll", CompendiumWords.CameLine(null, -1, null, owner: "Troll", floor: 2, known: true));
             // Shown by the floor, by the lowest tier that shows it, whatever the floor stepped to since.
             Assert.Equal("shown as known up to the Black Forest tier", CompendiumWords.CameLine(null, -1, null, owner: null, floor: 2, known: true));

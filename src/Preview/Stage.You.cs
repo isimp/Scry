@@ -50,6 +50,7 @@ namespace Scry
             _youAt = at;
             _youYaw = yaw;
             _youHolderAt = holderAt;
+            Touch();
 
             var root = _root.transform;
             var turn = Quaternion.Euler(0f, yaw, 0f);
