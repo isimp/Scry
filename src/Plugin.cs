@@ -75,6 +75,7 @@ namespace Scry
             { typeof(DeathLoot), Feature.DropsSeenInPlay },
             { typeof(RagdollLootSetUp), Feature.DropsSeenInPlay },
             { typeof(RemainsSeenWatched), Feature.DropsSeenInPlay },
+            { typeof(KillCreditWatched), Feature.DropsSeenInPlay },
             { typeof(RagdollLoot), Feature.DropsSeenInPlay },
             { typeof(ItemMade), Feature.DropsSeenInPlay },
             { typeof(EquipWatched), Feature.WhatEquippingDid },

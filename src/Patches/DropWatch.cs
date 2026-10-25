@@ -124,7 +124,10 @@ namespace Scry
                 var amount = zdo.GetInt(RemainsSeen.DropKey(RemainsSeen.DropAmount, i));
                 if (item != null && amount > 0) loot.Add((item.name, amount));
             }
-            WorldEvents.Seen(Happened.Died, creature, ragdoll.transform.position, loot, zdo.GetInt(ZDOVars.s_level, 1), null, zdo.m_uid.ToString());
+            // The game's own credit for the kill, come within seconds, makes the death the character's (KillCredits); else the remains wait for it as long.
+            var doers = CompendiumKeeper.CreditTaken(creature) ? new[] { ZNet.GetUID() } : null;
+            var told = WorldEvents.Seen(Happened.Died, creature, ragdoll.transform.position, loot, zdo.GetInt(ZDOVars.s_level, 1), doers, zdo.m_uid.ToString());
+            if (doers == null) CompendiumKeeper.RemainsTold(creature, told);
         }
 
         /// <summary>An item come to be: kept while a death's loot is being dropped.</summary>
@@ -195,6 +198,16 @@ namespace Scry
         private static void Postfix(Ragdoll __instance, CharacterDrop characterDrop, int level)
         {
             Guard.Run(Feature.DropsSeenInPlay, "watching what creatures drop", () => DropWatch.RagdollSetUp(__instance, characterDrop, level));
+        }
+    }
+
+    /// <summary>The game crediting the character with a kill (<c>Game.RPC_RegisterKill</c>, on the character's own game whichever ran the death): the remains seen of it are the character's.</summary>
+    [HarmonyPatch(typeof(Game), "RPC_RegisterKill")]
+    internal static class KillCreditWatched
+    {
+        private static void Postfix(string enemyName)
+        {
+            Guard.Run(Feature.DropsSeenInPlay, "taking the game's credit for a kill", () => CompendiumKeeper.KillCredited(enemyName));
         }
     }
 

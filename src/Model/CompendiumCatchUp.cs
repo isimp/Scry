@@ -285,6 +285,13 @@ namespace Scry
             return book.Raise(entry.Key, KnownLevel.Known, way: CameBy.LivedThrough);
         }
 
+        /// <summary>The creatures the game names by a token (<c>Character.m_name</c>), as a kill is credited by; none for a name of none.</summary>
+        public IEnumerable<string> CreaturesNamed(string token)
+        {
+            if (token == null || !_byToken.TryGetValue(token, out var entries)) yield break;
+            foreach (var entry in entries) if (entry.Kind == Kind.Creature) yield return entry.Key;
+        }
+
         /// <summary>Whether a raid brings a creature, for the sight to pair the two as the creature is seen while the raid runs (<see cref="CompendiumSight.Look"/>).</summary>
         public bool RaidBrings(string raid, string creature)
         {

@@ -235,6 +235,7 @@ namespace Scry
             ("Ragdoll", "Setup", 7, 0x7D29C725, Feature.DropsSeenInPlay),
             ("Ragdoll", "SpawnLoot", 1, 0x515425F4, Feature.DropsSeenInPlay),
             ("Ragdoll", "Awake", 0, 0x5D6AC5F3, Feature.DropsSeenInPlay),
+            ("Game", "RPC_RegisterKill", 6, 0xA44334BF, Feature.DropsSeenInPlay),
             ("DropTable", "AddItemToList", 2, 0xAECEE75C, Feature.DropTableAmounts),
             ("DropTable", "GetDropList", 1, 0xBF6963CC, Feature.DropTableRolls),
             ("BaseAI", "CanSeeTarget", 7, 0xDE5EBD88, Feature.WhatCreaturesSee),

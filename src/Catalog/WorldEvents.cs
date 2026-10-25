@@ -41,11 +41,13 @@ namespace Scry
         }
 
         /// <summary>An event another game ran, seen from this one by what it left: told to the character, never sent.</summary>
-        public static void Seen(Happened what, string thing, Vector3 at, IReadOnlyList<(string Item, int Amount)> came, int level,
+        public static WorldEvent Seen(Happened what, string thing, Vector3 at, IReadOnlyList<(string Item, int Amount)> came, int level,
             IReadOnlyList<long> doers, string mark)
         {
-            if (string.IsNullOrEmpty(thing)) return;
-            CompendiumKeeper.Tell(Make(what, thing, at, came, level, doers, null, mark));
+            if (string.IsNullOrEmpty(thing)) return null;
+            var told = Make(what, thing, at, came, level, doers, null, mark);
+            CompendiumKeeper.Tell(told);
+            return told;
         }
 
         /// <summary>The id of a networked thing, as the mark of an event about it; none for a thing not in the network.</summary>

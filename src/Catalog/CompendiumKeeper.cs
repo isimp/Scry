@@ -249,6 +249,35 @@ namespace Scry
             Guard.Run(Feature.CompendiumSeen, "looking at what the character sees", () => CompendiumSight.Look(player, _catchUp, _book));
         }
 
+        /// <summary>The kills the game credited the character with and the remains seen, for the one to name the other the character's (<see cref="KillCredits"/>).</summary>
+        private static readonly KillCredits Credits = new KillCredits();
+
+        /// <summary>
+        /// The game credited the character with a kill, by the creature's name token
+        /// (<c>Game.RPC_RegisterKill</c>): remains of such a creature told within seconds are told
+        /// again as the character's own; else the credit waits for them as long.
+        /// </summary>
+        public static void KillCredited(string token)
+        {
+            if (Into == null || _catchUp == null || string.IsNullOrEmpty(token)) return;
+            var creatures = _catchUp.CreaturesNamed(token).ToList();
+            if (creatures.Count == 0) return;
+            var now = Time.realtimeSinceStartup;
+            var claimed = Credits.ClaimRemains(creatures, now);
+            if (claimed.Count == 0)
+            {
+                Credits.Credited(creatures, now);
+                return;
+            }
+            foreach (var told in claimed) WorldEvents.Seen(Happened.Died, told.Thing, new Vector3(told.X, told.Y, told.Z), told.Came, told.Level, new[] { ZNet.GetUID() }, told.Mark);
+        }
+
+        /// <summary>Remains of a creature seen: whether the game credited the character with its kill within seconds, which makes the death the character's.</summary>
+        public static bool CreditTaken(string creature) => Credits.TakeCredit(creature, Time.realtimeSinceStartup);
+
+        /// <summary>Remains told as seen with no credit yet, kept for a credit that may follow within seconds.</summary>
+        public static void RemainsTold(string creature, WorldEvent told) => Credits.RemainsTold(creature, told, Time.realtimeSinceStartup);
+
         /// <summary>The raid running now, by its key, for the sight to pair the creatures seen in it; none while none runs.</summary>
         public static string RaidNow { get; private set; }
 
@@ -747,6 +776,7 @@ namespace Scry
             Save(now: true);
             _weatherSeen = default;
             WildNear.Forget();
+            Credits.Forget();
             Told.Forget();
             TameableNear.Clear();
             _catchUp = null;
