@@ -539,7 +539,7 @@ namespace Scry
         /// </summary>
         private static string RowSecondary(Explorer explorer, Entry entry, string primary) =>
             (explorer.LearnedOnly ? explorer.LearnedNote(entry) : null)
-            ?? (explorer.CompendiumOn ? SeenTagged(explorer, entry, Masked(explorer, explorer.AlikeOf(entry))) ?? ""
+            ?? (explorer.CompendiumSet ? SeenTagged(explorer, entry, Masked(explorer, explorer.AlikeOf(entry))) ?? ""
                 : (entry.TagNamesCarrier ? entry.Alike : null) ?? entry.Tag ?? (primary == entry.Name ? "" : entry.Name));
 
         /// <summary>A row's note with "seen" before it where the entry is only seen, its page closed, so a row tells knowing a thing from knowing its page.</summary>
@@ -568,7 +568,7 @@ namespace Scry
             var shownName = fullW > textW ? Skin.Fit(nameStyle, primary, textW) : primary;
             if (lit) LightMatches(nameRect, shownName, nameStyle);
             // With the compendium on what was only seen is faint, its page closed, as is what has nothing to see.
-            var faint = entry.Empty || explorer.CompendiumOn && explorer.LevelOf(entry) < KnownLevel.Known;
+            var faint = entry.Empty || explorer.CompendiumSet && explorer.BookLevelOf(entry) < KnownLevel.Known;
             Skin.LabelIn(nameRect, shownName, nameStyle, faint ? Skin.Faint : Skin.Text);
 
             var cut = fullW > textW;

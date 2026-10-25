@@ -109,6 +109,12 @@ namespace Scry.Tests
             Assert.Equal("Elderwood", loose.LearnedWorld(world.Boar));
             world.Told(CompendiumRule.Strict);
 
+            // Peeking shows a page whole; it hides nothing the book knows, the day a thing was learned among it.
+            explorer.PeekPage();
+            Assert.Equal(300, explorer.LearnedDay(world.Troll));
+            Assert.Equal("PipiKakaLand", explorer.LearnedWorld(world.Troll));
+            explorer.Peeking = false;
+
             Assert.Equal("Day 50", JournalWords.DayHeading(50));
             Assert.Equal("PipiKakaLand  \u00B7  Day 300", JournalWords.DayHeading(300, "PipiKakaLand"));
             Assert.Equal("PipiKakaLand  \u00B7  Earlier", JournalWords.DayHeading(-1, "PipiKakaLand"));

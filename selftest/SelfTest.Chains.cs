@@ -50,7 +50,7 @@ namespace Scry
             var drawn = ScryPanel.ChainsDrawnForTest.TryGetValue(ChainWords.Summoning, out var d) ? d : new List<(string Key, bool Unmet)>();
             var said = string.Join(" > ", drawn.Select(s => s.Unmet ? CompendiumWords.Hidden : s.Key));
             p.Check(drawn.Count == steps.Count && drawn.Count(s => s.Unmet) == 1 && drawn.Count > 0 && drawn[drawn.Count - 1].Unmet,
-                "the seed's summoning chain stands whole, its power alone not met reading ???", said);
+                "the seed's summoning chain stands whole, its power alone not met reading as a dash", said);
             p.Check(drawn.Any(s => !s.Unmet && X.Find(s.Key)?.Kind == Kind.Location), "and passes through The Elder's altar", said);
             yield return PictureOf(p, "chain", "Ancient Seed's summoning chain, the power not met");
             Session.ShowKnownInstead(null);

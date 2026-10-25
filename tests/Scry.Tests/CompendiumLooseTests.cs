@@ -55,7 +55,7 @@ namespace Scry.Tests
         {
             // A lox's riding hinges on its saddle: stamina and speed when ridden, and a saddled look
             // on the stage, would tell it can be ridden. Until the saddle is met, seen counting, the
-            // whole topic and the look are left out, not a ??? where the saddle would be named.
+            // whole topic and the look are left out, not a –– where the saddle would be named.
             var world = new World().Rule(CompendiumRule.Loose);
             world.Explorer.Select(world.Neck);
             Assert.True(world.Explorer.HidesHinged(world.Barley.Key));

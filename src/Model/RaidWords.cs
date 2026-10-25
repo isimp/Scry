@@ -86,8 +86,11 @@ namespace Scry
         }
 
         /// <summary>What a raid's card says it brings: the creatures by name, with the compendium on those not met counted after them, or nothing.</summary>
-        public static string Brings(IReadOnlyList<string> creatures, int notMet = 0) =>
-            creatures.Count == 0 && notMet == 0 ? "Brings nothing" : Brings(Naming.Commas(creatures) + NotMetAfter(creatures.Count, notMet));
+        public static string Brings(IReadOnlyList<string> creatures, string leftOut = null) =>
+            creatures.Count == 0 && leftOut == null ? "Brings nothing" : Brings(Naming.Commas(creatures) + LeftOutAfter(creatures.Count, leftOut));
+
+        /// <summary>What a count line of the rules says after those named: ", and 3 more not yet met" after names, the line alone with none; nothing for no line.</summary>
+        private static string LeftOutAfter(int named, string leftOut) => leftOut == null ? "" : named > 0 ? ", and " + leftOut : leftOut;
 
         /// <summary>What else a creature a raid brings is like: its groups, a time of day of its own, whether it hunts you; empty for none.</summary>
         private static string Also(int groupMin, int groupMax, bool night, bool day, bool hunts)
@@ -122,9 +125,9 @@ namespace Scry
         }
 
         /// <summary>The first roll of each of a raid's creatures (<see cref="RaidRoll"/>): each in the order it came, how many, and how many with stars.</summary>
-        public static string FirstRoll(IReadOnlyList<RolledCreature> rolled, System.Func<string, string> nameOf, int notMet = 0)
+        public static string FirstRoll(IReadOnlyList<RolledCreature> rolled, System.Func<string, string> nameOf, string leftOut = null)
         {
-            if (rolled.Count == 0 && notMet == 0) return "This roll brought nothing; roll again.";
+            if (rolled.Count == 0 && leftOut == null) return "This roll brought nothing; roll again.";
             var order = new List<string>();
             var counts = new Dictionary<string, (int All, int Starred)>();
             foreach (var creature in rolled)
@@ -138,15 +141,8 @@ namespace Scry
                 var count = counts[prefab];
                 parts.Add(Naming.Repeated(nameOf(prefab), count.All) + (count.Starred > 0 ? $" ({Numbers.Count(count.Starred)} with stars)" : ""));
             }
-            return "The first roll of each, as the game rolls it: " + string.Join(", ", parts) + NotMetAfter(parts.Count, notMet) + ".";
+            return "The first roll of each, as the game rolls it: " + string.Join(", ", parts) + LeftOutAfter(parts.Count, leftOut) + ".";
         }
-
-        /// <summary>
-        /// What a raid's line adds for its creatures the character has not met, with the compendium
-        /// on: ", and 3 more not yet met" after those named, "3 not yet met" alone; nothing for none.
-        /// </summary>
-        private static string NotMetAfter(int named, int notMet) =>
-            notMet <= 0 ? "" : named > 0 ? $", and {Numbers.Count(notMet)} more not yet met" : $"{Numbers.Count(notMet)} not yet met";
 
         /// <summary>The name of a boss's own event, which has no message of its own to go by.</summary>
         public static string Fighting(string boss) => $"Fighting {boss}";

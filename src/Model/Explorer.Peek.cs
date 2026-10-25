@@ -32,6 +32,9 @@ namespace Scry
             }
         }
 
+        /// <summary>How much the character's book knows of an entry, peeking or not: what the list's rows and the You box's own lines go by, as a peek shows a page whole but hides nothing the book knows.</summary>
+        public KnownLevel BookLevelOf(Entry entry) => CompendiumSet ? _view.Of(entry) : KnownLevel.Known;
+
         /// <summary>Whether every page shows whole until the peek is stopped, not the page shown alone.</summary>
         public bool PeekingEvery => _peeking && _peekedPage == null;
 

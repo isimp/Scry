@@ -107,7 +107,8 @@ namespace Scry
             var seen = WornWatch.Seen.Of(prefab.name);
             if (seen.Count == 0) return;
             var (columns, lines) = WornWords.Table(seen, shared.m_maxQuality);
-            var row = new Row { Title = WornWords.Title, Columns = columns, Unsure = UnsureWords.SeenWorn };
+            // Counted over every character's play on this machine: under the strict rules it stands faint, uncounted, as the drops seen do.
+            var row = new Row { Title = WornWords.Title, Columns = columns, Unsure = UnsureWords.SeenWorn, AllPlay = true };
             foreach (var line in lines) row.Lines.Add((line, null));
             Rows.Add(row);
         }

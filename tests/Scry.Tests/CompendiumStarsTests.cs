@@ -46,6 +46,38 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AStarredFallOpensWhatStarsChangeOnlyWhereItsStarsWereSeenUpClose()
+        {
+            // The game marks a creature's stars only up close: a kill credited from afar, or seen
+            // from 30 m, counts the fall and its loot but opens nothing of what stars change until
+            // those stars were seen up close, before or at the death itself, which is a sighting too.
+            var book = new CompendiumBook();
+            book.Now = () => new Moment(3, "Meadows");
+            book.Raise("Troll", KnownLevel.Known);
+            var ledger = new EventLedger();
+            var far = new WorldEvent(7, 1, Happened.Died, "Troll", 80f, 0f, 0f, new[] { ("TrollHide", 2) }, 2, new[] { 7L });
+            Assert.Equal(EventShare.Did, EventRule.Tell(far, 7, 0f, 0f, 0f, ledger, book, null));
+            Assert.Equal(1, book.StarredKills("Troll", 1));
+            Assert.False(book.Proved("Troll", EntryKeys.StarsFell(1)));
+            Assert.False(book.Proved("Troll", EntryKeys.Did(Deed.StarredFell)));
+            Assert.Empty(book.StarsSeen("Troll"));
+
+            book.Sighted("Troll", 1, null);
+            var farAgain = new WorldEvent(7, 2, Happened.Died, "Troll", 80f, 0f, 0f, new[] { ("TrollHide", 2) }, 2, new[] { 7L });
+            EventRule.Tell(farAgain, 7, 0f, 0f, 0f, ledger, book, null);
+            Assert.True(book.Proved("Troll", EntryKeys.StarsFell(1)));
+            Assert.True(book.Proved("Troll", EntryKeys.Did(Deed.StarredFell)));
+
+            var near = new CompendiumBook();
+            near.Now = () => new Moment(3, "Meadows");
+            near.Raise("Troll", KnownLevel.Known);
+            var atHand = new WorldEvent(7, 3, Happened.Died, "Troll", 5f, 0f, 0f, new[] { ("TrollHide", 2) }, 3);
+            EventRule.Tell(atHand, 9, 0f, 0f, 0f, new EventLedger(), near, null);
+            Assert.True(near.Proved("Troll", EntryKeys.StarsFell(2)));
+            Assert.Contains(2, near.StarsSeen("Troll"));
+        }
+
+        [Fact]
         public void ADeathSeenProvesTheStarsTheFallenHadAndCountsItsLootAtThem()
         {
             var book = new CompendiumBook();

@@ -526,7 +526,7 @@ namespace Scry
             if (trophy != null)
             {
                 p.Check(X.StrictStarShare(troll.Name, trophy, 1) == "0 of 1 kill" && X.StrictStarShare(troll.Name, trophy, 2) == CompendiumWords.Hidden,
-                    "its trophy's chance at one star is the character's own count, at two stars ???", X.StrictStarShare(troll.Name, trophy, 1));
+                    "its trophy's chance at one star is the character's own count, at two stars a smudge", X.StrictStarShare(troll.Name, trophy, 1));
             }
             else p.Note("no drop of the troll's gets likelier with stars");
             p.Check(X.LearnedNote(troll) == "what 1 star changes found out", "and Learned says what was found out", X.LearnedNote(troll));

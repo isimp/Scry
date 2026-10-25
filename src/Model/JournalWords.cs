@@ -83,6 +83,7 @@ namespace Scry
                 case CameBy.Recipe: return "recipe unlocked";
                 case CameBy.Card: return "card read";
                 case CameBy.Used: return "used";
+                case CameBy.Near: return "near";
                 case CameBy.Built: return "built";
                 case CameBy.Hit: return "hit";
                 case CameBy.Picked: return "picked";

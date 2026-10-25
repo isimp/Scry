@@ -116,8 +116,10 @@ namespace Scry
             {
                 var raid = entry.Source as RandomEvent;
                 var spawned = raid?.m_spawn?.Where(s => s?.m_prefab != null).Select(s => s.m_prefab).Distinct().ToList() ?? new List<GameObject>();
-                var met = spawned.Where(p => _explorer == null || !_explorer.NotMet(p.name)).ToList();
-                card = (raid != null ? PanelWords.Lasts(raid.m_duration) : "", RaidWords.Brings(met.Select(ShownNameOf).Distinct().ToList(), spawned.Count - met.Count));
+                // Named as the crowd stands them: met, and under the strict rules seen together with the raid; the rest counted as the rules count.
+                var met = spawned.Where(p => _explorer == null || !(_explorer.NotMet(p.name) || _explorer.LeavesOut(p.name))).ToList();
+                var leftOut = _explorer?.LeftOutLine("raid", spawned.Count - met.Count, alone: met.Count == 0);
+                card = (raid != null ? PanelWords.Lasts(raid.m_duration) : "", RaidWords.Brings(met.Select(ShownNameOf).Distinct().ToList(), leftOut));
                 RaidCardCache[entry] = card;
             }
             GUI.Label(new Rect(rect.x + U(20f), rect.y + U(40f), rect.width - U(40f), U(24f)), card.Lasts, Skin.Center);

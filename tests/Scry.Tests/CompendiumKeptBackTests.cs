@@ -64,7 +64,7 @@ namespace Scry.Tests
             Assert.False(world.Explorer.HidesAttack(slam));
             Assert.True(world.Explorer.HidesAttack(EntryKeys.PlayAttack("Troll_log")));
             Assert.False(world.Explorer.HidesAttack(world.Hide.Key));
-            // Its ??? says on hover what shows it; the You box lists what is still to find out.
+            // Its –– says on hover what shows it; the You box lists what is still to find out.
             Assert.Equal("Its damage shows once this attack has hit you", CompendiumWords.NotYetTakenTip);
 
             // Not under the loose rules, and not on a page that is no creature's.
@@ -157,7 +157,7 @@ namespace Scry.Tests
         [Fact]
         public void WhatKeepsANumberBackSaysWhatShowsIt()
         {
-            // One form for every hint of what shows a number: "shows once you have ...", on its ???'s hover.
+            // One form for every hint of what shows a number: "shows once you have ...", on its ––'s hover.
             Assert.Equal("shows once you have killed one", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Killed)));
             Assert.Equal("shows once you have tamed one", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Tamed)));
             Assert.Equal("shows once you have seen one born", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Born)));
@@ -476,7 +476,7 @@ namespace Scry.Tests
             world.Explorer.Select(world.Meadows);
 
             Assert.Equal("2 of 3 seen", world.Explorer.StrictAmount(Tally.Weather, "Meadows", "Clear"));
-            Assert.Equal("???", world.Explorer.StrictAmount(Tally.Weather, "Meadows", "Misty"));
+            Assert.Equal("––", world.Explorer.StrictAmount(Tally.Weather, "Meadows", "Misty"));
             Assert.Equal("How often shows as you see its weathers", TallyWords.NotYetCounted(Tally.Weather));
             Assert.Equal(3, CompendiumBook.Load(world.Book.Save()).Tallied(Tally.Weather).Kills("Meadows"));
         }
@@ -497,7 +497,7 @@ namespace Scry.Tests
 
             // A producer's pace until collected from.
             var hive = SourceFacts.Made("piece_beehive", "Beehive", 1200f, 4, "");
-            Assert.Equal("Made by Beehive, ???", world.Explorer.StrictSourceLine(hive));
+            Assert.Equal("Made by Beehive, ––", world.Explorer.StrictSourceLine(hive));
             Assert.Equal("Its pace shows once you have collected from one", SourceWords.HeldTip(hive));
             world.Book.Prove("piece_beehive", EntryKeys.Did(Deed.Collected));
             world.Rule(CompendiumRule.Strict);
@@ -536,7 +536,7 @@ namespace Scry.Tests
             // In the game's own form, the count in the bracket where the game puts its chance.
             Assert.Equal("1–2 (3 of 3)", world.Explorer.StrictAmount(Tally.Fell, "Troll", "TrollHide"));
             Assert.Equal("10 (1 of 3)", world.Explorer.StrictAmount(Tally.Fell, "Troll", "Coins"));
-            Assert.Equal("???", world.Explorer.StrictAmount(Tally.Fell, "Troll", "Wood"));
+            Assert.Equal("––", world.Explorer.StrictAmount(Tally.Fell, "Troll", "Wood"));
             Assert.Equal("Drops you saw fall (3 kills)", world.Explorer.StrictTitle(Tally.Fell, "Troll", null));
             Assert.Null(world.Explorer.StrictAmount(Tally.None, "Troll", "TrollHide"));
             Assert.Null(world.Explorer.StrictTitle(Tally.None, "Troll", null));
@@ -579,19 +579,19 @@ namespace Scry.Tests
 
             world.Explorer.Select(world.Hide);
             Assert.Equal("Dropped by Troll, 2–3 (2 of 3 kills)", world.Explorer.StrictSourceLine(SourceFacts.Dropped("Troll", "Troll", 5, 9, false, 1f)));
-            Assert.Equal("Dropped by Greydwarf, ???", world.Explorer.StrictSourceLine(SourceFacts.Dropped("Greydwarf", "Greydwarf", 1, 2, false, 0.25f)));
+            Assert.Equal("Dropped by Greydwarf, ––", world.Explorer.StrictSourceLine(SourceFacts.Dropped("Greydwarf", "Greydwarf", 1, 2, false, 0.25f)));
             // A chest never opened: held back until it is.
-            Assert.Equal("Found in Treasure chest, ???", world.Explorer.StrictSourceLine(SourceFacts.FromTable("TreasureChest", "Treasure chest", TableOf.Container, oneRoll, oneRoll.Drops[0])));
+            Assert.Equal("Found in Treasure chest, ––", world.Explorer.StrictSourceLine(SourceFacts.FromTable("TreasureChest", "Treasure chest", TableOf.Container, oneRoll, oneRoll.Drops[0])));
             // A way with no chance in it stays as the game tells it.
             Assert.Null(world.Explorer.StrictSourceLine(SourceFacts.Of(SourceWay.Picked, "RaspberryBush", "Raspberry bush")));
             // The giver's chip says the amount alone, after the giver's name.
             Assert.Equal("2–3 (2 of 3 kills)", world.Explorer.StrictSourceAmount(SourceFacts.Dropped("Troll", "Troll", 5, 9, false, 1f)));
-            Assert.Equal("???", world.Explorer.StrictSourceAmount(SourceFacts.Dropped("Greydwarf", "Greydwarf", 1, 2, false, 0.25f)));
+            Assert.Equal("––", world.Explorer.StrictSourceAmount(SourceFacts.Dropped("Greydwarf", "Greydwarf", 1, 2, false, 0.25f)));
             Assert.Null(world.Explorer.StrictSourceAmount(SourceFacts.Of(SourceWay.Picked, "RaspberryBush", "Raspberry bush")));
 
             world.Explorer.Select(world.Wood);
             Assert.Equal("Felled from Beech, 3 (1 of 1 time)", world.Explorer.StrictSourceLine(SourceFacts.FromTable("Beech1", "Beech", TableOf.Tree, oneRoll, oneRoll.Drops[0])));
-            Assert.Equal("Chopped from Beech log, ???", world.Explorer.StrictSourceLine(SourceFacts.FromTable("BeechLog", "Beech log", TableOf.Log, oneRoll, oneRoll.Drops[0])));
+            Assert.Equal("Chopped from Beech log, ––", world.Explorer.StrictSourceLine(SourceFacts.FromTable("BeechLog", "Beech log", TableOf.Log, oneRoll, oneRoll.Drops[0])));
 
             world.Rule(CompendiumRule.Loose);
             Assert.Null(world.Explorer.StrictSourceLine(SourceFacts.Dropped("Troll", "Troll", 5, 9, false, 1f)));

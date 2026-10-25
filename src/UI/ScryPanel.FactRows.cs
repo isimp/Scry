@@ -302,10 +302,15 @@ namespace Scry
                     drawn.Add((key, unmet));
                     if (unmet)
                     {
-                        var hiddenW = Mathf.Min(width, LinkChipWidth(CompendiumWords.Hidden, false, false));
+                        // A name kept back is a chip with a smudge in it.
+                        var hiddenW = Mathf.Min(width, SmudgeWidth + U(24f));
                         var hiddenAt = flow.Place(hiddenW);
                         var hidden = new Rect(hiddenAt.X, hiddenAt.Y, hiddenW, flow.RowHeight);
-                        if (!OutOfSight(hidden)) LinkChip(hidden, CompendiumWords.Hidden, null, false, false);
+                        if (!OutOfSight(hidden))
+                        {
+                            LinkChip(hidden, "", null, false, false);
+                            Smudge(new Rect(hidden.x + U(12f), hidden.y, SmudgeWidth, hidden.height));
+                        }
                         continue;
                     }
                     var name = ShownName(explorer, key, key);

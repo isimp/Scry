@@ -90,6 +90,40 @@ namespace Scry
         /// <summary>What shows only because of the floor, by the lowest tier that shows it (<see cref="FloorOf"/>).</summary>
         private readonly Dictionary<Entry, int> _byFloor = new Dictionary<Entry, int>();
 
+        /// <summary>How the game's listing of a recipe is read for the character, for the search's game-shown terms (<see cref="Explorer.RecipeListed"/>); none reads every recipe as listed.</summary>
+        public Func<string, bool> RecipeListedBy { get; set; }
+
+        /// <summary>Whether the game lists a recipe for the character, by the token it lists it by; a fact with no recipe of its own is listed always.</summary>
+        public bool RecipeListed(string token) => token == null || RecipeListedBy == null || RecipeListedBy(token);
+
+        /// <summary>
+        /// Whether a known page still keeps something back under the strict rules, as its title
+        /// row's chip counts: a deed's number (health shown by riding as by a kill), an attack not
+        /// yet taken or seen begun, a damage type not yet told by a hit, stars not yet seen to fall.
+        /// </summary>
+        private bool Left(Entry entry)
+        {
+            foreach (var deed in entry.Deeds)
+            {
+                if (_book.Proved(entry.Key, EntryKeys.Did(deed))) continue;
+                if (deed == Deed.Killed && _book.Proved(entry.Key, EntryKeys.Did(Deed.Ridden))) continue;
+                return true;
+            }
+            if (entry.Kind != Kind.Creature) return false;
+            foreach (var (item, _) in entry.Attacks) if (!_book.Proved(entry.Key, EntryKeys.Attack(item))) return true;
+            foreach (var key in ResistKeys)
+            {
+                foreach (var type in entry.TermWords(key)) if (!HitWith(entry, ResistWords.TypeNamed(type))) return true;
+            }
+            if (Array.IndexOf(entry.Deeds, Deed.StarredFell) >= 0)
+            {
+                for (var stars = 1; stars <= 2; stars++) if (!_book.Proved(entry.Key, EntryKeys.StarsFell(stars))) return true;
+            }
+            return false;
+        }
+
+        private static readonly string[] ResistKeys = { "weak", "resists", "immune" };
+
         /// <summary>What shows only because a source of the world found it, or brought along by such a place, by the source (<see cref="ByWorld"/>).</summary>
         private readonly Dictionary<Entry, WorldSource> _byWorld = new Dictionary<Entry, WorldSource>();
 
@@ -186,9 +220,7 @@ namespace Scry
                 case "seen":
                     return Of(entry) == KnownLevel.Seen;
                 case "left":
-                    if (_rule != CompendiumRule.Strict || Of(entry) != KnownLevel.Known || _byFloor.ContainsKey(entry)) return false;
-                    foreach (var deed in entry.Deeds) if (!_book.Proved(entry.Key, EntryKeys.Did(deed))) return true;
-                    return false;
+                    return _rule == CompendiumRule.Strict && Of(entry) == KnownLevel.Known && !Whole(entry) && Left(entry);
                 case "walked":
                     if (entry.Kind != Kind.Location) return false;
                     if (Walked(entry)) return true;

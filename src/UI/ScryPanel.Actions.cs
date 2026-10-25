@@ -161,7 +161,7 @@ namespace Scry
             if (withStage && Stage.IsStaged(entry))
             {
                 if (ActionShown("Roll again", ActionLook.Leading, Stage.Subject != null, ActionWords.RollRaid)) Previews.Rebuild();
-                if (RaidCrowd.LastFor == entry && Stage.Subject != null) note = RaidWords.FirstRoll(RaidCrowd.LastRoll, RolledName, RaidCrowd.LastNotMet);
+                if (RaidCrowd.LastFor == entry && Stage.Subject != null) note = RaidWords.FirstRoll(RaidCrowd.LastRoll, RolledName, _explorer?.LeftOutLine("raid", RaidCrowd.LastNotMet, alone: RaidCrowd.LastRoll.Count == 0));
             }
             return note;
         }

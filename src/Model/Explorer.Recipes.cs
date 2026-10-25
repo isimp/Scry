@@ -10,7 +10,11 @@ namespace Scry
         /// <summary>How the game's listing of a recipe is read for the character (<c>Player.m_knownRecipes</c>); none reads every recipe as listed.</summary>
         public Func<string, bool> RecipeListedBy
         {
-            set => _recipeListed = value;
+            set
+            {
+                _recipeListed = value;
+                if (_view != null) _view.RecipeListedBy = value;
+            }
         }
 
         /// <summary>

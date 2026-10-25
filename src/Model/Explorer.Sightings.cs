@@ -8,6 +8,16 @@ namespace Scry
     internal sealed partial class Explorer
     {
         /// <summary>
+        /// Whether the page shown keeps back what only something seen done tells (a deed,
+        /// <see cref="EntryKeys.Did"/>, or a weak spot a hit found, <see cref="EntryKeys.WeakSpot"/>):
+        /// under the strict rules, on a known page above the milestone floor, until it was seen.
+        /// </summary>
+        public bool KeepsBack(string proof) => LeavingOut && proof != null && !_view.Book.Proved(_selected.Key, proof) && !AlsoShownBy(proof);
+
+        /// <summary>The game prints the health of the creature ridden (<c>EnemyHud</c>, its health text for the mount alone): riding one proves its health as a kill does.</summary>
+        private bool AlsoShownBy(string proof) => proof == EntryKeys.Did(Deed.Killed) && _view.Book.Proved(_selected.Key, EntryKeys.Did(Deed.Ridden));
+
+        /// <summary>
         /// Whether a creature's page shown keeps back the clips of one of its attacks, by the item
         /// the attack is made with: as its damage (<see cref="HidesAttack"/>), under the strict
         /// rules, on a known page above the milestone floor, until the attack hit the character or

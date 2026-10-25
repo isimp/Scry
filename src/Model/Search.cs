@@ -506,13 +506,11 @@ namespace Scry
             // Under the strict rules a creature is found by how a type lands on it only once a hit
             // told that, and by what it deals only through the attacks that hit the character, as
             // its grid and attacks table keep the rest back.
-            if (strict != null && entry.Kind == Kind.Creature)
+            if (strict != null && entry.Kind == Kind.Creature && key == "damage") return AnyWordStarts(SearchFight.DealtBy(entry.Attacks, item => strict.Book.Proved(entry.Key, EntryKeys.Attack(item))), value);
+            // A resource's grid keeps back how a type lands as a creature's does, until a hit told it.
+            if (strict != null && (entry.Kind == Kind.Creature || entry.Kind == Kind.Resource) && (key == "weak" || key == "resists" || key == "immune"))
             {
-                if (key == "damage") return AnyWordStarts(SearchFight.DealtBy(entry.Attacks, item => strict.Book.Proved(entry.Key, EntryKeys.Attack(item))), value);
-                if (key == "weak" || key == "resists" || key == "immune")
-                {
-                    return AnyWordStarts(entry.TermWords(key).Where(type => strict.HitWith(entry, ResistWords.TypeNamed(type))).ToArray(), value);
-                }
+                return AnyWordStarts(entry.TermWords(key).Where(type => strict.HitWith(entry, ResistWords.TypeNamed(type))).ToArray(), value);
             }
             switch (key)
             {
@@ -557,7 +555,8 @@ namespace Scry
             /// moment the entry is known (<paramref name="gameShown"/>, as a recipe's materials and
             /// station are, <see cref="Explorer.LeavesOut(string, bool)"/>); never one not in the catalog.
             /// </summary>
-            public bool Keeps(Entry entry, Entry other, bool gameShown = false) => other != null && View.Of(other) >= KnownLevel.Seen && (!Strict || gameShown || View.Related(entry, other));
+            public bool Keeps(Entry entry, Entry other, bool gameShown = false) =>
+                other != null && View.Of(other) >= KnownLevel.Seen && (!Strict || gameShown && View.RecipeListed(entry.Tokens.Length > 0 ? entry.Tokens[0] : null) || View.Related(entry, other));
         }
 
         /// <summary>A kind by its name or the start of it, singular or plural; "se" is a status effect.</summary>

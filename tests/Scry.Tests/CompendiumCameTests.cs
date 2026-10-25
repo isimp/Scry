@@ -79,6 +79,9 @@ namespace Scry.Tests
             Assert.Equal("day 12 in Elderwood, fighting it in the Black Forest", CompendiumWords.CameToKnow(CameBy.Fought, 12, "Black Forest", world: "Elderwood"));
             Assert.Equal("in Elderwood, fighting it in the Black Forest", CompendiumWords.CameToKnow(CameBy.Fought, -1, "Black Forest", world: "Elderwood"));
             Assert.Equal("day 3, unlocking its recipe", CompendiumWords.CameToKnow(CameBy.Recipe, 3, null));
+            // The game's record of stations fills by being near one, not by using it.
+            Assert.Equal("day 3, being near it", CompendiumWords.CameToKnow(CameBy.Near, 3, null));
+            Assert.Equal("near", JournalWords.LearnedNote(new BookNews(NewsHow.Known, null, CameBy.Near, 3)));
             Assert.Equal("day 1, stepping inside", CompendiumWords.CameToKnow(CameBy.WentInside, 1, ""));
             Assert.Equal("with Troll", CompendiumWords.CameWith("Troll"));
             Assert.Equal("known before Scry kept track of this character", CompendiumWords.KnownBefore);
@@ -133,7 +136,9 @@ namespace Scry.Tests
             Assert.Equal(CameBy.Held, book.Came(sword.Key)?.Way);
             Assert.Equal(CameBy.Built, book.Came(bench.Key)?.Way);
             Assert.Equal(CameBy.StoodIn, book.Came(meadows.Key)?.Way);
-            Assert.Equal(CameBy.Gives, book.Came(beech.Key)?.Way);
+            // What gives an item is seen through the records, not known: no way of coming to know it.
+            Assert.Equal(KnownLevel.Seen, book.Level(beech.Key));
+            Assert.Null(book.Came(beech.Key));
         }
 
         [Fact]

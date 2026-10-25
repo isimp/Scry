@@ -34,6 +34,9 @@ namespace Scry
         Recipe,
         Card,
         Used,
+
+        /// <summary>Being near a station, which the game's record of stations (<c>Player.m_knownStations</c>) fills by, within each station's reach.</summary>
+        Near,
         Built,
         Hit,
         Picked,

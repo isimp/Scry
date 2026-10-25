@@ -70,6 +70,25 @@ namespace Scry.Tests
             Assert.Contains(world.Neck, world.Found("kind:creature -is:left"));
             world.Rule(CompendiumRule.Loose);
             Assert.Empty(world.Found("is:left"));
+
+            // is:left reads what the page's chip counts: an attack not yet taken or seen begun, a
+            // type not yet told, stars not yet seen to fall, and health that riding showed as well.
+            var fuller = new World();
+            fuller.Troll.Deeds = new[] { Deed.Killed, Deed.Ridden };
+            fuller.Troll.Attacks = new[] { ("Troll_log", new[] { "Blunt" }) };
+            fuller.Neck.Deeds = new[] { Deed.StarredFell };
+            fuller.Book.Raise(fuller.Neck.Key, KnownLevel.Known);
+            fuller.Rule(CompendiumRule.Strict);
+            Assert.Equal(new[] { fuller.Neck, fuller.Troll }, fuller.Found("is:left"));
+            fuller.Book.FoundOut(fuller.Troll.Key, EntryKeys.Did(Deed.Ridden));
+            fuller.Rule(CompendiumRule.Strict);
+            Assert.Equal(new[] { fuller.Neck, fuller.Troll }, fuller.Found("is:left"));
+            fuller.Book.FoundOut(fuller.Troll.Key, EntryKeys.Attack("Troll_log"));
+            fuller.Book.FoundOut(fuller.Neck.Key, EntryKeys.Did(Deed.StarredFell));
+            fuller.Book.FoundOut(fuller.Neck.Key, EntryKeys.StarsFell(1));
+            fuller.Book.FoundOut(fuller.Neck.Key, EntryKeys.StarsFell(2));
+            fuller.Rule(CompendiumRule.Strict);
+            Assert.Empty(fuller.Found("is:left"));
             // A trader is never killed, a piece never broken: those deeds fit only creatures and resources.
             Assert.True(StrictDeeds.Fits(Deed.Killed, Kind.Creature));
             Assert.False(StrictDeeds.Fits(Deed.Killed, Kind.Trader));

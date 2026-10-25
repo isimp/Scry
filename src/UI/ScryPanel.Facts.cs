@@ -92,13 +92,14 @@ namespace Scry
                 _youAt = Time.unscaledTime;
                 string came = null, seen = null, killedYou = null;
                 // The book the compendium shows: the character's, or one shown in its place.
-                var book = explorer.CompendiumOn ? explorer.Compendium?.Book : null;
+                // Peeking shows the page whole but hides nothing the book knows of the character's own doings.
+                var book = explorer.CompendiumSet ? explorer.Compendium?.Book : null;
                 if (book != null)
                 {
                     var record = book.Came(entry.Key);
                     var at = record?.At ?? Moment.None;
                     came = CompendiumWords.CameLine(record?.Way, at.Day, BiomeShown(explorer, at.Biome), explorer.Compendium.Because(entry)?.ShownName, explorer.FloorOf(entry),
-                        explorer.LevelOf(entry) == KnownLevel.Known, at.Time, at.Weather, InHandShown(explorer, at.InHand), explorer.ByWorld(entry), explorer.WorldShown(at.World));
+                        explorer.BookLevelOf(entry) == KnownLevel.Known, at.Time, at.Weather, InHandShown(explorer, at.InHand), explorer.ByWorld(entry), explorer.WorldShown(at.World));
                     if (book.FirstSeen(entry.Key) is var first && first != null)
                     {
                         var sight = first.Value.At;

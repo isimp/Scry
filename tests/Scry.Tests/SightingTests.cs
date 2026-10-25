@@ -24,7 +24,8 @@ namespace Scry.Tests
             Assert.Equal(10f, Sighting.ThingReach(Sighting.Reach(1.8f), 10f));
             Assert.Equal(10f, Sighting.ThingReach(Sighting.Reach(9f), 10f));
             Assert.Equal(30f, Sighting.ThingReach(Sighting.Reach(0.3f), 150f));
-            Assert.Equal(0f, Sighting.ThingReach(Sighting.Reach(1.8f), 0f));
+            // A seen reach of 0 keeps no stars or gear, but cannot blind the sight of things: it falls back to the size's reach.
+            Assert.Equal(30f, Sighting.ThingReach(Sighting.Reach(1.8f), 0f));
         }
 
         [Fact]

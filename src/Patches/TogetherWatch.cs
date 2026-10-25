@@ -99,7 +99,9 @@ namespace Scry
         public static void Hit(Character target, HitData hit, bool mine = true)
         {
             if (target == null || hit == null || target.IsPlayer() || Player.m_localPlayer == null) return;
-            if (mine ? hit.GetAttacker() != Player.m_localPlayer : hit.GetAttacker() == Player.m_localPlayer || !PopupSeen(target)) return;
+            if (mine ? hit.GetAttacker() != Player.m_localPlayer : hit.GetAttacker() == Player.m_localPlayer) return;
+            // The popup is what tells how a type landed: the character's own hit shows it no farther than anyone's.
+            if (!PopupSeen(target)) return;
             // A weak spot hit shows how that spot takes it, not the creature: the spot is found, no more.
             if (hit.m_weakSpot >= 0)
             {

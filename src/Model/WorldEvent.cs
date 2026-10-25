@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Scry
 {
@@ -158,7 +159,11 @@ namespace Scry
             var share = Of(told, me, x, y, z);
             // Seen only with a line from the eye to it, as a place or a thing is (Sighting.DeedInSight).
             if (share == EventShare.Saw && inSight != null && !inSight(told.X, told.Y, told.Z)) share = EventShare.None;
-            if (share != EventShare.None) Record(told, book, counts);
+            // Up close, where the game marks a creature's stars: a death there is a sighting of them.
+            float ax = told.X - x, ay = told.Y - y, az = told.Z - z;
+            var reach = book.World.SeenReach;
+            var upClose = reach > 0f && ax * ax + ay * ay + az * az <= reach * reach;
+            if (share != EventShare.None) Record(told, book, counts, upClose);
             return share;
         }
 
@@ -182,7 +187,7 @@ namespace Scry
         /// a young one grew into, known, as a creature seen tamed is, and seen together with what
         /// it came of (<see cref="YoungKnown"/>).
         /// </summary>
-        private static void Record(WorldEvent told, CompendiumBook book, PlayCounts counts)
+        private static void Record(WorldEvent told, CompendiumBook book, PlayCounts counts, bool upClose = false)
         {
             switch (told.What)
             {
@@ -191,7 +196,11 @@ namespace Scry
                     book.Dropped(told.Thing, told.Came, told.Level);
                     counts?.Note(PlayEvent.LootCounted);
                     if (told.Level <= 1) return;
-                    // A starred fall shows what stars change at all, and what that many stars change.
+                    // A starred fall shows what stars change at all, and what that many stars change,
+                    // but only where those stars were seen up close, as the game marks them: before,
+                    // or at the death itself, which is a sighting of them.
+                    if (upClose) book.Sighted(told.Thing, told.Level - 1, null);
+                    if (!book.StarsSeen(told.Thing).Contains(told.Level - 1)) return;
                     book.FoundOut(told.Thing, EntryKeys.Did(Deed.StarredFell));
                     book.FoundOut(told.Thing, EntryKeys.StarsFell(told.Level - 1));
                     counts?.Note(PlayEvent.StarredFell);

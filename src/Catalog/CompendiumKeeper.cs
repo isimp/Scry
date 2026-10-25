@@ -529,6 +529,14 @@ namespace Scry
             if (place != null) Into.SawWith(key, place, Tie.Where);
         }
 
+        /// <summary>A place seen where it stands: paired with its biome alone, as it is no place of its own.</summary>
+        public static void MetInBiome(string key, Vector3 at)
+        {
+            if (Into == null || string.IsNullOrEmpty(key)) return;
+            var biome = BiomeKeyAt(at);
+            if (biome != null) Into.SawWith(key, biome, Tie.Where);
+        }
+
         /// <summary>Whether a thing was paired with the biome where it stands and the place it is in already: nothing more is learned by meeting it there.</summary>
         public static bool PairedIn(string key, Vector3 at)
         {

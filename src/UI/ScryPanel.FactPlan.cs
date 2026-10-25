@@ -493,10 +493,10 @@ namespace Scry
                 if (cell.Contains(Event.current.mousePosition)) AskTip("kept:" + row.Title + cells[0] + row.Columns[c], KeptTip(explorer, cells[0], cellProof));
                 CountDrawn(PanelPart.TableKeptBack);
             }
-            // A cell naming what was not seen together with the page keeps the name back.
+            // A cell naming what was not seen together with the page keeps the name back, as a smudge.
             else if (c > 0 && row.CellLinks.TryGetValue((l, c), out var hidden) && explorer.LeavesOut(hidden))
             {
-                GUI.Label(cell, CompendiumWords.Hidden, Skin.SmallWrap);
+                Smudge(cell);
             }
             // A later cell naming something in the catalog goes there: an attack's projectile, what it puts on you.
             else if (c > 0 && row.CellLinks.TryGetValue((l, c), out var to) && Goes(explorer, to))

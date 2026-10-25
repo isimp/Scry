@@ -317,8 +317,9 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void WhatGivesAnItemTheRecordsKnowIsKnownWhenItIsAResource()
+        public void WhatGivesAnItemTheRecordsKnowIsSeenWhenItIsAResource()
         {
+            // Play would only see a tree before it was hit: the records make a giver seen, not known, and pair nothing with it.
             // Things picked are counted by the prefab of what they give.
             var berries = E(Kind.Item, "Raspberry", "$item_raspberries");
             var bush = E(Kind.Resource, "RaspberryBush", "$item_raspberries");
@@ -347,14 +348,14 @@ namespace Scry.Tests
             catchUp.Fill(records, book, firstLoad: false);
 
             Assert.Equal(KnownLevel.Known, book.Level(berries.Key));
-            Assert.Equal(KnownLevel.Known, book.Level(bush.Key));
-            Assert.Equal(KnownLevel.Known, book.Level(beech.Key));
+            Assert.Equal(KnownLevel.Seen, book.Level(bush.Key));
+            Assert.Equal(KnownLevel.Seen, book.Level(beech.Key));
             Assert.Equal(KnownLevel.Unknown, book.Level(greydwarf.Key));
             Assert.Equal(KnownLevel.Unknown, book.Level(fir.Key));
         }
 
         [Fact]
-        public void WhatGivesAnItemIsKnownOnlyWhereItGrowsInABiomeTheCharacterEntered()
+        public void WhatGivesAnItemIsSeenOnlyWhereItGrowsInABiomeTheCharacterEntered()
         {
             // Wood picked up in the Meadows does not make the Ashlands' logs and rocks known: the
             // game drops Wood from some 84 kinds of thing, across every biome.
@@ -376,19 +377,19 @@ namespace Scry.Tests
 
             catchUp.Fill(records, book, firstLoad: false);
 
-            Assert.Equal(KnownLevel.Known, book.Level(beech.Key));
+            Assert.Equal(KnownLevel.Seen, book.Level(beech.Key));
             Assert.Equal(KnownLevel.Unknown, book.Level(ashLog.Key));
             Assert.Equal(KnownLevel.Unknown, book.Level(nowhere.Key));
-            // Under the strict rules the item is paired only with those givers too.
-            Assert.True(book.Witnessed(wood.Key, beech.Key));
+            // Nothing was seen to give it: no giver is paired with it.
+            Assert.False(book.Witnessed(wood.Key, beech.Key));
             Assert.False(book.Witnessed(wood.Key, ashLog.Key));
             Assert.False(book.Witnessed(wood.Key, nowhere.Key));
 
             // Once the character enters the Ashlands, its logs count.
             records.Biomes.Add("$biome_ashlands");
             catchUp.Fill(records, book, firstLoad: false);
-            Assert.Equal(KnownLevel.Known, book.Level(ashLog.Key));
-            Assert.True(book.Witnessed(wood.Key, ashLog.Key));
+            Assert.Equal(KnownLevel.Seen, book.Level(ashLog.Key));
+            Assert.False(book.Witnessed(wood.Key, ashLog.Key));
         }
 
         [Fact]
@@ -421,7 +422,7 @@ namespace Scry.Tests
             Assert.Equal(KnownLevel.Known, book.Level(forest.Key));
             Assert.Equal(KnownLevel.Known, book.Level(swamp.Key));
             Assert.Equal(KnownLevel.Unknown, book.Level(plains.Key));
-            Assert.Equal(KnownLevel.Known, book.Level(beech.Key));
+            Assert.Equal(KnownLevel.Seen, book.Level(beech.Key));
         }
 
         [Fact]
@@ -537,7 +538,7 @@ namespace Scry.Tests
             Assert.Equal(KnownLevel.Known, book.Level(meadows.Key));
             Assert.Equal(KnownLevel.Known, book.Level(swamp.Key));
             Assert.Equal(KnownLevel.Unknown, book.Level(plains.Key));
-            Assert.Equal(KnownLevel.Known, book.Level(bush.Key));
+            Assert.Equal(KnownLevel.Seen, book.Level(bush.Key));
             Assert.Empty(catchUp.AreasNotKnown(records, book));
         }
 
@@ -811,8 +812,8 @@ namespace Scry.Tests
             Assert.True(book.Witnessed(trophy.Key, troll.Key));
             Assert.False(book.Witnessed(trophy.Key, chest.Key));
             // The records cannot tell which bush: each that gives it, as the loose rules know them all.
-            Assert.True(book.Witnessed(berries.Key, bush.Key));
-            Assert.True(book.Witnessed(berries.Key, far.Key));
+            Assert.False(book.Witnessed(berries.Key, bush.Key));
+            Assert.False(book.Witnessed(berries.Key, far.Key));
             Assert.False(book.Witnessed(berries.Key, troll.Key));
             Assert.True(book.Witnessed(mead.Key, rested.Key));
             Assert.False(book.Witnessed(mead.Key, troll.Key));

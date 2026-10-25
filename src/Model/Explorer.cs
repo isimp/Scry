@@ -222,7 +222,7 @@ namespace Scry
         public bool FromMap(Entry entry) => CompendiumOn && entry != null && _view.Book?.FoundOutOf(entry.Key) == EntryKeys.OnMap;
 
         /// <summary>An entry's latest news in the book (<see cref="CompendiumBook.NewsOf"/>); none with the compendium off or none to tell.</summary>
-        private BookNews? NewsOf(Entry entry) => CompendiumOn && entry != null ? _view.NewsOf(entry.Key) : null;
+        private BookNews? NewsOf(Entry entry) => CompendiumSet && entry != null ? _view.NewsOf(entry.Key) : null;
 
         /// <summary>The game's day an entry's latest news came on, for its day in the learned list; -1 for none, caught up or kept before days were.</summary>
         public int LearnedDay(Entry entry) => NewsOf(entry)?.Day ?? -1;
@@ -364,8 +364,8 @@ namespace Scry
         public string LeftOutLine(string topic, int count, bool alone = false)
         {
             // Only a count the player can act on is said: drops not yet seen fall, places it lives
-            // not met in, and what a dungeon room's card holds not yet met.
-            if (topic != "loot" && topic != "lives" && topic != "room") return null;
+            // not met in, what a dungeon room's card holds not yet met, and what a raid brings not yet met.
+            if (topic != "loot" && topic != "lives" && topic != "room" && topic != "raid") return null;
             return LeavingOut ? CompendiumWords.LeftOutOf(topic, count, alone) : CompendiumWords.NotYetMet(topic, count, alone);
         }
 
@@ -383,16 +383,6 @@ namespace Scry
         /// </summary>
         public bool HidesAttack(string link) =>
             LeavingOut && _selected.Kind == Kind.Creature && EntryKeys.PlaysAttack(link, out var item, out _) && !_view.Book.Proved(_selected.Key, EntryKeys.Attack(item));
-
-        /// <summary>
-        /// Whether the page shown keeps back what only something seen done tells (a deed,
-        /// <see cref="EntryKeys.Did"/>, or a weak spot a hit found, <see cref="EntryKeys.WeakSpot"/>):
-        /// under the strict rules, on a known page above the milestone floor, until it was seen.
-        /// </summary>
-        public bool KeepsBack(string proof) => LeavingOut && proof != null && !_view.Book.Proved(_selected.Key, proof) && !AlsoShownBy(proof);
-
-        /// <summary>The game prints the health of the creature ridden (<c>EnemyHud</c>, its health text for the mount alone): riding one proves its health as a kill does.</summary>
-        private bool AlsoShownBy(string proof) => proof == EntryKeys.Did(Deed.Killed) && _view.Book.Proved(_selected.Key, EntryKeys.Did(Deed.Ridden));
 
         /// <summary>
         /// What shows a table every line of which the page shown keeps back (<see cref="KeepsBack"/>),
@@ -561,6 +551,7 @@ namespace Scry
             _view = view;
             _viewVersion = version;
             _pairsVersion = pairs;
+            if (view != null) view.RecipeListedBy = _recipeListed;
             // A peek ends with the compendium turned off.
             if (!CompendiumSet) Peeking = false;
             Retell();

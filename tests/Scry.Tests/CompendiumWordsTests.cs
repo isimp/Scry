@@ -8,7 +8,7 @@ namespace Scry.Tests
         [Fact]
         public void ADamageGridKeepingATypeBackSaysOnItsCellWhatShowsIt()
         {
-            // No faint count under the grid: each ??? says on hover what shows it, the You box lists them.
+            // No faint count under the grid: each –– says on hover what shows it, the You box lists them.
             Assert.Equal("Fire: how it lands shows once you hit it with fire", CompendiumWords.NotYetHitWithTip("Fire"));
         }
 
@@ -128,7 +128,7 @@ namespace Scry.Tests
             Assert.Equal("Drops", CompendiumWords.Uncounted("Drops"));
             Assert.Equal("Raids (in the Plains)", CompendiumWords.Uncounted("Raids (in the Plains)"));
             Assert.Equal("Drops (12a", CompendiumWords.Uncounted("Drops (12a"));
-            Assert.Equal("???", CompendiumWords.Hidden);
+            Assert.Equal("––", CompendiumWords.Hidden);
         }
 
         [Fact]
@@ -136,7 +136,7 @@ namespace Scry.Tests
         {
             // Drops not seen fall, attacks not seen hit, places a creature lives not met in, givers not seen give it.
             Assert.Equal("2 more not yet seen fall", CompendiumWords.LeftOutOf("loot", 2));
-            // What a fight section leaves out is no attack (an attack's damage reads ??? instead): seen together, as anything else.
+            // What a fight section leaves out is no attack (an attack's damage reads –– instead): seen together, as anything else.
             Assert.Equal("1 more not yet seen together", CompendiumWords.LeftOutOf("fight", 1));
             Assert.Equal("1 more place it lives not yet met in", CompendiumWords.LeftOutOf("lives", 1));
             Assert.Equal("3 more places it lives not yet met in", CompendiumWords.LeftOutOf("lives", 3));

@@ -115,14 +115,16 @@ namespace Scry
                 if (creature == null || creature.IsPlayer()) continue;
                 var centre = creature.GetCenterPoint();
                 var away = Vector3.Distance(player.transform.position, centre);
-                if (away <= Sighting.Reach(creature.GetHeight()) && InView(view, centre) && Clear(view.position, centre, null))
+                // Within its size's reach and the world's seen reach, where the game names a creature and marks its stars.
+                var upClose = away <= book.World.SeenReach;
+                if (away <= Sighting.ThingReach(Sighting.Reach(creature.GetHeight()), book.World.SeenReach) && InView(view, centre) && Clear(view.position, centre, null))
                 {
                     var key = Utils.GetPrefabName(creature.gameObject);
-                    // Its level less one is its stars, as the game shows them over it.
-                    catchUp.Met(key, KnownLevel.Seen, book, stars: creature.GetLevel() - 1);
+                    // Its level less one is its stars, as the game shows them over it, up close alone.
+                    catchUp.Met(key, KnownLevel.Seen, book, stars: upClose ? creature.GetLevel() - 1 : -1);
                     CompendiumKeeper.MetIn(key, creature.transform.position);
                     // Near enough for the game to name it and mark its stars, it is seen up close: its stars and what it carries are kept.
-                    if (away <= book.World.SeenReach && catchUp.Lists(key)) CompendiumKeeper.Sighted(key, creature.GetLevel() - 1, Carried(creature));
+                    if (upClose && catchUp.Lists(key)) CompendiumKeeper.Sighted(key, creature.GetLevel() - 1, Carried(creature));
                 }
             }
             foreach (var place in _places())
@@ -131,7 +133,10 @@ namespace Scry
                 var centre = place.transform.position;
                 if (Vector3.Distance(player.transform.position, centre) <= place.m_exteriorRadius + CreatureReach && InView(view, centre) && InSight(view.position, centre, place.m_exteriorRadius))
                 {
-                    catchUp.Met(EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject)), KnownLevel.Seen, book);
+                    var key = EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject));
+                    catchUp.Met(key, KnownLevel.Seen, book);
+                    // Seen in its biome, as a creature or a thing is where it stands.
+                    CompendiumKeeper.MetInBiome(key, centre);
                 }
             }
             var gui = InventoryGui.instance;
@@ -141,11 +146,14 @@ namespace Scry
             catchUp.Met(chest, KnownLevel.Known, book, CameBy.Used);
             CompendiumKeeper.MetIn(chest, container.transform.position);
             var chestPlace = Location.GetLocation(container.transform.position);
+            // What a chest the world filled holds was found in it, and in the place it stands in; a chest
+            // someone filled tells nothing of either (Container.m_defaultItems, as the chest tally goes by).
+            var worldFilled = container.m_defaultItems?.m_drops != null && container.m_defaultItems.m_drops.Count > 0;
             foreach (var held in container.GetInventory().GetAllItems())
             {
                 if (held?.m_dropPrefab == null) continue;
                 catchUp.Met(held.m_dropPrefab.name, KnownLevel.Seen, book);
-                // Its loot was found in it, and in the place it stands in.
+                if (!worldFilled) continue;
                 CompendiumKeeper.Saw(chest, held.m_dropPrefab.name, Tie.Holds);
                 if (chestPlace != null) CompendiumKeeper.Saw(held.m_dropPrefab.name, EntryKeys.For(Kind.Location, Utils.GetPrefabName(chestPlace.gameObject)));
             }

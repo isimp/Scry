@@ -99,11 +99,13 @@ namespace Scry
             // The creatures a trophy held falls from, those living in a biome the character entered:
             // not the game's own TheHive, placed nowhere, which drops the drake's trophy too.
             foreach (var trophy in Prefabs(records.Trophies, Kind.Item)) Add(CreaturesDropping(trophy, entered), CameBy.Trophy);
-            // What gives an item: only where it grows in a biome the character entered, as Wood
-            // picked up in the Meadows says nothing of the Ashlands' logs.
-            foreach (var item in items) Add(ResourcesGiving(item, entered), CameBy.Gives);
+            // What gives an item is seen, not known, as play would only see a tree before it was hit:
+            // only where it grows in a biome the character entered, as Wood picked up in the Meadows
+            // says nothing of the Ashlands' logs.
+            var growing = items.SelectMany(item => ResourcesGiving(item, entered)).Distinct().ToList();
             Add(Named(records.Placed, Kind.Piece), CameBy.Built);
-            Add(Named(records.Stations, Kind.Piece), CameBy.Used);
+            // The game's record of stations (Player.m_knownStations) fills by being near one, not by using it.
+            Add(Named(records.Stations, Kind.Piece), CameBy.Near);
             Add(Named(records.Recipes, Kind.Piece), CameBy.Recipe);
             Add(BiomesEntered(records), CameBy.StoodIn);
             var givers = Givers(known.Select(k => k.Entry));
@@ -118,7 +120,8 @@ namespace Scry
             var held = materials.Where(e => _soldByTrader != null && !_soldByTrader(e.Name)).ToList();
             Add(held, CameBy.Held);
             var raised = known.Count(k => book.Raise(k.Entry.Key, KnownLevel.Known, way: firstLoad ? null : k.Way))
-                + Raise(book, materials.Except(held), KnownLevel.Seen);
+                + Raise(book, materials.Except(held), KnownLevel.Seen)
+                + Raise(book, growing, KnownLevel.Seen);
             Pair(records, book, entered);
             // A creature the character killed shows its health under the strict rules: found out, as news after the first reading.
             foreach (var creature in killed)
@@ -178,10 +181,6 @@ namespace Scry
             foreach (var trophy in Prefabs(records.Trophies, Kind.Item))
             {
                 foreach (var creature in CreaturesDropping(trophy, entered)) book.Witness(trophy.Key, creature.Key);
-            }
-            foreach (var item in Prefabs(records.Picked, Kind.Item).Concat(Named(records.PickedUp, Kind.Item)))
-            {
-                foreach (var resource in ResourcesGiving(item, entered)) book.Witness(item.Key, resource.Key);
             }
             // The records keep what was placed, not with what: a piece one tool alone builds was built with it.
             if (_toolsOf != null)

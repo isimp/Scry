@@ -53,7 +53,7 @@ namespace Scry.Tests
         public void AKnownCreaturesPageKeepsBackHowEachDamageLandsUntilTheCharacterHitItWithIt()
         {
             // The game's popup on a hit tells how its damage landed (Weak, Resistant, Immune, or
-            // a plain number): a type so told shows, the rest read ??? under the strict rules.
+            // a plain number): a type so told shows, the rest read –– under the strict rules.
             var world = new World();
             world.Book.Prove(world.Troll.Key, EntryKeys.Damage("Fire"));
             world.Rule(CompendiumRule.Strict);

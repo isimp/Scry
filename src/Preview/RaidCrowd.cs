@@ -55,6 +55,8 @@ namespace Scry
             // With the compendium on, a creature the character has not met stands nowhere and is only counted, as on a place's copy.
             var all = RaidRoll.FirstRoll(spawns, () => Random.Range(0f, 100f), Random.Range);
             var rolled = LeftOff == null ? all : all.Where(r => !LeftOff(r.Prefab)).ToList();
+            // Its stars no higher than the stage stands them (StarLevelFor), so the note and the crowd agree.
+            if (StarLevelFor != null) rolled = rolled.Select(r => { r.Level = StarLevelFor(r.Prefab, r.Level); return r; }).ToList();
             LastFor = entry;
             LastRoll = rolled;
             LastNotMet = all.Count - rolled.Count;

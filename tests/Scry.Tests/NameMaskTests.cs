@@ -5,7 +5,7 @@ namespace Scry.Tests
     public class NameMaskTests
     {
         // Under the strict rules a known page's text keeps back the names of what the character has
-        // not seen: each whole name reads ???, the longest first, and a name also borne by
+        // not seen: each whole name reads ––, the longest first, and a name also borne by
         // something it has seen stays.
 
         private static readonly NameMask Mask = new NameMask(
@@ -32,22 +32,22 @@ namespace Scry.Tests
         [Fact]
         public void AWholeNameNotSeenReadsQuestionMarks()
         {
-            Assert.Equal("Dropped by ??? in the Ashlands.", Mask.Apply("Dropped by Fader in the Ashlands."));
-            Assert.Equal("??? and ???", Mask.Apply("Troll and Fader"));
+            Assert.Equal("Dropped by –– in the Ashlands.", Mask.Apply("Dropped by Fader in the Ashlands."));
+            Assert.Equal("–– and ––", Mask.Apply("Troll and Fader"));
         }
 
         [Fact]
         public void TheLongestNameIsTakenFirst()
         {
-            Assert.Equal("Smelt ??? into bars.", Mask.Apply("Smelt Black metal scrap into bars."));
-            Assert.Equal("??? axe", Mask.Apply("Black metal axe"));
-            Assert.Equal("Melt ??? down", Mask.Apply("Melt scrap down"));
+            Assert.Equal("Smelt –– into bars.", Mask.Apply("Smelt Black metal scrap into bars."));
+            Assert.Equal("–– axe", Mask.Apply("Black metal axe"));
+            Assert.Equal("Melt –– down", Mask.Apply("Melt scrap down"));
         }
 
         [Fact]
         public void OnlyWholeNamesAreTakenNotPartsOfWords()
         {
-            Assert.Equal("??? and Fadermoon", Mask.Apply("Trolls and Fadermoon"));
+            Assert.Equal("–– and Fadermoon", Mask.Apply("Trolls and Fadermoon"));
             Assert.Equal("an Oxford", Mask.Apply("an Oxford"));
         }
 
@@ -55,9 +55,9 @@ namespace Scry.Tests
         public void ANameIsTakenInAnyCaseAndAsAPlainPlural()
         {
             // A game's text names things in its own case, and many of a thing with an s.
-            Assert.Equal("a ??? hide", Mask.Apply("a troll hide"));
-            Assert.Equal("Beware the ??? of the swamp", Mask.Apply("Beware the TROLLS of the swamp"));
-            Assert.Equal("??? and ???", Mask.Apply("black metal scraps and Scrap"));
+            Assert.Equal("a –– hide", Mask.Apply("a troll hide"));
+            Assert.Equal("Beware the –– of the swamp", Mask.Apply("Beware the TROLLS of the swamp"));
+            Assert.Equal("–– and ––", Mask.Apply("black metal scraps and Scrap"));
             // A name also seen stays whatever its case.
             Assert.Equal("a wolf and wolfs", Mask.Apply("a wolf and wolfs"));
         }

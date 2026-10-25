@@ -201,6 +201,7 @@ namespace Scry
                 case CameBy.Recipe: return "unlocking its recipe";
                 case CameBy.Card: return "reading its card";
                 case CameBy.Used: return "using it";
+                case CameBy.Near: return "being near it";
                 case CameBy.Built: return "building it";
                 case CameBy.Hit: return "hitting it";
                 case CameBy.Picked: return "picking it";
@@ -597,7 +598,7 @@ namespace Scry
         }
 
         /// <summary>A name the strict rules keep back where it stands in a page's text.</summary>
-        public const string Hidden = "???";
+        public const string Hidden = "\u2013\u2013";
 
         /// <summary>Why a kept file no longer stands in place: it could not be read, so it was set aside under its new name and a new one started.</summary>
         public static string SetAside(string file) => $"it could not be read, so it was set aside as {file} and a new one started, which saves";

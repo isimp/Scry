@@ -45,7 +45,7 @@ namespace Scry
                 "under the loose rules a known windmill names neither barley nor its flour, not yet met, and keeps its numbers");
             p.Check(ScryPanel.Drawn(PanelPart.StrictLeftOut) == left, "and counts them nowhere: only a creature's loot and where it lives count what was not met");
             var masked = ScryPanel.AsDrawn(X, $"Grinds {barley.ShownName} into flour");
-            p.Check(!masked.Contains(barley.ShownName) && masked.Contains(CompendiumWords.Hidden), "a name not yet met reads ??? in a page's text", masked);
+            p.Check(!masked.Contains(barley.ShownName) && masked.Contains(CompendiumWords.Hidden), "a name not yet met reads as a dash in a page's text", masked);
             yield return PictureOf(p, "does", "loose windmill, barley not yet met");
 
             book.Raise(barley.Key, KnownLevel.Seen);
