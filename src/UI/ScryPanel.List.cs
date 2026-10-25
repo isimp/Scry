@@ -323,7 +323,7 @@ namespace Scry
 
         /// <summary>The group an entry is listed under: in the learned list its day (<see cref="ListWords.DayGroup"/>), else its own group.</summary>
         private static string GroupOf(Explorer explorer, Entry entry) =>
-            explorer.LearnedOnly ? ListWords.DayGroup(explorer.LearnedDay(entry), explorer.WorldShown(explorer.LearnedWorld(entry))) : entry.Group;
+            explorer.LearnedOnly ? ListWords.DayGroup(explorer.LearnedDay(entry), explorer.LearnedWorldShown(entry)) : entry.Group;
 
         /// <summary>The results the learned groups' order was last worked out for, and each group's rank in it, newest first.</summary>
         private static IReadOnlyList<Entry> _ranksOf;
@@ -451,7 +451,7 @@ namespace Scry
                     {
                         var count = 1;
                         while (i + count < results.Count && GroupOf(explorer, results[i + count]) == group) count++;
-                        var name = byDay ? JournalWords.DayHeading(explorer.LearnedDay(results[i]), explorer.WorldShown(explorer.LearnedWorld(results[i]))) : results[i].Group.Length > 0 ? results[i].Group : "Ungrouped";
+                        var name = byDay ? JournalWords.DayHeading(explorer.LearnedDay(results[i]), explorer.LearnedWorldShown(results[i])) : results[i].Group.Length > 0 ? results[i].Group : "Ungrouped";
                         _listRows.Add(new ListRow { Entry = -1, Heading = PanelWords.Heading(name, count), Group = group, Folded = folded });
                     }
                 }

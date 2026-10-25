@@ -72,6 +72,25 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheNoticeCountsItsDaysInTheWorldPlayedAlone()
+        {
+            // A thing learned on day 300 of another world is told, but the notice's days are this world's.
+            var lines = new[] { new NewsLine("Troll", NewsHow.Known, null, 300, "Elderwood"), new NewsLine("Boar", NewsHow.Seen, null, 14) };
+            Assert.Equal("Day 14: came to know Troll, and saw Boar", JournalWords.News(lines, 0, 0));
+            Assert.Equal("Came to know Troll", JournalWords.News(new[] { lines[0] }, 0, 0));
+        }
+
+        [Fact]
+        public void AMomentKeptBeforeWorldsWereHasAHeadingOfItsOwn()
+        {
+            Assert.Equal("Elderwood  \u00B7  Day 12", JournalWords.DayHeading(12, JournalWords.WorldGroup("Elderwood", "Midgard")));
+            Assert.Equal("Day 12", JournalWords.DayHeading(12, JournalWords.WorldGroup("Midgard", "Midgard")));
+            Assert.Equal("World not kept  \u00B7  Day 12", JournalWords.DayHeading(12, JournalWords.WorldGroup(null, "Midgard")));
+            // With no world played, as off the world, nothing is told apart.
+            Assert.Equal("Day 12", JournalWords.DayHeading(12, JournalWords.WorldGroup(null, null)));
+        }
+
+        [Fact]
         public void DeathsACreatureDealtAreCountedWithTheLast()
         {
             Assert.Equal("once, on day 21", JournalWords.KilledYou(1, 21, null));

@@ -24,5 +24,14 @@ namespace Scry
         /// A fact with no recipe of its own (a store's wares) is listed always.
         /// </summary>
         public bool RecipeListed(string token) => token == null || _recipeListed == null || _recipeListed(token);
+
+        /// <summary>
+        /// Whether a game-shown row waits for the game to list its recipe for the character
+        /// (<see cref="RecipeListed"/>): with the compendium on, on a known page not shown whole,
+        /// under either rules, as the guide has it: what the game's menus show comes with the thing
+        /// once the game lists it.
+        /// </summary>
+        public bool RecipeWaits(string recipe) =>
+            recipe != null && CompendiumOn && _selected != null && _view.Of(_selected) == KnownLevel.Known && !_view.Whole(_selected) && !RecipeListed(recipe);
     }
 }

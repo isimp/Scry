@@ -128,6 +128,13 @@ namespace Scry
             return world != null ? world + "  \u00B7  " + said : said;
         }
 
+        /// <summary>The world a Learned group is headed by: a moment kept before worlds were, while a world is played, stands apart as of a world not kept.</summary>
+        public const string WorldUnkept = "World not kept";
+
+        /// <summary>The world a day's group is named by: another world by its name, the one played by none, a moment of no world as of a world not kept (<see cref="WorldUnkept"/>) while a world is played.</summary>
+        public static string WorldGroup(string world, string worldNow) =>
+            world == null ? (worldNow != null ? WorldUnkept : null) : world != worldNow ? world : null;
+
         /// <summary>" in Elderwood" after a day, where the world is named; nothing otherwise.</summary>
         public static string InWorld(string world) => world != null ? " in " + world : "";
 
@@ -173,10 +180,12 @@ namespace Scry
         /// </summary>
         public static string News(IReadOnlyList<NewsLine> news, int places, int biomes)
         {
-            var dated = news.Where(n => n.Day >= 0).ToList();
-            var known = dated.Where(n => n.How == NewsHow.Known).Select(n => n.Name).ToList();
-            var seen = dated.Where(n => n.How == NewsHow.Seen).Select(n => n.Name).ToList();
-            var found = dated.Where(n => n.How == NewsHow.FoundOut).ToList();
+            // The days are the world played's: a line of another world is told, but counts no day here.
+            var dated = news.Where(n => n.Day >= 0 && n.World == null).ToList();
+            var told = news.Where(n => n.Day >= 0).ToList();
+            var known = told.Where(n => n.How == NewsHow.Known).Select(n => n.Name).ToList();
+            var seen = told.Where(n => n.How == NewsHow.Seen).Select(n => n.Name).ToList();
+            var found = told.Where(n => n.How == NewsHow.FoundOut).ToList();
             var before = news.Count(n => n.Day < 0 && n.How != NewsHow.Map);
 
             var parts = new List<string>();

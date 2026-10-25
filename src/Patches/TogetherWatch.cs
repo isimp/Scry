@@ -74,6 +74,9 @@ namespace Scry
         {
             var player = Player.m_localPlayer;
             if (altar == null || altar.m_bossPrefab == null || player == null || Vector3.Distance(player.transform.position, altar.transform.position) > Near) return;
+            // Seen as a deed is: with a line from the eye to the altar.
+            var at = altar.transform.position;
+            if (!CompendiumSight.SeesDeed(at.x, at.y, at.z)) return;
             Guard.Run(Feature.CompendiumTogether, "noting a boss called at its altar", () =>
             {
                 var boss = altar.m_bossPrefab.name;

@@ -85,20 +85,22 @@ namespace Scry
         }
     }
 
-    /// <summary>A line of the notice's news: the entry's name as shown, how it came, what was found out, and the day (-1 for none).</summary>
+    /// <summary>A line of the notice's news: the entry's name as shown, how it came, what was found out, the day (-1 for none), and its world where that is not the one played.</summary>
     internal readonly struct NewsLine
     {
         public readonly string Name;
         public readonly NewsHow How;
         public readonly string Proof;
         public readonly int Day;
+        public readonly string World;
 
-        public NewsLine(string name, NewsHow how, string proof, int day)
+        public NewsLine(string name, NewsHow how, string proof, int day, string world = null)
         {
             Name = name;
             How = how;
             Proof = proof;
             Day = day;
+            World = world;
         }
     }
 }

@@ -55,6 +55,24 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void HasFindsNoComponentWhoseTopicHingesOnAThingNotMet()
+        {
+            // Breeding hinges on the young: the page leaves the topic out whole while it was not met, so its component names nothing to find either.
+            var world = new World();
+            world.Troll.Components = new[] { "Humanoid", "Procreation" };
+            world.Troll.DeedHinges[Deed.Born] = world.Neck.Key;
+            world.Rule(CompendiumRule.Loose);
+            Assert.Empty(world.Found("has:Procreation"));
+            Assert.Equal(new[] { world.Troll }, world.Found("has:Humanoid"));
+            world.Book.Raise(world.Neck.Key, KnownLevel.Seen);
+            world.Rule(CompendiumRule.Loose);
+            Assert.Equal(new[] { world.Troll }, world.Found("has:Procreation"));
+            // The compendium off names every component.
+            world.Rule(CompendiumRule.Off);
+            Assert.Equal(new[] { world.Troll }, world.Found("has:Procreation"));
+        }
+
+        [Fact]
         public void IsLeftPassesOverADeedThatHingesOnAThingNotMet()
         {
             // Riding hinges on the saddle: the page leaves the topic out whole while it was not met, so nothing of it is left to find.

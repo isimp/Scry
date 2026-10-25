@@ -128,6 +128,10 @@ namespace Scry.Tests
             Assert.Equal(CompendiumWords.Hidden, world.Explorer.StrictStarShare("Troll", "TrophyTroll", 1));
             world.Book.Dropped("Troll", new[] { ("TrophyTroll", 1) }, 2);
             world.Rule(CompendiumRule.Strict);
+            // Opened as the stars table's cells are: once one with that many stars was seen to fall, not by the count alone.
+            Assert.Equal(CompendiumWords.Hidden, world.Explorer.StrictStarShare("Troll", "TrophyTroll", 1));
+            world.Book.FoundOut("Troll", EntryKeys.StarsFell(1));
+            world.Rule(CompendiumRule.Strict);
             Assert.Equal("1 of 1 kill", world.Explorer.StrictStarShare("Troll", "TrophyTroll", 1));
             world.Book.Dropped("Troll", new[] { ("TrollHide", 4) }, 2);
             world.Rule(CompendiumRule.Strict);

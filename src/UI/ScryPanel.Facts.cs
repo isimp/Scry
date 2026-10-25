@@ -322,10 +322,10 @@ namespace Scry
             // A line of where it spawns or grows shows only where it was met in one of its biomes;
             // one counted over every character's play is left out quietly under the strict rules, the
             // page counting this character's own, and under the loose rules where its giver was not met.
+            // One counted over every character's play stands faint under the strict rules, as a creature's rows do, uncounted for this character.
             var where = ShownStrictly(explorer, facts.Where, s => s.AllPlay
                 ? !explorer.LeavingOut && explorer.LeavesOut(s.Prefab)
                 : explorer.LeavesOut(s.Prefab) || explorer.LeavesOutAll(s.MetIn));
-            if (explorer.LeavingOut && OwnPlayOnly(where)) where = OwnPlay;
             if (where.Count == 0) return y;
             var (lines, rows) = SplitWhere(explorer, where);
             if (titled)
@@ -338,46 +338,14 @@ namespace Scry
             var shownLines = ShownOf("where", lines.Count, firstLines);
             foreach (var source in lines.Take(shownLines))
             {
-                // A line naming a prefab in the catalog is a chip that goes there; the rest is text.
-                // A line Scry is not sure of is marked and says why on hover. Under the strict rules
-                // a way with a chance in it tells the character's count in its place, or a smudge.
-                var counted = explorer.StrictSourceLine(source.Record);
-                var smudged = counted == CompendiumWords.Hidden;
-                var held = counted != null && counted.EndsWith(CompendiumWords.Hidden, StringComparison.Ordinal) ? SourceWords.HeldTip(source.Record) : null;
-                var text = Masked(explorer, counted ?? (source.Unsure != null ? UnsureWords.Marked(source.Text) : source.Text));
-                if (string.IsNullOrEmpty(source.Prefab) || !Goes(explorer, source.Prefab))
+                // One counted over every character's play stands faint under the strict rules, as a creature's rows do, uncounted for this character.
+                if (source.AllPlay && explorer.LeavingOut)
                 {
-                    var style = source.Unsure != null ? Skin.DimWrap : Skin.Wrap;
-                    var height = Skin.Height(style, text, width);
-                    var line = new Rect(0f, y, width, height);
-                    if (smudged) Smudge(line);
-                    else GUI.Label(line, text, style);
-                    if ((source.Unsure != null || held != null) && line.Contains(Event.current.mousePosition)) AskTip("unsure:" + source.Text, Naming.Lines(held, source.Unsure));
-                    y += height + U(4f);
+                    var top = y;
+                    y = AllPlayFaint(new Rect(0f, top, width, 0f), () => WhereLine(explorer, source, width, top));
                     continue;
                 }
-
-                var icon = PrefabIcon(source.Prefab);
-                var mark = ChoiceMark(explorer, source.Prefab);
-                var floor = mark != null;
-                var textX = icon != null ? U(34f) : U(12f);
-                var textW = width - textX - U(10f) - (floor ? FloorRoom : 0f);
-                var wrapped = Skin.SmallWrap;
-                var chipH = Mathf.Max(U(30f), Skin.Height(wrapped, text, textW) + U(10f));
-                var chip = new Rect(0f, y, width, chipH);
-                var hover = chip.Contains(Event.current.mousePosition);
-                var kind = KindOf(explorer, source.Prefab);
-                Skin.Box(chip, LinkFill(kind, hover));
-                if (icon != null) DrawSprite(icon, new Rect(U(6f), y + (chipH - U(22f)) / 2f, U(22f), U(22f)));
-                if (smudged) Smudge(new Rect(textX, y, textW, chipH));
-                else Skin.LabelIn(new Rect(textX, y, textW, chipH), text, wrapped, LinkText(kind, hover));
-                if (floor) PlateFloorMark(chip, mark);
-                if (hover) AskTip("src:" + source.Prefab + source.Unsure + text, FloorTip(explorer, source.Prefab, Naming.Lines(held, source.Unsure, PanelWords.GoTo(ShownName(explorer, source.Prefab, source.Prefab)))));
-                if (GUI.Button(chip, GUIContent.none, GUIStyle.none) && explorer.Jump(source.Prefab))
-                {
-                    AfterGoing();
-                }
-                y += chipH + U(5f);
+                y = WhereLine(explorer, source, width, y);
             }
             var more = new ChipFlow(0f, width, y, U(26f), U(5f), U(5f));
             MoreChip("where", lines.Count, firstLines, width, ref more);
@@ -385,6 +353,50 @@ namespace Scry
             // A giver's count held back says on its chip's hover what shows it, as a line's does.
             foreach (var row in rows) y = FactRow(explorer, row, width, y);
             return y;
+        }
+
+        /// <summary>One line of where an item comes from, drawn at a height: a chip going to its giver, or text; the height under it.</summary>
+        private static float WhereLine(Explorer explorer, Source source, float width, float y)
+        {
+                // A line naming a prefab in the catalog is a chip that goes there; the rest is text.
+            // A line Scry is not sure of is marked and says why on hover. Under the strict rules
+            // a way with a chance in it tells the character's count in its place, or a smudge.
+            var counted = explorer.StrictSourceLine(source.Record);
+            var smudged = counted == CompendiumWords.Hidden;
+            var held = counted != null && counted.EndsWith(CompendiumWords.Hidden, StringComparison.Ordinal) ? SourceWords.HeldTip(source.Record) : null;
+            var text = Masked(explorer, counted ?? (source.Unsure != null ? UnsureWords.Marked(source.Text) : source.Text));
+            if (string.IsNullOrEmpty(source.Prefab) || !Goes(explorer, source.Prefab))
+            {
+                var style = source.Unsure != null ? Skin.DimWrap : Skin.Wrap;
+                var height = Skin.Height(style, text, width);
+                var line = new Rect(0f, y, width, height);
+                if (smudged) Smudge(line);
+                else GUI.Label(line, text, style);
+                if ((source.Unsure != null || held != null) && line.Contains(Event.current.mousePosition)) AskTip("unsure:" + source.Text, Naming.Lines(held, source.Unsure));
+                return y + height + U(4f);
+            }
+
+            var icon = PrefabIcon(source.Prefab);
+            var mark = ChoiceMark(explorer, source.Prefab);
+            var floor = mark != null;
+            var textX = icon != null ? U(34f) : U(12f);
+            var textW = width - textX - U(10f) - (floor ? FloorRoom : 0f);
+            var wrapped = Skin.SmallWrap;
+            var chipH = Mathf.Max(U(30f), Skin.Height(wrapped, text, textW) + U(10f));
+            var chip = new Rect(0f, y, width, chipH);
+            var hover = chip.Contains(Event.current.mousePosition);
+            var kind = KindOf(explorer, source.Prefab);
+            Skin.Box(chip, LinkFill(kind, hover));
+            if (icon != null) DrawSprite(icon, new Rect(U(6f), y + (chipH - U(22f)) / 2f, U(22f), U(22f)));
+            if (smudged) Smudge(new Rect(textX, y, textW, chipH));
+            else Skin.LabelIn(new Rect(textX, y, textW, chipH), text, wrapped, LinkText(kind, hover));
+            if (floor) PlateFloorMark(chip, mark);
+            if (hover) AskTip("src:" + source.Prefab + source.Unsure + text, FloorTip(explorer, source.Prefab, Naming.Lines(held, source.Unsure, PanelWords.GoTo(ShownName(explorer, source.Prefab, source.Prefab)))));
+            if (GUI.Button(chip, GUIContent.none, GUIStyle.none) && explorer.Jump(source.Prefab))
+            {
+                AfterGoing();
+            }
+            return y + chipH + U(5f);
         }
 
         private static readonly Dictionary<object, (IReadOnlyList<Source> Lines, IReadOnlyList<Facts.Row> Rows)> WhereSplits = new Dictionary<object, (IReadOnlyList<Source>, IReadOnlyList<Facts.Row>)>();
@@ -543,20 +555,6 @@ namespace Scry
         }
 
 
-        /// <summary>The lines of where a thing comes from the block being drawn shows under the strict rules, those counted over every character's play left out.</summary>
-        private static readonly List<Source> OwnPlay = new List<Source>();
-
-        /// <summary>Whether lines hold any counted over every character's play; if so, the rest are put in <see cref="OwnPlay"/>.</summary>
-        private static bool OwnPlayOnly(IReadOnlyList<Source> lines)
-        {
-            var any = false;
-            for (var i = 0; i < lines.Count && !any; i++) any = lines[i].AllPlay;
-            if (!any) return false;
-            OwnPlay.Clear();
-            for (var i = 0; i < lines.Count; i++) if (!lines[i].AllPlay) OwnPlay.Add(lines[i]);
-            return true;
-        }
-
         private static int _commandAmount = 1;
         private static int _commandQuality = 1;
         private static Entry _commandFor;
@@ -629,7 +627,7 @@ namespace Scry
             return y + height + U(14f);
         }
 
-        private static readonly Dictionary<Entry, string> ComponentLists = new Dictionary<Entry, string>();
+        private static readonly Dictionary<Entry, List<(string Name, int Count)>> ComponentLists = new Dictionary<Entry, List<(string, int)>>();
         private static Entry _usersFor;
         private static List<(string Key, string Text, string Tip, Action Click)> _users = new List<(string, string, string, Action)>();
         private static string _usersTitle = "";
@@ -666,7 +664,8 @@ namespace Scry
                     components = Components(prefab);
                     ComponentLists[entry] = components;
                 }
-                lines.Add(DetailWords.MadeOf(components));
+                // A component whose topic the page leaves out whole, while the thing it hinges on was not met, is not named either.
+                lines.Add(DetailWords.MadeOf(Naming.Commas(components.Where(c => !explorer.HidesComponent(entry, c.Name)).Select(c => Naming.Repeated(c.Name, c.Count)))));
             }
 
             foreach (var line in lines)
@@ -732,7 +731,8 @@ namespace Scry
         /// </summary>
         private static List<(string Key, string Text, string Tip, Action Click)> FoundInLinks(Explorer explorer, Entry entry)
         {
-            var strict = explorer.LeavingOut;
+            // A place with no entry of its own can never be met or seen together with the page: left out under either rules.
+            var strict = explorer.CompendiumOn;
             if (ReferenceEquals(_foundInFor, entry) && ReferenceEquals(_foundInOf, entry.FoundIn) && ReferenceEquals(_foundInIn, explorer) && strict == _foundInStrict)
             {
                 StrictLeft(_foundInLeft);
@@ -748,7 +748,6 @@ namespace Scry
             {
                 var name = Places.NameOf(place);
                 var location = Places.LocationNamed(explorer.Catalog, place);
-                // A place with no entry of its own can never be seen together with the page: the strict rules leave it out.
                 if (location == null && strict)
                 {
                     _foundInLeft++;
@@ -864,7 +863,7 @@ namespace Scry
             Say(Naming.Capital(said));
         }
 
-        private static string Components(GameObject prefab)
+        private static List<(string Name, int Count)> Components(GameObject prefab)
         {
             var counts = new SortedDictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             foreach (var component in prefab.GetComponentsInChildren<Component>(true))
@@ -874,7 +873,7 @@ namespace Scry
                 counts.TryGetValue(name, out var n);
                 counts[name] = n + 1;
             }
-            return Naming.Commas(counts.Select(p => Naming.Repeated(p.Key, p.Value)));
+            return counts.Select(p => (p.Key, p.Value)).ToList();
         }
 
         /// <summary>Lets go of the details' lists, and of what they were last drawn for.</summary>

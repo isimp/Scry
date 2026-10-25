@@ -514,7 +514,7 @@ namespace Scry
             }
             switch (key)
             {
-                case "has": return AnyContains(entry.Components, value);
+                case "has": return AnyContains(guard != null ? guard.View.ComponentsShown(entry).ToArray() : entry.Components, value);
                 case "biome": return AnyContains(Related(entry, entry.Biomes, b => EntryKeys.For(Kind.Biome, b), guard), value);
                 case "in": return AnyPlaceNamed(guard == null ? entry.FoundIn : entry.FoundIn.Where(label => guard.View.PlacesLabelled(label).Any(place => guard.Keeps(entry, place))).ToArray(), value);
                 case "mod": return ContainsLeavingOutSpaces(entry.ModName, value);

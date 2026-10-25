@@ -209,6 +209,10 @@ namespace Scry
         private static bool OnToday(Moment? at, int today, string world) =>
             at is Moment moment && moment.Day == today && (moment.World == null || world == null || moment.World == world);
 
+        /// <summary>An entry's components as the compendium names them: one whose topic hinges on a thing not met is not named (<see cref="HingedParts"/>).</summary>
+        public IEnumerable<string> ComponentsShown(Entry entry) =>
+            entry.Components.Where(component => !(HingedParts.HingeOf(entry, component) is string hinge && _catalog.Find(hinge) is Entry hinged && Of(hinged) < KnownLevel.Seen));
+
         /// <summary>
         /// Whether an entry answers a word of an is: term asking what the character met (<see
         /// cref="Search.MineWords"/>): new, seen or come to know on the day given; seen, seen but not

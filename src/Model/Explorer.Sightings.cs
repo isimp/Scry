@@ -116,6 +116,8 @@ namespace Scry
         public string StrictStarShare(string creature, string item, int stars)
         {
             if (!LeavingOut) return null;
+            // Opened as the stars table's cells of that many stars are: once one with them was seen to fall (EntryKeys.StarsFell).
+            if (!_view.Book.Proved(creature, EntryKeys.StarsFell(stars))) return CompendiumWords.Hidden;
             var kills = _view.Book.StarredKills(creature, stars);
             if (kills == 0) return CompendiumWords.Hidden;
             var times = 0;

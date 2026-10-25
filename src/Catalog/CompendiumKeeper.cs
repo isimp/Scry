@@ -496,11 +496,28 @@ namespace Scry
             }
         }
 
-        /// <summary>What the character put into a thing it used: each paired with it.</summary>
+        /// <summary>What the character put into a thing it used: each the thing takes, as the catalog tells it, paired with it (<see cref="Takes"/>).</summary>
         public static void PutInto(string thing, IEnumerable<string> items)
         {
             if (Into == null || string.IsNullOrEmpty(thing)) return;
-            foreach (var item in items) Into.Witness(thing, item);
+            foreach (var item in items) if (Takes(thing, item)) Into.Witness(thing, item);
+        }
+
+        /// <summary>
+        /// Whether a thing takes an item, as the catalog tells it: turns it into something or burns
+        /// it, crafts or builds with it there, eats it, or needs it as an altar needs its offering.
+        /// What left the inventory on using a thing that takes nothing of it was used on something
+        /// else, as a meal eaten while looking at a tree.
+        /// </summary>
+        internal static bool Takes(string thing, string item)
+        {
+            if (string.IsNullOrEmpty(thing) || string.IsNullOrEmpty(item)) return false;
+            foreach (var use in Knowledge.UsesOf(item))
+            {
+                if (use.Kind == UseKind.EatenBy ? use.Targets.Any(target => target.Target == thing) : use.Place == thing) return true;
+            }
+            var entry = WorldCatalog.Current?.Find(thing);
+            return entry != null && entry.TermLinks("needs").Any(needed => needed.Name == item);
         }
 
         /// <summary>
@@ -715,11 +732,13 @@ namespace Scry
             foreach (var creature in Character.GetAllCharacters())
             {
                 if (creature == null || creature.IsPlayer() || creature.GetComponent<Tameable>() == null) continue;
-                if (Vector3.Distance(player.transform.position, creature.transform.position) > Sighting.PersonReach) continue;
+                var at = creature.transform.position;
+                // In sight: within a person's reach, with a line from the eye to it, as a deed is seen.
+                if (Vector3.Distance(player.transform.position, at) > Sighting.PersonReach || !CompendiumSight.SeesDeed(at.x, at.y, at.z)) continue;
                 var id = creature.GetZDOID();
                 if (id != ZDOID.None) TameableNear[id] = creature;
             }
-            foreach (var id in WildNear.Look(TameableNear.Select(c => (c.Key, tame(c.Value))))) Tamed(TameableNear[id], tamedNow: true);
+            foreach (var id in WildNear.Look(TameableNear.Select(c => (c.Key, tame(c.Value))), Time.unscaledTime)) Tamed(TameableNear[id], tamedNow: true);
         }
 
         /// <summary>On leaving a world: writes the book, and lets go of the catalog it was caught up with.</summary>

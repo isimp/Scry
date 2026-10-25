@@ -62,6 +62,22 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AWildCreatureNotNearForHalfAMinuteIsForgottenSoItsTamingElsewhereIsNotSeen()
+        {
+            // Seen wild, then away for longer than the watch keeps a creature out of sight: tamed meanwhile by someone else, it comes back as one tame when first seen.
+            var watch = new TameWatch<Creature>();
+            var wolf = new Creature();
+            watch.Look(new[] { (wolf, false) }, now: 0.0);
+            watch.Look(new (Creature, bool)[0], now: TameWatch<Creature>.OutOfSight + 1.0);
+            Assert.Equal(0, watch.Count);
+            Assert.Empty(watch.Look(new[] { (wolf, true) }, now: TameWatch<Creature>.OutOfSight + 2.0));
+            // Within that time it is still the one seen wild.
+            watch.Look(new[] { (wolf, false) }, now: 100.0);
+            watch.Look(new (Creature, bool)[0], now: 100.0 + TameWatch<Creature>.OutOfSight - 1.0);
+            Assert.Equal(new[] { wolf }, watch.Look(new[] { (wolf, true) }, now: 100.0 + TameWatch<Creature>.OutOfSight));
+        }
+
+        [Fact]
         public void TheOneLongestUnseenIsForgottenFirst()
         {
             var watch = new TameWatch<Creature>();

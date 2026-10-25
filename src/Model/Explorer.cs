@@ -237,7 +237,7 @@ namespace Scry
         public NewsLine NewsLineOf(Entry entry)
         {
             var news = NewsOf(entry);
-            return new NewsLine(entry?.ShownName ?? "", news?.How ?? NewsHow.Seen, news?.Proof, news?.Day ?? -1);
+            return new NewsLine(entry?.ShownName ?? "", news?.How ?? NewsHow.Seen, news?.Proof, news?.Day ?? -1, WorldShown(news?.World));
         }
 
         /// <summary>The source of the world an entry shows from only, as the player chose (<see cref="CompendiumView.ByWorld"/>); none with the compendium off.</summary>
@@ -313,6 +313,9 @@ namespace Scry
         /// ??? where it would be named tells it is there. None for no key.
         /// </summary>
         public bool HidesHinged(string key) => !string.IsNullOrEmpty(key) && NotMet(key);
+
+        /// <summary>Whether an entry's component is not named, its topic hinging on a thing not met (<see cref="HingedParts"/>).</summary>
+        public bool HidesComponent(Entry entry, string component) => HidesHinged(HingedParts.HingeOf(entry, component));
 
         /// <summary>
         /// The looks of a creature's gear the stage offers, by their place among all its looks: each

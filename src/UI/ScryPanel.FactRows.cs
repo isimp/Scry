@@ -85,8 +85,8 @@ namespace Scry
 
         private static float FactRowDrawn(Explorer explorer, Facts.Row row, float width, float y, IReadOnlyList<Facts.Row> rows, int rowAt)
         {
-            // A recipe's row the game does not list for the character yet is its own to find: left out whole under the strict rules.
-            if (row.GameShown && row.Recipe != null && explorer.LeavingOut && !explorer.RecipeListed(row.Recipe))
+            // A recipe's row the game does not list for the character yet is its own to find: left out whole, under either rules.
+            if (row.GameShown && explorer.RecipeWaits(row.Recipe))
             {
                 StrictLeft(1);
                 CountDrawn(PanelPart.RecipeWaits);
