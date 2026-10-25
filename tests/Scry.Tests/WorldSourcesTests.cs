@@ -28,13 +28,14 @@ namespace Scry.Tests
             public readonly Entry NotWalked = Room("sunkencrypt_Room2", "Burial chambers");
             public readonly Entry Haldor = Place("Vendor_BlackForest", "Haldor");
             public readonly Entry Glow = new Entry { Kind = Kind.Effect, Name = "fx_crypt_glow" };
+            public readonly Entry Swamp = new Entry { Kind = Kind.Biome, Name = "Swamp" };
             public readonly CompendiumBook Book = new CompendiumBook();
             public readonly CompendiumView View;
 
             public Setup()
             {
                 Crypt.Links.Add(new Link { Group = "Effects", Target = Glow.Key });
-                View = new CompendiumView(new EntryCatalog(new[] { Crypt, Walked, NotWalked, Haldor, Glow }));
+                View = new CompendiumView(new EntryCatalog(new[] { Crypt, Walked, NotWalked, Haldor, Glow, Swamp }));
                 View.RoomsWalked(name => name == "sunkencrypt_Room1", 1);
                 View.InWorld(World);
             }
@@ -42,6 +43,13 @@ namespace Scry.Tests
             public Setup Found(WorldSource source, params string[] kinds)
             {
                 Book.FoundIn(World, source, kinds);
+                return this;
+            }
+
+            /// <summary>A key found in a source's ground by a maker of keys, as a biome's key is.</summary>
+            public Setup Found(WorldSource source, System.Func<Setup, string> key)
+            {
+                Book.FoundIn(World, source, new[] { key(this) });
                 return this;
             }
 
@@ -135,6 +143,21 @@ namespace Scry.Tests
             Assert.Equal(KnownLevel.Seen, s.View.Of(s.Crypt));
             Assert.Equal(WorldSource.SharedMaps, s.View.ByWorld(s.Crypt));
             Assert.Equal(KnownLevel.Unknown, s.Book.Level(s.Crypt.Key));
+        }
+
+        [Fact]
+        public void ABiomeUnderYourGroundShowsSeenWhileTheSourceIsOnAndNeverAbove()
+        {
+            // The map's biomes are the ground's own, found in it as the kinds of place are: seen, never known, by the source; nothing once it is off.
+            var s = new Setup().Found(WorldSource.Explored, s2 => EntryKeys.For(Kind.Biome, "Swamp")).Shows(WorldSource.Explored, SourceLevel.Seen);
+            Assert.Equal(KnownLevel.Seen, s.View.Of(s.Swamp));
+            Assert.Equal(WorldSource.Explored, s.View.ByWorld(s.Swamp));
+            Assert.Equal(KnownLevel.Unknown, s.Book.Level(s.Swamp.Key));
+            s.Shows(WorldSource.Explored, SourceLevel.Known);
+            Assert.Equal(KnownLevel.Seen, s.View.Of(s.Swamp));
+            s.Shows(WorldSource.Explored, SourceLevel.Off);
+            Assert.Equal(KnownLevel.Unknown, s.View.Of(s.Swamp));
+            Assert.Null(s.View.ByWorld(s.Swamp));
         }
 
         [Fact]

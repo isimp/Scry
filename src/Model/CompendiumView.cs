@@ -660,9 +660,10 @@ namespace Scry
         /// the places each found in this world, the strongest source first, seen or known as chosen
         /// and told apart as that source's (<see cref="ByWorld"/>), a known one bringing along
         /// what a known place does, with insides what anyone on this server walked inside the
-        /// source's dungeons (<see cref="WalkedOnServer"/>). What the character holds itself, or
-        /// anything brings along already, is left as it is, but a dungeon shown with insides adds
-        /// its rooms walked there not yet shown.
+        /// source's dungeons (<see cref="WalkedOnServer"/>). A biome found in the character's own
+        /// ground shows seen at most, as ground explored is ground seen, never entered. What the
+        /// character holds itself, or anything brings along already, is left as it is, but a
+        /// dungeon shown with insides adds its rooms walked there not yet shown.
         /// </summary>
         private void ShowFromWorld(CompendiumBook book, Queue<Entry> met)
         {
@@ -672,9 +673,17 @@ namespace Scry
                 if (book.Shows(source) != level) continue;
                 foreach (var kind in book.Found(_world, source))
                 {
-                    var entry = _catalog.Find(EntryKeys.For(Kind.Location, kind));
+                    var biome = kind.StartsWith(EntryKeys.Biome, StringComparison.Ordinal);
+                    var entry = _catalog.Find(biome ? kind : EntryKeys.For(Kind.Location, kind));
                     if (entry == null) continue;
                     var now = Of(entry);
+                    if (biome && level > SourceLevel.Seen)
+                    {
+                        if (now >= KnownLevel.Seen) continue;
+                        _levels[entry] = KnownLevel.Seen;
+                        _byWorld[entry] = source;
+                        continue;
+                    }
                     if (level == SourceLevel.Counted)
                     {
                         // The census's: a name heard of, bringing nothing along.

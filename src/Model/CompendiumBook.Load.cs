@@ -94,6 +94,10 @@ namespace Scry
             {
                 if (parts.Length == 2) book._welcomed = true;
             },
+            ["biomesapart"] = (book, parts, name) =>
+            {
+                if (parts.Length == 2) book._biomesApart = true;
+            },
             ["mapapart"] = (book, parts, name) =>
             {
                 if (parts.Length == 2) book._mapApart = true;
@@ -190,6 +194,34 @@ namespace Scry
 
         /// <summary>Whether the places this book once took off the explored map were given back (<see cref="GiveBackMapPlaces"/>); a new book has none to give.</summary>
         private bool _mapApart = true;
+
+        /// <summary>Whether the biomes this book once took off the explored map were given back (<see cref="GiveBackMapBiomes"/>); a new book has none to give.</summary>
+        private bool _biomesApart = true;
+
+        /// <summary>
+        /// Gives back what a book kept off the explored map while the map wrote its biomes as seen:
+        /// each biome only ever seen off it, with no sighting, leaves the book and its Learned list,
+        /// and every world is read again, so they come back as found in the character's ground
+        /// (<see cref="MapCatchUp.ApplyBiomes"/>). A biome seen by sight, known or met another way stays.
+        /// </summary>
+        private void GiveBackMapBiomes()
+        {
+            _biomesApart = true;
+            var given = _levels.Where(p => p.Value == KnownLevel.Seen && p.Key.StartsWith(EntryKeys.Biome, StringComparison.Ordinal)
+                                           && !_seen.ContainsKey(p.Key) && FoundOutOf(p.Key) == EntryKeys.OnMap).Select(p => p.Key).ToList();
+            foreach (var key in given)
+            {
+                _levels.Remove(key);
+                _lately.Remove(key);
+                _learnedAt.Remove(key);
+                _newsDay.Remove(key);
+                _found.Remove(key);
+                ForgetMet(key);
+            }
+            _mapped.Clear();
+            Version++;
+            Changed = true;
+        }
 
         /// <summary>
         /// Gives back what a book kept off the explored map while the map wrote its places as seen:

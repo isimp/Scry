@@ -217,9 +217,13 @@ namespace Scry
         /// <summary>What the game calls ground of no biome.</summary>
         private const string NoBiome = "None";
 
-        /// <summary>Writes the biomes under the explored ground as seen, as news off the map; how many were new.</summary>
-        public static int ApplyBiomes(CompendiumBook book, IEnumerable<string> biomes) =>
-            biomes.Count(biome => Seen(book, EntryKeys.For(Kind.Biome, biome)));
+        /// <summary>
+        /// Keeps the biomes under the explored ground as found in the character's own ground of the
+        /// world, as the kinds of place are (<see cref="Apply"/>), never written into the book: the
+        /// map reaches 100 m past where the character stood. How many were new to its ground.
+        /// </summary>
+        public static int ApplyBiomes(CompendiumBook book, string world, IEnumerable<string> biomes) =>
+            book.FoundIn(world, WorldSource.Explored, biomes.Select(biome => EntryKeys.For(Kind.Biome, biome)));
 
         /// <summary>
         /// Keeps the kinds of place as found in the character's own ground of the world (<see
@@ -232,14 +236,6 @@ namespace Scry
             var found = book.FoundIn(world, WorldSource.Explored, kinds);
             book.MarkMapped(world);
             return found;
-        }
-
-        /// <summary>An entry the map shows, as news noted as off the map, no sighting; true when it was new.</summary>
-        private static bool Seen(CompendiumBook book, string key)
-        {
-            if (!book.Raise(key, KnownLevel.Seen, sighted: false)) return false;
-            book.NoteNews(key, EntryKeys.OnMap);
-            return true;
         }
     }
 }

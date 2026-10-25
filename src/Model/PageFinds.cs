@@ -2,8 +2,9 @@ namespace Scry
 {
     /// <summary>
     /// How much of a page under the strict rules was found out: each number it keeps back for a
-    /// deed, each weak spot, damage type and attack's damage, and each list of counts, found or
-    /// still kept back. Names a list leaves out are not counted, as how many there are would tell.
+    /// deed, each weak spot, damage type and attack's damage, each counted cell of a table and
+    /// each line of where an item comes from, found or still kept back; one rule for all, a cell
+    /// a find. Names a list leaves out are not counted, as how many there are would tell.
     /// </summary>
     internal sealed class PageFinds
     {

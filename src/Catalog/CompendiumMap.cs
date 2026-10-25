@@ -413,7 +413,7 @@ namespace Scry
         }
 
         /// <summary>
-        /// The biomes under the ground the character explored are seen (<see cref="MapCatchUp.Biomes"/>),
+        /// The biomes under the ground the character explored are found in its ground (<see cref="MapCatchUp.Biomes"/>),
         /// worked out once per world each session on a worker thread, as the game's own heightmap
         /// builder asks the world generator from its thread; client or server alike, the world
         /// generator being the same everywhere.
@@ -430,7 +430,7 @@ namespace Scry
                     Faults.Tell(Feature.CompendiumMap, "reading the biomes of the explored map", done.Exception?.GetBaseException());
                     return;
                 }
-                if (book != null && world == _biomesFor) MapCatchUp.ApplyBiomes(book, done.Result);
+                if (book != null && world == _biomesFor) MapCatchUp.ApplyBiomes(book, world, done.Result);
                 return;
             }
             var generator = WorldGenerator.instance;

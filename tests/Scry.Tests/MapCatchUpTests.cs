@@ -181,14 +181,46 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void TheBiomesUnderTheMapAreStillWrittenAsSeen()
+        public void TheBiomesUnderTheMapAreFoundInYourGroundNeverWrittenIntoTheBook()
         {
-            // A biome a hundred metres off is in sight of its edge: the map's biomes stay seen, as news off the map.
+            // As the kinds of place are: shown while the source is on, taken back with it.
             var book = new CompendiumBook();
-            Assert.Equal(1, MapCatchUp.ApplyBiomes(book, new[] { "Swamp" }));
-            Assert.Equal(KnownLevel.Seen, book.Level(EntryKeys.For(Kind.Biome, "Swamp")));
-            Assert.Equal(EntryKeys.OnMap, book.FoundOutOf(EntryKeys.For(Kind.Biome, "Swamp")));
-            Assert.Equal("seen on your explored map", CompendiumWords.FoundOutNote(EntryKeys.OnMap));
+            Assert.Equal(1, MapCatchUp.ApplyBiomes(book, "123", new[] { "Swamp" }));
+            Assert.Equal(0, MapCatchUp.ApplyBiomes(book, "123", new[] { "Swamp" }));
+            Assert.Equal(KnownLevel.Unknown, book.Level(EntryKeys.For(Kind.Biome, "Swamp")));
+            Assert.Contains(EntryKeys.For(Kind.Biome, "Swamp"), book.Found("123", WorldSource.Explored));
+            Assert.Equal(0, MapCatchUp.ApplyBiomes(book, null, new[] { "Swamp" }));
+        }
+
+        [Fact]
+        public void ABookThatTookBiomesOffTheMapGivesThemBackOnce()
+        {
+            // A biome only ever seen off the map leaves the book and its Learned list, and its worlds
+            // are read again so it comes back as found in your ground; one seen by sight, or known, stays.
+            var swamp = EntryKeys.For(Kind.Biome, "Swamp");
+            var mountain = EntryKeys.For(Kind.Biome, "Mountain");
+            var meadows = EntryKeys.For(Kind.Biome, "Meadows");
+            var book = new CompendiumBook { Now = () => new Moment(3, "Meadows") };
+            foreach (var key in new[] { swamp, mountain })
+            {
+                book.Raise(key, KnownLevel.Seen, sighted: false);
+                book.NoteNews(key, EntryKeys.OnMap);
+            }
+            book.Raise(mountain, KnownLevel.Known);
+            book.Raise(meadows, KnownLevel.Seen);
+            book.NoteNews(meadows, EntryKeys.OnMap);
+            book.MarkMapped("123");
+            var old = string.Join("\n", book.Save().Split('\n').Where(line => !line.StartsWith("biomesapart", System.StringComparison.Ordinal)));
+
+            var read = CompendiumBook.Load(old);
+            Assert.Equal(KnownLevel.Unknown, read.Level(swamp));
+            Assert.Equal(KnownLevel.Known, read.Level(mountain));
+            Assert.Equal(KnownLevel.Seen, read.Level(meadows));
+            Assert.DoesNotContain(swamp, read.Lately);
+            Assert.False(read.Mapped("123"));
+            Assert.True(read.Changed);
+            // Given back once: the book says so from then on.
+            Assert.Contains("biomesapart", read.Save());
         }
 
         [Fact]
@@ -196,7 +228,7 @@ namespace Scry.Tests
         {
             // Places only ever seen off the map leave the book and its Learned list, and its worlds
             // are read again so they come back as found in your ground; a place seen by sight, a
-            // known one and a biome stay. Done once: what is seen off the map later is not undone.
+            // known one stay. Done once: what is seen off the map later is not undone.
             var crypt = EntryKeys.For(Kind.Location, "Crypt2");
             var cave = EntryKeys.For(Kind.Location, "TrollCave02");
             var camp = EntryKeys.For(Kind.Location, "GoblinCamp2");
@@ -213,17 +245,18 @@ namespace Scry.Tests
             book.NoteNews(sighted, EntryKeys.OnMap);
             book.Raise(camp, KnownLevel.Known);
             book.MarkMapped("123");
-            var old = string.Join("\n", book.Save().Split('\n').Where(line => !line.StartsWith("mapapart", System.StringComparison.Ordinal)));
+            var old = string.Join("\n", book.Save().Split('\n').Where(line => !line.StartsWith("mapapart", System.StringComparison.Ordinal) && !line.StartsWith("biomesapart", System.StringComparison.Ordinal)));
 
             var read = CompendiumBook.Load(old);
             Assert.Equal(KnownLevel.Unknown, read.Level(crypt));
             Assert.Equal(KnownLevel.Unknown, read.Level(cave));
             Assert.Equal(KnownLevel.Known, read.Level(camp));
-            Assert.Equal(KnownLevel.Seen, read.Level(swamp));
+            // The biome only ever seen off the map is given back by the biomes' own giving back.
+            Assert.Equal(KnownLevel.Unknown, read.Level(swamp));
             Assert.Equal(KnownLevel.Seen, read.Level(EntryKeys.For(Kind.Location, "Seen1")));
             Assert.Equal(KnownLevel.Seen, read.Level(sighted));
             Assert.DoesNotContain(crypt, read.Lately);
-            Assert.Contains(swamp, read.Lately);
+            Assert.DoesNotContain(swamp, read.Lately);
             Assert.False(read.Mapped("123"));
             Assert.True(read.Changed);
 
@@ -258,18 +291,20 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void TheBiomesUnderExploredGroundAreWrittenAsSeenAsNews()
+        public void TheBiomesUnderExploredGroundAreNoNewsAndLeaveWhatTheBookKnowsAlone()
         {
+            // Found in the ground, not written: a biome known stays known, one new to the book stays out of it and of Learned.
             var book = new CompendiumBook();
             book.Raise(EntryKeys.For(Kind.Biome, "Meadows"), KnownLevel.Known, quietly: true);
             book.Save();
 
-            Assert.Equal(1, MapCatchUp.ApplyBiomes(book, new[] { "Meadows", "Swamp" }));
+            Assert.Equal(2, MapCatchUp.ApplyBiomes(book, "123", new[] { "Meadows", "Swamp" }));
 
             Assert.Equal(KnownLevel.Known, book.Level(EntryKeys.For(Kind.Biome, "Meadows")));
-            Assert.Equal(KnownLevel.Seen, book.Level(EntryKeys.For(Kind.Biome, "Swamp")));
-            Assert.Equal(new[] { EntryKeys.For(Kind.Biome, "Swamp") }, book.Lately.ToArray());
-            Assert.Equal(EntryKeys.OnMap, book.FoundOutOf(EntryKeys.For(Kind.Biome, "Swamp")));
+            Assert.Equal(KnownLevel.Unknown, book.Level(EntryKeys.For(Kind.Biome, "Swamp")));
+            Assert.Empty(book.Lately);
+            Assert.Null(book.FoundOutOf(EntryKeys.For(Kind.Biome, "Swamp")));
+            Assert.True(book.Changed);
         }
 
         [Fact]

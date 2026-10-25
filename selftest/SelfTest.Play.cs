@@ -256,6 +256,21 @@ namespace Scry
             yield return null;
         }
 
+        /// <summary>The hide's page counts the troll's line of where it comes from, after the kill, and draws the troll as a chip with that count.</summary>
+        private static void HideCounted(Probe p, Entry hide, Entry troll)
+        {
+            var line = Facts.For(hide).Where.FirstOrDefault(s => s.Record?.Giver == troll.Name);
+            var counted = X.StrictSourceLine(line.Record);
+            p.Check(counted == $"Dropped by {line.Record?.Shown}, 2 (1 of 1 kill)", "the hide's page counts the troll's line", counted);
+            // Drawn as the troll's own chip, as under the loose rules, its count after its name.
+            var chip = ScryPanel.WhereRowsForTest(X, hide).SelectMany(r => r.Items).FirstOrDefault(i => i.Prefab == troll.Name);
+            p.Check(chip.Amount == "2 (1 of 1 kill)", "and draws the troll as a chip with that count", chip.Name + " " + chip.Amount);
+        }
+
+        /// <summary>The item page's title row counts the lines of where it comes from among its finds, the troll's line found out.</summary>
+        private static void WhereCounted(Probe p) =>
+            p.Check(ScryPanel.FindsForTest.Of > 0 && ScryPanel.FindsForTest.Found > 0, "its title row counts the lines of where it comes from, the troll's found out", ScryPanel.FindsChipForTest);
+
         /// <summary>
         /// A made-up character's pages read as a player sees them under the strict rules: the
         /// troll it fought keeps back its health, its attacks' damage, its weak spot and how many
@@ -340,12 +355,7 @@ namespace Scry
 
             // The hide's page tells the troll's line with the character's count.
             X.Select(hide);
-            var line = Facts.For(hide).Where.FirstOrDefault(s => s.Record?.Giver == troll.Name);
-            var counted = X.StrictSourceLine(line.Record);
-            p.Check(counted == $"Dropped by {line.Record?.Shown}, 2 (1 of 1 kill)", "the hide's page counts the troll's line", counted);
-            // Drawn as the troll's own chip, as under the loose rules, its count after its name.
-            var chip = ScryPanel.WhereRowsForTest(X, hide).SelectMany(r => r.Items).FirstOrDefault(i => i.Prefab == troll.Name);
-            p.Check(chip.Amount == "2 (1 of 1 kill)", "and draws the troll as a chip with that count", chip.Name + " " + chip.Amount);
+            HideCounted(p, hide, troll);
             yield return StrictGameShownRead(p, book, view, hide);
             yield return StrictSightingsRead(p, book, view, troll);
             yield return StrictStarsRead(p, book, view, troll, hide);
@@ -353,6 +363,7 @@ namespace Scry
             var fires = ScryPanel.AsDrawn(X, "fires Troll throw projectile");
             p.Check(!fires.StartsWith(CompendiumWords.Hidden, System.StringComparison.Ordinal), "a word of a text is no name kept back: \"fires\" stays", fires);
             yield return PictureOf(p, "from", "strict TrollHide, where it comes from");
+            WhereCounted(p);
 
             // A tame creature's page keeps back how long taming takes until one is tamed.
             var boar = Pick(Kind.Creature, "Boar");

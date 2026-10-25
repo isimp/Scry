@@ -668,6 +668,7 @@ namespace Scry
             var foundIn = _foundIn.SelectMany(p => p.Value.Select(kind => (p.Key.World, p.Key.Source, Kind: kind))).ToArray();
             var shows = _shows.Where(p => p.Value != WorldSources.Starts(p.Key)).ToArray();
             var mapApart = _mapApart;
+            var biomesApart = _biomesApart;
             var marks = _marks.ToArray();
             var rule = _rule;
             var floor = _floor;
@@ -731,6 +732,7 @@ namespace Scry
                 if (floor > 0) text.Append("floor\t").Append(Stored.Count(floor)).Append('\n');
                 if (welcomed) text.Append("welcomed\tyes\n");
                 if (mapApart) text.Append("mapapart\tyes\n");
+                if (biomesApart) text.Append("biomesapart\tyes\n");
                 foreach (var told in rulesTold.OrderBy(t => t.Key, StringComparer.Ordinal)) text.Append("ruled\t").Append(Stored.Escaped(told.Key)).Append('\t').Append(Stored.Escaped(told.Value)).Append('\n');
                 foreach (var (a, b) in pairs.OrderBy(p => p.Item1, StringComparer.Ordinal).ThenBy(p => p.Item2, StringComparer.Ordinal))
                 {
@@ -822,6 +824,7 @@ namespace Scry
             var book = new CompendiumBook();
             if (string.IsNullOrEmpty(text)) return book;
             book._mapApart = false;
+            book._biomesApart = false;
             book._latelyRead = new HashSet<string>(StringComparer.Ordinal);
             // The counts of what fell and was given, each its own text inside the book's.
             var fell = new StringBuilder();
@@ -855,6 +858,7 @@ namespace Scry
             if (book._metRead == null) book.MetFromLately();
             book._metRead = null;
             if (!book._mapApart) book.GiveBackMapPlaces();
+            if (!book._biomesApart) book.GiveBackMapBiomes();
             book.DropPairNews();
             return book;
         }

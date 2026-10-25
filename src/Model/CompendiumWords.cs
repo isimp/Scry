@@ -348,7 +348,7 @@ namespace Scry
         {
             switch (source)
             {
-                case WorldSource.Explored: return "The places lying in ground you explored yourself, by your map, which reaches 100 m around you whatever you saw. Seen as you explore; known, with their insides, or off, as you choose.";
+                case WorldSource.Explored: return "The places lying in ground you explored yourself, and the biomes under it, by your map, which reaches 100 m around you whatever you saw. Seen as you explore; the places known, with their insides, or all off, as you choose.";
                 case WorldSource.SharedMaps: return "The places lying in ground from maps you read at a cartography table.";
                 case WorldSource.Marked: return "The places a Vegvisir or a rune stone marked on your map, though you never looked at them. Seen as they are marked; known, with their insides, or off, as you choose.";
                 case WorldSource.OnEveryMap: return "The places the game shows on every map: traders, the start, and the places Hildir sends you to.";
