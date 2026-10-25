@@ -136,6 +136,7 @@ namespace Scry
             }
 
             var skin = GUI.skin;
+            Guard.Run(Feature.Panel, "handing the search the page's finds", () => HandFinds(_explorer));
             try
             {
                 if (!Guard.Run(Feature.Panel, "the panel", DrawPanel, scale))

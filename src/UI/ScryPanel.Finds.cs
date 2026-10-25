@@ -45,9 +45,49 @@ namespace Scry
             return (_findsStill, _finds);
         }
 
+        /// <summary>Whether a page still has something to find out, by entry, as last gathered; told anew as what the character knows changes.</summary>
+        private static readonly Dictionary<Entry, bool> LeftByPages = new Dictionary<Entry, bool>();
+        private static int _leftStamp = -1;
+        private static Explorer _leftIn;
+
+        /// <summary>
+        /// Whether a page still has something to find out, as its title chip would count it, for
+        /// the search's <c>is:left</c> (<see cref="CompendiumView.LeftByPage"/>): the finds gathered
+        /// under the rules as they stand on that page (<see cref="Explorer.AsPage{T}"/>), once for
+        /// each page while what the character knows stays the same.
+        /// </summary>
+        private static bool LeftByPage(Explorer explorer, Entry entry)
+        {
+            if (entry == null) return false;
+            if (!ReferenceEquals(_leftIn, explorer) || _leftStamp != explorer.KnowStamp)
+            {
+                _leftIn = explorer;
+                _leftStamp = explorer.KnowStamp;
+                LeftByPages.Clear();
+            }
+            if (LeftByPages.TryGetValue(entry, out var left)) return left;
+            left = explorer.AsPage(entry, () =>
+            {
+                if (!explorer.LeavingOut) return false;
+                var (_, finds) = StillToFindOut(explorer, Facts.For(entry));
+                return finds.Of > finds.Found;
+            });
+            LeftByPages[entry] = left;
+            return left;
+        }
+
+        /// <summary>Hands the view the page's finds for its search (<see cref="LeftByPage"/>), each frame, as the view may be a new one.</summary>
+        private static void HandFinds(Explorer explorer)
+        {
+            var view = explorer?.Compendium;
+            if (view != null && view.LeftByPage == null) view.LeftByPage = entry => LeftByPage(explorer, entry);
+        }
+
         /// <summary>Lets go of the page the finds were gathered for, for another world.</summary>
         private static void ForgetFinds()
         {
+            LeftByPages.Clear();
+            _leftIn = null;
             _findsOf = null;
             _findsStill = new List<(string, string)>();
             _finds = new PageFinds();

@@ -248,12 +248,12 @@ namespace Scry
         /// is:walked) is asked of the compendium, and with it off matches nothing.
         /// </summary>
         public static List<Entry> Run(IReadOnlyList<Entry> all, Query query, ICollection<string> favourites,
-            ICollection<string> only, int[] kindCounts, CompendiumView view = null, bool peeking = false)
+            ICollection<string> only, int[] kindCounts, CompendiumView view = null, bool peeking = false, Entry page = null)
         {
             var search = Parse(query.Text).Matcher;
             var today = view != null && search.Mine.Count + search.NotMine.Count > 0 ? view.Today : -1;
-            var loosely = view != null ? new Guarded(view, false) : null;
-            var strictly = view != null ? new Guarded(view, true) : null;
+            var loosely = view != null ? new Guarded(view, false, page) : null;
+            var strictly = view != null ? new Guarded(view, true, page) : null;
             var found = new List<Entry>();
             var scores = new List<int>();
             var unordered = false;
@@ -543,11 +543,18 @@ namespace Scry
             public readonly CompendiumView View;
             public readonly bool Strict;
 
-            public Guarded(CompendiumView view, bool strict)
+            /// <summary>The page shown while searching, which names what a room or place shown whole holds (<see cref="Explorer.NamedAsHeld"/>); none for none.</summary>
+            public readonly Entry Page;
+
+            public Guarded(CompendiumView view, bool strict, Entry page = null)
             {
                 View = view;
                 Strict = strict;
+                Page = page;
             }
+
+            /// <summary>Whether the page shown names an entry never met as one of all it holds, as the page's chips and text do.</summary>
+            private bool HeldByPage(Entry other) => Page != null && other.Kind != Kind.Skill && (View.HoldsNamed(Page) || View.HeldByWalks(Page, other));
 
             /// <summary>
             /// Whether the entry's page names another: one in the catalog that was met, and under
@@ -556,7 +563,7 @@ namespace Scry
             /// station are, <see cref="Explorer.LeavesOut(string, bool)"/>); never one not in the catalog.
             /// </summary>
             public bool Keeps(Entry entry, Entry other, bool gameShown = false) =>
-                other != null && View.Of(other) >= KnownLevel.Seen && (!Strict || gameShown && View.RecipeListed(entry.Tokens.Length > 0 ? entry.Tokens[0] : null) || View.Related(entry, other));
+                other != null && (View.Of(other) >= KnownLevel.Seen || HeldByPage(other)) && (!Strict || gameShown && View.RecipeListed(entry.Tokens.Length > 0 ? entry.Tokens[0] : null) || View.Related(entry, other));
         }
 
         /// <summary>A kind by its name or the start of it, singular or plural; "se" is a status effect.</summary>

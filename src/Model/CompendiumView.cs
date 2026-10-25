@@ -214,6 +214,13 @@ namespace Scry
             entry.Components.Where(component => !(HingedParts.HingeOf(entry, component) is string hinge && _catalog.Find(hinge) is Entry hinged && Of(hinged) < KnownLevel.Seen));
 
         /// <summary>
+        /// Whether a page still has something to find out, as its title chip counts it, handed in
+        /// by the panel that draws the chip (<see cref="ScryPanel"/>), so that <c>is:left</c> finds
+        /// what the chip counts; without it, the deeds, attacks, types and stars alone (<see cref="Left"/>).
+        /// </summary>
+        public Func<Entry, bool> LeftByPage { get; set; }
+
+        /// <summary>
         /// Whether an entry answers a word of an is: term asking what the character met (<see
         /// cref="Search.MineWords"/>): new, seen or come to know on the day given; seen, seen but not
         /// known; walked, a dungeon's room the character walked, or a place one of whose rooms it
@@ -232,7 +239,7 @@ namespace Scry
                 case "seen":
                     return Of(entry) == KnownLevel.Seen;
                 case "left":
-                    return _rule == CompendiumRule.Strict && Of(entry) == KnownLevel.Known && !Whole(entry) && Left(entry);
+                    return _rule == CompendiumRule.Strict && Of(entry) == KnownLevel.Known && !Whole(entry) && (LeftByPage ?? Left)(entry);
                 case "walked":
                     if (entry.Kind != Kind.Location) return false;
                     if (Walked(entry)) return true;

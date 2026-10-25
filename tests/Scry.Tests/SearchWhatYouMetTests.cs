@@ -73,6 +73,27 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void IsLeftFindsWhatThePagesOwnTitleChipCountsWhereThePanelHandsThatIn()
+        {
+            // The chip's count comes of the page as drawn (CompendiumView.LeftByPage): is:left asks it, and falls back to the deeds alone without it.
+            var world = new World();
+            world.Troll.Deeds = new[] { Deed.Killed };
+            world.Book.Raise(world.Neck.Key, KnownLevel.Known);
+            world.Rule(CompendiumRule.Strict);
+            Assert.Equal(new[] { world.Troll }, world.Found("is:left"));
+            // The panel's finds say the troll's page has nothing left: the deeds alone no longer decide.
+            world.View.LeftByPage = entry => false;
+            world.Found("kind:creature");
+            Assert.Empty(world.Found("is:left"));
+            world.View.LeftByPage = entry => entry == world.Troll;
+            world.Found("kind:creature");
+            Assert.Equal(new[] { world.Troll }, world.Found("is:left"));
+            world.View.LeftByPage = null;
+            world.Found("kind:creature");
+            Assert.Equal(new[] { world.Troll }, world.Found("is:left"));
+        }
+
+        [Fact]
         public void IsLeftPassesOverADeedThatHingesOnAThingNotMet()
         {
             // Riding hinges on the saddle: the page leaves the topic out whole while it was not met, so nothing of it is left to find.

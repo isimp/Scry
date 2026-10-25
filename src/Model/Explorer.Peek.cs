@@ -1,3 +1,4 @@
+using System;
 namespace Scry
 {
     /// <summary>The explorer's peek: a page shown whole for now though the compendium is on.</summary>
@@ -114,6 +115,19 @@ namespace Scry
         {
             foreach (var place in _back) place.Peeked = false;
             foreach (var place in _forward) place.Peeked = false;
+        }
+
+        /// <summary>
+        /// Reads something of another page under the rules as they would stand on it, the page
+        /// shown put back after: for the finds of a page not shown (<see cref="CompendiumView.LeftByPage"/>).
+        /// Nothing of the selection is told or remembered.
+        /// </summary>
+        internal T AsPage<T>(Entry page, Func<T> read)
+        {
+            var shown = _selected;
+            _selected = page;
+            try { return read(); }
+            finally { _selected = shown; }
         }
     }
 }

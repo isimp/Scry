@@ -917,9 +917,9 @@ namespace Scry
             // Peeking, the list stays as the character knows it; only a page shows whole.
             var view = CompendiumSet ? _view : null;
             Array.Clear(_counts, 0, _counts.Length);
-            _results = Search.Run(_catalog, _query, _favourites.Keys, order?.Keys, _learnedOnly ? null : _counts, view, PeekingEvery);
+            _results = Search.Run(_catalog, _query, _favourites.Keys, order?.Keys, _learnedOnly ? null : _counts, view, PeekingEvery, _selected);
             // The learned list is a tab of its own: the others count what each would show.
-            if (_learnedOnly) Search.Run(_catalog, _query, _favourites.Keys, null, _counts, view, PeekingEvery);
+            if (_learnedOnly) Search.Run(_catalog, _query, _favourites.Keys, null, _counts, view, PeekingEvery, _selected);
             _countAll = 0;
             foreach (var count in _counts) _countAll += count;
             // The learned tab counts what the search finds among what was learned, as each kind's tab
@@ -934,7 +934,7 @@ namespace Scry
                     if (entry != null) _learned.Add(entry);
                 }
                 Array.Clear(_learnedCounts, 0, _learnedCounts.Length);
-                Search.Run(_learned, _query, _favourites.Keys, null, _learnedCounts, view, PeekingEvery);
+                Search.Run(_learned, _query, _favourites.Keys, null, _learnedCounts, view, PeekingEvery, _selected);
                 foreach (var count in _learnedCounts) _learnedCount += count;
             }
 
@@ -955,7 +955,7 @@ namespace Scry
                     _mendedQuery.Kind = _query.Kind;
                     _mendedQuery.FavouritesOnly = _query.FavouritesOnly;
                     _mendedQuery.Origin = _query.Origin;
-                    _results = Search.Run(_catalog, _mendedQuery, _favourites.Keys, order?.Keys, _counts, view);
+                    _results = Search.Run(_catalog, _mendedQuery, _favourites.Keys, order?.Keys, _counts, view, PeekingEvery, _selected);
                     foreach (var count in _counts) _countAll += count;
                     if (_countAll > 0)
                     {
@@ -973,7 +973,7 @@ namespace Scry
             {
                 var kind = query.Kind;
                 query.Kind = null;
-                _results = Search.Run(_catalog, query, _favourites.Keys, order?.Keys, null, view);
+                _results = Search.Run(_catalog, query, _favourites.Keys, order?.Keys, null, view, PeekingEvery, _selected);
                 query.Kind = kind;
             }
 
