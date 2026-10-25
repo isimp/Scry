@@ -346,8 +346,23 @@ namespace Scry
         /// <summary>Whether an entry is one of a known owner's own parts: what it plays, leaves behind or links to as its own.</summary>
         public bool Owns(Entry owner, Entry owned) => owner != null && owned != null && _owns.Contains((owner, owned));
 
-        /// <summary>Whether two entries go together for the strict rules: seen together, the way given where a row has one, or one a part of the other.</summary>
-        public bool Related(Entry a, Entry b, Tie? tie = null) => Witnessed(a, b, tie) || Owns(a, b) || Owns(b, a);
+        /// <summary>Whether two entries go together for the strict rules: seen together, the way given where a row has one, one a part of the other, or a room's dungeon seen together with the other.</summary>
+        public bool Related(Entry a, Entry b, Tie? tie = null) => Witnessed(a, b, tie) || Owns(a, b) || Owns(b, a) || ThroughDungeon(a, b, tie) || ThroughDungeon(b, a, tie);
+
+        /// <summary>
+        /// Whether a room's dungeon saw a thing go together with it: what is met inside is paired
+        /// with the dungeon the character stands in, not the room, so a room's page borrows its
+        /// dungeons' pairs, the dungeons going by the room's label (<see cref="PlacesLabelled"/>).
+        /// </summary>
+        private bool ThroughDungeon(Entry room, Entry other, Tie? tie)
+        {
+            if (room == null || other == null || room.Kind != Kind.Location || room.Components == null || Array.IndexOf(room.Components, "Room") < 0) return false;
+            foreach (var label in room.FoundIn)
+            {
+                foreach (var place in PlacesLabelled(label)) if (place != room && Witnessed(place, other, tie)) return true;
+            }
+            return false;
+        }
 
         /// <summary>The locations going by a label (<see cref="Places.LabelOf"/>), as the catalog was last indexed.</summary>
         public IReadOnlyList<Entry> PlacesLabelled(string label) =>

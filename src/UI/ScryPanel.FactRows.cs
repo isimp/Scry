@@ -183,7 +183,11 @@ namespace Scry
             }
             else
             {
-                GUI.Label(new Rect(0f, y, width, U(20f)), title, Skin.DimLabel);
+                var plain = new Rect(0f, y, width, U(20f));
+                GUI.Label(plain, title, Skin.DimLabel);
+                // The drops' title counts the kills whose loot was seen to fall: its hover sets that against the game's own count.
+                var tip = row.Tally == Tally.Fell && explorer.Selected is Entry page ? explorer.KillsSeenTip(row.TallyOf, CharacterRecords.Counts(page)?.Killed ?? 0) : null;
+                if (tip != null && plain.Contains(Event.current.mousePosition)) AskTip("kills-seen:" + row.Title, tip);
             }
             return y + U(24f);
         }

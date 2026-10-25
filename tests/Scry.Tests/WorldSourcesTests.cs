@@ -161,6 +161,25 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ARoomsPageBorrowsItsDungeonsPairs()
+        {
+            // What is met inside a dungeon is paired with the dungeon, not the room: a room's page relates what its dungeon saw go together with it, either way round.
+            var s = new Setup();
+            s.Book.Raise(s.Crypt.Key, KnownLevel.Known);
+            s.Book.Raise(s.Walked.Key, KnownLevel.Known);
+            s.Book.Raise(s.Haldor.Key, KnownLevel.Known);
+            s.Tell(CompendiumRule.Strict);
+            Assert.False(s.View.Related(s.Walked, s.Haldor));
+            s.Book.SawWith(s.Crypt.Key, s.Haldor.Key, Tie.Where);
+            s.Tell(CompendiumRule.Strict);
+            Assert.True(s.View.Related(s.Walked, s.Haldor));
+            Assert.True(s.View.Related(s.Haldor, s.Walked));
+            // A way asked for must be the dungeon's way too.
+            Assert.True(s.View.Related(s.Walked, s.Haldor, Tie.Where));
+            Assert.False(s.View.Related(s.Walked, s.Haldor, Tie.Drops));
+        }
+
+        [Fact]
         public void ASourceOffShowsNothingOfIt()
         {
             var s = new Setup().Found(WorldSource.SharedMaps, "Crypt2").Shows(WorldSource.SharedMaps, SourceLevel.Off);

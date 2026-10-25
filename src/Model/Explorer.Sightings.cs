@@ -17,6 +17,9 @@ namespace Scry
         /// <summary>The game prints the health of the creature ridden (<c>EnemyHud</c>, its health text for the mount alone): riding one proves its health as a kill does.</summary>
         private bool AlsoShownBy(string proof) => proof == EntryKeys.Did(Deed.Killed) && _view.Book.Proved(_selected.Key, EntryKeys.Did(Deed.Ridden));
 
+        /// <summary>The hover of a creature's drops title under the strict rules (<see cref="TallyWords.KillsSeenTip"/>): the kills whose loot was seen to fall against the game's count; none otherwise.</summary>
+        public string KillsSeenTip(string of, int counted) => LeavingOut ? TallyWords.KillsSeenTip(_view.Book.Tallied(Tally.Fell).Kills(of), counted) : null;
+
         /// <summary>
         /// Whether a creature's page shown keeps back the clips of one of its attacks, by the item
         /// the attack is made with: as its damage (<see cref="HidesAttack"/>), under the strict

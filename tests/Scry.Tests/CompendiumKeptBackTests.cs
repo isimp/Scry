@@ -537,7 +537,10 @@ namespace Scry.Tests
             Assert.Equal("1–2 (3 of 3)", world.Explorer.StrictAmount(Tally.Fell, "Troll", "TrollHide"));
             Assert.Equal("10 (1 of 3)", world.Explorer.StrictAmount(Tally.Fell, "Troll", "Coins"));
             Assert.Equal("––", world.Explorer.StrictAmount(Tally.Fell, "Troll", "Wood"));
-            Assert.Equal("Drops you saw fall (3 kills)", world.Explorer.StrictTitle(Tally.Fell, "Troll", null));
+            // The kills counted here are those whose loot was seen to fall, which the title says, its hover telling them from the game's own count.
+            Assert.Equal("3 kills whose loot you saw fall; the game counts 14 kills of yours in all", TallyWords.KillsSeenTip(3, 14));
+            Assert.Equal("1 kill whose loot you saw fall; the game counts 1 kill of yours in all", TallyWords.KillsSeenTip(1, 1));
+            Assert.Equal("Drops you saw fall (3 kills seen)", world.Explorer.StrictTitle(Tally.Fell, "Troll", null));
             Assert.Null(world.Explorer.StrictAmount(Tally.None, "Troll", "TrollHide"));
             Assert.Null(world.Explorer.StrictTitle(Tally.None, "Troll", null));
 

@@ -165,7 +165,8 @@ namespace Scry
         /// <summary>The row's title, after how it is given (<paramref name="lead"/>, "When felled, "), with how many times it was seen.</summary>
         public static string Title(Tally tally, string lead, int times)
         {
-            var count = times > 0 ? (tally == Tally.Fell ? Naming.Count(times, "kill", "kills") : Naming.Count(times, "time", "times")) : "none yet";
+            // The kills counted are those whose loot was seen to fall, not the game's own count of kills (KillsSeenTip).
+            var count = times > 0 ? (tally == Tally.Fell ? Naming.Count(times, "kill", "kills") + " seen" : Naming.Count(times, "time", "times")) : "none yet";
             switch (tally)
             {
                 case Tally.Fell: return $"Drops you saw fall ({count})";
@@ -173,6 +174,10 @@ namespace Scry
                 default: return DropWords.Led(lead, $"Gave you ({count})");
             }
         }
+
+        /// <summary>The hover of the drops' title: the kills whose loot was seen to fall against the game's own count of the character's kills, which a far kill or a friend's sets apart.</summary>
+        public static string KillsSeenTip(int seen, int counted) =>
+            $"{Naming.Count(seen, "kill", "kills")} whose loot you saw fall; the game counts {Naming.Count(counted, "kill", "kills")} of yours in all";
 
         /// <summary>The faint line under such a row where an amount is not yet known.</summary>
         public static string NotYetCounted(Tally tally)
