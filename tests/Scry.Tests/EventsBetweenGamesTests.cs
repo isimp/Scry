@@ -108,11 +108,11 @@ namespace Scry.Tests
         [Fact]
         public void AnEventReadsBackWholeFromItsMessage()
         {
-            var sent = new WorldEvent(Ana, 42, Happened.Ate, "Boar", 1.5f, -2f, 3.25f, new[] { ("Raspberry", 1), ("Blueberries", 3) }, 3, new[] { Ana, Bjorn }, "Raspberry");
+            var sent = new WorldEvent(Ana, 42, Happened.Ate, "Boar", 1.5f, -2f, 3.25f, new[] { ("Raspberry", 1), ("Blueberries", 3) }, 3, new[] { Ana, Bjorn }, "Raspberry", "7:12");
             var read = EventWire.Read(EventWire.Write(sent));
             Assert.NotNull(read);
             Assert.Equal((sent.Game, sent.Number, sent.What, sent.Thing), (read.Game, read.Number, read.What, read.Thing));
-            Assert.Equal((sent.X, sent.Y, sent.Z, sent.Level, sent.With), (read.X, read.Y, read.Z, read.Level, read.With));
+            Assert.Equal((sent.X, sent.Y, sent.Z, sent.Level, sent.With, sent.Mark), (read.X, read.Y, read.Z, read.Level, read.With, read.Mark));
             Assert.Equal(sent.Came, read.Came);
             Assert.Equal(sent.Doers, read.Doers);
         }
@@ -125,6 +125,14 @@ namespace Scry.Tests
             Assert.Empty(read.Came);
             Assert.Empty(read.Doers);
             Assert.Null(read.With);
+            Assert.Null(read.Mark);
+        }
+
+        [Fact]
+        public void TheMessagesAreTheSecondKindSinceAnEventCarriesItsMark()
+        {
+            // A Scry of the first kind reads nothing of these and is told apart as needing an update.
+            Assert.Equal(2, ScryPeers.Messages);
         }
 
         [Fact]

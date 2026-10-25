@@ -195,6 +195,7 @@ namespace Scry
             ("InventoryGui", "DoCrafting", 1, 0xB23B2021, Feature.YourSkillFigures),
             ("CookingStation", "OnInteract", 1, 0xB79AADAA, Feature.YourSkillFigures),
             ("Pickable", "Interact", 3, 0x5ECB8AAD, Feature.YourSkillFigures),
+            ("Pickable", "Interact", 3, 0x5ECB8AAD, Feature.CompendiumTogether),
             ("Player", "GetBuildStamina", 0, 0xA2ED27A0, Feature.YourSkillFigures),
             ("Player", "GetPlaceDurability", 1, 0x3A32F40D, Feature.YourSkillFigures),
             ("SE_Shield", "SetLevel", 2, 0xC7282AE8, Feature.YourSkillFigures),
@@ -233,6 +234,7 @@ namespace Scry
             ("Character", "OnDeath", 0, 0xE8638E7F, Feature.CompendiumTogether),
             ("Ragdoll", "Setup", 7, 0x7D29C725, Feature.DropsSeenInPlay),
             ("Ragdoll", "SpawnLoot", 1, 0x515425F4, Feature.DropsSeenInPlay),
+            ("Ragdoll", "Awake", 0, 0x5D6AC5F3, Feature.DropsSeenInPlay),
             ("DropTable", "AddItemToList", 2, 0xAECEE75C, Feature.DropTableAmounts),
             ("DropTable", "GetDropList", 1, 0xBF6963CC, Feature.DropTableRolls),
             ("BaseAI", "CanSeeTarget", 7, 0xDE5EBD88, Feature.WhatCreaturesSee),
@@ -451,6 +453,7 @@ namespace Scry
             Each("SpawnSystem.m_instances", () => Member(list, "SpawnSystem", "m_instances", Feature.WhereCreaturesSpawn));
             Each("ZSFX.m_fadeOutTimer", () => Member(list, "ZSFX", "m_fadeOutTimer", Feature.SoundsAfterSeek));
             Each("CharacterDrop.m_dropsEnabled", () => Member(list, "CharacterDrop", "m_dropsEnabled", Feature.DropsSeenInPlay));
+            Each("Pickable.m_pickedLocal", () => Member(list, "Pickable", "m_pickedLocal", Feature.CompendiumTogether));
             Each("Player.m_knownMaterial", () => Member(list, "Player", "m_knownMaterial", Feature.CompendiumCatchUp));
             Each("Character.m_lastHit", () => Member(list, "Character", "m_lastHit", Feature.CompendiumDeaths));
             Each("Player.m_knownRecipes", () => Member(list, "Player", "m_knownRecipes", Feature.CompendiumCatchUp));

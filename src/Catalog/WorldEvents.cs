@@ -11,8 +11,10 @@ namespace Scry
     /// concerns (<see cref="EventLink.Send"/>). Who did it goes by the player's
     /// game's session, as the game addresses a player's game: a hit's attacker among the world's
     /// players by their character, a creature's attackers by the names the game flags it with as
-    /// they hit it (<c>Character.ApplyDamage</c>) and tells each of them its kill by
-    /// (<c>Character.OnDeath</c>), a pick by the game that asked for it.
+    /// they hit it (<c>Character.RPC_Damage</c>) and tells each of them its kill by
+    /// (<c>Character.OnDeath</c>), a pick by the game that asked for it. What another game ran
+    /// and this one saw the trace of, a creature's remains or a thing picked, is told here
+    /// alone, never sent (<see cref="Seen"/>), marked so the game that ran it may tell the same.
     /// </summary>
     internal static class WorldEvents
     {
@@ -25,17 +27,33 @@ namespace Scry
 
         /// <summary>An event this game ran, by the prefab of the thing it happened to, numbered next.</summary>
         public static WorldEvent Make(Happened what, string thing, Vector3 at, IReadOnlyList<(string Item, int Amount)> came = null, int level = 1,
-            IReadOnlyList<long> doers = null, string with = null) =>
-            new WorldEvent(ZNet.GetUID(), ++_number, what, thing, at.x, at.y, at.z, came, level, doers, with);
+            IReadOnlyList<long> doers = null, string with = null, string mark = null) =>
+            new WorldEvent(ZNet.GetUID(), ++_number, what, thing, at.x, at.y, at.z, came, level, doers, with, mark);
 
         /// <summary>An event this game ran, told to the character.</summary>
         public static void Tell(Happened what, string thing, Vector3 at, IReadOnlyList<(string Item, int Amount)> came = null, int level = 1,
-            IReadOnlyList<long> doers = null, string with = null)
+            IReadOnlyList<long> doers = null, string with = null, string mark = null)
         {
             if (string.IsNullOrEmpty(thing)) return;
-            var told = Make(what, thing, at, came, level, doers, with);
+            var told = Make(what, thing, at, came, level, doers, with, mark);
             CompendiumKeeper.Tell(told);
             EventLink.Send(told);
+        }
+
+        /// <summary>An event another game ran, seen from this one by what it left: told to the character, never sent.</summary>
+        public static void Seen(Happened what, string thing, Vector3 at, IReadOnlyList<(string Item, int Amount)> came, int level,
+            IReadOnlyList<long> doers, string mark)
+        {
+            if (string.IsNullOrEmpty(thing)) return;
+            CompendiumKeeper.Tell(Make(what, thing, at, came, level, doers, null, mark));
+        }
+
+        /// <summary>The id of a networked thing, as the mark of an event about it; none for a thing not in the network.</summary>
+        public static string MarkOf(Component thing)
+        {
+            var view = thing != null ? thing.GetComponent<ZNetView>().OrNull() : null;
+            var zdo = view != null && view.IsValid() ? view.GetZDO() : null;
+            return zdo != null ? zdo.m_uid.ToString() : null;
         }
 
         /// <summary>Something seen done to a thing where it stands, which no one does.</summary>

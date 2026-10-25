@@ -30,7 +30,7 @@ The pin at the end of *Ground you explored* and *Shared maps* marks every dungeo
 
 ## Playing together
 
-Where your friends have Scry, what their game runs near you, a kill or a drop or a pick, counts for you as it would alone, if you did it or saw it, within 30 m with nothing solid between, as a wall or a hill hides a place. What runs in a game without Scry counts nothing, and a notice names those players.
+What you learn depends on where you stand and what you did, never on whose game runs the thing. Valheim runs each creature and each thing on one player's game, and most of what happens to it, a death, a pick, a birth, only there. Your own hits count from your own game, and so does a kill you had a hand in, which the game itself credits to every player who hit the creature. Where your friends have Scry, what their game runs near you, a kill or a drop or a pick, counts for you as it would alone, if you did it or saw it, within 30 m with nothing solid between, as a wall or a hill hides a place. Where a friend's game has no Scry, a notice names them, and you still see a creature's death by the remains it leaves, with its stars and what fell, and your own pick by what the thing gives; but a tree or a rock broken there, a birth, a growing up, a station's work and what a creature ate are told by the game that runs them alone, and go unlearned. Another player's hit teaches you nothing of how a creature takes a damage type, on any game, as the game shows you only a number.
 
 A server can set the rules for everyone and cap each source ([server settings](server-settings.md)); the box then shows the server's choice locked, your own kept beneath it.
 

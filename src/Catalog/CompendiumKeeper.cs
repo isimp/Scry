@@ -369,6 +369,9 @@ namespace Scry
         /// <summary>The events told to the character's game in this world (<see cref="EventRule"/>).</summary>
         private static readonly EventLedger Told = new EventLedger();
 
+        /// <summary>What the catalog found leaving a thing behind (a ragdoll's creatures, <see cref="Entry.LeftBy"/>); none before the catalog is read.</summary>
+        public static IReadOnlyList<string> LeftBy(string leftover) => _catchUpOf?.Find(leftover)?.LeftBy;
+
         /// <summary>
         /// An event this game ran (<see cref="WorldEvents"/>), told to the character: recorded once,
         /// where the character did it or saw it, by the one rule (<see cref="EventRule"/>).

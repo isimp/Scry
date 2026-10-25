@@ -54,7 +54,7 @@ namespace Scry
         private static readonly long[] NoOne = Array.Empty<long>();
 
         public WorldEvent(long game, int number, Happened what, string thing, float x, float y, float z,
-            IReadOnlyList<(string Item, int Amount)> came = null, int level = 1, IReadOnlyList<long> doers = null, string with = null)
+            IReadOnlyList<(string Item, int Amount)> came = null, int level = 1, IReadOnlyList<long> doers = null, string with = null, string mark = null)
         {
             Game = game;
             Number = number;
@@ -67,6 +67,7 @@ namespace Scry
             Level = level;
             Doers = doers ?? NoOne;
             With = with;
+            Mark = mark;
         }
 
         /// <summary>The game that ran it, by its session in the world.</summary>
@@ -98,6 +99,13 @@ namespace Scry
 
         /// <summary>What a creature ate, by prefab.</summary>
         public string With { get; }
+
+        /// <summary>
+        /// The object the event came about through, where another game may tell the same event
+        /// from its side: the remains a death left (the ragdoll's id), the thing picked; none for
+        /// an event only its own game tells. Two events of one mark are one.
+        /// </summary>
+        public string Mark { get; }
     }
 
     /// <summary>How an event concerns the character (<see cref="EventRule"/>).</summary>
@@ -118,11 +126,27 @@ namespace Scry
     {
         private readonly HashSet<(long Game, int Number)> _told = new HashSet<(long, int)>();
 
+        /// <summary>The marks of the events recorded (<see cref="WorldEvent.Mark"/>), for the same event told from another side.</summary>
+        private readonly HashSet<string> _marked = new HashSet<string>();
+
         /// <summary>True the first time an event is told, false every time after.</summary>
         public bool First(WorldEvent told) => _told.Add((told.Game, told.Number));
 
+        /// <summary>Whether an event of this mark was recorded already, from whichever side.</summary>
+        public bool Marked(WorldEvent told) => told.Mark != null && _marked.Contains(told.Mark);
+
+        /// <summary>An event recorded, its mark kept.</summary>
+        public void Recorded(WorldEvent told)
+        {
+            if (told.Mark != null) _marked.Add(told.Mark);
+        }
+
         /// <summary>On leaving a world.</summary>
-        public void Forget() => _told.Clear();
+        public void Forget()
+        {
+            _told.Clear();
+            _marked.Clear();
+        }
     }
 
     /// <summary>Which deeds a kind of entry's page keeps numbers back for (<see cref="Entry.Deeds"/>).</summary>
@@ -144,6 +168,8 @@ namespace Scry
     /// The one rule every event is recorded by, for the character: it did it where the event names
     /// its game among those who did it, however far away; else it saw it where it stands within
     /// <see cref="Sighting.PersonReach"/> of it as it is told; else it is none of the character's.
+    /// The same event told from two sides, by the game that ran it and by this one seeing what it
+    /// left (<see cref="WorldEvent.Mark"/>), is recorded and counted once, with the pairs of both.
     /// </summary>
     internal static class EventRule
     {
@@ -163,8 +189,31 @@ namespace Scry
             float ax = told.X - x, ay = told.Y - y, az = told.Z - z;
             var reach = book.World.SeenReach;
             var upClose = reach > 0f && ax * ax + ay * ay + az * az <= reach * reach;
-            if (share != EventShare.None) Record(told, book, counts, upClose);
+            if (share == EventShare.None) return share;
+            if (ledger.Marked(told)) Paired(told, book);
+            else
+            {
+                Record(told, book, counts, upClose);
+                ledger.Recorded(told);
+            }
             return share;
+        }
+
+        /// <summary>An event recorded already from its other side: only what it names seen together is added, nothing counted again.</summary>
+        private static void Paired(WorldEvent told, CompendiumBook book)
+        {
+            switch (told.What)
+            {
+                case Happened.Died:
+                    foreach (var (item, _) in told.Came) book.SawWith(told.Thing, item, Tie.Drops);
+                    return;
+                case Happened.Broke:
+                case Happened.Picked:
+                    foreach (var (item, _) in told.Came) book.SawWith(told.Thing, item, Tie.Gives);
+                    return;
+                default:
+                    return;
+            }
         }
 
         /// <summary>How an event concerns the character standing at a point.</summary>

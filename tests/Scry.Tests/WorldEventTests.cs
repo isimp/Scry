@@ -16,8 +16,8 @@ namespace Scry.Tests
         private const long OtherGame = 303;
 
         private static WorldEvent Event(Happened what, string thing, float away, int number = 1, (string, int)[] came = null, int level = 1,
-            long[] doers = null, string with = null, long game = Me) =>
-            new WorldEvent(game, number, what, thing, away, 0f, 0f, came, level, doers, with);
+            long[] doers = null, string with = null, long game = Me, string mark = null) =>
+            new WorldEvent(game, number, what, thing, away, 0f, 0f, came, level, doers, with, mark);
 
         private static WorldEvent Death(float away, long[] doers = null, int number = 1, int level = 1, (string, int)[] came = null) =>
             Event(Happened.Died, "Troll", away, number, came ?? new[] { ("TrollHide", 2) }, level, doers);
@@ -221,6 +221,64 @@ namespace Scry.Tests
             Assert.Equal("its hatching found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.Hatched)));
             Assert.Equal("how Chicken egg hatches", JournalWords.FoundOutOf(EntryKeys.Did(Deed.Hatched), "Chicken egg"));
             Assert.Equal("shows once you have seen one hatch", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Hatched)));
+        }
+
+        [Fact]
+        public void ADeathToldFromItsRemainsAndByTheGameThatRanItCountsOnceWithThePairsOfBoth()
+        {
+            // The remains seen tell the death first; the game that ran it then tells the same death by the same mark, with more that fell and who did it.
+            var book = Told(Event(Happened.Died, "Troll", 5f, 1, new[] { ("TrollHide", 2) }, 2, mark: "7:12"),
+                Event(Happened.Died, "Troll", 5f, 9, new[] { ("TrollHide", 2), ("Coins", 20) }, 2, doers: new[] { Me }, game: OtherGame, mark: "7:12"));
+            Assert.Equal(1, book.Tallied(Tally.Fell).Kills("Troll"));
+            Assert.True(book.Witnessed("TrollHide", "Troll"));
+            Assert.True(book.Witnessed("Coins", "Troll"));
+        }
+
+        [Fact]
+        public void TheGameThatRanADeathTellingItFirstLeavesTheRemainsSeenNothingToAdd()
+        {
+            var counts = new PlayCounts();
+            var book = Told(counts, Event(Happened.Died, "Troll", 5f, 9, new[] { ("TrollHide", 2) }, 2, doers: new[] { Me }, game: OtherGame, mark: "7:12"),
+                Event(Happened.Died, "Troll", 5f, 1, new[] { ("TrollHide", 2) }, 2, mark: "7:12"));
+            Assert.Equal(1, book.Tallied(Tally.Fell).Kills("Troll"));
+            Assert.Equal(1, counts.Of(PlayEvent.LootCounted));
+        }
+
+        [Fact]
+        public void AMarkedDeathNoneOfTheCharactersLeavesTheEventNamingItADoerToCount()
+        {
+            // The remains far off were seen by no one here; the game that ran the death then names the character among those who did it.
+            var book = Told(Event(Happened.Died, "Troll", 80f, 1, new[] { ("TrollHide", 2) }, mark: "7:12"),
+                Event(Happened.Died, "Troll", 80f, 9, new[] { ("TrollHide", 2) }, doers: new[] { Me }, game: OtherGame, mark: "7:12"));
+            Assert.Equal(1, book.Tallied(Tally.Fell).Kills("Troll"));
+        }
+
+        [Fact]
+        public void TwoDeathsWithoutAMarkAtOneSpotBothCount()
+        {
+            // A blow that fells two at once: two events, no mark alike.
+            var book = Told(Death(5f, number: 1), Death(5f, number: 2));
+            Assert.Equal(2, book.Tallied(Tally.Fell).Kills("Troll"));
+        }
+
+        [Fact]
+        public void APickToldFromThePickersGameAndByTheGameThatRanItCountsOnce()
+        {
+            var book = Told(Event(Happened.Picked, "RaspberryBush", 2f, 1, new[] { ("Raspberry", 1) }, doers: new[] { Me }, mark: "7:30"),
+                Event(Happened.Picked, "RaspberryBush", 2f, 3, new[] { ("Raspberry", 2) }, doers: new[] { Me }, game: OtherGame, mark: "7:30"));
+            Assert.Equal(1, book.Tallied(Tally.Gave).Kills("RaspberryBush"));
+            Assert.True(book.Witnessed("Raspberry", "RaspberryBush"));
+        }
+
+        [Fact]
+        public void LeavingTheWorldForgetsTheMarks()
+        {
+            var told = new EventLedger();
+            EventRule.Tell(Event(Happened.Died, "Troll", 5f, 1, new[] { ("TrollHide", 2) }, mark: "7:12"), Me, 0f, 0f, 0f, told, new CompendiumBook(), null);
+            told.Forget();
+            var book = new CompendiumBook();
+            EventRule.Tell(Event(Happened.Died, "Troll", 5f, 2, new[] { ("TrollHide", 2) }, game: OtherGame, mark: "7:12"), Me, 0f, 0f, 0f, told, book, null);
+            Assert.Equal(1, book.Tallied(Tally.Fell).Kills("Troll"));
         }
 
         [Fact]

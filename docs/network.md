@@ -27,7 +27,7 @@ What a game with a changed Scry can still do, and the game itself allows as much
 | Message | From, to | What | Checked |
 |---|---|---|---|
 | `Scry_Hello` | every game, to everybody; answered to the one asking | the messages' version (`ScryPeers.Messages`), whether it asks for one back | own hello passed over |
-| `Scry_Event` | the game that ran an event, to its doers and those within 30 m whose games said hello | one event (`EventWire`) | from the game that ran it, counted once |
+| `Scry_Event` | the game that ran an event, to its doers and those within 30 m whose games said hello | one event (`EventWire`), with its mark where another game may tell the same from its side | from the game that ran it, counted once |
 | `Scry_EventEcho`, `Scry_EventRun`, `Scry_EventRan`, `Scry_EventTakenAsk`, `Scry_EventTakenAnswer` | the self-test, to and from the world's game | made-up events run and echoed for the self-test | bounded; made-up things only; reach the self-test's book alone |
 | `Scry_MapAsk`, `Scry_MapAnswer` | a player, to the server on its own connection, and back | the explored ground packed (`ExploredGrid`); the kinds of place in it, with how many | grid bounded; paced by connection; answer from the server only |
 | `Scry_SharedMapAsk`, `Scry_SharedMapAnswer` | as above | ground from shared maps; the kinds in it | as above |

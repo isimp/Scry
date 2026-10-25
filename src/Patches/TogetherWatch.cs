@@ -89,23 +89,23 @@ namespace Scry
         }
 
         /// <summary>
-        /// A creature was hit, by the character or, on a creature this game runs, by anyone near:
-        /// the damage types the game's popup tells how it takes (<see cref="HitTold"/>), which it
-        /// shows every player within its text distance, worked out as the game works it out on
-        /// receiving the hit, by its own <c>HitData.ApplyResistance</c> on a copy; paired with the
-        /// creature. A hit on a weak spot is passed over, as it lands by the weak spot's own
-        /// modifiers, and found only by the character's own hit.
+        /// A creature was hit by the character, on whichever game the creature runs: the damage
+        /// types the game's popup tells how it takes (<see cref="HitTold"/>), worked out as the
+        /// game works it out on receiving the hit, by its own <c>HitData.ApplyResistance</c> on a
+        /// copy with the creature's own modifiers, the page's values; paired with the creature.
+        /// Another player's hit teaches nothing, as the game shows a bystander no types, only a
+        /// class. A hit on a weak spot is passed over, as it lands by the weak spot's own
+        /// modifiers: the spot is found, no more.
         /// </summary>
-        public static void Hit(Character target, HitData hit, bool mine = true)
+        public static void Hit(Character target, HitData hit)
         {
             if (target == null || hit == null || target.IsPlayer() || Player.m_localPlayer == null) return;
-            if (mine ? hit.GetAttacker() != Player.m_localPlayer : hit.GetAttacker() == Player.m_localPlayer) return;
+            if (hit.GetAttacker() != Player.m_localPlayer) return;
             // The popup is what tells how a type landed: the character's own hit shows it no farther than anyone's.
             if (!PopupSeen(target)) return;
             // A weak spot hit shows how that spot takes it, not the creature: the spot is found, no more.
             if (hit.m_weakSpot >= 0)
             {
-                if (!mine) return;
                 Guard.Run(Feature.CompendiumTogether, "noting a weak spot found", () =>
                 {
                     var spots = target.m_weakSpots;
@@ -114,7 +114,8 @@ namespace Scry
                 });
                 return;
             }
-            Guard.Run(Feature.CompendiumTogether, "noting how a creature took a hit", () => Told(Utils.GetPrefabName(target.gameObject), hit, target.GetDamageModifiers()));
+            // The creature's own modifiers, which the page shows: a status effect's (a wet creature's) live on the creature's owner alone.
+            Guard.Run(Feature.CompendiumTogether, "noting how a creature took a hit", () => Told(Utils.GetPrefabName(target.gameObject), hit, target.m_damageModifiers));
         }
 
         /// <summary>
@@ -214,17 +215,10 @@ namespace Scry
         private static void Postfix(Humanoid __instance, (Dictionary<string, int> Before, GameObject Target) __state) => TogetherWatch.UsedWith(__instance, __state.Target, __state.Before);
     }
 
-    /// <summary>A hit anyone lands on a creature this game runs (<c>Character.RPC_Damage</c> runs on the creature's owner): how it took it, where the character saw the popup.</summary>
-    [HarmonyPatch(typeof(Character), "RPC_Damage")]
-    internal static class HitOnOwnedWatched
-    {
-        private static void Postfix(Character __instance, HitData hit) => TogetherWatch.Hit(__instance, hit, mine: false);
-    }
-
     [HarmonyPatch(typeof(Character), nameof(Character.Damage))]
     internal static class HitToldWatched
     {
-        // After the game found which weak spot was hit, before the hit is sent on.
+        // On the game dealing the hit, whichever runs the creature: after the game found which weak spot was hit, before the hit is sent on untouched.
         private static void Postfix(Character __instance, HitData hit) => TogetherWatch.Hit(__instance, hit);
     }
 

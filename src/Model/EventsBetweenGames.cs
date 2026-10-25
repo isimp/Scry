@@ -13,7 +13,7 @@ namespace Scry
     internal sealed class ScryPeers
     {
         /// <summary>The version of the events' messages and the hello; another counts as no Scry, to be updated.</summary>
-        public const int Messages = 1;
+        public const int Messages = 2;
 
         /// <summary>The messages each player's game said hello with, by its session.</summary>
         private readonly Dictionary<long, int> _hellos = new Dictionary<long, int>();
@@ -123,6 +123,8 @@ namespace Scry
                 writer.Write(told.Level);
                 writer.Write(told.With != null);
                 writer.Write(told.With ?? "");
+                writer.Write(told.Mark != null);
+                writer.Write(told.Mark ?? "");
                 writer.Write(told.Came.Count);
                 foreach (var (item, amount) in told.Came)
                 {
@@ -160,6 +162,8 @@ namespace Scry
                 var level = reader.ReadInt32();
                 var hasWith = reader.ReadBoolean();
                 var with = reader.ReadString();
+                var hasMark = reader.ReadBoolean();
+                var eventMark = reader.ReadString();
                 var cameCount = reader.ReadInt32();
                 if (cameCount < 0 || cameCount > MostListed) return null;
                 var came = new List<(string, int)>(cameCount);
@@ -168,7 +172,7 @@ namespace Scry
                 if (doerCount < 0 || doerCount > MostListed) return null;
                 var doers = new List<long>(doerCount);
                 for (var i = 0; i < doerCount; i++) doers.Add(reader.ReadInt64());
-                return new WorldEvent(game, number, what, thing, x, y, z, came, level, doers, hasWith ? with : null);
+                return new WorldEvent(game, number, what, thing, x, y, z, came, level, doers, hasWith ? with : null, hasMark ? eventMark : null);
             }
         }
     }
