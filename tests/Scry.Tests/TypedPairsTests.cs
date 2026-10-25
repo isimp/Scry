@@ -44,8 +44,11 @@ namespace Scry.Tests
             book.SawWith("Troll", "TrollHide", Tie.Gives);
             book.Witness("Troll", "Meadows");
             var text = book.Save();
-            Assert.Contains("saw\tTroll\tTrollHide\tdrops,gives\n", text);
+            // The pair's line stays as every Scry reads it; the ways stand on a line of their own, which an older Scry passes over.
+            Assert.Contains("saw\tTroll\tTrollHide\n", text);
+            Assert.Contains("ways\tTroll\tTrollHide\tdrops,gives\n", text);
             Assert.Contains("saw\tMeadows\tTroll\n", text);
+            Assert.DoesNotContain("ways\tMeadows", text);
             var read = CompendiumBook.Load(text);
             Assert.True(read.Witnessed("Troll", "TrollHide", Tie.Gives));
             Assert.False(read.Witnessed("Troll", "TrollHide", Tie.Holds));
@@ -53,7 +56,9 @@ namespace Scry.Tests
             // A line of an older book names no way; a way this Scry does not know reads as any.
             var older = CompendiumBook.Load("format\t2\nsaw\tTroll\tTrollHide\n");
             Assert.True(older.Witnessed("Troll", "TrollHide", Tie.Holds));
-            Assert.True(CompendiumBook.Load("format\t3\nsaw\tTroll\tTrollHide\tsomeday\n").Witnessed("Troll", "TrollHide", Tie.Holds));
+            Assert.True(CompendiumBook.Load("format\t3\nsaw\tTroll\tTrollHide\nways\tTroll\tTrollHide\tsomeday\n").Witnessed("Troll", "TrollHide", Tie.Holds));
+            // The ways' line alone, as a book another Scry trimmed, still makes the pair.
+            Assert.True(CompendiumBook.Load("format\t2\nways\tTroll\tTrollHide\tdrops\n").Witnessed("Troll", "TrollHide", Tie.Drops));
         }
     }
 }

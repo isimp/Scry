@@ -504,6 +504,9 @@ namespace Scry
         /// <summary>What had been seen in play, how the mods were set, the character's skill levels and the keys it held when these facts were told (<see cref="Freshness"/>).</summary>
         private (int Drops, int Worn, int Settings, int Skills, int Keys) _toldWith;
 
+        /// <summary>What the facts are fresh by now, for what keeps something worked out of them (<see cref="Freshness"/>).</summary>
+        internal static (int, int, int, int, int) FreshnessNow => Freshness;
+
         /// <summary>What has been seen in play, how the mods are set, the character's skill levels and the keys it holds now, by their counts of changes.</summary>
         private static (int Drops, int Worn, int Settings, int Skills, int Keys) Freshness => (DropWatch.Version, WornWatch.Version, ModConfigs.Version, YourSkills.Version, TraderStore.KeysHeld);
 

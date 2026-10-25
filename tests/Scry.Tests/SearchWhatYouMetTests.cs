@@ -94,6 +94,38 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void DropsFindsACreatureOnlyByAnItemSeenToFallFromIt()
+        {
+            // The way matters to the search as it does to the row: an item met beside the creature in a chest opens no drop of it.
+            var world = new World();
+            world.Troll.AddTermLink("drops", world.Boar);
+            world.Book.Raise(world.Boar.Key, KnownLevel.Known);
+            world.Book.SawWith(world.Troll.Key, world.Boar.Key, Tie.Holds);
+            world.Rule(CompendiumRule.Strict);
+            Assert.Empty(world.Found("drops:boar"));
+            world.Book.SawWith(world.Troll.Key, world.Boar.Key, Tie.Drops);
+            world.Rule(CompendiumRule.Strict);
+            Assert.Equal(new[] { world.Troll }, world.Found("drops:boar"));
+        }
+
+        [Fact]
+        public void IsLeftKeepsItsAnswerWhilePeeking()
+        {
+            // The list stays as the character knows it while a peek is on: the finds are gathered under the book's rules, not the peek's.
+            var world = new World();
+            world.Troll.Deeds = new[] { Deed.Killed };
+            world.Rule(CompendiumRule.Strict);
+            var asked = 0;
+            world.View.LeftByPage = entry => { asked++; return entry == world.Troll && world.Explorer.AsPage(entry, () => world.Explorer.LeavingOut); };
+            Assert.Equal(new[] { world.Troll }, world.Found("is:left"));
+            world.Explorer.Select(world.Troll);
+            world.Explorer.PeekPage();
+            world.Found("kind:creature");
+            Assert.Equal(new[] { world.Troll }, world.Found("is:left"));
+            Assert.True(asked > 0);
+        }
+
+        [Fact]
         public void IsLeftPassesOverADeedThatHingesOnAThingNotMet()
         {
             // Riding hinges on the saddle: the page leaves the topic out whole while it was not met, so nothing of it is left to find.

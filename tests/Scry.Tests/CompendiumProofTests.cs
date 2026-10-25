@@ -138,6 +138,10 @@ namespace Scry.Tests
             var later = CompendiumBook.Load("format\t3\nknow\tTroll\t3\nfuture\tTroll\tx\ty\n");
             Assert.Equal(KnownLevel.Known, later.Level("Troll"));
             Assert.Contains("future\tTroll\tx\ty\n", later.Save());
+            // Saved and read again, the book still says the later format and still carries the lines: the promise holds past one save.
+            var again = CompendiumBook.Load(later.Save());
+            Assert.StartsWith("format\t3\n", again.Save());
+            Assert.Contains("future\tTroll\tx\ty\n", again.Save());
             // A book of this format drops a line it cannot read, as ever.
             Assert.DoesNotContain("future", CompendiumBook.Load("format\t2\nknow\tTroll\t3\nfuture\tTroll\tx\n").Save());
         }

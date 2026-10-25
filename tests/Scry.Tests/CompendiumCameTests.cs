@@ -82,6 +82,9 @@ namespace Scry.Tests
             // The game's record of stations fills by being near one, not by using it.
             Assert.Equal("day 3, being near it", CompendiumWords.CameToKnow(CameBy.Near, 3, null));
             Assert.Equal("near", JournalWords.LearnedNote(new BookNews(NewsHow.Known, null, CameBy.Near, 3)));
+            // A taming seen is not the character's own taming, and petting one is neither.
+            Assert.Equal("seen tamed", JournalWords.LearnedNote(new BookNews(NewsHow.Known, null, CameBy.SeenTamed, 3)));
+            Assert.Equal("petted", JournalWords.LearnedNote(new BookNews(NewsHow.Known, null, CameBy.Petted, 3)));
             Assert.Equal("day 1, stepping inside", CompendiumWords.CameToKnow(CameBy.WentInside, 1, ""));
             Assert.Equal("with Troll", CompendiumWords.CameWith("Troll"));
             Assert.Equal("known before Scry kept track of this character", CompendiumWords.KnownBefore);

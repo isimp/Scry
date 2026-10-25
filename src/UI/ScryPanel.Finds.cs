@@ -49,6 +49,7 @@ namespace Scry
         private static readonly Dictionary<Entry, bool> LeftByPages = new Dictionary<Entry, bool>();
         private static int _leftStamp = -1;
         private static Explorer _leftIn;
+        private static (int, int, int, int, int) _leftFresh;
 
         /// <summary>
         /// Whether a page still has something to find out, as its title chip would count it, for
@@ -59,19 +60,22 @@ namespace Scry
         private static bool LeftByPage(Explorer explorer, Entry entry)
         {
             if (entry == null) return false;
-            if (!ReferenceEquals(_leftIn, explorer) || _leftStamp != explorer.KnowStamp)
+            // Told anew as what the character knows changes, and as the facts themselves would be retold (Facts.Freshness).
+            if (!ReferenceEquals(_leftIn, explorer) || _leftStamp != explorer.KnowStamp || _leftFresh != Facts.FreshnessNow)
             {
                 _leftIn = explorer;
                 _leftStamp = explorer.KnowStamp;
+                _leftFresh = Facts.FreshnessNow;
                 LeftByPages.Clear();
             }
             if (LeftByPages.TryGetValue(entry, out var left)) return left;
-            left = explorer.AsPage(entry, () =>
+            // A page whose facts fail is one with nothing left, told as a fault once: the search goes on.
+            if (!Guard.Run(Feature.Panel, "gathering a page's finds for the search", () => explorer.AsPage(entry, () =>
             {
                 if (!explorer.LeavingOut) return false;
                 var (_, finds) = StillToFindOut(explorer, Facts.For(entry));
                 return finds.Of > finds.Found;
-            });
+            }), out left)) left = false;
             LeftByPages[entry] = left;
             return left;
         }

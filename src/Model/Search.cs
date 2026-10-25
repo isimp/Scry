@@ -500,6 +500,18 @@ namespace Scry
             return false;
         }
 
+        /// <summary>Whether a guarded search keeps a linked entry for a relation key, by the way the relation is seen where it has one: "drops" seen to fall, "gives" given, "from" either, "needs" as the game shows it.</summary>
+        private static bool KeepsBy(Guarded guard, Entry entry, Entry other, string key)
+        {
+            switch (key)
+            {
+                case "drops": return guard.Keeps(entry, other, false, Tie.Drops);
+                case "gives": return guard.Keeps(entry, other, false, Tie.Gives);
+                case "from": return guard.Keeps(entry, other, false, Tie.Drops) || guard.Keeps(entry, other, false, Tie.Gives);
+                default: return guard.Keeps(entry, other, key == "needs");
+            }
+        }
+
         private static bool ValueMatches(Entry entry, string key, string value, Guarded guard)
         {
             var strict = guard != null && guard.Strict ? guard.View : null;
@@ -522,7 +534,8 @@ namespace Scry
                 default:
                     if (Array.IndexOf(LinkKeys, key) < 0) return AnyWordStarts(entry.TermWords(key), value);
                     // What a thing needs is in the game's crafting menu with it: a needs: term asks no pair.
-                    return AnyLinked(guard == null ? entry.TermLinks(key) : entry.TermLinks(key).Where(other => guard.Keeps(entry, other, key == "needs")).ToList(), value);
+                    // A relation with a way of its own asks by it, as the page's row does (ScryPanel.TieOf): what fell, what was given; "from" either.
+                    return AnyLinked(guard == null ? entry.TermLinks(key) : entry.TermLinks(key).Where(other => KeepsBy(guard, entry, other, key)).ToList(), value);
             }
         }
 
@@ -562,8 +575,8 @@ namespace Scry
             /// moment the entry is known (<paramref name="gameShown"/>, as a recipe's materials and
             /// station are, <see cref="Explorer.LeavesOut(string, bool, System.Nullable{Tie})"/>); never one not in the catalog.
             /// </summary>
-            public bool Keeps(Entry entry, Entry other, bool gameShown = false) =>
-                other != null && (View.Of(other) >= KnownLevel.Seen || HeldByPage(other)) && (!Strict || gameShown && View.RecipeListed(entry.Tokens.Length > 0 ? entry.Tokens[0] : null) || View.Related(entry, other));
+            public bool Keeps(Entry entry, Entry other, bool gameShown = false, Tie? tie = null) =>
+                other != null && (View.Of(other) >= KnownLevel.Seen || HeldByPage(other)) && (!Strict || gameShown && View.RecipeListed(entry.Tokens.Length > 0 ? entry.Tokens[0] : null) || View.Related(entry, other, tie));
         }
 
         /// <summary>A kind by its name or the start of it, singular or plural; "se" is a status effect.</summary>

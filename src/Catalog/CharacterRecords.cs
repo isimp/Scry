@@ -20,6 +20,16 @@ namespace Scry
         private static AccessTools.FieldRef<Player, HashSet<string>> _trophies;
         private static AccessTools.FieldRef<Player, HashSet<string>> _uniques;
 
+        /// <summary>How long the character has played, in seconds, as the game counts its time in and out of its base.</summary>
+        public static float Played(PlayerProfile profile)
+        {
+            var stats = profile?.m_playerStats != null && profile.m_playerStats.Length > 0 ? profile.m_playerStats[0] : null;
+            if (stats?.m_stats == null) return float.MaxValue;
+            stats.m_stats.TryGetValue(PlayerStatType.TimeInBase, out var inside);
+            stats.m_stats.TryGetValue(PlayerStatType.TimeOutOfBase, out var outside);
+            return inside + outside;
+        }
+
         /// <summary>How many records there are in all, the power chosen one of them; it grows whenever any of them does, but a power chosen in place of another (<see cref="Power"/>).</summary>
         public static int Size(Player player, PlayerProfile profile)
         {

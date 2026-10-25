@@ -86,6 +86,9 @@ namespace Scry.Tests
             Assert.Equal("Elderwood  \u00B7  Day 12", JournalWords.DayHeading(12, JournalWords.WorldGroup("Elderwood", "Midgard")));
             Assert.Equal("Day 12", JournalWords.DayHeading(12, JournalWords.WorldGroup("Midgard", "Midgard")));
             Assert.Equal("World not kept  \u00B7  Day 12", JournalWords.DayHeading(12, JournalWords.WorldGroup(null, "Midgard")));
+            // After a day, the same world reads as a phrase.
+            Assert.Equal(" in a world not kept", JournalWords.InWorld(JournalWords.WorldUnkept));
+            Assert.Equal(" in Elderwood", JournalWords.InWorld("Elderwood"));
             // With no world played, as off the world, nothing is told apart.
             Assert.Equal("Day 12", JournalWords.DayHeading(12, JournalWords.WorldGroup(null, null)));
         }

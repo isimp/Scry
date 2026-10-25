@@ -41,7 +41,13 @@ namespace Scry
         {
             ["opened"] = (book, parts, name) =>
             {
-                if (parts.Length == 2 && !ChestByNumber(name)) book._opened.Add(name);
+                if (parts.Length != 2) return;
+                if (ChestByNumber(name)) book._chestsRenumbered = true;
+                else book._opened.Add(name);
+            },
+            ["ways"] = (book, parts, name) =>
+            {
+                if (parts.Length == 4 && Stored.TryUnescaped(parts[2], out var other) && other.Length > 0 && other != name && !IsProof(other) && !IsProof(name)) book.ReadWays(name, other, parts[3]);
             },
             ["found"] = (book, parts, name) =>
             {
@@ -123,10 +129,9 @@ namespace Scry
                 else if (IsProof(name)) book._proofs.Add((other, name));
                 else
                 {
-                    // The ways the two were seen together, where the line names them; any way where it does not.
-                    var pair = Pair(name, other);
-                    book._pairs.TryGetValue(pair, out var had);
-                    book._pairs[pair] = had | WaysRead(parts.Length == 4 ? parts[3] : null);
+                    book.ReadPair(name, other);
+                    // A line that named the ways itself, as a book of one build between did.
+                    if (parts.Length == 4) book.ReadWays(name, other, parts[3]);
                 }
             },
             ["did"] = (book, parts, name) =>
@@ -204,6 +209,9 @@ namespace Scry
 
         /// <summary>The format the book read said it was kept in (<see cref="Format"/>); this one's where it said none.</summary>
         private int _formatSeen = Format;
+
+        /// <summary>Whether the book read held chests by the numbers the game gave them for one load, which never match again (<see cref="ChestByNumber"/>).</summary>
+        private bool _chestsRenumbered;
 
         /// <summary>The lines of a book of a later format this Scry cannot read, kept as they are for its next save, so the later Scry finds them again.</summary>
         private readonly List<string> _keptLines = new List<string>();

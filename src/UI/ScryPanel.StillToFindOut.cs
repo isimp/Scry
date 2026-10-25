@@ -84,7 +84,7 @@ namespace Scry
         {
             foreach (var source in facts.Where)
             {
-                if (source.AllPlay || source.Record == null || explorer.LeavesOut(source.Prefab) || explorer.LeavesOutAll(source.MetIn)) continue;
+                if (source.AllPlay || source.Record == null || explorer.LeavesOut(source.Prefab, false, TieOfSource(source.Record)) || explorer.LeavesOutAll(source.MetIn)) continue;
                 var amount = explorer.StrictSourceAmount(source.Record);
                 if (amount == null) continue;
                 var kept = amount == CompendiumWords.Hidden;

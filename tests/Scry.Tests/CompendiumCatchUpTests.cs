@@ -901,6 +901,16 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheFirstReadingOfANewCharactersRecordsIsNoCatchUp()
+        {
+            // A character made minutes ago has nothing to catch up on: what its records tell came to be known now, with a way and a moment.
+            Assert.True(CompendiumCatchUp.FirstReading(caughtUp: false, bookEmpty: true, playedSeconds: 3600f));
+            Assert.False(CompendiumCatchUp.FirstReading(caughtUp: false, bookEmpty: true, playedSeconds: 60f));
+            Assert.True(CompendiumCatchUp.FirstReading(caughtUp: false, bookEmpty: false, playedSeconds: 60f));
+            Assert.False(CompendiumCatchUp.FirstReading(caughtUp: true, bookEmpty: true, playedSeconds: 3600f));
+        }
+
+        [Fact]
         public void WhatTheCharacterUsesIsKnown()
         {
             // A portal, bed, ship or chest a friend built: using it (Player.Interact, or an item

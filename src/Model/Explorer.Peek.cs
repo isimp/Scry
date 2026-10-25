@@ -125,9 +125,26 @@ namespace Scry
         internal T AsPage<T>(Entry page, Func<T> read)
         {
             var shown = _selected;
+            var peeking = _peeking;
             _selected = page;
+            // Under the book's rules, not the peek's: the list and the search stay as the character knows them while peeking.
+            _peeking = false;
             try { return read(); }
-            finally { _selected = shown; }
+            finally
+            {
+                _selected = shown;
+                _peeking = peeking;
+            }
+        }
+
+        /// <summary>Whether the page shown names an entry never met as one of all it holds (<see cref="NamesAllHeld"/>), for every site that names things: text, cards and lists as chips.</summary>
+        public bool NamedAsHeld(Entry other) => CompendiumOn && _selected != null && other != null && NamesAllHeld(other);
+
+        /// <summary>Refreshes the list where the page left or the page come to names what a room or place shown whole holds, as the search keeps those names by the page shown.</summary>
+        private void RefreshIfHeld(Entry was, Entry now)
+        {
+            if (_view == null || _query.Text.Length == 0 || !(_view.NamesHeld(was) || _view.NamesHeld(now))) return;
+            Refresh();
         }
     }
 }

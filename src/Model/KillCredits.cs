@@ -15,14 +15,17 @@ namespace Scry
         /// <summary>How long a credit and the remains may lie apart, in seconds: the kill's message and the ragdoll travel by different ways.</summary>
         public const double Within = 5.0;
 
-        private readonly List<(string Creature, double At)> _credits = new List<(string, double)>();
+        private readonly List<(string Creature, double At, int Id)> _credits = new List<(string, double, int)>();
+        private int _ids;
         private readonly List<(string Creature, WorldEvent Told, double At)> _remains = new List<(string, WorldEvent, double)>();
 
         /// <summary>The game credited the character with a kill of a creature of one of these prefabs, at a time.</summary>
         public void Credited(IEnumerable<string> creatures, double now)
         {
             Prune(now);
-            foreach (var creature in creatures) if (!string.IsNullOrEmpty(creature)) _credits.Add((creature, now));
+            // One credit, one death: every prefab the name may mean goes with it, by its id.
+            var id = ++_ids;
+            foreach (var creature in creatures) if (!string.IsNullOrEmpty(creature)) _credits.Add((creature, now, id));
         }
 
         /// <summary>Remains of a creature seen: whether a credit for it within <see cref="Within"/> stands, which this takes.</summary>
@@ -31,9 +34,8 @@ namespace Scry
             Prune(now);
             var at = _credits.FindIndex(c => c.Creature == creature);
             if (at < 0) return false;
-            // A credit fits one death: every prefab it named goes with it.
-            var when = _credits[at].At;
-            _credits.RemoveAll(c => c.At == when);
+            var id = _credits[at].Id;
+            _credits.RemoveAll(c => c.Id == id);
             return true;
         }
 
@@ -50,14 +52,16 @@ namespace Scry
             Prune(now);
             var claimed = new List<WorldEvent>();
             var named = new HashSet<string>(creatures);
-            for (var i = _remains.Count - 1; i >= 0; i--)
+            // One credit, one death: the remains nearest in time to it.
+            var nearest = -1;
+            for (var i = 0; i < _remains.Count; i++)
             {
                 if (!named.Contains(_remains[i].Creature)) continue;
-                claimed.Add(_remains[i].Told);
-                _remains.RemoveAt(i);
-                // One credit, one death.
-                break;
+                if (nearest < 0 || System.Math.Abs(now - _remains[i].At) < System.Math.Abs(now - _remains[nearest].At)) nearest = i;
             }
+            if (nearest < 0) return claimed;
+            claimed.Add(_remains[nearest].Told);
+            _remains.RemoveAt(nearest);
             return claimed;
         }
 

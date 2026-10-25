@@ -8,7 +8,7 @@ namespace Scry
     /// each Scry says hello on joining, with the version of its messages (<see cref="ScryPeers.Messages"/>),
     /// and answers another's hello, so each knows who plays with Scry; the game that runs an event
     /// sends it to those who did it and to those near (<see cref="EventRecipients"/>), whose Scry
-    /// tells it to its character by the one rule (<see cref="CompendiumKeeper.Tell"/>). The
+    /// tells it to its character by the one rule (<see cref="CompendiumKeeper.Tell(WorldEvent)"/>). The
     /// messages are routed, so a server without Scry passes them on all the same
     /// (<c>ZRoutedRpc.RouteRPC</c>). An event comes only from the game that ran it: one sent by
     /// another is passed over. Nothing is sent of what the self-test feeds the hooks; the

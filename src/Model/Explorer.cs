@@ -237,7 +237,7 @@ namespace Scry
         public NewsLine NewsLineOf(Entry entry)
         {
             var news = NewsOf(entry);
-            return new NewsLine(entry?.ShownName ?? "", news?.How ?? NewsHow.Seen, news?.Proof, news?.Day ?? -1, WorldShown(news?.World));
+            return new NewsLine(entry?.ShownName ?? "", news?.How ?? NewsHow.Seen, news?.Proof, news?.Day ?? -1, LearnedWorldShown(entry));
         }
 
         /// <summary>The source of the world an entry shows from only, as the player chose (<see cref="CompendiumView.ByWorld"/>); none with the compendium off.</summary>
@@ -358,9 +358,6 @@ namespace Scry
         /// never a skill not learned, named nowhere.
         /// </summary>
         private bool NamesAllHeld(Entry other) => other.Kind != Kind.Skill && (_view.HoldsNamed(_selected) || _view.HeldByWalks(_selected, other));
-
-        /// <summary>Whether the page shown names an entry never met as one of all it holds (<see cref="NamesAllHeld"/>), for every site that names things: text, cards and lists as chips.</summary>
-        public bool NamedAsHeld(Entry other) => CompendiumOn && _selected != null && other != null && NamesAllHeld(other);
 
         /// <summary>
         /// The faint line at a section's end telling how many things its page left out, in the
@@ -661,12 +658,13 @@ namespace Scry
             // A peek at the page shown alone ends on going to another, but for one the character has
             // not seen, which only that page's links reach: that one is peeked at in turn.
             var endsPeek = PeekEndsGoingTo(entry);
-
+            var was = _selected;
             _selected = entry;
             _selectedIndex = entry == null ? -1 : _results.IndexOf(entry);
             _selectionVersion++;
             _modifiers.ResetFor(entry);
             if (endsPeek) EndPeek();
+            else RefreshIfHeld(was, entry);
 
             // The recent list is not reordered under the cursor; it catches up on the next refresh.
             if (entry == null) return;

@@ -110,6 +110,33 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ABookWhoseChestsWereCountedByTheGamesNumbersLetsTheirCountsGoOnce()
+        {
+            // The game numbered chests anew each load, so such a book counted a chest again each time: its ids are dropped on reading, and the counts with them.
+            var book = new CompendiumBook();
+            Assert.True(book.FirstOpen("world/2318823923:41"));
+            book.Held("TreasureChest_meadows", new[] { ("Coins", 5) });
+            var read = CompendiumBook.Load(book.Save());
+            Assert.Equal(0, read.Tallied(Tally.Held).Kills("TreasureChest_meadows"));
+            Assert.True(read.FirstOpen("world/2318823923:41"));
+            // A book with ids of the lasting kind keeps its counts.
+            var lasting = new CompendiumBook();
+            Assert.True(lasting.FirstOpen(CompendiumBook.ChestId("world", "TreasureChest_meadows", 10f, 20f, 30f)));
+            lasting.Held("TreasureChest_meadows", new[] { ("Coins", 5) });
+            Assert.Equal(1, CompendiumBook.Load(lasting.Save()).Tallied(Tally.Held).Kills("TreasureChest_meadows"));
+        }
+
+        [Fact]
+        public void AMomentOfNoWorldIsNoTodayWhileAWorldIsPlayed()
+        {
+            Assert.True(CompendiumView.OnToday(new Moment(5, "Meadows", world: "Midgard"), 5, "Midgard"));
+            Assert.False(CompendiumView.OnToday(new Moment(5, "Meadows", world: "Elderwood"), 5, "Midgard"));
+            Assert.False(CompendiumView.OnToday(new Moment(5, "Meadows"), 5, "Midgard"));
+            Assert.True(CompendiumView.OnToday(new Moment(5, "Meadows"), 5, null));
+            Assert.False(CompendiumView.OnToday(null, 5, "Midgard"));
+        }
+
+        [Fact]
         public void AThingSeenOffTheMapOrTheRecordsIsFirstSightedWhenReallySeen()
         {
             // Seen before with no sighting kept, the first real sighting is the first.

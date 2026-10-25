@@ -118,6 +118,9 @@ namespace Scry
         public static void SetPicked(Pickable pickable, bool wasPicked, bool picked)
         {
             if (!wasPicked || picked) return;
+            // The game tells every player a pickable is picked or not: the game running it tells the growing back, the rest hear it over the link.
+            var view = pickable != null ? pickable.GetComponent<ZNetView>().OrNull() : null;
+            if (view == null || !view.IsValid() || !view.IsOwner()) return;
             Guard.Run(Feature.CompendiumTogether, "noting one grown back", () => WorldEvents.Tell(Happened.GrewBack, pickable));
         }
     }

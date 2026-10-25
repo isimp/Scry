@@ -26,6 +26,21 @@ namespace Scry
             }
         }
 
+        /// <summary>The way a line of where an item comes from goes with its giver (<see cref="Tie"/>): dropped as it fell, else given; none for a way that is no pair of giver and item.</summary>
+        private static Tie? TieOfSource(SourceFacts source)
+        {
+            switch (source?.Way)
+            {
+                case SourceWay.Dropped: return Tie.Drops;
+                case SourceWay.Picked:
+                case SourceWay.GrowsFrom:
+                case SourceWay.Table:
+                case SourceWay.Made:
+                    return Tie.Gives;
+                default: return null;
+            }
+        }
+
         /// <summary>Whether the game shows a row's item now: by the item's own recipe where it names one, else the row's.</summary>
         private static bool GameShows(Explorer explorer, Facts.Row row, Facts.Ingredient item) => row.GameShown && explorer.RecipeListed(item.Recipe ?? row.Recipe);
 

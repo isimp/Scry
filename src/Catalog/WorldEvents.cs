@@ -7,7 +7,7 @@ namespace Scry
     /// <summary>
     /// The events this game runs, made as it runs them (<see cref="WorldEvent"/>): numbered in
     /// turn, with who did them as the game itself knows it, told to the character's game, which is
-    /// this one (<see cref="CompendiumKeeper.Tell"/>), and sent to the other players' games it
+    /// this one (<see cref="CompendiumKeeper.Tell(WorldEvent)"/>), and sent to the other players' games it
     /// concerns (<see cref="EventLink.Send"/>). Who did it goes by the player's
     /// game's session, as the game addresses a player's game: a hit's attacker among the world's
     /// players by their character, a creature's attackers by the names the game flags it with as
@@ -32,11 +32,11 @@ namespace Scry
 
         /// <summary>An event this game ran, told to the character.</summary>
         public static void Tell(Happened what, string thing, Vector3 at, IReadOnlyList<(string Item, int Amount)> came = null, int level = 1,
-            IReadOnlyList<long> doers = null, string with = null, string mark = null)
+            IReadOnlyList<long> doers = null, string with = null, string mark = null, Vector3? stood = null, bool? seen = null)
         {
             if (string.IsNullOrEmpty(thing)) return;
             var told = Make(what, thing, at, came, level, doers, with, mark);
-            CompendiumKeeper.Tell(told);
+            CompendiumKeeper.Tell(told, stood, seen);
             EventLink.Send(told);
         }
 

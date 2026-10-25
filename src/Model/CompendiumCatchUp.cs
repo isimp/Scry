@@ -57,6 +57,16 @@ namespace Scry
             }
         }
 
+        /// <summary>How long a character must have played, in seconds, before its records are a past to catch up on rather than a first minute.</summary>
+        public const float NewCharacterSeconds = 300f;
+
+        /// <summary>
+        /// Whether a reading of the records is the first, which catches up with no way or moment:
+        /// not once caught up, and not for a character made minutes ago with an empty book, whose
+        /// records tell what came to be known now.
+        /// </summary>
+        public static bool FirstReading(bool caughtUp, bool bookEmpty, float playedSeconds) => !caughtUp && !(bookEmpty && playedSeconds < NewCharacterSeconds);
+
         /// <summary>
         /// Raises in the book what the records tell, as news; how many entries it learned more of.
         /// On the first reading as a character loads (<paramref name="firstLoad"/>) the records do

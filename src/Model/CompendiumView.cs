@@ -206,8 +206,8 @@ namespace Scry
         public int Today => _book?.Now != null ? _book.Now().Day : -1;
 
         /// <summary>Whether a moment is today's: the day, in the world played, as a day of another world is no today (<see cref="Moment.World"/>).</summary>
-        private static bool OnToday(Moment? at, int today, string world) =>
-            at is Moment moment && moment.Day == today && (moment.World == null || world == null || moment.World == world);
+        internal static bool OnToday(Moment? at, int today, string world) =>
+            at is Moment moment && moment.Day == today && (world == null || moment.World == world);
 
         /// <summary>An entry's components as the compendium names them: one whose topic hinges on a thing not met is not named (<see cref="HingedParts"/>).</summary>
         public IEnumerable<string> ComponentsShown(Entry entry) =>
@@ -412,6 +412,9 @@ namespace Scry
         /// place one of whose dungeons there was walked through whole (<see cref="ServerWalks"/>).
         /// </summary>
         public bool HoldsNamed(Entry entry) => entry != null && _holdsNamed.Contains(entry);
+
+        /// <summary>Whether a page names what it holds beyond what the character met: shown whole with all it holds, or with the rooms walked on this server.</summary>
+        public bool NamesHeld(Entry entry) => entry != null && (_holdsNamed.Contains(entry) || _heldByWalks.ContainsKey(entry));
 
         /// <summary>Whether a place's page names an entry as held by one of its rooms walked on this server, in a dungeon a source shows with insides.</summary>
         public bool HeldByWalks(Entry place, Entry held) => place != null && held != null && _heldByWalks.TryGetValue(place, out var keys) && keys.Contains(held.Key);

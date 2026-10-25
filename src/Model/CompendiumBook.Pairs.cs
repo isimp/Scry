@@ -176,6 +176,21 @@ namespace Scry
             return ways == 0 ? AnyWay : ways;
         }
 
+        /// <summary>A pair read back from its own line: kept any way where none was named before.</summary>
+        private void ReadPair(string a, string b)
+        {
+            var pair = Pair(a, b);
+            if (!_pairs.ContainsKey(pair)) _pairs[pair] = AnyWay;
+        }
+
+        /// <summary>The ways of a pair read back from their line, which names them where the pair's own line does not.</summary>
+        private void ReadWays(string a, string b, string kept)
+        {
+            var pair = Pair(a, b);
+            _pairs.TryGetValue(pair, out var had);
+            _pairs[pair] = (had == AnyWay ? 0 : had) | WaysRead(kept);
+        }
+
         /// <summary>How many pairs the character saw go together.</summary>
         [ForTest]
         public int Pairs => _pairs.Count;

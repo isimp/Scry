@@ -44,6 +44,30 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TwoCreditsInOneInstantAreTwoKills()
+        {
+            // Two of a kind felled by one blow: the game credits each, in one frame; each remains takes one.
+            var credits = new KillCredits();
+            credits.Credited(new[] { "Greydwarf" }, 10.0);
+            credits.Credited(new[] { "Greydwarf" }, 10.0);
+            Assert.True(credits.TakeCredit("Greydwarf", 11.0));
+            Assert.True(credits.TakeCredit("Greydwarf", 11.0));
+            Assert.False(credits.TakeCredit("Greydwarf", 11.0));
+        }
+
+        [Fact]
+        public void ACreditClaimsTheRemainsNearestInTime()
+        {
+            var credits = new KillCredits();
+            var early = Remains(1);
+            var near = Remains(2);
+            credits.RemainsTold("Troll", early, 10.0);
+            credits.RemainsTold("Troll", near, 13.5);
+            Assert.Equal(new[] { near }, credits.ClaimRemains(new[] { "Troll" }, 14.0));
+            Assert.Equal(new[] { early }, credits.ClaimRemains(new[] { "Troll" }, 14.0));
+        }
+
+        [Fact]
         public void LeavingTheWorldForgetsBoth()
         {
             var credits = new KillCredits();

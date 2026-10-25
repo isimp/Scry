@@ -12,6 +12,9 @@ namespace Scry
         /// <summary>A world's name as a page or the Learned list names it: only where it is not the world played now.</summary>
         public string WorldShown(string world) => world != null && world != WorldNow ? world : null;
 
+        /// <summary>A moment's world as a page names it after the day (<see cref="JournalWords.WorldGroup"/>): another world by name, a moment of no world as of a world not kept.</summary>
+        public string MomentWorldShown(string world) => JournalWords.WorldGroup(world, WorldNow);
+
         /// <summary>The world an entry's Learned group is headed by (<see cref="JournalWords.WorldGroup"/>): a moment kept before worlds were stands apart.</summary>
         public string LearnedWorldShown(Entry entry) => JournalWords.WorldGroup(LearnedWorld(entry), WorldNow);
     }

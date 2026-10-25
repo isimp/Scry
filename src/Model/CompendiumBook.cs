@@ -48,6 +48,12 @@ namespace Scry
         OnYou,
         Given,
         Gives,
+
+        /// <summary>Seen tamed, by whichever player's game tamed it.</summary>
+        SeenTamed,
+
+        /// <summary>Petted, tame already when first met.</summary>
+        Petted,
         Chosen,
 
         /// <summary>Seen born or hatched, tame from the start.</summary>
@@ -164,14 +170,18 @@ namespace Scry
         private readonly Dictionary<string, (Moment At, int Stars)> _seen = new Dictionary<string, (Moment, int)>(StringComparer.Ordinal);
         private readonly Dictionary<string, (int Count, int LastDay, string World)> _deaths = new Dictionary<string, (int, int, string)>(StringComparer.Ordinal);
 
-        /// <summary>The pairs' lines of a save: the two seen together, and the ways where any was named.</summary>
+        /// <summary>
+        /// The pairs' lines of a save: each pair on a line of its own, as every Scry reads it, and
+        /// after them the ways of those seen some way on lines of their own, which a Scry before
+        /// ways passes over, keeping the pair.
+        /// </summary>
         private static void SawLines(System.Text.StringBuilder text, IEnumerable<(string A, string B, string Ways)> pairs)
         {
-            foreach (var (a, b, ways) in pairs.OrderBy(p => p.A, StringComparer.Ordinal).ThenBy(p => p.B, StringComparer.Ordinal))
+            var ordered = pairs.OrderBy(p => p.A, StringComparer.Ordinal).ThenBy(p => p.B, StringComparer.Ordinal).ToList();
+            foreach (var (a, b, _) in ordered) text.Append("saw\t").Append(Stored.Escaped(a)).Append('\t').Append(Stored.Escaped(b)).Append('\n');
+            foreach (var (a, b, ways) in ordered)
             {
-                text.Append("saw\t").Append(Stored.Escaped(a)).Append('\t').Append(Stored.Escaped(b));
-                if (ways != null) text.Append('\t').Append(ways);
-                text.Append('\n');
+                if (ways != null) text.Append("ways\t").Append(Stored.Escaped(a)).Append('\t').Append(Stored.Escaped(b)).Append('\t').Append(ways).Append('\n');
             }
         }
 
@@ -405,7 +415,7 @@ namespace Scry
         {
             if (string.IsNullOrEmpty(chest)) return;
             _held.Record(chest, loot);
-            Changed = true;
+            Counted();
         }
 
         /// <summary>
@@ -418,16 +428,29 @@ namespace Scry
             var kinds = _held.Count;
             if (kinds == 0) return 0;
             _held.Clear();
-            Changed = true;
+            Counted();
             return kinds;
         }
+
+        /// <summary>A count changed: what the strict rules show of a page by its counts changes with it, as a pair would (<see cref="PairsVersion"/>).</summary>
+        private void Counted()
+        {
+            PairsVersion++;
+            Changed = true;
+        }
+
+        /// <summary>The game's records were read again: what shows by them, as a recipe the game lists, may have changed, so what tells the compendium tells it again.</summary>
+        public void RecordsRead() => Version++;
+
+        /// <summary>Whether the book holds nothing yet: a character new to Scry, or new altogether.</summary>
+        public bool IsEmpty => _levels.Count == 0;
 
         /// <summary>A weather seen come in a biome, counted as one of the weathers seen there.</summary>
         public void Weathered(string biome, string weather)
         {
             if (string.IsNullOrEmpty(biome) || string.IsNullOrEmpty(weather)) return;
             _weathers.Record(biome, new[] { (weather, 1) });
-            Changed = true;
+            Counted();
         }
 
         private static readonly SeenDrops NoTally = new SeenDrops();
@@ -439,7 +462,7 @@ namespace Scry
             var fallen = loot as IList<(string, int)> ?? loot.ToList();
             _fell.Record(creature, fallen);
             _starFell.Record(StarKey(creature, Math.Max(0, level - 1)), fallen);
-            Changed = true;
+            Counted();
         }
 
         /// <summary>What creatures were seen to drop by the stars each had as it fell, keyed by the creature and its stars (<see cref="StarKey"/>), for the strict rules' stars table.</summary>
@@ -459,7 +482,7 @@ namespace Scry
             var given = (loot ?? Enumerable.Empty<(string, int)>()).Where(l => !string.IsNullOrEmpty(l.Item) && l.Amount > 0).ToList();
             if (string.IsNullOrEmpty(resource) || given.Count == 0) return;
             _gave.Record(resource, given);
-            Changed = true;
+            Counted();
         }
 
         /// <summary>The keys raised, oldest first: the one at i raised to <see cref="Version"/> <c>_raisedFrom + i + 1</c>. Not kept.</summary>
@@ -700,6 +723,8 @@ namespace Scry
             var mapApart = _mapApart;
             var biomesApart = _biomesApart;
             var keptLines = _keptLines.ToArray();
+            // A book of a later format keeps saying so, so its lines this Scry cannot read stay kept past this save.
+            var format = Math.Max(Format, _formatSeen);
             var marks = _marks.ToArray();
             var rule = _rule;
             var floor = _floor;
@@ -726,7 +751,7 @@ namespace Scry
             {
                 var text = new StringBuilder();
                 // Says the book is kept since proofs had lines of their own: one without this line is older (CompendiumBook.Load).
-                text.Append("format\t").Append(Stored.Count(Format)).Append('\n');
+                text.Append("format\t").Append(Stored.Count(format)).Append('\n');
                 foreach (var pair in levels.OrderBy(p => p.Key, StringComparer.Ordinal))
                 {
                     text.Append("know\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(Stored.Count((int)pair.Value)).Append('\n');
@@ -878,6 +903,12 @@ namespace Scry
                 if (parts.Length < 2 || !Stored.TryUnescaped(parts[1], out var name) || name.Length == 0) continue;
                 if (LineReaders.TryGetValue(parts[0], out var read)) read(book, parts, name);
                 else if (book._formatSeen > Format && !DropLines.Contains(parts[0])) book._keptLines.Add(line.TrimEnd('\r'));
+            }
+            // Chests the game numbered anew each load were counted again each time: their ids go, and their counts with them, once.
+            if (book._chestsRenumbered)
+            {
+                book._held.Clear();
+                book.Changed = true;
             }
             book._latelyRead = null;
             // A book kept before attacks taken had a key holds them as pairs, which nothing can tell from

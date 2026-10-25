@@ -195,6 +195,8 @@ namespace Scry
                 case CameBy.Fought: return "fighting it";
                 case CameBy.Killed: return "killing it";
                 case CameBy.Tamed: return "taming it";
+                case CameBy.SeenTamed: return "seeing it tamed";
+                case CameBy.Petted: return "petting it";
                 case CameBy.Held: return "holding it";
                 case CameBy.Made: return "making it";
                 case CameBy.Eaten: return "eating it";

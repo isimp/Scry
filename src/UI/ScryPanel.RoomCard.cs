@@ -447,6 +447,10 @@ namespace Scry
         /// <summary>Lets go of the card, as the stage goes or another world is shown.</summary>
         private static void ForgetRoomCard()
         {
+            _peekFor = null;
+            _peekText = null;
+            _peekStamp = -1;
+            _peekRead = -1;
             _roomCard = null;
             _cardScrollFor = null;
             _cardScroll = Vector2.zero;

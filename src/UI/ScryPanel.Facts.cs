@@ -99,13 +99,13 @@ namespace Scry
                     var record = book.Came(entry.Key);
                     var at = record?.At ?? Moment.None;
                     came = CompendiumWords.CameLine(record?.Way, at.Day, BiomeShown(explorer, at.Biome), explorer.Compendium.Because(entry)?.ShownName, explorer.BookFloorOf(entry),
-                        explorer.BookLevelOf(entry) == KnownLevel.Known, at.Time, at.Weather, InHandShown(explorer, at.InHand), explorer.BookByWorld(entry), explorer.WorldShown(at.World));
+                        explorer.BookLevelOf(entry) == KnownLevel.Known, at.Time, at.Weather, InHandShown(explorer, at.InHand), explorer.BookByWorld(entry), explorer.MomentWorldShown(at.World));
                     if (book.FirstSeen(entry.Key) is var first && first != null)
                     {
                         var sight = first.Value.At;
-                        seen = JournalWords.FirstSeen(sight.Day, sight.Time, sight.Weather, BiomeShown(explorer, sight.Biome), first.Value.Stars, explorer.WorldShown(sight.World));
+                        seen = JournalWords.FirstSeen(sight.Day, sight.Time, sight.Weather, BiomeShown(explorer, sight.Biome), first.Value.Stars, explorer.MomentWorldShown(sight.World));
                     }
-                    if (book.DeathsBy(entry.Key) is var deaths && deaths != null) killedYou = JournalWords.KilledYou(deaths.Value.Count, deaths.Value.LastDay, explorer.WorldShown(book.DeathsWorld(entry.Key)));
+                    if (book.DeathsBy(entry.Key) is var deaths && deaths != null) killedYou = JournalWords.KilledYou(deaths.Value.Count, deaths.Value.LastDay, explorer.MomentWorldShown(book.DeathsWorld(entry.Key)));
                 }
                 _you = CompendiumWords.You(CharacterRecords.Counts(entry), came, seen, killedYou);
                 // A skill's page opens with the character's level and the way to the next.
@@ -325,7 +325,7 @@ namespace Scry
             // One counted over every character's play stands faint under the strict rules, as a creature's rows do, uncounted for this character.
             var where = ShownStrictly(explorer, facts.Where, s => s.AllPlay
                 ? !explorer.LeavingOut && explorer.LeavesOut(s.Prefab)
-                : explorer.LeavesOut(s.Prefab) || explorer.LeavesOutAll(s.MetIn));
+                : explorer.LeavesOut(s.Prefab, false, TieOfSource(s.Record)) || explorer.LeavesOutAll(s.MetIn));
             if (where.Count == 0) return y;
             var (lines, rows) = SplitWhere(explorer, where);
             if (titled)
@@ -743,7 +743,8 @@ namespace Scry
             _foundInIn = explorer;
             _foundInStrict = strict;
             _foundInLeft = 0;
-            FoundInItems.Clear();
+            // A new list each time, as lists are told apart by identity where they are kept.
+            FoundInItems = new List<(string, string, string, Action)>();
             foreach (var place in entry.FoundIn)
             {
                 var name = Places.NameOf(place);
@@ -767,7 +768,7 @@ namespace Scry
             return FoundInItems;
         }
 
-        private static readonly List<(string Key, string Text, string Tip, Action Click)> FoundInItems = new List<(string, string, string, Action)>();
+        private static List<(string Key, string Text, string Tip, Action Click)> FoundInItems = new List<(string, string, string, Action)>();
         private static Entry _foundInFor;
         private static string[] _foundInOf;
         private static bool _foundInStrict;

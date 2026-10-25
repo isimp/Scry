@@ -124,6 +124,10 @@ namespace Scry
                 _catchUp = CatchUpFor(catalog);
                 _catchUpOf = catalog;
                 _recordsSize = -1;
+                // What was put into things used before the catalog could say what each takes.
+                var aside = PutAside.ToArray();
+                PutAside.Clear();
+                foreach (var (thing, items) in aside) PutInto(thing, items);
             }
             // Each part timed apart, so the monitor and the self-test tell which one costs what.
             if (Time.unscaledTime - _lookedAt >= 1f)
@@ -139,7 +143,9 @@ namespace Scry
                     _recordsSize = size;
                     _recordsPower = power;
                     CharacterRecords.Read(player, profile, Records);
-                    _catchUp.Fill(Records, _book, firstLoad: !_caughtUp);
+                    _catchUp.Fill(Records, _book, firstLoad: CompendiumCatchUp.FirstReading(_caughtUp, _book.IsEmpty, CharacterRecords.Played(profile)));
+                    // What the records show by, as a recipe the game lists, may have changed: told again.
+                    _book.RecordsRead();
                     if (!ReferenceEquals(_bossesOf, catalog))
                     {
                         _bosses = CompendiumTiers.Bosses(catalog);
@@ -278,6 +284,14 @@ namespace Scry
         /// <summary>Remains told as seen with no credit yet, kept for a credit that may follow within seconds.</summary>
         public static void RemainsTold(string creature, WorldEvent told) => Credits.RemainsTold(creature, told, Time.realtimeSinceStartup);
 
+        /// <summary>A death this game ran and tells itself, the character among those who did it: the game's credit for it is taken here, so no other remains may claim it.</summary>
+        public static void KillToldByThisGame(string creature, IReadOnlyList<long> doers)
+        {
+            if (doers == null || ZNet.instance == null) return;
+            var me = ZNet.GetUID();
+            foreach (var doer in doers) if (doer == me) { Credits.TakeCredit(creature, Time.realtimeSinceStartup); return; }
+        }
+
         /// <summary>The raid running now, by its key, for the sight to pair the creatures seen in it; none while none runs.</summary>
         public static string RaidNow { get; private set; }
 
@@ -396,7 +410,8 @@ namespace Scry
         {
             if (Into == null || _catchUp == null || creature == null) return;
             var key = Utils.GetPrefabName(creature.gameObject);
-            _catchUp.Met(key, KnownLevel.Known, Into, CameBy.Tamed);
+            // Seen tamed, by whichever game tamed it; or petted, tame already when met: neither is the character's own taming.
+            _catchUp.Met(key, KnownLevel.Known, Into, tamedNow ? CameBy.SeenTamed : CameBy.Petted);
             MetIn(key, creature.transform.position);
             if (!tamedNow) return;
             Into.FoundOut(key, EntryKeys.Did(Deed.Tamed));
@@ -413,12 +428,21 @@ namespace Scry
         /// An event this game ran (<see cref="WorldEvents"/>), told to the character: recorded once,
         /// where the character did it or saw it, by the one rule (<see cref="EventRule"/>).
         /// </summary>
-        public static void Tell(WorldEvent told)
+        public static void Tell(WorldEvent told) => Tell(told, null, null);
+
+        /// <summary>
+        /// As <see cref="Tell(WorldEvent)"/>, the character standing where it stood as the event
+        /// happened (<paramref name="stood"/>) and the event in sight or not then (<paramref name="seen"/>),
+        /// where the telling comes later, as a death's does once its loot is out: judged as at
+        /// the death, as a death seen by its remains is.
+        /// </summary>
+        public static void Tell(WorldEvent told, Vector3? stood, bool? seen)
         {
             var player = Player.m_localPlayer;
             if (Into == null || told == null || player == null) return;
-            var at = player.transform.position;
-            EventRule.Tell(told, ZNet.GetUID(), at.x, at.y, at.z, Told, Into, _into == null ? Play : null, CompendiumSight.SeesDeed, Time.realtimeSinceStartup);
+            var at = stood ?? player.transform.position;
+            System.Func<float, float, float, bool> inSight = seen is bool was ? (x, y, z) => was : (System.Func<float, float, float, bool>)CompendiumSight.SeesDeed;
+            EventRule.Tell(told, ZNet.GetUID(), at.x, at.y, at.z, Told, Into, _into == null ? Play : null, inSight, Time.realtimeSinceStartup);
         }
 
         /// <summary>A producer the character collected from shows its pace (<see cref="Deed.Collected"/>).</summary>
@@ -529,8 +553,18 @@ namespace Scry
         public static void PutInto(string thing, IEnumerable<string> items)
         {
             if (Into == null || string.IsNullOrEmpty(thing)) return;
+            // Before the catalog is read nothing can say what a thing takes: kept for then.
+            if (WorldCatalog.Current == null)
+            {
+                PutAside.Add((thing, items.ToList()));
+                if (PutAside.Count > 64) PutAside.RemoveAt(0);
+                return;
+            }
             foreach (var item in items) if (Takes(thing, item)) Into.Witness(thing, item);
         }
+
+        /// <summary>What the character put into things used before the catalog was read, to pair once it is (<see cref="PutInto"/>).</summary>
+        private static readonly List<(string Thing, List<string> Items)> PutAside = new List<(string, List<string>)>();
 
         /// <summary>
         /// Whether a thing takes an item, as the catalog tells it: turns it into something or burns
@@ -767,17 +801,26 @@ namespace Scry
                 var id = creature.GetZDOID();
                 if (id != ZDOID.None) TameableNear[id] = creature;
             }
-            foreach (var id in WildNear.Look(TameableNear.Select(c => (c.Key, tame(c.Value))), Time.unscaledTime)) Tamed(TameableNear[id], tamedNow: true);
+            // The world's own clock, which stops as the world does: a pause is no half minute out of sight.
+            var worldNow = ZNet.instance != null ? ZNet.instance.GetTimeSeconds() : 0.0;
+            foreach (var id in WildNear.Look(TameableNear.Select(c => (c.Key, tame(c.Value))), worldNow)) Tamed(TameableNear[id], tamedNow: true);
         }
 
         /// <summary>On leaving a world: writes the book, and lets go of the catalog it was caught up with.</summary>
         private static void Forget()
         {
-            Save(now: true);
+            // Whatever the saving does, nothing of this world stays for the next.
+            try { Save(now: true); }
+            finally { LetGo(); }
+        }
+
+        private static void LetGo()
+        {
             _weatherSeen = default;
             WildNear.Forget();
             Credits.Forget();
             Told.Forget();
+            PutAside.Clear();
             TameableNear.Clear();
             _catchUp = null;
             _catchUpOf = null;

@@ -439,6 +439,7 @@ namespace Scry
         private static NameMask _mask;
         private static Explorer _maskIn;
         private static int _maskStamp = -1;
+        private static int _maskSelection = -1;
         private static readonly Dictionary<string, string> MaskedTexts = new Dictionary<string, string>(StringComparer.Ordinal);
 
         /// <summary>
@@ -450,10 +451,12 @@ namespace Scry
         {
             // The page's text masks on a known page alone; a list's row masks whatever page is shown (always).
             if (string.IsNullOrEmpty(text) || !(always || explorer.NamesOnlyMet)) return text;
-            if (!ReferenceEquals(_maskIn, explorer) || _maskStamp != explorer.KnowStamp)
+            // The page's too: what a room or place shown whole names as held is met for its page alone (Explorer.NamedAsHeld).
+            if (!ReferenceEquals(_maskIn, explorer) || _maskStamp != explorer.KnowStamp || _maskSelection != explorer.SelectionVersion)
             {
                 _maskIn = explorer;
                 _maskStamp = explorer.KnowStamp;
+                _maskSelection = explorer.SelectionVersion;
                 MaskedTexts.Clear();
                 var unseen = new List<string>();
                 var seen = new List<string>();
