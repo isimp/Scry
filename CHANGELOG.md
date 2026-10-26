@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.3.2
+
 ## 0.3.1
 
 The compendium follows what the game itself shows. A recipe's materials, a piece's cost or a store's wares come with the thing once the game lists them for your character, under *Loose* and *Strict* alike.

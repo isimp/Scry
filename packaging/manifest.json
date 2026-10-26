@@ -1,6 +1,6 @@
 {
   "name": "Scry",
-  "version_number": "0.3.1",
+  "version_number": "0.3.2",
   "website_url": "https://github.com/isimp/Scry",
   "description": "A compendium of Valheim that grows with your character: all you meet gets a page told by the game's own data, the rest stays unknown until found. Look anything up on a stage with its rules, drops and mods. Nothing is spawned.",
   "dependencies": []
