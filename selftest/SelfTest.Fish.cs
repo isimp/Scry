@@ -24,7 +24,9 @@ namespace Scry
             string Pair(string label) => facts.Pairs.Where(x => x.Key == label).Select(x => x.Value).FirstOrDefault();
             p.Check(Pair(FishWords.Swims) == "1.5–3 m down", "a Perch swims 1.5 to 3 m down", Pair(FishWords.Swims));
             p.Check(Pair(FishWords.Water)?.StartsWith("where the bottom lies 1.5 to 3 m below the surface", System.StringComparison.Ordinal) == true, "where the bottom lies 1.5 to 3 m down", Pair(FishWords.Water));
-            p.Check(Pair(FishWords.Comes) != null && Pair(FishWords.FindsFloat) != null, "it tells when it comes and how it finds a float", Pair(FishWords.Comes) + " / " + Pair(FishWords.FindsFloat));
+            p.Check(Pair(FishWords.Comes) != null && Pair(FishWords.FindsFloat) != null && Pair(FishWords.Line) != null, "it tells when it comes, how it finds a float and when the line breaks", Pair(FishWords.Comes) + " / " + Pair(FishWords.FindsFloat) + " / " + Pair(FishWords.Line));
+            var rod = Pick(Kind.Item, "FishingRod");
+            if (rod != null) p.Check(Facts.For(rod).Pairs.Any(x => x.Key == "With a fish on"), "the rod tells what a fish on its float drains, read from the float its cast makes");
             var fight = facts.Rows.FirstOrDefault(r => r.Title == FishWords.FightTitle);
             p.Check(fight != null && fight.Columns.Length == 6, "its fight stands by stars, no star to four", fight == null ? "none" : string.Join(", ", fight.Columns));
             var raw = fight?.Lines.FirstOrDefault(l => l.Cells[0] == FishWords.RawFish).Cells;
@@ -90,8 +92,9 @@ namespace Scry
             var group = X.ListGroupOf(perch);
             p.Check(group.Name == "Meadows" && group.More == 2, "the Perch stands under Meadows, two biomes more", group.Name + " +" + Numbers.Count(group.More));
             p.Note("items by biome: " + string.Join(", ", X.Results.Select(e => X.ListGroupOf(e).Name).Distinct().Select(g => g + " " + Numbers.Count(X.Results.Count(e => X.ListGroupOf(e).Name == g)))));
-            var biomeless = X.Results.Count(e => X.ListGroupOf(e).Name == ListGrouping.NoBiome);
-            p.Check(biomeless * 2 < X.Results.Count, "most items stand under a biome, by their own or what gives them", $"{Numbers.Count(biomeless)} of {Numbers.Count(X.Results.Count)} under {ListGrouping.NoBiome}");
+            // What only a recipe makes has no biome; what a creature drops stands under the creature's.
+            var trophy = Pick(Kind.Item, "TrophyBoar");
+            if (trophy != null) p.Check(X.ListGroupOf(trophy).Name == "Meadows", "a boar's trophy stands under the Meadows, where the boar lives", X.ListGroupOf(trophy).Name);
             X.Select(perch);
             yield return Picture(p, "the Items tab grouped by biome");
 

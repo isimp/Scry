@@ -55,7 +55,8 @@ namespace Scry
                 yield return Until(() => CopyOf(queen) != null, 10);
                 yield return Until(() => Previews.StageClipsKnown(), 40);
                 var slap = Previews.AttackTriggerOf("SeekerQueen_Slap", false, out var has);
-                p.Check(slap == "attack_slash0" && !has, "the Seeker Queen's slap starts by a trigger its animator lacks", $"{slap} in the animator: {has}");
+                // The game picks one of its slap's numbered triggers at random (Attack.Start): the one shown is one the animator has.
+                p.Check(slap != null && slap.StartsWith("attack_slash", System.StringComparison.Ordinal) && has, "the Seeker Queen's slap plays by a trigger of the four its animator has", $"{slap} in the animator: {has}");
             }
 
             // Kin share one animator: a Charred warrior never draws a bow.

@@ -287,7 +287,8 @@ namespace Scry
             var filmed = Stage.Filmed;
             yield return null;
             yield return null;
-            p.Check(Stage.Filmed > filmed && Stage.Texture != null, "played out, its stage still stands", $"filmed {Numbers.Count(Stage.Filmed - filmed)} times in two frames");
+            // The stage is filmed only while something on it changes: played out, it keeps its picture of the effect.
+            p.Check(Stage.Texture != null && Stage.Showing == effect, "played out, its stage still stands", $"filmed {Numbers.Count(Stage.Filmed - filmed)} times in two frames, showing {(Stage.Showing != null ? Stage.Showing.Name : "nothing")}");
             var shown = Stage.CopiesMade;
             Previews.Replay();
             yield return Until(() => Stage.CopiesMade > shown, 5);

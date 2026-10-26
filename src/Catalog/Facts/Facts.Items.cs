@@ -365,7 +365,7 @@ namespace Scry
                     Add("Harvests within", SkillWords.Span(Numbers.Metres(least, 1), Numbers.Metres(most, 1)));
                     YoursAt("Harvests within", Skills.SkillType.Farming, level => Numbers.Metres(SkillMath.Between(least, most, level), 1));
                 }
-                var fishing = attack.m_attackProjectile != null ? attack.m_attackProjectile.GetComponent<FishingFloat>() : null;
+                var fishing = SkillReading.FloatOf(attack);
                 if (fishing != null && told.Add("With a fish on"))
                 {
                     Add("With a fish on", SkillWords.Span(SkillWords.PerSecond(fishing.m_hookedStaminaPerSec), SkillWords.PerSecond(fishing.m_hookedStaminaPerSecMaxSkill)));

@@ -208,10 +208,25 @@ namespace Scry
             if (spawn.m_copySkill == skill && spawn.m_copySkillToRandomFactor > 0f) inputs.SummonPerLevel = spawn.m_copySkillToRandomFactor;
         }
 
+        /// <summary>
+        /// The fishing float an attack casts: what it fires, or what that makes where it lands, as a
+        /// rod fires a projectile that makes the float (<c>Projectile.m_spawnOnHit</c>); none for
+        /// an attack that casts none.
+        /// </summary>
+        public static FishingFloat FloatOf(Attack attack)
+        {
+            var fired = attack?.m_attackProjectile;
+            if (fired == null) return null;
+            var cast = fired.GetComponent<FishingFloat>();
+            if (cast != null) return cast;
+            var made = fired.GetComponent<Projectile>().OrNull()?.m_spawnOnHit;
+            return made != null ? made.GetComponent<FishingFloat>() : null;
+        }
+
         /// <summary>A fishing rod's float, its drains and reeling at no skill and at the top (<c>FishingFloat.FixedUpdate</c>), its reach for a fish and when its line breaks.</summary>
         private static void Fishing(Attack attack)
         {
-            var fishing = attack.m_attackProjectile != null ? attack.m_attackProjectile.GetComponent<FishingFloat>() : null;
+            var fishing = FloatOf(attack);
             if (fishing == null) return;
             var inputs = For(Skills.SkillType.Fishing).Inputs;
             inputs.HookedAtNone = fishing.m_hookedStaminaPerSec;

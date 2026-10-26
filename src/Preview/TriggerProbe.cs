@@ -281,24 +281,31 @@ namespace Scry
         [ForTest]
         public static bool Busy => Jobs.Count > 0;
 
-        /// <summary>Goes on with the probes under way, a run at a time, for as long as this frame allows.</summary>
+        /// <summary>
+        /// Goes on with the probes under way, a run of each in turn, for as long as this frame
+        /// allows: those a page asks now first, a sweep of stances after, so a long sweep never
+        /// keeps a weapon's attack waiting.
+        /// </summary>
         public static void Update()
         {
             if (Jobs.Count == 0) return;
             var frame = System.Diagnostics.Stopwatch.StartNew();
             var done = 0;
-            foreach (var job in Jobs.Values.ToList())
+            var going = Jobs.Values.OrderBy(j => j.Sweep ? 1 : 0).ToList();
+            foreach (var job in going) job.Frames++;
+            while (going.Count > 0)
             {
-                job.Frames++;
-                while (Share.MayBegin(frame.Elapsed.TotalMilliseconds, done))
+                for (var i = 0; i < going.Count; i++)
                 {
+                    if (!Share.MayBegin(frame.Elapsed.TotalMilliseconds, done)) return;
                     var piece = frame.Elapsed.TotalMilliseconds;
-                    var more = Advance(job);
+                    var more = Advance(going[i]);
                     Share.Took(frame.Elapsed.TotalMilliseconds - piece);
                     done++;
-                    if (!more) break;
+                    if (more) continue;
+                    going.RemoveAt(i);
+                    i--;
                 }
-                if (!Share.MayBegin(frame.Elapsed.TotalMilliseconds, done)) return;
             }
         }
 
@@ -723,26 +730,40 @@ namespace Scry
             var done = 0;
             foreach (var speed in Speeds)
             {
-                foreach (var (x, y) in new[] { (0f, speed), (speed, 0f), (speed, speed), (speed, -speed) })
+                foreach (var (x, y) in Directions(speed))
                 {
                     if (sideways) animator.SetFloat("sideway_speed", x);
                     if (forward) animator.SetFloat("forward_speed", y);
-                    animator.Update(0f);
-                    Weighed(animator, clips);
+                    // Moving off takes a transition, which a step of no time never begins.
+                    for (var step = 0; step < MoveSteps; step++)
+                    {
+                        animator.Update(Step);
+                        Weighed(animator, clips);
+                    }
                 }
-                if (++done % 4 != 0) continue;
+                if (++done % 2 != 0) continue;
                 if (!Paused(animator)) yield break;
                 yield return true;
                 if (!Resumed(animator)) yield break;
             }
         }
 
-        /// <summary>Every clip weighed in on any layer of the state it is in now, by name.</summary>
+        /// <summary>How many steps each speed and direction of a sweep is run for: enough for a transition to begin, its next state weighed in.</summary>
+        private const int MoveSteps = 2;
+
+        /// <summary>The ways a sweep moves at a speed: forward, sideways and both diagonals.</summary>
+        private static (float X, float Y)[] Directions(float speed) => new[] { (0f, speed), (speed, 0f), (speed, speed), (speed, -speed) };
+
+        /// <summary>Every clip weighed in on any layer of the state it is in now, and of the one it is moving to, by name.</summary>
         private static void Weighed(Animator animator, HashSet<string> clips)
         {
             for (var layer = 0; layer < animator.layerCount; layer++)
             {
                 animator.GetCurrentAnimatorClipInfo(layer, Infos);
+                foreach (var info in Infos) if (info.clip != null && info.weight > 0.001f) clips.Add(info.clip.name);
+                Infos.Clear();
+                if (!animator.IsInTransition(layer)) continue;
+                animator.GetNextAnimatorClipInfo(layer, Infos);
                 foreach (var info in Infos) if (info.clip != null && info.weight > 0.001f) clips.Add(info.clip.name);
                 Infos.Clear();
             }

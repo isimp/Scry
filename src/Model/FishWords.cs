@@ -22,14 +22,14 @@ namespace Scry
         public const string OnLand = "On land";
 
         /// <summary>The title of the fight's table by stars.</summary>
-        public const string FightTitle = "The fight, by stars";
+        public const string FightTitle = "By stars";
 
         public const string ComesWith = "Comes with it";
         public const string PullsFor = "Pulls for up to";
         public const string Drains = "Reeling drains";
         public const string Size = "Size";
         public const string WeightRow = "Weight";
-        public const string RawFish = "Raw fish at the table";
+        public const string RawFish = "Cuts into";
 
 
         /// <summary>The title of the baits a fish bites on, each with its chance once it reaches the hook (<c>Fish.TestBate</c>).</summary>

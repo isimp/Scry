@@ -80,7 +80,7 @@ namespace Scry
                 if (shared == null) continue;
                 foreach (var attack in new[] { shared.m_attack, shared.m_secondaryAttack })
                 {
-                    var cast = attack?.m_attackProjectile != null ? attack.m_attackProjectile.GetComponent<FishingFloat>() : null;
+                    var cast = SkillReading.FloatOf(attack);
                     if (cast != null) return (cast.m_range, cast.m_breakDistance, cast.m_maxDistance);
                 }
             }

@@ -9,7 +9,7 @@ namespace Scry
         /// <summary>
         /// A creature's stars follow what in the world can give it a level: a Lox, which the world
         /// spawns at level one alone, reads "never" with no stars table and the stage offers it none;
-        /// a Boar keeps two; a summoned skeleton has none; and Hildir's cave cultists get two from the
+        /// a Boar keeps two; a summoned skeleton has none; and Hildir's cave cultists get none from the
         /// cave's own levels once the places are read. The counts of each are noted.
         /// </summary>
         private static IEnumerator StarsFollowSources(Probe p)
@@ -33,7 +33,7 @@ namespace Scry
             yield return Until(() => !Locations.Busy, 240);
             if (Locations.Busy) p.Note("the places were still being read after four minutes");
             if (cultist != null && Locations.Now == Locations.State.Read && !Locations.Busy)
-                p.Check(CreatureStars.Of(cultist.Name).Stars == 2, "Hildir's cave cultists come with two stars, by the levels the cave sets", $"{CreatureStars.Of(cultist.Name)}");
+                p.Check(CreatureStars.Of(cultist.Name).Stars == 0, "Hildir's cave cultists come with none, their spawn group left out of the levels the cave sets", $"{CreatureStars.Of(cultist.Name)}");
             else p.Note("the places are not read, so the levels they set wait");
 
             Select(lox);
