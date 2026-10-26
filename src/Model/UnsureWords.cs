@@ -20,6 +20,7 @@ namespace Scry
         public const string SeenWorn = "What changed on you when you equipped it in your games, the latest seen; another world's settings or what else you wore may make it differ";
         public const string NothingFound = "Scry found nothing that gives it; a location, an event or a mod's own code still may";
         public const string NowhereFound = "Scry found nothing that places it; a location, an event, another creature or a mod's own code still may";
+        public const string ModStars = "Nothing Scry reads in the world gives this mod's creature stars; its mod may give them in its own way";
         public const string ModSkill = "The mod adding this skill names it nowhere Scry can read";
         public const string NoAttackItem = "It hunts, yet carries no attack item Scry can read; code of the game or a mod may still give it one";
         public const string MatchedByClues = "Scry matched these to this mod by the scripts they carry or the assets they use; the mod does not say so itself";

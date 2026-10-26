@@ -404,9 +404,11 @@ namespace Scry
             // play, and an item's what equipping it was seen to change and the mods' settings for
             // it, which change as they are set.
             // What is told at the character's skill levels changes as a level does.
-            if (Cache.TryGet(entry, out var known) && (known._toldWith == Freshness || (!known._skilled && !known._keyed && entry.Kind != Kind.Creature && entry.Kind != Kind.Item && entry.Kind != Kind.Mod))) return known;
+            // A creature's stars change as places are read (CreatureStars).
+            if (Cache.TryGet(entry, out var known) && (known._toldWith == Freshness || (!known._skilled && !known._keyed && entry.Kind != Kind.Creature && entry.Kind != Kind.Item && entry.Kind != Kind.Mod))
+                && (entry.Kind != Kind.Creature || known._starsOf == CreatureStars.Stamp)) return known;
 
-            var facts = new Facts { _toldWith = Freshness };
+            var facts = new Facts { _toldWith = Freshness, _starsOf = entry.Kind == Kind.Creature ? CreatureStars.Stamp : 0 };
             _notables = new Dictionary<string, (ICollection<string>, bool, int)>(StringComparer.Ordinal);
             _loot = new Dictionary<string, List<string>>(StringComparer.Ordinal);
             try
@@ -456,8 +458,15 @@ namespace Scry
             }
             else if (entry.Source is GameObject prefab)
             {
-                // The game spawns creatures up to two stars; some mods go higher, and show it.
-                facts._stars = Math.Max(2, entry.ExtraLevels);
+                // A creature's stars as far as anything in the world can give it any (CreatureStars);
+                // a mod's creature nothing names keeps the game's two, or as many as its looks show, unsure.
+                if (entry.Kind == Kind.Creature)
+                {
+                    var (stars, unsure) = CreatureStars.Of(prefab.name);
+                    facts._stars = unsure ? Math.Max(stars, entry.ExtraLevels) : stars;
+                    facts._starsUnsure = unsure;
+                }
+                else facts._stars = Math.Max(2, entry.ExtraLevels);
                 facts._entry = entry;
                 facts.Prefab(prefab);
                 if (entry.Kind == Kind.Creature) facts.WhereTitle = "Where it lives";

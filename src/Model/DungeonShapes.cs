@@ -243,6 +243,15 @@ namespace Scry
         /// <summary>Whether some of its spawn groups keep their own levels (<c>Location.m_excludeEnemyLevelOverrideGroups</c>).</summary>
         public bool LevelOverrideExceptions;
 
+        /// <summary>The spawn groups that keep their own levels, by their numbers.</summary>
+        public List<int> LevelGroupsLeftOut = new List<int>();
+
+        /// <summary>Its spawn points with their spawn groups and their own levels, each kind once, for the stars a creature can come with (<see cref="StarSources"/>).</summary>
+        public List<PlaceSpawnLevel> SpawnLevels = new List<PlaceSpawnLevel>();
+
+        /// <summary>The levels it sets for its spawn points, its dungeon's rooms among them, but for the groups it leaves out.</summary>
+        public PlaceLevels Levels => new PlaceLevels { Min = EnemyMinLevel, Max = EnemyMaxLevel, Excluded = new HashSet<int>(LevelGroupsLeftOut) };
+
         public bool NoBuild;
         public float NoBuildRadius;
 

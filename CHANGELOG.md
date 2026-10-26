@@ -8,6 +8,8 @@ Under *Strict*, a chain names each step once you saw it go to the step next to i
 
 Hildir's Sealed Tower is no longer marked on the map as a dungeon nobody walked. Once you stand in it, it is marked as a place you were.
 
+A creature shows stars only where something in the world can give it some. Lox, Greylings, Bats, Blobs, Wraiths, summons and many more say they never come with any, and a mod's creature no spawn names keeps two stars marked unsure.
+
 ## 0.3.1
 
 The compendium follows what the game itself shows. A recipe's materials, a piece's cost or a store's wares come with the thing once the game lists them for your character, under *Loose* and *Strict* alike.

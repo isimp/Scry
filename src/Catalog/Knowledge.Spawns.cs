@@ -49,12 +49,21 @@ namespace Scry
                     case Procreation breed:
                         Born(breed.m_offspring, SourceFacts.Of(SourceWay.Born, prefab.name, Shown(prefab)));
                         Born(breed.m_noPartnerOffspring, SourceFacts.BornAlone(prefab.name, Shown(prefab)));
+                        // Born at its parent's level, at least the least the breeding sets (Procreation.Procreate).
+                        if (breed.m_offspring != null) Stars.Passes(prefab.name, breed.m_offspring.name, breed.m_minOffspringLevel);
+                        if (breed.m_noPartnerOffspring != null) Stars.Passes(prefab.name, breed.m_noPartnerOffspring.name, breed.m_minOffspringLevel);
                         break;
                     case Growup grow:
-                        foreach (var grown in GrownOf(grow)) Add(grown.name, Told(SourceFacts.Of(SourceWay.GrowsUp, prefab.name, Shown(prefab))));
+                        foreach (var grown in GrownOf(grow))
+                        {
+                            Add(grown.name, Told(SourceFacts.Of(SourceWay.GrowsUp, prefab.name, Shown(prefab))));
+                            Stars.Passes(prefab.name, grown.name);
+                        }
                         break;
                     case EggGrow egg when egg.m_grownPrefab != null:
                         Add(egg.m_grownPrefab.name, Told(SourceFacts.Of(SourceWay.Hatches, prefab.name, Shown(prefab))));
+                        // Hatched at the egg's quality, its parent's level (EggGrow.GrowUpdate).
+                        Stars.Passes(prefab.name, egg.m_grownPrefab.name);
                         break;
                 }
             }
@@ -253,6 +262,7 @@ namespace Scry
                     foreach (var key in home) AddBiomeKey(string.IsNullOrEmpty(data.m_requiredGlobalKey) ? BiomesOf : KeyedBiomesOf, name, key);
                     foreach (var key in events) AddBiomeKey(EventBiomesOf, name, key);
                     PlacedByWorld.Add(name);
+                    Stars.Add(name, LevelWay.World, data.m_minLevel, data.m_maxLevel);
 
                     var spawn = new SpawnFacts
                     {
@@ -318,6 +328,8 @@ namespace Scry
                 {
                     if (data?.m_prefab == null) continue;
                     Add(data.m_prefab.name, line, EntryKeys.For(Kind.Raid, raid.m_name));
+                    // A raid's creatures spawn as the world's do.
+                    Stars.Add(data.m_prefab.name, LevelWay.World, data.m_minLevel, data.m_maxLevel);
                 }
             });
         }
@@ -348,6 +360,7 @@ namespace Scry
 
         private static void SpawnPoints(GameObject prefab, List<Component> components)
         {
+            OtherLevels(components);
             foreach (var component in components)
             {
                 if (!(component is SpawnArea area) || area.m_prefabs == null) continue;
@@ -357,6 +370,7 @@ namespace Scry
                     if (data?.m_prefab == null) continue;
                     Keep(SpawnPointLines, data.m_prefab, SpawnWords.FromSpawner(Shown(prefab), data.m_weight, total, data.m_minLevel, data.m_maxLevel), prefab.name,
                         total > 0f ? data.m_weight / total : 0.0);
+                    Stars.Add(data.m_prefab.name, LevelWay.Spawner, data.m_minLevel, data.m_maxLevel);
                 }
             }
             foreach (var component in components)
@@ -369,8 +383,32 @@ namespace Scry
                     Keys = new[] { point.m_requiredGlobalKey }, NotKeys = new[] { point.m_blockingGlobalKey },
                 };
                 SpawnPointsLeft.Add((prefab, point.m_creaturePrefab, spawn));
+                Stars.Add(point.m_creaturePrefab.name, LevelWay.Spawner, point.m_minLevel, point.m_maxLevel);
                 Unlocks.Add(point.m_requiredGlobalKey, Unlock.Spawns, point.m_creaturePrefab.name);
                 Unlocks.Add(point.m_blockingGlobalKey, Unlock.StopsSpawning, point.m_creaturePrefab.name);
+            }
+        }
+
+        /// <summary>
+        /// What else gives a creature a level: a trigger spawner, as a spawner does
+        /// (<c>TriggerSpawner</c>), and a summon, to the most level its caster's skill sets, one
+        /// where it sets none (<c>SpawnAbility.m_levelUpSettings</c>).
+        /// </summary>
+        private static void OtherLevels(List<Component> components)
+        {
+            foreach (var component in components)
+            {
+                switch (component)
+                {
+                    case TriggerSpawner trigger when trigger.m_creaturePrefabs != null:
+                        foreach (var spawned in trigger.m_creaturePrefabs) if (spawned != null) Stars.Add(spawned.name, LevelWay.Spawner, trigger.m_minLevel, trigger.m_maxLevel);
+                        break;
+                    case SpawnAbility summon when summon.m_spawnPrefab != null:
+                        var set = 1;
+                        if (summon.m_levelUpSettings != null) foreach (var up in summon.m_levelUpSettings) if (up != null) set = Math.Max(set, up.m_setLevel);
+                        foreach (var spawned in summon.m_spawnPrefab) if (spawned != null) Stars.Add(spawned.name, LevelWay.Set, set, set);
+                        break;
+                }
             }
         }
 
@@ -740,9 +778,13 @@ namespace Scry
             return shown.Length > 0 ? shown : Naming.Readable(prefab.name);
         }
 
+        /// <summary>Every source read that can give a creature a level, for the stars it can come with (<see cref="CreatureStars"/>).</summary>
+        public static StarSources Stars { get; private set; } = new StarSources();
+
         /// <summary>Lets go of where things live and what gives them, as reading starts again.</summary>
         private static void ForgetSpawns()
         {
+            Stars = new StarSources();
             Where.Clear();
             BiomesOf.Clear();
             EventBiomesOf.Clear();

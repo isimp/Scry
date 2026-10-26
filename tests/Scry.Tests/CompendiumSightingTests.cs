@@ -115,6 +115,22 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheStageOffersNoMoreStarsThanTheWorldCanGive()
+        {
+            // A creature the world gives one star at most, or none, is offered no more, whatever looks it has; unknown, every look.
+            var world = new World().Rule(CompendiumRule.Off);
+            world.Explorer.Select(world.Draugr);
+            world.Explorer.MostLevelShownBy = prefab => prefab == world.Draugr.Name ? 2 : (int?)null;
+            Assert.Equal(new[] { 1, 2 }, world.Explorer.StarsOffered(world.Draugr));
+            world.Explorer.MostLevelShownBy = prefab => 1;
+            world.Rule(CompendiumRule.Off);
+            Assert.Equal(new[] { 1 }, world.Explorer.StarsOffered(world.Draugr));
+            world.Explorer.MostLevelShownBy = prefab => null;
+            world.Rule(CompendiumRule.Off);
+            Assert.Equal(new[] { 1, 2, 3 }, world.Explorer.StarsOffered(world.Draugr));
+        }
+
+        [Fact]
         public void APageShownWholeByKnownUpToOffersEveryStarAndLook()
         {
             // Known up to shows a tier's pages whole under the strict rules, the stage with them.

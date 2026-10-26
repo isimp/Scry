@@ -93,12 +93,27 @@ namespace Scry
         /// <summary>The stars offered by entry, with what they were worked out at (<see cref="StarsOffered"/>).</summary>
         private readonly Dictionary<string, (int Know, int Selection, bool Peeking, List<int> Offered)> _starsOffered = new Dictionary<string, (int, int, bool, List<int>)>(StringComparer.Ordinal);
 
+        /// <summary>The most level the world can give a creature by its prefab, as its page shows it; none where unsure, the stage then offering every level its looks have.</summary>
+        public Func<string, int?> MostLevelShownBy
+        {
+            get => _mostLevelShownBy;
+            set
+            {
+                _mostLevelShownBy = value;
+                _starsOffered.Clear();
+            }
+        }
+
+        private Func<string, int?> _mostLevelShownBy;
+
         /// <summary>The levels offered, worked out afresh (<see cref="StarsOffered"/>).</summary>
         private List<int> StarsOfferedNow(Entry entry)
         {
             var most = 1 + Math.Max(0, entry?.ExtraLevels ?? 0);
             var offered = new List<int>();
             if (entry == null) return offered;
+            // No more than anything in the world can give it, where that is known.
+            if (MostLevelShownBy?.Invoke(entry.Name) is int cap) most = Math.Min(most, Math.Max(1, cap));
             if (!StageFollowsSightings(entry.Key))
             {
                 for (var level = 1; level <= most; level++) offered.Add(level);

@@ -105,6 +105,8 @@ namespace Scry
             foreach (var creature in c.Creatures) Line(text, "creature", creature.Prefab, Stored.Count(creature.Count), Stored.Exact(creature.Chance));
             foreach (var vegvisir in c.Vegvisirs) Line(text, "vegvisir", vegvisir);
             Line(text, "levels", Stored.Count(c.EnemyMinLevel), Stored.Count(c.EnemyMaxLevel), Stored.Exact(c.EnemyLevelUpChance), Stored.Flag(c.LevelOverrideExceptions));
+            foreach (var group in c.LevelGroupsLeftOut) Line(text, "leftout", Stored.Count(group));
+            foreach (var spawn in c.SpawnLevels) Line(text, "spawnlevel", spawn.Creature, Stored.Count(spawn.Group), Stored.Count(spawn.Min), Stored.Count(spawn.Max));
             Line(text, "nobuild", Stored.Flag(c.NoBuild), Stored.Exact(c.NoBuildRadius));
             Line(text, "rolls", Stored.Flag(c.PartsRolled), Stored.Flag(c.StarsRolled), Stored.Flag(c.GroupsRolled));
             foreach (var music in c.OwnMusic) Line(text, "music", music.When.ToString(), music.Name, Stored.Exact(music.Chance));
@@ -237,6 +239,18 @@ namespace Scry
                 c.EnemyMaxLevel = max;
                 c.EnemyLevelUpChance = up;
                 c.LevelOverrideExceptions = exceptions;
+                return true;
+            },
+            ["leftout"] = (record, c, f) =>
+            {
+                if (f.Length != 1 || !Stored.TryCount(f[0], out var group)) return false;
+                c.LevelGroupsLeftOut.Add(group);
+                return true;
+            },
+            ["spawnlevel"] = (record, c, f) =>
+            {
+                if (f.Length != 4 || !Stored.TryCount(f[1], out var group) || !Stored.TryCount(f[2], out var min) || !Stored.TryCount(f[3], out var max)) return false;
+                c.SpawnLevels.Add(new PlaceSpawnLevel { Creature = f[0], Group = group, Min = min, Max = max });
                 return true;
             },
             ["nobuild"] = (record, c, f) =>

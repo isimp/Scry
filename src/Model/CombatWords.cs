@@ -30,6 +30,9 @@ namespace Scry
         /// <summary>The title of the table of what stars add.</summary>
         public const string StarsTitle = "With stars";
 
+        /// <summary>A creature nothing in the world gives a level above one.</summary>
+        public const string NeverStars = "never: nothing in the world gives it any";
+
         /// <summary>That table's columns: a blank over the lines' names, then none and each star up to the highest.</summary>
         public static string[] StarColumns(int maxStars) => new[] { "", StarChoice(0) }.Concat(Enumerable.Range(1, maxStars).Select(Stars)).ToArray();
 

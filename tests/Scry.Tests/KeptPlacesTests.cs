@@ -26,6 +26,9 @@ namespace Scry.Tests
             contents.Parts.Add(new PlacePart { Prefab = "TreasureChest_forestcrypt", Count = 3, Chance = 1f / 3f });
             contents.Parts.Add(new PlacePart { Prefab = "Pickable_SurtlingCoreStand", Count = 1, Chance = 0.1f });
             contents.Creatures.Add(new PlacePart { Prefab = "Skeleton", Count = 4, Chance = 0.25f });
+            contents.LevelGroupsLeftOut.Add(7);
+            contents.SpawnLevels.Add(new PlaceSpawnLevel { Creature = "Skeleton", Group = 0, Min = 1, Max = 3 });
+            contents.SpawnLevels.Add(new PlaceSpawnLevel { Creature = "Skeleton_Hildir", Group = 7, Min = 2, Max = 2 });
             contents.OwnMusic.Add(new PlaceMusic { Name = "crypt", When = MusicWhen.Inside, Chance = 0.6f });
             contents.OwnMusic.Add(new PlaceMusic { Name = "MusicLocation_Crypt", When = MusicWhen.Near, Chance = 1f });
             var stone = new PlaceRunestone { Name = "$piece_lore" };
@@ -88,6 +91,11 @@ namespace Scry.Tests
             Assert.Equal(new[] { "Bonemass", "Vendor_BlackForest" }, crypt.Contents.Vegvisirs);
             Assert.Equal((2, 3, 12.5f, true), (crypt.Contents.EnemyMinLevel, crypt.Contents.EnemyMaxLevel, crypt.Contents.EnemyLevelUpChance, crypt.Contents.LevelOverrideExceptions));
             Assert.Equal((true, 24.75f), (crypt.Contents.NoBuild, crypt.Contents.NoBuildRadius));
+            // Its spawn points' groups and levels, and the groups it leaves out of its own levels, for the stars its creatures can come with.
+            Assert.Equal(new[] { 7 }, crypt.Contents.LevelGroupsLeftOut);
+            Assert.Equal(new[] { ("Skeleton", 0, 1, 3), ("Skeleton_Hildir", 7, 2, 2) }, crypt.Contents.SpawnLevels.Select(s => (s.Creature, s.Group, s.Min, s.Max)));
+            Assert.Equal((2, 3), crypt.Contents.Levels.Over(1, 1, 0));
+            Assert.Equal((1, 1), crypt.Contents.Levels.Over(1, 1, 7));
             Assert.Equal((true, false, true), (crypt.Contents.PartsRolled, crypt.Contents.StarsRolled, crypt.Contents.GroupsRolled));
             Assert.Equal(new[] { MusicWhen.Inside, MusicWhen.Near }, crypt.Contents.OwnMusic.Select(m => m.When));
             Assert.Equal(new[] { "Crypt", "SunkenCrypt" }, crypt.Contents.Weathers);

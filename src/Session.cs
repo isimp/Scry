@@ -146,6 +146,13 @@ namespace Scry
         /// <summary>Whether a creature, by its prefab's name, is left off the stage: as the page shown would leave it out (<see cref="Explorer.NotMet"/>, <see cref="Explorer.LeavesOut(string)"/>).</summary>
         private static readonly Func<string, bool> CreatureLeftOff = key => Explorer != null && (Explorer.NotMet(key) || Explorer.LeavesOut(key));
 
+        /// <summary>The most level the world can give a creature as its page shows it, none for a mod's creature unsure of it (<see cref="CreatureStars"/>).</summary>
+        private static readonly Func<string, int?> MostLevelShown = prefab =>
+        {
+            var (stars, unsure) = CreatureStars.Of(prefab);
+            return unsure ? (int?)null : stars + 1;
+        };
+
         /// <summary>The level a creature rolled on the stage stands at: under the strict rules no higher than it was seen with up close (<see cref="Explorer.StarLevelFor"/>).</summary>
         private static readonly Func<string, int, int> StarLevelFor = (key, level) => Explorer != null ? Explorer.StarLevelFor(key, level) : level;
 
@@ -326,7 +333,7 @@ namespace Scry
             _favourites = _favourites ?? new Favourites(Path.Combine(Settings.DataFolder, "favourites.txt"));
             if (_favourites.Problem != null) Faults.Tell(Feature.Favourites, "reading the favourites", _favourites.Problem);
 
-            Explorer = new Explorer(catalog, _favourites) { RecentLimit = Settings.RecentCount, RecipeListedBy = RecipeListed, WorldNow = ZNet.instance != null ? ZNet.instance.GetWorldName() : null };
+            Explorer = new Explorer(catalog, _favourites) { RecentLimit = Settings.RecentCount, RecipeListedBy = RecipeListed, MostLevelShownBy = MostLevelShown, WorldNow = ZNet.instance != null ? ZNet.instance.GetWorldName() : null };
             WorldCatalog.Set(Explorer.Entries);
             // A creature the page shown would leave out stands on no place's copy and in no raid's crowd:
             // one the character has not met, and under the strict rules one never seen together with the page.

@@ -14,6 +14,12 @@ namespace Scry
         /// <summary>How many stars a creature can have, for what they add.</summary>
         private int _stars = 2;
 
+        /// <summary>Whether its stars are the game's two as a guess: a mod's creature no source in the world names.</summary>
+        private bool _starsUnsure;
+
+        /// <summary>What its stars were worked out from (<see cref="CreatureStars.Stamp"/>).</summary>
+        private int _starsOf;
+
         /// <summary>How many stars the creature can have, for what the stage still lacks of it under the strict rules; none for a boss, which has no stars.</summary>
         public int Stars => Boss ? 0 : _stars;
 
@@ -146,7 +152,13 @@ namespace Scry
         /// </summary>
         private void StarsTable(GameObject prefab, Character character)
         {
-            var stars = new Row { Title = CombatWords.StarsTitle, Columns = CombatWords.StarColumns(_stars), TallyOf = prefab.name };
+            // Nothing in the world gives it a level above one: said so, no table.
+            if (_stars <= 0)
+            {
+                Add(CombatWords.StarsTitle, CombatWords.NeverStars);
+                return;
+            }
+            var stars = new Row { Title = CombatWords.StarsTitle, Columns = CombatWords.StarColumns(_stars), TallyOf = prefab.name, Unsure = _starsUnsure ? UnsureWords.ModStars : null };
             var told = (prefab.GetComponent<CharacterDrop>().OrNull()?.m_drops ?? new List<CharacterDrop.Drop>()).Where(d => d?.m_prefab != null).ToList();
             var grow = told.Any(d => WithStars(d) == StarDrop.Grows);
             foreach (var line in CombatWords.StarLines(character.m_health, _stars, grow)) stars.Lines.Add((line, null));

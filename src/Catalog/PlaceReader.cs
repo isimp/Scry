@@ -242,10 +242,14 @@ namespace Scry
         private static void Creatures(GameObject prefab, Transform root, Dictionary<Transform, float> factors, PlaceContents contents)
         {
             var found = new List<(string, float)>();
+            var levels = new HashSet<(string, int, int, int)>();
             foreach (var point in prefab.GetComponentsInChildren<CreatureSpawner>(false))
             {
                 if (point.OrNull()?.m_creaturePrefab == null) continue;
                 found.Add((point.m_creaturePrefab.name, ChanceOf(point.transform, root, factors)));
+                // Each kind of point once, by its group and levels, for the stars it can give.
+                if (levels.Add((point.m_creaturePrefab.name, point.m_spawnGroupID, point.m_minLevel, point.m_maxLevel)))
+                    contents.SpawnLevels.Add(new PlaceSpawnLevel { Creature = point.m_creaturePrefab.name, Group = point.m_spawnGroupID, Min = point.m_minLevel, Max = point.m_maxLevel });
             }
             contents.Creatures = PlaceParts.Group(found);
 
@@ -403,6 +407,7 @@ namespace Scry
             contents.EnemyMaxLevel = location.m_enemyMaxLevelOverride;
             contents.EnemyLevelUpChance = location.m_enemyLevelUpOverride;
             contents.LevelOverrideExceptions = location.m_excludeEnemyLevelOverrideGroups != null && location.m_excludeEnemyLevelOverrideGroups.Count > 0;
+            if (location.m_excludeEnemyLevelOverrideGroups != null) contents.LevelGroupsLeftOut.AddRange(location.m_excludeEnemyLevelOverrideGroups.Distinct());
             contents.NoBuild = location.m_noBuild;
             contents.NoBuildRadius = location.m_noBuildRadiusOverride > 0f ? location.m_noBuildRadiusOverride : location.GetMaxRadius();
         }
