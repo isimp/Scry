@@ -161,7 +161,7 @@ namespace Scry
             var caption = _actionCaption != null ? Skin.Width(Skin.FaintLabel, _actionCaption) + U(2f) : 0f;
             var laid = PageToolbar.Lay(width, ActionWidths, SlideIconCount(entry, sized), ToolbarRow, U(1f), U(8f), ActionPlaces, caption);
             var lineH = SectionLineHeight(width);
-            var headerH = TitleHeight(explorer, entry) + ToolbarHeight(laid.Lines) + lineH;
+            var headerH = TitleHeight(explorer, entry, width) + ToolbarHeight(laid.Lines) + lineH;
             if (withStage) top += SideStage(explorer, entry, rect, headerH + U(PageKept));
             // Cut at the panel's end where even the stage's least leaves too little room.
             var titleArea = new Rect(rect.x, top, width, Mathf.Max(0f, Mathf.Min(headerH, rect.yMax - top)));
@@ -200,6 +200,7 @@ namespace Scry
             // hundreds of clips.
             y = Section("side adjust", y, at => Adjust(explorer, entry, cw, at, withStage));
             y = Section("side facts", y, at => FactsSection(explorer, entry, cw, at));
+            y = Section("side kinds", y, at => KindsSection(explorer, entry, cw, at));
             y = Section("side tooltip", y, at => TooltipSection(explorer, entry, cw, at));
             y = Section("side runes", y, at => RunesSection(explorer, entry, cw, at));
             y = Section("side readme", y, at => ReadmeSection(entry, cw, at));
@@ -249,12 +250,16 @@ namespace Scry
             var top = rect.y;
             // What sight gave of it, a line each: its stars and gear seen up close, where it was seen.
             var seen = level == KnownLevel.Seen ? explorer.SeenLines(entry) : NoSeenLines;
-            if (withStage && level == KnownLevel.Seen && CardHeight(entry) <= 0f) top += SideStage(explorer, entry, rect, U(ClosedPageHeight + 24f * seen.Count));
-            Skin.Box(new Rect(rect.x, top, rect.width, rect.yMax - top), Skin.Panel);
             var x = rect.x + U(16f);
             var width = rect.width - U(32f);
+            // A family's kinds met switch here too, so a kind only seen leads back to one known.
+            var kinds = KindSwitchHeight(explorer, entry, width);
+            if (withStage && level == KnownLevel.Seen && CardHeight(entry) <= 0f) top += SideStage(explorer, entry, rect, U(ClosedPageHeight + 24f * seen.Count) + kinds);
+            Skin.Box(new Rect(rect.x, top, rect.width, rect.yMax - top), Skin.Panel);
             var name = level == KnownLevel.Unknown ? (entry.IsRoom ? DungeonWords.RoomNotWalked : CompendiumWords.Unknown(entry.Kind)) : entry.ShownName;
             FitLabel(new Rect(x, top + U(12f), width, U(30f)), name, Skin.Big, 13f);
+            KindSwitch(explorer, entry, x, top + U(46f), width);
+            top += kinds;
             GUI.Label(new Rect(x, top + U(46f), width, U(22f)), CompendiumWords.Closed(level), Skin.DimLabel);
             GUI.Label(new Rect(x, top + U(70f), width, U(22f)), CompendiumWords.HowToKnow(entry.Kind), Skin.FaintLabel);
             // Under the strict rules, coming to know it opens its page, but not all of it at once.
@@ -294,9 +299,9 @@ namespace Scry
             }
         }
 
-        /// <summary>How tall the name's rows are: the name, the line under it, the line of what shows it by the player's choice, and a place's census line.</summary>
-        private static float TitleHeight(Explorer explorer, Entry entry) =>
-            U(34f) + U(26f) + (ShownBy(explorer, entry) != null ? U(24f) : 0f) + (CensusLine(explorer, entry) != null ? U(24f) : 0f) + U(8f);
+        /// <summary>How tall the name's rows are: the name, the line under it, a family's kind switch, the line of what shows it by the player's choice, and a place's census line.</summary>
+        private static float TitleHeight(Explorer explorer, Entry entry, float width) =>
+            U(34f) + U(26f) + KindSwitchHeight(explorer, entry, width) + (ShownBy(explorer, entry) != null ? U(24f) : 0f) + (CensusLine(explorer, entry) != null ? U(24f) : 0f) + U(8f);
 
         /// <summary>What shows an entry by the player's choice, the floor or a source of the world, as the line under its title says; none for what the character met itself.</summary>
         private static string ShownBy(Explorer explorer, Entry entry) =>
@@ -389,6 +394,9 @@ namespace Scry
                 y += U(26f);
             }
 
+            // A family's kinds the character met, the one shown lit.
+            y = KindSwitch(explorer, entry, 0f, y, width);
+
             // Shown only by the player's choice, the compendium's floor or a source of the world: said under the title, with the list's mark.
             var shownBy = ShownBy(explorer, entry);
             if (shownBy != null)
@@ -456,6 +464,7 @@ namespace Scry
             ForgetFactPlan();
             ForgetYou();
             ForgetSkillCard();
+            ForgetKinds();
         }
     }
 }

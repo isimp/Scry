@@ -217,6 +217,9 @@ namespace Scry
         /// <summary>Which of the entries of its kind going by its name it is, where others share it: "2 of 3", told by <see cref="Search.OrderNames"/>; null for a name of its own.</summary>
         public string Alike;
 
+        /// <summary>The family it is a member of, several prefabs one thing to a player (<see cref="Families"/>); none for one alone.</summary>
+        public Family Family;
+
         /// <summary>Whether it is listed indented, under the first of its group (a room under its dungeon).</summary>
         public bool Indent;
 

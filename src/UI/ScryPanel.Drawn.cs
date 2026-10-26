@@ -32,6 +32,12 @@ namespace Scry
 
         /// <summary>A page only seen telling what sight gave: its stars and gear seen up close, where it was seen.</summary>
         SeenLines,
+
+        /// <summary>A family's page switching among the kinds the character met (<see cref="Explorer.MembersMet"/>).</summary>
+        KindSwitch,
+
+        /// <summary>A family's kinds side by side where they differ (<see cref="FamilyDiffers"/>).</summary>
+        KindsDiffer,
         UnseenName,
         ListLeftOut,
         PeekStrip,

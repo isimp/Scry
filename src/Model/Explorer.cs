@@ -660,7 +660,7 @@ namespace Scry
             var endsPeek = PeekEndsGoingTo(entry);
             var was = _selected;
             _selected = entry;
-            _selectedIndex = entry == null ? -1 : _results.IndexOf(entry);
+            _selectedIndex = RowOf(entry);
             _selectionVersion++;
             _modifiers.ResetFor(entry);
             if (endsPeek) EndPeek();
@@ -704,7 +704,7 @@ namespace Scry
                 _forward.Clear();
             }
 
-            if (!_results.Contains(target))
+            if (RowOf(target) < 0)
             {
                 _query.Text = "";
                 _query.Kind = null;
@@ -852,7 +852,7 @@ namespace Scry
                 explorer.Refresh();
 
                 explorer._selected = _selected;
-                explorer._selectedIndex = _selected == null ? -1 : explorer._results.IndexOf(_selected);
+                explorer._selectedIndex = explorer.RowOf(_selected);
                 explorer._selectionVersion++;
                 explorer._modifiers.ResetFor(_selected);
                 explorer._here = _here;
@@ -917,9 +917,9 @@ namespace Scry
             // Peeking, the list stays as the character knows it; only a page shows whole.
             var view = CompendiumSet ? _view : null;
             Array.Clear(_counts, 0, _counts.Length);
-            _results = Search.Run(_catalog, _query, _favourites.Keys, order?.Keys, _learnedOnly ? null : _counts, view, PeekingEvery, _selected);
+            _results = Search.Run(_catalog, _query, _favourites.Keys, order?.Keys, _learnedOnly ? null : _counts, view, PeekingEvery, _selected, Folds);
             // The learned list is a tab of its own: the others count what each would show.
-            if (_learnedOnly) Search.Run(_catalog, _query, _favourites.Keys, null, _counts, view, PeekingEvery, _selected);
+            if (_learnedOnly) Search.Run(_catalog, _query, _favourites.Keys, null, _counts, view, PeekingEvery, _selected, fold: true);
             _countAll = 0;
             foreach (var count in _counts) _countAll += count;
             // The learned tab counts what the search finds among what was learned, as each kind's tab
@@ -955,7 +955,7 @@ namespace Scry
                     _mendedQuery.Kind = _query.Kind;
                     _mendedQuery.FavouritesOnly = _query.FavouritesOnly;
                     _mendedQuery.Origin = _query.Origin;
-                    _results = Search.Run(_catalog, _mendedQuery, _favourites.Keys, order?.Keys, _counts, view, PeekingEvery, _selected);
+                    _results = Search.Run(_catalog, _mendedQuery, _favourites.Keys, order?.Keys, _counts, view, PeekingEvery, _selected, Folds);
                     foreach (var count in _counts) _countAll += count;
                     if (_countAll > 0)
                     {
@@ -973,7 +973,7 @@ namespace Scry
             {
                 var kind = query.Kind;
                 query.Kind = null;
-                _results = Search.Run(_catalog, query, _favourites.Keys, order?.Keys, null, view, PeekingEvery, _selected);
+                _results = Search.Run(_catalog, query, _favourites.Keys, order?.Keys, null, view, PeekingEvery, _selected, Folds);
                 query.Kind = kind;
             }
 
@@ -988,7 +988,7 @@ namespace Scry
 
             if (_selected == null) return;
 
-            _selectedIndex = _results.IndexOf(_selected);
+            _selectedIndex = RowOf(_selected);
             // While peeking, a page reached by a link stays, listed or not.
             if (_selectedIndex < 0 && !_peeking) Select(null, false);
         }

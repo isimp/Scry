@@ -504,7 +504,7 @@ namespace Scry
             // A room sits indented under its dungeon in its dungeon's group.
             if ((entry.Indent || explorer.UnderOwner(entry)) && oneKind) textX += U(20f);
             var textW = (choice != null ? floorMark.x : star.x) - U(8f) - textX;
-            var primary = entry.ShownName;
+            var primary = explorer.ShownAs(entry);
             var secondary = RowSecondary(explorer, entry, primary);
             var cut = RowNames(explorer, entry, new Rect(textX, inner.y, textW, inner.height), primary, secondary);
             if (hover) RowTip(explorer, entry, choice, floorMark, star, cut, primary, secondary);
@@ -533,12 +533,14 @@ namespace Scry
         /// What a row tells after the name: in the learned list how its latest news came (killed,
         /// seen, what was found out). With the compendium on no prefab name, a place's tag holding
         /// one too: which of several going by one name it is, where it is one, the creatures
-        /// carrying it kept back until met. Off, its tag or its prefab's name; a creature's attack
-        /// by its carrier, told apart from its others.
+        /// carrying it kept back until met; a family folded into one row, how many of its kinds it
+        /// met. Off, its tag or its prefab's name; a creature's attack by its carrier, told apart
+        /// from its others.
         /// </summary>
         private static string RowSecondary(Explorer explorer, Entry entry, string primary) =>
             (explorer.LearnedOnly ? explorer.LearnedNote(entry) : null)
-            ?? (explorer.CompendiumSet ? SeenTagged(explorer, entry, Masked(explorer, explorer.AlikeOf(entry), always: explorer.CompendiumOn)) ?? ""
+            ?? (explorer.CompendiumSet ? SeenTagged(explorer, entry, explorer.Folds && entry.Family != null ? explorer.FamilyNote(entry)
+                    : Masked(explorer, explorer.AlikeOf(entry), always: explorer.CompendiumOn)) ?? ""
                 : (entry.TagNamesCarrier ? entry.Alike : null) ?? entry.Tag ?? (primary == entry.Name ? "" : entry.Name));
 
         /// <summary>A row's note with "seen" before it where the entry is only seen, its page closed, so a row tells knowing a thing from knowing its page.</summary>

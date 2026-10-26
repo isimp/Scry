@@ -258,10 +258,13 @@ namespace Scry
         /// what it saw go together with it as well, as its page shows. While
         /// <paramref name="peeking"/>, a thing the character has not met is found only by its whole
         /// name in quotes, every name in quotes its own. What the character met (is:new, is:seen,
-        /// is:walked) is asked of the compendium, and with it off matches nothing.
+        /// is:walked) is asked of the compendium, and with it off matches nothing. With the
+        /// compendium set and <paramref name="fold"/>, a family (<see cref="Family"/>) is one row,
+        /// shown and counted once by the member the character knows best, a member it met
+        /// matching finding that row; one only peeked at stands alone.
         /// </summary>
         public static List<Entry> Run(IReadOnlyList<Entry> all, Query query, ICollection<string> favourites,
-            ICollection<string> only, int[] kindCounts, CompendiumView view = null, bool peeking = false, Entry page = null)
+            ICollection<string> only, int[] kindCounts, CompendiumView view = null, bool peeking = false, Entry page = null, bool fold = false)
         {
             var search = Parse(query.Text).Matcher;
             var today = view != null && search.Mine.Count + search.NotMine.Count > 0 ? view.Today : -1;
@@ -270,6 +273,9 @@ namespace Scry
             var found = new List<Entry>();
             var scores = new List<int>();
             var unordered = false;
+            var rowOf = fold && view != null ? new Dictionary<Family, int>() : null;
+            var counted = rowOf != null ? new HashSet<Family>() : null;
+            var levelOf = rowOf != null ? view.Of : (Func<Entry, KnownLevel>)null;
 
             foreach (var entry in all)
             {
@@ -281,6 +287,7 @@ namespace Scry
                 if (view != null && !peeking && !Kinds.ForPlayers(entry)) continue;
 
                 var level = view != null ? view.Of(entry) : KnownLevel.Known;
+                var family = rowOf != null && level >= KnownLevel.Seen ? entry.Family : null;
                 if (level < KnownLevel.Seen)
                 {
                     if (!peeking || search.Names.Count == 0 || !search.Names.TrueForAll(name => NamedExactly(entry, name))) continue;
@@ -292,8 +299,21 @@ namespace Scry
                 var score = Score(entry, search, level == KnownLevel.Known, guard);
                 if (score == Miss || !MineMatches(entry, search, view, today)) continue;
 
-                if (kindCounts != null) kindCounts[(int)entry.Kind]++;
+                if (kindCounts != null && (family == null || counted.Add(family))) kindCounts[(int)entry.Kind]++;
                 if (query.Kind.HasValue && entry.Kind != query.Kind.Value) continue;
+                if (family != null)
+                {
+                    // The family's row once, at its best match.
+                    if (rowOf.TryGetValue(family, out var at))
+                    {
+                        if (score < scores[at]) scores[at] = score;
+                        continue;
+                    }
+                    rowOf[family] = found.Count;
+                    found.Add(family.Lead(levelOf) ?? entry);
+                    scores.Add(score);
+                    continue;
+                }
                 found.Add(entry);
                 scores.Add(score);
             }
@@ -345,7 +365,8 @@ namespace Scry
         /// Numbers every entry by the name the list shows first (the game's, else the prefab's),
         /// then by its prefab name, ignoring case, with ties broken by the exact name and then by
         /// place in the catalog, so the order never depends on how a sort happens to run. Entries
-        /// of one kind going by one name are told which of them each is (<see cref="Entry.Alike"/>).
+        /// of one kind going by one name are told which of them each is (<see cref="Entry.Alike"/>),
+        /// and each told its family (<see cref="Families"/>).
         /// </summary>
         public static void OrderNames(IReadOnlyList<Entry> all)
         {
@@ -362,6 +383,7 @@ namespace Scry
                 return exact != 0 ? exact : a.Value.CompareTo(b.Value);
             });
             for (var i = 0; i < order.Count; i++) order[i].Key.NameOrder = i;
+            Families.Of(all);
 
             // Those of one name stand together, each kind's in the order of their prefabs.
             TellAlike(order.Select(o => o.Key).ToList(), (entry, alike) => entry.Alike = alike);

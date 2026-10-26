@@ -8,6 +8,10 @@ Under *Strict*, a chain names each step once you saw it go to the step next to i
 
 Hildir's Sealed Tower is no longer marked on the map as a dungeon nobody walked. Once you stand in it, it is marked as a place you were.
 
+Things that are one thing to a player are one row: the three tar pits, the Burial Chambers, a creature and its kinds, an item and the copies creatures wear. The page switches among the kinds you met and sets them side by side where they differ, under *Strict* each kept back as its own page keeps it back. A kind you never met is not shown or counted.
+
+An item made by a recipe the game holds several times over, as the blackmetal tower shield was, shows its cost once.
+
 A creature shows stars only where something in the world can give it some. Lox, Greylings, Bats, Blobs, Wraiths, summons and many more say they never come with any, and a mod's creature no spawn names keeps two stars marked unsure.
 
 ## 0.3.1

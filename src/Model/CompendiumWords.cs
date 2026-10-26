@@ -669,6 +669,32 @@ namespace Scry
             return said;
         }
 
+        /// <summary>A family's row note: how many of its kinds the character met, and of those how many it knows where not all: "3 kinds, 1 known".</summary>
+        public static string FamilyNote(int kinds, int known) =>
+            Numbers.Count(kinds) + " kinds" + (known > 0 && known < kinds ? ", " + Numbers.Count(known) + " known" : "");
+
+        /// <summary>What a family's page switch is captioned by.</summary>
+        public const string KindsCaption = "Kinds";
+
+        /// <summary>A kind's words on the switch, "seen" after one only seen: "2 · seen".</summary>
+        public static string KindSwitchLabel(string label, bool seen)
+        {
+            if (!seen) return label;
+            if (KindSwitchLabels.TryGet(label, out var said)) return said;
+            said = label + " · " + SeenRowTag;
+            KindSwitchLabels.Set(label, said);
+            return said;
+        }
+
+        /// <summary>The switch's seen labels by their label, kept: the page draws them every frame.</summary>
+        private static readonly RecentCache<string, string> KindSwitchLabels = new RecentCache<string, string>(256, StringComparer.Ordinal);
+
+        /// <summary>The section setting a family's kinds side by side.</summary>
+        public const string KindsHeading = "KINDS";
+
+        /// <summary>The title of the table of where a family's kinds differ.</summary>
+        public const string KindsDifferTitle = "Where its kinds differ";
+
         /// <summary>The seen rows' notes by their note, kept: the list draws them every frame.</summary>
         private static readonly RecentCache<string, string> SeenRowNotes = new RecentCache<string, string>(512, StringComparer.Ordinal);
 

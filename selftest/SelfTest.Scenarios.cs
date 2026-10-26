@@ -185,6 +185,7 @@ namespace Scry
             yield return S("a ground's pin marks every dungeon lying in it on Valheim's large map, hollow where walked on this server and shown with insides, and With insides is dimmed where nothing has insides", DungeonPins, 240, () => { PinsAsTheyWere(); StageAsItWas(); });
             yield return S("Hildir's Sealed Tower is a place stood in, its visits kept, no dungeon lying inside", PlacesStoodIn, 10);
             yield return S("a creature's stars follow what in the world can give it a level", StarsFollowSources, 30);
+            yield return S("with the compendium on, a family is one row and one page switching among its kinds met, its copies found by their prefabs", FamiliesFold, 60, StageAsItWas);
             yield return S("the server's record of a dungeon opens by the floor, showing what anyone on the server walked, peek the rest", GroupRecords, 240, () => { GroupRecordsAsTheyWere(); StageAsItWas(); }, bearsSkips: true);
             yield return S("the cave and tower dungeons open level by level with rooms on each", CaveFloors, 300, StageAsItWas, bearsSkips: true);
             yield return S("dimmed rooms show darker on the stage, and what the rooms are drawn with is told", DimShows, 300, () => { LookAsItWas(); StageAsItWas(); }, bearsSkips: true);

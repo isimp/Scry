@@ -133,12 +133,13 @@ namespace Scry
             }
         }
 
-        /// <summary>Each enabled recipe that makes the item, with its upgrade kits.</summary>
+        /// <summary>Each enabled recipe that makes the item, with its upgrade kits; one the game holds again alike, once (<see cref="RecipeAlike"/>).</summary>
         private void Recipes(GameObject prefab, ItemDrop.ItemData.SharedData shared)
         {
             var db = ObjectDB.instance;
             if (db == null) return;
             var made = false;
+            var shown = new RecipeAlike();
             foreach (var recipe in db.m_recipes)
             {
                 if (recipe == null || recipe.m_item == null || recipe.m_item.gameObject.name != prefab.name || !recipe.m_enabled) continue;
@@ -149,11 +150,11 @@ namespace Scry
                 var row = Requirements(title, recipe.m_resources, shared.m_maxQuality > 1);
                 row.Recipe = RecipeToken(prefab);
                 row.TitleLink = recipe.m_craftingStation != null ? recipe.m_craftingStation.gameObject.name : null;
-                Rows.Add(row);
-
                 var kits = UpgradeKits(recipe, shared.m_maxQuality);
-                if (kits.Items.Count > 0) Rows.Add(kits);
                 made = true;
+                if (!shown.First(RecipeAlike.Key(row.Title, row.TitleLink, row.Items.Select(i => (i.Prefab, i.Amount)), kits.Items.Select(i => (i.Prefab, i.Amount))))) continue;
+                Rows.Add(row);
+                if (kits.Items.Count > 0) Rows.Add(kits);
             }
             if (made) Hooked(HookedRule.Crafting);
         }
