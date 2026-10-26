@@ -55,8 +55,8 @@ namespace Scry
 
             y = PlayingClipRow(playing, width, rowH, y);
 
-            // Grouped by what they do: the attacks (of what is held, on a person with hundreds of
-            // clips), then those that play sounds or effects, then the silent; within each, those
+            // Grouped by what they are for (ClipGroups): the attacks of what is held, moving with
+            // it, blocking, jumping, getting hurt, emotes, resting, working; within each, those
             // Scry knows what they are first. While that is still being worked out, they are
             // listed as they come, and it says so.
             var started = Timing.Start();
@@ -64,8 +64,8 @@ namespace Scry
             var shown = ClipRows(clips, sorting);
             var ownNow = Previews.AnimatorClipNow();
             Timing.Add("clips rows", started);
-            // Each group shows its first chips and one for the rest (a person has hundreds of
-            // clips); while filtering, every match.
+            // Each group shows its first chips (FirstOf) and one for the rest; while filtering, every match.
+            Previews.ClipGroupsNow(out var stance);
             // Under the strict rules an attack's clips wait for the attack, as its damage does: one
             // faint chip counts those that wait, in their group's place, and they count nowhere else.
             var totals = new Dictionary<int, int>();
@@ -83,13 +83,13 @@ namespace Scry
                 var clip = row.Clip;
                 if (row.Group != group)
                 {
-                    if (group >= 0 && !filtering) MoreChip("clips:" + Stored.Count(group), totals[group], FirstChips, width, ref flow);
+                    if (group >= 0 && !filtering) MoreChip("clips:" + Stored.Count(group), totals[group], FirstOf(group), width, ref flow);
                     y = flow.Below;
                     if (flow.InRow) y += U(4f);
                     group = row.Group;
                     inGroup = 0;
-                    limit = filtering ? totals[group] : ShownOf("clips:" + Stored.Count(group), totals[group]);
-                    GUI.Label(new Rect(0f, y, width, U(20f)), ClipHeading(group), Skin.DimLabel);
+                    limit = filtering ? totals[group] : ShownOf("clips:" + Stored.Count(group), totals[group], FirstOf(group));
+                    GUI.Label(new Rect(0f, y, width, U(20f)), ClipHeading(group, totals[group], stance), Skin.DimLabel);
                     y += U(22f);
                     flow = new ChipFlow(0f, width, y, rowH, U(5f), U(5f));
                 }
@@ -119,7 +119,7 @@ namespace Scry
                 if (OutOfSight(chip)) continue;
                 ClipChip(row, chip, text, style, on, ownNow);
             }
-            if (group >= 0 && !filtering) MoreChip("clips:" + Stored.Count(group), totals[group], FirstChips, width, ref flow);
+            if (group >= 0 && !filtering) MoreChip("clips:" + Stored.Count(group), totals[group], FirstOf(group), width, ref flow);
             y = flow.Below;
 
             var last = Previews.LastClip;
@@ -213,20 +213,31 @@ namespace Scry
 
         private static readonly Dictionary<string, string> NoTags = new Dictionary<string, string>();
 
-        private static readonly string[] ClipHeadings = { "Attacks", "With sounds or effects", "Silent" };
+        /// <summary>
+        /// A group of clips' heading: what they are for and how many (<see cref="ClipGroup"/>), moving
+        /// with what is held; while being worked out, that it is; and last, while filtering, those of
+        /// other gear and those it never plays.
+        /// </summary>
+        private static string ClipHeading(int group, int clips, int stance) =>
+            group <= (int)ClipGroup.Other ? ClipWords.GroupHeading((ClipGroup)group, clips, stance) : group == OtherGearGroup ? ClipWords.OtherGearHeading
+            : group == UnplayedGroup ? ClipWords.UnplayedHeading : PanelWords.Waiting("Working out what each clip plays", Time.unscaledTime);
 
-        /// <summary>A group of clips' heading: what they do, while being worked out that it is, and last, while filtering, those it never plays.</summary>
-        private static string ClipHeading(int group) =>
-            group < 3 ? ClipHeadings[group] : group == OtherGearGroup ? ClipWords.OtherGearHeading : group == UnplayedGroup ? ClipWords.UnplayedHeading
-            : PanelWords.Waiting("Working out what each clip plays", Time.unscaledTime);
+        /// <summary>How many of a group's chips show before the one for the rest: more of its attacks and its moving than of the rest.</summary>
+        private static int FirstOf(int group) => group <= (int)ClipGroup.Moving ? GroupFirstChips : FewFirstChips;
+
+        private const int GroupFirstChips = 8;
+        private const int FewFirstChips = 4;
 
         /// <summary>The group of the clips it plays only with other gear in hand, listed only while filtering.</summary>
-        private const int OtherGearGroup = 4;
+        private const int OtherGearGroup = 20;
 
         /// <summary>The group of the clips it never plays, listed only while filtering, last.</summary>
-        private const int UnplayedGroup = 5;
+        private const int UnplayedGroup = 21;
 
-        /// <summary>A clip's chip as the Animations section lists it: its name, its text and its group (3 while still being worked out, 4 one only other gear plays, 5 one it never plays).</summary>
+        /// <summary>The group of every clip while what each is for is still being worked out.</summary>
+        private const int SortingGroup = 30;
+
+        /// <summary>A clip's chip as the Animations section lists it: its name, its text and its group (a <see cref="ClipGroup"/>; else one only other gear plays, one it never plays, or any while still being worked out).</summary>
         private sealed class ClipRow
         {
             public AnimationClip Clip;
@@ -245,6 +256,7 @@ namespace Scry
         private static string _rowsFilter;
         private static HashSet<string> _rowsUnplayed;
         private static IReadOnlyDictionary<string, int> _rowsOtherGear;
+        private static IReadOnlyDictionary<string, ClipGroup> _rowsGroups;
 
         /// <summary>
         /// The clips' chips in the order they are listed, filtered. Worked out again only when the
@@ -255,8 +267,9 @@ namespace Scry
             var tags = sorting ? NoTags : Previews.ClipTags();
             var unplayed = sorting ? null : Previews.ClipsUnplayed();
             var otherGear = sorting ? null : Previews.ClipsOtherGear();
+            var groups = sorting ? null : Previews.ClipGroupsNow(out _);
             if (ReferenceEquals(clips, _rowsClips) && ReferenceEquals(tags, _rowsTags) && sorting == _rowsSorting && _clipFilter == _rowsFilter
-                && ReferenceEquals(unplayed, _rowsUnplayed) && ReferenceEquals(otherGear, _rowsOtherGear)) return _clipRows;
+                && ReferenceEquals(unplayed, _rowsUnplayed) && ReferenceEquals(otherGear, _rowsOtherGear) && ReferenceEquals(groups, _rowsGroups)) return _clipRows;
             var items = sorting ? NoTags : Previews.ClipAttackItems();
 
             var rows = new List<ClipRow>(clips.Count);
@@ -275,7 +288,8 @@ namespace Scry
                 if ((never || withOther) && _clipFilter.Length == 0) continue;
                 if (never) text = ClipWords.Unplayed(text);
                 else if (withOther) text = ClipWords.OtherGear(text, stance);
-                var group = sorting ? 3 : never ? UnplayedGroup : withOther ? OtherGearGroup : tagged && ClipWords.IsAttack(tag) ? 0 : Previews.ClipSounds(clip) ? 1 : 2;
+                var group = sorting ? SortingGroup : never ? UnplayedGroup : withOther ? OtherGearGroup
+                    : groups != null && groups.TryGetValue(name, out var sorted) ? (int)sorted : tagged && ClipWords.IsAttack(tag) ? (int)ClipGroup.Attacks : (int)ClipGroup.Other;
                 rows.Add(new ClipRow { Clip = clip, Name = name, Text = text, Group = group * 2 + (tagged ? 0 : 1), Item = items.TryGetValue(name, out var item) ? item : null });
             }
             rows = rows.OrderBy(r => r.Group).ToList();
@@ -288,6 +302,7 @@ namespace Scry
             _rowsFilter = _clipFilter;
             _rowsUnplayed = unplayed;
             _rowsOtherGear = otherGear;
+            _rowsGroups = groups;
             return rows;
         }
 
@@ -315,6 +330,7 @@ namespace Scry
             _rowsTags = null;
             _rowsUnplayed = null;
             _rowsOtherGear = null;
+            _rowsGroups = null;
             _firstClip = null;
         }
     }

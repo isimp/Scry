@@ -22,6 +22,12 @@ namespace Scry
 
         /// <summary>The clips each switch an item names plays (drawing a bow, reloading), by the switch.</summary>
         public readonly Dictionary<string, HashSet<string>> Holds = new Dictionary<string, HashSet<string>>();
+
+        /// <summary>The clips each run of the sweep saw, whatever the stance (<see cref="ClipGroups.MoveVisit"/> and the others).</summary>
+        public readonly Dictionary<string, HashSet<string>> Visits = new Dictionary<string, HashSet<string>>();
+
+        /// <summary>The clips each switch or trigger of a known use leads to (<see cref="ClipGroups.OfSwitch"/>), by its name.</summary>
+        public readonly Dictionary<string, HashSet<string>> Switched = new Dictionary<string, HashSet<string>>();
     }
 
     /// <summary>
@@ -545,9 +551,10 @@ namespace Scry
 
         /// <summary>
         /// The clips a prefab's animator moves, crouches, blocks and jumps in under each of the
-        /// stances given, and plays with each switch given in its stance (<see cref="Probed.Stances"/>,
-        /// <see cref="Probed.Holds"/>): seen once for the prefab over the next frames, and until then
-        /// <see cref="Probed.Busy"/>. An animator without stance settings has none.
+        /// stances given (once, without stance settings), plays with each switch given in its stance,
+        /// and each switch of a known use leads to (<see cref="Probed.Stances"/>, <see cref="Probed.Holds"/>,
+        /// <see cref="Probed.Visits"/>, <see cref="Probed.Switched"/>): seen once for the prefab over the
+        /// next frames, and until then <see cref="Probed.Busy"/>.
         /// </summary>
         public static Probed StancesOf(string prefab, Animator animator, IReadOnlyList<int> stances, IReadOnlyList<(string Switch, int Stance)> holds, bool wait)
         {
@@ -575,9 +582,11 @@ namespace Scry
         private static readonly float[] Speeds = { 0f, 0.7f, 1f, 2f, 3f, 4f, 5f, 6f, 7f, 7.9f, 9f, 10.5f, -0.7f, -1f, -2f, -3f, -4f, -7f };
 
         /// <summary>
-        /// The runs of a stance sweep: under each stance, standing, crouching, blocking, laden and in
-        /// a jump, each settled and stepped through every speed and direction; then each switch an
-        /// item names, in that item's stance.
+        /// The runs of a sweep: under each stance (or once, for an animator without stances),
+        /// standing, crouching, blocking, laden and in a jump, each settled and stepped through every
+        /// speed and direction; then each switch an item names, in that item's stance; then each
+        /// switch and trigger whose name tells what it is for (<see cref="ClipGroups.OfSwitch"/>),
+        /// pulled once. What each run saw is kept by the stance, by the run, and by the switch.
         /// </summary>
         private static IEnumerator<bool> SweepWork(Job job)
         {
@@ -586,18 +595,19 @@ namespace Scry
             bool Has(string name, AnimatorControllerParameterType type) => probe.parameters.Any(p => p.type == type && p.name == name);
             var statei = Has("statei", AnimatorControllerParameterType.Int);
             var statef = Has("statef", AnimatorControllerParameterType.Float);
-            if (!statei && !statef) yield break;
+            var stances = statei || statef ? job.SweptStances : new[] { 0 };
             var sideways = Has("sideway_speed", AnimatorControllerParameterType.Float);
             var forward = Has("forward_speed", AnimatorControllerParameterType.Float);
 
             // Standing, crouching, blocking, laden: settled, then stepped through every speed and direction.
-            var visits = new List<System.Action<Animator>> { null };
-            foreach (var switched in new[] { "crouching", "blocking", "encumbered" })
+            var visits = new List<(string Visit, System.Action<Animator> Act)> { (ClipGroups.MoveVisit, null) };
+            foreach (var (switched, visit) in new[] { ("crouching", ClipGroups.MoveVisit), ("blocking", ClipGroups.BlockVisit), ("encumbered", ClipGroups.MoveVisit) })
             {
-                if (Has(switched, AnimatorControllerParameterType.Bool)) visits.Add(a => a.SetBool(switched, true));
+                if (Has(switched, AnimatorControllerParameterType.Bool)) visits.Add((visit, a => a.SetBool(switched, true)));
             }
             var jumps = Has("jump", AnimatorControllerParameterType.Trigger);
             var grounded = Has("onGround", AnimatorControllerParameterType.Bool);
+            HashSet<string> Visit(string name) => seen.Visits.TryGetValue(name, out var kept) ? kept : seen.Visits[name] = new HashSet<string>();
 
             void Stand(Animator a, int stance)
             {
@@ -605,19 +615,25 @@ namespace Scry
                 if (statef) a.SetFloat("statef", stance);
             }
 
-            foreach (var stance in job.SweptStances)
+            foreach (var stance in stances)
             {
                 var clips = new HashSet<string>();
-                foreach (var visit in visits)
+                foreach (var (visit, act) in visits)
                 {
-                    foreach (var _ in Swept(probe, a => { Stand(a, stance); visit?.Invoke(a); }, null, clips, sideways, forward)) yield return true;
+                    var run = new HashSet<string>();
+                    foreach (var _ in Swept(probe, a => { Stand(a, stance); act?.Invoke(a); }, null, run, sideways, forward)) yield return true;
+                    clips.UnionWith(run);
+                    Visit(visit).UnionWith(run);
                     yield return true;
                 }
                 // A jump goes through its clips by itself: off the ground and back on.
                 if (jumps)
                 {
+                    var run = new HashSet<string>();
                     System.Action<Animator> landing = grounded ? a => a.SetBool("onGround", true) : (System.Action<Animator>)null;
-                    foreach (var _ in Swept(probe, a => { Stand(a, stance); if (grounded) a.SetBool("onGround", false); }, a => a.SetTrigger("jump"), clips, false, false, landing)) yield return true;
+                    foreach (var _ in Swept(probe, a => { Stand(a, stance); if (grounded) a.SetBool("onGround", false); }, a => a.SetTrigger("jump"), run, false, false, landing)) yield return true;
+                    clips.UnionWith(run);
+                    Visit(ClipGroups.JumpVisit).UnionWith(run);
                     yield return true;
                 }
                 seen.Stances[stance] = clips;
@@ -630,7 +646,52 @@ namespace Scry
                 seen.Holds[switched] = clips;
                 yield return true;
             }
-            Log.Note($"Scry saw in {Numbers.Count(job.Ms)} ms what the animator of {job.Key} plays by stance: {string.Join("; ", seen.Stances.Select(p => $"{Numbers.Count(p.Key)}: {Numbers.Count(p.Value.Count)} clips"))}; by what items switch on: {string.Join("; ", seen.Holds.Select(p => $"{p.Key}: {Numbers.Count(p.Value.Count)}"))}.");
+
+            // Each switch and trigger of a known use, in the first stance: emotes, seats, beds,
+            // mounts, stations, getting hurt, water. Attacks, the stance's own settings and the
+            // switches items name are seen already.
+            var first = stances.Count > 0 ? stances[0] : 0;
+            foreach (var (name, act) in Switches(probe, job.SweptHolds))
+            {
+                // A station's work number is tried for each station, all kept under the one name.
+                if (!seen.Switched.TryGetValue(name, out var clips)) seen.Switched[name] = clips = new HashSet<string>();
+                foreach (var _ in Swept(probe, a => Stand(a, first), act, clips, sideways, forward)) yield return true;
+                yield return true;
+            }
+            Log.Note($"Scry saw in {Numbers.Count(job.Ms)} ms what the animator of {job.Key} plays by stance: {string.Join("; ", seen.Stances.Select(p => $"{Numbers.Count(p.Key)}: {Numbers.Count(p.Value.Count)} clips"))}; by what items switch on: {string.Join("; ", seen.Holds.Select(p => $"{p.Key}: {Numbers.Count(p.Value.Count)}"))}; by the switches it was sent: {Numbers.Count(seen.Switched.Count)}.");
+        }
+
+        /// <summary>The settings a sweep sets itself, never pulled as switches of their own.</summary>
+        private static readonly string[] SweepSettings = { "statei", "statef", "forward_speed", "sideway_speed", "crouching", "blocking", "encumbered", "onGround", "jump" };
+
+        /// <summary>How many stations' work an animator's "crafting" number is tried for (<c>CraftingStation.m_useAnimation</c>).</summary>
+        private const int StationAnimations = 10;
+
+        /// <summary>
+        /// The switches and triggers of an animator a sweep pulls, each by what pulling it does: those
+        /// whose name tells what they are for, not an attack's (<see cref="ClipLeftovers"/>) nor
+        /// one an item names; a station's work number tried for each station's, as one.
+        /// </summary>
+        private static IEnumerable<(string Name, System.Action<Animator> Act)> Switches(Animator animator, IReadOnlyList<(string Switch, int Stance)> holds)
+        {
+            var attacks = new HashSet<string>(ClipLeftovers.Candidates(animator.parameters.Select(p => p.name)));
+            foreach (var parameter in animator.parameters)
+            {
+                var name = parameter.name;
+                if (System.Array.IndexOf(SweepSettings, name) >= 0 || attacks.Contains(name) || holds.Any(h => h.Switch == name) || ClipGroups.OfSwitch(name) == null) continue;
+                switch (parameter.type)
+                {
+                    case AnimatorControllerParameterType.Trigger: yield return (name, a => a.SetTrigger(name)); break;
+                    case AnimatorControllerParameterType.Bool: yield return (name, a => a.SetBool(name, true)); break;
+                    case AnimatorControllerParameterType.Int:
+                        for (var value = 1; value <= StationAnimations; value++)
+                        {
+                            var number = value;
+                            yield return (name, a => a.SetInteger(name, number));
+                        }
+                        break;
+                }
+            }
         }
 
         /// <summary>

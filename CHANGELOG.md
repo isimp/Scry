@@ -16,7 +16,7 @@ A fish's page tells where it lives and how deep the water must be, when it comes
 
 The Creatures tab can group by biome or by what taming allows, and the Items tab by biome, with a switch above the list; each tab keeps its own choice.
 
-A person's animations follow what it holds: the clips it moves, blocks and attacks in with that, and none of other gear's, which the filter still finds, saying what they are held with. A creature no longer lists the attacks of its kin that nothing it carries starts.
+A person's animations follow what it holds: the clips it moves, blocks and attacks in with that, and none of other gear's, which the filter still finds, saying what they are held with. A creature no longer lists the attacks of its kin that nothing it carries starts. Clips are grouped by what they are for: attacks, moving with what is held, blocking, jumping and swimming, getting hurt, emotes, riding and resting, and working.
 
 A creature whose death hurts what stands near, as the Writhan's and the lava blob's blasts do, has its death as a line of its attacks with what it deals, played by the clip it dies in. An attack the game plays no animation for says so, and why.
 

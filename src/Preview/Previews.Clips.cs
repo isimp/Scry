@@ -32,14 +32,8 @@ namespace Scry
             /// <summary>The prefab of the item whose attack each attack clip plays, by clip name, for what the strict rules keep back of it.</summary>
             public Dictionary<string, string> AttackItems = new Dictionary<string, string>();
 
-            /// <summary>Whether each clip plays any sound or effect, as worked out when first asked.</summary>
-            public Dictionary<string, bool> Sounding = new Dictionary<string, bool>();
-
             /// <summary>False while the animator is still being watched.</summary>
             public bool Ready = true;
-
-            /// <summary>Whether <see cref="Sounding"/> is known for every clip, worked out a little each frame.</summary>
-            public bool AllSounding;
 
             /// <summary>The triggers the attacks of what it carries now are started by (<see cref="ClipLeftovers"/>).</summary>
             public List<string> Pulled = new List<string>();
@@ -52,6 +46,16 @@ namespace Scry
 
             /// <summary>The clips it plays only with other gear in hand, each with the stance that gear is held in (<see cref="HeldClips"/>); set with <see cref="Unplayed"/>.</summary>
             public Dictionary<string, int> OtherGear;
+
+            /// <summary>What each clip is for (<see cref="ClipGroups"/>); set with <see cref="Unplayed"/>.</summary>
+            public Dictionary<string, ClipGroup> Groups;
+
+            /// <summary>The stance it stands in, for its moving clips' heading; -1 for an animator without stances.</summary>
+            public int Stance = -1;
+
+            /// <summary>Where the game's own actions lead, and the clips it plays left alone, as the probe saw them.</summary>
+            public IReadOnlyDictionary<string, IReadOnlyList<string>> ActionsSeen = new Dictionary<string, IReadOnlyList<string>>();
+            public ICollection<string> Idles = new HashSet<string>();
         }
 
         /// <summary>
@@ -63,7 +67,7 @@ namespace Scry
             get
             {
                 var plays = StagePlays(out _);
-                return plays != null && (!plays.Ready || !plays.AllSounding || plays.Unplayed == null);
+                return plays != null && (!plays.Ready || plays.Unplayed == null);
             }
         }
 
@@ -73,24 +77,6 @@ namespace Scry
             var animator = ClipPlayer.AnimatorOf(Stage.Subject);
             ears = animator != null ? animator.GetComponent<AnimationEars>() : null;
             return ears != null ? PlaysOf(ears.Prefab, Stage.Subject, wait: false) : null;
-        }
-
-        /// <summary>
-        /// Works out, a few milliseconds a frame, whether each of the stage copy's clips plays
-        /// anything, so the panel never works out a person's hundreds of clips all at once.
-        /// </summary>
-        private static void SortSomeClips()
-        {
-            var plays = StagePlays(out _);
-            if (plays == null || !plays.Ready || plays.AllSounding) return;
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            foreach (var clip in Clips())
-            {
-                if (plays.Sounding.ContainsKey(clip.name)) continue;
-                if (watch.ElapsedMilliseconds >= SortingBudgetMs) return;
-                ClipSounds(clip);
-            }
-            plays.AllSounding = true;
         }
 
         /// <summary>
@@ -134,6 +120,8 @@ namespace Scry
             }
             // What it plays now, as its own attacks and actions, is never other gear's.
             foreach (var clip in plays.Attacks.Keys.Concat(plays.Actions.Keys)) held.Remove(clip);
+            plays.Groups = GroupsOf(plays, swept);
+            plays.Stance = HasStance(animator) ? StanceNow(animator) : -1;
             plays.OtherGear = held;
             plays.Unplayed = unplayed;
             if (unplayed.Count > 0) Log.Note($"Scry leaves out {Numbers.Count(unplayed.Count)} clips {ears.Prefab.name} never plays, as nothing it carries starts them: {string.Join(", ", unplayed.OrderBy(c => c, System.StringComparer.Ordinal))}.");
@@ -142,6 +130,39 @@ namespace Scry
 
         /// <summary>Where each attack trigger of a prefab's animator leads, by prefab and controller, seen once (<see cref="SortLeftovers"/>).</summary>
         private static readonly Dictionary<string, Dictionary<string, IReadOnlyList<string>>> LeadsOf = new Dictionary<string, Dictionary<string, IReadOnlyList<string>>>();
+
+        /// <summary>
+        /// What each of the stage copy's clips is for (<see cref="ClipGroups"/>): its attacks by
+        /// their tags; moving, blocking and jumping by the sweep's runs; the rest by the switches
+        /// the sweep pulled, the game's own actions the probe watched and the clips found by name;
+        /// what it idles in is moving.
+        /// </summary>
+        private static Dictionary<string, ClipGroup> GroupsOf(ClipPlays plays, Probed swept)
+        {
+            var attacks = new HashSet<string>(plays.Tags.Where(t => ClipWords.IsAttack(t.Value)).Select(t => t.Key), System.StringComparer.Ordinal);
+            var switched = new Dictionary<string, HashSet<string>>(System.StringComparer.Ordinal);
+            void Add(string name, IEnumerable<string> clips)
+            {
+                if (!switched.TryGetValue(name, out var kept)) switched[name] = kept = new HashSet<string>(System.StringComparer.Ordinal);
+                kept.UnionWith(clips);
+            }
+            foreach (var pair in swept.Switched) Add(pair.Key, pair.Value);
+            foreach (var pair in plays.ActionsSeen) Add(pair.Key, pair.Value);
+            foreach (var clip in plays.ByName.Keys) Add(ClipGroups.ByName(clip), new[] { clip });
+            return ClipGroups.Sort(ClipNames(), attacks, swept.Visits, switched, plays.Idles);
+        }
+
+        /// <summary>Whether an animator has stance settings (statei or statef).</summary>
+        private static bool HasStance(Animator animator) =>
+            animator.parameters.Any(p => (p.name == "statei" && p.type == AnimatorControllerParameterType.Int) || (p.name == "statef" && p.type == AnimatorControllerParameterType.Float));
+
+        /// <summary>What each clip of the stage copy is for, and the stance its moving clips go with (-1 for none); null while not worked out, or for a copy without.</summary>
+        public static IReadOnlyDictionary<string, ClipGroup> ClipGroupsNow(out int stance)
+        {
+            var plays = StagePlays(out _);
+            stance = plays?.Stance ?? -1;
+            return plays?.Groups;
+        }
 
         /// <summary>The stance a copy's animator stands in, as the game numbers stances (<c>ItemDrop.ItemData.AnimationState</c>).</summary>
         private static int StanceNow(Animator animator)
@@ -215,26 +236,6 @@ namespace Scry
 
         /// <summary>The clips of the stage copy it never plays (<see cref="ClipLeftovers"/>); null while not worked out, or for a copy without.</summary>
         public static HashSet<string> ClipsUnplayed() => StagePlays(out _)?.Unplayed;
-
-        /// <summary>How long working out the clips may take each frame.</summary>
-        private const long SortingBudgetMs = 4;
-
-        /// <summary>
-        /// Whether a clip of the stage copy plays any sound or effect: of its own, with its attack
-        /// or the game's actions, found by name, or heard around it. Worked out once per clip.
-        /// </summary>
-        public static bool ClipSounds(AnimationClip clip)
-        {
-            if (clip == null) return false;
-            var plays = StagePlays(out var ears);
-            if (plays == null || !plays.Ready) return false;
-            if (!plays.Sounding.TryGetValue(clip.name, out var sounds))
-            {
-                sounds = ears.Members(clip).Count > 0 || ears.ByNameMembers(clip).Count > 0 || ears.AroundMembers(clip).Count > 0;
-                plays.Sounding[clip.name] = sounds;
-            }
-            return sounds;
-        }
 
         private static readonly Dictionary<string, string> NoTags = new Dictionary<string, string>();
 
@@ -578,6 +579,8 @@ namespace Scry
             plays.Attacks = ClipAttacks.Match(attacks, seen.Triggers, clips.Select(c => c.name), striking);
             plays.Pulled = attacks.Select(a => a.Item1).Distinct().ToList();
             plays.Holding = items.SelectMany(Switches).Distinct().ToList();
+            plays.ActionsSeen = seen.Actions;
+            plays.Idles = seen.Idle;
             plays.Actions = ClipActions.Match(actions, seen.Actions, plays.Attacks.Keys);
             var body = prefab.GetComponent<Character>();
             plays.Around = AroundOf(prefab, seen, plays);

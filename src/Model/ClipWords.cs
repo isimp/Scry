@@ -52,6 +52,20 @@ namespace Scry
         /// <summary>The tip of that chip.</summary>
         public const string KeptClipsTip = "They play once each attack hit you, or you saw it begun up close";
 
+        /// <summary>What each group of clips is called (<see cref="ClipGroups"/>), in the order of <see cref="ClipGroup"/>.</summary>
+        private static readonly string[] GroupNames =
+        {
+            "Attacks", "Moving", "Blocking", "Jumping, falling, swimming", "Hurt and dying", "Emotes", "Riding and resting", "Working", "Other",
+        };
+
+        /// <summary>A group's heading with how many clips it holds; moving says what with, for a selection that holds things.</summary>
+        public static string GroupHeading(ClipGroup group, int clips, int stance)
+        {
+            var name = GroupNames[(int)group];
+            if (group == ClipGroup.Moving && stance >= 0 && stance < HeldWith.Length) name += " with " + HeldWith[stance];
+            return name + "  " + Numbers.Count(clips);
+        }
+
         /// <summary>The heading of the clips played only with other gear in hand (<see cref="HeldClips"/>), listed only while the clips are filtered.</summary>
         public const string OtherGearHeading = "With other gear";
 

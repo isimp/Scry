@@ -43,6 +43,9 @@ namespace Scry
             p.Check(rows.All(r => !r.Text.StartsWith("Attack Explosion", System.StringComparison.Ordinal)), "the list leaves it out");
             rows = ScryPanel.ClipRowsForTest("explosion");
             p.Check(rows.Any(r => r.Text == ClipWords.Unplayed("Attack Explosion")), "a filter finds it, saying it is not played", string.Join(" | ", rows.Select(r => r.Text)));
+            var groups = Previews.ClipGroupsNow(out _);
+            p.Check(groups != null && groups.TryGetValue("Walk", out var walk) && walk == ClipGroup.Moving && groups.TryGetValue("Death Explosion", out var blast) && blast == ClipGroup.Attacks,
+                "its clips are grouped: walking is moving, its blast an attack", groups != null ? string.Join(", ", groups.Select(g => g.Key + " " + g.Value)) : "not worked out");
             yield return PictureOf(p, "animations", "the Writhan's clips");
 
             var queen = Pick(Kind.Creature, "SeekerQueen");
@@ -91,6 +94,13 @@ namespace Scry
             var found = ScryPanel.ClipRowsForTest("pickaxe");
             p.Check(found.Any(r => r.Text == ClipWords.OtherGear("Run New Pickaxe", (int)ItemDrop.ItemData.AnimationState.TwoHandedClub)), "a filter finds a pickaxe's run, saying what it is held with",
                 string.Join(" | ", found.Select(r => r.Text)));
+            var groups = Previews.ClipGroupsNow(out var stance);
+            ClipGroup Of(string clip) => groups != null && groups.TryGetValue(clip, out var g) ? g : (ClipGroup)(-1);
+            p.Check(stance == (int)ItemDrop.ItemData.AnimationState.OneHanded && Of("Run New Sword Right") == ClipGroup.Moving && Of("Block idle") == ClipGroup.Blocking
+                && Of("player_stagger") == ClipGroup.Hurt && Of("Workbench") == ClipGroup.Working && Of("Player_Sit_Chair") == ClipGroup.Resting,
+                "its clips are grouped by what they are for: moving with a sword, blocking, hurt, working, resting", groups != null ? string.Join(", ", groups.GroupBy(g => g.Value).Select(g => $"{g.Key} {Numbers.Count(g.Count())}")) : "not worked out");
+            p.Check(groups != null && groups.Values.Contains(ClipGroup.Emotes) && groups.Values.Contains(ClipGroup.Airborne), "emotes and jumping have groups of their own");
+            p.Note("left in Other: " + (groups != null ? string.Join(", ", groups.Where(g => g.Value == ClipGroup.Other && !(other?.ContainsKey(g.Key) ?? false)).Select(g => g.Key)) : "none"));
             yield return PictureOf(p, "animations", "the person's clips holding a sword");
 
             var person = Pick(Kind.Creature, "Player");
