@@ -27,11 +27,21 @@ namespace Scry
                 return zdo != null && zdo.GetLong(ZDOVars.s_pregnant) != 0L;
             }, out var pregnant) && pregnant;
 
-        /// <summary>A pregnancy that ended in this call: a birth, naming the young creature it brought.</summary>
+        /// <summary>A pregnancy that ended in this call: a birth, naming the young it brought, a creature or the egg a hen lays (<see cref="BirthYoung"/>).</summary>
         public static void Procreated(Procreation procreation, bool wasPregnant)
         {
             if (!wasPregnant || Pregnant(procreation)) return;
-            Guard.Run(Feature.CompendiumTogether, "noting a birth seen", () => WorldEvents.Tell(Happened.Born, procreation, Newest(procreation.m_offspring, procreation.m_noPartnerOffspring)));
+            Guard.Run(Feature.CompendiumTogether, "noting a birth seen", () => WorldEvents.Tell(Happened.Born, procreation, Young(procreation.m_offspring, procreation.m_noPartnerOffspring)));
+        }
+
+        /// <summary>The young a birth brought, of the kinds it could bring: a creature the game made last, else the one item it could have made (<see cref="BirthYoung"/>).</summary>
+        private static string Young(params GameObject[] kinds)
+        {
+            var all = Character.GetAllCharacters();
+            var last = all.Count > 0 && all[all.Count - 1] != null ? Utils.GetPrefabName(all[all.Count - 1].gameObject) : null;
+            var told = new List<(string, bool)>();
+            foreach (var kind in kinds) if (kind != null) told.Add((Utils.GetPrefabName(kind), kind.GetComponent<Character>() != null));
+            return BirthYoung.Named(last, told);
         }
 
         /// <summary>

@@ -63,9 +63,9 @@ namespace Scry
                 yield break;
             }
             var chains = X.Catalog.SelectMany(e => Chains.Of(e.Name).Concat(Chains.Of(e.Key))).Distinct().ToList();
-            var partly = chains.Where(c => c.Steps.SelectMany(s => s).Any(X.LeavesOut) && c.Steps.SelectMany(s => s).Any(k => !X.LeavesOut(k))).ToList();
+            var partly = chains.Where(c => c.Steps.SelectMany(s => s).Any(k => X.LeavesOut(c, k)) && c.Steps.SelectMany(s => s).Any(k => !X.LeavesOut(c, k))).ToList();
             p.Note($"{Numbers.Count(chains.Count)} chains, {Numbers.Count(partly.Count)} of them the character played has met partly, now shown with a smudge for the rest: "
-                + string.Join("; ", partly.Take(16).Select(c => c.Title + ": " + string.Join(" > ", c.Steps.Select(s => string.Join("/", s.Select(k => X.LeavesOut(k) ? CompendiumWords.Hidden : k)))))));
+                + string.Join("; ", partly.Take(16).Select(c => c.Title + ": " + string.Join(" > ", c.Steps.Select(s => string.Join("/", s.Select(k => X.LeavesOut(c, k) ? CompendiumWords.Hidden : k)))))));
         }
     }
 }

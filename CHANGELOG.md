@@ -4,6 +4,8 @@
 
 A place shown on the stage stands on the ground it digs for itself. A tar pit sits in its bowl with its tar settled in it, small tar floating and big deposits on the pit's floor, and a Burial Chambers' entrance in its stair pit, where before the flat stage floor covered them.
 
+Under *Strict*, a chain names each step once you saw it go to the step next to it, so it reads the same on every page, and a hen seen laying is paired with its egg.
+
 ## 0.3.1
 
 The compendium follows what the game itself shows. A recipe's materials, a piece's cost or a store's wares come with the thing once the game lists them for your character, under *Loose* and *Strict* alike.

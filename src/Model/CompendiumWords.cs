@@ -533,8 +533,11 @@ namespace Scry
         public static string ShowsOnce(string what, string proof, bool rideable) =>
             rideable && proof == EntryKeys.Did(Deed.Killed) ? $"{what} shows once you have killed or ridden one" : ShowsOnce(what, proof);
 
-        /// <summary>The hover of a name kept back in a table's cell or a chain's chip under the strict rules.</summary>
+        /// <summary>The hover of a name kept back in a table's cell under the strict rules.</summary>
         public const string NotSeenTogetherTip = "Named once you see it together with this page";
+
+        /// <summary>The hover of a chain's step kept back under the strict rules, named by the chain's own links (<see cref="Chain.Linked"/>).</summary>
+        public const string ChainStepKeptTip = "Named once you see it go to the step before or after it";
 
         /// <summary>The hover of a section's line counting what the rules left out: what names them here.</summary>
         public static string LeftOutTip(bool strict) =>

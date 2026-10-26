@@ -84,6 +84,50 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AChainReadsTheSameOnEveryPageOfIt()
+        {
+            // A hen's breeding chain, egg hatching and chick growing up seen, its laying not: the hen
+            // is named for its growing up, the egg and chick for its hatching, on each page alike.
+            var hen = E("Hen", Kind.Creature);
+            var chicken = E("Chicken", Kind.Creature);
+            var egg = E("ChickenEgg", Kind.Item);
+            var explorer = new Explorer(new[] { hen, chicken, egg }.ToList(), new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+            var view = new CompendiumView(explorer.Entries);
+            var book = new CompendiumBook();
+            foreach (var e in new[] { hen, chicken, egg }) book.Raise(e.Key, KnownLevel.Known);
+            book.Witness(chicken.Key, egg.Key);
+            book.Witness(chicken.Key, hen.Key);
+            view.Tell(book, CompendiumRule.Strict);
+            explorer.Know(view);
+            var chain = new Chain { Title = ChainWords.Breeding, Steps = new List<string[]> { new[] { "Hen" }, new[] { "ChickenEgg" }, new[] { "Chicken" }, new[] { "Hen" } } };
+            foreach (var page in new[] { hen, chicken, egg })
+            {
+                explorer.Select(page);
+                Assert.All(new[] { hen, chicken, egg }, step => Assert.False(explorer.LeavesOut(chain, step.Key), $"{step.Key} on {page.Key}'s page"));
+            }
+
+            // Only the hatching seen: the hen, of no link seen, is left out on the egg's and the chick's pages alike.
+            var hatched = new CompendiumBook();
+            foreach (var e in new[] { hen, chicken, egg }) hatched.Raise(e.Key, KnownLevel.Known);
+            hatched.Witness(chicken.Key, egg.Key);
+            view.Tell(hatched, CompendiumRule.Strict);
+            explorer.Know(view);
+            foreach (var page in new[] { chicken, egg })
+            {
+                explorer.Select(page);
+                Assert.True(explorer.LeavesOut(chain, hen.Key), $"Hen on {page.Key}'s page");
+                Assert.False(explorer.LeavesOut(chain, page == egg ? chicken.Key : egg.Key));
+            }
+            // On its own page a thing is never left out; under the loose rules nothing met is.
+            explorer.Select(hen);
+            Assert.False(explorer.LeavesOut(chain, hen.Key));
+            view.Tell(hatched, CompendiumRule.Loose);
+            explorer.Know(view);
+            explorer.Select(egg);
+            Assert.False(explorer.LeavesOut(chain, hen.Key));
+        }
+
+        [Fact]
         public void WhatTheGameShowsComesWithAThingOnlyOnceTheGameListsItsRecipe()
         {
             // The crafting menu and the hammer list a recipe only once the character knows it (the

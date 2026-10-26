@@ -282,6 +282,21 @@ namespace Scry
         /// </summary>
         public bool LeavesOut(string key) => LeavesOut(key, false);
 
+        /// <summary>
+        /// Whether a chain's step is left out of the page shown: one not met as anywhere, and under
+        /// the strict rules one not seen together with a step next to it in the chain (<see cref="Chain.Linked"/>),
+        /// whichever page the chain is shown on; never the page's own.
+        /// </summary>
+        public bool LeavesOut(Chain chain, string key)
+        {
+            if (!NamesOnlyMet || chain == null) return false;
+            var other = Find(key);
+            if (other == null || other == _selected || other.Kind == Kind.Mod) return false;
+            if (_view.Of(other) < KnownLevel.Seen) return !NamesAllHeld(other);
+            if (other.Kind == Kind.Skill || !LeavingOut) return false;
+            return !chain.Linked((a, b) => _view.Related(Find(a), Find(b))).Contains(key);
+        }
+
 
         /// <summary>
         /// As <see cref="LeavesOut(string)"/>, but a fact the game shows the moment a thing is known

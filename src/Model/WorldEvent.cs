@@ -292,7 +292,8 @@ namespace Scry
         /// <summary>
         /// The creature a birth or a hatching brought, or a young one grew into, named as the
         /// event's other thing: known, seen born or seen grow up, and seen together with what it
-        /// came of. None where the event names none, as a hen's egg laid alone, an item.
+        /// came of, as a hen with the egg it lays. None where the event names none, as a birth
+        /// whose young cannot be told (<see cref="BirthYoung"/>).
         /// </summary>
         private static void YoungKnown(WorldEvent told, CompendiumBook book)
         {

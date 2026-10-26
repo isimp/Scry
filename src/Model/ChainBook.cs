@@ -12,6 +12,29 @@ namespace Scry
 
         /// <summary>The first step holding a prefab or key, or -1.</summary>
         public int StepOf(string key) => Steps.FindIndex(s => s.Contains(key));
+
+        /// <summary>
+        /// The keys the chain names under the strict rules: each seen together with a step next to it,
+        /// the way the chain goes, wherever it stands in the chain, so the chain reads the same on
+        /// every page of it.
+        /// </summary>
+        public HashSet<string> Linked(Func<string, string, bool> together)
+        {
+            var linked = new HashSet<string>(StringComparer.Ordinal);
+            for (var s = 0; s + 1 < Steps.Count; s++)
+            {
+                foreach (var a in Steps[s])
+                {
+                    foreach (var b in Steps[s + 1])
+                    {
+                        if (!together(a, b)) continue;
+                        linked.Add(a);
+                        linked.Add(b);
+                    }
+                }
+            }
+            return linked;
+        }
     }
 
     /// <summary>

@@ -196,6 +196,7 @@ namespace Scry.Tests
 
         [Theory]
         [InlineData(Happened.Born, "Lox", "Lox_Calf", CameBy.Born)]
+        [InlineData(Happened.Born, "Hen", "ChickenEgg", CameBy.Born)]
         [InlineData(Happened.Hatched, "ChickenEgg", "Chicken", CameBy.Born)]
         [InlineData(Happened.GrewUp, "Chicken", "Hen", CameBy.GrewUp)]
         public void TheYoungSeenComeAboutComesToBeKnown(object what, string thing, string young, object way)
@@ -209,7 +210,7 @@ namespace Scry.Tests
             Assert.True(book.Witnessed(thing, young));
             // Too far away to see, nothing.
             Assert.Equal(KnownLevel.Unknown, Told(Event((Happened)what, thing, 40f, with: young)).Level(young));
-            // Told with no young (a hen's egg laid alone is an item, no creature), only the deed shows.
+            // Told with no young (a birth whose young could not be told), only the deed shows.
             Assert.Equal(EntryKeys.Did(EventRule.DeedOf((Happened)what)), Told(Event((Happened)what, thing, 10f)).FoundOutOf(thing));
         }
 

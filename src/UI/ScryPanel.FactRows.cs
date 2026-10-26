@@ -274,8 +274,9 @@ namespace Scry
 
         /// <summary>
         /// A chain's steps, an arrow between each, the page's own lit and each other one going to its
-        /// page; with the compendium on, a step not met reads a smudge, going nowhere, so the chain stands
-        /// whole whatever the character met of it.
+        /// page; with the compendium on, a step not met, or under the strict rules not seen going to a
+        /// step next to it, reads a smudge, going nowhere, so the chain stands whole whatever the
+        /// character met of it and reads the same on every page of it.
         /// </summary>
         private static float ChainRow(Explorer explorer, Facts.Row row, float width, float y)
         {
@@ -297,7 +298,7 @@ namespace Scry
                 foreach (var key in row.Chain.Steps[s])
                 {
                     var here = shown != null && (shown.Name == key || shown.Key == key);
-                    var unmet = !here && explorer.NamesOnlyMet && explorer.LeavesOut(key);
+                    var unmet = !here && explorer.LeavesOut(row.Chain, key);
                     drawn.Add((key, unmet));
                     if (unmet)
                     {
@@ -309,7 +310,7 @@ namespace Scry
                         {
                             LinkChip(hidden, "", null, false, false);
                             Smudge(new Rect(hidden.x + U(12f), hidden.y, SmudgeWidth, hidden.height));
-                            if (hidden.Contains(Event.current.mousePosition)) AskTip("chain-kept:" + key, CompendiumWords.NotSeenTogetherTip);
+                            if (hidden.Contains(Event.current.mousePosition)) AskTip("chain-kept:" + key, CompendiumWords.ChainStepKeptTip);
                         }
                         continue;
                     }
