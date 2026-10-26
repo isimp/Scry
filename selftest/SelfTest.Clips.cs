@@ -72,7 +72,7 @@ namespace Scry
         }
 
         /// <summary>
-        /// The person, bare and holding a sword: each lists the clips it moves and attacks in with
+        /// The person holding a sword, and as its look shows it: each lists the clips it moves and attacks in with
         /// what it holds, and leaves out those of other gear, which a filter finds saying what they
         /// are held with.
         /// </summary>
@@ -112,8 +112,13 @@ namespace Scry
                 yield return Until(() => CopyOf(person) != null, 10);
                 yield return Until(() => !Previews.ClipsSorting, 120);
                 var bare = Previews.ClipsOtherGear();
-                p.Check(bare != null && !bare.ContainsKey("Run New") && bare.ContainsKey("Run New Sword Right"), "bare-handed it runs as with bare hands", bare != null ? $"{Numbers.Count(bare.Count)} with other gear" : "not worked out");
-                yield return PictureOf(p, "animations", "the bare person's clips");
+                // The person as shown holds what its look gives it (a torch): it moves as with that, the sword's run another's.
+                var shownGroups = Previews.ClipGroupsNow(out var shownStance);
+                var moving = shownGroups != null ? shownGroups.Where(g => g.Value == ClipGroup.Moving).Select(g => g.Key).ToList() : new System.Collections.Generic.List<string>();
+                var othersOwn = bare != null ? moving.Where(bare.ContainsKey).ToList() : moving;
+                p.Check(bare != null && moving.Count > 0 && othersOwn.Count == 0 && bare.ContainsKey("Run New Sword Right"), "the person as shown moves as with what it holds, a sword's run another's",
+                    bare != null ? $"stance {Numbers.Count(shownStance)}, {Numbers.Count(moving.Count)} moving clips, of them counted another's: {string.Join(", ", othersOwn.Take(6))}; the sword's run {(bare.ContainsKey("Run New Sword Right") ? "another's" : "its own")}" : "not worked out");
+                yield return PictureOf(p, "animations", "the person's clips as its look shows it");
             }
         }
     }

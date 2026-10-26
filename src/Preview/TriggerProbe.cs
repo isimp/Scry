@@ -231,10 +231,10 @@ namespace Scry
             return key;
         }
 
-        /// <summary>Whether a probe of this prefab is under way, whatever stance it is in.</summary>
+        /// <summary>Whether a probe of this prefab's triggers is under way, whatever stance it is in; a sweep of its stances, which no attack waits for, aside.</summary>
         public static bool IsBusy(string prefab)
         {
-            foreach (var key in Jobs.Keys) if (Of(key, prefab)) return true;
+            foreach (var pair in Jobs) if (!pair.Value.Sweep && Of(pair.Key, prefab)) return true;
             return false;
         }
 

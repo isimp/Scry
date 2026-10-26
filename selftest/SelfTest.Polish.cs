@@ -130,6 +130,11 @@ namespace Scry
                 p.Note("no jump measured: the character is not standing free on the ground");
                 yield break;
             }
+            // The game's jump grows or shrinks by what the character has on, is weaker tired, and stops at a roof (Character.Jump).
+            var lifted = Vector3.up;
+            player.GetSEMan().ApplyStatusEffectJumpMods(ref lifted);
+            var room = Physics.Raycast(player.transform.position + Vector3.up * 1.8f, Vector3.up, out var roof, 4f, LayerMask.GetMask("Default", "static_solid", "piece", "terrain")) ? roof.distance : 4f;
+            var unchanged = Mathf.Abs(lifted.y - 1f) < 0.001f && player.HaveStamina(player.m_jumpStaminaUsage) && room >= 3f;
             var skills = player.GetSkills();
             var skill = skills != null ? skills.GetSkillList().FirstOrDefault(s => s.m_info.m_skill == Skills.SkillType.Jump) : null;
             var level = skill != null ? skill.m_level : 0f;
@@ -160,7 +165,8 @@ namespace Scry
             var line = $"jump at Jump {Numbers.Count((long)Math.Floor(YourSkills.LevelOf(Skills.SkillType.Jump)))}: rose {Numbers.Amount(rose, 2)} m, the force and gravity ({Numbers.Amount(player.m_jumpForce, 1)} × {Numbers.Amount(share, 2)}, {Numbers.Amount(gravity, 2)} m/s²) tell {Numbers.Amount(told, 2)} m";
             p.Note(line);
             report.AppendLine().AppendLine(line);
-            if (rose > 0.05f && told > 0f) p.Check(Mathf.Abs(rose - told) <= told * 0.1f, "a real jump rises within a tenth of the height its force and gravity tell", line);
+            if (!unchanged) p.Note($"the jump is not checked: {(Mathf.Abs(lifted.y - 1f) >= 0.001f ? "something the character has on changes it" : room < 3f ? $"a roof {Numbers.Amount(room + 1.8f, 1)} m above stops it" : "the character was too tired to jump full")}");
+            else if (rose > 0.05f && told > 0f) p.Check(Mathf.Abs(rose - told) <= told * 0.1f, "a real jump rises within a tenth of the height its force and gravity tell", line);
             else p.Note("the jump did not leave the ground, so nothing was compared");
         }
     }
