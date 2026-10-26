@@ -94,7 +94,7 @@ namespace Scry
         }
 
         /// <summary>The world as the book knows it: its id, as the game keeps the character's map of it; none outside a world.</summary>
-        public static string World => ZNet.instance != null ? Stored.Count(ZNet.instance.GetWorldUID()) : null;
+        public static string World => ZNet.instance != null && ZNet.instance.GetWorld() != null ? Stored.Count(ZNet.instance.GetWorldUID()) : null;
 
         /// <summary>Whether the explored map is being read now.</summary>
         public static bool Reading => _reading != null;

@@ -10,7 +10,8 @@ namespace Scry
 {
     /// <summary>
     /// While Valheim's large map is open, a mark of Scry's on the entrance of each dungeon
-    /// the character has been in in the world played (<see cref="DungeonWalks"/>), and of each lying
+    /// the character has been in in the world played (<see cref="DungeonWalks"/>), of each place whose
+    /// rooms stand in the world it stood in, as Hildir's Sealed Tower, and of each lying
     /// in a ground whose pin is on (<see cref="DungeonMarks"/>), placed as the game
     /// places its pins and as big as one (<see cref="MapMarks"/>), on the layer of the pins' names
     /// so no name covers it. The pointer never reaches that layer through the game's event system,
@@ -18,7 +19,7 @@ namespace Scry
     /// game's map and tips read it, with no camera, and the map's own click, made on the map under
     /// it, is handed to the mark under the pointer (<see cref="MapMarkClick"/>), so a click on a mark
     /// never ticks or adds a pin of the player's. A click closes the map and opens Scry on the
-    /// dungeon's page, its map on the stage where anyone walked it, the page alone for an entrance.
+    /// dungeon's page, its map on the stage where anyone walked it, the page alone for a place stood in.
     /// Its name and who walked it how far stand under it as
     /// the game names a pin, in a copy of the game's pin name, while the pointer rests on it, drawn
     /// above every other name on the map, and
@@ -222,7 +223,7 @@ namespace Scry
             if (!_askedServer)
             {
                 _askedServer = true;
-                foreach (var location in Kept.Select(k => k.Map.Location).Distinct()) GroupMapsLink.Ask(location);
+                foreach (var location in Kept.Where(k => k.Look != MarkLook.Visited).Select(k => k.Map.Location).Distinct()) GroupMapsLink.Ask(location);
             }
 
             var image = large ? map.m_mapImageLarge : map.m_mapImageSmall;
@@ -252,7 +253,8 @@ namespace Scry
                     mark.Id = kept.Id;
                     mark.Look = kept.Look;
                     mark.Glyph = glyph;
-                    if (mark.Picture != null) mark.Picture.sprite = ScryPanel.MarkPicture(glyph, kept.Look);
+                    // A place stood in is drawn as one you walked.
+                    if (mark.Picture != null) mark.Picture.sprite = ScryPanel.MarkPicture(glyph, kept.Look == MarkLook.Visited ? MarkLook.Yours : kept.Look);
                     mark.Said = Said(kept);
                     mark.Plain = Shown(kept.Map.Location);
                     mark.Showing = null;
@@ -376,6 +378,7 @@ namespace Scry
                     return together > byYou ? DungeonMapWords.TogetherLabel(name, together, of, byYou, accent) : DungeonMapWords.MarkLabel(name, walked, rooms, accent);
                 case MarkLook.Server:
                 case MarkLook.ServerWhole: return DungeonMapWords.ServerLabel(name, walked, rooms, accent, kept.Map.Traced.Count);
+                case MarkLook.Visited: return DungeonMapWords.VisitedLabel(name, accent);
                 default: return DungeonMapWords.EntranceLabel(name, kept.Map.Walked.Count > 0, ColorUtility.ToHtmlStringRGB(Skin.Faint));
             }
         }
@@ -482,11 +485,15 @@ namespace Scry
             HideName();
             Minimap.instance.OrNull()?.SetMapMode(Minimap.MapMode.Small);
             var laidOut = kept.Rooms != null && kept.Rooms.Count > 0;
-            if (laidOut) ExampleLayouts.OpenMapWhenShown(kept.Location, id);
-            else ExampleLayouts.StandInFor(kept.Location);
+            // A place stood in opens its page alone, as it stands.
+            if (look != MarkLook.Visited)
+            {
+                if (laidOut) ExampleLayouts.OpenMapWhenShown(kept.Location, id);
+                else ExampleLayouts.StandInFor(kept.Location);
+            }
             // Its page at once where the catalog is read, else once it is.
             Session.ShowEntry(EntryKeys.For(Kind.Location, kept.Location));
-            Stage.Inside = true;
+            if (look != MarkLook.Visited) Stage.Inside = true;
             OpenedForTest = (id, look, laidOut);
         }
 

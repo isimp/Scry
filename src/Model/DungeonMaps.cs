@@ -257,6 +257,19 @@ namespace Scry
             return map;
         }
 
+        /// <summary>
+        /// A place whose rooms stand in the world stood in on a game's day: kept by where it stands,
+        /// without rooms, its first day the first visit's and its last moved on; true where it was
+        /// kept or its last day moved.
+        /// </summary>
+        public bool Visited(string id, string location, Vec3 at, int day)
+        {
+            if (string.IsNullOrEmpty(id)) return false;
+            var kept = _maps.ContainsKey(id);
+            Keep(id, location, new List<(int, Vec3, Vec3)>(), at, default, Quat.Identity, day);
+            return !kept || Visit(id, day);
+        }
+
         /// <summary>A kept dungeon stood in on a game's day: its last day moved on to it, never back, its first left as it is; true when it moved.</summary>
         public bool Visit(string id, int day)
         {
@@ -478,6 +491,9 @@ namespace Scry
                     if (rooms == null || rooms.Count == 0)
                     {
                         text.Append(EntranceLine).Append('\t').Append(Stored.Escaped(id)).Append('\t').Append(Stored.Escaped(location ?? "")).Append('\t').Append(Point(entrance)).Append('\n');
+                        // A place in the world stood in keeps its days, which an older Scry reads for it as for any.
+                        if (days.FirstDay >= 0 || days.LastDay >= 0)
+                            text.Append(DaysLine).Append('\t').Append(Stored.Escaped(id)).Append('\t').Append(Stored.Count(days.FirstDay)).Append('\t').Append(Stored.Count(days.LastDay)).Append('\n');
                         continue;
                     }
                     text.Append(Stored.Escaped(id)).Append('\t')
@@ -811,6 +827,9 @@ namespace Scry
         /// <summary>The words under the mark of a dungeon's entrance alone: whether anyone on this server walked it, With insides then showing what was walked.</summary>
         public static string EntranceLabel(string name, bool walkedOnServer, string colour) =>
             Named(name, colour, walkedOnServer ? "Walked on this server; With insides shows what was walked" : "Nobody on this server walked it");
+
+        /// <summary>The words under the mark of a place in the world you stood in: its name, and that you were there.</summary>
+        public static string VisitedLabel(string name, string colour) => Named(name, colour, "You were here");
 
         private static string Named(string name, string colour, string line) => $"<size=130%>{name}</size>\n<size=115%><color=#{colour}>{line}</color></size>";
 

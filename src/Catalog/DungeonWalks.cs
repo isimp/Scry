@@ -119,6 +119,7 @@ namespace Scry
             if (_standIn != null || Time.unscaledTime < _next) return;
             _next = Time.unscaledTime + Every;
             var player = Player.m_localPlayer;
+            if (player != null && !player.InInterior()) VisitInWorld(player);
             var world = player != null && player.InInterior() ? WorldDungeons.AtPlayer() : null;
             if (world == null || world.Id == null)
             {
@@ -137,6 +138,24 @@ namespace Scry
             // The server hears of each visit and each new day in it, so its last day moves as anyone walks it, as well as of each room new to this walk.
             var walked = YouAt >= 0 && Maps.Walk(world.Id, YouAt);
             if (walked || entered || newDay) GroupMapsLink.Walked(world.Id);
+        }
+
+        /// <summary>
+        /// A place built as a dungeon whose rooms stand in the world (<see cref="DungeonKinds.InWorld"/>),
+        /// as Hildir's Sealed Tower, stood in as the compendium counts it (<c>Location.GetLocation</c>):
+        /// kept by where it stands, with the day, no rooms counted; never told to the server, as it
+        /// holds no walk.
+        /// </summary>
+        private static void VisitInWorld(Player player)
+        {
+            var place = Location.GetLocation(player.transform.position);
+            if (place == null) return;
+            var name = Utils.GetPrefabName(place.gameObject);
+            var world = CompendiumMap.World;
+            if (world == null || !DungeonKinds.InWorld(name)) return;
+            var at = place.transform.position;
+            var day = EnvMan.instance != null ? EnvMan.instance.GetDay() : -1;
+            Maps.Visited(DungeonMaps.EntranceIdOf(world, at.x, at.z), name, new Vec3(at.x, at.y, at.z), day);
         }
 
         /// <summary>Writes the maps once they changed, at most every ten seconds unless asked to now (<see cref="CompendiumBook.WriteEvery"/>), on a worker thread.</summary>

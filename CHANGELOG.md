@@ -6,6 +6,8 @@ A place shown on the stage stands on the ground it digs for itself. A tar pit si
 
 Under *Strict*, a chain names each step once you saw it go to the step next to it, so it reads the same on every page, and a hen seen laying is paired with its egg.
 
+Hildir's Sealed Tower is no longer marked on the map as a dungeon nobody walked. Once you stand in it, it is marked as a place you were.
+
 ## 0.3.1
 
 The compendium follows what the game itself shows. A recipe's materials, a piece's cost or a store's wares come with the thing once the game lists them for your character, under *Loose* and *Strict* alike.

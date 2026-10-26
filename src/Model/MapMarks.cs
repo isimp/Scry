@@ -49,7 +49,8 @@ namespace Scry
             switch (look)
             {
                 case MarkLook.Yours:
-                case MarkLook.Whole: return walkedByYou;
+                case MarkLook.Whole:
+                case MarkLook.Visited: return walkedByYou;
                 case MarkLook.Server:
                 case MarkLook.ServerWhole: return walkedOnServer;
                 default: return entrances;
@@ -62,8 +63,8 @@ namespace Scry
         /// <summary>A mark's opacity: an entrance alone faint until pointed at, every other whole.</summary>
         public static float Alpha(MarkLook look, bool pointedAt) => look == MarkLook.Entrance && !pointedAt ? FaintAlpha : 1f;
 
-        /// <summary>Whether the small map shows a mark, by its look: those of dungeons you walked alone.</summary>
-        public static bool OnSmallMap(MarkLook look) => look == MarkLook.Yours || look == MarkLook.Whole;
+        /// <summary>Whether the small map shows a mark, by its look: those of dungeons you walked and places you stood in alone.</summary>
+        public static bool OnSmallMap(MarkLook look) => look == MarkLook.Yours || look == MarkLook.Whole || look == MarkLook.Visited;
 
         /// <summary>
         /// Whether a press let go is a click of a mark: the pointer moved no more than half a mark

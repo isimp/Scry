@@ -185,6 +185,16 @@ namespace Scry
         /// </summary>
         public bool CustomInterior;
 
+        /// <summary>How high over its entrance a dungeon's rooms stand, as the game counts a place as inside above it (<c>Character.InInterior</c>).</summary>
+        public const float InteriorHeight = 3000f;
+
+        /// <summary>
+        /// Whether its rooms lie inside, high over the world where the game builds a dungeon, at its
+        /// zone's own spot or over its entrance; not where they stand in the world itself, as Hildir's
+        /// Sealed Tower, which is walked into rather than entered.
+        /// </summary>
+        public bool LiesInside => CustomInterior || GeneratorAt.Y >= InteriorHeight;
+
         /// <summary>For one with its own interior, where its zone's centre is from the generator: back by the interior's and generator's own offsets.</summary>
         public Vec3 ZoneFromGenerator;
 

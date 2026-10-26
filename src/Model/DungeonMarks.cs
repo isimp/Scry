@@ -20,6 +20,9 @@ namespace Scry
 
         /// <summary>Walked whole on this server by others, shown with insides: ringed, with a tick in outline.</summary>
         ServerWhole,
+
+        /// <summary>A place whose rooms stand in the world, as the Sealed Tower, that you stood in: filled as yours, no rooms counted.</summary>
+        Visited,
     }
 
     /// <summary>A dungeon marked on Valheim's big map: walked by you where it names no ground, else lying in the ground named.</summary>
@@ -65,7 +68,9 @@ namespace Scry
             {
                 if (id == null || map == null || !marked.Add(id)) continue;
                 var server = serverOf?.Invoke(id);
-                marks.Add(new DungeonMark { Id = id, Map = map, Server = server, Look = roomOf != null && WalkedWhole(map, server, roomOf) ? MarkLook.Whole : MarkLook.Yours });
+                // Kept without rooms: a place in the world you stood in.
+                var look = map.Rooms == null || map.Rooms.Count == 0 ? MarkLook.Visited : roomOf != null && WalkedWhole(map, server, roomOf) ? MarkLook.Whole : MarkLook.Yours;
+                marks.Add(new DungeonMark { Id = id, Map = map, Server = server, Look = look });
             }
             if (book == null) return marks;
             foreach (var source in WorldSources.All)
