@@ -125,6 +125,7 @@ namespace Scry
                 _readyAt = -1f;
                 return;
             }
+            TraceWhere(Player.m_localPlayer);
             if (explorer == _autoFor) return;
             if (_readyAt < 0f)
             {
