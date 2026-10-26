@@ -187,7 +187,7 @@ namespace Scry
         /// how it concerns the character, none when told before.
         /// </summary>
         public static EventShare Tell(WorldEvent told, long me, float x, float y, float z, EventLedger ledger, CompendiumBook book, PlayCounts counts,
-            Func<float, float, float, bool> inSight = null, double now = 0.0)
+            Func<float, float, float, bool> inSight = null, double now = 0.0, Func<string, bool> deathAttack = null)
         {
             if (told == null || book == null || !ledger.First(told)) return EventShare.None;
             var share = Of(told, me, x, y, z);
@@ -203,7 +203,7 @@ namespace Scry
             if (ledger.Marked(told, now)) Paired(told, book);
             else
             {
-                Record(told, book, counts, upClose);
+                Record(told, book, counts, upClose, deathAttack);
                 ledger.Recorded(told, now);
             }
             return share;
@@ -246,7 +246,7 @@ namespace Scry
         /// a young one grew into, known, as a creature seen tamed is, and seen together with what
         /// it came of (<see cref="YoungKnown"/>).
         /// </summary>
-        private static void Record(WorldEvent told, CompendiumBook book, PlayCounts counts, bool upClose = false)
+        private static void Record(WorldEvent told, CompendiumBook book, PlayCounts counts, bool upClose = false, Func<string, bool> deathAttack = null)
         {
             switch (told.What)
             {
@@ -256,6 +256,9 @@ namespace Scry
                     counts?.Note(PlayEvent.LootCounted);
                     // A death up close is a sighting of the creature's stars, none included, as a look at it is.
                     if (upClose) book.Sighted(told.Thing, told.Level - 1, null);
+                    // Where its death hurts what stands near, a death seen up close is that attack
+                    // seen, as an attack seen begun up close is.
+                    if (upClose && deathAttack != null && deathAttack(told.Thing)) book.FoundOut(told.Thing, EntryKeys.Attack(EntryKeys.DeathAttack));
                     if (told.Level <= 1) return;
                     // A starred fall shows what stars change at all, and what that many stars change,
                     // but only where those stars were seen up close, as the game marks them: before,

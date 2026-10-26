@@ -442,7 +442,7 @@ namespace Scry
             if (Into == null || told == null || player == null) return;
             var at = stood ?? player.transform.position;
             System.Func<float, float, float, bool> inSight = seen is bool was ? (x, y, z) => was : (System.Func<float, float, float, bool>)CompendiumSight.SeesDeed;
-            EventRule.Tell(told, ZNet.GetUID(), at.x, at.y, at.z, Told, Into, _into == null ? Play : null, inSight, Time.realtimeSinceStartup);
+            EventRule.Tell(told, ZNet.GetUID(), at.x, at.y, at.z, Told, Into, _into == null ? Play : null, inSight, Time.realtimeSinceStartup, Facts.HurtsAsItDies);
         }
 
         /// <summary>A producer the character collected from shows its pace (<see cref="Deed.Collected"/>).</summary>

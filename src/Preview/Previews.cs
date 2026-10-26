@@ -165,6 +165,7 @@ namespace Scry
                 Timing.Add("probe watch", step);
                 step = Timing.Start();
                 Guard.Run(Feature.Animations, "sorting clips", SortSomeClips);
+                Guard.Run(Feature.Animations, "finding clips never played", SortLeftovers);
                 Timing.Add("probe clips", step);
             }
             Timing.Add("update probe", started);

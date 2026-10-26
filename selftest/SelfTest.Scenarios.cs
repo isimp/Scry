@@ -162,6 +162,9 @@ namespace Scry
             });
             yield return S("a greatsword's, an axe's and a knife's first attack begins with the combo's first step", CombosStartWithTheirFirstStep, 70,
                 () => Looks.OnPerson = _before?.OnPerson ?? false);
+            yield return S("a death that hurts is an attack, an attack without animation says so, and clips nothing starts are left out", DeathAttacksAndUnplayedClips, 160);
+            yield return S("a person lists the clips of what it holds, the rest found by a filter", PersonClipsByWhatIsHeld, 260,
+                () => Looks.OnPerson = _before?.OnPerson ?? false);
             yield return S("a tree felled leaves what it leaves, which goes again", TreeFalls, 40);
             yield return S("a model stands in the world and goes again", ModelInWorld, 10);
             yield return S("a projectile flies where you look", ProjectileFlies, 15);

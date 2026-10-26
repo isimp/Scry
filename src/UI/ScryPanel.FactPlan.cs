@@ -532,8 +532,13 @@ namespace Scry
             var wearFirst = clip == null && explorer.Selected is Entry weapon && weapon.Kind == Kind.Item && weapon.Name == item && !Looks.IsWorn(weapon);
             if (clip == null && !wearFirst && Previews.StageClipsKnown())
             {
-                GUI.Label(cell, Masked(explorer, text), Skin.SmallWrap);
-                if (cell.Contains(Event.current.mousePosition)) AskTip("table-attack-none:" + link, ClipWords.NoAttackClip);
+                // Played by the game without an animation, it says so, and its tip why.
+                GUI.Label(cell, ClipWords.NoAnimation(Masked(explorer, text)), Skin.SmallWrap);
+                if (cell.Contains(Event.current.mousePosition))
+                {
+                    var trigger = Previews.AttackTriggerOf(item, second, out var inAnimator);
+                    AskTip("table-attack-none:" + link + trigger + inAnimator, ClipWords.NoAnimationTip(trigger, inAnimator));
+                }
                 return;
             }
             LinkLabel(cell, text, Skin.SmallWrap, playing ? Skin.KindColor(Kind.Sound) : Skin.Accent);
@@ -552,6 +557,17 @@ namespace Scry
                 Previews.PlayAttackWhenKnown(item, second, step);
                 SaveRects();
             }
+        }
+
+        /// <summary>
+        /// Whether a table line's attack plays no animation: its clips worked out, none its own, and
+        /// nothing kept back or to be put on first, as <see cref="AttackCell"/> draws it.
+        /// </summary>
+        private static bool PlaysNoAnimation(Explorer explorer, string link)
+        {
+            if (!EntryKeys.PlaysAttack(link, out var item, out var second, out var step) || explorer.KeepsBackAttackClip(item)) return false;
+            if (Previews.ClipOfAttackItem(item, second, step) != null || !Previews.StageClipsKnown()) return false;
+            return !(explorer.Selected is Entry weapon && weapon.Kind == Kind.Item && weapon.Name == item && !Looks.IsWorn(weapon));
         }
 
         /// <summary>How far a faint line at the character's skill sits in under its table line.</summary>
@@ -634,6 +650,7 @@ namespace Scry
             var cells = row.Lines[line].Cells;
             if (cell >= cells.Length) return null;
             var text = cells[cell];
+            if (cell == 0 && row.AttackCells != null && PlaysNoAnimation(explorer, row.Lines[line].Link)) return ClipWords.NoAnimation(Masked(explorer, text));
             if (cell == 0) return string.IsNullOrEmpty(row.Lines[line].Link) ? Masked(explorer, text) : text;
             var counted = CellShown(explorer, row, line, cell, text);
             if (!ReferenceEquals(counted, text)) return counted;

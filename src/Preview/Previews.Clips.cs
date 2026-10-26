@@ -40,6 +40,18 @@ namespace Scry
 
             /// <summary>Whether <see cref="Sounding"/> is known for every clip, worked out a little each frame.</summary>
             public bool AllSounding;
+
+            /// <summary>The triggers the attacks of what it carries now are started by (<see cref="ClipLeftovers"/>).</summary>
+            public List<string> Pulled = new List<string>();
+
+            /// <summary>The switches what it carries now names, to draw, reel or reload (<see cref="HeldClips"/>).</summary>
+            public List<string> Holding = new List<string>();
+
+            /// <summary>The clips it never plays (<see cref="ClipLeftovers.Unplayed"/>); null while not worked out yet.</summary>
+            public HashSet<string> Unplayed;
+
+            /// <summary>The clips it plays only with other gear in hand, each with the stance that gear is held in (<see cref="HeldClips"/>); set with <see cref="Unplayed"/>.</summary>
+            public Dictionary<string, int> OtherGear;
         }
 
         /// <summary>
@@ -51,7 +63,7 @@ namespace Scry
             get
             {
                 var plays = StagePlays(out _);
-                return plays != null && (!plays.Ready || !plays.AllSounding);
+                return plays != null && (!plays.Ready || !plays.AllSounding || plays.Unplayed == null);
             }
         }
 
@@ -80,6 +92,129 @@ namespace Scry
             }
             plays.AllSounding = true;
         }
+
+        /// <summary>
+        /// Works out, once what each clip plays is known, which clips the stage copy never plays and
+        /// which it plays only with other gear in hand: where each of its animator's attack triggers
+        /// leads, and what it plays under each stance and with each switch an item names, each seen
+        /// on a hidden copy over the next frames and kept for its prefab whatever it carries; and
+        /// what it carries now. A person plays any attack once it holds the item, so what its other
+        /// attacks play is other gear's, not never played.
+        /// </summary>
+        private static void SortLeftovers()
+        {
+            var plays = StagePlays(out var ears);
+            if (plays == null || !plays.Ready || plays.Unplayed != null) return;
+            var animator = ClipPlayer.AnimatorOf(Stage.Subject);
+            if (animator == null || animator.runtimeAnimatorController == null) return;
+            var key = ears.Prefab.name + "|" + animator.runtimeAnimatorController.name;
+            if (!LeadsOf.TryGetValue(key, out var leads))
+            {
+                var asked = ClipLeftovers.Candidates(animator.parameters.Where(p => p.type == AnimatorControllerParameterType.Trigger).Select(p => p.name));
+                var seen = asked.Count > 0 ? TriggerProbe.ClipsOf(ears.Prefab.name, animator, asked, wait: false) : null;
+                if (seen != null && seen.Busy) return;
+                leads = new Dictionary<string, IReadOnlyList<string>>();
+                if (seen != null) foreach (var trigger in asked) if (seen.Triggers.TryGetValue(trigger, out var clips)) leads[trigger] = clips;
+                LeadsOf[key] = leads;
+            }
+            var gear = GameGear();
+            var swept = TriggerProbe.StancesOf(ears.Prefab.name, animator, Stances, gear.Holds, wait: false);
+            if (swept.Busy) return;
+
+            var other = plays.Tags.Keys.Concat(plays.Actions.Keys).Concat(plays.Around.Keys).Concat(plays.ByName.Keys).Concat(plays.Attacks.Keys).ToList();
+            var held = HeldClips.OtherGear(swept.Stances, swept.Holds, StanceNow(animator), plays.Holding, gear.HoldStances);
+            var left = ClipLeftovers.UnplayedBy(leads, plays.Pulled, other.Where(c => !held.ContainsKey(c)));
+            var unplayed = new HashSet<string>(System.StringComparer.Ordinal);
+            var person = ears.Prefab.GetComponent<Player>() != null;
+            foreach (var clip in left)
+            {
+                if (held.ContainsKey(clip.Key)) continue;
+                if (person) held[clip.Key] = gear.AttackStances.TryGetValue(clip.Value, out var stance) ? stance : -1;
+                else unplayed.Add(clip.Key);
+            }
+            // What it plays now, as its own attacks and actions, is never other gear's.
+            foreach (var clip in plays.Attacks.Keys.Concat(plays.Actions.Keys)) held.Remove(clip);
+            plays.OtherGear = held;
+            plays.Unplayed = unplayed;
+            if (unplayed.Count > 0) Log.Note($"Scry leaves out {Numbers.Count(unplayed.Count)} clips {ears.Prefab.name} never plays, as nothing it carries starts them: {string.Join(", ", unplayed.OrderBy(c => c, System.StringComparer.Ordinal))}.");
+            if (held.Count > 0) Log.Note($"Scry leaves out {Numbers.Count(held.Count)} clips {ears.Prefab.name} plays only with other gear in hand.");
+        }
+
+        /// <summary>Where each attack trigger of a prefab's animator leads, by prefab and controller, seen once (<see cref="SortLeftovers"/>).</summary>
+        private static readonly Dictionary<string, Dictionary<string, IReadOnlyList<string>>> LeadsOf = new Dictionary<string, Dictionary<string, IReadOnlyList<string>>>();
+
+        /// <summary>The stance a copy's animator stands in, as the game numbers stances (<c>ItemDrop.ItemData.AnimationState</c>).</summary>
+        private static int StanceNow(Animator animator)
+        {
+            foreach (var parameter in animator.parameters)
+            {
+                if (parameter.name == "statei" && parameter.type == AnimatorControllerParameterType.Int) return animator.GetInteger("statei");
+            }
+            foreach (var parameter in animator.parameters)
+            {
+                if (parameter.name == "statef" && parameter.type == AnimatorControllerParameterType.Float) return Mathf.RoundToInt(animator.GetFloat("statef"));
+            }
+            return 0;
+        }
+
+        /// <summary>Every stance the game has, by its number, to sweep a copy's animator through.</summary>
+        private static readonly IReadOnlyList<int> Stances = System.Enum.GetValues(typeof(ItemDrop.ItemData.AnimationState)).Cast<int>().ToList();
+
+        /// <summary>The switches an item's attacks name to draw, charge or reload (<c>Attack.m_drawAnimationState</c>, <c>m_chargeAnimationBool</c>, <c>m_reloadAnimation</c>).</summary>
+        private static IEnumerable<string> Switches(GameObject item)
+        {
+            var shared = item != null ? item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared : null;
+            if (shared == null) yield break;
+            foreach (var attack in new[] { shared.m_attack, shared.m_secondaryAttack })
+            {
+                if (attack == null) continue;
+                foreach (var name in new[] { attack.m_drawAnimationState, attack.m_chargeAnimationBool, attack.m_reloadAnimation }) if (!string.IsNullOrEmpty(name)) yield return name;
+            }
+        }
+
+        /// <summary>
+        /// What every item of the game starts its attacks by and switches on, with the stance it is
+        /// held in, worked out once from the game's item list: which gear a clip it does not hold
+        /// now goes with.
+        /// </summary>
+        private static (List<(string Switch, int Stance)> Holds, Dictionary<string, int> HoldStances, Dictionary<string, int> AttackStances) GameGear()
+        {
+            if (_gear.Holds != null) return _gear;
+            var holds = new List<(string, int)>();
+            var holdStances = new Dictionary<string, int>(System.StringComparer.Ordinal);
+            var attackStances = new Dictionary<string, int>(System.StringComparer.Ordinal);
+            var items = ObjectDB.instance != null ? ObjectDB.instance.m_items : new List<GameObject>();
+            foreach (var item in items)
+            {
+                var shared = item != null ? item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared : null;
+                if (shared == null) continue;
+                var stance = (int)shared.m_animationState;
+                foreach (var switched in Switches(item))
+                {
+                    if (holdStances.ContainsKey(switched)) continue;
+                    holdStances[switched] = stance;
+                    holds.Add((switched, stance));
+                }
+                foreach (var attack in new[] { shared.m_attack, shared.m_secondaryAttack })
+                {
+                    if (attack == null || string.IsNullOrEmpty(attack.m_attackAnimation)) continue;
+                    var pulled = ClipAttacks.StartTriggers(attack.m_attackAnimation, attack.m_attackChainLevels, attack.m_attackRandomAnimations, _ => true)
+                        .Concat(ClipAttacks.ComboSteps(attack.m_attackAnimation, attack.m_attackChainLevels, _ => true).Select(step => step.Trigger));
+                    foreach (var trigger in pulled) if (!attackStances.ContainsKey(trigger)) attackStances[trigger] = stance;
+                }
+            }
+            // Not kept while the game's item list is not there yet.
+            if (ObjectDB.instance != null) _gear = (holds, holdStances, attackStances);
+            return (holds, holdStances, attackStances);
+        }
+
+        private static (List<(string Switch, int Stance)> Holds, Dictionary<string, int> HoldStances, Dictionary<string, int> AttackStances) _gear;
+
+        /// <summary>The clips of the stage copy it plays only with other gear in hand, each with the stance that gear is held in; null while not worked out, or for a copy without.</summary>
+        public static IReadOnlyDictionary<string, int> ClipsOtherGear() => StagePlays(out _)?.OtherGear;
+
+        /// <summary>The clips of the stage copy it never plays (<see cref="ClipLeftovers"/>); null while not worked out, or for a copy without.</summary>
+        public static HashSet<string> ClipsUnplayed() => StagePlays(out _)?.Unplayed;
 
         /// <summary>How long working out the clips may take each frame.</summary>
         private const long SortingBudgetMs = 4;
@@ -268,17 +403,47 @@ namespace Scry
             }
             var key = item + (secondary ? "#2" : "") + (step > 0 ? "#" + Stored.Count(step) : "");
             if (AttackClips.TryGetValue(key, out var known)) return known;
-            var prefab = ClipPlayer.AnimatorOf(Stage.Subject).OrNull()?.GetComponent<AnimationEars>().OrNull()?.Prefab;
-            var worn = Looks.IsWorn(_entry) && _entry.Source is GameObject source ? Looks.WornWith(source) : null;
-            var carried = worn != null ? worn.Find(i => i != null && i.name == item) : prefab != null ? Relations.CarriedItems(prefab).Find(i => i.name == item) : null;
-            var shared = carried != null ? carried.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared : null;
-            var attack = secondary ? shared?.m_secondaryAttack : shared?.m_attack;
+            if (EntryKeys.IsDeathAttack(item))
+            {
+                var dies = DeathAttackClip();
+                if (dies != null) AttackClips[key] = dies;
+                return dies;
+            }
+            var attack = AttackOfItem(item, secondary);
             // Asked for every line of a table each time the panel draws: never made to watch the
             // rest of the animator in one frame (a troll's took 380 ms); known once watched.
             var clip = attack != null ? AttackClipOf(attack, wait: false, step) : null;
             // Not kept until found: the clips are worked out a while after the copy is shown.
             if (clip != null) AttackClips[key] = clip;
             return clip;
+        }
+
+        /// <summary>An item's attack, its first or its second, by the item's name: one the stage copy's creature carries, or a weapon the person on the stage wears; null where it has none.</summary>
+        private static Attack AttackOfItem(string item, bool secondary)
+        {
+            var prefab = ClipPlayer.AnimatorOf(Stage.Subject).OrNull()?.GetComponent<AnimationEars>().OrNull()?.Prefab;
+            var worn = Looks.IsWorn(_entry) && _entry.Source is GameObject source ? Looks.WornWith(source) : null;
+            var carried = worn != null ? worn.Find(i => i != null && i.name == item) : prefab != null ? Relations.CarriedItems(prefab).Find(i => i.name == item) : null;
+            var shared = carried != null ? carried.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared : null;
+            return secondary ? shared?.m_secondaryAttack : shared?.m_attack;
+        }
+
+        /// <summary>
+        /// The trigger the game starts an item's attack by (<c>Attack.Start</c>), for an attack that
+        /// plays no clip on the stage copy: the first of them its animator has, else the first the
+        /// game pulls, and whether the animator has it. Null where the attack or its trigger is not known.
+        /// </summary>
+        public static string AttackTriggerOf(string item, bool secondary, out bool inAnimator)
+        {
+            inAnimator = false;
+            var animator = ClipPlayer.AnimatorOf(Stage.Subject);
+            var attack = animator != null && !EntryKeys.IsDeathAttack(item) ? AttackOfItem(item, secondary) : null;
+            if (attack == null) return null;
+            var pulled = ClipAttacks.StartTriggers(attack.m_attackAnimation, attack.m_attackChainLevels, attack.m_attackRandomAnimations, _ => true);
+            if (pulled.Count == 0) return null;
+            var had = pulled.Find(t => HasTrigger(animator, t));
+            inAnimator = had != null;
+            return had ?? pulled[0];
         }
 
         /// <summary>
@@ -394,6 +559,9 @@ namespace Scry
 
             var items = worn ?? Relations.CarriedItems(prefab);
             if (carried != null) items = items.Where(carried.Contains).Concat(items.Where(i => !carried.Contains(i))).ToList();
+            // Holding nothing that attacks, it fights with its bare hands (Humanoid.GetCurrentWeapon).
+            var bare = prefab.GetComponent<Humanoid>().OrNull()?.m_unarmedWeapon.OrNull()?.gameObject;
+            if (bare != null && !items.Any(Attacks)) items = items.Concat(new[] { bare }).ToList();
             var names = new Dictionary<Attack, string>();
             var itemsOf = new Dictionary<Attack, string>();
             var attacks = AttacksOf(prefab, animator, items, names, itemsOf);
@@ -408,14 +576,24 @@ namespace Scry
                 return NotYet;
             }
             plays.Attacks = ClipAttacks.Match(attacks, seen.Triggers, clips.Select(c => c.name), striking);
+            plays.Pulled = attacks.Select(a => a.Item1).Distinct().ToList();
+            plays.Holding = items.SelectMany(Switches).Distinct().ToList();
             plays.Actions = ClipActions.Match(actions, seen.Actions, plays.Attacks.Keys);
             var body = prefab.GetComponent<Character>();
             plays.Around = AroundOf(prefab, seen, plays);
             plays.ByName = ByNameOf(body, seen, clips, plays);
             if (body != null && body.m_flying && EffectSlots.ShowsAny(body.m_flyingContinuousEffect) && !animator.parameters.Any(p => p.name == "flying")) plays.Flying = body.m_flyingContinuousEffect;
             TagClips(plays, names, itemsOf, seen);
+            TagDeathAttack(prefab, body, plays);
             if (body != null && FirstTime("lasting:" + prefab.name)) TellLasting(prefab, body);
             return plays;
+        }
+
+        /// <summary>Whether an item has an attack the game starts by an animation (<c>Attack.Start</c>).</summary>
+        private static bool Attacks(GameObject item)
+        {
+            var shared = item != null ? item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared : null;
+            return shared != null && (!string.IsNullOrEmpty(shared.m_attack?.m_attackAnimation) || !string.IsNullOrEmpty(shared.m_secondaryAttack?.m_attackAnimation));
         }
 
         /// <summary>
@@ -506,6 +684,31 @@ namespace Scry
                 plays.Tags[pair.Key] = ClipWords.ByName(pair.Key);
             }
             foreach (var clip in seen.Idle) if (!plays.Tags.ContainsKey(clip)) plays.Tags[clip] = ClipWords.Idles;
+        }
+
+        /// <summary>
+        /// The clip a creature dies in, where its death hurts what stands near (<see cref="Facts.DeathAttackOf"/>):
+        /// one of its attacks too, named by what its death does, and kept back as an attack's clip is.
+        /// </summary>
+        private static void TagDeathAttack(GameObject prefab, Character body, ClipPlays plays)
+        {
+            if (body == null || Facts.DeathAttackOf(prefab, out var blast) == null) return;
+            var name = (CatalogBuilder.GameName(blast) ?? Naming.Readable(blast.name)).ToLowerInvariant();
+            foreach (var pair in plays.Actions)
+            {
+                if (!ReferenceEquals(pair.Value, body.m_deathEffects)) continue;
+                plays.Tags[pair.Key] = ClipWords.DeathAttack(name);
+                plays.AttackItems[pair.Key] = EntryKeys.DeathAttack;
+            }
+        }
+
+        /// <summary>The stage copy's clip it dies in, where its death is one of its attacks (<see cref="TagDeathAttack"/>); null where none is, or not known yet.</summary>
+        private static AnimationClip DeathAttackClip()
+        {
+            var plays = StagePlays(out _);
+            if (plays == null || !plays.Ready) return null;
+            foreach (var pair in plays.AttackItems) if (EntryKeys.IsDeathAttack(pair.Value)) return ClipNamed(pair.Key);
+            return null;
         }
 
         /// <summary>
@@ -700,6 +903,8 @@ namespace Scry
         private static void ForgetClips()
         {
             ClipPlaysCache.Clear();
+            LeadsOf.Clear();
+            _gear = default;
             WeaponOf.Clear();
             _clipsOf = null;
             _clips = null;

@@ -59,8 +59,15 @@ namespace Scry.Tests
             Assert.Equal("Play this attack", ClipWords.PlayAttackTip(known: true, playing: false));
             Assert.Equal("Stop this attack", ClipWords.PlayAttackTip(known: true, playing: true));
             Assert.Equal("Its animations are still being worked out; this plays once they are", ClipWords.PlayAttackTip(known: false, playing: false));
-            // Once they are worked out, an attack with no clip of its own is no link, and says so.
-            Assert.Equal("No animation of its own was found for this attack", ClipWords.NoAttackClip);
+            // Once they are worked out, an attack with no clip of its own is no link, and says so on
+            // its line, its tip telling why: the Seeker Queen's slap starts by a trigger its animator
+            // lacks, the Writhan's blast by one that leads nowhere (Attack.Start pulls it all the same).
+            Assert.Equal("Slap  ·  no animation", ClipWords.NoAnimation("Slap"));
+            Assert.Equal("The game starts it by \"attack_slash0\", which this creature's animator does not have, so it plays no animation",
+                ClipWords.NoAnimationTip("attack_slash0", inAnimator: false));
+            Assert.Equal("The game starts it by \"attack_explode_test\", which leads this creature's animator to no animation",
+                ClipWords.NoAnimationTip("attack_explode_test", inAnimator: true));
+            Assert.Equal("No animation of its own was found for this attack", ClipWords.NoAnimationTip(null, inAnimator: false));
             // Under the strict rules an attack's clips wait as one chip counting them.
             Assert.Equal("1 clip waits  \u00B7  see it attack, up close or taken", ClipWords.ClipsWait(1));
             Assert.Equal("6 clips wait  \u00B7  see it attack, up close or taken", ClipWords.ClipsWait(6));

@@ -27,7 +27,7 @@ namespace Scry
         private static float Clips(Explorer explorer, List<AnimationClip> clips, Modifiers modifiers, float width, float labelW, float y)
         {
             var playing = Previews.PlayingClip();
-            y = SectionHeading("ANIMATIONS", width, y, null, "animations", clips.Count);
+            y = SectionHeading("ANIMATIONS", width, y, null, "animations", ClipsCounted(clips));
             if (IsFolded("animations")) return y;
 
             var x = 0f;
@@ -89,7 +89,7 @@ namespace Scry
                     group = row.Group;
                     inGroup = 0;
                     limit = filtering ? totals[group] : ShownOf("clips:" + Stored.Count(group), totals[group]);
-                    GUI.Label(new Rect(0f, y, width, U(20f)), group < 3 ? ClipHeadings[group] : PanelWords.Waiting("Working out what each clip plays", Time.unscaledTime), Skin.DimLabel);
+                    GUI.Label(new Rect(0f, y, width, U(20f)), ClipHeading(group), Skin.DimLabel);
                     y += U(22f);
                     flow = new ChipFlow(0f, width, y, rowH, U(5f), U(5f));
                 }
@@ -152,6 +152,10 @@ namespace Scry
             return y + U(10f);
         }
 
+        /// <summary>How many clips the heading counts: not those it never plays, nor those it plays only with other gear in hand (<see cref="ClipLeftovers"/>, <see cref="HeldClips"/>).</summary>
+        private static int ClipsCounted(List<AnimationClip> clips) =>
+            clips.Count - (Previews.ClipsUnplayed()?.Count ?? 0) - (Previews.ClipsOtherGear()?.Count ?? 0);
+
         /// <summary>The clip playing, to pause and scrub through, like a sound. Its row stays, greyed out, while none plays, so starting one moves nothing below it.</summary>
         private static float PlayingClipRow(AnimationClip playing, float width, float rowH, float y)
         {
@@ -211,7 +215,18 @@ namespace Scry
 
         private static readonly string[] ClipHeadings = { "Attacks", "With sounds or effects", "Silent" };
 
-        /// <summary>A clip's chip as the Animations section lists it: its name, its text and its group (3 while still being worked out).</summary>
+        /// <summary>A group of clips' heading: what they do, while being worked out that it is, and last, while filtering, those it never plays.</summary>
+        private static string ClipHeading(int group) =>
+            group < 3 ? ClipHeadings[group] : group == OtherGearGroup ? ClipWords.OtherGearHeading : group == UnplayedGroup ? ClipWords.UnplayedHeading
+            : PanelWords.Waiting("Working out what each clip plays", Time.unscaledTime);
+
+        /// <summary>The group of the clips it plays only with other gear in hand, listed only while filtering.</summary>
+        private const int OtherGearGroup = 4;
+
+        /// <summary>The group of the clips it never plays, listed only while filtering, last.</summary>
+        private const int UnplayedGroup = 5;
+
+        /// <summary>A clip's chip as the Animations section lists it: its name, its text and its group (3 while still being worked out, 4 one only other gear plays, 5 one it never plays).</summary>
         private sealed class ClipRow
         {
             public AnimationClip Clip;
@@ -228,6 +243,8 @@ namespace Scry
         private static IReadOnlyDictionary<string, string> _rowsTags;
         private static bool _rowsSorting;
         private static string _rowsFilter;
+        private static HashSet<string> _rowsUnplayed;
+        private static IReadOnlyDictionary<string, int> _rowsOtherGear;
 
         /// <summary>
         /// The clips' chips in the order they are listed, filtered. Worked out again only when the
@@ -236,7 +253,10 @@ namespace Scry
         private static List<ClipRow> ClipRows(List<AnimationClip> clips, bool sorting)
         {
             var tags = sorting ? NoTags : Previews.ClipTags();
-            if (ReferenceEquals(clips, _rowsClips) && ReferenceEquals(tags, _rowsTags) && sorting == _rowsSorting && _clipFilter == _rowsFilter) return _clipRows;
+            var unplayed = sorting ? null : Previews.ClipsUnplayed();
+            var otherGear = sorting ? null : Previews.ClipsOtherGear();
+            if (ReferenceEquals(clips, _rowsClips) && ReferenceEquals(tags, _rowsTags) && sorting == _rowsSorting && _clipFilter == _rowsFilter
+                && ReferenceEquals(unplayed, _rowsUnplayed) && ReferenceEquals(otherGear, _rowsOtherGear)) return _clipRows;
             var items = sorting ? NoTags : Previews.ClipAttackItems();
 
             var rows = new List<ClipRow>(clips.Count);
@@ -248,7 +268,14 @@ namespace Scry
                 var tagged = tags.TryGetValue(name, out var tag);
                 var text = ClipWords.Row(name, tag);
                 if (_clipFilter.Length > 0 && text.IndexOf(_clipFilter, StringComparison.OrdinalIgnoreCase) < 0) continue;
-                var group = sorting ? 3 : tagged && ClipWords.IsAttack(tag) ? 0 : Previews.ClipSounds(clip) ? 1 : 2;
+                // One it never plays, or plays only with other gear in hand, shows only to a filter, last, saying so.
+                var never = unplayed != null && unplayed.Contains(name);
+                var stance = -1;
+                var withOther = !never && otherGear != null && otherGear.TryGetValue(name, out stance);
+                if ((never || withOther) && _clipFilter.Length == 0) continue;
+                if (never) text = ClipWords.Unplayed(text);
+                else if (withOther) text = ClipWords.OtherGear(text, stance);
+                var group = sorting ? 3 : never ? UnplayedGroup : withOther ? OtherGearGroup : tagged && ClipWords.IsAttack(tag) ? 0 : Previews.ClipSounds(clip) ? 1 : 2;
                 rows.Add(new ClipRow { Clip = clip, Name = name, Text = text, Group = group * 2 + (tagged ? 0 : 1), Item = items.TryGetValue(name, out var item) ? item : null });
             }
             rows = rows.OrderBy(r => r.Group).ToList();
@@ -259,7 +286,25 @@ namespace Scry
             _rowsTags = tags;
             _rowsSorting = sorting;
             _rowsFilter = _clipFilter;
+            _rowsUnplayed = unplayed;
+            _rowsOtherGear = otherGear;
             return rows;
+        }
+
+        /// <summary>The clips' chips as the Animations section lists them for the stage copy, filtered by the text given, with each one's group.</summary>
+        [ForTest]
+        internal static List<(string Text, int Group)> ClipRowsForTest(string filter)
+        {
+            var kept = _clipFilter;
+            _clipFilter = filter ?? "";
+            try
+            {
+                return ClipRows(Previews.Clips(), Previews.ClipsSorting).Select(r => (r.Text, r.Group)).ToList();
+            }
+            finally
+            {
+                _clipFilter = kept;
+            }
         }
 
         /// <summary>Lets go of the clip rows made of the world left, and of the clip they were last drawn for.</summary>
@@ -268,6 +313,8 @@ namespace Scry
             _clipRows = new List<ClipRow>();
             _rowsClips = null;
             _rowsTags = null;
+            _rowsUnplayed = null;
+            _rowsOtherGear = null;
             _firstClip = null;
         }
     }

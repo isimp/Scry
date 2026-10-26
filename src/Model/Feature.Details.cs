@@ -53,6 +53,7 @@ namespace Scry
         public static readonly Feature WhereEggsHatch = Listed("where eggs hatch, in the details");
         public static readonly Feature WhatFishBiteOn = Listed("what fish bite on, in the details");
         public static readonly Feature HowFishLiveAndFight = Listed("where fish live, how they bite and fight, in the details");
+        public static readonly Feature WhatDeathsDoAround = Listed("what a creature's death does around it, in the details");
         public static readonly Feature WhatOpensDoor = Listed("what opens a door, in the details");
         public static readonly Feature WherePiecesMayBePlaced = Listed("where pieces may be placed, in the details");
         public static readonly Feature WhatBedNeeds = Listed("what a bed needs, in the details");

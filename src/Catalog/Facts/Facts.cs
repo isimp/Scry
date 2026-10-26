@@ -583,6 +583,7 @@ namespace Scry
             _notables = null;
             _loot = null;
             Tooltips.Forget();
+            HurtsKnown.Clear();
         }
 
         /// <summary>Forgets what was told of one entry, which knows more now (a location, once read).</summary>

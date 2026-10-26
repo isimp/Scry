@@ -24,6 +24,9 @@ namespace Scry
         /// <summary>The clip of an attack, by the weapon it is made with, and whether it is the weapon's second.</summary>
         public static string Attack(string weapon, bool second) => AttackStart + weapon + (second ? ", second" : "");
 
+        /// <summary>The clip a creature dies in where its death hurts what stands near (<see cref="Scry.DeathAttack"/>), by what its death does: an attack too.</summary>
+        public static string DeathAttack(string blast) => AttackStart + blast + ", as it dies";
+
         /// <summary>The clip of a later step of an attack's combo, by the attack's own name and the step from 0.</summary>
         public static string Swing(string attack, int step) => attack + ", swing " + Numbers.Count(step + 1);
 
@@ -49,8 +52,38 @@ namespace Scry
         /// <summary>The tip of that chip.</summary>
         public const string KeptClipsTip = "They play once each attack hit you, or you saw it begun up close";
 
-        /// <summary>The tip of an attack's name where its animations are worked out and none is its own: plain, no link.</summary>
-        public const string NoAttackClip = "No animation of its own was found for this attack";
+        /// <summary>The heading of the clips played only with other gear in hand (<see cref="HeldClips"/>), listed only while the clips are filtered.</summary>
+        public const string OtherGearHeading = "With other gear";
+
+        /// <summary>What each stance is held with, by the game's numbers of them (<c>ItemDrop.ItemData.AnimationState</c>).</summary>
+        private static readonly string[] HeldWith =
+        {
+            "bare hands", "one-handed weapons", "two-handed clubs", "bows", "shields", "torches", "a torch in the left hand", "atgeirs",
+            "battleaxes", "fishing rods", "crossbows", "knives", "staffs", "greatswords", "magic items", "two axes", "feasts", "scythes",
+        };
+
+        /// <summary>The chip of such a clip, with what it is held with; "other gear" where the stance is not known.</summary>
+        public static string OtherGear(string chip, int stance) =>
+            chip + "  ·  with " + (stance >= 0 && stance < HeldWith.Length ? HeldWith[stance] : "other gear");
+
+        /// <summary>The heading of the clips a creature never plays (<see cref="ClipLeftovers"/>), listed only while the clips are filtered.</summary>
+        public const string UnplayedHeading = "Not played by this creature";
+
+        /// <summary>The chip of such a clip.</summary>
+        public static string Unplayed(string chip) => chip + "  ·  not played by this creature";
+
+        /// <summary>An attack's name in its table where its animations are worked out and none is its own: plain, no link, and saying so.</summary>
+        public static string NoAnimation(string name) => name + "  ·  no animation";
+
+        /// <summary>
+        /// That name's tip: the trigger the game starts it by (<c>Attack.Start</c>), and whether the
+        /// creature's animator lacks it or has it leading to no animation; where the trigger is not
+        /// known, only that none was found.
+        /// </summary>
+        public static string NoAnimationTip(string trigger, bool inAnimator) =>
+            string.IsNullOrEmpty(trigger) ? "No animation of its own was found for this attack"
+            : inAnimator ? $"The game starts it by \"{trigger}\", which leads this creature's animator to no animation"
+            : $"The game starts it by \"{trigger}\", which this creature's animator does not have, so it plays no animation";
 
         /// <summary>A clip's chip: its name, and what it is where that is known and says more than the name does.</summary>
         public static string Row(string name, string what) => string.IsNullOrEmpty(what) || !SaysMore(name, what) ? name : name + "  \u00B7  " + what;

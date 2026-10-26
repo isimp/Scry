@@ -201,6 +201,16 @@ namespace Scry
             return item != null;
         }
 
+        /// <summary>
+        /// What stands for a creature's death as one of its attacks, where it hurts what stands near
+        /// (<see cref="Scry.DeathAttack"/>): in the place of the item an attack is made with, a name no
+        /// prefab has.
+        /// </summary>
+        public const string DeathAttack = "#death";
+
+        /// <summary>Whether an attack's item is a creature's death (<see cref="DeathAttack"/>).</summary>
+        public static bool IsDeathAttack(string item) => item == DeathAttack;
+
         /// <summary>The items whose attacks a table's lines play (<see cref="PlayAttack"/>), as a creature's attack table names them.</summary>
         public static HashSet<string> ItemsAttacking(IEnumerable<string> links)
         {

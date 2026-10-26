@@ -16,6 +16,12 @@ namespace Scry
 
         /// <summary>Still being watched: what is here so far is only part.</summary>
         public bool Busy;
+
+        /// <summary>The clips it moves, crouches, blocks and jumps in under each stance, by the stance's number (<see cref="HeldClips"/>); only from a sweep of its stances.</summary>
+        public readonly Dictionary<int, HashSet<string>> Stances = new Dictionary<int, HashSet<string>>();
+
+        /// <summary>The clips each switch an item names plays (drawing a bow, reloading), by the switch.</summary>
+        public readonly Dictionary<string, HashSet<string>> Holds = new Dictionary<string, HashSet<string>>();
     }
 
     /// <summary>
@@ -108,6 +114,11 @@ namespace Scry
             public System.Action<Animator> Stance;
             public bool First;
             public readonly Queue<string> Triggers = new Queue<string>();
+
+            /// <summary>A sweep of its stances (<see cref="StancesOf"/>), not of triggers: the stances, and each switch with the stance it is swept in.</summary>
+            public bool Sweep;
+            public IReadOnlyList<int> SweptStances;
+            public IReadOnlyList<(string Switch, int Stance)> SweptHolds;
             public IEnumerator<bool> Work;
             public long Ms;
             public int Frames;
@@ -347,7 +358,7 @@ namespace Scry
                     holder.SetActive(true);
                     job.Holder = holder;
                     job.Probe = probe;
-                    job.Work = Work(job);
+                    job.Work = job.Sweep ? SweepWork(job) : Work(job);
             })) return true;
             if (holder != null) Object.DestroyImmediate(holder);
             Drop(job);
@@ -529,6 +540,174 @@ namespace Scry
             else Log.Note($"Scry saw in {took} what the animator of {job.Key} plays: attacks {(attacks.Count > 0 ? string.Join("; ", attacks) : "none")}; the game's own actions {(actions.Count > 0 ? string.Join("; ", actions) : "none")}; left alone {string.Join(", ", seen.Idle.OrderBy(c => c, System.StringComparer.Ordinal))}.");
         }
 
+        /// <summary>What a stance sweep is kept under, beside the prefab's name.</summary>
+        private const string SweepKey = "|stances";
+
+        /// <summary>
+        /// The clips a prefab's animator moves, crouches, blocks and jumps in under each of the
+        /// stances given, and plays with each switch given in its stance (<see cref="Probed.Stances"/>,
+        /// <see cref="Probed.Holds"/>): seen once for the prefab over the next frames, and until then
+        /// <see cref="Probed.Busy"/>. An animator without stance settings has none.
+        /// </summary>
+        public static Probed StancesOf(string prefab, Animator animator, IReadOnlyList<int> stances, IReadOnlyList<(string Switch, int Stance)> holds, bool wait)
+        {
+            var key = prefab + SweepKey;
+            if (Seen.TryGetValue(key, out var seen) && !Jobs.ContainsKey(key)) return seen;
+            if (Failures.GivenUp(key)) return Seen[key] = new Probed();
+            if (!Jobs.TryGetValue(key, out var job))
+            {
+                if (animator == null || animator.runtimeAnimatorController == null) return new Probed();
+                seen = new Probed();
+                Seen[key] = seen;
+                job = Begin(key, animator, new List<(string, AnimatorControllerParameterType, float)>(), seen, first: true);
+                job.Sweep = true;
+                job.SweptStances = stances;
+                job.SweptHolds = holds;
+            }
+            if (wait) while (Advance(job)) { }
+            return Seen.TryGetValue(key, out var now) ? now : AfterFailure(key);
+        }
+
+        /// <summary>
+        /// Where a blend of moving sideways and forward places its clips on a person's animator: each
+        /// on an axis or a diagonal at one of these, so stepping through them weighs in every one.
+        /// </summary>
+        private static readonly float[] Speeds = { 0f, 0.7f, 1f, 2f, 3f, 4f, 5f, 6f, 7f, 7.9f, 9f, 10.5f, -0.7f, -1f, -2f, -3f, -4f, -7f };
+
+        /// <summary>
+        /// The runs of a stance sweep: under each stance, standing, crouching, blocking, laden and in
+        /// a jump, each settled and stepped through every speed and direction; then each switch an
+        /// item names, in that item's stance.
+        /// </summary>
+        private static IEnumerator<bool> SweepWork(Job job)
+        {
+            var probe = job.Probe;
+            var seen = job.Seen;
+            bool Has(string name, AnimatorControllerParameterType type) => probe.parameters.Any(p => p.type == type && p.name == name);
+            var statei = Has("statei", AnimatorControllerParameterType.Int);
+            var statef = Has("statef", AnimatorControllerParameterType.Float);
+            if (!statei && !statef) yield break;
+            var sideways = Has("sideway_speed", AnimatorControllerParameterType.Float);
+            var forward = Has("forward_speed", AnimatorControllerParameterType.Float);
+
+            // Standing, crouching, blocking, laden: settled, then stepped through every speed and direction.
+            var visits = new List<System.Action<Animator>> { null };
+            foreach (var switched in new[] { "crouching", "blocking", "encumbered" })
+            {
+                if (Has(switched, AnimatorControllerParameterType.Bool)) visits.Add(a => a.SetBool(switched, true));
+            }
+            var jumps = Has("jump", AnimatorControllerParameterType.Trigger);
+            var grounded = Has("onGround", AnimatorControllerParameterType.Bool);
+
+            void Stand(Animator a, int stance)
+            {
+                if (statei) a.SetInteger("statei", stance);
+                if (statef) a.SetFloat("statef", stance);
+            }
+
+            foreach (var stance in job.SweptStances)
+            {
+                var clips = new HashSet<string>();
+                foreach (var visit in visits)
+                {
+                    foreach (var _ in Swept(probe, a => { Stand(a, stance); visit?.Invoke(a); }, null, clips, sideways, forward)) yield return true;
+                    yield return true;
+                }
+                // A jump goes through its clips by itself: off the ground and back on.
+                if (jumps)
+                {
+                    System.Action<Animator> landing = grounded ? a => a.SetBool("onGround", true) : (System.Action<Animator>)null;
+                    foreach (var _ in Swept(probe, a => { Stand(a, stance); if (grounded) a.SetBool("onGround", false); }, a => a.SetTrigger("jump"), clips, false, false, landing)) yield return true;
+                    yield return true;
+                }
+                seen.Stances[stance] = clips;
+            }
+            foreach (var (switched, stance) in job.SweptHolds)
+            {
+                if (!Has(switched, AnimatorControllerParameterType.Bool) || seen.Holds.ContainsKey(switched)) continue;
+                var clips = new HashSet<string>();
+                foreach (var _ in Swept(probe, a => Stand(a, stance), a => a.SetBool(switched, true), clips, sideways, forward)) yield return true;
+                seen.Holds[switched] = clips;
+                yield return true;
+            }
+            Log.Note($"Scry saw in {Numbers.Count(job.Ms)} ms what the animator of {job.Key} plays by stance: {string.Join("; ", seen.Stances.Select(p => $"{Numbers.Count(p.Key)}: {Numbers.Count(p.Value.Count)} clips"))}; by what items switch on: {string.Join("; ", seen.Holds.Select(p => $"{p.Key}: {Numbers.Count(p.Value.Count)}"))}.");
+        }
+
+        /// <summary>
+        /// One run of a sweep: from its start, set up, done <paramref name="act"/> to once it runs,
+        /// and let settle; then, where it moves sideways or forward, stepped through every speed and
+        /// direction (<see cref="Speeds"/>) with every clip weighed in kept; else every clip weighed in
+        /// as it goes kept, and done <paramref name="then"/> to halfway.
+        /// </summary>
+        private static IEnumerable<bool> Swept(Animator animator, System.Action<Animator> setup, System.Action<Animator> act, HashSet<string> clips, bool sideways, bool forward,
+            System.Action<Animator> then = null)
+        {
+            Restart(animator, 1);
+            setup?.Invoke(animator);
+            animator.Update(0f);
+            act?.Invoke(animator);
+            var moving = sideways || forward;
+            var steps = moving ? Settle : 2 * Settle;
+            for (var i = 1; i <= steps; i++)
+            {
+                if (i == Settle && then != null) then(animator);
+                animator.Update(Step);
+                if (!moving) Weighed(animator, clips);
+                if (i % StepsPerPause != 0) continue;
+                if (!Paused(animator)) yield break;
+                yield return true;
+                if (!Resumed(animator)) yield break;
+            }
+            if (!moving) yield break;
+            var done = 0;
+            foreach (var speed in Speeds)
+            {
+                foreach (var (x, y) in new[] { (0f, speed), (speed, 0f), (speed, speed), (speed, -speed) })
+                {
+                    if (sideways) animator.SetFloat("sideway_speed", x);
+                    if (forward) animator.SetFloat("forward_speed", y);
+                    animator.Update(0f);
+                    Weighed(animator, clips);
+                }
+                if (++done % 4 != 0) continue;
+                if (!Paused(animator)) yield break;
+                yield return true;
+                if (!Resumed(animator)) yield break;
+            }
+        }
+
+        /// <summary>Every clip weighed in on any layer of the state it is in now, by name.</summary>
+        private static void Weighed(Animator animator, HashSet<string> clips)
+        {
+            for (var layer = 0; layer < animator.layerCount; layer++)
+            {
+                animator.GetCurrentAnimatorClipInfo(layer, Infos);
+                foreach (var info in Infos) if (info.clip != null && info.weight > 0.001f) clips.Add(info.clip.name);
+                Infos.Clear();
+            }
+        }
+
+        /// <summary>The randomness of a run paused, kept for when it goes on.</summary>
+        private static Random.State _paused;
+
+        /// <summary>Pauses a run: its copy switched off so its animator does not run on by itself; false where the copy is gone.</summary>
+        private static bool Paused(Animator animator)
+        {
+            if (animator == null) return false;
+            _paused = Random.state;
+            animator.transform.parent.gameObject.SetActive(false);
+            return true;
+        }
+
+        /// <summary>Goes on with a paused run; false where its copy went meanwhile.</summary>
+        private static bool Resumed(Animator animator)
+        {
+            if (animator == null) return false;
+            animator.transform.parent.gameObject.SetActive(true);
+            Random.state = _paused;
+            return true;
+        }
+
         /// <summary>Sets the stance the copy stands in on every run.</summary>
         private static System.Action<Animator> _stance;
 
@@ -541,18 +720,7 @@ namespace Scry
         /// </summary>
         private static IEnumerable<bool> Trace(List<Frame> frames, Animator animator, System.Action<Animator> act, bool first, System.Action<Animator> then, int thenAt, int steps, int seed = 1, System.Action<Animator> setup = null)
         {
-            Random.InitState(seed);
-            animator.Rebind();
-            foreach (var parameter in animator.parameters)
-            {
-                switch (parameter.type)
-                {
-                    case AnimatorControllerParameterType.Trigger: animator.ResetTrigger(parameter.name); break;
-                    case AnimatorControllerParameterType.Bool: animator.SetBool(parameter.name, parameter.defaultBool); break;
-                    case AnimatorControllerParameterType.Float: animator.SetFloat(parameter.name, parameter.defaultFloat); break;
-                    case AnimatorControllerParameterType.Int: animator.SetInteger(parameter.name, parameter.defaultInt); break;
-                }
-            }
+            Restart(animator, seed);
             _stance?.Invoke(animator);
             setup?.Invoke(animator);
             if (act != null && first) act(animator);
@@ -577,6 +745,23 @@ namespace Scry
                 if (holder == null) yield break;
                 holder.SetActive(true);
                 Random.state = mine;
+            }
+        }
+
+        /// <summary>An animator back where it starts, its settings as they start, seeded alike.</summary>
+        private static void Restart(Animator animator, int seed)
+        {
+            Random.InitState(seed);
+            animator.Rebind();
+            foreach (var parameter in animator.parameters)
+            {
+                switch (parameter.type)
+                {
+                    case AnimatorControllerParameterType.Trigger: animator.ResetTrigger(parameter.name); break;
+                    case AnimatorControllerParameterType.Bool: animator.SetBool(parameter.name, parameter.defaultBool); break;
+                    case AnimatorControllerParameterType.Float: animator.SetFloat(parameter.name, parameter.defaultFloat); break;
+                    case AnimatorControllerParameterType.Int: animator.SetInteger(parameter.name, parameter.defaultInt); break;
+                }
             }
         }
 

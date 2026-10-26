@@ -214,6 +214,14 @@ namespace Scry
                     fires != null ? AnyName(fires, fires.name) : null);
                 attacks.Add((cells, item.name, fires, shared.m_attackStatusEffect, DamageFigures(shared.m_damages)));
             }
+            // Its death, where it hurts what stands near: a line of its own, its name playing the clip it dies in.
+            var death = DeathAttackOf(prefab, out var blast);
+            if (death != null)
+            {
+                var cells = CombatWords.DeathAttackCells(AnyName(blast, blast.name), death.Damage, death.NonPlayer, death.Radius);
+                var effect = !string.IsNullOrEmpty(death.Effect) && ObjectDB.instance != null ? ObjectDB.instance.GetStatusEffect(death.Effect.GetStableHashCode()) : null;
+                attacks.Add((cells, EntryKeys.DeathAttack, null, effect, death.Damage));
+            }
             var onHit = attacks.Any(a => a.OnHit != null);
             var table = new Row { Title = CombatWords.AttacksTitle, Columns = CombatWords.AttackColumnsFor(onHit), AttackCells = onHit ? new[] { 1, 3 } : new[] { 1 } };
             // A summon hits harder by its summoner's skill (SpawnAbility.Spawn), rolled as anything
@@ -224,7 +232,8 @@ namespace Scry
             {
                 var line = table.Lines.Count;
                 table.Lines.Add((onHit ? CombatWords.OnHitCells(cells, effect != null ? EffectName(effect) : null) : cells, EntryKeys.PlayAttack(item)));
-                if (summoner != null)
+                // A death's blast has no owner to grow by a skill.
+                if (summoner != null && !EntryKeys.IsDeathAttack(item))
                 {
                     var strength = SkillMath.SummonStrength(summoner.Value.Level, summoned.Value.PerLevel);
                     table.Yours[line] = new List<(string[], string, string)> { YourLine(SkillWords.SummonedLine(SkillWords.SummonedAt(summoner.Value.At), damage, strength), summoner.Value) };
@@ -260,8 +269,54 @@ namespace Scry
                 if (shared?.m_attack == null || !CombatWords.IsCreatureAttack(shared.m_itemType.ToString(), shared.m_attack.m_attackAnimation)) continue;
                 attacks.Add((item.name, SearchFight.Dealt(DamageFigures(shared.m_damages))));
             }
+            var death = DeathAttackOf(prefab, out _);
+            if (death != null) attacks.Add((EntryKeys.DeathAttack, SearchFight.Dealt(death.Damage)));
             return attacks.ToArray();
         }
+
+        /// <summary>
+        /// What its death does to what stands near (<see cref="DeathAttack"/>), from what the game
+        /// makes as it dies (<c>Character.OnDeath</c> creates <c>m_deathEffects</c>): the first
+        /// thing there with an area hit (<c>Aoe</c>), and that thing; null for a death that hurts nothing.
+        /// </summary>
+        internal static DeathPart DeathAttackOf(GameObject prefab, out GameObject blast)
+        {
+            blast = null;
+            var deaths = prefab != null ? prefab.GetComponent<Character>().OrNull()?.m_deathEffects : null;
+            if (deaths == null) return null;
+            var parts = new List<(DeathPart, GameObject)>();
+            foreach (var slot in EffectSlots.Of(deaths))
+            {
+                if (!EffectSlots.Plays(slot)) continue;
+                var aoe = slot.m_prefab.GetComponentInChildren<Aoe>(true);
+                parts.Add((new DeathPart
+                {
+                    Prefab = slot.m_prefab.name,
+                    IsCreature = slot.m_prefab.GetComponent<Character>() != null,
+                    Damage = aoe != null ? DamageFigures(aoe.m_damage) : Array.Empty<(string, float)>(),
+                    NonPlayer = aoe != null ? aoe.m_damage.m_nonPlayer : 0f,
+                    // The game puts the player's own effect on a player where it has one (Aoe.OnHit).
+                    Effect = aoe == null ? null : !string.IsNullOrEmpty(aoe.m_statusEffectIfPlayer) ? aoe.m_statusEffectIfPlayer : aoe.m_statusEffect,
+                    Radius = aoe != null ? aoe.m_radius : 0f,
+                }, slot.m_prefab));
+            }
+            var picked = DeathAttack.Pick(parts.Select(p => p.Item1));
+            blast = parts.Find(p => p.Item1 == picked).Item2;
+            return picked;
+        }
+
+        /// <summary>Whether a creature prefab's death hurts what stands near (<see cref="DeathAttackOf"/>), by its name, worked out once each.</summary>
+        internal static bool HurtsAsItDies(string prefabName)
+        {
+            if (string.IsNullOrEmpty(prefabName)) return false;
+            if (HurtsKnown.TryGetValue(prefabName, out var hurts)) return hurts;
+            // Kept only once the prefab is there to tell.
+            var prefab = GamePrefabs.Named(prefabName);
+            if (prefab == null) return false;
+            return HurtsKnown[prefabName] = DeathAttackOf(prefab, out _) != null;
+        }
+
+        private static readonly Dictionary<string, bool> HurtsKnown = new Dictionary<string, bool>(StringComparer.Ordinal);
 
         /// <summary>How it moves, sees and hears, what it fears, when it flees, and how long it takes to tame.</summary>
         private void Behaviour(GameObject prefab, Character character)

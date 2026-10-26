@@ -234,6 +234,22 @@ namespace Scry
             return new[] { name, string.IsNullOrEmpty(damage) ? None : damage, how, reach, every };
         }
 
+        /// <summary>
+        /// What a creature's death does around it as a line of its attacks table: what its blast
+        /// deals as it lands, never rolled (nothing sets it up with an owner or a level), all
+        /// around, how far, and no interval, as no AI picks it.
+        /// </summary>
+        public static string[] DeathAttackCells(string name, IEnumerable<(string Type, float Amount)> damage, float nonPlayer, float radius)
+        {
+            var dealt = Damage(damage);
+            if (nonPlayer > 0f)
+            {
+                var creatures = $"{Numbers.Amount(nonPlayer)} to creatures, none to players";
+                dealt = dealt == null ? creatures : dealt + "; " + creatures;
+            }
+            return new[] { name, dealt ?? None, "all around, as it dies", radius > 0f ? $"{Numbers.Amount(radius)} m" : None, None };
+        }
+
         /// <summary>What a table's cell says where it has nothing to tell.</summary>
         private const string None = "–";
 
