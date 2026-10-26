@@ -447,8 +447,13 @@ namespace Scry
             return more;
         }
 
+        /// <summary>Each probe done this session, by its key: the work it took and over how many frames; for the self-test to tell what finding clips costs.</summary>
+        [Diagnostic]
+        public static List<(string Key, long Ms, int Frames)> DoneForTest { get; } = new List<(string, long, int)>();
+
         private static void End(Job job)
         {
+            DoneForTest.Add((job.Key, job.Ms, job.Frames));
             if (job.Holder != null) Object.DestroyImmediate(job.Holder);
             Jobs.Remove(job.Key);
             job.Seen.Busy = false;

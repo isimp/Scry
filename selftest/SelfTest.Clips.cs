@@ -115,9 +115,11 @@ namespace Scry
                 // The person as shown holds what its look gives it (a torch): it moves as with that, the sword's run another's.
                 var shownGroups = Previews.ClipGroupsNow(out var shownStance);
                 var moving = shownGroups != null ? shownGroups.Where(g => g.Value == ClipGroup.Moving).Select(g => g.Key).ToList() : new System.Collections.Generic.List<string>();
-                var othersOwn = bare != null ? moving.Where(bare.ContainsKey).ToList() : moving;
-                p.Check(bare != null && moving.Count > 0 && othersOwn.Count == 0 && bare.ContainsKey("Run New Sword Right"), "the person as shown moves as with what it holds, a sword's run another's",
-                    bare != null ? $"stance {Numbers.Count(shownStance)}, {Numbers.Count(moving.Count)} moving clips, of them counted another's: {string.Join(", ", othersOwn.Take(6))}; the sword's run {(bare.ContainsKey("Run New Sword Right") ? "another's" : "its own")}" : "not worked out");
+                // Moving holds every stance's moving clips; those of what it holds are its own, the rest another gear's.
+                var ownMoving = bare != null ? moving.Where(c => !bare.ContainsKey(c)).ToList() : moving;
+                p.Check(bare != null && ownMoving.Count > 0 && bare.ContainsKey("Run New Sword Right"), "the person as shown moves as with what it holds, a sword's run another's",
+                    bare != null ? $"stance {Numbers.Count(shownStance)}, {Numbers.Count(ownMoving.Count)} of {Numbers.Count(moving.Count)} moving clips its own: {string.Join(", ", ownMoving.Take(6))}; the sword's run {(bare.ContainsKey("Run New Sword Right") ? "another's" : "its own")}" : "not worked out");
+                p.Note("what finding clips took: " + string.Join("; ", TriggerProbe.DoneForTest.Select(d => $"{d.Key} {Numbers.Count(d.Ms)} ms over {Numbers.Count(d.Frames)} frames")));
                 yield return PictureOf(p, "animations", "the person's clips as its look shows it");
             }
         }
