@@ -440,7 +440,9 @@ namespace Scry
             Session.Hide();
             Minimap.instance.SetMapMode(Minimap.MapMode.Large);
             yield return Until(() => MapMarkButtons.LookForTest(0) == MarkLook.Whole, 5);
-            p.Check(MapMarkButtons.LookForTest(0) == MarkLook.Whole && (MapMarkButtons.SaidForTest(0)?.Contains("Walked by you: all ") ?? false),
+            // Walked whole by the character, or on this server where its game keeps the server's record of it.
+            var said = MapMarkButtons.SaidForTest(0) ?? "";
+            p.Check(MapMarkButtons.LookForTest(0) == MarkLook.Whole && (said.Contains("Walked by you: all ") || said.Contains("Walked whole on this server: all ")),
                 "every room walked, its mark is ticked and its words say all its rooms were", MapMarkButtons.SaidForTest(0));
             yield return Picture(p, $"the mark of {name} walked whole");
             var always = Settings.MarkNamesAlways;

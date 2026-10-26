@@ -59,6 +59,8 @@ namespace Scry
             CompendiumKeeper.RecordInto(book);
 
             var at = player.transform.position;
+            // A way the character sees 2 m along, so walls round it hide nothing the test counts as seen.
+            var way = ClearWay(at, 2f);
             var near = TestEvents.Prefix + "CreatureNear";
             var margin = TestEvents.Prefix + "CreatureInMargin";
             var beyond = TestEvents.Prefix + "CreatureBeyond";
@@ -66,10 +68,10 @@ namespace Scry
             var taken = EventLink.Taken;
             EventLink.AskRun(new List<(string Thing, Vector3 At, bool Done)>
             {
-                (near, at + Vector3.right * 2f, false),
-                (margin, at + Vector3.right * (Sighting.PersonReach + EventRecipients.Margin / 2f), false),
-                (beyond, at + Vector3.right * (Sighting.PersonReach + EventRecipients.Margin * 2f), false),
-                (doneFar, at + Vector3.right * (Sighting.PersonReach * 2f), true),
+                (near, at + way * 2f, false),
+                (margin, at + way * (Sighting.PersonReach + EventRecipients.Margin / 2f), false),
+                (beyond, at + way * (Sighting.PersonReach + EventRecipients.Margin * 2f), false),
+                (doneFar, at + way * (Sighting.PersonReach * 2f), true),
             });
             yield return Until(() => EventLink.RanForTest != null, 10);
             var ran = EventLink.RanForTest;

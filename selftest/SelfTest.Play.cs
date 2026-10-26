@@ -101,6 +101,19 @@ namespace Scry
             return CompendiumSight.SeesDeed(at.x, at.y, at.z);
         }
 
+        /// <summary>A way from a point the character sees a deed in so far, of eight around it, east first; east where it sees none, as a test inside walls has no clear way.</summary>
+        private static Vector3 ClearWay(Vector3 from, float distance)
+        {
+            for (var i = 0; i < 8; i++)
+            {
+                var angle = i * Mathf.PI / 4f;
+                var way = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
+                var at = from + way * distance;
+                if (CompendiumSight.SeesDeed(at.x, at.y, at.z)) return way;
+            }
+            return Vector3.right;
+        }
+
         /// <summary>
         /// A birth near by, of a tame creature that breeds and is not pregnant now: it shows how
         /// long it is pregnant, and the young it brought, which the game names by waking it last,
@@ -180,7 +193,7 @@ namespace Scry
             // A taming: one creature near by told wild, then tame; every other as the game has it.
             var tame = UnityEngine.Object.FindObjectsByType<Tameable>(FindObjectsSortMode.None)
                 .Select(t => t != null ? t.GetComponent<Character>() : null)
-                .FirstOrDefault(c => c != null && Vector3.Distance(c.transform.position, player.transform.position) <= near);
+                .FirstOrDefault(c => c != null && Vector3.Distance(c.transform.position, player.transform.position) <= near && InSight(c));
             if (tame == null) p.Note("no tameable creature is near to tame");
             else
             {
@@ -346,7 +359,7 @@ namespace Scry
             book.FoundOut(troll.Key, EntryKeys.Did(Deed.Killed));
             book.Dropped(troll.Name, new[] { (hide.Name, 2) });
             view.Tell(book, CompendiumRule.Strict);
-            yield return Until(() => !X.KeepsBack(EntryKeys.Did(Deed.Killed)), 3);
+            yield return Until(() => !X.KeepsBack(EntryKeys.Did(Deed.Killed)) && X.StrictAmount(Tally.Fell, troll.Name, hide.Name) == "2 (1 of 1)", 3);
             p.Check(!X.KeepsBack(EntryKeys.Did(Deed.Killed)), "killed, its health shows");
             p.Check(X.StrictAmount(Tally.Fell, troll.Name, hide.Name) == "2 (1 of 1)", "counted, its hide shows how many fell and how often", X.StrictAmount(Tally.Fell, troll.Name, hide.Name));
             p.Check(X.LearnedNote(troll) == "its health found out", "and Learned says what was found out", X.LearnedNote(troll));

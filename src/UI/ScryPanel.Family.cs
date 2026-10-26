@@ -27,7 +27,7 @@ namespace Scry
             foreach (var member in members)
             {
                 var text = CompendiumWords.KindSwitchLabel(explorer.KindLabel(member), explorer.LevelOf(member) == KnownLevel.Seen);
-                var w = Skin.Width(Skin.Segment, text) + U(6f);
+                var w = Mathf.Max(Skin.Width(Skin.Segment, text), Skin.Width(Skin.SegmentOn, text)) + U(6f);
                 if (at + w > x + width && at > x + captionW)
                 {
                     at = x + captionW;

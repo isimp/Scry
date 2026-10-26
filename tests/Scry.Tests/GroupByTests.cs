@@ -20,6 +20,9 @@ namespace Scry.Tests
             public readonly Entry Wolf = Creature("Wolf", "Mountain monsters", Deed.Tamed);
             public readonly Entry Skeleton = Creature("Skeleton_Friendly", Groups.PlayersGroup);
             public readonly Entry Player = Creature("Player", Groups.PlayersGroup);
+            // A summon takes commands as a tame one does, and rides where it takes a saddle: summoned all the same.
+            public readonly Entry Summon = Creature("Moose_spiritcaller", Groups.PlayersGroup, Deed.Tamed, Deed.Ridden);
+            public readonly Entry Ragdoll = Creature("Player_ragdoll", Groups.PlayersGroup);
             public readonly Entry Troll = Creature("Troll", "Forest monsters");
             public readonly Entry Perch = E("Fish1", Kind.Item, "Perch");
             public readonly Entry Tuna = E("Fish3", Kind.Item, "Tuna");
@@ -41,7 +44,8 @@ namespace Scry.Tests
                 // An item no world spawn places groups by the biomes of what gives it.
                 Hammer.GiverBiomes = new string[0];
                 Player.Components = new[] { "Player" };
-                var all = new[] { Lox, Boar, Wolf, Skeleton, Player, Troll, Perch, Tuna, Hammer, Meadows, Forest, Plains, Ocean }.ToList();
+                Ragdoll.Components = new[] { "Ragdoll" };
+                var all = new[] { Lox, Boar, Wolf, Skeleton, Player, Summon, Ragdoll, Troll, Perch, Tuna, Hammer, Meadows, Forest, Plains, Ocean }.ToList();
                 Explorer = new Explorer(all, new Favourites(Path.Combine(TempDir(), "favourites.txt")));
                 View = new CompendiumView(Explorer.Entries);
             }
@@ -87,6 +91,8 @@ namespace Scry.Tests
             Assert.Equal(ListGrouping.Tamed, world.Group(world.Wolf));
             Assert.Equal(ListGrouping.Summoned, world.Group(world.Skeleton));
             Assert.Equal(ListGrouping.NeverTamed, world.Group(world.Player));
+            Assert.Equal(ListGrouping.Summoned, world.Group(world.Summon));
+            Assert.Equal(ListGrouping.NeverTamed, world.Group(world.Ragdoll));
             Assert.Equal(ListGrouping.NeverTamed, world.Group(world.Troll));
             var order = world.Explorer.Results.Select(world.Group).Distinct().ToArray();
             Assert.Equal(new[] { ListGrouping.Ridden, ListGrouping.TamedAndBred, ListGrouping.Tamed, ListGrouping.Summoned, ListGrouping.NeverTamed }, order);

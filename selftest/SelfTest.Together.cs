@@ -50,8 +50,9 @@ namespace Scry
             EventLink.TakeOwnForTest = local;
             var me = new[] { ZNet.GetUID() };
             var made = TestEvents.Prefix + "Creature";
-            var far = player.transform.position + Vector3.right * (Sighting.PersonReach * 2f);
-            var near = player.transform.position + Vector3.right * 2f;
+            var way = ClearWay(player.transform.position, 2f);
+            var far = player.transform.position + way * (Sighting.PersonReach * 2f);
+            var near = player.transform.position + way * 2f;
             // Numbers no game of the world reaches, so none of its own events is taken for these.
             var number = 1000000000 + Random.Range(0, 100000000);
             WorldEvent Death(long game, string thing, Vector3 at, long[] doers) =>

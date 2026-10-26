@@ -29,7 +29,10 @@ namespace Scry
             var summoned = Pick(Kind.Creature, "Skeleton_Friendly");
             if (summoned != null) p.Check(CreatureStars.Of(summoned.Name).Stars == 0, "a skeleton summoned by a staff comes with none, its level set to one", $"{CreatureStars.Of(summoned.Name)}");
             var cultist = Pick(Kind.Creature, "Fenring_Cultist_Hildir");
-            if (cultist != null && Locations.Now == Locations.State.Read)
+            // A new build reads every place again in the background: the levels the cave sets come once it is done.
+            yield return Until(() => !Locations.Busy, 240);
+            if (Locations.Busy) p.Note("the places were still being read after four minutes");
+            if (cultist != null && Locations.Now == Locations.State.Read && !Locations.Busy)
                 p.Check(CreatureStars.Of(cultist.Name).Stars == 2, "Hildir's cave cultists come with two stars, by the levels the cave sets", $"{CreatureStars.Of(cultist.Name)}");
             else p.Note("the places are not read, so the levels they set wait");
 

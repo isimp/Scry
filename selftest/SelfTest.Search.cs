@@ -223,7 +223,7 @@ namespace Scry
             p.Check(X.Forward() && X.Selected == b, "Forward goes on again");
         }
 
-        /// <summary>Each kind's tab lists as many as its count says, each group of it in one run.</summary>
+        /// <summary>Each kind's tab lists as many as its count says, each group of it in one run, in whatever way the tab groups.</summary>
         private static IEnumerator TabsAndGroups(Probe p)
         {
             X.SearchEverything("");
@@ -239,7 +239,7 @@ namespace Scry
                 string last = null;
                 foreach (var entry in X.Results)
                 {
-                    var group = entry.Group ?? "";
+                    var group = X.ListGroupOf(entry).Name ?? "";
                     if (group == last) continue;
                     if (!seen.Add(group)) broken.Add($"{kind}: \"{group}\" comes twice");
                     last = group;

@@ -114,12 +114,12 @@ namespace Scry
             return BiomesOf.TryGetValue(prefab, out var set) ? set.ToArray() : Array.Empty<string>();
         }
 
-        /// <summary>The biomes of what gives a thing that neither spawns nor grows itself: of each creature, resource or spawn its lines name; none for one that does.</summary>
+        /// <summary>The biomes of what gives a thing that neither spawns nor grows itself: of each creature or resource that drops or yields it, and each spawn its lines name; none for one that does.</summary>
         public static string[] GiverBiomes(string prefab)
         {
             if (BiomesOf.ContainsKey(prefab)) return Array.Empty<string>();
             var biomes = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var line in WhereLines(prefab))
+            foreach (var line in SourceLines(prefab).Concat(WhereLines(prefab)))
             {
                 if (line.Prefab != null && BiomesOf.TryGetValue(line.Prefab, out var given)) biomes.UnionWith(given);
             }

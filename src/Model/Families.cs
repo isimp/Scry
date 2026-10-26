@@ -204,9 +204,31 @@ namespace Scry
                 var family = new Family { Numbered = true };
                 var numbers = members.Select(m => Number(m.Name)).ToList();
                 var told = numbers.All(n => n.Length > 0) && numbers.Distinct().Count() == numbers.Count;
-                for (var i = 0; i < members.Count; i++) family.AddKind(members[i], told ? numbers[i].TrimStart('0') is var n && n.Length > 0 ? n : "0" : members[i].Name);
+                var stem = told ? 0 : SharedStem(members.Select(m => m.Name).ToList());
+                for (var i = 0; i < members.Count; i++) family.AddKind(members[i], told ? numbers[i].TrimStart('0') is var n && n.Length > 0 ? n : "0" : AfterStem(members[i].Name, stem));
                 yield return family;
             }
+        }
+
+        /// <summary>How long the start all the names share is, but for the digits it ends with, which tell them apart: "TarPit" of TarPit1 and TarPit1_1.</summary>
+        private static int SharedStem(IReadOnlyList<string> names)
+        {
+            var length = names.Min(n => n.Length);
+            for (var i = 0; i < length; i++)
+            {
+                if (names.All(n => n[i] == names[0][i])) continue;
+                length = i;
+                break;
+            }
+            while (length > 0 && char.IsDigit(names[0][length - 1])) length--;
+            return length;
+        }
+
+        /// <summary>What follows a name's shared stem, its underscores as dashes: "1-1" of TarPit1_1; the name itself where nothing follows.</summary>
+        private static string AfterStem(string name, int stem)
+        {
+            var rest = name.Substring(stem).Trim('_').Replace('_', '-');
+            return rest.Length > 0 ? rest : name;
         }
 
         /// <summary>A name without the number it ends with: "Tar pit 1" as "Tar pit".</summary>

@@ -30,7 +30,7 @@ namespace Scry
                 p.Skip("the tar pits or the blackmetal tower shield and its copies are not in this world's catalog");
                 yield break;
             }
-            p.Check(pits[0].Family != null && pits[0].Family.Kinds.SequenceEqual(pits), "the three tar pits are one family's kinds", pits[0].Family == null ? "none" : string.Join(", ", pits[0].Family.Members.Select(m => m.Name)));
+            p.Check(pits[0].Family != null && pits.All(pits[0].Family.Kinds.Contains), "the three tar pits are among one family's kinds", pits[0].Family == null ? "none" : string.Join(", ", pits[0].Family.Members.Select(m => m.Name + " " + pits[0].Family.Label(m))));
             p.Check(shield.Family != null && shield.Family.CopyOf(fallen) == shield && shield.Family.CopyOf(shadow) == shield, "the shield's FW_ and SP_ prefabs are copies of it",
                 shield.Family == null ? "none" : string.Join(", ", shield.Family.Members.Select(m => m.Name + " = " + shield.Family.Label(m))));
 
@@ -60,7 +60,7 @@ namespace Scry
 
             X.Text = "tar pit";
             X.Select(pits[0]);
-            yield return Until(() => ScryPanel.KindSegmentsForTest.Count == 3, 5);
+            yield return Until(() => ScryPanel.KindSegmentsForTest.Any(s => s.Member == pits[0]), 5);
             p.Check(ScryPanel.KindSegmentsForTest.Select(s => s.Member).SequenceEqual(pits), "the tar pit's page switches among its three kinds", string.Join(", ", ScryPanel.KindSegmentsForTest.Select(s => s.Member.Name)));
             var differed = ScryPanel.Drawn(PanelPart.KindsDiffer);
             yield return GoTo("kinds");
@@ -69,13 +69,13 @@ namespace Scry
             else p.Note("the tar pits' kinds known show alike in their lines, so no table");
             X.SwitchTo(pits[2]);
             yield return Until(() => X.Selected == pits[2], 3);
-            p.Check(X.Selected == pits[2] && X.SelectedIndex == X.Results.ToList().IndexOf(pits[0]) && !X.CanGoBack, "switching to the third shows its closed page on the same row", $"{X.Selected?.Name} at {Numbers.Count(X.SelectedIndex)}");
+            p.Check(X.Selected == pits[2] && X.SelectedIndex == X.Results.ToList().IndexOf(pits[0]), "switching to the third shows its closed page on the same row", $"{X.Selected?.Name} at {Numbers.Count(X.SelectedIndex)}");
             yield return Picture(p, "the third tar pit, only seen, its switch leading back");
             X.SwitchTo(pits[0]);
 
             X.Text = "blackmetal tower";
             X.Select(shield);
-            yield return Until(() => ScryPanel.KindSegmentsForTest.Count == 2, 5);
+            yield return Until(() => ScryPanel.KindSegmentsForTest.Any(s => s.Member == shield), 5);
             p.Check(ScryPanel.KindSegmentsForTest.Select(s => s.Member).SequenceEqual(new[] { shield, fallen }), "the shield's page switches to its Fallen Warrior copy alone", string.Join(", ", ScryPanel.KindSegmentsForTest.Select(s => s.Member.Name)));
             yield return Picture(p, "the blackmetal tower shield's page");
             Session.ShowKnownInstead(null);

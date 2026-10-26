@@ -55,13 +55,16 @@ namespace Scry
 
         /// <summary>
         /// A creature by what taming allows, the most first: ridden (it takes a saddle), tamed and
-        /// bred, tamed, summoned (of the players' faction, the player aside), else never tamed.
+        /// bred, tamed, else never tamed; one of the players' faction is summoned, whatever its
+        /// taming allows, as a summon takes commands as a tame one does, but for the player and
+        /// a ragdoll, which are never tamed.
         /// </summary>
         public static ListGroup Taming(Entry entry)
         {
+            if (Array.IndexOf(entry.Components, "Player") >= 0 || Array.IndexOf(entry.Components, "Ragdoll") >= 0) return new ListGroup { Name = NeverTamed, Order = 5 };
+            if (entry.Group == Groups.PlayersGroup) return new ListGroup { Name = Summoned, Order = 4 };
             if (Has(entry.Deeds, Deed.Ridden)) return new ListGroup { Name = Ridden, Order = 1 };
             if (Has(entry.Deeds, Deed.Tamed)) return Has(entry.Deeds, Deed.Born) ? new ListGroup { Name = TamedAndBred, Order = 2 } : new ListGroup { Name = Tamed, Order = 3 };
-            if (entry.Group == Groups.PlayersGroup && Array.IndexOf(entry.Components, "Player") < 0) return new ListGroup { Name = Summoned, Order = 4 };
             return new ListGroup { Name = NeverTamed, Order = 5 };
         }
 

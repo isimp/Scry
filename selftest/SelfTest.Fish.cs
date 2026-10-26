@@ -47,7 +47,8 @@ namespace Scry
             view.Tell(book, CompendiumRule.Strict);
             X.Know(view);
             p.Check(!X.KeepsBack(caught), "once caught it shows");
-            yield return PictureOf(p, "facts", "a Perch's page under the strict rules, one caught");
+            yield return PictureOf(p, "lives", "a Perch's page under the strict rules, one caught, where it lives");
+            yield return PictureOf(p, "fishfight", "a Perch's page under the strict rules, one caught, its fight");
             Session.ShowKnownInstead(null);
             yield return Until(() => X.Compendium != view, 3);
 
@@ -57,8 +58,9 @@ namespace Scry
 
         /// <summary>
         /// The Creatures tab groups by what taming allows, the Lox under Ridden and what can never
-        /// be tamed folded away, and the Items tab by biome, the Perch under Meadows with two more;
-        /// each tab keeps its own way, and both go back to their own after.
+        /// be tamed folded away, and the Items tab by biome, the Perch under Meadows with two more,
+        /// most items under a biome; each tab keeps its own way, and both go back to the way the
+        /// player had them.
         /// </summary>
         private static IEnumerator ListsGroupOtherWays(Probe p)
         {
@@ -73,6 +75,7 @@ namespace Scry
             KeepView();
             X.Text = "";
             X.KindFilter = Kind.Creature;
+            var creaturesWere = X.Lens;
             X.Lens = GroupLens.Taming;
             p.Check(X.ListGroupOf(lox).Name == ListGrouping.Ridden, "the Lox stands under Ridden", X.ListGroupOf(lox).Name);
             var groups = X.Results.Select(e => X.ListGroupOf(e).Name).Distinct().ToList();
@@ -82,18 +85,22 @@ namespace Scry
             yield return Picture(p, "the Creatures tab grouped by taming");
 
             X.KindFilter = Kind.Item;
+            var itemsWere = X.Lens;
             X.Lens = GroupLens.Biome;
             var group = X.ListGroupOf(perch);
             p.Check(group.Name == "Meadows" && group.More == 2, "the Perch stands under Meadows, two biomes more", group.Name + " +" + Numbers.Count(group.More));
             p.Note("items by biome: " + string.Join(", ", X.Results.Select(e => X.ListGroupOf(e).Name).Distinct().Select(g => g + " " + Numbers.Count(X.Results.Count(e => X.ListGroupOf(e).Name == g)))));
+            var biomeless = X.Results.Count(e => X.ListGroupOf(e).Name == ListGrouping.NoBiome);
+            p.Check(biomeless * 2 < X.Results.Count, "most items stand under a biome, by their own or what gives them", $"{Numbers.Count(biomeless)} of {Numbers.Count(X.Results.Count)} under {ListGrouping.NoBiome}");
             X.Select(perch);
             yield return Picture(p, "the Items tab grouped by biome");
 
             X.KindFilter = Kind.Creature;
             p.Check(X.Lens == GroupLens.Taming, "the Creatures tab kept its own way");
-            X.Lens = GroupLens.Own;
+            // Each tab back to the way the player had it.
+            X.Lens = creaturesWere;
             X.KindFilter = Kind.Item;
-            X.Lens = GroupLens.Own;
+            X.Lens = itemsWere;
             X.KindFilter = null;
         }
     }

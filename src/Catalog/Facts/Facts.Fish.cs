@@ -20,6 +20,7 @@ namespace Scry
         {
             var shared = prefab.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
             var inputs = SkillReading.Inputs(Skills.SkillType.Fishing);
+            var (range, past, most) = inputs.FloatRange > 0f ? (inputs.FloatRange, inputs.LineBreakPast, inputs.LineMost) : FloatOfRods();
             var (raw, perQuality) = RawFrom(prefab.name);
             var traits = new FishTraits
             {
@@ -30,7 +31,7 @@ namespace Scry
                 RestMin = fish.m_escapeWaitMin, RestMax = fish.m_escapeWaitMax,
                 JumpChance = fish.m_jumpChance, JumpMaxLevel = fish.m_jumpMaxLevel,
                 ScaleByQuality = shared?.m_scaleByQuality ?? 0f, ScaleWeightByQuality = shared?.m_scaleWeightByQuality ?? 0f, Weight = shared?.m_weight ?? 0f,
-                FloatRange = inputs.FloatRange, LineBreakPast = inputs.LineBreakPast, LineMost = inputs.LineMost,
+                FloatRange = range, LineBreakPast = past, LineMost = most,
                 RawAmount = raw, RawPerQuality = perQuality,
             };
             var page = FishPage.Of(traits, Knowledge.FishSpawns(prefab.name));
@@ -66,6 +67,24 @@ namespace Scry
                     items[i] = item;
                 }
             }
+        }
+
+        /// <summary>A fishing rod's float, from the first of the game's items whose attack casts one: its reach for a fish and when its line breaks; none where no item casts one.</summary>
+        private static (float Range, float BreakPast, float Most) FloatOfRods()
+        {
+            var items = ObjectDB.instance != null ? ObjectDB.instance.m_items : null;
+            if (items == null) return (0f, 0f, 0f);
+            foreach (var item in items)
+            {
+                var shared = item != null ? item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared : null;
+                if (shared == null) continue;
+                foreach (var attack in new[] { shared.m_attack, shared.m_secondaryAttack })
+                {
+                    var cast = attack?.m_attackProjectile != null ? attack.m_attackProjectile.GetComponent<FishingFloat>() : null;
+                    if (cast != null) return (cast.m_range, cast.m_breakDistance, cast.m_maxDistance);
+                }
+            }
+            return (0f, 0f, 0f);
         }
 
         /// <summary>The raw fish the prep table makes of one (<c>Recipe.GetAmount</c>): the recipe taking any one of several, this fish among them; none for no such recipe.</summary>

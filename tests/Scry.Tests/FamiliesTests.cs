@@ -116,6 +116,17 @@ namespace Scry.Tests
             Assert.Equal(new[] { crypt2, crypt3 }, crypt2.Family.Kinds);
             Assert.Null(lone.Family);
             Assert.Null(room.Family);
+
+            // Kinds whose numbers repeat (TarPit1 and TarPit1_1) are told by what follows their shared stem.
+            var again = Place("TarPit1_1", "Tar pit");
+            var pits2 = Families.Of(new[] { one, two, three, again }).Single();
+            Assert.Equal(new[] { one, two, three, again }, pits2.Kinds);
+            Assert.Equal(new[] { "1", "2", "3", "1-1" }, pits2.Kinds.Select(pits2.Label));
+            // The stem ends where the names part, before the digits it would end with.
+            var ruin = Families.Of(new[] { Place("Ruin1", "Ruin"), Place("Ruin1_1", "Ruin") }).Single();
+            Assert.Equal(new[] { "1", "1-1" }, ruin.Kinds.Select(ruin.Label));
+            var camps = Families.Of(new[] { Place("CampA1", "Camp"), Place("CampB1", "Camp"), Place("CampA1_1", "Camp") }).Single();
+            Assert.Equal(new[] { "A1", "A1-1", "B1" }, camps.Kinds.Select(camps.Label));
         }
 
         [Fact]
