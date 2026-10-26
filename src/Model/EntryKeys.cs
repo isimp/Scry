@@ -44,6 +44,9 @@ namespace Scry
 
         /// <summary>Rode a creature: its stamina and speed when ridden.</summary>
         Ridden,
+
+        /// <summary>Caught a fish: how it finds a float, how it fights and what a catch brings.</summary>
+        Caught,
     }
 
     /// <summary>How two things were seen go together in play, the second shown on the first's page under the strict rules (<see cref="CompendiumBook.SawWith"/>).</summary>

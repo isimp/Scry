@@ -159,13 +159,14 @@ namespace Scry
     /// <summary>Which deeds a kind of entry's page keeps numbers back for (<see cref="Entry.Deeds"/>).</summary>
     internal static class StrictDeeds
     {
-        /// <summary>Whether a deed noted of a prefab's components fits its kind: health until one is killed only for a creature (a trader is never killed), until one is broken only for a resource.</summary>
+        /// <summary>Whether a deed noted of a prefab's components fits its kind: health until one is killed only for a creature (a trader is never killed), until one is broken only for a resource, a catch only for a fish as the item it is.</summary>
         public static bool Fits(Deed deed, Kind kind)
         {
             switch (deed)
             {
                 case Deed.Killed: return kind == Kind.Creature;
                 case Deed.Broke: return kind == Kind.Resource;
+                case Deed.Caught: return kind == Kind.Item;
                 default: return true;
             }
         }

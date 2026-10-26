@@ -53,8 +53,32 @@ namespace Scry
         {
             if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(proof)) return false;
             if (_proofs.Contains((key, proof))) return true;
+            // A catch has always paired the fish with the bait it took: a fish so paired was caught.
+            if (proof == CaughtProof && Eaten(key)) return true;
             return _attacksAsPairs && EntryKeys.IsAttack(proof, out var item) && _pairs.ContainsKey(Pair(key, item));
         }
+
+        private static readonly string CaughtProof = EntryKeys.Did(Deed.Caught);
+
+        /// <summary>Whether a thing was seen paired with what it eats or bites on (<see cref="Tie.Eats"/>), the keys so paired kept until the pairs change.</summary>
+        private bool Eaten(string key)
+        {
+            if (_eatenAt != PairsVersion)
+            {
+                _eatenAt = PairsVersion;
+                _eaten.Clear();
+                foreach (var pair in _pairs)
+                {
+                    if (pair.Value == AnyWay || (pair.Value & Bit(Tie.Eats)) == 0) continue;
+                    _eaten.Add(pair.Key.Item1);
+                    _eaten.Add(pair.Key.Item2);
+                }
+            }
+            return _eaten.Contains(key);
+        }
+
+        private readonly HashSet<string> _eaten = new HashSet<string>(StringComparer.Ordinal);
+        private int _eatenAt = -1;
 
         /// <summary>How many proofs the character holds.</summary>
         [ForTest]

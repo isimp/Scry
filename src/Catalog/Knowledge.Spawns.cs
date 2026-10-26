@@ -72,6 +72,28 @@ namespace Scry
         /// <summary>The fish each bait catches, with the chance it bites when it reaches the hook (<c>Fish.TestBate</c>).</summary>
         private static readonly Dictionary<string, List<(string Fish, float Chance)>> Baits = new Dictionary<string, List<(string, float)>>(StringComparer.Ordinal);
 
+        /// <summary>The world spawns placing each fish, by its prefab, as far as they tell where and when it comes (<see cref="FishSpawnRule"/>).</summary>
+        private static readonly Dictionary<string, List<FishSpawnRule>> FishSpawned = new Dictionary<string, List<FishSpawnRule>>(StringComparer.Ordinal);
+
+        /// <summary>The world spawns placing a fish; none for one no world spawn places.</summary>
+        public static IReadOnlyList<FishSpawnRule> FishSpawns(string fish) =>
+            fish != null && FishSpawned.TryGetValue(fish, out var rules) ? rules : (IReadOnlyList<FishSpawnRule>)Array.Empty<FishSpawnRule>();
+
+        /// <summary>
+        /// A world spawn of a fish as its page tells it (<c>SpawnSystem.IsSpawnPointGood</c>, <c>Spawn</c>):
+        /// its water, pace, groups, where it never comes and its levels, the level-up chance as
+        /// the game rolls it at the world's centre under this world's settings.
+        /// </summary>
+        private static FishSpawnRule FishSpawn(SpawnSystem.SpawnData data) => new FishSpawnRule
+        {
+            MinAltitude = data.m_minAltitude, MaxAltitude = data.m_maxAltitude, MinOceanDepth = data.m_minOceanDepth, MaxOceanDepth = data.m_maxOceanDepth,
+            Interval = data.m_spawnInterval, Chance = data.m_spawnChance, MaxSpawned = data.m_maxSpawned, SpawnDistance = data.m_spawnDistance,
+            GroupMin = data.m_groupSizeMin, GroupMax = data.m_groupSizeMax,
+            NearPlayer = data.m_canSpawnCloseToPlayer ? 0f : data.m_spawnRadiusMin > 0f ? data.m_spawnRadiusMin : 40f, InsideBase = data.m_insidePlayerBase,
+            MinLevel = data.m_minLevel, MaxLevel = data.m_maxLevel,
+            LevelUpChance = WorldGenerator.instance != null && Game.instance != null ? SpawnSystem.GetLevelUpChance(Vector3.zero, data) : 10f,
+        };
+
         /// <summary>The doors each key opens (<c>Door.m_keyItem</c>).</summary>
         private static readonly Dictionary<string, List<string>> Keys = new Dictionary<string, List<string>>(StringComparer.Ordinal);
 
@@ -263,6 +285,11 @@ namespace Scry
                     foreach (var key in events) AddBiomeKey(EventBiomesOf, name, key);
                     PlacedByWorld.Add(name);
                     Stars.Add(name, LevelWay.World, data.m_minLevel, data.m_maxLevel);
+                    if (data.m_prefab.GetComponent<Fish>() != null)
+                    {
+                        if (!FishSpawned.TryGetValue(name, out var rules)) FishSpawned[name] = rules = new List<FishSpawnRule>();
+                        rules.Add(FishSpawn(data));
+                    }
 
                     var spawn = new SpawnFacts
                     {
@@ -792,6 +819,7 @@ namespace Scry
             KeyedBiomesOf.Clear();
             PlacedByWorld.Clear();
             Baits.Clear();
+            FishSpawned.Clear();
             Keys.Clear();
             Powers.Clear();
             Unlocks.Clear();

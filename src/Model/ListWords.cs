@@ -51,6 +51,12 @@ namespace Scry
         /// <summary>A group heading's tip.</summary>
         public static string GroupTip(bool folded) => folded ? "Show this group" : "Fold this group away";
 
+        /// <summary>The caption of the switch choosing how a kind's list groups.</summary>
+        public const string GroupBy = "Group by";
+
+        /// <summary>The hover of one way of grouping on that switch.</summary>
+        public static string GroupByTip(string way) => "Group this list by " + way.ToLowerInvariant();
+
         /// <summary>Why the list is empty: no favourites yet, nothing looked at yet, or nothing matching.</summary>
         public static string Nothing(bool noFavourites, bool nothingRecent) =>
             noFavourites ? "No favourites yet. Star something to keep it here."

@@ -163,6 +163,9 @@ namespace Scry
         /// <summary>The biomes it spawns or grows in, as the game names them.</summary>
         public string[] Biomes = Array.Empty<string>();
 
+        /// <summary>The biomes of what gives it, for a thing that neither spawns nor grows itself: the list groups it by them (<see cref="ListGrouping.Biome"/>).</summary>
+        public string[] GiverBiomes = Array.Empty<string>();
+
         /// <summary>The locations and kinds of dungeon room it is found in, once they are read (<see cref="Places"/>).</summary>
         public string[] FoundIn = Array.Empty<string>();
 

@@ -176,6 +176,9 @@ namespace Scry
             return faction != null && Factions.TryGetValue(faction, out var group) ? group.Name : faction ?? "";
         }
 
+        /// <summary>The group of the players' faction: the player and what it summons.</summary>
+        public const string PlayersGroup = "Players and their summons";
+
         private static readonly Dictionary<string, Group> Factions = new Dictionary<string, Group>
         {
             ["AnimalsVeg"] = new Group("Animals", 1),
@@ -188,8 +191,8 @@ namespace Scry
             ["MistlandsMonsters"] = new Group("Mistlands monsters", 8),
             ["DeepNorth"] = new Group("Deep North", 9),
             ["Dverger"] = new Group("Dvergr", 10),
-            ["Players"] = new Group("Players and their summons", 12),
-            ["PlayerSpawned"] = new Group("Players and their summons", 12),
+            ["Players"] = new Group(PlayersGroup, 12),
+            ["PlayerSpawned"] = new Group(PlayersGroup, 12),
             ["TrainingDummy"] = new Group("Training dummies", 13),
         };
 

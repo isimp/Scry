@@ -208,7 +208,7 @@ namespace Scry
             if (spawn.m_copySkill == skill && spawn.m_copySkillToRandomFactor > 0f) inputs.SummonPerLevel = spawn.m_copySkillToRandomFactor;
         }
 
-        /// <summary>A fishing rod's float, its drains and reeling at no skill and at the top (<c>FishingFloat.FixedUpdate</c>).</summary>
+        /// <summary>A fishing rod's float, its drains and reeling at no skill and at the top (<c>FishingFloat.FixedUpdate</c>), its reach for a fish and when its line breaks.</summary>
         private static void Fishing(Attack attack)
         {
             var fishing = attack.m_attackProjectile != null ? attack.m_attackProjectile.GetComponent<FishingFloat>() : null;
@@ -219,6 +219,9 @@ namespace Scry
             inputs.PullAtTop = fishing.m_pullStaminaUseMaxSkillMultiplier;
             inputs.LineAtNone = fishing.m_pullLineSpeed;
             inputs.LineAtTop = fishing.m_pullLineSpeedMaxSkill;
+            inputs.FloatRange = fishing.m_range;
+            inputs.LineBreakPast = fishing.m_breakDistance;
+            inputs.LineMost = fishing.m_maxDistance;
         }
 
         /// <summary>

@@ -869,32 +869,6 @@ namespace Scry
             if (_query.FavouritesOnly) Refresh();
         }
 
-        /// <summary>
-        /// The results by their groups, the groups in their order and then by name, within a group
-        /// by rank (<see cref="Entry.GroupRank"/>) and then in the order the search gave them.
-        /// Sorted as numbers: a group's place, a rank and each result's place in one, so a tab of
-        /// thousands is sorted with no call per comparison.
-        /// </summary>
-        public static List<Entry> ByGroup(List<Entry> results)
-        {
-            var orders = results.Select(e => e.GroupOrder).Distinct().OrderBy(o => o).ToList();
-            var names = results.Select(e => e.Group ?? "").Distinct().OrderBy(n => n, StringComparer.Ordinal).ToList();
-            var orderRank = new Dictionary<int, int>();
-            for (var i = 0; i < orders.Count; i++) orderRank[orders[i]] = i;
-            var nameRank = new Dictionary<string, int>(StringComparer.Ordinal);
-            for (var i = 0; i < names.Count; i++) nameRank[names[i]] = i;
-
-            var keys = new long[results.Count];
-            var entries = results.ToArray();
-            for (var i = 0; i < entries.Length; i++)
-            {
-                var rank = Math.Max(0, Math.Min(entries[i].GroupRank, 63));
-                keys[i] = ((long)orderRank[entries[i].GroupOrder] << 48) | ((long)nameRank[entries[i].Group ?? ""] << 27) | ((long)rank << 21) | (long)i;
-            }
-            Array.Sort(keys, entries);
-            return new List<Entry>(entries);
-        }
-
         private void Refresh()
         {
             Dictionary<string, int> order = null;
@@ -984,7 +958,7 @@ namespace Scry
 
             // Within a kind's tab, by its groups (resources by how they are gathered), each
             // group in the order the search gave it.
-            else if (_query.Kind != null && !_showingEveryKind) _results = Leftovers.UnderOwners(ByGroup(_results), _underOwner);
+            else if (_query.Kind != null && !_showingEveryKind) _results = Lens == GroupLens.Own ? Leftovers.UnderOwners(ByGroup(_results), _underOwner) : ByGroup(_results);
 
             if (_selected == null) return;
 

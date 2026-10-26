@@ -36,6 +36,9 @@ namespace Scry
         /// <summary>The fishing float's: stamina a second with a fish on, the share of the pull's drain at the top, the line reeled in a second.</summary>
         public float HookedAtNone = 1f, HookedAtTop = 0.2f, PullAtTop = 0.2f, LineAtNone = 2f, LineAtTop = 6f;
 
+        /// <summary>The fishing float's reach for a fish, and when its line breaks: so far past the line, so far out in all; none where no rod was read.</summary>
+        public float FloatRange, LineBreakPast, LineMost;
+
         /// <summary>Stations that train it make things faster, by the most share saved, with a bonus this likely at the top for what stacks.</summary>
         public bool Crafts;
         public float CraftMostSaved, CraftBonus;

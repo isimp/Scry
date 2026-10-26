@@ -33,6 +33,9 @@ namespace Scry
         /// <summary>A page only seen telling what sight gave: its stars and gear seen up close, where it was seen.</summary>
         SeenLines,
 
+        /// <summary>The switch above a kind's list choosing how it groups (<see cref="ListGrouping"/>).</summary>
+        GroupBar,
+
         /// <summary>A family's page switching among the kinds the character met (<see cref="Explorer.MembersMet"/>).</summary>
         KindSwitch,
 

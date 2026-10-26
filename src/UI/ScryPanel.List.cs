@@ -231,26 +231,8 @@ namespace Scry
                 return;
             }
 
-            // Only what mods added: how many mods, and their report.
-            if (explorer.Origin == OriginFilter.Mods)
-            {
-                inner = ModsBar(explorer, inner);
-                _rowsInView = Mathf.Max(1, Mathf.FloorToInt(inner.height / rowH));
-            }
-
-            // The places: finding them, or once known that they are kept and reading them afresh; and whether every world reads them.
-            if (explorer.KindFilter == Kind.Location)
-            {
-                inner = PlacesBar(inner);
-                _rowsInView = Mathf.Max(1, Mathf.FloorToInt(inner.height / rowH));
-            }
-
-            // With the compendium on: that the explored map counts, and reading it again.
-            if (explorer.KindFilter == Kind.Location && explorer.CompendiumSet)
-            {
-                inner = MapBar(inner);
-                _rowsInView = Mathf.Max(1, Mathf.FloorToInt(inner.height / rowH));
-            }
+            inner = Bars(explorer, inner);
+            _rowsInView = Mathf.Max(1, Mathf.FloorToInt(inner.height / rowH));
 
             // A search whose slips were mended says what it shows instead.
             if (explorer.Mended.Count > 0)
@@ -303,6 +285,20 @@ namespace Scry
             GUI.EndScrollView();
         }
 
+        /// <summary>The bars over the list, each where it applies; what is left of the list's area under them.</summary>
+        private static Rect Bars(Explorer explorer, Rect inner)
+        {
+            // Only what mods added: how many mods, and their report.
+            if (explorer.Origin == OriginFilter.Mods) inner = ModsBar(explorer, inner);
+            // The places: finding them, or once known that they are kept and reading them afresh; and whether every world reads them.
+            if (explorer.KindFilter == Kind.Location) inner = PlacesBar(inner);
+            // With the compendium on: that the explored map counts, and reading it again.
+            if (explorer.KindFilter == Kind.Location && explorer.CompendiumSet) inner = MapBar(inner);
+            // A kind's tab offering other ways to group: the switch choosing one.
+            if (ShowsGroupBar(explorer)) inner = GroupBar(explorer, inner);
+            return inner;
+        }
+
         /// <summary>A row of the list: an entry (its place in the results), or the heading of the group that follows.</summary>
         private struct ListRow
         {
@@ -323,7 +319,7 @@ namespace Scry
 
         /// <summary>The group an entry is listed under: in the learned list its day (<see cref="ListWords.DayGroup"/>), else its own group.</summary>
         private static string GroupOf(Explorer explorer, Entry entry) =>
-            explorer.LearnedOnly ? ListWords.DayGroup(explorer.LearnedDay(entry), explorer.LearnedWorldShown(entry)) : entry.Group;
+            explorer.LearnedOnly ? ListWords.DayGroup(explorer.LearnedDay(entry), explorer.LearnedWorldShown(entry)) : explorer.ListGroupOf(entry).Name;
 
         /// <summary>The results the learned groups' order was last worked out for, and each group's rank in it, newest first.</summary>
         private static IReadOnlyList<Entry> _ranksOf;
@@ -354,7 +350,9 @@ namespace Scry
         {
             // The player's own choice stands whatever the group's rank comes to; else as the group starts.
             if (explorer.LearnedOnly) return FoldChoices.TryGetValue(FoldKey(explorer, GroupOf(explorer, entry)), out var chosen) ? chosen : JournalWords.FoldedAtFirst(GroupRank(explorer, entry), explorer.LearnedDay(entry));
-            return Grouped(explorer) && FoldChoices.TryGetValue(FoldKey(explorer, entry.Group), out var folded) && folded;
+            if (!Grouped(explorer)) return false;
+            var group = GroupOf(explorer, entry);
+            return FoldChoices.TryGetValue(FoldKey(explorer, group), out var folded) ? folded : ListGrouping.FoldedAtFirst(explorer.Lens, group);
         }
 
         /// <summary>Opens the group an entry is in; true when it was folded.</summary>
@@ -438,7 +436,7 @@ namespace Scry
 
             // Recent lists newest first, not by group, so it has no headings; what was learned goes by day.
             var byDay = explorer.LearnedOnly;
-            var grouped = byDay || Grouped(explorer) && !explorer.RecentOnly && results.Any(e => e.Group.Length > 0);
+            var grouped = byDay || Grouped(explorer) && !explorer.RecentOnly && (explorer.Lens != GroupLens.Own || results.Any(e => e.Group.Length > 0));
             for (var i = 0; i < results.Count; i++)
             {
                 var folded = false;
@@ -450,7 +448,7 @@ namespace Scry
                     {
                         var count = 1;
                         while (i + count < results.Count && GroupOf(explorer, results[i + count]) == group) count++;
-                        var name = byDay ? JournalWords.DayHeading(explorer.LearnedDay(results[i]), explorer.LearnedWorldShown(results[i])) : results[i].Group.Length > 0 ? results[i].Group : "Ungrouped";
+                        var name = byDay ? JournalWords.DayHeading(explorer.LearnedDay(results[i]), explorer.LearnedWorldShown(results[i])) : group.Length > 0 ? group : "Ungrouped";
                         _listRows.Add(new ListRow { Entry = -1, Heading = PanelWords.Heading(name, count), Group = group, Folded = folded });
                     }
                 }
@@ -539,9 +537,14 @@ namespace Scry
         /// </summary>
         private static string RowSecondary(Explorer explorer, Entry entry, string primary) =>
             (explorer.LearnedOnly ? explorer.LearnedNote(entry) : null)
+            ?? BiomesMore(explorer, entry)
             ?? (explorer.CompendiumSet ? SeenTagged(explorer, entry, explorer.Folds && entry.Family != null ? explorer.FamilyNote(entry)
                     : Masked(explorer, explorer.AlikeOf(entry), always: explorer.CompendiumOn)) ?? ""
                 : (entry.TagNamesCarrier ? entry.Alike : null) ?? entry.Tag ?? (primary == entry.Name ? "" : entry.Name));
+
+        /// <summary>Grouped by biome, how many biomes more than the one a row stands under it has (<see cref="ListGrouping.MoreBiomes"/>); none otherwise.</summary>
+        private static string BiomesMore(Explorer explorer, Entry entry) =>
+            Grouped(explorer) && explorer.Lens == GroupLens.Biome && !explorer.LearnedOnly ? ListGrouping.MoreBiomes(explorer.ListGroupOf(entry).More) : null;
 
         /// <summary>A row's note with "seen" before it where the entry is only seen, its page closed, so a row tells knowing a thing from knowing its page.</summary>
         private static string SeenTagged(Explorer explorer, Entry entry, string note)

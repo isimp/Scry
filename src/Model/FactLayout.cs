@@ -87,6 +87,9 @@ namespace Scry
             [Kind.Trader] = WithChain(Trader()),
         };
 
+        /// <summary>A fish's plan, an item's with its own topics (<see cref="FishPage"/>), taken for an item whose page tells how deep it swims.</summary>
+        private static readonly KindPlan FishPlan = WithChain(Fish());
+
         /// <summary>A kind's plan with the chains it is a step of right under its tiles, without a heading of their own (<see cref="ChainBook"/>).</summary>
         private static KindPlan WithChain(KindPlan plan)
         {
@@ -190,6 +193,42 @@ namespace Scry
             plan.Blocks[FactBlock.Uses] = "uses";
             plan.Blocks[FactBlock.Users] = More;
             plan.Blocks[FactBlock.Hooks] = "hooks";
+            return plan;
+        }
+
+        /// <summary>
+        /// A fish: what it is as tiles, then where it lives (its water, where it is never placed,
+        /// its biomes and sources), when it comes and leaps, how it finds a bait, its fight by
+        /// stars and what a catch brings; the rest as an item's.
+        /// </summary>
+        private static KindPlan Fish()
+        {
+            var item = Item();
+            var plan = new KindPlan
+            {
+                Topics = new[]
+                {
+                    ("overview", (string)null), ("lives", "Where it lives"), ("when", "When"), ("biting", "Biting"), ("fishfight", "The fight"), ("catch", "What a catch gives"),
+                    ("does", "What it does"), ("making", "Making"), ("from", "Where it comes from"), ("uses", "What it is used for"), ("mods", "Set by mods"), (More, "More"), ("hooks", null),
+                },
+            };
+            foreach (var pair in item.Labels) plan.Labels[pair.Key] = pair.Value;
+            foreach (var pair in item.Parts) plan.Parts[pair.Key] = pair.Value;
+            foreach (var pair in item.Blocks) plan.Blocks[pair.Key] = pair.Value;
+            Tile(plan, "overview", null, FishWords.Swims, FishWords.GroupsOf, FishWords.Stars);
+            Label(plan, "lives", FishWords.Water, FishWords.Never, FishWords.HowMany);
+            Label(plan, "when", FishWords.Comes, FishWords.Leaps);
+            Label(plan, "biting", FishWords.FindsFloat, FishWords.SwimsOff, FishWords.WrongBait);
+            Label(plan, "fishfight", FishWords.FightTitle, "Reeling in", FishWords.Rests, FishWords.Line);
+            Label(plan, "catch", FishWords.OnLand);
+            Part(plan, "biting", "fishing");
+            Lead(plan, "biting", FishWords.BitesOn);
+            Part(plan, "catch", "fish catch");
+            RowsFirst(plan, "catch");
+            Lead(plan, "fishfight", FishWords.FightTitle, "Reeling in");
+            plan.Blocks[FactBlock.Where] = "lives";
+            plan.Blocks[FactBlock.FoundIn] = "lives";
+            plan.Blocks[FactBlock.Biomes] = "lives";
             return plan;
         }
 
@@ -496,6 +535,7 @@ namespace Scry
             IReadOnlyCollection<string> linkGroups = null)
         {
             if (!Kinds.TryGetValue(kind, out var plan)) return null;
+            if (kind == Kind.Item && pairs.Any(p => p.Label == FishWords.Swims)) plan = FishPlan;
             var topics = new Dictionary<string, FactTopicPlan>(StringComparer.Ordinal);
             foreach (var (id, heading) in plan.Topics) topics[id] = new FactTopicPlan { Id = id, Heading = heading };
 

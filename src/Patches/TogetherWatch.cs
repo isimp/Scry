@@ -153,7 +153,7 @@ namespace Scry
         /// <summary>The bait on the line a fish is caught with, before the catch takes the float away.</summary>
         public static string Bait(Fish fish) => fish != null ? FishingFloat.FindFloat(fish).OrNull()?.GetBait() : null;
 
-        /// <summary>A fish caught by the character: with its bait, and met where it swam.</summary>
+        /// <summary>A fish caught by the character: with its bait, its catch proved, and met where it swam.</summary>
         public static void Caught(Fish fish, Character owner, string bait)
         {
             if (fish == null || owner == null || owner != Player.m_localPlayer) return;
@@ -161,6 +161,7 @@ namespace Scry
             {
                 var key = Utils.GetPrefabName(fish.gameObject);
                 if (!string.IsNullOrEmpty(bait)) CompendiumKeeper.Saw(key, bait, Tie.Eats);
+                CompendiumKeeper.FoundOut(key, EntryKeys.Did(Deed.Caught));
                 CompendiumKeeper.MetIn(key, fish.transform.position);
             });
         }

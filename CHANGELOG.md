@@ -12,6 +12,10 @@ Things that are one thing to a player are one row: the three tar pits, the Buria
 
 An item made by a recipe the game holds several times over, as the blackmetal tower shield was, shows its cost once.
 
+A fish's page tells where it lives and how deep the water must be, when it comes and leaps, how it finds a float and what drives it off, its fight by stars with the raw fish each gives, and what a catch brings besides. Under *Strict* the biting and the fight show once you caught one.
+
+The Creatures tab can group by biome or by what taming allows, and the Items tab by biome, with a switch above the list; each tab keeps its own choice.
+
 A creature shows stars only where something in the world can give it some. Lox, Greylings, Bats, Blobs, Wraiths, summons and many more say they never come with any, and a mod's creature no spawn names keeps two stars marked unsure.
 
 ## 0.3.1

@@ -301,6 +301,7 @@ namespace Scry
                 DeedHinges = Hinges(found.Prefab),
                 Tokens = found.Tokens.ToArray(),
                 Biomes = Knowledge.Biomes(name),
+                GiverBiomes = Knowledge.GiverBiomes(name),
                 ModName = Knowledge.ModName(name),
                 ModClue = Knowledge.ModClue(name),
             };
@@ -480,6 +481,7 @@ namespace Scry
                 case Procreation _: deeds.Add(Deed.Born); break;
                 case Growup _: deeds.Add(Deed.GrewUp); break;
                 case EggGrow _: deeds.Add(Deed.Hatched); break;
+                case Fish _: deeds.Add(Deed.Caught); break;
                 case Pickable pick when pick.m_respawnTimeMinutes > 0f: deeds.Add(Deed.GrewBack); break;
                 case Plant _: deeds.Add(Deed.Grew); break;
                 case TreeBase _:

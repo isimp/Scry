@@ -179,6 +179,27 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AFishTellsWhereAndWhenItLivesHowItBitesAndFightsAndWhatACatchGives()
+        {
+            var fish = Item(
+                new[] { ("Type", ""), ("Weight", ""), (FishWords.Swims, "fish"), (FishWords.GroupsOf, "fish"), (FishWords.Stars, "fish"), (FishWords.Water, "fish"), (FishWords.Never, "fish"),
+                    (FishWords.HowMany, "fish"), (FishWords.Comes, "fish"), (FishWords.Leaps, "fish"), (FishWords.FindsFloat, "fish"), (FishWords.SwimsOff, "fish"), (FishWords.WrongBait, "fish"),
+                    (FishWords.Rests, "fish"), (FishWords.Line, "fish"), (FishWords.OnLand, "fish"), ("Reeling in", "fishing") },
+                new[] { (FishWords.BitesOn, "fishing"), (FishWords.FightTitle, "fish"), ("Also one time in five, one of", "fish catch") },
+                FactBlock.Where, FactBlock.Biomes, FactBlock.Uses, FactBlock.Hooks);
+            Assert.Equal(new[] { null, "Where it lives", "When", "Biting", "The fight", "What a catch gives", "Making", "What it is used for", null }, fish.Select(t => t.Heading));
+            Assert.Equal(new[] { FishWords.Swims, FishWords.GroupsOf, FishWords.Stars }, fish[0].Shown);
+            Assert.Equal(new[] { FishWords.Water, FishWords.Never, FishWords.HowMany, "block Where", "block Biomes" }, fish[1].Shown);
+            Assert.Equal(new[] { FishWords.Comes, FishWords.Leaps }, fish[2].Shown);
+            Assert.Equal(new[] { "row " + FishWords.BitesOn, FishWords.FindsFloat, FishWords.SwimsOff, FishWords.WrongBait }, fish[3].Shown);
+            Assert.Equal(new[] { "row " + FishWords.FightTitle, "Reeling in", FishWords.Rests, FishWords.Line }, fish[4].Shown);
+            Assert.Equal(new[] { "row Also one time in five, one of", FishWords.OnLand }, fish[5].Shown);
+            Assert.Equal(new[] { "Type", "Weight" }, fish[6].Shown);
+            // Any other item keeps its page.
+            Assert.DoesNotContain("Where it lives", Item(new[] { ("Type", ""), ("Weight", "") }, new (string, string)[0], FactBlock.Where).Select(t => t.Heading));
+        }
+
+        [Fact]
         public void AWeaponsFightLeadsWithWhatItDealsThenWhatItCostsThenHowItBlocks()
         {
             // Its damage is what a weapon is looked at for, not its block.
@@ -231,8 +252,8 @@ namespace Scry.Tests
             Assert.Equal(new[] { null, "What it does", "Making" }, hammer.Select(t => t.Heading));
             Assert.Equal(new[] { "row Builds on the Misc tab (12)" }, hammer[1].Shown);
 
-            var fish = Item(new[] { ("Type", "") }, new[] { ("Bites on, when it reaches the hook", "fishing") });
-            Assert.Equal(new[] { "row Bites on, when it reaches the hook" }, fish.Single(t => t.Heading == "What it does").Shown);
+            var fish = Item(new[] { ("Type", "") }, new[] { (FishWords.BitesOn, "fishing") });
+            Assert.Equal(new[] { "row " + FishWords.BitesOn }, fish.Single(t => t.Heading == "What it does").Shown);
             var bait = Item(new[] { ("Type", "") }, new[] { ("Catches, when one reaches the hook", "bait") });
             Assert.Equal(new[] { "row Catches, when one reaches the hook" }, bait.Single(t => t.Heading == "What it does").Shown);
             var key = Item(new[] { ("Type", "") }, new[] { ("Opens", "") });
