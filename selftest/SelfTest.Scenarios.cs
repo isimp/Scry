@@ -201,6 +201,7 @@ namespace Scry
             yield return S("the world's lights stay off the stage", WorldLightsOff, 20);
             yield return S("the Ground backdrop lays each biome's own ground", GroundBackdrop, 120, bearsSkips: true);
             yield return S("a meadow's grass grows out to where its ground fades, and a big creature, a raid and a camp stand in it", GroundGrass, 120, GroundAsItWas);
+            yield return S("a place's own modifiers dig its ground on the stage, its tar settled in it and its parts at rest", DugGround, 120, DugGroundAsItWas);
             yield return S("Scry costs next to nothing idling with the panel closed", IdleCost, 320);
             yield return S("the resource monitor shows what Scry costs and holds", ResourceMonitor, 10);
             yield return S("standing open on a page and on a dungeon, what Scry's own work costs and allocates a frame, by part", OpenCost, 240);

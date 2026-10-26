@@ -2,6 +2,8 @@
 
 ## 0.3.2
 
+A place shown on the stage stands on the ground it digs for itself. A tar pit sits in its bowl with its tar settled in it, small tar floating and big deposits on the pit's floor, and a Burial Chambers' entrance in its stair pit, where before the flat stage floor covered them.
+
 ## 0.3.1
 
 The compendium follows what the game itself shows. A recipe's materials, a piece's cost or a store's wares come with the thing once the game lists them for your character, under *Loose* and *Strict* alike.

@@ -194,10 +194,10 @@ namespace Scry
                     // own dungeon shows its layout alone: what lives and lies in it is the world's, not read.
                     var layoutOnly = TheExample.IsDungeon && ExampleLayouts.ShowsWorlds;
                     TheExample.BuildRoll = new PlaceRoll { WantsLoot = TheExample.IsDungeon && !layoutOnly, LayoutOnly = layoutOnly };
-                    TheExample.BuildPaints = TheExample.IsDungeon ? null : new List<GroundPaintAt>();
+                    TheExample.BuildGround = TheExample.IsDungeon ? null : new PlaceGround();
                     var rules = _lastShown?.Source is PlaceSource shown ? PlaceAssets.Asset(shown).OrNull()?.GetComponent<Location>() : null;
                     TheExample.Build = PlaceCopy.Begin(prefab, TheExample.Holder.transform, at, turn, _layer, keepColliders: TheExample.IsDungeon, local: true,
-                        roll: TheExample.BuildRoll, rules: rules, paints: TheExample.BuildPaints);
+                        roll: TheExample.BuildRoll, rules: rules, ground: TheExample.BuildGround);
                 }
                 stepped = true;
                 if (!TheExample.Build.Go(ExampleBudgetMs - watch.Elapsed.TotalMilliseconds)) break;
@@ -216,8 +216,8 @@ namespace Scry
                 if (TheExample.IsDungeon) TheExample.KeepLoot(placed, TheExample.BuildRoll.Loot);
                 TheExample.BuildRoll = null;
                 // A camp's rooms paint the ground around it; a dungeon's stand under it.
-                TakeGroundPaints(TheExample.BuildPaints, copy);
-                TheExample.BuildPaints = null;
+                TakeGround(TheExample.BuildGround, copy);
+                TheExample.BuildGround = null;
                 TheExample.Copies++;
 
                 if (TheExample.Copies == 1 && TheExample.IsDungeon) ShowInsideOrOut();
@@ -868,7 +868,7 @@ namespace Scry
             if (TheExample.Focused != null) LetGoOfRoomCut();
             TheExample.Forget();
             ForgetRoomCreatures();
-            ForgetGroundPaints(rooms: true);
+            ForgetGroundTaken(rooms: true);
         }
 
         /// <summary>

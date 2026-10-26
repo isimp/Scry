@@ -85,11 +85,24 @@ namespace Scry
         /// </summary>
         private const string GroundPart = "laying the stage's ground";
 
+        private const string SettlePart = "shaping the ground a place stands on";
+
         /// <summary>After a fault in laying the ground: puts it away for the frame, the plain floor back, so the stage is filmed all the same.</summary>
         private static void PutGroundAway()
         {
             TheGround.PutAway();
             if (_floor != null && !StageGround.Grid(_backdrop)) _floor.SetActive(true);
+        }
+
+        /// <summary>
+        /// The ground under the model at its height: first the shape the place's own modifiers give it,
+        /// with its liquids and settling parts, whatever the backdrop; then the biome's ground the
+        /// Ground backdrop lays, put away for the frame where laying it fails.
+        /// </summary>
+        private static void GroundUnder(float groundY)
+        {
+            Guard.Run(Feature.PlacesGroundOnStage, SettlePart, KeepSettle, groundY);
+            if (!Guard.Run(Feature.StageGround, GroundPart, LayGround, groundY)) PutGroundAway();
         }
 
         /// <summary>Lays the ground under the model at its height, its edge fading into the backdrop's colour, the horizon's with the sky.</summary>
@@ -101,7 +114,7 @@ namespace Scry
             edge.a = 1f;
             var size = SubjectSize;
             var shortOut = StageGround.ShortGrassOut(Mathf.Max(size.x, size.z) / 2f, size.y, StageGround.StandsAs(_lastShown?.Kind));
-            TheGround.Lay(groundY, _lastShown, sky, _frameRadius, shortOut, Origin, edge, _root, _layer);
+            TheGround.Lay(groundY, _lastShown, sky, _frameRadius, shortOut, Origin, edge, _root, _layer, TheSettle);
         }
 
         private static void DrawGrass()
@@ -111,11 +124,34 @@ namespace Scry
             TheGround.DrawGrass(_camera, _layer);
         }
 
-        /// <summary>Takes a copy's paints on its ground, once it stands.</summary>
-        private static void TakeGroundPaints(List<GroundPaintAt> paints, GameObject room) => TheGround.TakePaints(paints, room);
+        /// <summary>The ground the shown place's own modifiers shape, its liquids and its settling parts, whatever the backdrop.</summary>
+        private static readonly GroundSettle TheSettle = new GroundSettle();
 
-        /// <summary>Lets go of the paints of the example's rooms, as its rooms go, or of all of them.</summary>
-        private static void ForgetGroundPaints(bool rooms) => TheGround.ForgetPaints(rooms);
+        /// <summary>For the self-test: the shaped ground, its middle, the liquids laid and the parts at rest.</summary>
+        [ForTest]
+        public static GroundSettle GroundSettled => TheSettle;
+
+        /// <summary>For the self-test: the height of the Ground backdrop's own mesh in the world nearest a point across, or null where none is laid.</summary>
+        [ForTest]
+        public static float? GroundMeshHeightNear(float x, float z) => TheGround.MeshHeightNear(x, z);
+
+        /// <summary>Takes what a copy brings to its ground, once it stands: its paints, its shaping, its liquids and its settling parts.</summary>
+        private static void TakeGround(PlaceGround ground, GameObject room)
+        {
+            if (ground == null) return;
+            TheGround.TakePaints(ground.Paints, room);
+            TheSettle.Take(ground, room);
+        }
+
+        /// <summary>Lets go of what the example's rooms brought to the ground, as its rooms go, or of all of it.</summary>
+        private static void ForgetGroundTaken(bool rooms)
+        {
+            TheGround.ForgetPaints(rooms);
+            TheSettle.Forget(rooms);
+        }
+
+        /// <summary>Works the shaped ground out again where its modifiers moved, its liquids and settling parts with it; its middle over the model's root at the ground's flat height.</summary>
+        private static void KeepSettle(float groundY) => TheSettle.Keep(new Vector3(Origin.x, groundY, Origin.z));
 
         /// <summary>Lets go of the ground and its look, as the stage is taken down.</summary>
         private static void ForgetGround()

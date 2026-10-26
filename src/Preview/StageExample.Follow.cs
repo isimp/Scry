@@ -39,7 +39,7 @@ namespace Scry
                 Build.Cancel();
                 Build = null;
                 BuildRoll = null;
-                BuildPaints = null;
+                BuildGround = null;
             }
             Placed.Rooms.RemoveAt(at);
             if (at < Next) Next--;

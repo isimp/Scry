@@ -40,7 +40,7 @@ namespace Scry
             _building = null;
             _buildingWith = null;
             ForgetExample();
-            ForgetGroundPaints(rooms: false);
+            ForgetGroundTaken(rooms: false);
             if (_subject != null) Object.Destroy(_subject);
             _subject = null;
             ClearPlayed();
@@ -50,7 +50,7 @@ namespace Scry
         private static void ForgetShown()
         {
             _lastShown = null;
-            _buildingPaints = null;
+            _buildingGround = null;
         }
 
         /// <summary>Asked by the panel on each frame it shows the stage, with the size it shows it at.</summary>
@@ -100,10 +100,10 @@ namespace Scry
                 // What is kept of its floors is found while it is made.
                 FloorRecords.Want(place.Prefab, place.IsRoom);
                 _buildingRoll = new PlaceRoll();
-                _buildingPaints = new List<GroundPaintAt>();
+                _buildingGround = new PlaceGround();
                 // A reading of the floors of a place made before is let go, as a new one is made.
                 StopFloors();
-                _building = PlaceCopy.Begin(asset, _root.transform, Origin, Quaternion.identity, _layer, keepColliders: true, roll: _buildingRoll, paints: _buildingPaints);
+                _building = PlaceCopy.Begin(asset, _root.transform, Origin, Quaternion.identity, _layer, keepColliders: true, roll: _buildingRoll, ground: _buildingGround);
                 _buildingWith = modifiers;
                 StepBuild();
                 return;
@@ -179,7 +179,7 @@ namespace Scry
         private static PlaceRoll _buildingRoll;
 
         /// <summary>The paints on the ground read off the location's copy as it is made.</summary>
-        private static List<GroundPaintAt> _buildingPaints;
+        private static PlaceGround _buildingGround;
 
         private static int _builtInFrame = -1;
 
@@ -229,8 +229,8 @@ namespace Scry
             Present(_lastShown, modifiers);
             Populate(_buildingRoll.Spawns, null);
             _buildingRoll = null;
-            TakeGroundPaints(_buildingPaints, null);
-            _buildingPaints = null;
+            TakeGround(_buildingGround, null);
+            _buildingGround = null;
         }
 
         /// <summary>Tunes, measures and stands the copy just made, and applies the modifiers.</summary>

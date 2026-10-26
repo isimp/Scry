@@ -285,7 +285,7 @@ namespace Scry
             // A biome's ground under the model, under the plain floor's height by as much as the
             // terrain's shader raises its bumps, so the model's feet stay on it.
             step = Timing.Start();
-            if (!Guard.Run(Feature.StageGround, GroundPart, LayGround, groundY)) PutGroundAway();
+            GroundUnder(groundY);
             Timing.Add("render frame ground", step);
 
             if (_floor != null)

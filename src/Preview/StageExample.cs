@@ -39,7 +39,7 @@ namespace Scry
         /// <summary>The room being copied, with what it was rolled to and the paints read off it.</summary>
         public Ghost.Building Build;
         public PlaceRoll BuildRoll;
-        public List<GroundPaintAt> BuildPaints;
+        public PlaceGround BuildGround;
 
         /// <summary>The rooms standing, each with its copy, to dim or put away those off the floor opened.</summary>
         private readonly List<KeyValuePair<PlacedRoom, GameObject>> _rooms = new List<KeyValuePair<PlacedRoom, GameObject>>();
@@ -922,7 +922,7 @@ namespace Scry
             Build?.Cancel();
             Build = null;
             BuildRoll = null;
-            BuildPaints = null;
+            BuildGround = null;
             if (Holder != null) Object.Destroy(Holder);
             Holder = null;
             Of = null;

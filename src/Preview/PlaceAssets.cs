@@ -119,12 +119,12 @@ namespace Scry
         /// floors are found by.
         /// </summary>
         public static Ghost.Building Begin(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer, bool keepColliders = false, bool local = false,
-            PlaceRoll roll = null, Location rules = null, List<GroundPaintAt> paints = null)
+            PlaceRoll roll = null, Location rules = null, PlaceGround ground = null)
         {
-            return new Ghost.Building(prefab, parent, position, rotation, layer, copy => Prepare(copy, prefab.name, roll, rules, paints), keepColliders, local);
+            return new Ghost.Building(prefab, parent, position, rotation, layer, copy => Prepare(copy, prefab.name, roll, rules, ground), keepColliders, local);
         }
 
-        private static void Prepare(GameObject copy, string place, PlaceRoll roll, Location rules, List<GroundPaintAt> paints = null)
+        private static void Prepare(GameObject copy, string place, PlaceRoll roll, Location rules, PlaceGround ground = null)
         {
             // Its chests and pickups with their chances before the rolls, those left after them.
             var loot = roll != null && roll.WantsLoot ? PlaceReader.LootChances(copy) : null;
@@ -144,7 +144,7 @@ namespace Scry
                 // For its floors and creatures, which of its colliders what drops lands on.
                 FloorProbe.NoteNotSolid(copy, roll.NotSolid);
             }
-            if (paints != null) ReadPaints(copy, paints);
+            if (ground != null) ReadGround(copy, ground);
             foreach (var zone in copy.GetComponentsInChildren<EnvZone>(true))
             {
                 if (zone != null && zone.m_exteriorMesh != null) zone.m_exteriorMesh.enabled = false;
@@ -211,18 +211,52 @@ namespace Scry
         }
 
         /// <summary>
-        /// What the place paints on the ground under it once rolled (<c>TerrainModifier</c>): its
-        /// paths, dirt and paving, read while the copy still sleeps, as stripping takes them off.
+        /// What the place brings to the ground under it once rolled, read while the copy still
+        /// sleeps, as stripping takes the game's scripts off: its paths, dirt and paving, how its
+        /// modifiers level and smooth the ground (<c>TerrainModifier</c>), the parts the game lets
+        /// fall or float (<c>StaticPhysics</c>, <c>Floating</c>), and its liquids (<c>LiquidVolume</c>).
         /// </summary>
-        private static void ReadPaints(GameObject copy, List<GroundPaintAt> into)
+        private static void ReadGround(GameObject copy, PlaceGround into)
         {
             var root = copy.transform;
             foreach (var modifier in copy.GetComponentsInChildren<TerrainModifier>(true))
             {
-                if (modifier == null || !modifier.enabled || !modifier.m_paintCleared || modifier.m_paintRadius <= 0f || !Animators.SwitchedOn(modifier.transform, root)) continue;
-                into.Add(new GroundPaintAt
+                if (modifier == null || !modifier.enabled || !Animators.SwitchedOn(modifier.transform, root)) continue;
+                if (modifier.m_paintCleared && modifier.m_paintRadius > 0f)
                 {
-                    At = modifier.transform, Radius = modifier.m_paintRadius, Strength = modifier.m_paintStrength, Type = modifier.m_paintType, Order = modifier.m_sortOrder,
+                    into.Paints.Add(new GroundPaintAt
+                    {
+                        At = modifier.transform, Radius = modifier.m_paintRadius, Strength = modifier.m_paintStrength, Type = modifier.m_paintType, Order = modifier.m_sortOrder,
+                    });
+                }
+                if (modifier.m_level || modifier.m_smooth)
+                {
+                    into.Shapings.Add(new GroundShapingAt
+                    {
+                        At = modifier.transform, Level = modifier.m_level, Smooth = modifier.m_smooth, Square = modifier.m_square, LevelRadius = modifier.m_levelRadius,
+                        LevelOffset = modifier.m_levelOffset, SmoothRadius = modifier.m_smoothRadius, SmoothPower = modifier.m_smoothPower, Order = modifier.m_sortOrder,
+                    });
+                }
+            }
+            foreach (var settles in copy.GetComponentsInChildren<StaticPhysics>(true))
+            {
+                if (settles == null || !settles.enabled || !Animators.SwitchedOn(settles.transform, root)) continue;
+                var how = (settles.m_fall ? PartRest.Fall : 0) | (settles.m_pushUp ? PartRest.PushUp : 0) | (settles.m_checkSolids ? PartRest.Solids : 0);
+                if (how != 0) into.Settling.Add(new SettlingAt { At = settles.transform, How = how, Made = settles.transform.localPosition });
+            }
+            foreach (var floats in copy.GetComponentsInChildren<Floating>(true))
+            {
+                if (floats == null || !floats.enabled || !Animators.SwitchedOn(floats.transform, root)) continue;
+                into.Settling.Add(new SettlingAt { At = floats.transform, How = PartRest.Floats, FloatOffset = floats.m_waterLevelOffset, Made = floats.transform.localPosition });
+            }
+            foreach (var liquid in copy.GetComponentsInChildren<LiquidVolume>(true))
+            {
+                if (liquid == null || !liquid.enabled || !Animators.SwitchedOn(liquid.transform, root)) continue;
+                var filter = liquid.GetComponent<MeshFilter>();
+                if (filter == null) continue;
+                into.Liquids.Add(new LiquidAt
+                {
+                    At = liquid.transform, Filter = filter, Width = liquid.m_width, Scale = liquid.m_scale, Area = liquid.m_initialArea, Volume = liquid.m_initialVolume, MaxDepth = liquid.m_maxDepth,
                 });
             }
         }

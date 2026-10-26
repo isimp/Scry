@@ -36,7 +36,7 @@ namespace Scry
     /// It keeps everything it makes and lets go of it itself (<see cref="Forget"/>); the stage
     /// says each frame whether it is wanted, of which biome, and where.
     /// </summary>
-    internal sealed class BiomeGround
+    internal sealed partial class BiomeGround
     {
         /// <summary>How far under the floor the ground lies, as the terrain's shader raises its bumps (<c>_Displacement</c>).</summary>
         public const float Below = 0.05f;
@@ -177,8 +177,9 @@ namespace Scry
         /// down with it, short round the model (<paramref name="shortOut"/> metres,
         /// <see cref="StageGround.ShortGrassOut"/>). Its edge fades into the colour given, what is behind it.
         /// </summary>
-        public void Lay(float groundY, Entry shown, bool sky, float frameRadius, float shortOut, Vector3 origin, Color edge, GameObject root, int layer)
+        public void Lay(float groundY, Entry shown, bool sky, float frameRadius, float shortOut, Vector3 origin, Color edge, GameObject root, int layer, GroundSettle settle = null)
         {
+            _settle = settle;
             var on = On && _terrain != null && _terrain.activeSelf;
             if (_fade != null && _fade.activeSelf != on) _fade.SetActive(on);
             if (!on)
@@ -226,6 +227,16 @@ namespace Scry
             {
                 LiftGrass(at.y - _at.y);
                 _at = at;
+            }
+
+            // The place's own shaping: the mesh at once, the grass once it has stopped changing.
+            var version = settle?.Version ?? 0;
+            if (version != _shapeVersion || !Mathf.Approximately(_across, _shapeAcross))
+            {
+                if (version != _shapeVersion) _grassWait.Changed(Time.unscaledTime);
+                _shapeVersion = version;
+                _shapeAcross = _across;
+                Reshape();
             }
 
             if (_paintWait.Due(Time.unscaledTime)) BeginPaint();
@@ -412,13 +423,23 @@ namespace Scry
         /// </summary>
         private void Paint(string biome)
         {
-            var color = Enum.TryParse<Heightmap.Biome>(biome, out var parsed) ? Heightmap.GetBiomeColor(parsed) : new Color32(0, 0, 0, 0);
-            var colors = new Color32[_mesh.vertexCount];
-            for (var i = 0; i < colors.Length; i++) colors[i] = color;
-            _mesh.colors32 = colors;
+            _colour = Enum.TryParse<Heightmap.Biome>(biome, out var parsed) ? Heightmap.GetBiomeColor(parsed) : new Color32(0, 0, 0, 0);
+            Colour();
             Biome = biome;
             _waterAt = float.NaN;
             _hideSet = false;
+        }
+
+        /// <summary>The biome's colour each point of the ground is given, as the game gives its terrain's.</summary>
+        private Color32 _colour;
+
+        /// <summary>Gives every point of the mesh laid now the biome's colour.</summary>
+        private void Colour()
+        {
+            if (_mesh == null) return;
+            var colors = new Color32[_mesh.vertexCount];
+            for (var i = 0; i < colors.Length; i++) colors[i] = _colour;
+            _mesh.colors32 = colors;
         }
 
         /// <summary>Lays the ground at its height, with water over it for the sea's floor: told again only as the ground moves.</summary>
@@ -655,6 +676,8 @@ namespace Scry
             var thinsBy = reach / 0.95f;
             var patches = Mathf.CeilToInt(reach / size);
             var at = _at;
+            // The place's own shape, as it stood when scattering began; heights and slopes from the ground's middle.
+            var shape = ShapeNow;
             var shortOut = _shortOut;
             var quality = _quality;
             var farthest = 0f;
@@ -681,12 +704,14 @@ namespace Scry
                             var kept = UnityEngine.Random.value;
                             var away = new Vector2(point.x - at.x, point.z - at.z).magnitude;
                             if (kept >= StageGround.GrassKept(away / thinsBy)) continue;
-                            if (!Grows(clutter, point, offset, altitude, depth, bare, paints)) continue;
+                            var (nx, ny, nz) = shape.NormalAt(point.x - at.x, point.z - at.z);
+                            if (!Grows(clutter, point, offset, altitude, depth, bare, paints, ny)) continue;
                             farthest = Mathf.Max(farthest, away);
                             nearest = Mathf.Min(nearest, away);
-                            point.y = clutter.m_snapToWater ? at.y + depth : at.y + Below;
+                            point.y = clutter.m_snapToWater ? at.y + depth : at.y + Below + shape.HeightAt(point.x - at.x, point.z - at.z);
                             if (clutter.m_randomOffset != 0f) point.y += UnityEngine.Random.Range(0f - clutter.m_randomOffset, clutter.m_randomOffset);
-                            var turn = Quaternion.Euler(0f, yaw, 0f);
+                            // Turned about the ground's facing where it leans with it (ClutterSystem.GenerateVegPatch).
+                            var turn = clutter.m_terrainTilt ? Quaternion.AngleAxis(yaw, new Vector3(nx, ny, nz)) : Quaternion.Euler(0f, yaw, 0f);
                             var stem = StageGround.StemScale(away, shortOut);
                             if (clutter.m_instanced) AddGrass(kinds, clutter, point, turn, stem);
                             else if (_scatteredCopies.Count < MostGrassCopies)
@@ -714,7 +739,7 @@ namespace Scry
         }
 
         /// <summary>Whether a kind of grass grows at a point of the ground, by the game's rules for it.</summary>
-        private static bool Grows(ClutterSystem.Clutter clutter, Vector3 point, Vector3 offset, float altitude, float depth, (float, float, float, float) bare, List<GroundPaint> paints)
+        private static bool Grows(ClutterSystem.Clutter clutter, Vector3 point, Vector3 offset, float altitude, float depth, (float, float, float, float) bare, List<GroundPaint> paints, float facingUp = 1f)
         {
             if (clutter.m_inForest)
             {
@@ -726,8 +751,9 @@ namespace Scry
                 var noise = Utils.Fbm(point * 0.01f * clutter.m_fractalScale + offset, 3, 1.6f, 0.7f);
                 if (noise < clutter.m_fractalTresholdMin || noise > clutter.m_fractalTresholdMax) return false;
             }
-            // The ground is flat: what grows only on a slope does not.
-            if (altitude < clutter.m_minAlt || altitude > clutter.m_maxAlt || clutter.m_minTilt > 0f) return false;
+            // As steep as the ground leans there, the place's own shape on flat ground: what grows only on a slope grows only where it leans.
+            if (altitude < clutter.m_minAlt || altitude > clutter.m_maxAlt) return false;
+            if (facingUp < Mathf.Cos(Mathf.PI / 180f * clutter.m_maxTilt) || facingUp > Mathf.Cos(Mathf.PI / 180f * clutter.m_minTilt)) return false;
             if (clutter.m_minOceanDepth != clutter.m_maxOceanDepth && (depth < clutter.m_minOceanDepth || depth > clutter.m_maxOceanDepth)) return false;
             var mask = StageGround.Painted(bare, point.x, point.z, paints);
             if (clutter.m_minVegetation != clutter.m_maxVegetation && (mask.A > clutter.m_maxVegetation || mask.A < clutter.m_minVegetation)) return false;
@@ -916,10 +942,16 @@ namespace Scry
             On = false;
             if (_material != null) Object.Destroy(_material);
             if (_mesh != null) Object.Destroy(_mesh);
+            if (_flatMesh != null && _flatMesh != _mesh) Object.Destroy(_flatMesh);
+            if (_shapedMesh != null && _shapedMesh != _mesh) Object.Destroy(_shapedMesh);
             if (_mask != null) Object.Destroy(_mask);
             _terrain = null;
             _material = null;
             _mesh = null;
+            _flatMesh = null;
+            _shapedMesh = null;
+            _shapeVersion = -1;
+            _shapeAcross = -1f;
             _mask = null;
             Biome = null;
             _triedAt = -1000;

@@ -14,6 +14,7 @@ namespace Scry
         public static readonly Feature BossFightsAmongRaids = Listed("boss fights among the raids");
         public static readonly Feature PlacesCreaturesOnStage = Listed("places' creatures on the stage");
         public static readonly Feature PlacesPathsOnStageGround = Listed("places' paths on the stage's ground");
+        public static readonly Feature PlacesGroundOnStage = Listed("places' dug ground, liquids and settling parts on the stage");
         public static readonly Feature RunestoneTexts = Listed("runestone texts");
         public static readonly Feature RaidsStarsOnStage = Listed("raids' stars on the stage");
         public static readonly Feature RaidsRolledOnStage = Listed("raids rolled on the stage");
