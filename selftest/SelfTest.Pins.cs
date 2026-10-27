@@ -243,6 +243,17 @@ namespace Scry
             p.Check(MapMarkButtons.MarksShown >= many, $"all {Numbers.Count(many)} entrances in view come to stand", $"{Numbers.Count(MapMarkButtons.MarksShown)} after {Numbers.Amount(took, 1)} s");
             p.Note($"{Numbers.Count(MapMarkButtons.MarksShown)} marks, they all stood after {Numbers.Amount(took, 1)} s; the marks took {Numbers.Fixed(ownMs / frames, 2)} ms a frame on average, {Numbers.Amount(mostMs, 1)} ms at the most");
             p.Check(mostMs < 16, "making them and telling their words holds no frame a sixtieth of a second", $"{Numbers.Amount(mostMs, 1)} ms at the most");
+
+            // What they are listed from changed, their words are told anew a few a frame: none goes from the map meanwhile.
+            var standing = MapMarkButtons.MarksShown;
+            var fewest = standing;
+            DungeonsInGround.InsteadForTest(WorldSource.Explored, ground);
+            for (var frame = 0; frame < 30; frame++)
+            {
+                yield return null;
+                fewest = System.Math.Min(fewest, MapMarkButtons.MarksShown);
+            }
+            p.Check(fewest >= standing, "their words told anew, every one stays on the map meanwhile", $"{Numbers.Count(fewest)} of {Numbers.Count(standing)} at the fewest");
             PinsAsTheyWere();
         }
 

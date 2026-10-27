@@ -47,6 +47,9 @@ namespace Scry
             public MarkLook Look;
             public MarkGlyph Glyph;
 
+            /// <summary>Its words to be told anew, as what they count may have moved; it shows the words it has until then.</summary>
+            public bool Retell;
+
             /// <summary>Its name's size as the game's pin names have it, and the scale it was last drawn at; 0 until read.</summary>
             public float NameSize;
             public float NameScaled;
@@ -227,7 +230,7 @@ namespace Scry
                 _keptStamp = stamp;
                 _keptWorld = world;
                 // Their words told afresh, as the days in them may have moved.
-                foreach (var mark in Marks) mark.Id = null;
+                foreach (var mark in Marks) mark.Retell = true;
             }
             // As the map opens, the server is asked for the records of the dungeons marked, for the last day anyone walked each.
             if (!_askedServer)
@@ -257,13 +260,19 @@ namespace Scry
                 if (!MapMarks.Place(kept.Map.Entrance, map.m_pixelSize, map.m_textureSize, (window.xMin, window.yMin, window.width, window.height), (area.width, area.height), out var at)) continue;
                 var glyph = MarkGlyphs.Of(kept.Map.Location);
                 var fresh = placed >= Marks.Count;
-                var stale = fresh || Marks[placed].Id != kept.Id || Marks[placed].Look != kept.Look || Marks[placed].Glyph != glyph;
+                // Another dungeon's, or another look, waits hidden; the same one's words told anew wait shown.
+                var other = fresh || Marks[placed].Id != kept.Id || Marks[placed].Look != kept.Look || Marks[placed].Glyph != glyph;
+                var stale = other || Marks[placed].Retell;
                 var pieceFrom = Since(started);
                 if (stale && !Share.MayBegin(pieceFrom, pieces))
                 {
                     if (fresh) break;
-                    Hide(Marks[placed++]);
-                    continue;
+                    if (other)
+                    {
+                        Hide(Marks[placed++]);
+                        continue;
+                    }
+                    stale = false;
                 }
                 var mark = MarkFor(placed++, map);
                 if (mark == null) break;
@@ -279,6 +288,7 @@ namespace Scry
                     mark.Id = kept.Id;
                     mark.Look = kept.Look;
                     mark.Glyph = glyph;
+                    mark.Retell = false;
                     // A place stood in is drawn as one you walked.
                     if (mark.Picture != null) mark.Picture.sprite = ScryPanel.MarkPicture(glyph, kept.Look == MarkLook.Visited ? MarkLook.Yours : kept.Look);
                     mark.Said = Said(kept);
