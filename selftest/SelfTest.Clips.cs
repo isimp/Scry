@@ -107,9 +107,12 @@ namespace Scry
                 "its clips are grouped by what they are for: moving with a sword, blocking, hurt, working, resting", groups != null ? string.Join(", ", groups.GroupBy(g => g.Value).Select(g => $"{g.Key} {Numbers.Count(g.Count())}")) : "not worked out");
             p.Check(groups != null && groups.Values.Contains(ClipGroup.Emotes) && groups.Values.Contains(ClipGroup.Airborne), "emotes and jumping have groups of their own");
             // The sweep steps less than it did: what it finds of moving and blocking with a sword stays as many.
+            // Its moving clips are idle, crouching, sneaking, laden, walking, jogging fast and slow,
+            // strafing either way, backing and running: twelve, standing up from a bed not among them.
             int Own(ClipGroup group) => groups != null ? groups.Count(g => g.Value == group && !(other?.ContainsKey(g.Key) ?? false)) : 0;
-            p.Check(Own(ClipGroup.Moving) >= 13 && Own(ClipGroup.Blocking) >= 15, "with a sword it moves in 13 clips or more and blocks in 15 or more, as the sweep found before",
+            p.Check(Own(ClipGroup.Moving) >= 12 && Own(ClipGroup.Blocking) >= 15, "with a sword it moves in 12 clips or more and blocks in 15 or more, as the sweep found before",
                 $"moving {Numbers.Count(Own(ClipGroup.Moving))}, blocking {Numbers.Count(Own(ClipGroup.Blocking))}");
+            p.Check(Of("Standing Up") != ClipGroup.Moving, "standing up from a bed is no moving clip, each run of the sweep starting awake", Of("Standing Up").ToString());
             // Kept for the next session, and taken up again with nothing watched anew.
             p.Check(ClipStore.Holds("Player|stances"), "what the person plays by stance is kept for the next session", $"{Numbers.Count(ClipStore.Count)} looks kept");
             var probes = TriggerProbe.DoneForTest.Count;
