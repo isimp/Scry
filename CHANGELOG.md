@@ -20,7 +20,7 @@ A person's animations follow what it holds: the clips it moves, blocks and attac
 
 A creature whose death hurts what stands near, as the Writhan's and the lava blob's blasts do, has its death as a line of its attacks with what it deals, played by the clip it dies in. An attack the game plays no animation for says so, and why.
 
-A page's clips are kept from one session to the next, so they show at once the next time; the person's own stance is worked out first, and the rest takes far fewer steps. `/scry forget clips` or *Work out again* works them out afresh.
+A page's clips are kept from one session to the next, so they show at once the next time; the person's own stance is worked out first, and its switches are pulled standing, in fewer steps. `/scry forget clips` or *Work out again* works them out afresh.
 
 A creature shows stars only where something in the world can give it some. Lox, Greylings, Bats, Blobs, Wraiths, summons and many more say they never come with any, and a mod's creature no spawn names keeps two stars marked unsure.
 
