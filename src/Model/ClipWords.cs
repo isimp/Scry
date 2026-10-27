@@ -8,6 +8,16 @@ namespace Scry
     /// <summary>What each of a creature's clips is, in a few words on its chip: the attack it plays, what the creature does in it, or idling.</summary>
     internal static class ClipWords
     {
+        /// <summary>The Animations section's button that forgets what each animator was seen to play (<see cref="KeptClips"/>).</summary>
+        public const string WorkOutAgain = "Work out again";
+
+        /// <summary>That button's hover.</summary>
+        public const string WorkOutAgainTip = "Forget what Scry saw each animator play, kept from one session to the next, and work it out again";
+
+        /// <summary>The reply to <c>/scry forget clips</c>: how many animators' clips were forgotten.</summary>
+        public static string Forgotten(int probes) =>
+            probes == 0 ? "no clips were kept; they are worked out again as pages open." : $"forgot the clips of {Numbers.Count(probes)} kept {(probes == 1 ? "look at an animator" : "looks at animators")}; they are worked out again as pages open.";
+
         /// <summary>What the game's own actions are called, by the action's name.</summary>
         private static readonly Dictionary<string, string> Actions = new Dictionary<string, string>
         {

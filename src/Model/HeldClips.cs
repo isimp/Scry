@@ -18,12 +18,14 @@ namespace Scry
         /// <param name="stance">The stance it stands in now.</param>
         /// <param name="held">The switches what it holds names.</param>
         /// <param name="holdStances">The stance of the items that name each switch, to tell what a clip of it is held with.</param>
+        /// <param name="allClips">While other stances are still being swept, every clip of the animator: one not known its own yet is held back as another gear's, of a stance not known (-1); none once all are swept.</param>
+        /// <param name="known">Clips something else tells it plays (its attacks, an emote seen), never held back while the stances are swept.</param>
         /// <returns>Each clip only other gear plays, with the stance it is held in, -1 where that is not known.</returns>
         public static Dictionary<string, int> OtherGear(IReadOnlyDictionary<int, HashSet<string>> stances, IReadOnlyDictionary<string, HashSet<string>> holds,
-            int stance, IEnumerable<string> held, IReadOnlyDictionary<string, int> holdStances = null)
+            int stance, IEnumerable<string> held, IReadOnlyDictionary<string, int> holdStances = null, IEnumerable<string> allClips = null, IEnumerable<string> known = null)
         {
             var other = new Dictionary<string, int>();
-            if (stances == null) return other;
+            if (stances == null || (allClips != null && !stances.ContainsKey(stance))) return other;
             var holding = new HashSet<string>(held ?? Enumerable.Empty<string>());
             var shown = new HashSet<string>();
             if (stances.TryGetValue(stance, out var own)) shown.UnionWith(own);
@@ -34,11 +36,19 @@ namespace Scry
                 if (under.Key == stance) continue;
                 foreach (var clip in under.Value) if (!shown.Contains(clip) && !other.ContainsKey(clip)) other[clip] = under.Key;
             }
-            if (holds == null) return other;
-            foreach (var hold in holds.OrderBy(h => h.Key, System.StringComparer.Ordinal))
+            if (holds != null)
             {
-                var with = holdStances != null && holdStances.TryGetValue(hold.Key, out var s) ? s : -1;
-                foreach (var clip in hold.Value) if (!shown.Contains(clip) && !other.ContainsKey(clip)) other[clip] = with;
+                foreach (var hold in holds.OrderBy(h => h.Key, System.StringComparer.Ordinal))
+                {
+                    var with = holdStances != null && holdStances.TryGetValue(hold.Key, out var s) ? s : -1;
+                    foreach (var clip in hold.Value) if (!shown.Contains(clip) && !other.ContainsKey(clip)) other[clip] = with;
+                }
+            }
+            // Its own stance swept, the others not yet: what is not known its own waits behind the filter.
+            if (allClips != null)
+            {
+                var told = new HashSet<string>(known ?? Enumerable.Empty<string>());
+                foreach (var clip in allClips) if (!shown.Contains(clip) && !told.Contains(clip) && !other.ContainsKey(clip)) other[clip] = -1;
             }
             return other;
         }

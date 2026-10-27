@@ -5,31 +5,6 @@ using Object = UnityEngine.Object;
 
 namespace Scry
 {
-    /// <summary>What the probe saw an animator play: for each attack trigger, and for each of the game's own actions.</summary>
-    internal sealed class Probed
-    {
-        public readonly Dictionary<string, IReadOnlyList<string>> Triggers = new Dictionary<string, IReadOnlyList<string>>();
-        public readonly Dictionary<string, IReadOnlyList<string>> Actions = new Dictionary<string, IReadOnlyList<string>>();
-
-        /// <summary>The clips it plays when left alone, over several seeds, since it picks among them at random.</summary>
-        public readonly HashSet<string> Idle = new HashSet<string>();
-
-        /// <summary>Still being watched: what is here so far is only part.</summary>
-        public bool Busy;
-
-        /// <summary>The clips it moves, crouches, blocks and jumps in under each stance, by the stance's number (<see cref="HeldClips"/>); only from a sweep of its stances.</summary>
-        public readonly Dictionary<int, HashSet<string>> Stances = new Dictionary<int, HashSet<string>>();
-
-        /// <summary>The clips each switch an item names plays (drawing a bow, reloading), by the switch.</summary>
-        public readonly Dictionary<string, HashSet<string>> Holds = new Dictionary<string, HashSet<string>>();
-
-        /// <summary>The clips each run of the sweep saw, whatever the stance (<see cref="ClipGroups.MoveVisit"/> and the others).</summary>
-        public readonly Dictionary<string, HashSet<string>> Visits = new Dictionary<string, HashSet<string>>();
-
-        /// <summary>The clips each switch or trigger of a known use leads to (<see cref="ClipGroups.OfSwitch"/>), by its name.</summary>
-        public readonly Dictionary<string, HashSet<string>> Switched = new Dictionary<string, HashSet<string>>();
-    }
-
     /// <summary>
     /// Which clips a creature's animator plays for each attack trigger and for each of the
     /// game's own actions that come with an effect list. Its states and the ways between them
@@ -164,6 +139,8 @@ namespace Scry
                 return left;
             }
 
+            // Kept from an earlier session, it is seen now only for what was not asked then.
+            if (!TakeKept(key, animator, wait)) return new Probed { Busy = true };
             var first = !Seen.TryGetValue(key, out var seen);
             if (first)
             {
@@ -191,6 +168,21 @@ namespace Scry
                 if (wait) while (Advance(job)) { }
             }
             return Seen.TryGetValue(key, out var now) ? now : AfterFailure(key);
+        }
+
+        /// <summary>
+        /// Takes up what a probe of this key saw in an earlier session, kept with this animator
+        /// (<see cref="ClipStore"/>), where nothing of it is seen in this one; false while what was
+        /// kept is still being read, unless the answer is wanted at once.
+        /// </summary>
+        private static bool TakeKept(string key, Animator animator, bool wait)
+        {
+            if (Seen.ContainsKey(key)) return true;
+            if (wait) ClipStore.WaitReady();
+            else if (!ClipStore.Ready) return false;
+            var controller = animator != null ? animator.runtimeAnimatorController : null;
+            if (controller != null && ClipStore.TryTake(key, controller.name, out var kept)) Seen[key] = kept;
+            return true;
         }
 
         /// <summary>
@@ -288,6 +280,7 @@ namespace Scry
         /// </summary>
         public static void Update()
         {
+            ClipStore.Update();
             if (Jobs.Count == 0) return;
             var frame = System.Diagnostics.Stopwatch.StartNew();
             var done = 0;
@@ -454,6 +447,9 @@ namespace Scry
         private static void End(Job job)
         {
             DoneForTest.Add((job.Key, job.Ms, job.Frames));
+            // Kept for the next session, with the animator it was seen on.
+            var controller = job.Probe != null ? job.Probe.runtimeAnimatorController : null;
+            if (controller != null) ClipStore.Keep(job.Key, controller.name, job.Seen);
             if (job.Holder != null) Object.DestroyImmediate(job.Holder);
             Jobs.Remove(job.Key);
             job.Seen.Busy = false;
@@ -563,7 +559,8 @@ namespace Scry
 
         /// <summary>
         /// The clips a prefab's animator moves, crouches, blocks and jumps in under each of the
-        /// stances given (once, without stance settings), plays with each switch given in its stance,
+        /// stances given, in their order, each kept as it is done, so the stance asked first can
+        /// be answered before the rest (once, without stance settings), plays with each switch given in its stance,
         /// and each switch of a known use leads to (<see cref="Probed.Stances"/>, <see cref="Probed.Holds"/>,
         /// <see cref="Probed.Visits"/>, <see cref="Probed.Switched"/>): seen once for the prefab over the
         /// next frames, and until then <see cref="Probed.Busy"/>.
@@ -571,6 +568,7 @@ namespace Scry
         public static Probed StancesOf(string prefab, Animator animator, IReadOnlyList<int> stances, IReadOnlyList<(string Switch, int Stance)> holds, bool wait)
         {
             var key = prefab + SweepKey;
+            if (!TakeKept(key, animator, wait)) return new Probed { Busy = true };
             if (Seen.TryGetValue(key, out var seen) && !Jobs.ContainsKey(key)) return seen;
             if (Failures.GivenUp(key)) return Seen[key] = new Probed();
             if (!Jobs.TryGetValue(key, out var job))
@@ -659,15 +657,15 @@ namespace Scry
                 yield return true;
             }
 
-            // Each switch and trigger of a known use, in the first stance: emotes, seats, beds,
-            // mounts, stations, getting hurt, water. Attacks, the stance's own settings and the
-            // switches items name are seen already.
+            // Each switch and trigger of a known use, in the first stance, standing: emotes, seats,
+            // beds, mounts, stations, getting hurt, water, each done where it stands. Attacks, the
+            // stance's own settings and the switches items name are seen already.
             var first = stances.Count > 0 ? stances[0] : 0;
             foreach (var (name, act) in Switches(probe, job.SweptHolds))
             {
                 // A station's work number is tried for each station, all kept under the one name.
                 if (!seen.Switched.TryGetValue(name, out var clips)) seen.Switched[name] = clips = new HashSet<string>();
-                foreach (var _ in Swept(probe, a => Stand(a, first), act, clips, sideways, forward)) yield return true;
+                foreach (var _ in Swept(probe, a => Stand(a, first), act, clips, false, false)) yield return true;
                 yield return true;
             }
             Log.Note($"Scry saw in {Numbers.Count(job.Ms)} ms what the animator of {job.Key} plays by stance: {string.Join("; ", seen.Stances.Select(p => $"{Numbers.Count(p.Key)}: {Numbers.Count(p.Value.Count)} clips"))}; by what items switch on: {string.Join("; ", seen.Holds.Select(p => $"{p.Key}: {Numbers.Count(p.Value.Count)}"))}; by the switches it was sent: {Numbers.Count(seen.Switched.Count)}.");
@@ -746,15 +744,15 @@ namespace Scry
                         Weighed(animator, clips);
                     }
                 }
-                if (++done % 2 != 0) continue;
+                if (++done % 4 != 0) continue;
                 if (!Paused(animator)) yield break;
                 yield return true;
                 if (!Resumed(animator)) yield break;
             }
         }
 
-        /// <summary>How many steps each speed and direction of a sweep is run for: enough for a transition to begin, its next state weighed in.</summary>
-        private const int MoveSteps = 2;
+        /// <summary>How many steps each speed and direction of a sweep is run for: one begins a transition, its next state weighed in.</summary>
+        private const int MoveSteps = 1;
 
         /// <summary>The ways a sweep moves at a speed: forward, sideways and both diagonals.</summary>
         private static (float X, float Y)[] Directions(float speed) => new[] { (0f, speed), (speed, 0f), (speed, speed), (speed, -speed) };

@@ -21,6 +21,43 @@ namespace Scry
         }
 
         /// <summary>
+        /// The row over the clips: Stop, the filter where there are many or it filters, and a way to
+        /// work out again what the animators play, kept from one session to the next. Where the
+        /// clips begin under it.
+        /// </summary>
+        private static float ClipControls(AnimationClip playing, int count, float width, float rowH, float y)
+        {
+            var x = 0f;
+            var stopEnabled = GUI.enabled;
+            GUI.enabled = stopEnabled && playing != null;
+            var stopChip = new Rect(x, y, U(60f), rowH);
+            if (GUI.Button(stopChip, "Stop", Skin.Fitted(Skin.Chip, stopChip)) && playing != null) Previews.StopClip();
+            GUI.enabled = stopEnabled;
+            x += U(66f);
+
+            // Shown while it filters, even where there are few clips to filter.
+            if (count > 12 || _clipFilter.Length > 0)
+            {
+                if (width - x < U(150f))
+                {
+                    x = 0f;
+                    y += rowH + U(6f);
+                }
+                var field = new Rect(x, y - U(1f), Mathf.Min(width - x, U(260f)), U(28f));
+                _clipFilter = FilterField(ClipControl, _clipFilter, field);
+                x = field.xMax + U(6f);
+            }
+            var againW = Skin.Width(Skin.Chip, ClipWords.WorkOutAgain) + U(16f);
+            if (width - x >= againW)
+            {
+                var again = new Rect(width - againW, y, againW, rowH);
+                if (GUI.Button(again, ClipWords.WorkOutAgain, Skin.Fitted(Skin.Chip, again))) Previews.ForgetClipsSeen();
+                if (again.Contains(Event.current.mousePosition)) AskTip("clips-again", ClipWords.WorkOutAgainTip);
+            }
+            return y + rowH + U(10f);
+        }
+
+        /// <summary>
         /// Every animation clip the creature has, each played directly on the copy. The one playing
         /// is lit; Stop hands the copy back to its own animations.
         /// </summary>
@@ -30,28 +67,8 @@ namespace Scry
             y = SectionHeading("ANIMATIONS", width, y, null, "animations", ClipsCounted(clips));
             if (IsFolded("animations")) return y;
 
-            var x = 0f;
             var rowH = U(26f);
-
-            var stopEnabled = GUI.enabled;
-            GUI.enabled = stopEnabled && playing != null;
-            var stopChip = new Rect(x, y, U(60f), rowH);
-            if (GUI.Button(stopChip, "Stop", Skin.Fitted(Skin.Chip, stopChip)) && playing != null) Previews.StopClip();
-            GUI.enabled = stopEnabled;
-            x += U(66f);
-
-            // Shown while it filters, even where there are few clips to filter.
-            if (clips.Count > 12 || _clipFilter.Length > 0)
-            {
-                if (width - x < U(150f))
-                {
-                    x = 0f;
-                    y += rowH + U(6f);
-                }
-                var field = new Rect(x, y - U(1f), Mathf.Min(width - x, U(260f)), U(28f));
-                _clipFilter = FilterField(ClipControl, _clipFilter, field);
-            }
-            y += rowH + U(10f);
+            y = ClipControls(playing, clips.Count, width, rowH, y);
 
             y = PlayingClipRow(playing, width, rowH, y);
 

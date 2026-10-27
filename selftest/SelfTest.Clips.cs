@@ -82,9 +82,14 @@ namespace Scry
             if (sword == null) p.Skip("there is no sword");
 
             Looks.OnPerson = true;
+            var asked = UnityEngine.Time.unscaledTime;
             Select(sword);
             yield return Until(() => CopyOf(sword) != null, 10);
             yield return Until(() => !Previews.ClipsSorting, 120);
+            var listed = UnityEngine.Time.unscaledTime - asked;
+            // Its own stance is answered first; the rest of the sweep makes it whole.
+            yield return Until(() => !Previews.ClipsSorting && !Previews.ClipsProvisional, 180);
+            p.Note($"holding {sword.Name}, its clips listed after {Numbers.Amount(listed, 1)} s, whole after {Numbers.Amount(UnityEngine.Time.unscaledTime - asked, 1)} s");
             var other = Previews.ClipsOtherGear();
             var all = Previews.Clips().Count;
             var shown = ScryPanel.ClipRowsForTest("");
@@ -101,6 +106,20 @@ namespace Scry
                 && Of("player_stagger") == ClipGroup.Hurt && Of("Workbench") == ClipGroup.Working && Of("Player_Sit_Chair") == ClipGroup.Resting,
                 "its clips are grouped by what they are for: moving with a sword, blocking, hurt, working, resting", groups != null ? string.Join(", ", groups.GroupBy(g => g.Value).Select(g => $"{g.Key} {Numbers.Count(g.Count())}")) : "not worked out");
             p.Check(groups != null && groups.Values.Contains(ClipGroup.Emotes) && groups.Values.Contains(ClipGroup.Airborne), "emotes and jumping have groups of their own");
+            // The sweep steps less than it did: what it finds of moving and blocking with a sword stays as many.
+            int Own(ClipGroup group) => groups != null ? groups.Count(g => g.Value == group && !(other?.ContainsKey(g.Key) ?? false)) : 0;
+            p.Check(Own(ClipGroup.Moving) >= 13 && Own(ClipGroup.Blocking) >= 15, "with a sword it moves in 13 clips or more and blocks in 15 or more, as the sweep found before",
+                $"moving {Numbers.Count(Own(ClipGroup.Moving))}, blocking {Numbers.Count(Own(ClipGroup.Blocking))}");
+            // Kept for the next session, and taken up again with nothing watched anew.
+            p.Check(ClipStore.Holds("Player|stances"), "what the person plays by stance is kept for the next session", $"{Numbers.Count(ClipStore.Count)} looks kept");
+            var probes = TriggerProbe.DoneForTest.Count;
+            var again = UnityEngine.Time.unscaledTime;
+            Previews.ForgetClipsInMemory();
+            yield return null;
+            yield return Until(() => !Previews.ClipsSorting && !Previews.ClipsProvisional, 30);
+            p.Check(!Previews.ClipsSorting && TriggerProbe.DoneForTest.Count == probes && Previews.ClipsOtherGear()?.ContainsKey("Run New Pickaxe") == true,
+                "opened again, the sword's clips are taken from what was kept, no animator watched anew",
+                $"after {Numbers.Amount(UnityEngine.Time.unscaledTime - again, 1)} s, {Numbers.Count(TriggerProbe.DoneForTest.Count - probes)} watched anew");
             p.Note("left in Other: " + (groups != null ? string.Join(", ", groups.Where(g => g.Value == ClipGroup.Other && !(other?.ContainsKey(g.Key) ?? false)).Select(g => g.Key)) : "none"));
             yield return PictureOf(p, "animations", "the person's clips holding a sword");
 

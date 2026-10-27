@@ -44,6 +44,9 @@ namespace Scry
             /// <summary>The clips it never plays (<see cref="ClipLeftovers.Unplayed"/>); null while not worked out yet.</summary>
             public HashSet<string> Unplayed;
 
+            /// <summary>Worked out from its own stance alone while the others are still being swept: worked out again once they are.</summary>
+            public bool Provisional;
+
             /// <summary>The clips it plays only with other gear in hand, each with the stance that gear is held in (<see cref="HeldClips"/>); set with <see cref="Unplayed"/>.</summary>
             public Dictionary<string, int> OtherGear;
 
@@ -71,6 +74,18 @@ namespace Scry
             }
         }
 
+        /// <summary>Whether the stage copy's clips are told from its own stance alone, the others still being swept; for the self-test.</summary>
+        [ForTest]
+        public static bool ClipsProvisional => StagePlays(out _)?.Provisional ?? false;
+
+        /// <summary>Forgets the clips seen in this session alone, those kept for the next left as they are; for the self-test, to see them taken up again.</summary>
+        [ForTest]
+        public static void ForgetClipsInMemory()
+        {
+            TriggerProbe.Forget();
+            ForgetClips();
+        }
+
         /// <summary>What the stage copy's clips play, as far as known, and the ears that play it; null for a copy without.</summary>
         private static ClipPlays StagePlays(out AnimationEars ears)
         {
@@ -90,7 +105,7 @@ namespace Scry
         private static void SortLeftovers()
         {
             var plays = StagePlays(out var ears);
-            if (plays == null || !plays.Ready || plays.Unplayed != null) return;
+            if (plays == null || !plays.Ready || (plays.Unplayed != null && !plays.Provisional)) return;
             var animator = ClipPlayer.AnimatorOf(Stage.Subject);
             if (animator == null || animator.runtimeAnimatorController == null) return;
             var key = ears.Prefab.name + "|" + animator.runtimeAnimatorController.name;
@@ -104,11 +119,16 @@ namespace Scry
                 LeadsOf[key] = leads;
             }
             var gear = GameGear();
-            var swept = TriggerProbe.StancesOf(ears.Prefab.name, animator, Stances, gear.Holds, wait: false);
-            if (swept.Busy) return;
+            // The stance it stands in swept first, answered before the rest (HeldClips.OtherGear's
+            // provisional rule), and worked out again once every stance is.
+            var now = StanceNow(animator);
+            var swept = TriggerProbe.StancesOf(ears.Prefab.name, animator, Stances.OrderBy(s => s == now ? 0 : 1).ToList(), gear.Holds, wait: false);
+            var partial = swept.Busy;
+            if (partial && (plays.Provisional || !HasStance(animator) || !swept.Stances.ContainsKey(now))) return;
 
             var other = plays.Tags.Keys.Concat(plays.Actions.Keys).Concat(plays.Around.Keys).Concat(plays.ByName.Keys).Concat(plays.Attacks.Keys).ToList();
-            var held = HeldClips.OtherGear(swept.Stances, swept.Holds, StanceNow(animator), plays.Holding, gear.HoldStances);
+            var held = HeldClips.OtherGear(swept.Stances, swept.Holds, now, plays.Holding, gear.HoldStances,
+                partial ? ClipNames() : null, partial ? other.Concat(plays.Idles) : null);
             var left = ClipLeftovers.UnplayedBy(leads, plays.Pulled, other.Where(c => !held.ContainsKey(c)));
             var unplayed = new HashSet<string>(System.StringComparer.Ordinal);
             var person = ears.Prefab.GetComponent<Player>() != null;
@@ -124,6 +144,7 @@ namespace Scry
             plays.Stance = HasStance(animator) ? StanceNow(animator) : -1;
             plays.OtherGear = held;
             plays.Unplayed = unplayed;
+            plays.Provisional = partial;
             if (unplayed.Count > 0) Log.Note($"Scry leaves out {Numbers.Count(unplayed.Count)} clips {ears.Prefab.name} never plays, as nothing it carries starts them: {string.Join(", ", unplayed.OrderBy(c => c, System.StringComparer.Ordinal))}.");
             if (held.Count > 0) Log.Note($"Scry leaves out {Numbers.Count(held.Count)} clips {ears.Prefab.name} plays only with other gear in hand.");
         }
@@ -901,6 +922,19 @@ namespace Scry
 
         /// <summary>Forgets the clip started last, so what a list's button starts next can be told.</summary>
         private static void ForgetStartedClip() => _startedClip = null;
+
+        /// <summary>
+        /// Forgets every clip seen, kept from earlier sessions (<see cref="ClipStore"/>) and found
+        /// in this one, so the stage copy's are worked out again from its animator; how many probes
+        /// were kept. By <c>/scry forget clips</c> and the Animations section's button.
+        /// </summary>
+        public static int ForgetClipsSeen()
+        {
+            var kept = ClipStore.Forget();
+            TriggerProbe.Forget();
+            ForgetClips();
+            return kept;
+        }
 
         /// <summary>Lets go of what was found out about the clips of the world left's prefabs.</summary>
         private static void ForgetClips()

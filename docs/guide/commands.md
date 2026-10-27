@@ -20,6 +20,10 @@ Every command is typed in the chat as shown, or in the game's console (F5) witho
 
 `/scry forget chests` forgets what your character counted chests holding, the figures on a chest's page, so they count afresh. The chests you opened stay opened and never count a second time, so the figures start again from the chests you open next. It mends a fault of earlier versions, which counted a chest again after every world load.
 
+## Animations
+
+`/scry forget clips` forgets what Scry saw each animator play, kept from one session to the next, so the clips of a page are worked out again as it opens, as *Work out again* over the clips does. It helps where an animation mod changed an animator in place.
+
 ## For an admin of a server
 
 `/scry forget server maps` forgets the server's records of the dungeons walked in this world, everyone's; walks last made before that day are not taken back when players join.

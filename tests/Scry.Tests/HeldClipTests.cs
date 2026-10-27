@@ -31,6 +31,24 @@ namespace Scry.Tests
             HeldClips.OtherGear(Stances(), Holds(), stance, held);
 
         [Fact]
+        public void WhileOtherStancesAreStillSweptWhatIsNotYetKnownOwnWaitsBehindTheFilter()
+        {
+            // Its own stance is swept first: what it holds shows, the rest of its clips wait as
+            // another gear's, of a stance not known yet, until the others are swept.
+            var own = new Dictionary<int, HashSet<string>> { [OneHanded] = Stances()[OneHanded] };
+            var all = new[] { "Run New Sword Right", "Block idle", "Run New", "Run New Pickaxe", "Emote Wave" };
+            var hidden = HeldClips.OtherGear(own, null, OneHanded, null, allClips: all, known: new[] { "Emote Wave" });
+            Assert.DoesNotContain("Run New Sword Right", hidden.Keys);
+            Assert.DoesNotContain("Block idle", hidden.Keys);
+            Assert.Equal(-1, hidden["Run New"]);
+            Assert.Equal(-1, hidden["Run New Pickaxe"]);
+            // What something else tells it plays (an emote it was seen do) stays its own.
+            Assert.DoesNotContain("Emote Wave", hidden.Keys);
+            // Its own stance not swept yet: nothing to tell.
+            Assert.Empty(HeldClips.OtherGear(new Dictionary<int, HashSet<string>>(), null, OneHanded, null, allClips: all));
+        }
+
+        [Fact]
         public void HoldingASwordShowsOnlyHowASwordIsHeld()
         {
             var hidden = Hidden(OneHanded);
