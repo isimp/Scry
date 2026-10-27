@@ -124,7 +124,8 @@ namespace Scry
         /// The server, asked to read what was left inside the world's dungeons, answers once done how
         /// many held traces, each uncovering a room at least, the way to them among the rooms; and in
         /// every record it sent, the rooms of traces alone count among the rooms walked, the line
-        /// saying how many came of traces. An admin alone may ask.
+        /// saying how many came of traces; where this game runs the world, no frame of its own is
+        /// held long by the reading. An admin alone may ask.
         /// </summary>
         private static IEnumerator TracesReadOnServer(Probe p)
         {
@@ -143,10 +144,17 @@ namespace Scry
                     yield break;
                 }
             }
+            var first = Timing.Measuring?.Frames ?? 0;
             GroupMapsLink.ReadTracesForTest();
             yield return Until(() => GroupMapsLink.TracesReadForTest != null, 300);
+            var frames = Timing.Measuring?.Since(first);
             var read = GroupMapsLink.TracesReadForTest;
             if (!p.Check(read != null, "the server answers once it read the traces")) yield break;
+            // Where this game runs the world it reads them in its own frames, each dungeon's prefabs loading on their own first.
+            if (ZNet.instance.IsServer() && frames != null)
+            {
+                p.Check(frames.Max < 50, "reading them here holds none of this game's frames a twentieth of a second", $"{Numbers.Amount(frames.Max, 0)} ms at the most, over {Numbers.Count(frames.Frames)} frames");
+            }
             var (dungeons, rooms, onTheWay) = read.Value;
             if (dungeons < 0)
             {

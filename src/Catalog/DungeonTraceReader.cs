@@ -11,7 +11,7 @@ namespace Scry
     /// Reads what was left inside the world's dungeons, where this game runs the world, which holds
     /// every object of it (a client holds only the zones near it): once its records are read, and
     /// again as an admin asks. Each dungeon whose rooms the world keeps is read in a frame of its
-    /// own, a few milliseconds a frame: its rooms' parts as the game made them, rolled again from
+    /// own, a few milliseconds a frame, once its prefabs and its rooms' loaded on their own: its rooms' parts as the game made them, rolled again from
     /// each room's own place as the game rolls them (<c>DungeonGenerator.PlaceRoom</c>), against the
     /// objects standing there now (<see cref="DungeonTraces.Gone"/>), and what stands told by its
     /// state; then the rooms that tells, and the way to them, go into the server's record of it
@@ -50,6 +50,10 @@ namespace Scry
         private static readonly Dictionary<int, SoftReference<GameObject>> RoomsHeld = new Dictionary<int, SoftReference<GameObject>>();
         private static readonly Dictionary<string, (SoftReference<GameObject> Prefab, DungeonGenerator Generator)> KindsHeld = new Dictionary<string, (SoftReference<GameObject>, DungeonGenerator)>(StringComparer.Ordinal);
         private static readonly Dictionary<int, RoomShape> Shapes = new Dictionary<int, RoomShape>();
+
+        /// <summary>The kinds of dungeon and of room whose prefabs were asked for ahead of the dungeon read that needs them (<see cref="PrefabsReady"/>).</summary>
+        private static readonly LoadsAhead<string> KindsAhead = new LoadsAhead<string>();
+        private static readonly LoadsAhead<int> RoomsAhead = new LoadsAhead<int>();
 
         /// <summary>What a prefab's object tells standing, and what a part of a room's leaves gone, by kind.</summary>
         private static readonly Dictionary<int, Standing> StandingOf = new Dictionary<int, Standing>();
@@ -101,10 +105,21 @@ namespace Scry
             var watch = Stopwatch.StartNew();
             while (_queue.Count > 0 && (watch.Elapsed.TotalMilliseconds < BudgetMs))
             {
-                var instance = _queue.Dequeue();
+                var instance = _queue.Peek();
                 var dungeon = WorldDungeons.Placed(world, instance);
-                if (dungeon == null) continue;
-                if (!Guard.Run(Feature.GroupDungeonMaps, "reading the traces in a dungeon", () => ReadOne(records, world, instance, dungeon))) continue;
+                if (dungeon == null)
+                {
+                    _queue.Dequeue();
+                    continue;
+                }
+                // Its prefabs load on their own first, the dungeon read in a later frame: loaded at
+                // once, a dungeon's rooms held a hosting game's frame a fifth of a second and more.
+                if (!PrefabsReady(instance, dungeon)) break;
+                _queue.Dequeue();
+                var reading = Timing.Start();
+                var read = Guard.Run(Feature.GroupDungeonMaps, "reading the traces in a dungeon", () => ReadOne(records, world, instance, dungeon));
+                Timing.Add("traces read", reading);
+                if (!read) continue;
                 // A dungeon read is a frame's worth.
                 break;
             }
@@ -319,9 +334,14 @@ namespace Scry
                 var prefab = location.m_prefab;
                 if (!prefab.IsValid) return null;
                 prefab.Load();
-                held = (prefab, prefab.Asset != null ? prefab.Asset.GetComponentInChildren<DungeonGenerator>(true) : null);
-                KindsHeld[name] = held;
+                held = (prefab, null);
             }
+            // Asked for ahead, its generator is found once it loaded.
+            if (held.Generator == null && held.Prefab.IsLoaded)
+            {
+                held = (held.Prefab, held.Prefab.Asset != null ? held.Prefab.Asset.GetComponentInChildren<DungeonGenerator>(true) : null);
+            }
+            KindsHeld[name] = held;
             if (held.Generator == null) return null;
             return (held.Generator, !held.Generator.m_addBaseSeedToRandomSpawn);
         }
@@ -329,12 +349,36 @@ namespace Scry
         /// <summary>A kind of room's prefab, held until the reading is done; none for a kind the game does not know.</summary>
         private static GameObject RoomPrefab(int hash)
         {
-            if (RoomsHeld.TryGetValue(hash, out var held)) return held.Asset;
+            if (RoomsHeld.TryGetValue(hash, out var held)) return held.IsLoaded ? held.Asset : null;
             var data = DungeonDB.instance != null ? DungeonDB.instance.GetRoom(hash) : null;
             if (data == null || !data.m_prefab.IsValid) return null;
             data.m_prefab.Load();
             RoomsHeld[hash] = data.m_prefab;
             return data.m_prefab.Asset;
+        }
+
+        /// <summary>
+        /// Asks for a dungeon's own prefab and its rooms' ahead, each loading on its own and held
+        /// until the reading is done; true once none of them is still loading, those that failed
+        /// read as missing, as one the game does not know is.
+        /// </summary>
+        private static bool PrefabsReady(ZoneSystem.LocationInstance instance, WorldDungeon dungeon)
+        {
+            var location = instance.m_location;
+            var kind = KindsAhead.Ready(new[] { CompendiumMap.NameOf(location) }, name => KindsHeld.TryGetValue(name, out var held) && held.Prefab.IsLoading, name =>
+            {
+                if (!location.m_prefab.IsValid) return;
+                location.m_prefab.LoadAsync();
+                KindsHeld[name] = (location.m_prefab, null);
+            });
+            var rooms = RoomsAhead.Ready(dungeon.Saved.Select(room => room.Hash), hash => RoomsHeld.TryGetValue(hash, out var held) && held.IsLoading, hash =>
+            {
+                var data = DungeonDB.instance != null ? DungeonDB.instance.GetRoom(hash) : null;
+                if (data == null || !data.m_prefab.IsValid) return;
+                data.m_prefab.LoadAsync();
+                RoomsHeld[hash] = data.m_prefab;
+            });
+            return kind && rooms;
         }
 
         /// <summary>A kind of room's shape, read once from its prefab (<see cref="PlaceReader.Shape"/>).</summary>
@@ -369,6 +413,8 @@ namespace Scry
             RoomsHeld.Clear();
             foreach (var held in KindsHeld.Values) held.Prefab.Release();
             KindsHeld.Clear();
+            KindsAhead.Forget();
+            RoomsAhead.Forget();
         }
 
         private static void Forget()
