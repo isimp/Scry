@@ -53,6 +53,10 @@ namespace Scry
             /// <summary>The frame it was last placed in.</summary>
             public int PlacedIn = -1;
 
+            /// <summary>Where it stands, how big and how faint it is drawn, as last set; set again only as they change.</summary>
+            public Vector2 At = new Vector2(float.NaN, float.NaN);
+            public float Size = -1f, Alpha = -1f;
+
             /// <summary>Its name's size as the game's pin names have it, and the scale it was last drawn at; 0 until read.</summary>
             public float NameSize;
             public float NameScaled;
@@ -237,8 +241,10 @@ namespace Scry
             var stamp = (maps.Stamp, DungeonsInGround.Stamp, book != null ? book.SourcesVersion : -1, GroupMapsLink.Group.Stamp);
             if (_keptStamp != stamp || _keptWorld != world)
             {
+                var listing = Timing.Start();
                 Kept.Clear();
                 Kept.AddRange(DungeonMarks.Of(book, maps.OfWorld(world), DungeonsInGround.Of, RoomKinds.Of, GroupMapsLink.Group.Of));
+                Timing.Add("marks listed", listing);
                 _keptStamp = stamp;
                 _keptWorld = world;
                 // Their words told afresh, as the days in them may have moved.
@@ -285,7 +291,9 @@ namespace Scry
                 }
                 if (mark == null)
                 {
+                    var making = Timing.Start();
                     mark = Spare.Count > 0 ? Spare[Spare.Count - 1] : MakeMark(map);
+                    Timing.Add("marks made", making);
                     if (mark == null) break;
                     if (Spare.Count > 0 && ReferenceEquals(Spare[Spare.Count - 1], mark)) Spare.RemoveAt(Spare.Count - 1);
                     if (mark.Id != null) ById.Remove(mark.Id);
@@ -294,22 +302,16 @@ namespace Scry
                 }
                 Placed.Add(mark);
                 mark.PlacedIn = frame;
-                // On its entrance: a pin placed there stands under it.
-                mark.Rect.anchoredPosition = new Vector2(at.X, at.Y);
-                mark.Rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, size);
-                mark.Rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, size);
                 if (kept.Look == MarkLook.Server || kept.Look == MarkLook.ServerWhole) hollow++;
                 if (kept.Look == MarkLook.Entrance) entrances++;
                 shown++;
-                if (stale) Tell(mark, kept, glyph);
-                // An entrance alone stands faint until the pointer rests on it.
-                if (mark.Picture != null) mark.Picture.color = new Color(1f, 1f, 1f, MapMarks.Alpha(kept.Look, mark == _hovered));
-                // Its words stand where it stands, as the game's pin names do, the name's own layout putting them under it, as big as the mark is scaled.
-                if (mark.LabelRect != null) mark.LabelRect.anchoredPosition = mark.Rect.anchoredPosition;
-                SizeName(mark, MapMarks.NameScale(scale));
-                if (!mark.Made.activeSelf) mark.Made.SetActive(true);
-                if (small) Hide(mark.Label);
-                else ShowWords(mark);
+                if (stale)
+                {
+                    var telling = Timing.Start();
+                    Tell(mark, kept, glyph);
+                    Timing.Add("marks told", telling);
+                }
+                Stand(mark, kept.Look, new Vector2(at.X, at.Y), size, scale, small);
                 if (!stale) continue;
                 Share.Took(Since(started) - pieceFrom);
                 pieces++;
@@ -339,6 +341,37 @@ namespace Scry
             }
             Spare.Clear();
             foreach (var mark in Marks) if (mark.Id == null || !InViewIds.Contains(mark.Id)) Spare.Add(mark);
+        }
+
+        /// <summary>
+        /// Stands a mark on its entrance, a pin placed there under it, its words where it stands as
+        /// the game's pin names do, as big as the mark is scaled; an entrance alone faint until the
+        /// pointer rests on it. Each set only as it changes: hundreds set every frame took milliseconds.
+        /// </summary>
+        private static void Stand(Mark mark, MarkLook look, Vector2 spot, float size, float scale, bool small)
+        {
+            if (mark.At != spot)
+            {
+                mark.Rect.anchoredPosition = spot;
+                if (mark.LabelRect != null) mark.LabelRect.anchoredPosition = spot;
+                mark.At = spot;
+            }
+            if (!Mathf.Approximately(mark.Size, size))
+            {
+                mark.Rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, size);
+                mark.Rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, size);
+                mark.Size = size;
+            }
+            var alpha = MapMarks.Alpha(look, mark == _hovered);
+            if (mark.Picture != null && !Mathf.Approximately(mark.Alpha, alpha))
+            {
+                mark.Picture.color = new Color(1f, 1f, 1f, alpha);
+                mark.Alpha = alpha;
+            }
+            SizeName(mark, MapMarks.NameScale(scale));
+            if (!mark.Made.activeSelf) mark.Made.SetActive(true);
+            if (small) Hide(mark.Label);
+            else ShowWords(mark);
         }
 
         /// <summary>Tells a mark its dungeon's look, glyph and words.</summary>
