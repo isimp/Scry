@@ -172,12 +172,15 @@ namespace Scry
         }
 
         /// <summary>Whether an animator has a trigger of this name; one never made has none.</summary>
-        private static bool HasTrigger(Animator animator, string name)
+        private static bool HasTrigger(Animator animator, string name) => Has(animator, name, AnimatorControllerParameterType.Trigger);
+
+        /// <summary>Whether an animator has a setting of this name and kind; one never made has none.</summary>
+        private static bool Has(Animator animator, string name, AnimatorControllerParameterType type)
         {
             if (animator == null || animator.runtimeAnimatorController == null) return false;
             foreach (var parameter in animator.parameters)
             {
-                if (parameter.type == AnimatorControllerParameterType.Trigger && parameter.name == name) return true;
+                if (parameter.type == type && parameter.name == name) return true;
             }
             return false;
         }
@@ -719,7 +722,7 @@ namespace Scry
         }
 
         /// <summary>
-        /// One run of a sweep: from its start, set up and past the state it starts in (<see cref="PastFirstState"/>), done <paramref name="act"/> to,
+        /// One run of a sweep: from its start, awake and set up, done <paramref name="act"/> to,
         /// and let settle; then, where it moves sideways or forward, stepped through every speed and
         /// direction (<see cref="Speeds"/>) with every clip weighed in kept; else every clip weighed in
         /// as it goes kept, and done <paramref name="then"/> to halfway.
@@ -728,9 +731,11 @@ namespace Scry
             System.Action<Animator> then = null)
         {
             Restart(animator, 1);
+            // Awake, as a person is a second after it appears: one waking stands up for over two
+            // seconds and goes to nothing else meanwhile, a station's work among it.
+            if (Has(animator, "wakeup", AnimatorControllerParameterType.Bool)) animator.SetBool("wakeup", false);
             setup?.Invoke(animator);
             animator.Update(0f);
-            PastFirstState(animator);
             act?.Invoke(animator);
             var moving = sideways || forward;
             var steps = moving ? Settle : 2 * Settle;
@@ -763,20 +768,6 @@ namespace Scry
                 if (!Paused(animator)) yield break;
                 yield return true;
                 if (!Resumed(animator)) yield break;
-            }
-        }
-
-        /// <summary>
-        /// The state each layer starts in played to its end at once: a person's first stands up, as
-        /// from a bed, for over two seconds, and leaves for nothing else until it is done, so a run
-        /// would see that and not what it is after.
-        /// </summary>
-        private static void PastFirstState(Animator animator)
-        {
-            for (var layer = 0; layer < animator.layerCount; layer++)
-            {
-                var state = animator.GetCurrentAnimatorStateInfo(layer).fullPathHash;
-                if (state != 0 && animator.HasState(layer, state)) animator.Play(state, layer, 1f);
             }
         }
 
