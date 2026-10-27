@@ -65,7 +65,7 @@ namespace Scry
             {
                 Select(charred);
                 yield return Until(() => CopyOf(charred) != null, 10);
-                yield return Until(() => !Previews.ClipsSorting, 60);
+                yield return Until(() => !Previews.ClipsSorting && !Previews.ClipsProvisional, 60);
                 var left = Previews.ClipsUnplayed();
                 p.Check(left != null && left.Contains("Draw Bow"), "a Charred warrior's list leaves out the bow its kin draw", left != null ? string.Join(", ", left) : "not worked out");
             }

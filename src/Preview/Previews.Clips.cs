@@ -123,8 +123,9 @@ namespace Scry
             // provisional rule), and worked out again once every stance is.
             var now = StanceNow(animator);
             var swept = TriggerProbe.StancesOf(ears.Prefab.name, animator, Stances.OrderBy(s => s == now ? 0 : 1).ToList(), gear.Holds, wait: false);
+            // Only a person, whose sweep is long, is told from its own stance first; a creature's is short, and waited for.
             var partial = swept.Busy;
-            if (partial && (plays.Provisional || !HasStance(animator) || !swept.Stances.ContainsKey(now))) return;
+            if (partial && (plays.Provisional || ears.Prefab.GetComponent<Player>() == null || !HasStance(animator) || !swept.Stances.ContainsKey(now))) return;
 
             var other = plays.Tags.Keys.Concat(plays.Actions.Keys).Concat(plays.Around.Keys).Concat(plays.ByName.Keys).Concat(plays.Attacks.Keys).ToList();
             var held = HeldClips.OtherGear(swept.Stances, swept.Holds, now, plays.Holding, gear.HoldStances,

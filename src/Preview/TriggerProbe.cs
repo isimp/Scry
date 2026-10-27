@@ -151,10 +151,11 @@ namespace Scry
             // Seen before in this stance, only triggers not pulled yet are (a sword's and a mace's
             // differ, while their stance is the same).
             Jobs.TryGetValue(key, out var job);
+            // A trigger the animator lacks leads nowhere and is never kept: asking for it watches nothing.
             var missing = new List<string>();
             foreach (var trigger in triggers)
             {
-                if (seen.Triggers.ContainsKey(trigger) || missing.Contains(trigger) || (job != null && job.Triggers.Contains(trigger))) continue;
+                if (seen.Triggers.ContainsKey(trigger) || missing.Contains(trigger) || (job != null && job.Triggers.Contains(trigger)) || !HasTrigger(animator, trigger)) continue;
                 missing.Add(trigger);
             }
             if (job == null && (first || missing.Count > 0) && animator != null && animator.runtimeAnimatorController != null)
@@ -168,6 +169,17 @@ namespace Scry
                 if (wait) while (Advance(job)) { }
             }
             return Seen.TryGetValue(key, out var now) ? now : AfterFailure(key);
+        }
+
+        /// <summary>Whether an animator has a trigger of this name; one never made has none.</summary>
+        private static bool HasTrigger(Animator animator, string name)
+        {
+            if (animator == null || animator.runtimeAnimatorController == null) return false;
+            foreach (var parameter in animator.parameters)
+            {
+                if (parameter.type == AnimatorControllerParameterType.Trigger && parameter.name == name) return true;
+            }
+            return false;
         }
 
         /// <summary>
@@ -751,8 +763,8 @@ namespace Scry
             }
         }
 
-        /// <summary>How many steps each speed and direction of a sweep is run for: one begins a transition, its next state weighed in.</summary>
-        private const int MoveSteps = 1;
+        /// <summary>How many steps each speed and direction of a sweep is run for: the first begins a transition, the second gives its next state weight.</summary>
+        private const int MoveSteps = 2;
 
         /// <summary>The ways a sweep moves at a speed: forward, sideways and both diagonals.</summary>
         private static (float X, float Y)[] Directions(float speed) => new[] { (0f, speed), (speed, 0f), (speed, speed), (speed, -speed) };
