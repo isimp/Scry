@@ -212,6 +212,170 @@ namespace Scry.Tests
             Assert.Equal(3, looked);
         }
 
+        // Compiling Scry's own methods leaves what they call: generic code over a value type (a
+        // list of pairs, a count over them), which is compiled anew for each value type, and the
+        // game's and Unity's code. A first page calls hundreds of those for the first time, so
+        // they are compiled ahead with the code that calls them.
+
+        private struct Pair
+        {
+            public string Name;
+            public int Count;
+        }
+
+        private static class Inner<T>
+        {
+            public static int Outer(T value) => Deeper(value) + 1;
+
+            public static int Deeper(T value) => Deepest(value);
+
+            public static int Deepest(T value) => 0;
+        }
+
+        private interface IShown
+        {
+            void Show();
+        }
+
+        private sealed class Page
+        {
+            public int Tell()
+            {
+                var pairs = new List<Pair> { new Pair { Name = "a", Count = 1 } };
+                return pairs.Count(p => p.Count > 0) + Inner<int>.Outer(1) + Inner<string>.Outer("a");
+            }
+
+            public void Told(IShown shown) => shown.Show();
+
+            public void Twice() => Tell();
+        }
+
+        private sealed class Hooked
+        {
+            public string Name = "";
+
+            public bool Calls() => string.IsNullOrEmpty(Name);
+        }
+
+        private static List<MethodBase> Warmed(Type type, Func<MethodBase, IEnumerable<MethodBase>> hooks = null) =>
+            CodeWarmup.WithWhatTheyCall(CodeWarmup.MethodsOf(new[] { type }.Concat(type.GetNestedTypes(BindingFlags.NonPublic))), hooks).ToList();
+
+        [Fact]
+        public void TheGenericCodeAPageRunsOverAValueTypeIsCompiledAheadWithIt()
+        {
+            var methods = Warmed(typeof(Page));
+
+            Assert.Contains(methods, m => m.DeclaringType == typeof(List<Pair>) && m.Name == "Add");
+            Assert.Contains(methods, m => m is ConstructorInfo && m.DeclaringType == typeof(List<Pair>));
+            Assert.Contains(methods, m => m.Name == "Count" && m.DeclaringType == typeof(Enumerable) && m.GetGenericArguments().SequenceEqual(new[] { typeof(Pair) }));
+            Assert.All(methods, m => Assert.False(m.ContainsGenericParameters, m.Name + " still waits for types"));
+        }
+
+        [Fact]
+        public void CodeMadeForAValueTypeIsFollowedInToWhatItCalls()
+        {
+            // Inner<int>.Outer runs code of its own made for int, which calls more of it: each is
+            // compiled anew at its first call, a few steps in, further than others' code is followed.
+            var methods = CodeWarmup.WithWhatTheyCall(CodeWarmup.MethodsOf(new[] { typeof(Page) }), othersDeep: 1).ToList();
+
+            Assert.Contains(methods, m => m.DeclaringType == typeof(Inner<int>) && m.Name == "Outer");
+            Assert.Contains(methods, m => m.DeclaringType == typeof(Inner<int>) && m.Name == "Deeper");
+            Assert.Contains(methods, m => m.DeclaringType == typeof(Inner<int>) && m.Name == "Deepest");
+        }
+
+        [Fact]
+        public void CodeEveryClassSharesIsLeftToItsOwnTurn()
+        {
+            // Inner<string> runs the code every class shares, which Scry's own generic code
+            // compiled over object already is, so neither it nor what it calls comes from here.
+            var methods = Warmed(typeof(Page));
+
+            Assert.DoesNotContain(methods, m => m.DeclaringType == typeof(Inner<string>));
+        }
+
+        [Fact]
+        public void WhatACallLandsOnOnlyAtRunTimeIsLeftToItsCall()
+        {
+            // A call through an interface lands on whatever the object is, unknown until then.
+            var methods = Warmed(typeof(Page));
+
+            Assert.DoesNotContain(methods, m => m.Name == nameof(IShown.Show));
+        }
+
+        [Fact]
+        public void EachMethodIsCompiledOnceHoweverOftenItIsCalled()
+        {
+            var methods = Warmed(typeof(Page));
+
+            Assert.Equal(methods.Count, methods.Distinct().Count());
+            Assert.Single(methods, m => m.DeclaringType == typeof(List<Pair>) && m.Name == "Add");
+            Assert.Single(methods, m => m.DeclaringType == typeof(Page) && m.Name == nameof(Page.Tell));
+        }
+
+        [Fact]
+        public void WhatAMethodCallsIsCompiledRightAfterIt()
+        {
+            // The panel's code comes first, and so does what it calls, before the rest of Scry.
+            var methods = CodeWarmup.WithWhatTheyCall(CodeWarmup.MethodsOf(new[] { typeof(Page), typeof(Panel) }, typeof(Page))).ToList();
+            var add = methods.FindIndex(m => m.DeclaringType == typeof(List<Pair>) && m.Name == "Add");
+            var panel = methods.FindIndex(m => m.DeclaringType == typeof(Panel));
+
+            Assert.True(add >= 0 && add < panel, "the page's calls come before the next type's code");
+        }
+
+        private static readonly MethodBase Original = typeof(string).GetMethod(nameof(string.IsNullOrEmpty));
+        private static readonly MethodBase ModsHook = typeof(Math).GetMethod(nameof(Math.Abs), new[] { typeof(int) });
+
+        [Fact]
+        public void TheHooksModsPutOnACalledMethodAreCompiledWithIt()
+        {
+            // A mod's hook on the game's code runs when Scry calls that code (a tooltip asked for).
+            var methods = CodeWarmup.WithWhatTheyCall(new[] { typeof(Hooked).GetMethod(nameof(Hooked.Calls)) }, m => m == Original ? new[] { ModsHook } : Array.Empty<MethodBase>()).ToList();
+
+            Assert.Contains(Original, methods);
+            Assert.Contains(ModsHook, methods);
+            Assert.True(methods.IndexOf(Original) < methods.IndexOf(ModsHook), "the hook comes with the method it is on");
+        }
+
+        [Fact]
+        public void HooksThatCannotBeToldLeaveTheCallsCompiled()
+        {
+            // Asking for a method's hooks can fail (a mod's patch half made); what is called is compiled all the same.
+            var methods = CodeWarmup.WithWhatTheyCall(new[] { typeof(Hooked).GetMethod(nameof(Hooked.Calls)) }, m => throw new InvalidOperationException("no hooks")).ToList();
+
+            Assert.Contains(methods, m => m.Name == nameof(Hooked.Calls));
+            Assert.Contains(Original, methods);
+        }
+
+        [Fact]
+        public void OthersCodeIsFollowedOnlyALittleWayIn()
+        {
+            // The game's code calls on into more of its own; a step past what Scry calls is
+            // compiled, and no further, which would reach most of the game.
+            var calls = typeof(Hooked).GetMethod(nameof(Hooked.Calls));
+            var near = CodeWarmup.WithWhatTheyCall(new[] { calls }, othersDeep: 1).ToList();
+            var further = CodeWarmup.WithWhatTheyCall(new[] { calls }, othersDeep: 2).ToList();
+            var length = typeof(string).GetProperty(nameof(string.Length)).GetMethod;
+
+            Assert.Equal(new[] { calls, Original }, near);
+            Assert.Contains(length, further);
+            Assert.True(further.Count < 50, $"{further.Count} methods: it stays a step in");
+        }
+
+        [Fact]
+        public void ACallIntoAnArraysOwnMethodsIsLeftToTheRuntime()
+        {
+            // A many-dimensional array's Get and Set are made by the runtime, never compiled from code.
+            var methods = Warmed(typeof(Grid));
+
+            Assert.DoesNotContain(methods, m => m.DeclaringType != null && m.DeclaringType.IsArray);
+        }
+
+        private sealed class Grid
+        {
+            public int At(int[,] cells) => cells[1, 1];
+        }
+
         private static List<MethodBase> Methods(int count) =>
             Enumerable.Repeat((MethodBase)typeof(Panel).GetMethod(nameof(Panel.Draw)), count).ToList();
 

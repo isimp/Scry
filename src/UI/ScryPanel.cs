@@ -131,7 +131,11 @@ namespace Scry
 
                 // Warmed in a world only: at the main menu the game's fonts are not loaded yet, so
                 // warming there would measure a font the panel never uses, for most of a second.
-                else if (Player.m_localPlayer != null) Skin.Warm(scale);
+                else if (Player.m_localPlayer != null)
+                {
+                    Skin.Warm(scale);
+                    WarmStagePicture();
+                }
                 return;
             }
 

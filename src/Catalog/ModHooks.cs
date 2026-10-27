@@ -270,6 +270,14 @@ namespace Scry
             }
         }
 
+        /// <summary>The hooks put on a method that run each time it runs: before it, after it, and around what it throws. A transpiler is left out, having rewritten it once.</summary>
+        public static IEnumerable<MethodBase> On(MethodBase method)
+        {
+            var info = Harmony.GetPatchInfo(method);
+            if (info == null) return Array.Empty<MethodBase>();
+            return info.Prefixes.Concat(info.Postfixes).Concat(info.Finalizers).Where(p => p?.PatchMethod != null).Select(p => (MethodBase)p.PatchMethod).ToList();
+        }
+
         /// <summary>The mods hooking a game method of this name, by the mod each hook belongs to, Scry left out.</summary>
         public static IReadOnlyList<string> Hooking(Type type, string name)
         {

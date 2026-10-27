@@ -397,6 +397,9 @@ namespace Scry
         [ForTest]
         public static int Held => Cache.Count;
 
+        /// <summary>How many times an entry's facts were built since the game started, for the self-test to tell the first pages after the start.</summary>
+        public static int BuiltSinceStartForTest { get; private set; }
+
         public static Facts For(Entry entry)
         {
             if (entry == null) return new Facts();
@@ -409,6 +412,7 @@ namespace Scry
                 && (entry.Kind != Kind.Creature || known._starsOf == CreatureStars.Stamp)) return known;
 
             var facts = new Facts { _toldWith = Freshness, _starsOf = entry.Kind == Kind.Creature ? CreatureStars.Stamp : 0 };
+            BuiltSinceStartForTest++;
             _notables = new Dictionary<string, (ICollection<string>, bool, int)>(StringComparer.Ordinal);
             _loot = new Dictionary<string, List<string>>(StringComparer.Ordinal);
             try

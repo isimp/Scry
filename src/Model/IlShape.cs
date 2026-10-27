@@ -63,9 +63,10 @@ namespace Scry
 
         /// <summary>
         /// The tokens of the fields, methods and types a method's code names, in order, for its
-        /// module to resolve; none when the code cannot be read.
+        /// module to resolve, or with <paramref name="methodsOnly"/> those of the methods alone (a
+        /// call, a new object, a delegate made); none when the code cannot be read.
         /// </summary>
-        public static System.Collections.Generic.List<int> Names(byte[] il)
+        public static System.Collections.Generic.List<int> Names(byte[] il, bool methodsOnly = false)
         {
             var names = new System.Collections.Generic.List<int>();
             if (il == null || il.Length == 0) return names;
@@ -91,7 +92,7 @@ namespace Scry
                 var skip = OperandSize(op.Value, il, i);
                 if (skip < 0 || i + skip > il.Length) return new System.Collections.Generic.List<int>();
                 var type = op.Value.OperandType;
-                if (type == OperandType.InlineField || type == OperandType.InlineMethod || type == OperandType.InlineType || type == OperandType.InlineTok)
+                if (type == OperandType.InlineMethod || !methodsOnly && (type == OperandType.InlineField || type == OperandType.InlineType || type == OperandType.InlineTok))
                 {
                     names.Add(il[i] | (il[i + 1] << 8) | (il[i + 2] << 16) | (il[i + 3] << 24));
                 }

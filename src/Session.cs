@@ -238,11 +238,11 @@ namespace Scry
         /// <summary>How much of a frame compiling ahead takes, beyond the one method each frame always compiles.</summary>
         private const double WarmupShareMs = 2.0;
 
-        /// <summary>Compiles on within the frame's share, the panel's code first, until all of Scry's is compiled.</summary>
+        /// <summary>Compiles on within the frame's share, the panel's code first, each method with what it calls and the hooks mods put on that, until all of Scry's is compiled.</summary>
         private static void Warm()
         {
             if (Explorer == null || Warmup?.Done == true) return;
-            if (Warmup == null) Warmup = new CodeWarmup(CodeWarmup.MethodsOf(typeof(Session).Assembly.GetTypes(), typeof(ScryPanel), typeof(Skin), typeof(Facts)));
+            if (Warmup == null) Warmup = new CodeWarmup(CodeWarmup.WithWhatTheyCall(CodeWarmup.MethodsOf(typeof(Session).Assembly.GetTypes(), typeof(ScryPanel), typeof(Skin), typeof(Facts)), ModHooks.On));
             var watch = System.Diagnostics.Stopwatch.StartNew();
             Warmup.Step(() => watch.Elapsed.TotalMilliseconds, WarmupShareMs, method => Steps.Run(() => method.MethodHandle.GetFunctionPointer(), null) == null);
             if (Warmup.Done) Log.Note($"Scry compiled its code ahead: {Numbers.Count(Warmup.Compiled)} methods, {Numbers.Count(Warmup.Failed)} could not be.");

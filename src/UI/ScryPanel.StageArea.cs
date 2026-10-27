@@ -196,6 +196,26 @@ namespace Scry
             StageInput(e, rect, pointed, roomKey);
         }
 
+        private static bool _stagePictureWarmed;
+
+        /// <summary>
+        /// The stage's picture is the panel's one draw without blending, the only use of IMGUI's
+        /// blit material, so its first draw readies that material's shader on the graphics side.
+        /// Drawn once while the panel is shut, at no opacity (the shader blends by it) on one
+        /// corner pixel, a first page's picture finds it ready.
+        /// </summary>
+        private static void WarmStagePicture()
+        {
+            if (_stagePictureWarmed || Event.current.type != EventType.Repaint) return;
+            _stagePictureWarmed = true;
+            var drawn = Timing.Start();
+            var was = GUI.color;
+            GUI.color = Skin.Alpha(was, 0f);
+            GUI.DrawTexture(new Rect(0f, 0f, 1f, 1f), Texture2D.whiteTexture, ScaleMode.StretchToFill, false);
+            GUI.color = was;
+            Timing.Add("stage texture warmed", drawn);
+        }
+
         /// <summary>The stage's picture, an effect's standing empty once it played out; a place's note while it loads, or that it could not be previewed.</summary>
         private static void StagePicture(Entry entry, Rect inner)
         {

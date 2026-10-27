@@ -180,6 +180,15 @@ namespace Scry
             yield break;
         }
 
+        /// <summary>The parts a first page pays most in, timed on the first pages after the start.</summary>
+        private static readonly string[] FirstPageParts = { "panel", "side facts", "facts built", "side tooltip", "side stage", "stage texture", "update previews" };
+
+        /// <summary>The most Scry's work may take in a frame of the first pages after the start, as it may on any page after them.</summary>
+        private const double FirstPagesMs = 100;
+
+        /// <summary>The frames the first pages are watched for after the last is picked, its picture drawn in them.</summary>
+        private const int FirstPagesSettle = 5;
+
         /// <summary>A favourite is kept and shown alone, what was looked at comes back newest first, and Back and Forward walk the history.</summary>
         private static IEnumerator FavouritesRecentHistory(Probe p)
         {
@@ -199,20 +208,36 @@ namespace Scry
             p.Check(!X.Favourites.Contains(a), "starring it again takes it away");
             if (was) X.ToggleFavourite(a);
 
-            // The first page drawn this session finds Scry's code compiled ahead (CodeWarmup).
-            yield return Until(() => Session.Warmup?.Done == true, 30);
+            // The first page drawn this session finds Scry's code compiled ahead, with what it
+            // calls (CodeWarmup), and the stage's way of drawing its picture readied (ScryPanel.WarmStagePicture).
+            var waited = Time.unscaledTime;
+            yield return Until(() => Session.Warmup?.Done == true, 50);
             var warmed = Session.Warmup;
             if (p.Check(warmed?.Done == true, "Scry's code is compiled ahead of the first page", warmed == null ? "not begun" : $"{Numbers.Count(warmed.Compiled)} methods so far"))
             {
-                p.Note($"compiled ahead: {Numbers.Count(warmed.Compiled)} methods, {Numbers.Count(warmed.Failed)} could not be");
+                p.Note($"compiled ahead: {Numbers.Count(warmed.Compiled)} methods, {Numbers.Count(warmed.Failed)} could not be; waited {Numbers.Amount(Time.unscaledTime - waited, 1)} s for it");
             }
 
+            // These are the first pages after the game's start unless a page was drawn before
+            // this part: what the first pages pay once, by part, the self-test's cost left out.
+            var firstAfterStart = Facts.BuiltSinceStartForTest == 0;
+            var from = Frames.Frames;
+            Timing.ForgetBytesByPart();
             Select(a);
             yield return null;
             Select(b);
             yield return null;
             Select(c);
             yield return null;
+            // Each page's stage picture is drawn once its copy is made, a few frames on.
+            for (var frame = 0; frame < FirstPagesSettle; frame++) yield return null;
+            if (firstAfterStart)
+            {
+                var pages = Frames.Since(from);
+                p.Note("the first pages after the start, the longest each part took in a frame: " + string.Join(", ", FirstPageParts.Select(part => $"{part} {Numbers.Amount(Timing.MostMs(part), 1)} ms")));
+                p.Check(pages.Max < FirstPagesMs, "the first pages after the start draw within a tenth of a second each", $"{Numbers.Amount(pages.Max, 1)} ms at the most{Slowest(pages, 1)}");
+            }
+            else p.Note("a page was drawn before this part, so these are not the first pages after the start and were not timed as such");
             p.Check(X.RecentKeys.Count >= 3 && X.RecentKeys[0] == c.Key && X.RecentKeys[1] == b.Key, "what was looked at comes back newest first", string.Join(", ", X.RecentKeys.Take(3)));
             X.RecentOnly = true;
             p.Check(X.Results.Count > 0 && X.Results[0] == c, "Recent lists the last one first");
