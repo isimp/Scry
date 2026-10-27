@@ -267,6 +267,30 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APartsLongestFrameIsKeptBesideItsSum()
+        {
+            // One part's hitch is told apart from another's in the same frame: the self-test holds
+            // the server's work to its own longest frame, not to all of Scry's.
+            var most = new Dictionary<string, double>();
+            var frame = new FrameTimes();
+            frame.Add("links", 3, 0, 0);
+            frame.Add("panel", 40, 0, 0);
+            frame.AddMostMsTo(most);
+            frame.Clear();
+            frame.Add("links", 1, 0, 0);
+            frame.AddMostMsTo(most);
+
+            Assert.Equal(3, most["links"], 6);
+            Assert.Equal(40, most["panel"], 6);
+
+            // A part that took no time is not counted.
+            frame.Clear();
+            frame.Add("render", 0, 0, 0);
+            frame.AddMostMsTo(most);
+            Assert.False(most.ContainsKey("render"));
+        }
+
+        [Fact]
         public void ReadingAFramesTotalsAllocatesNothingSoTheMeasuringIsNotTakenForScrysOwn()
         {
             // The measuring reads a frame's totals several times a frame, inside the update it

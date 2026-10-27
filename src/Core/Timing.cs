@@ -70,6 +70,13 @@ namespace Scry
         /// <summary>The time each part took of its own while the self-test measures, beside what it allocated, to take off what other threads allocated meanwhile.</summary>
         private static readonly Dictionary<string, double> OwnMsByPart = new Dictionary<string, double>(StringComparer.Ordinal);
 
+        /// <summary>The longest each part took of its own in one frame while the self-test measures.</summary>
+        private static readonly Dictionary<string, double> MostMsByPart = new Dictionary<string, double>(StringComparer.Ordinal);
+
+        /// <summary>The longest a part took of its own in one frame since the self-test last forgot them; none where it never ran.</summary>
+        [Diagnostic, ForTest]
+        public static double MostMs(string part) => MostMsByPart.TryGetValue(part, out var most) ? most : 0;
+
         /// <summary>Forgets what each part allocated, as the self-test starts counting afresh.</summary>
         [ForTest]
         public static void ForgetBytesByPart()
@@ -77,6 +84,7 @@ namespace Scry
             BytesByPart.Clear();
             OwnBytesByPart.Clear();
             OwnMsByPart.Clear();
+            MostMsByPart.Clear();
         }
 
         /// <summary>The parts that allocated most since the self-test last forgot them, each with its kilobytes: its own, the inner parts' taken off, or the whole; the self-test's own left out.</summary>
@@ -199,6 +207,7 @@ namespace Scry
                 Frame.AddBytesTo(BytesByPart);
                 Frame.AddOwnBytesTo(OwnBytesByPart);
                 Frame.AddOwnMsTo(OwnMsByPart);
+                Frame.AddMostMsTo(MostMsByPart);
             }
             // A part open across the frame's end is told whole when it closes.
             Nesting.Clear();

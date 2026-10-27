@@ -171,6 +171,16 @@ namespace Scry
             }
         }
 
+        /// <summary>The longest each part took of its own in one frame, kept by part: this frame's where it is longer.</summary>
+        public void AddMostMsTo(Dictionary<string, double> byPart)
+        {
+            foreach (var part in _parts)
+            {
+                if (part.Ms <= 0) continue;
+                if (!byPart.TryGetValue(part.Name, out var most) || part.Ms > most) byPart[part.Name] = part.Ms;
+            }
+        }
+
         /// <summary>Adds to a part: its time, what it allocated (and of that what was its own, the inner parts' taken off; the whole where not told), how many cleanups ran inside it, and how often a font's texture was rebuilt in it.</summary>
         public void Add(string part, double ms, long bytes, int cleanups, int rebuilds = 0, long own = -1)
         {

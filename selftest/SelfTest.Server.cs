@@ -145,15 +145,20 @@ namespace Scry
                 }
             }
             var first = Timing.Measuring?.Frames ?? 0;
+            Timing.ForgetBytesByPart();
             GroupMapsLink.ReadTracesForTest();
             yield return Until(() => GroupMapsLink.TracesReadForTest != null, 300);
             var frames = Timing.Measuring?.Since(first);
+            var (linksMost, readMost) = (Timing.MostMs("links"), Timing.MostMs("traces read"));
             var read = GroupMapsLink.TracesReadForTest;
             if (!p.Check(read != null, "the server answers once it read the traces")) yield break;
-            // Where this game runs the world it reads them in its own frames, each dungeon's prefabs loading on their own first.
+            // Where this game runs the world it reads them in its own frames, each dungeon's prefabs
+            // loading on their own first: the server's work held to its own longest frame, a
+            // dungeon read and the rest apart, whatever else Scry did in the same frames.
             if (ZNet.instance.IsServer() && frames != null)
             {
-                p.Check(frames.Max < 50, "reading them here holds none of this game's frames a twentieth of a second", $"{Numbers.Amount(frames.Max, 0)} ms at the most, over {Numbers.Count(frames.Frames)} frames");
+                p.Check(linksMost < 50 && readMost < 50, "reading them here holds none of this game's frames a twentieth of a second",
+                    $"a dungeon read {Numbers.Amount(readMost, 1)} ms, the rest of the server's work {Numbers.Amount(linksMost, 1)} ms at the most, over {Numbers.Count(frames.Frames)} frames");
             }
             var (dungeons, rooms, onTheWay) = read.Value;
             if (dungeons < 0)
