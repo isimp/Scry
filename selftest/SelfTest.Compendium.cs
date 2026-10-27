@@ -224,10 +224,11 @@ namespace Scry
 
         /// <summary>
         /// The explored map is read: the ground the character stands on is explored, the places
-        /// this game holds lie partly in it, and where this game is the world's server it answers
-        /// a map sent to itself as it would a player's, with as many kinds as read here; as a
-        /// client of a dedicated server it asks the Scry there, which answers. The book of the
-        /// character played is caught up once, after a while in the world.
+        /// this game holds lie partly in it, and where this game is the world's server it reads
+        /// its own map, asking nobody, the kinds found in the character's explored ground, and
+        /// answers a player's map as it comes by the player's connection, with as many kinds as
+        /// read here; as a client of a dedicated server it asks the Scry there, which answers. The
+        /// book of the character played is caught up once, after a while in the world.
         /// </summary>
         private static IEnumerator CompendiumMapRead(Probe p)
         {
@@ -243,7 +244,8 @@ namespace Scry
             p.Note($"the explored map goes to the server as {Numbers.Count(sent.Length / 1024)} KB, {Numbers.Count(packed.Length / 1024)} KB before the game's compression");
             p.Check(sent.Length < 256 * 1024, "packed, it is well under a quarter of a megabyte", $"{Numbers.Count(sent.Length / 1024)} KB");
             p.Note($"asked about again as it grew {Numbers.Count(CompendiumMap.AskedMore)} times this session, {Numbers.Count(CompendiumLink.TakenMore)} answers taken");
-            // The biomes are read from coarser cells, which need no finer.
+            // The biomes are read from coarser cells, which need no finer; the places from the map's own.
+            var fine = grid;
             grid = ExploredGrid.Unpack(CompendiumMap.PackedMap(ExploredGrid.BiomeCellMetres)) ?? grid;
             var world = CompendiumMap.World;
             var book = CompendiumKeeper.Book;
@@ -290,22 +292,23 @@ namespace Scry
             }
 
             var places = CompendiumMap.Places();
-            var kinds = MapCatchUp.Kinds(grid, places);
+            var kinds = MapCatchUp.Kinds(fine, places);
             p.Check(places.Count > 0, $"this game holds the world's {Numbers.Count(places.Count)} places");
             p.Note($"{Numbers.Count(kinds.Count)} kinds of place lie in explored ground");
             yield return Until(() => book != null && book.Mapped(world), 15);
             p.Check(book != null && book.Mapped(world), "the character's book is caught up from its map in this world");
-            var missing = kinds.Where(k => book != null && book.Level(EntryKeys.For(Kind.Location, k)) < KnownLevel.Seen).ToList();
-            p.Check(missing.Count == 0, "and has every kind of place in explored ground as seen at least", string.Join(", ", missing.Take(5)));
+            // Found in its explored ground, never written into the book: the game explores a ring around the character whatever it saw.
+            var missing = kinds.Where(k => book != null && !book.Found(world, WorldSource.Explored).Contains(k)).ToList();
+            p.Check(missing.Count == 0, "and finds every kind of place in explored ground in the character's explored ground", string.Join(", ", missing.Take(5)));
 
-            // As a server: a map sent to this game comes back answered, as a player's would.
+            // As the world's server it asks nobody; a player's map, as it comes by the player's connection, is answered.
+            var ask = new ZPackage();
+            ask.Write(world);
+            ask.Write(Utils.Compress(packed));
             var answered = CompendiumLink.Answered;
-            yield return Until(() =>
-            {
-                CompendiumLink.Ask(world);
-                return CompendiumLink.Answered > answered && CompendiumLink.LastTold >= 0;
-            }, 10);
-            p.Check(CompendiumLink.Answered > answered && CompendiumLink.LastTold == kinds.Count, "a map sent to the world's server is answered with the same kinds", $"{Numbers.Count(CompendiumLink.LastTold)} told, {Numbers.Count(kinds.Count)} read here");
+            CompendiumLink.Answer(ZNet.GetUID(), ask, CompendiumLink.AnswerRpc);
+            p.Check(CompendiumLink.Answered > answered && CompendiumLink.LastAnswered == kinds.Count, "a player's map sent to this game, the world's server, is answered with the same kinds",
+                $"{Numbers.Count(CompendiumLink.LastAnswered)} told, {Numbers.Count(kinds.Count)} read here");
         }
 
         /// <summary>

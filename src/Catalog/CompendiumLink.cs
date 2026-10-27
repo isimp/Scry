@@ -58,6 +58,10 @@ namespace Scry
         /// <summary>How many maps this game has answered, as a server; for the self-test.</summary>
         public static int Answered { get; private set; }
 
+        /// <summary>How many kinds of place the last map this game answered held, as a server; for the self-test.</summary>
+        [Diagnostic]
+        public static int LastAnswered { get; private set; } = -1;
+
         /// <summary>How many answers this game took from its world's server, as a client; for the self-test.</summary>
         public static int Taken { get; private set; }
 
@@ -189,6 +193,7 @@ namespace Scry
             foreach (var (_, count) in counted) reply.Write(count);
             ZRoutedRpc.instance.InvokeRoutedRPC(to, answerRpc, reply);
             Answered++;
+            LastAnswered = counted.Count;
             Log.Report(CompendiumWords.MapAnswered(counted.Count));
         }
 
