@@ -20,7 +20,7 @@ namespace Scry
         /// The probe's own code, by a hash of <c>TriggerProbe.cs</c>: what it sees changes with it.
         /// A unit test holds it to the file and tells the new value when the file changes.
         /// </summary>
-        public const string ProbeSource = "5969f2ab4b1f0832";
+        public const string ProbeSource = "1cb1226444e36a58";
 
         private static readonly FileQueue Files = new FileQueue();
         private static KeptClips _kept;
