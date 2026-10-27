@@ -161,5 +161,32 @@ namespace Scry.Tests
             // A kind is preferred over a copy known as well.
             Assert.Same(shield, family.Lead(e => e == shadow ? KnownLevel.Unknown : KnownLevel.Known));
         }
+
+        [Fact]
+        public void FindingFamiliesKeepsNothingBetweenCallsSoTwoAtOnceNameTheirCopiesEachByItsOwnCatalog()
+        {
+            // The search finds families on a worker thread: a lookup kept between calls would let
+            // one search name another's copies by the carriers of its own catalog.
+            var kept = typeof(Families).GetFields(System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public)
+                .Where(f => !f.IsInitOnly && !f.IsLiteral).Select(f => f.Name).ToList();
+            Assert.Empty(kept);
+
+            var errors = new System.Collections.Concurrent.ConcurrentBag<string>();
+            System.Threading.Tasks.Parallel.For(0, 200, i =>
+            {
+                var shield = Item("ShieldBlackmetalTower", "$item_shield_blackmetal_tower", crafted: true);
+                var shadow = Item("SP_ShieldBlackmetalTower", "$item_shield_blackmetal_tower", crafted: false);
+                var catalog = new List<Entry> { shield, shadow };
+                if (i % 2 == 0)
+                {
+                    var bearer = E("ShadowPerson", Kind.Creature, "Shadow Person");
+                    shadow.Links.Add(new Link { Group = LinkWords.CarriedBy, Target = bearer.Key, Back = true });
+                    catalog.Add(bearer);
+                }
+                var label = Families.Of(catalog).Single().Label(shadow);
+                if (label != (i % 2 == 0 ? "Shadow Person" : "SP")) errors.Add(label);
+            });
+            Assert.Empty(errors);
+        }
     }
 }

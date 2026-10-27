@@ -107,41 +107,41 @@ namespace Scry
             foreach (var entry in entries) entry.Family = null;
             var byKey = new Dictionary<string, Entry>(StringComparer.Ordinal);
             foreach (var entry in entries) byKey[entry.Key] = entry;
-            _named = key => byKey.TryGetValue(key, out var e) ? e.ShownName : null;
-            found.AddRange(ItemFamilies(entries.Where(e => e.Kind == Kind.Item)));
-            found.AddRange(CreatureFamilies(entries.Where(e => e.Kind == Kind.Creature)));
+            // Passed along, never kept: the search finds families on a worker thread, and two at once would name each other's copies.
+            Func<string, string> named = key => byKey.TryGetValue(key, out var e) ? e.ShownName : null;
+            found.AddRange(ItemFamilies(entries.Where(e => e.Kind == Kind.Item), named));
+            found.AddRange(CreatureFamilies(entries.Where(e => e.Kind == Kind.Creature), named));
             found.AddRange(PlaceFamilies(entries.Where(e => e.Kind == Kind.Location && !e.IsRoom)));
             foreach (var family in found) family.Seal();
             return found;
         }
 
-        /// <summary>An entry's shown name by its key, among those the families are found in.</summary>
-        private static Func<string, string> _named = key => null;
-
         private static string TokenOf(Entry entry) => entry.Tokens.Length > 0 ? entry.Tokens[0] : null;
 
         /// <summary>An item made by a recipe and its copies of its name, made by none and named after it, for creatures to wear (FW_, SP_).</summary>
-        private static IEnumerable<Family> ItemFamilies(IEnumerable<Entry> items)
+        /// <param name="items">The items to look among.</param>
+        /// <param name="named">An entry's shown name by its key, among those the families are found in.</param>
+        private static IEnumerable<Family> ItemFamilies(IEnumerable<Entry> items, Func<string, string> named)
         {
-            foreach (var named in items.Where(e => TokenOf(e) != null).GroupBy(TokenOf))
+            foreach (var alike in items.Where(e => TokenOf(e) != null).GroupBy(TokenOf))
             {
-                var made = named.Where(e => e.Stations.Length > 0).ToList();
+                var made = alike.Where(e => e.Stations.Length > 0).ToList();
                 if (made.Count != 1) continue;
                 var original = made[0];
-                var copies = named.Where(e => e != original && e.Stations.Length == 0 && e.Name.Length > original.Name.Length
+                var copies = alike.Where(e => e != original && e.Stations.Length == 0 && e.Name.Length > original.Name.Length
                     && e.Name.IndexOf(original.Name, StringComparison.Ordinal) >= 0).OrderBy(e => e.Name, StringComparer.Ordinal).ToList();
                 if (copies.Count == 0) continue;
                 var family = new Family();
                 family.AddKind(original, original.ShownName);
-                foreach (var copy in copies) family.AddCopy(copy, original, CopyLabel(copy, original), CopyWords(copy, original));
+                foreach (var copy in copies) family.AddCopy(copy, original, CopyLabel(copy, original, named), CopyWords(copy, original));
                 yield return family;
             }
         }
 
         /// <summary>A copy's words: who carries it (<see cref="LinkWords.CarriedBy"/>), else the words its prefab adds to its original's, as they are written.</summary>
-        private static string CopyLabel(Entry copy, Entry original)
+        private static string CopyLabel(Entry copy, Entry original, Func<string, string> named)
         {
-            var carriers = copy.Links.Where(l => l.Group == LinkWords.CarriedBy).Select(l => _named(l.Target)).Where(n => !string.IsNullOrEmpty(n)).Distinct().ToList();
+            var carriers = copy.Links.Where(l => l.Group == LinkWords.CarriedBy).Select(l => named(l.Target)).Where(n => !string.IsNullOrEmpty(n)).Distinct().ToList();
             if (carriers.Count > 0) return Naming.Joined(carriers);
             if (copy.TagNamesCarrier && !string.IsNullOrEmpty(copy.Tag)) return copy.Tag;
             return CopyWords(copy, original);
@@ -159,11 +159,13 @@ namespace Scry
         /// A creature's kinds, of its name and other attacks, and the copies of each, of its name
         /// and the same attacks, named after it with words of its own (placed asleep, without a chest).
         /// </summary>
-        private static IEnumerable<Family> CreatureFamilies(IEnumerable<Entry> creatures)
+        /// <param name="creatures">The creatures to look among.</param>
+        /// <param name="named">An entry's shown name by its key, among those the families are found in.</param>
+        private static IEnumerable<Family> CreatureFamilies(IEnumerable<Entry> creatures, Func<string, string> named)
         {
-            foreach (var named in creatures.Where(e => TokenOf(e) != null).GroupBy(TokenOf))
+            foreach (var alike in creatures.Where(e => TokenOf(e) != null).GroupBy(TokenOf))
             {
-                var members = named.OrderBy(e => e.Name.Length).ThenBy(e => e.Name, StringComparer.Ordinal).ToList();
+                var members = alike.OrderBy(e => e.Name.Length).ThenBy(e => e.Name, StringComparer.Ordinal).ToList();
                 if (members.Count < 2) continue;
                 var family = new Family();
                 var copies = new List<(Entry Copy, Entry Original)>();
@@ -183,7 +185,7 @@ namespace Scry
                     var words = apart != null ? apart[i] : "";
                     family.AddKind(kinds[i], words.Length > 0 ? Naming.Capital(words) : kinds[i].ShownName);
                 }
-                foreach (var (copy, original) in copies) family.AddCopy(copy, original, CopyLabel(copy, original), CopyWords(copy, original));
+                foreach (var (copy, original) in copies) family.AddCopy(copy, original, CopyLabel(copy, original, named), CopyWords(copy, original));
                 yield return family;
             }
         }
