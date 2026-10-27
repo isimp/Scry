@@ -67,12 +67,16 @@ namespace Scry
         private static readonly Dictionary<string, long> BytesByPart = new Dictionary<string, long>(StringComparer.Ordinal);
         private static readonly Dictionary<string, long> OwnBytesByPart = new Dictionary<string, long>(StringComparer.Ordinal);
 
+        /// <summary>The time each part took of its own while the self-test measures, beside what it allocated, to take off what other threads allocated meanwhile.</summary>
+        private static readonly Dictionary<string, double> OwnMsByPart = new Dictionary<string, double>(StringComparer.Ordinal);
+
         /// <summary>Forgets what each part allocated, as the self-test starts counting afresh.</summary>
         [ForTest]
         public static void ForgetBytesByPart()
         {
             BytesByPart.Clear();
             OwnBytesByPart.Clear();
+            OwnMsByPart.Clear();
         }
 
         /// <summary>The parts that allocated most since the self-test last forgot them, each with its kilobytes: its own, the inner parts' taken off, or the whole; the self-test's own left out.</summary>
@@ -92,12 +96,12 @@ namespace Scry
             return sum;
         }
 
-        /// <summary>What every part allocated of its own since the self-test last forgot them, by part, the self-test's own left out.</summary>
+        /// <summary>What every part allocated of its own since the self-test last forgot them, by part, with the time it took of its own, the self-test's own left out.</summary>
         [Diagnostic, ForTest]
-        public static List<(string Part, long Bytes)> OwnBytesByPartCopy()
+        public static List<(string Part, long Bytes, double Ms)> OwnBytesByPartCopy()
         {
-            var parts = new List<(string, long)>();
-            foreach (var part in OwnBytesByPart) if (part.Key != SelfTestPart) parts.Add((part.Key, part.Value));
+            var parts = new List<(string, long, double)>();
+            foreach (var part in OwnBytesByPart) if (part.Key != SelfTestPart) parts.Add((part.Key, part.Value, OwnMsByPart.TryGetValue(part.Key, out var ms) ? ms : 0));
             return parts;
         }
 
@@ -194,6 +198,7 @@ namespace Scry
                 Measuring.AddTest(Frame.MsOf(SelfTestPart));
                 Frame.AddBytesTo(BytesByPart);
                 Frame.AddOwnBytesTo(OwnBytesByPart);
+                Frame.AddOwnMsTo(OwnMsByPart);
             }
             // A part open across the frame's end is told whole when it closes.
             Nesting.Clear();

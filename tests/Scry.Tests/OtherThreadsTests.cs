@@ -131,6 +131,44 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APartGivesUpOtherThreadsShareForTheTimeItRanAtTheRateTheWaitsSaw()
+        {
+            // The parts of Scry that run longest, as the render, would otherwise carry most of
+            // what other threads allocated meanwhile, and read as Scry's own.
+            var world = new World();
+            var others = world.Watch();
+            world.Passing = BlockTakenAfter(world.Now + 0.1);
+            others.Wait(0.2);
+            var rate = others.Bytes / others.Ms;
+
+            Assert.Equal(10_000 - (long)Math.Round(rate * 0.1), others.Left(10_000, 0.1));
+            Assert.True(others.Left(10_000, 0.1) < 10_000);
+        }
+
+        [Fact]
+        public void APartGivesUpNoMoreThanItAllocated()
+        {
+            var world = new World();
+            var others = world.Watch();
+            world.Passing = BlockTakenAfter(world.Now + 0.1);
+            others.Wait(0.2);
+
+            Assert.Equal(0, others.Left(1_000, 5));
+        }
+
+        [Fact]
+        public void WithoutAWaitOrWithNothingSeenInItAPartKeepsAllItAllocated()
+        {
+            var world = new World();
+            var others = world.Watch();
+            Assert.Equal(5_000, others.Left(5_000, 2));
+
+            others.Wait(0.2);
+            Assert.Equal(0, others.Bytes);
+            Assert.Equal(5_000, others.Left(5_000, 2));
+        }
+
+        [Fact]
         public void NoTimeIsNoWait()
         {
             var world = new World();

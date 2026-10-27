@@ -364,11 +364,14 @@ namespace Scry
         // ----- What Scry costs -----
 
         /// <summary>The parts' own allocation by group, from the first word of each part's name: the panel's (panel, side, facts, controls, list, clips, the stage's texture), the render's (render), the rest the update's.</summary>
-        private static (long Panel, long Render, long Update) OwnByGroup(IReadOnlyList<(string Part, long Bytes)> parts)
+        private static (long Panel, long Render, long Update) OwnByGroup(IReadOnlyList<(string Part, long Bytes, double Ms)> parts, OtherThreads others)
         {
             long panel = 0, render = 0, update = 0;
-            foreach (var (part, bytes) in parts)
+            foreach (var (part, counted, ms) in parts)
             {
+                // Each part gives up what other threads allocated while it ran, as the waits saw
+                // them do: told by the memory in use, the longest part would carry most of it.
+                var bytes = Timing.CountsPerThread ? counted : others.Left(counted, ms);
                 var space = part.IndexOf(' ');
                 var word = space > 0 ? part.Substring(0, space) : part;
                 if (word == "render") render += bytes;
@@ -437,14 +440,14 @@ namespace Scry
                 var own = Timing.CountsPerThread ? allocated : Math.Max(0, allocated - others.Bytes);
                 // What the parts allocated of their own, each group in its own unit: the panel's parts
                 // a repaint, as the panel draws once per event; the render's a film; the rest a frame.
-                var (panelBytes, renderBytes, updateBytes) = OwnByGroup(Timing.OwnBytesByPartCopy());
+                var (panelBytes, renderBytes, updateBytes) = OwnByGroup(Timing.OwnBytesByPartCopy(), others);
                 p.Note(held != null
                     ? $"{what} ({entry.Name}), {Numbers.Count(held.Frames)} frames: Scry's own work {Numbers.Fixed(held.Mean, 2)} ms a frame on average, {Numbers.Fixed(held.Percentile(0.95), 2)} ms at the 95th percentile; the frame totals say {Numbers.Count((int)(own / count))} bytes a frame, other threads' left out"
                     : $"{what}: frames were not measured");
                 p.Note($"{what}, by part, each part's own allocation: " + Timing.BytesByPartTold(30, own: true));
                 p.Note($"{what}, by part, inner parts included: " + Timing.BytesByPartTold(30));
                 p.Note($"{what}: the stage was filmed in {Numbers.Count(filmsMade)} of {Numbers.Count(count)} frames, {(Stage.LiveForTest ? "alive" : "still")} at the last look; the panel repainted {Numbers.Count(repaints)} times");
-                p.Note($"{what}: the panel's parts allocated {Numbers.Count((int)(panelBytes / repaints / 1024))} KB a repaint, the render's {Numbers.Count((int)(renderBytes / films / 1024))} KB a film, the rest {Numbers.Count((int)(updateBytes / count / 1024))} KB a frame, their own shares summed");
+                p.Note($"{what}: the panel's parts allocated {Numbers.Count((int)(panelBytes / repaints / 1024))} KB a repaint, the render's {Numbers.Count((int)(renderBytes / films / 1024))} KB a film, the rest {Numbers.Count((int)(updateBytes / count / 1024))} KB a frame, their own shares summed, other threads' taken off for the time each ran");
                 // The bounds a quarter over the first clean baseline (50 KB a repaint, 56 a film, 2 a frame at most), so a run says when it grows.
                 p.Check(panelBytes / repaints < 64 * 1024 && renderBytes / films < 72 * 1024 && updateBytes / count < 24 * 1024,
                     $"{what}: Scry's own work allocates within bounds standing open: under 64 KB a repaint, 72 KB a film and 24 KB a frame",

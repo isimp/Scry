@@ -246,6 +246,27 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APartsOwnTimeIsSummedBesideItsOwnAllocation()
+        {
+            // What other threads allocated while a part ran grows with how long it ran: its own
+            // time, summed by part as its own allocation is, tells how much of that to take off.
+            var ms = new Dictionary<string, double>();
+            var frame = new FrameTimes();
+            frame.Add("render", 2, 600, 0);
+            frame.Add("render film", 1.5, 400, 0);
+            frame.Add("panel", 0, 0, 0);
+            frame.AddOwnMsTo(ms);
+            frame.Clear();
+            frame.Add("render", 1, 300, 0);
+            frame.AddOwnMsTo(ms);
+
+            Assert.Equal(3, ms["render"], 6);
+            Assert.Equal(1.5, ms["render film"], 6);
+            // A part that took no time is not counted.
+            Assert.False(ms.ContainsKey("panel"));
+        }
+
+        [Fact]
         public void ReadingAFramesTotalsAllocatesNothingSoTheMeasuringIsNotTakenForScrysOwn()
         {
             // The measuring reads a frame's totals several times a frame, inside the update it
