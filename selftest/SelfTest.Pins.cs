@@ -141,7 +141,7 @@ namespace Scry
             else p.Note("the entrance whose rooms the world keeps stands under another mark at this zoom: its click is left out");
 
             ScryPanel.ShowSource(WorldSource.Explored, SourceLevel.WithInsides);
-            yield return Until(() => MapMarkButtons.HollowShown == 1, 5);
+            yield return Until(() => MapMarkButtons.MarksShown == 3 && MapMarkButtons.HollowShown == 1 && MapMarkButtons.EntrancesShown == 1, 5);
             p.Check(MapMarkButtons.MarksShown == 3 && MapMarkButtons.HollowShown == 1 && MapMarkButtons.EntrancesShown == 1, "with insides the one walked on this server is marked hollow",
                 $"{Numbers.Count(MapMarkButtons.MarksShown)} marks, {Numbers.Count(MapMarkButtons.EntrancesShown)} entrances, {Numbers.Count(MapMarkButtons.HollowShown)} hollow");
             var saidHollow = MapMarkButtons.SaidForTest(1);
@@ -232,15 +232,16 @@ namespace Scry
             Timing.ForgetBytesByPart();
             Minimap.instance.SetMapMode(Minimap.MapMode.Large);
             var opened = Time.unscaledTime;
-            yield return Until(() => MapMarkButtons.MarksShown == many, 20);
+            // The dungeons walked by you stand among them.
+            yield return Until(() => MapMarkButtons.MarksShown >= many, 20);
             var took = Time.unscaledTime - opened;
             // A few frames more, standing, for what placing them costs a frame once all are made.
             yield return new Wait(1);
             var frames = System.Math.Max(1, (Timing.Measuring?.Frames ?? 0) - first);
             var mostMs = Timing.MostMs("marks");
             var ownMs = Timing.OwnBytesByPartCopy().Where(part => part.Part == "marks").Sum(part => part.Ms);
-            p.Check(MapMarkButtons.MarksShown == many, $"all {Numbers.Count(many)} entrances in view come to stand", $"{Numbers.Count(MapMarkButtons.MarksShown)} after {Numbers.Amount(took, 1)} s");
-            p.Note($"they all stood after {Numbers.Amount(took, 1)} s; the marks took {Numbers.Fixed(ownMs / frames, 2)} ms a frame on average, {Numbers.Amount(mostMs, 1)} ms at the most");
+            p.Check(MapMarkButtons.MarksShown >= many, $"all {Numbers.Count(many)} entrances in view come to stand", $"{Numbers.Count(MapMarkButtons.MarksShown)} after {Numbers.Amount(took, 1)} s");
+            p.Note($"{Numbers.Count(MapMarkButtons.MarksShown)} marks, they all stood after {Numbers.Amount(took, 1)} s; the marks took {Numbers.Fixed(ownMs / frames, 2)} ms a frame on average, {Numbers.Amount(mostMs, 1)} ms at the most");
             p.Check(mostMs < 16, "making them and telling their words holds no frame a sixtieth of a second", $"{Numbers.Amount(mostMs, 1)} ms at the most");
             PinsAsTheyWere();
         }
