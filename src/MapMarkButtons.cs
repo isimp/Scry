@@ -50,6 +50,9 @@ namespace Scry
             /// <summary>Its words to be told anew, as what they count may have moved; it shows the words it has until then.</summary>
             public bool Retell;
 
+            /// <summary>The frame it was last placed in.</summary>
+            public int PlacedIn = -1;
+
             /// <summary>Its name's size as the game's pin names have it, and the scale it was last drawn at; 0 until read.</summary>
             public float NameSize;
             public float NameScaled;
@@ -92,27 +95,27 @@ namespace Scry
 
         /// <summary>A mark's words, for the self-test; none for one not shown.</summary>
         [Diagnostic]
-        public static string SaidForTest(int mark) => mark >= 0 && mark < Marks.Count && Marks[mark].Made.activeSelf ? Marks[mark].Said : null;
+        public static string SaidForTest(int mark) => mark >= 0 && mark < Placed.Count && Placed[mark].Made.activeSelf ? Placed[mark].Said : null;
 
         /// <summary>What a mark's label shows, for the self-test; none for one not shown or whose label is put away.</summary>
         [Diagnostic]
-        public static string ShowingForTest(int mark) => mark >= 0 && mark < Marks.Count && Marks[mark].Label != null && Marks[mark].Label.activeSelf ? Marks[mark].Showing : null;
+        public static string ShowingForTest(int mark) => mark >= 0 && mark < Placed.Count && Placed[mark].Label != null && Placed[mark].Label.activeSelf ? Placed[mark].Showing : null;
 
         /// <summary>How a mark looks, for the self-test; none for one not shown.</summary>
         [Diagnostic]
-        public static MarkLook? LookForTest(int mark) => mark >= 0 && mark < Marks.Count && Marks[mark].Made.activeSelf ? Marks[mark].Look : (MarkLook?)null;
+        public static MarkLook? LookForTest(int mark) => mark >= 0 && mark < Placed.Count && Placed[mark].Made.activeSelf ? Placed[mark].Look : (MarkLook?)null;
 
         /// <summary>Which glyph a mark carries, for the self-test; none for one not shown.</summary>
         [Diagnostic]
-        public static MarkGlyph? GlyphForTest(int mark) => mark >= 0 && mark < Marks.Count && Marks[mark].Made.activeSelf ? Marks[mark].Glyph : (MarkGlyph?)null;
+        public static MarkGlyph? GlyphForTest(int mark) => mark >= 0 && mark < Placed.Count && Placed[mark].Made.activeSelf ? Placed[mark].Glyph : (MarkGlyph?)null;
 
         /// <summary>How big a mark is drawn, in the map's units, for the self-test; 0 for one not shown.</summary>
         [Diagnostic]
-        public static float SizeForTest(int mark) => mark >= 0 && mark < Marks.Count && Marks[mark].Made.activeSelf ? Marks[mark].Rect.rect.width : 0f;
+        public static float SizeForTest(int mark) => mark >= 0 && mark < Placed.Count && Placed[mark].Made.activeSelf ? Placed[mark].Rect.rect.width : 0f;
 
         /// <summary>How faint a mark is drawn, for the self-test; 0 for one not shown.</summary>
         [Diagnostic]
-        public static float AlphaForTest(int mark) => mark >= 0 && mark < Marks.Count && Marks[mark].Made.activeSelf && Marks[mark].Picture != null ? Marks[mark].Picture.color.a : 0f;
+        public static float AlphaForTest(int mark) => mark >= 0 && mark < Placed.Count && Placed[mark].Made.activeSelf && Placed[mark].Picture != null ? Placed[mark].Picture.color.a : 0f;
 
         /// <summary>The mark the pointer rests on, whose words are shown; none.</summary>
         private static Mark _hovered;
@@ -127,8 +130,16 @@ namespace Scry
         [Diagnostic]
         public static int MarksShown { get; private set; }
 
-        /// <summary>How many of the marks made stand placed this frame, some of them hidden while their words wait.</summary>
-        private static int _placed;
+        /// <summary>The marks standing this frame, in the order they were placed; what the self-test counts by.</summary>
+        private static readonly List<Mark> Placed = new List<Mark>();
+
+        /// <summary>Each dungeon's own mark, by its id.</summary>
+        private static readonly Dictionary<string, Mark> ById = new Dictionary<string, Mark>(System.StringComparer.Ordinal);
+
+        /// <summary>This frame's marks in view and their ids, and the marks made that none of them holds, kept so no frame makes new lists.</summary>
+        private static readonly List<(DungeonMark Kept, (float X, float Y) At)> InView = new List<(DungeonMark, (float, float))>();
+        private static readonly HashSet<string> InViewIds = new HashSet<string>(System.StringComparer.Ordinal);
+        private static readonly List<Mark> Spare = new List<Mark>();
 
         /// <summary>A few milliseconds a frame for making marks and telling their words anew.</summary>
         private static readonly FrameShare Share = new FrameShare(4.0);
@@ -149,14 +160,14 @@ namespace Scry
         [Diagnostic]
         public static Vector2? MarkCenterForTest(int mark)
         {
-            if (mark < 0 || mark >= Marks.Count || !Marks[mark].Made.activeSelf) return null;
-            var rect = Marks[mark].Rect;
+            if (mark < 0 || mark >= Placed.Count || !Placed[mark].Made.activeSelf) return null;
+            var rect = Placed[mark].Rect;
             return RectTransformUtility.WorldToScreenPoint(null, rect.TransformPoint(rect.rect.center));
         }
 
         /// <summary>Which mark a point of the screen stands on, as the pointer is read for its words and the click; -1 for none, for the self-test.</summary>
         [Diagnostic]
-        public static int MarkAtForTest(Vector2 screen) => Marks.IndexOf(MarkAt(screen));
+        public static int MarkAtForTest(Vector2 screen) => Placed.IndexOf(MarkAt(screen));
 
         /// <summary>Clicks the map at a point of the screen, as the map's own click hands a mark its click there, for the self-test.</summary>
         [Diagnostic]
@@ -192,7 +203,8 @@ namespace Scry
             _keptWorld = null;
             _askedServer = false;
             MarksShown = 0;
-            _placed = 0;
+            Placed.Clear();
+            ById.Clear();
             HollowShown = 0;
             EntrancesShown = 0;
         }
@@ -244,38 +256,44 @@ namespace Scry
             var area = image.rectTransform.rect;
             var scale = Settings.DungeonMarkSize;
             var size = MapMarks.Size(large ? map.m_pinSizeLarge : map.m_pinSizeSmall, scale);
-            var placed = 0;
             var shown = 0;
             var hollow = 0;
             var entrances = 0;
-            // Making a mark or telling its words anew is a piece of the frame's share, the rest left
+            // The marks in view this frame, each held by its dungeon's own mark where it has one, so
+            // a mark stays its dungeon's as others come into view or go: matched by their order
+            // instead, one moved moved all after it to another dungeon's words.
+            ListInView(map, small, window, area);
+            Placed.Clear();
+            var frame = Time.frameCount;
+            // Making a mark, or telling its words anew, is a piece of the frame's share, the rest left
             // to the frames after: a ground of hundreds of dungeons made them all in one frame, held
-            // for most of a second. One waiting for its words stands hidden, never with another's.
+            // for most of a second. One that would show another look waits hidden; one whose words
+            // are told anew waits shown with the words it has.
             var started = System.Diagnostics.Stopwatch.GetTimestamp();
             var pieces = 0;
-            foreach (var kept in Kept)
+            foreach (var (kept, at) in InView)
             {
-                if (!MapMarks.Shown(kept.Look, Settings.DungeonMarksWalkedByYou, Settings.DungeonMarksWalkedOnServer, Settings.DungeonMarkEntrances)) continue;
-                if (small && !MapMarks.OnSmallMap(kept.Look)) continue;
-                if (!MapMarks.Place(kept.Map.Entrance, map.m_pixelSize, map.m_textureSize, (window.xMin, window.yMin, window.width, window.height), (area.width, area.height), out var at)) continue;
                 var glyph = MarkGlyphs.Of(kept.Map.Location);
-                var fresh = placed >= Marks.Count;
-                // Another dungeon's, or another look, waits hidden; the same one's words told anew wait shown.
-                var other = fresh || Marks[placed].Id != kept.Id || Marks[placed].Look != kept.Look || Marks[placed].Glyph != glyph;
-                var stale = other || Marks[placed].Retell;
+                ById.TryGetValue(kept.Id, out var mark);
+                var other = mark == null || mark.Look != kept.Look || mark.Glyph != glyph;
+                var stale = other || mark.Retell;
                 var pieceFrom = Since(started);
                 if (stale && !Share.MayBegin(pieceFrom, pieces))
                 {
-                    if (fresh) break;
-                    if (other)
-                    {
-                        Hide(Marks[placed++]);
-                        continue;
-                    }
+                    if (other) continue;
                     stale = false;
                 }
-                var mark = MarkFor(placed++, map);
-                if (mark == null) break;
+                if (mark == null)
+                {
+                    mark = Spare.Count > 0 ? Spare[Spare.Count - 1] : MakeMark(map);
+                    if (mark == null) break;
+                    if (Spare.Count > 0 && ReferenceEquals(Spare[Spare.Count - 1], mark)) Spare.RemoveAt(Spare.Count - 1);
+                    if (mark.Id != null) ById.Remove(mark.Id);
+                    mark.Id = kept.Id;
+                    ById[kept.Id] = mark;
+                }
+                Placed.Add(mark);
+                mark.PlacedIn = frame;
                 // On its entrance: a pin placed there stands under it.
                 mark.Rect.anchoredPosition = new Vector2(at.X, at.Y);
                 mark.Rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, size);
@@ -283,18 +301,7 @@ namespace Scry
                 if (kept.Look == MarkLook.Server || kept.Look == MarkLook.ServerWhole) hollow++;
                 if (kept.Look == MarkLook.Entrance) entrances++;
                 shown++;
-                if (stale)
-                {
-                    mark.Id = kept.Id;
-                    mark.Look = kept.Look;
-                    mark.Glyph = glyph;
-                    mark.Retell = false;
-                    // A place stood in is drawn as one you walked.
-                    if (mark.Picture != null) mark.Picture.sprite = ScryPanel.MarkPicture(glyph, kept.Look == MarkLook.Visited ? MarkLook.Yours : kept.Look);
-                    mark.Said = Said(kept);
-                    mark.Plain = Shown(kept.Map.Location);
-                    mark.Showing = null;
-                }
+                if (stale) Tell(mark, kept, glyph);
                 // An entrance alone stands faint until the pointer rests on it.
                 if (mark.Picture != null) mark.Picture.color = new Color(1f, 1f, 1f, MapMarks.Alpha(kept.Look, mark == _hovered));
                 // Its words stand where it stands, as the game's pin names do, the name's own layout putting them under it, as big as the mark is scaled.
@@ -307,14 +314,44 @@ namespace Scry
                 Share.Took(Since(started) - pieceFrom);
                 pieces++;
             }
-            for (var i = placed; i < Marks.Count; i++) Hide(Marks[i]);
-            _placed = placed;
+            // What is not placed this frame stands hidden: out of view, or waiting for its look.
+            foreach (var mark in Marks) if (mark.PlacedIn != frame) Hide(mark);
             MarksShown = shown;
             HollowShown = hollow;
             EntrancesShown = entrances;
-            _sizeOnScreen = shown > 0 ? ScreenSize(Marks[0].Rect) : 0f;
+            _sizeOnScreen = shown > 0 ? ScreenSize(Placed[0].Rect) : 0f;
             if (Input.GetMouseButtonDown(0)) _pressedAt = ZInput.pointerPosition;
             Hover();
+        }
+
+        /// <summary>The marks the map shows now, in view and as the settings ask, and the marks made that none of them holds.</summary>
+        private static void ListInView(Minimap map, bool small, Rect window, Rect area)
+        {
+            InView.Clear();
+            InViewIds.Clear();
+            foreach (var kept in Kept)
+            {
+                if (!MapMarks.Shown(kept.Look, Settings.DungeonMarksWalkedByYou, Settings.DungeonMarksWalkedOnServer, Settings.DungeonMarkEntrances)) continue;
+                if (small && !MapMarks.OnSmallMap(kept.Look)) continue;
+                if (!MapMarks.Place(kept.Map.Entrance, map.m_pixelSize, map.m_textureSize, (window.xMin, window.yMin, window.width, window.height), (area.width, area.height), out var at)) continue;
+                InView.Add((kept, at));
+                InViewIds.Add(kept.Id);
+            }
+            Spare.Clear();
+            foreach (var mark in Marks) if (mark.Id == null || !InViewIds.Contains(mark.Id)) Spare.Add(mark);
+        }
+
+        /// <summary>Tells a mark its dungeon's look, glyph and words.</summary>
+        private static void Tell(Mark mark, DungeonMark kept, MarkGlyph glyph)
+        {
+            mark.Look = kept.Look;
+            mark.Glyph = glyph;
+            mark.Retell = false;
+            // A place stood in is drawn as one you walked.
+            if (mark.Picture != null) mark.Picture.sprite = ScryPanel.MarkPicture(glyph, kept.Look == MarkLook.Visited ? MarkLook.Yours : kept.Look);
+            mark.Said = Said(kept);
+            mark.Plain = Shown(kept.Map.Location);
+            mark.Showing = null;
         }
 
         /// <summary>How tall a mark stands on the screen, the canvas's scale with it.</summary>
@@ -445,9 +482,9 @@ namespace Scry
         /// <summary>The mark standing at a point of the screen, read with no camera as the game's map and tips read the pointer; none.</summary>
         private static Mark MarkAt(Vector2 screen)
         {
-            for (var i = 0; i < _placed && i < Marks.Count; i++)
+            for (var i = 0; i < Placed.Count; i++)
             {
-                if (Marks[i].Made.activeSelf && RectTransformUtility.RectangleContainsScreenPoint(Marks[i].Rect, screen, null)) return Marks[i];
+                if (Placed[i].Made.activeSelf && RectTransformUtility.RectangleContainsScreenPoint(Placed[i].Rect, screen, null)) return Placed[i];
             }
             return null;
         }
@@ -476,17 +513,16 @@ namespace Scry
             _askedServer = false;
             HollowShown = 0;
             EntrancesShown = 0;
-            if (_placed == 0 && MarksShown == 0) return;
+            if (Placed.Count == 0 && MarksShown == 0) return;
             HideName();
             foreach (var mark in Marks) Hide(mark);
             MarksShown = 0;
-            _placed = 0;
+            Placed.Clear();
         }
 
-        /// <summary>The mark of this place in the list, made the first time, laid out as the game lays out its pins; none where the map has no pin to follow.</summary>
-        private static Mark MarkFor(int index, Minimap map)
+        /// <summary>A new mark, kept among the marks, laid out as the game lays out its pins; none where the map has no pin to follow.</summary>
+        private static Mark MakeMark(Minimap map)
         {
-            if (index < Marks.Count) return Marks[index];
             var pin = map.m_pinPrefab != null ? map.m_pinPrefab.transform as RectTransform : null;
             if (pin == null) return null;
             var made = new GameObject("Scry dungeon mark", typeof(RectTransform));
