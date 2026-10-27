@@ -669,15 +669,17 @@ namespace Scry
                 yield return true;
             }
 
-            // Each switch and trigger of a known use, in the first stance, standing: emotes, seats,
-            // beds, mounts, stations, getting hurt, water, each done where it stands. Attacks, the
-            // stance's own settings and the switches items name are seen already.
-            var first = stances.Count > 0 ? stances[0] : 0;
+            // Each switch and trigger of a known use, in the stance the animator starts in, standing:
+            // emotes, seats, beds, mounts, stations, getting hurt, water, each done where it stands.
+            // Not in the stance swept first, which is what the person holds: some play only with
+            // nothing in hand, as a station's work does. Attacks, the stance's own settings and the
+            // switches items name are seen already.
+            var start = probe.parameters.FirstOrDefault(p => p.name == "statei" && p.type == AnimatorControllerParameterType.Int)?.defaultInt ?? 0;
             foreach (var (name, act) in Switches(probe, job.SweptHolds))
             {
                 // A station's work number is tried for each station, all kept under the one name.
                 if (!seen.Switched.TryGetValue(name, out var clips)) seen.Switched[name] = clips = new HashSet<string>();
-                foreach (var _ in Swept(probe, a => Stand(a, first), act, clips, false, false)) yield return true;
+                foreach (var _ in Swept(probe, a => Stand(a, start), act, clips, false, false)) yield return true;
                 yield return true;
             }
             Log.Note($"Scry saw in {Numbers.Count(job.Ms)} ms what the animator of {job.Key} plays by stance: {string.Join("; ", seen.Stances.Select(p => $"{Numbers.Count(p.Key)}: {Numbers.Count(p.Value.Count)} clips"))}; by what items switch on: {string.Join("; ", seen.Holds.Select(p => $"{p.Key}: {Numbers.Count(p.Value.Count)}"))}; by the switches it was sent: {Numbers.Count(seen.Switched.Count)}.");

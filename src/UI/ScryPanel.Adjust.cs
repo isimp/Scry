@@ -45,7 +45,17 @@ namespace Scry
             var starsOffered = model && entry.Kind == Kind.Creature && modifiers.MaxLevel > 1 ? StarsOffered(entry, modifiers) : NoLevels;
             if (starsOffered.Count > 0 && !starsOffered.Contains(modifiers.Level)) modifiers.Level = _explorer != null ? _explorer.StarLevelFor(entry.Key, modifiers.Level) : 1;
             var stars = starsOffered.Count > 1;
-            if (!stars && !(model && modifiers.WearAvailable) && !(model && modifiers.LookAvailable) && !projectile) return y;
+
+            // Looks that hinge on a thing not met, as a saddle, are left out, the first look shown.
+            var looksHidden = entry.Source is GameObject hinged && _explorer != null && _explorer.HidesHinged(PrefabLooks.HingeOf(hinged));
+            _looksHidden = looksHidden;
+            if (looksHidden && modifiers.Look != 0) modifiers.Look = 0;
+            // A gear look whose items were not all met is left out too, the first shown taking its place.
+            var shown = LooksShown(entry, modifiers);
+            if (!looksHidden && shown.Count > 0 && !shown.Contains(modifiers.Look)) modifiers.Look = shown[0];
+            // A look row with one look left gives nothing to choose, and the section none to show.
+            var looks = model && modifiers.LookAvailable && !looksHidden && shown.Count > 1;
+            if (!stars && !(model && modifiers.WearAvailable) && !looks && !projectile) return y;
 
             // Reset is offered only while the section is open and something differs from the prefab.
             var open = !IsFolded("adjust");
@@ -78,14 +88,7 @@ namespace Scry
                 if (chosen >= 0) modifiers.Wear = (Wear)chosen;
             }
 
-            // Looks that hinge on a thing not met, as a saddle, are left out, the first look shown.
-            var looksHidden = entry.Source is GameObject hinged && _explorer != null && _explorer.HidesHinged(PrefabLooks.HingeOf(hinged));
-            _looksHidden = looksHidden;
-            if (looksHidden && modifiers.Look != 0) modifiers.Look = 0;
-            // A gear look whose items were not all met is left out too, the first shown taking its place.
-            var shown = LooksShown(entry, modifiers);
-            if (!looksHidden && shown.Count > 0 && !shown.Contains(modifiers.Look)) modifiers.Look = shown[0];
-            if (open && model && modifiers.LookAvailable && !looksHidden && shown.Count > 1)
+            if (open && looks)
             {
                 LookNamesShown.Clear();
                 foreach (var look in shown) LookNamesShown.Add(modifiers.LookNames[look]);
