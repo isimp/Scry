@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.3.3
+
 ## 0.3.2
 
 A place on the stage stands on the ground it digs for itself, so a tar pit sits in its bowl and a Burial Chambers' entrance in its stair pit.
