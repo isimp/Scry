@@ -33,6 +33,9 @@ namespace Scry
         /// <summary>A jump's speed up at no skill (<c>Character.m_jumpForce</c>) and the world's gravity, how much speed it takes away each second; no gravity, no height told.</summary>
         public float JumpForce = 8f, Gravity;
 
+        /// <summary>The seconds the game's physics moves a body in at once; none where not read, the height then told by speed and gravity alone.</summary>
+        public float PhysicsStep;
+
         /// <summary>The fishing float's: stamina a second with a fish on, the share of the pull's drain at the top, the line reeled in a second.</summary>
         public float HookedAtNone = 1f, HookedAtTop = 0.2f, PullAtTop = 0.2f, LineAtNone = 2f, LineAtTop = 6f;
 

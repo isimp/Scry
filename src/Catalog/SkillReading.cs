@@ -133,6 +133,7 @@ namespace Scry
             For(Skills.SkillType.Sneak).Inputs.Sneak = player.m_sneakStaminaDrain;
             For(Skills.SkillType.Jump).Inputs.JumpForce = player.m_jumpForce;
             For(Skills.SkillType.Jump).Inputs.Gravity = Mathf.Abs(Physics.gravity.y);
+            For(Skills.SkillType.Jump).Inputs.PhysicsStep = Time.fixedDeltaTime;
         }
 
         /// <summary>An item that trains a skill, or whose attacks, building or placing work by one.</summary>

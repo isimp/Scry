@@ -81,12 +81,29 @@ namespace Scry
         /// <summary>How much stronger a jump is, up and forward alike (<c>Character.Jump</c>): two fifths at the top.</summary>
         public static float JumpShare(float level) => 1f + Share(level) * 0.4f;
 
-        /// <summary>How high a jump rises at a level on flat ground: its speed up squared over twice the pull of gravity; none without gravity.</summary>
-        public static float JumpHeight(float force, float gravity, float level)
+        /// <summary>
+        /// How high a jump rises at a level on flat ground: as the game's physics moves it, every
+        /// <paramref name="step"/> seconds (<see cref="Rise"/>); with no step given, its speed up
+        /// squared over twice the pull of gravity; none without gravity.
+        /// </summary>
+        public static float JumpHeight(float force, float gravity, float level, float step = 0f)
         {
             if (gravity <= 0f) return 0f;
             var speed = force * JumpShare(level);
-            return speed * speed / (2f * gravity);
+            return step > 0f ? Rise(speed, gravity, step) : speed * speed / (2f * gravity);
+        }
+
+        /// <summary>
+        /// How high a body thrown up rises as the game's physics moves it: in steps of a fixed time,
+        /// each lowering its speed by gravity before it moves, so a little less than its speed and
+        /// gravity alone tell; none for no speed up, no gravity or no step.
+        /// </summary>
+        public static float Rise(float speed, float gravity, float step)
+        {
+            if (!(speed > 0f) || !(gravity > 0f) || !(step > 0f)) return 0f;
+            var risen = 0f;
+            for (var up = speed - gravity * step; up > 0f; up -= gravity * step) risen += up * step;
+            return risen;
         }
 
         /// <summary>The share of its stamina a dodge costs (<c>Player.GetDodgeStaminaUse</c>): half at the top.</summary>

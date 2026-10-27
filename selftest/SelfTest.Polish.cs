@@ -142,11 +142,11 @@ namespace Scry
             var stamina = player.GetStamina();
             var share = SkillMath.JumpShare(YourSkills.LevelOf(Skills.SkillType.Jump));
             var gravity = Mathf.Abs(Physics.gravity.y);
-            // The height the skill page tells, by the same rule; the game throws the jump out along
-            // halfway between the ground's normal and straight up (Character.Jump), and its physics moves it in steps.
-            var told = SkillMath.JumpHeight(player.m_jumpForce, gravity, YourSkills.LevelOf(Skills.SkillType.Jump));
+            // The height the skill page tells, on flat ground; the game throws the jump halfway between
+            // the ground's normal and straight up (Character.Jump), and its physics moves it in steps.
+            var told = SkillMath.JumpHeight(player.m_jumpForce, gravity, YourSkills.LevelOf(Skills.SkillType.Jump), Time.fixedDeltaTime);
             var outward = (GroundNormal(player) + Vector3.up).normalized.y;
-            var stepped = JumpSteps.Apex(player.m_jumpForce * share * outward, gravity, Time.fixedDeltaTime);
+            var stepped = SkillMath.Rise(player.m_jumpForce * share * outward, gravity, Time.fixedDeltaTime);
 
             var start = player.transform.position.y;
             var highest = start;
@@ -165,11 +165,11 @@ namespace Scry
             if (player.GetStamina() < stamina) player.AddStamina(stamina - player.GetStamina());
 
             var rose = highest - start;
-            var line = $"jump at Jump {Numbers.Count((long)Math.Floor(YourSkills.LevelOf(Skills.SkillType.Jump)))}: rose {Numbers.Amount(rose, 2)} m, the force and gravity ({Numbers.Amount(player.m_jumpForce, 1)} × {Numbers.Amount(share, 2)}, {Numbers.Amount(gravity, 2)} m/s²) tell {Numbers.Amount(told, 2)} m, {Numbers.Amount(stepped, 2)} m as the game's physics steps it every {Numbers.Amount(Time.fixedDeltaTime, 3)} s off ground {Numbers.Amount(Mathf.Acos(Mathf.Clamp01(GroundNormal(player).y)) * Mathf.Rad2Deg, 0)}° steep";
+            var line = $"jump at Jump {Numbers.Count((long)Math.Floor(YourSkills.LevelOf(Skills.SkillType.Jump)))}: rose {Numbers.Amount(rose, 2)} m; the skill page tells {Numbers.Amount(told, 2)} m on flat ground (force {Numbers.Amount(player.m_jumpForce, 1)} × {Numbers.Amount(share, 2)}, {Numbers.Amount(gravity, 2)} m/s², a physics step every {Numbers.Amount(Time.fixedDeltaTime, 3)} s), {Numbers.Amount(stepped, 2)} m on ground {Numbers.Amount(Mathf.Acos(Mathf.Clamp01(GroundNormal(player).y)) * Mathf.Rad2Deg, 0)}° steep";
             p.Note(line);
             report.AppendLine().AppendLine(line);
             if (!unchanged) p.Note($"the jump is not checked: {(Mathf.Abs(lifted.y - 1f) >= 0.001f ? "something the character has on changes it" : room < 3f ? $"a roof {Numbers.Amount(room + 1.8f, 1)} m above stops it" : "the character was too tired to jump full")}");
-            else if (rose > 0.05f && stepped > 0f) p.Check(Mathf.Abs(rose - stepped) <= stepped * 0.1f, "a real jump rises within a tenth of the height its force and gravity tell, as the game's physics steps it", line);
+            else if (rose > 0.05f && stepped > 0f) p.Check(Mathf.Abs(rose - stepped) <= stepped * 0.1f, "a real jump rises within a tenth of the height the game's physics gives it, as the skill page tells on flat ground", line);
             else p.Note("the jump did not leave the ground, so nothing was compared");
         }
 
