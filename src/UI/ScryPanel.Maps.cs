@@ -200,6 +200,9 @@ namespace Scry
         /// <summary>A dungeon mark's picture by its glyph and look, in the panel's colours, as the map shows it (<see cref="MarkPictures"/>).</summary>
         internal static Sprite MarkPicture(MarkGlyph glyph, MarkLook look) => MarkPictures.Of(glyph, look, Skin.Accent, Skin.OnAccent, Skin.Faint, Skin.Shade(Skin.Faint, 0.55f));
 
+        /// <summary>Draws the marks' pictures ahead in the panel's colours, one made a frame (<see cref="MarkPictures.DrawAhead"/>).</summary>
+        internal static void DrawMarkPicturesAhead() => MarkPictures.DrawAhead(Skin.Accent, Skin.OnAccent, Skin.Faint, Skin.Shade(Skin.Faint, 0.55f));
+
         /// <summary>The first line as last drawn, and its hover, for the self-test.</summary>
         [Diagnostic]
         public static string FirstMapLineForTest { get; private set; }

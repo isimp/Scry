@@ -223,6 +223,7 @@ namespace Scry
             var map = Minimap.instance;
             var large = map != null && map.m_mode == Minimap.MapMode.Large;
             var small = map != null && map.m_mode == Minimap.MapMode.Small && Settings.DungeonMarksOnMinimap;
+            if (map != null && Settings.DungeonMarksOnMap) Ahead(map);
             if (map == null || !(large || small) || !Settings.DungeonMarksOnMap)
             {
                 PutAway();
@@ -324,6 +325,22 @@ namespace Scry
             _sizeOnScreen = shown > 0 ? ScreenSize(Placed[0].Rect) : 0f;
             if (Input.GetMouseButtonDown(0)) _pressedAt = ZInput.pointerPosition;
             Hover();
+        }
+
+        /// <summary>
+        /// What the first marks would cost as the map opens, done while it is shut: their pictures
+        /// drawn, and a first mark made on the large map's layer, the game's pin name copied the
+        /// first time, which held the frame for tens of milliseconds.
+        /// </summary>
+        private static void Ahead(Minimap map)
+        {
+            ScryPanel.DrawMarkPicturesAhead();
+            if (Marks.Count > 0 || _layer != null || map.m_mode == Minimap.MapMode.Large) return;
+            var names = map.m_pinNameRootLarge;
+            _layer = names != null ? names : map.m_pinRootLarge;
+            if (_layer == null) return;
+            var spare = MakeMark(map);
+            if (spare != null) Hide(spare);
         }
 
         /// <summary>The marks the map shows now, in view and as the settings ask, and the marks made that none of them holds.</summary>

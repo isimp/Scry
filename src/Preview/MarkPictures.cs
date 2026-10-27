@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace Scry
@@ -19,31 +21,90 @@ namespace Scry
         static MarkPictures() => WorldCaches.Register(nameof(MarkPictures), () => Made.Clear());
 
         private static readonly Dictionary<(MarkGlyph Glyph, MarkLook Look), Sprite> Made = new Dictionary<(MarkGlyph, MarkLook), Sprite>();
-        private static Color _accent, _dark, _faint, _ring;
+
+        /// <summary>The colours a picture is drawn in: the accent, the dark it is outlined in, the faint of an entrance alone and its ring.</summary>
+        private struct Colours
+        {
+            public Color Accent, Dark, Faint, Ring;
+        }
+
+        /// <summary>Every picture's pixels, drawn ahead on a worker thread in the colours asked for, made into a picture one a frame (<see cref="DrawAhead"/>).</summary>
+        private static Task<Dictionary<(MarkGlyph, MarkLook), Color32[]>> _drawing;
+        private static Colours _drawnIn;
 
         /// <summary>A mark's picture by its glyph and look: the accent, the dark it is outlined in, the faint of an entrance alone and its ring.</summary>
         public static Sprite Of(MarkGlyph glyph, MarkLook look, Color accent, Color dark, Color faint, Color ring)
         {
-            _accent = accent;
-            _dark = dark;
-            _faint = faint;
-            _ring = ring;
             if (Made.TryGetValue((glyph, look), out var made) && made != null) return made;
-            made = Make(glyph, look);
+            var colours = new Colours { Accent = accent, Dark = dark, Faint = faint, Ring = ring };
+            var drawn = Drawn(colours);
+            made = Picture(glyph, look, drawn != null && drawn.TryGetValue((glyph, look), out var pixels) ? pixels : Pixels(glyph, look, colours));
             Made[(glyph, look)] = made;
             return made;
+        }
+
+        /// <summary>
+        /// Draws every mark's picture ahead on a worker thread, as the map can ask for any at once,
+        /// and makes one a frame into a picture once drawn: drawn as each was first asked for, one
+        /// held its frame for tens of milliseconds. Called each frame while the marks may show.
+        /// </summary>
+        public static void DrawAhead(Color accent, Color dark, Color faint, Color ring)
+        {
+            var colours = new Colours { Accent = accent, Dark = dark, Faint = faint, Ring = ring };
+            var drawn = Drawn(colours);
+            if (_drawing == null || !SameColours(_drawnIn, colours))
+            {
+                _drawnIn = colours;
+                _drawing = Task.Run(() => DrawAll(colours));
+                return;
+            }
+            if (drawn == null) return;
+            foreach (var pair in drawn)
+            {
+                if (Made.TryGetValue(pair.Key, out var made) && made != null) continue;
+                Made[pair.Key] = Picture(pair.Key.Item1, pair.Key.Item2, pair.Value);
+                return;
+            }
+        }
+
+        /// <summary>The pixels drawn ahead, once drawn in these colours; none before, or in others.</summary>
+        private static Dictionary<(MarkGlyph, MarkLook), Color32[]> Drawn(Colours colours) =>
+            _drawing != null && _drawing.Status == TaskStatus.RanToCompletion && SameColours(_drawnIn, colours) ? _drawing.Result : null;
+
+        private static bool SameColours(Colours a, Colours b) => a.Accent == b.Accent && a.Dark == b.Dark && a.Faint == b.Faint && a.Ring == b.Ring;
+
+        /// <summary>Every glyph in every look a mark is drawn in; a place stood in is drawn as one you walked.</summary>
+        private static Dictionary<(MarkGlyph, MarkLook), Color32[]> DrawAll(Colours colours)
+        {
+            var all = new Dictionary<(MarkGlyph, MarkLook), Color32[]>();
+            foreach (MarkGlyph glyph in Enum.GetValues(typeof(MarkGlyph)))
+            {
+                foreach (MarkLook look in Enum.GetValues(typeof(MarkLook)))
+                {
+                    if (look != MarkLook.Visited) all[(glyph, look)] = Pixels(glyph, look, colours);
+                }
+            }
+            return all;
         }
 
         /// <summary>A mark's picture by its look alone, with the doorway glyph: for the ticks and the marks beside a page's lines.</summary>
         public static Sprite Of(MarkLook look, Color accent, Color dark, Color faint, Color ring) => Of(MarkGlyph.Doorway, look, accent, dark, faint, ring);
 
-        /// <summary>Draws a picture: each pixel the average of four, so the disc's edge and the glyph's are soft.</summary>
-        private static Sprite Make(MarkGlyph glyph, MarkLook look)
+        /// <summary>A picture of drawn pixels, kept with what Scry made.</summary>
+        private static Sprite Picture(MarkGlyph glyph, MarkLook look, Color32[] pixels)
+        {
+            var texture = Scry.Kept.Add(new Texture2D(Side, Side, TextureFormat.RGBA32, false) { name = "Scry dungeon mark " + glyph + " " + look, filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp });
+            texture.SetPixels32(pixels);
+            texture.Apply(false, true);
+            return Scry.Kept.Add(Sprite.Create(texture, new Rect(0f, 0f, Side, Side), new Vector2(0.5f, 0.5f)));
+        }
+
+        /// <summary>Draws a picture's pixels, on any thread: each pixel the average of four, so the disc's edge and the glyph's are soft.</summary>
+        private static Color32[] Pixels(MarkGlyph glyph, MarkLook look, Colours colours)
         {
             var twice = Side * 2;
             var filled = look == MarkLook.Yours ? MarkRaster.FilledBits(glyph, twice) : null;
             var outline = look == MarkLook.Server || look == MarkLook.Entrance ? MarkRaster.OutlineBits(glyph, twice) : null;
-            var texture = Scry.Kept.Add(new Texture2D(Side, Side, TextureFormat.RGBA32, false) { name = "Scry dungeon mark " + glyph + " " + look, filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp });
             var pixels = new Color32[Side * Side];
             for (var y = 0; y < Side; y++)
             {
@@ -60,7 +121,7 @@ namespace Scry
                             var bit = (twice - 1 - ty) * twice + tx;
                             var ux = (tx + 0.5f) * 64f / twice - 32f;
                             var uy = (ty + 0.5f) * 64f / twice - 32f;
-                            var colour = Pixel(look, filled != null && filled[bit], outline != null && outline[bit], ux, uy);
+                            var colour = Pixel(look, filled != null && filled[bit], outline != null && outline[bit], ux, uy, colours);
                             r += colour.r * colour.a;
                             g += colour.g * colour.a;
                             b += colour.b * colour.a;
@@ -70,13 +131,11 @@ namespace Scry
                     pixels[y * Side + x] = a <= 0f ? default : (Color32)new Color(r / a, g / a, b / a, a / 4f);
                 }
             }
-            texture.SetPixels32(pixels);
-            texture.Apply(false, true);
-            return Scry.Kept.Add(Sprite.Create(texture, new Rect(0f, 0f, Side, Side), new Vector2(0.5f, 0.5f)));
+            return pixels;
         }
 
         /// <summary>A point's colour by the look: the disc and its ring by the distance from the middle, the glyph or the tick within.</summary>
-        private static Color Pixel(MarkLook look, bool filled, bool outline, float ux, float uy)
+        private static Color Pixel(MarkLook look, bool filled, bool outline, float ux, float uy, Colours c)
         {
             var r = Mathf.Sqrt(ux * ux + uy * uy);
             if (r > 31f) return Color.clear;
@@ -84,11 +143,11 @@ namespace Scry
             var tick = Mathf.Min(ToStroke(ux + 32f, uy + 32f, 18f, 31f, 28f, 21f), ToStroke(ux + 32f, uy + 32f, 28f, 21f, 46f, 42f));
             switch (look)
             {
-                case MarkLook.Yours: return r > 27f ? _dark : filled ? _dark : _accent;
-                case MarkLook.Whole: return r > 27f ? _dark : tick <= 3.5f ? _dark : _accent;
-                case MarkLook.Server: return r > 26f ? _accent : outline ? _accent : _dark;
-                case MarkLook.ServerWhole: return r > 26f ? _accent : tick <= 3.5f ? (tick <= 1.5f ? _dark : _accent) : _dark;
-                default: return r > 27f ? _ring : outline ? _faint : _dark;
+                case MarkLook.Yours: return r > 27f ? c.Dark : filled ? c.Dark : c.Accent;
+                case MarkLook.Whole: return r > 27f ? c.Dark : tick <= 3.5f ? c.Dark : c.Accent;
+                case MarkLook.Server: return r > 26f ? c.Accent : outline ? c.Accent : c.Dark;
+                case MarkLook.ServerWhole: return r > 26f ? c.Accent : tick <= 3.5f ? (tick <= 1.5f ? c.Dark : c.Accent) : c.Dark;
+                default: return r > 27f ? c.Ring : outline ? c.Faint : c.Dark;
             }
         }
 
