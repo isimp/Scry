@@ -2,27 +2,15 @@
 
 ## 0.3.2
 
-A place shown on the stage stands on the ground it digs for itself. A tar pit sits in its bowl with its tar settled in it, small tar floating and big deposits on the pit's floor, and a Burial Chambers' entrance in its stair pit, where before the flat stage floor covered them.
+A place on the stage stands on the ground it digs for itself, so a tar pit sits in its bowl and a Burial Chambers' entrance in its stair pit.
 
-Under *Strict*, a chain names each step once you saw it go to the step next to it, so it reads the same on every page, and a hen seen laying is paired with its egg.
+Things that are one thing to a player are one row: the tar pits, the Burial Chambers, a creature and its kinds, an item and the copies creatures wear. The page switches among the kinds you met. A recipe the game holds several times over shows its cost once.
 
-Hildir's Sealed Tower is no longer marked on the map as a dungeon nobody walked. Once you stand in it, it is marked as a place you were.
+A fish's page tells where it lives and how deep the water must be, when it comes and bites, and how it fights by stars. The Creatures tab can group by biome or by taming, the Items tab by biome.
 
-Things that are one thing to a player are one row: the three tar pits, the Burial Chambers, a creature and its kinds, an item and the copies creatures wear. The page switches among the kinds you met and sets them side by side where they differ, under *Strict* each kept back as its own page keeps it back. A kind you never met is not shown or counted.
+A person's animations follow what it holds and are grouped by what they are for, and a creature no longer lists attacks of its kin it cannot make. A death that hurts what stands near counts among its attacks. Clips are kept from one session to the next; `/scry forget clips` or *Work out again* works them out afresh.
 
-An item made by a recipe the game holds several times over, as the blackmetal tower shield was, shows its cost once.
-
-A fish's page tells where it lives and how deep the water must be, when it comes and leaps, how it finds a float and what drives it off, its fight by stars with the raw fish each gives, and what a catch brings besides. Under *Strict* the biting and the fight show once you caught one.
-
-The Creatures tab can group by biome or by what taming allows, and the Items tab by biome, with a switch above the list; each tab keeps its own choice.
-
-A person's animations follow what it holds: the clips it moves, blocks and attacks in with that, and none of other gear's, which the filter still finds, saying what they are held with. A creature no longer lists the attacks of its kin that nothing it carries starts. Clips are grouped by what they are for: attacks, moving with what is held, blocking, jumping and swimming, getting hurt, emotes, riding and resting, and working.
-
-A creature whose death hurts what stands near, as the Writhan's and the lava blob's blasts do, has its death as a line of its attacks with what it deals, played by the clip it dies in. An attack the game plays no animation for says so, and why.
-
-A page's clips are kept from one session to the next, so they show at once the next time; the person's own stance is worked out first, and its switches are pulled standing, in fewer steps. `/scry forget clips` or *Work out again* works them out afresh.
-
-A creature shows stars only where something in the world can give it some. Lox, Greylings, Bats, Blobs, Wraiths, summons and many more say they never come with any, and a mod's creature no spawn names keeps two stars marked unsure.
+A creature shows stars only where something in the world can give it some. Under *Strict*, a chain names each step once you saw it lead to the next, and a hen seen laying is paired with its egg. Hildir's Sealed Tower is marked as a place you were once you stand in it. Smaller fixes throughout.
 
 ## 0.3.1
 
