@@ -191,6 +191,60 @@ namespace Scry
             PinsAsTheyWere();
         }
 
+        /// <summary>
+        /// A ground of hundreds of dungeons on Valheim's large map: made-up entrances all round the
+        /// player, every one in view, all come to stand within a few seconds, and making them and
+        /// telling their words holds no frame long, as making them all in one frame held one for
+        /// most of a second.
+        /// </summary>
+        private static IEnumerator ManyMarks(Probe p)
+        {
+            yield return Until(() => CompendiumKeeper.Book != null, 10);
+            var book = CompendiumKeeper.Book;
+            var entry = Crypt();
+            var world = CompendiumMap.World;
+            var player = Player.m_localPlayer;
+            if (book == null || book.Rule == CompendiumRule.Off)
+            {
+                p.Skip("the character plays with the compendium off, so no ground shows anything");
+                yield break;
+            }
+            if (entry == null || world == null || player == null || Minimap.instance == null || Game.m_noMap)
+            {
+                p.Skip("there is no crypt, or no map in this world");
+                yield break;
+            }
+            _pinBefore = (book.Shows(WorldSource.Explored), book.MarksDungeons(WorldSource.Explored));
+            ScryPanel.ShowSource(WorldSource.Explored, SourceLevel.Known);
+            ScryPanel.MarkDungeons(WorldSource.Explored, true);
+            const int many = 400;
+            var here = player.transform.position;
+            var prefab = PlaceOf(entry).Prefab;
+            var ground = new DungeonMaps();
+            for (var i = 0; i < many; i++)
+            {
+                var (x, z) = (here.x + (i % 20 - 10) * 8f, here.z + (i / 20 - 10) * 8f);
+                ground.Keep(DungeonMaps.EntranceIdOf(world, x, z), prefab, new List<(int, Vec3, Vec3)>(), new Vec3(x, here.y, z), default, Quat.Identity);
+            }
+            DungeonsInGround.InsteadForTest(WorldSource.Explored, ground);
+            Session.Hide();
+            var first = Timing.Measuring?.Frames ?? 0;
+            Timing.ForgetBytesByPart();
+            Minimap.instance.SetMapMode(Minimap.MapMode.Large);
+            var opened = Time.unscaledTime;
+            yield return Until(() => MapMarkButtons.MarksShown == many, 20);
+            var took = Time.unscaledTime - opened;
+            // A few frames more, standing, for what placing them costs a frame once all are made.
+            yield return new Wait(1);
+            var frames = System.Math.Max(1, (Timing.Measuring?.Frames ?? 0) - first);
+            var mostMs = Timing.MostMs("marks");
+            var ownMs = Timing.OwnBytesByPartCopy().Where(part => part.Part == "marks").Sum(part => part.Ms);
+            p.Check(MapMarkButtons.MarksShown == many, $"all {Numbers.Count(many)} entrances in view come to stand", $"{Numbers.Count(MapMarkButtons.MarksShown)} after {Numbers.Amount(took, 1)} s");
+            p.Note($"they all stood after {Numbers.Amount(took, 1)} s; the marks took {Numbers.Fixed(ownMs / frames, 2)} ms a frame on average, {Numbers.Amount(mostMs, 1)} ms at the most");
+            p.Check(mostMs < 16, "making them and telling their words holds no frame a sixtieth of a second", $"{Numbers.Amount(mostMs, 1)} ms at the most");
+            PinsAsTheyWere();
+        }
+
         /// <summary>Puts back how the explored ground showed and its pin, the made-up dungeons, the large map and the pointer, should the part have stopped before it did.</summary>
         private static void PinsAsTheyWere()
         {

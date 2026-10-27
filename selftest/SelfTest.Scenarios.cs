@@ -186,6 +186,7 @@ namespace Scry
             yield return S("a dungeon's maps kept are on its page, open from anywhere and are forgotten", MapsKept, 200, () => { DungeonFogAsItWas(); StageAsItWas(); }, bearsSkips: true);
             yield return S("Valheim's large map marks the dungeons been in, a click opening the map in Scry", MarksOnTheMap, 200, () => { MarksAsTheyWere(); StageAsItWas(); }, bearsSkips: true);
             yield return S("a ground's pin marks every dungeon lying in it on Valheim's large map, hollow where walked on this server and shown with insides, and With insides is dimmed where nothing has insides", DungeonPins, 240, () => { PinsAsTheyWere(); StageAsItWas(); });
+            yield return S("a ground of hundreds of dungeons stands on Valheim's large map within a few seconds, holding no frame long", ManyMarks, 60, PinsAsTheyWere);
             yield return S("Hildir's Sealed Tower is a place stood in, its visits kept, no dungeon lying inside", PlacesStoodIn, 10);
             yield return S("a creature's stars follow what in the world can give it a level", StarsFollowSources, 300);
             yield return S("a fish's page tells where it lives, when it comes, how it bites and fights, and keeps that back until one is caught", FishPageTells, 30);
