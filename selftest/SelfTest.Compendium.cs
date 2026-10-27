@@ -305,6 +305,8 @@ namespace Scry
             var ask = new ZPackage();
             ask.Write(world);
             ask.Write(Utils.Compress(packed));
+            // Read from its start, as a package that came over the network is.
+            ask.SetPos(0);
             var answered = CompendiumLink.Answered;
             CompendiumLink.Answer(ZNet.GetUID(), ask, CompendiumLink.AnswerRpc);
             p.Check(CompendiumLink.Answered > answered && CompendiumLink.LastAnswered == kinds.Count, "a player's map sent to this game, the world's server, is answered with the same kinds",
