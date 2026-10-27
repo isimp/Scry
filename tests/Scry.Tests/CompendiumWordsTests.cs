@@ -191,7 +191,12 @@ namespace Scry.Tests
             // Under the strict rules a page known still keeps some back: said too.
             Assert.Equal("Under Strict, numbers and connections show as you see them.", CompendiumWords.ClosedStrict);
         }
+    }
 
+    /// <summary>The texts kept one at a time for the panel, which draws them each frame: checked with nothing else asking meanwhile.</summary>
+    [Collection(nameof(TextsDrawnEveryFrameTests))]
+    public class TextsDrawnEveryFrameTests
+    {
         [Fact]
         public void TextsDrawnEveryFrameAreTheSameStringAgain()
         {
@@ -207,5 +212,11 @@ namespace Scry.Tests
             Assert.Same(DungeonWords.Progress(true, true, 12, 12, 4, 20), DungeonWords.Progress(true, true, 12, 12, 4, 20));
             Assert.Null(DungeonWords.Progress(true, true, 12, 12, 20, 20));
         }
+    }
+
+    /// <summary>Runs the texts kept one at a time with nothing else running.</summary>
+    [CollectionDefinition(nameof(TextsDrawnEveryFrameTests), DisableParallelization = true)]
+    public class TextsDrawnEveryFrameCollection
+    {
     }
 }
