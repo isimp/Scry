@@ -27,7 +27,7 @@ namespace Scry
 
         /// <summary>
         /// The game methods whose rules Scry follows, with the shape of their code in
-        /// Valheim 1.0.20, read from the game's own assemblies.
+        /// Valheim 1.0.21, read from the game's own assemblies.
         /// </summary>
         private static readonly (string Type, string Method, int Params, uint Shape, Feature Feature)[] Watched =
         {
@@ -245,7 +245,7 @@ namespace Scry
             ("MonsterAI", "UpdateAI", 1, 0xF625E201, Feature.WhenCreaturesTurnOnYou),
             ("MonsterAI", "UpdateTarget", 4, 0x71A722F8, Feature.HowFarCreaturesChase),
             ("WearNTear", "GetMaterialProperties", 4, 0x12182085, Feature.Support),
-            ("WearNTear", "UpdateSupport", 0, 0x291BD05E, Feature.SupportLost),
+            ("WearNTear", "UpdateSupport", 0, 0x0D5C14CE, Feature.SupportLost),
             ("WearNTear", "UpdateWear", 1, 0xE472FFDA, Feature.RainAshAndSnowWear),
             ("SpawnArea", "UpdateSpawn", 0, 0x97E19B30, Feature.SpawnersPace),
             ("SpawnArea", "SpawnOne", 0, 0x0897D075, Feature.SpawnersCapsAndStars),
@@ -314,7 +314,7 @@ namespace Scry
             ("Growup", "GrowUpdate", 0, 0x3CA56DD5, Feature.WhatYoungCreaturesGrowInto),
             ("Smelter", "Spawn", 2, 0xFB2ED31B, Feature.CompendiumTogether),
             ("Fermenter", "DelayedTap", 0, 0xE6989B04, Feature.CompendiumTogether),
-            ("CookingStation", "SpawnItem", 4, 0x2D88D50F, Feature.CompendiumTogether),
+            ("CookingStation", "SpawnItem", 4, 0xA3801C22, Feature.CompendiumTogether),
             ("Growup", "GetPrefab", 0, 0x7CD1A961, Feature.WhatYoungCreaturesGrowInto),
             ("EggGrow", "CanGrow", 0, 0x28D2DC79, Feature.WhereEggsHatch),
             ("EggGrow", "GrowUpdate", 0, 0x0AF38598, Feature.CompendiumTogether),
