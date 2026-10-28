@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Collections.Generic;
 
 namespace Scry
@@ -14,9 +13,8 @@ namespace Scry
         private readonly FrameShare _share = new FrameShare(4);
         private readonly System.Diagnostics.Stopwatch _all = new System.Diagnostics.Stopwatch();
 
-        /// <summary>Pieces that took longer than this are told at the end, with what they read.</summary>
-        private const double LongPieceMs = 8;
-        private readonly List<(string What, double Ms)> _long = new List<(string, double)>();
+        /// <summary>Pieces that took longer than 8 ms, told at the end with what they read.</summary>
+        private readonly LongPieces _long = new LongPieces(8);
 
         public CatalogJob()
         {
@@ -70,7 +68,7 @@ namespace Scry
                     var more = _steps.MoveNext();
                     var took = frame.Elapsed.TotalMilliseconds - before;
                     _share.Took(took);
-                    if (took > LongPieceMs && Settings.LogPreviews) _long.Add((LongPiece(Piece, what), took));
+                    if (Settings.LogPreviews && _long.Long(took)) _long.Add(LongPiece(Piece, what), took);
                     done++;
                     if (!more)
                     {
@@ -87,10 +85,8 @@ namespace Scry
             {
                 _all.Stop();
                 _steps.Dispose();
-                if (_long.Count > 0)
-                {
-                    Log.Note($"{Naming.Counted($"Scry's catalog pieces over {Numbers.Amount(LongPieceMs, 0)} ms", _long.Count)}: {string.Join(", ", _long.OrderByDescending(p => p.Ms).Take(25).Select(p => $"{p.What} {Numbers.Amount(p.Ms, 0)}"))}.");
-                }
+                var told = _long.Line("Scry's catalog pieces");
+                if (told != null) Log.Note(told);
             }
             return Done;
         }

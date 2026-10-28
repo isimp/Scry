@@ -64,6 +64,9 @@ namespace Scry
         /// <summary>A few milliseconds a frame, as the catalog is read in the background.</summary>
         private const double BudgetMs = 3.0;
 
+        /// <summary>Steps of the reading that took longer than 8 ms in one go, by place, told once it is done with <see cref="Settings.LogPreviews"/> on.</summary>
+        private static readonly LongPieces LongSteps = new LongPieces(8);
+
         private struct Asset
         {
             public string Name;
@@ -121,8 +124,8 @@ namespace Scry
         private static PlaceRecord _record;
         private static readonly HashSet<string> RecordNames = new HashSet<string>(StringComparer.Ordinal);
 
-        /// <summary>Its contents being read a part of the reading at a time, then its parts walked a few at a time.</summary>
-        private static IEnumerator<bool> _steps;
+        /// <summary>Its contents being read a part of the reading at a time, each named by what it read, then its parts walked a few at a time.</summary>
+        private static IEnumerator<string> _steps;
         private static PreOrderWalk<Transform> _walk;
         private static readonly List<Component> Components = new List<Component>();
 
@@ -282,6 +285,7 @@ namespace Scry
             _failed = 0;
             _workMs = 0.0;
             _frames = 0;
+            LongSteps.Clear();
             _clock = Stopwatch.StartNew();
         }
 
@@ -387,12 +391,15 @@ namespace Scry
                 }
 
                 // What it holds, a part of the reading at a time; each part of it walks the whole
-                // location for one kind of part, so it is timed on its own.
+                // location for one kind of part, so it is timed on its own, under what it read.
                 if (_steps != null)
                 {
                     var step = Timing.Start();
+                    var began = watch.Elapsed.TotalMilliseconds;
                     var more = _steps.MoveNext();
-                    Timing.Add("locations contents", step);
+                    var part = more ? _steps.Current : "locations themes";
+                    Timing.Add(part, step);
+                    Long(part, watch.Elapsed.TotalMilliseconds - began);
                     if (more) continue;
                     _steps = null;
                     _walk = new PreOrderWalk<Transform>(_root, t => t.childCount, (t, i) => t.GetChild(i));
@@ -400,21 +407,34 @@ namespace Scry
                 }
 
                 // Then each of its parts, a few at a time, in the order the prefab holds them.
+                var walked = watch.Elapsed.TotalMilliseconds;
                 for (var n = 0; n < 8 && _walk.Next(out var part); n++)
                 {
                     part.GetComponents(Components);
                     foreach (var component in Components) Read(component);
                 }
                 Components.Clear();
+                Long("locations parts walked", watch.Elapsed.TotalMilliseconds - walked);
                 if (_walk.Done) Next();
             }
         }
+
+        /// <summary>Keeps a step of the place being read that took long, named by the place and the step, for the log.</summary>
+        private static void Long(string part, double ms)
+        {
+            if (!Settings.LogPreviews || !LongSteps.Long(ms)) return;
+            LongSteps.Add(LongStep(_current.Name, part), ms);
+        }
+
+        /// <summary>A long step by its place and what it read there ("Crypt2 creatures"), for the log.</summary>
+        [Diagnostic]
+        private static string LongStep(string place, string part) => place + " " + part.Substring("locations ".Length);
 
         /// <summary>
         /// Reads the one being read into its record (<see cref="PlaceReader"/>): its contents, and
         /// the kinds of room any dungeon in it is built with, or the kind of room it is.
         /// </summary>
-        private static IEnumerable<bool> Begun(GameObject prefab)
+        private static IEnumerable<string> Begun(GameObject prefab)
         {
             _record = new PlaceRecord { Prefab = _current.Name, Room = _current.Room, Stamp = _current.Stamp ?? "" };
             RecordNames.Clear();
@@ -429,7 +449,7 @@ namespace Scry
                     break;
                 }
                 if (!more) break;
-                yield return true;
+                yield return steps.Current;
             }
             if (!whole) Unkept.Add((_record.Prefab, _record.Room));
             else Unkept.Remove((_record.Prefab, _record.Room));
@@ -546,6 +566,9 @@ namespace Scry
             var records = Records();
             Fresh.Clear();
             PlaceRecords.Write();
+            var slow = LongSteps.Line("Scry's location steps");
+            if (slow != null) Log.Note(slow);
+            LongSteps.Clear();
 
             var reading = $"Scry read {Numbers.Count(Total)} locations and dungeon rooms in {Numbers.Fixed(_clock.Elapsed.TotalSeconds, 1)} s ({Numbers.Amount(_workMs, 0)} ms of its own work over {Numbers.Count(_frames)} frames, {Numbers.Count(_failed)} could not be loaded) and keeps them for the next time: ";
             _telling = Telling(records, read, named =>

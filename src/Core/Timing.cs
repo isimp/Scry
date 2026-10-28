@@ -10,7 +10,8 @@ namespace Scry
     /// How long Scry's own work takes each frame, by part, with about how much memory each part
     /// allocated and whether the runtime's memory cleanup ran inside it (<see cref="FrameTimes"/>).
     /// With <see cref="Settings.LogPreviews"/> on, a frame where it took long is said in the log with
-    /// its parts, at most twice a second; with it off, nothing is measured.
+    /// its parts, at most twice a second, and every half minute what its work took a frame by part
+    /// (<see cref="PartWindow"/>); with it off, nothing is measured.
     /// </summary>
     internal static class Timing
     {
@@ -46,6 +47,7 @@ namespace Scry
 
         private static readonly FrameTimes Frame = new FrameTimes();
         private static readonly AllocationWindow Window = new AllocationWindow();
+        private static readonly PartWindow Parts = new PartWindow();
         private static int _frame = -1;
         private static float _toldAt = -10f;
         private static float _windowFrom = -1f;
@@ -187,7 +189,8 @@ namespace Scry
 
         /// <summary>
         /// A new frame: the last one is told if Scry took long in it, and every half minute how
-        /// many memory cleanups ran and how much of what the game allocated was Scry's.
+        /// many memory cleanups ran, how much of what the game allocated was Scry's, and what its
+        /// work took a frame on average and at most, by part.
         /// </summary>
         private static void Roll()
         {
@@ -224,17 +227,21 @@ namespace Scry
             }
 
             Window.AddScry(Frame.Bytes, Frame.Cleanups);
+            Parts.Add(Frame);
             Window.Sample(GC.GetTotalMemory(false), GC.CollectionCount(0));
             var now = Time.unscaledTime;
             if (_windowFrom < 0f || now < _windowFrom)
             {
                 Window.Reset();
+                Parts.Reset();
                 _windowFrom = now;
             }
             else if (now - _windowFrom >= WindowSeconds)
             {
                 Log.Note(Window.Line(now - _windowFrom));
+                Log.Note(Parts.Line(now - _windowFrom));
                 Window.Reset();
+                Parts.Reset();
                 _windowFrom = now;
             }
 

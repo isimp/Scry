@@ -239,7 +239,7 @@ namespace Scry
         /// </summary>
         private static Entry _readingEntry;
         private static PlaceContents _readContents;
-        private static IEnumerator<bool> _readSteps;
+        private static IEnumerator<string> _readSteps;
 
         /// <summary>How much of a frame reading a selected place's contents takes, beyond the part of the reading always done.</summary>
         private const double PlaceReadShareMs = 3.0;

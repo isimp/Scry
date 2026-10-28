@@ -30,15 +30,17 @@ namespace Scry
         /// <summary>
         /// Reads a place into its contents a part of the reading at a time, each a walk over the
         /// whole prefab for one kind of part, so a place of tens of thousands of parts is read
-        /// over several frames rather than in one.
+        /// over several frames rather than in one. Each step is named by what it read, as the
+        /// timing of the reading tells it ("locations creatures").
         /// </summary>
-        public static IEnumerable<bool> Steps(GameObject prefab, bool room, PlaceContents contents)
+        public static IEnumerable<string> Steps(GameObject prefab, bool room, PlaceContents contents)
         {
             var root = prefab.transform;
             var factors = Factors(prefab);
+            yield return "locations factors";
 
             Guard.Each(Feature.Locations, "names of locations", prefab.name, () => NameFacts(prefab, contents));
-            yield return true;
+            yield return "locations names";
 
             var parts = new List<(string, float)>();
             foreach (var view in prefab.GetComponentsInChildren<ZNetView>(false))
@@ -47,32 +49,33 @@ namespace Scry
                 parts.Add((PrefabName(view.gameObject.name), ChanceOf(view.transform, root, factors)));
             }
             contents.Parts = PlaceParts.Group(parts);
-            yield return true;
+            yield return "locations parts";
             LeftToChance(prefab, contents);
-            yield return true;
+            yield return "locations chances";
 
             Guard.Each(Feature.Locations, "creatures of locations", prefab.name, () => Creatures(prefab, root, factors, contents));
-            yield return true;
+            yield return "locations creatures";
 
             Guard.Each(Feature.Locations, "dungeons of locations", prefab.name, () => Dungeon(prefab, contents));
-            yield return true;
+            yield return "locations dungeon";
 
             if (room)
             {
                 Guard.Each(Feature.Locations, "dungeon rooms", prefab.name, () => contents.Room = Shape(prefab));
-                yield return true;
+                yield return "locations room shape";
             }
 
             Guard.Each(Feature.Locations, "locations", prefab.name, () => Location(prefab, contents));
-            yield return true;
+            yield return "locations place";
 
             Guard.Each(Feature.LocationMusic, "music of locations", prefab.name, () => Music(prefab, contents));
-            yield return true;
+            yield return "locations music";
 
             Guard.Each(Feature.RunestoneTexts, "runestones of locations", prefab.name, () => Runestones(prefab, contents));
-            yield return true;
+            yield return "locations runestones";
 
             Guard.Each(Feature.Locations, "telling places", prefab.name, () => contents.Tell(TermsNow()));
+            yield return "locations told";
         }
 
         /// <summary>
