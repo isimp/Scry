@@ -276,16 +276,34 @@ namespace Scry
             yield return null;
             p.Check(ScryPanel.PageBeingLaid && ScryPanel.Drawn(PanelPart.Waiting) > waiting, $"{page.ShownName}'s page answers the click at once, its parts not laid yet saying so",
                 ScryPanel.PageBeingLaid ? "no waiting line drawn" : "laid whole in its first frame");
-            // Held where the first frame left it, its topic boxes waiting in sight under its facts' heading.
+            // Held where the first frame left it, the search box let go of, as picking gives it the
+            // keyboard and its help would cover the page.
             ScryPanel.HoldLayingForTest(true);
+            ScryPanel.LeaveBoxes();
+            yield return null;
             yield return Shot(p, "a page laid out over frames, part way");
             ScryPanel.HoldLayingForTest(false);
             var frames = 0;
-            while (ScryPanel.PageBeingLaid && frames < 300)
+            var captions = ScryPanel.Drawn(PanelPart.GrassCaption);
+            var grassSeen = false;
+            var grassPictured = false;
+            while ((ScryPanel.PageBeingLaid || Stage.GrassScattering) && frames < 600)
             {
                 frames++;
+                if (Stage.GrassScattering && Stage.GroundUnderfoot != null)
+                {
+                    grassSeen = true;
+                    if (!grassPictured && !ScryPanel.PageBeingLaid)
+                    {
+                        grassPictured = true;
+                        yield return Shot(p, "the stage laying its ground's grass");
+                        continue;
+                    }
+                }
                 yield return null;
             }
+            if (grassSeen) p.Check(ScryPanel.Drawn(PanelPart.GrassCaption) > captions, "the stage says while it lays its ground's grass");
+            else p.Note("the stage laid no grass while this part watched, so its caption was not looked for");
             p.Check(!ScryPanel.PageBeingLaid, "the page is laid out whole within a few frames", $"{Numbers.Count(frames)} frames after the picture");
             yield return null;
             yield return null;

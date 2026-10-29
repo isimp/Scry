@@ -127,6 +127,7 @@ namespace Scry
             Timing.Add("update panel", panel);
 
             Step(Feature.Previews, "the previews", "update previews", () => Previews.Update(IsOpen ? Explorer : null));
+            Step(Feature.Details("chain"), "reading the world's chains", "update chains", ReadChains);
             Step(Feature.World, "compiling Scry's code ahead", "update warmup", Warm);
             Step(Feature.SelfTest, "the self-test", null, () =>
             {
@@ -231,6 +232,21 @@ namespace Scry
 
         /// <summary>When what the character knows was last told to the list, by the unscaled clock.</summary>
         private static float _knownToldAt = float.NegativeInfinity;
+
+        /// <summary>Whether the world's chains were read since its catalog was.</summary>
+        private static bool _chainsRead;
+
+        /// <summary>
+        /// Reads the world's chains (<see cref="Chains"/>) once its catalog is read, in a frame of
+        /// their own, rather than in the frame of the first page showing one: reading them looks
+        /// at every prefab of the world.
+        /// </summary>
+        private static void ReadChains()
+        {
+            if (Explorer == null || _chainsRead) return;
+            _chainsRead = true;
+            Chains.Of("");
+        }
 
         /// <summary>Scry's code compiled ahead (<see cref="CodeWarmup"/>), once a session, made once a world's catalog is read; for the self-test to see it done.</summary>
         public static CodeWarmup Warmup { get; private set; }
@@ -384,6 +400,7 @@ namespace Scry
             _scene = null;
             _job = null;
             _failedIn = null;
+            _chainsRead = false;
             _inWorldSince = -1f;
             Guard.Run(Feature.Leaving, "closing on leaving a world", Hide);
             Guard.Run(Feature.Leaving, "clearing the world's previews", Previews.ClearWorld);

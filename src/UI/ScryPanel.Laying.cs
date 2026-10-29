@@ -61,7 +61,7 @@ namespace Scry
             Skin.Fill(track, Skin.Alpha(Skin.Accent, 0.25f));
             Skin.Fill(new Rect(track.x, track.y, track.width * Stage.GrassScattered, track.height), Skin.Accent);
             Skin.LabelIn(new Rect(track.xMax + U(6f), at.y, at.xMax - track.xMax - U(9f), height), Skin.Fit(Skin.Small, text, at.xMax - track.xMax - U(9f)), Skin.Small, Skin.Faint);
-            CountDrawn(PanelPart.Waiting);
+            CountDrawn(PanelPart.GrassCaption);
         }
     }
 }
