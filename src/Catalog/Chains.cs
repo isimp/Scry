@@ -67,7 +67,8 @@ namespace Scry
             {
                 if (summon.Item == null || summon.Boss == null) continue;
                 var steps = new List<string[]> { new[] { summon.Item } };
-                if (!string.IsNullOrEmpty(summon.PlacePrefab)) steps.Add(new[] { summon.PlacePrefab });
+                var altar = string.IsNullOrEmpty(summon.PlacePrefab) ? -1 : steps.Count;
+                if (altar > 0) steps.Add(new[] { summon.PlacePrefab });
                 steps.Add(new[] { summon.Boss });
                 var boss = GamePrefabs.Named(summon.Boss);
                 var drops = boss != null ? boss.GetComponent<CharacterDrop>().OrNull()?.m_drops : null;
@@ -77,7 +78,7 @@ namespace Scry
                     steps.Add(new[] { trophy.name });
                     steps.Add(new[] { EntryKeys.For(Kind.StatusEffect, Knowledge.PowerOf(trophy.name).Power) });
                 }
-                Book.Add(ChainWords.Summoning, steps);
+                Book.Add(ChainWords.Summoning, steps, altar);
             }
         }
 

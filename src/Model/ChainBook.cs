@@ -10,6 +10,13 @@ namespace Scry
         public string Title;
         public List<string[]> Steps;
 
+        /// <summary>
+        /// A summoning chain's step of the altar's place, or -1: the offering before it counts as
+        /// seen with it once both were seen with the boss after it, as a call ties all three, so a
+        /// book kept before a call tied the offering to the place reads the chain whole.
+        /// </summary>
+        public int Altar = -1;
+
         /// <summary>The first step holding a prefab or key, or -1.</summary>
         public int StepOf(string key) => Steps.FindIndex(s => s.Contains(key));
 
@@ -33,6 +40,16 @@ namespace Scry
                     }
                 }
             }
+            if (Altar < 1 || Altar + 1 >= Steps.Count) return linked;
+            foreach (var offering in Steps[Altar - 1])
+            {
+                foreach (var place in Steps[Altar])
+                {
+                    if (!Steps[Altar + 1].Any(boss => together(offering, boss) && together(place, boss))) continue;
+                    linked.Add(offering);
+                    linked.Add(place);
+                }
+            }
             return linked;
         }
     }
@@ -48,11 +65,11 @@ namespace Scry
 
         private readonly List<Chain> _chains = new List<Chain>();
 
-        public void Add(string title, List<string[]> steps)
+        public void Add(string title, List<string[]> steps, int altar = -1)
         {
             if (steps == null || steps.Count < 2) return;
             if (_chains.Any(c => c.Title == title && c.Steps.Count == steps.Count && c.Steps.Zip(steps, (a, b) => a.SequenceEqual(b)).All(same => same))) return;
-            _chains.Add(new Chain { Title = title, Steps = steps });
+            _chains.Add(new Chain { Title = title, Steps = steps, Altar = altar });
         }
 
         /// <summary>The chains a prefab or key is a step of.</summary>

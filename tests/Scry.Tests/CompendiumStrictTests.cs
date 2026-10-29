@@ -128,6 +128,56 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ABossCalledAtItsAltarLinksItsOfferingThroughTheAltarsPlace()
+        {
+            // Yagluth's chain: the totem offered at the altar of its place, the boss, its trophy.
+            var totem = E("GoblinTotem", Kind.Item);
+            var place = E("GoblinKing", Kind.Location);
+            var boss = E("GoblinKing", Kind.Creature);
+            var trophy = E("TrophyGoblinKing", Kind.Item);
+            var stone = E("goblinking_totemholder", Kind.Piece);
+            var all = new[] { totem, place, boss, trophy, stone };
+            var explorer = new Explorer(all.ToList(), new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+            var view = new CompendiumView(explorer.Entries);
+            var chain = new Chain { Title = ChainWords.Summoning, Altar = 1, Steps = new List<string[]> { new[] { totem.Key }, new[] { place.Key }, new[] { boss.Key }, new[] { trophy.Key } } };
+            CompendiumBook Book(IEnumerable<(string, string)> pairs)
+            {
+                var book = new CompendiumBook();
+                foreach (var e in all) book.Raise(e.Key, KnownLevel.Known);
+                foreach (var (a, b) in pairs) book.Witness(a, b);
+                return book;
+            }
+            bool Shown(CompendiumBook book, Entry page, Entry step)
+            {
+                view.Tell(book, CompendiumRule.Strict);
+                explorer.Know(view);
+                explorer.Select(page);
+                return !explorer.LeavesOut(chain, step.Key);
+            }
+
+            // A call now ties the offering to the altar's place as well.
+            var called = BossCall.Pairs(stone.Key, totem.Key, boss.Key, place.Key).ToList();
+            Assert.Contains((totem.Key, place.Key), called);
+            Assert.True(Shown(Book(called), boss, totem));
+            Assert.True(Shown(Book(called), trophy, totem));
+
+            // A book from before keeps only the offering with the boss and the boss with its place: read through the boss, the offering shows.
+            var before = new[] { (stone.Key, boss.Key), (totem.Key, boss.Key), (stone.Key, totem.Key), (boss.Key, place.Key) };
+            Assert.True(Shown(Book(before), boss, totem));
+            Assert.True(Shown(Book(before), place, totem));
+
+            // Not the offering never seen with the boss, nor through a place the boss was never seen in.
+            Assert.False(Shown(Book(new[] { (boss.Key, place.Key) }), boss, totem));
+            Assert.False(Shown(Book(new[] { (totem.Key, boss.Key) }), boss, totem));
+            // Nor on a chain with no altar step: there the step after the offering is all that links it.
+            var plain = new Chain { Title = chain.Title, Steps = chain.Steps };
+            view.Tell(Book(before), CompendiumRule.Strict);
+            explorer.Know(view);
+            explorer.Select(boss);
+            Assert.True(explorer.LeavesOut(plain, totem.Key));
+        }
+
+        [Fact]
         public void WhatTheGameShowsComesWithAThingOnlyOnceTheGameListsItsRecipe()
         {
             // The crafting menu and the hammer list a recipe only once the character knows it (the

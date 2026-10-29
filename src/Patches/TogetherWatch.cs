@@ -83,11 +83,9 @@ namespace Scry
                 var stone = altar.GetComponentInParent<ZNetView>();
                 var at = stone != null ? Utils.GetPrefabName(stone.gameObject) : null;
                 var offering = altar.m_bossItem.OrNull()?.gameObject.name;
-                if (at != null) CompendiumKeeper.Saw(at, boss);
-                if (offering != null) CompendiumKeeper.Saw(offering, boss);
-                if (at != null && offering != null) CompendiumKeeper.Saw(at, offering);
                 var place = Location.GetLocation(altar.transform.position);
-                if (place != null) CompendiumKeeper.Saw(boss, EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject)));
+                var placeKey = place != null ? EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject)) : null;
+                foreach (var (a, b) in BossCall.Pairs(at, offering, boss, placeKey)) CompendiumKeeper.Saw(a, b);
             });
         }
 
