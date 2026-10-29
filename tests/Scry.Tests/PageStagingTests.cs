@@ -126,6 +126,55 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APartWorkedOutOverSeveralFramesWaitsUntilItIsDoneAndTheRestWithIt()
+        {
+            // The facts are worked out a few steps a frame: their part is laid only once they are done.
+            var clock = new Clock();
+            var staging = new PageStaging(clock.Now, budgetMs: 6);
+            staging.Begin();
+            staging.StartPass(true);
+            Assert.True(staging.Lay());
+            Assert.True(staging.NotYet());
+            Assert.True(staging.HeldFirst);
+            Assert.False(staging.Lay());
+            staging.EndPass();
+            Assert.True(staging.Active);
+
+            // Next frame it is asked again, done this time, and the part after it follows.
+            staging.StartPass(true);
+            Assert.True(staging.Lay());
+            Assert.True(staging.Lay());
+            staging.EndPass();
+            Assert.False(staging.Active);
+        }
+
+        [Fact]
+        public void APartLaidBeforeCannotBeTakenBack()
+        {
+            // Facts that went stale after their part was laid are worked out whole instead.
+            var clock = new Clock();
+            var staging = new PageStaging(clock.Now, budgetMs: 6);
+            staging.Begin();
+            Pass(staging, clock, true, 1, 20, 1);
+            staging.StartPass(true);
+            Assert.True(staging.Lay());
+
+            Assert.False(staging.NotYet());
+        }
+
+        [Fact]
+        public void WhetherThereIsRoomLeftCountsTheFramesOtherWorkAndWhatWasLaid()
+        {
+            var clock = new Clock();
+            var staging = new PageStaging(clock.Now, budgetMs: 6);
+            staging.Begin();
+            staging.StartPass(true, 4.0);
+            Assert.True(staging.HasRoom());
+            clock.Ms += 2.5;
+            Assert.False(staging.HasRoom());
+        }
+
+        [Fact]
         public void OnlyARepaintEndsTheLayingOut()
         {
             // An event drawing fewer parts, a section folded meanwhile, holds none back, but the

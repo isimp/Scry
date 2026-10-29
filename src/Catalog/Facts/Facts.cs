@@ -417,54 +417,151 @@ namespace Scry
             // A creature's stars change as places are read (CreatureStars).
             if (Kept(entry, out var known)) return known;
 
-            var facts = new Facts { _toldWith = Freshness, _starsOf = entry.Kind == Kind.Creature ? CreatureStars.Stamp : 0 };
-            BuiltSinceStartForTest++;
-            _notables = new Dictionary<string, (ICollection<string>, bool, int)>(StringComparer.Ordinal);
-            _loot = new Dictionary<string, List<string>>(StringComparer.Ordinal);
-            try
-            {
-                facts.Tell(entry);
-            }
-            finally
-            {
-                _notables = null;
-                _loot = null;
-            }
+            var facts = Built(entry);
             Cache.Set(entry, facts);
             return facts;
         }
 
+        /// <summary>An entry's facts worked out afresh, kept nowhere: the steps of <see cref="Tell"/> run to their end at once.</summary>
+        internal static Facts Built(Entry entry)
+        {
+            var build = new Build(entry);
+            while (build.Step())
+            {
+            }
+            return build.Facts;
+        }
+
+        /// <summary>
+        /// A build of an entry's facts kept nowhere, run a step a call, for the self-test to run
+        /// many over frames side by side and hold each to the facts worked out at once: null
+        /// until its last step is done.
+        /// </summary>
+        [ForTest]
+        internal static Func<Facts> StepsForTest(Entry entry)
+        {
+            var build = new Build(entry);
+            var done = false;
+            return () =>
+            {
+                if (!done && build.Step()) return null;
+                done = true;
+                return build.Facts;
+            };
+        }
+
+        /// <summary>
+        /// An entry's facts being worked out a step at a time, each a part of them in the order
+        /// <see cref="Tell"/> tells them, with the lists of notable and only-here loot the parts
+        /// share, held as the shared ones while a step runs.
+        /// </summary>
+        private sealed class Build
+        {
+            public readonly Entry Entry;
+            public readonly Facts Facts;
+            private readonly IEnumerator<bool> _steps;
+            private readonly Dictionary<string, (ICollection<string>, bool, int)> _notables = new Dictionary<string, (ICollection<string>, bool, int)>(StringComparer.Ordinal);
+            private readonly Dictionary<string, List<string>> _loot = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+
+            public Build(Entry entry)
+            {
+                Entry = entry;
+                Facts = new Facts { _toldWith = Freshness, _starsOf = entry.Kind == Kind.Creature ? CreatureStars.Stamp : 0 };
+                BuiltSinceStartForTest++;
+                _steps = Facts.Tell(entry).GetEnumerator();
+            }
+
+            /// <summary>Runs the next step; false once there was none left.</summary>
+            public bool Step()
+            {
+                var (notables, loot) = (Facts._notables, Facts._loot);
+                Facts._notables = _notables;
+                Facts._loot = _loot;
+                try
+                {
+                    return _steps.MoveNext();
+                }
+                finally
+                {
+                    Facts._notables = notables;
+                    Facts._loot = loot;
+                }
+            }
+        }
+
+        /// <summary>The build under way for a page laid out over frames; one at a time.</summary>
+        private static Build _building;
+
+        /// <summary>
+        /// An entry's facts worked out a step at a time for a page laid out over frames: kept
+        /// ones at once; else steps run for as long as <paramref name="more"/> says, one at
+        /// least, and null until the last is done, when they are kept as <see cref="For"/> keeps
+        /// them. A step that fails lets the build go, so the next ask begins afresh.
+        /// </summary>
+        public static Facts Building(Entry entry, Func<bool> more)
+        {
+            if (entry == null) return new Facts();
+            if (Kept(entry, out var known)) return known;
+            if (_building == null || !ReferenceEquals(_building.Entry, entry)) _building = new Build(entry);
+            var build = _building;
+            var steady = false;
+            try
+            {
+                do
+                {
+                    if (build.Step()) continue;
+                    _building = null;
+                    Cache.Set(entry, build.Facts);
+                    steady = true;
+                    return build.Facts;
+                }
+                while (more());
+                steady = true;
+                return null;
+            }
+            finally
+            {
+                // A step that threw leaves a build that cannot go on: the next ask begins afresh.
+                if (!steady) _building = null;
+            }
+        }
+
         /// <summary>Tells an entry's facts, part by part.</summary>
-        private void Tell(Entry entry)
+        private IEnumerable<bool> Tell(Entry entry)
         {
             var facts = this;
             if (entry.Source is StatusEffect effect)
             {
                 facts.Part("status effect", () => facts.StatusEffect(effect));
+                yield return true;
             }
             else if (entry.Source is RandomEvent raid)
             {
                 facts.Part("raid", () => facts.Raid(raid));
+                yield return true;
             }
             else if (entry.Source is BiomeSource biome)
             {
                 facts._entry = entry;
                 facts.Part("biome", () => facts.Biome(biome));
+                yield return true;
             }
             else if (entry.Source is ModSource mod)
             {
                 facts._entry = entry;
                 facts.Part("mod", () => facts.Mod(mod));
+                yield return true;
             }
             else if (entry.Source is SkillSource skill)
             {
                 facts._entry = entry;
                 facts.Part("skill", () => facts.Skill(skill));
+                yield return true;
             }
             else if (entry.Source is PlaceSource place)
             {
                 facts._entry = entry;
-                facts.Place(entry, place);
+                foreach (var step in facts.Place(entry, place)) yield return step;
             }
             else if (entry.Source is GameObject prefab)
             {
@@ -478,7 +575,7 @@ namespace Scry
                 }
                 else facts._stars = Math.Max(2, entry.ExtraLevels);
                 facts._entry = entry;
-                facts.Prefab(prefab);
+                foreach (var step in facts.Prefab(prefab)) yield return step;
                 if (entry.Kind == Kind.Creature) facts.WhereTitle = "Where it lives";
                 facts.Part("where it comes from", () =>
                 {
@@ -509,13 +606,16 @@ namespace Scry
                         facts.Where.Add(new Source("Nothing loaded spawns it where Scry can see. It may come from a location, an event, another creature or a mod.", null, UnsureWords.NowhereFound));
                     }
                 });
+                yield return true;
                 facts.Part("uses", () => facts.Uses(entry.Name));
+                yield return true;
             }
             // The chains it is a step of, by its prefab or its key.
             facts.Part("chain", () =>
             {
                 foreach (var chain in Chains.Of(entry.Name).Concat(Chains.Of(entry.Key)).Distinct()) facts.Rows.Add(new Row { Title = chain.Title, Chain = chain });
             });
+            yield return true;
             facts.TellMissing();
             foreach (var row in facts.Rows.Concat(facts.UseRows)) row.TellApart();
         }
@@ -555,6 +655,34 @@ namespace Scry
         /// </summary>
         public readonly Dictionary<string, string> PartHinges = new Dictionary<string, string>(StringComparer.Ordinal);
 
+        /// <summary>
+        /// Reads a part made of parts a step at a time, each of its own parts a step, as
+        /// <see cref="Part(string, Action)"/> reads one whole: what it tells is noted as its own,
+        /// and one that fails is told once and named at the end, the rest of it left out.
+        /// </summary>
+        private IEnumerable<bool> Parts(string part, IEnumerable<bool> steps)
+        {
+            var outer = _part;
+            var rows = Rows.Count;
+            _part = part;
+            using (var each = steps.GetEnumerator())
+            {
+                while (true)
+                {
+                    var more = false;
+                    if (!Guard.Run(Feature.Details(part), FactWords.Part(part), () => more = each.MoveNext(), Settings.LogPreviews ? FactWords.PartTiming(part) : null))
+                    {
+                        if (!_missing.Contains(part)) _missing.Add(part);
+                        break;
+                    }
+                    if (!more) break;
+                    yield return true;
+                }
+            }
+            _part = outer;
+            for (var i = rows; i < Rows.Count; i++) if (Rows[i].Part == null) Rows[i].Part = part;
+        }
+
         /// <summary>Reads a part that hinges on a thing (<see cref="PartHinges"/>); none for a part that hinges on nothing.</summary>
         private void Part(string part, Action read, string hinge)
         {
@@ -589,6 +717,7 @@ namespace Scry
         public static void Forget()
         {
             Cache.Clear();
+            _building = null;
             _tools = null;
             _notables = null;
             _loot = null;
@@ -602,49 +731,62 @@ namespace Scry
             if (entry != null) Cache.Remove(entry);
         }
 
-        private void Prefab(GameObject prefab)
+        private IEnumerable<bool> Prefab(GameObject prefab)
         {
             var drop = prefab.GetComponent<ItemDrop>();
             var shared = drop.OrNull()?.m_itemData?.m_shared;
-            if (shared != null) Part("item", () => Item(prefab, shared));
+            if (shared != null) foreach (var step in Parts("item", Item(prefab, shared))) yield return step;
 
             var character = prefab.GetComponent<Character>();
-            if (character != null) Part("creature", () => Creature(prefab, character));
+            if (character != null) foreach (var step in Parts("creature", Creature(prefab, character))) yield return step;
 
             // The tools that build it and the tab it is on in each, told for every piece, one
             // whose Piece sits on a part of it too; and what a tool builds.
             if (_entry != null && _entry.Kind == Kind.Piece) Part("built with", () => BuiltWith(prefab.name));
+            yield return true;
             if (Knowledge.Tools.IsTool(prefab.name)) Part("builds", () => Builds(prefab.name));
+            yield return true;
 
             var piece = prefab.GetComponent<Piece>();
-            if (piece != null && piece.enabled) Part("piece", () => Piece(piece, prefab.GetComponent<WearNTear>()));
+            if (piece != null && piece.enabled) foreach (var step in Parts("piece", Piece(piece, prefab.GetComponent<WearNTear>()))) yield return step;
 
             Part("resource", () => Resource(prefab));
+            yield return true;
             if (Knowledge.GivesLoot(prefab)) Hooked(HookedRule.Loot);
             // A switched-off piece a mod added is buildable only where a build tool's menu holds it.
             if (piece != null && !piece.enabled && Knowledge.Tools.ToolsOf(prefab.name).Count > 0) Part("build cost", () => MadeBuildable(piece));
+            yield return true;
             Part("station", () => Station(prefab));
+            yield return true;
 
             // A spawner finds its network view among its parents (SpawnArea.Awake), so it may sit
             // on a part of the prefab; the first found is told.
             var spawner = prefab.GetComponentInChildren<SpawnArea>(true);
             if (spawner != null) Part("spawner", () => Spawner(spawner));
+            yield return true;
 
             var projectile = prefab.GetComponent<Projectile>();
             if (projectile != null) Part("projectile", () => Flight(projectile));
+            yield return true;
 
             // What a chest is filled with when the game first opens it (Container.AddDefaultItems);
             // one players build has nothing.
             var container = prefab.GetComponent<Container>();
             if (container != null) Part("chest", () => Drops(container.m_defaultItems, null, holds: true, tallied: prefab.name));
+            yield return true;
 
             // What a fish bites on, and what a bait catches.
             var fish = prefab.GetComponent<Fish>();
             if (fish != null && fish.m_baits != null) Part("fishing", () => ChanceRow(FishWords.BitesOn, fish.m_baits.Where(b => b?.m_bait != null).Select(b => (b.m_bait.gameObject.name, b.m_chance))));
+            yield return true;
             if (fish != null) Part("fishing", () => Reeling(fish));
+            yield return true;
             if (fish != null) Part("fish", () => Fish(prefab, fish));
+            yield return true;
             if (fish != null) Part("fish catch", () => Catch(fish));
+            yield return true;
             Part("bait", () => ChanceRow("Catches, when one reaches the hook", Knowledge.Catches(prefab.name)));
+            yield return true;
 
             // What a door is opened with, and what a key opens.
             var door = prefab.GetComponent<Door>();
@@ -663,6 +805,7 @@ namespace Scry
             if (powerEffect != null) AddListed("On its boss stone", ItemWords.Gives(EffectName(powerEffect)), EntryKeys.For(Kind.StatusEffect, power));
 
             Part("machines", () => Machines(prefab));
+            yield return true;
 
             // What its areas do: warmth, a base, no monsters and the rest (EffectArea).
             Part("areas", () =>
@@ -677,6 +820,7 @@ namespace Scry
                     if (given != null) Add("Gives those in it", EffectName(given), EntryKeys.For(Kind.StatusEffect, given.name));
                 }
             });
+            yield return true;
 
             // How much it holds: a chest's own container, or a cart's or ship's on a part of it.
             var storage = container != null ? container : prefab.GetComponentInChildren<Container>(true);
@@ -694,6 +838,7 @@ namespace Scry
                 var note = WorldWords.Note(Game.m_worldLevel, game != null ? game.m_worldLevelEnemyHPMultiplier : 1f, Game.m_resourceRate, enemy, _drops);
                 Add("In this world", Naming.Capital(note));
             });
+            yield return true;
         }
 
         /// <summary>The entry told of, for what the list already says of it (its group).</summary>

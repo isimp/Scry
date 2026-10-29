@@ -10,11 +10,18 @@ namespace Scry
     {
         private static float FactsSection(Explorer explorer, Entry entry, float width, float y)
         {
-            // On a page laid out over frames, the facts are worked out in a frame of their own.
+            // On a page laid out over frames, the facts are worked out a few parts a frame, while
+            // the frame's share lasts, and their section waits until they are done.
             if (!Staging.Lay()) return WaitingFacts(width, y);
             var built = Timing.Start();
-            var facts = Facts.For(entry);
+            var facts = Staging.Active ? Facts.Building(entry, Staging.HasRoom) : Facts.For(entry);
             Timing.Add("facts built", built);
+            if (facts == null)
+            {
+                if (Staging.NotYet()) return WaitingFacts(width, y);
+                // Laid before and gone stale since: worked out whole.
+                facts = Facts.For(entry);
+            }
             var places = PlacesShown(entry);
             if (facts.IsEmpty && !places && entry.Biomes.Length == 0 && Users(explorer, entry).Count == 0) return y;
 
@@ -40,6 +47,8 @@ namespace Scry
             // A kind laid out by topic (FactLayout) shows its facts topic by topic, each under a
             // small heading, its headline numbers as tiles and what qualifies a row under it;
             // the others keep their facts, rows and blocks in the order they always had.
+            // The topics' plan is worked out in a frame of its own, the You box shown meanwhile.
+            if (!Staging.Lay()) return WaitingLine(PanelWords.Laying(Staging.HeldFirst), 0f, width, y) + U(14f);
             var step = Timing.Start();
             var plan = PlanOf(explorer, entry, facts, places);
             Timing.Add("side facts plan", step);

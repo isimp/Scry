@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -8,7 +9,7 @@ namespace Scry
     {
         // ----- Pieces -----
 
-        private void Piece(Piece piece, WearNTear wear)
+        private IEnumerable<bool> Piece(Piece piece, WearNTear wear)
         {
             Description = CatalogBuilder.Localize(piece.m_description);
             if (piece.m_comfort > 0)
@@ -24,17 +25,21 @@ namespace Scry
                 Add("Health", Numbers.Amount(wear.m_health));
                 Add("Material", FactWords.Choice(wear.m_materialType));
                 Part("support", () => Support(wear));
+                yield return true;
                 Part("weather", () =>
                 {
                     Add("Rain", BuildWords.Rain(wear.m_noRoofWear));
                     Add("Ashlands", BuildWords.Ash(wear.m_ashDamageImmune, wear.m_ashDamageResist));
                     Add("Heavy snow", BuildWords.Snow(wear.m_snowDamageImmune));
                 });
+                yield return true;
                 Part("resistances", () => Resists(wear.m_damages));
+                yield return true;
                 Hooked(HookedRule.Wear);
             }
 
             Part("placement", () => Placement(piece));
+            yield return true;
 
             // An upgrade of a station, which must stand near it and apart from its other upgrades.
             var extension = piece.GetComponent<StationExtension>();

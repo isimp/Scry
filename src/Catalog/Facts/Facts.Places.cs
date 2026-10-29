@@ -13,19 +13,22 @@ namespace Scry
     {
         // ----- Locations and rooms -----
 
-        private void Place(Entry entry, PlaceSource place)
+        private IEnumerable<bool> Place(Entry entry, PlaceSource place)
         {
             if (place.IsRoom) Part("room", () => RoomFacts(place));
             else Part("placement", () => Placement(place));
+            yield return true;
 
             var contents = place.Contents;
             if (contents == null)
             {
                 Add("What it holds", LocationWords.HoldsNote(place.LoadFailed ? PlaceLoad.Failed : PlaceLoad.Loading));
-                return;
+                yield break;
             }
             Part("location", () => PlaceHolds(entry, contents));
+            yield return true;
             if (contents.Dungeon != null) Part("dungeon", () => Dungeon(contents.Dungeon));
+            yield return true;
         }
 
         /// <summary>The rules of each set the world's location list places it by: a row each for one set, a line each for several.</summary>

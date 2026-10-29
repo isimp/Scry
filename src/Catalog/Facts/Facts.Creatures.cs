@@ -43,7 +43,7 @@ namespace Scry
             return DropWords.WithStars(drop.m_levelMultiplier, amountStays, drop.m_onePerPlayer, drop.m_chance);
         }
 
-        private void Creature(GameObject prefab, Character character)
+        private IEnumerable<bool> Creature(GameObject prefab, Character character)
         {
             Add("Health", Numbers.Amount(character.m_health));
             Proofs["Health"] = EntryKeys.Did(Deed.Killed);
@@ -58,10 +58,15 @@ namespace Scry
             if (!character.m_boss) StarsTable(prefab, character);
 
             Part("resistances", () => Rows.Add(new Row { Title = "Damage it takes", HitReveals = true, Cells = ResistWords.ForCreature(Cells(character.m_damageModifiers)) }));
+            yield return true;
             Part("weak spots", () => WeakSpots(character));
+            yield return true;
             Part("gear", () => GearShown(prefab));
+            yield return true;
             Part("attacks", () => Attacks(prefab));
+            yield return true;
             Part("what to bring", () => Bring(prefab, character));
+            yield return true;
             // Whether it can be tamed, fought or looted is worth telling when it cannot.
             var person = character is Player;
             if (!person && !Rows.Any(row => row.Title == CombatWords.AttacksTitle))
@@ -71,9 +76,12 @@ namespace Scry
                 else Add("Attacks", "none");
             }
             Part("behaviour", () => Behaviour(prefab, character));
+            yield return true;
             if (character.m_boss) Part("summoning", () => SummonedBy(prefab));
+            yield return true;
             var key = character.m_defeatSetGlobalKey;
             if (!string.IsNullOrEmpty(key) && Knowledge.Unlocks.Any(key)) Part("after it falls", () => AfterItFalls(key));
+            yield return true;
 
             if (prefab.GetComponent<Tameable>() == null && !person) Add("Tameable", "no");
             if (prefab.GetComponent<Tameable>() != null)
@@ -125,7 +133,7 @@ namespace Scry
 
             // Mods that hook into what creatures drop, or where they spawn, can change either
             // beyond what the prefab says (ModHooks); a person has neither.
-            if (character is Player) return;
+            if (character is Player) yield break;
 
             // What it was seen to drop as you played, whichever mod put it there (DropWatch).
             var kills = DropWatch.Seen.Kills(prefab.name);

@@ -10,7 +10,7 @@ namespace Scry
     {
         // ----- Items -----
 
-        private void Item(GameObject prefab, ItemDrop.ItemData.SharedData shared)
+        private IEnumerable<bool> Item(GameObject prefab, ItemDrop.ItemData.SharedData shared)
         {
             Description = CatalogBuilder.Localize(shared.m_description);
 
@@ -40,9 +40,13 @@ namespace Scry
             // What grows with quality is told in its table, each figure here at the first level.
             if (worn) Add("Armour", ItemWords.Armour(shared.m_armor));
             if (upgradable) Part(worn ? "gear" : "item stats", () => QualityTable(prefab, shared, worn));
+            yield return true;
             Part("item stats", () => Combat(prefab, shared));
+            yield return true;
             Part("item stats", () => SkillUses(shared));
+            yield return true;
             Part("resistances", () => GearResists(shared, worn));
+            yield return true;
             if (damage.Length > 0 || (worn && shared.m_armor > 0f) || shared.m_blockPower > 1f) Hooked(HookedRule.ItemStats);
 
             if (shared.m_food > 0f || shared.m_foodStamina > 0f || shared.m_foodEitr > 0f)
@@ -65,6 +69,7 @@ namespace Scry
                 if (shared.m_fullAdrenalineSE != null) Add("At full adrenaline", EffectName(shared.m_fullAdrenalineSE), EntryKeys.For(Kind.StatusEffect, shared.m_fullAdrenalineSE.name));
                 if (wornFor && lines.Count == 0 && shared.m_fullAdrenalineSE == null && shared.m_equipStatusEffect == null) Add("Other changes while worn", "none");
             });
+            yield return true;
             // The set's own name is an id the game never shows; the rest of the set is linked under LINKED.
             if (shared.m_setStatusEffect != null)
             {
@@ -93,9 +98,13 @@ namespace Scry
             }
 
             Part("recipe", () => Recipes(prefab, shared));
+            yield return true;
             Part("made at stations", () => MadeIn(prefab));
+            yield return true;
             Part("mod settings", () => ModSettings(prefab, shared));
+            yield return true;
             Part("seen equipped", () => SeenEquipped(prefab, shared));
+            yield return true;
         }
 
         /// <summary>

@@ -24,6 +24,7 @@ namespace Scry
         private double _spentMs;
         private bool _skip;
         private bool _laidLastRepaint;
+        private bool _lastLaidNew;
 
         /// <param name="clock">The time now, in milliseconds.</param>
         /// <param name="budgetMs">How much of a repaint may go to laying parts beyond the first.</param>
@@ -73,23 +74,44 @@ namespace Scry
             _laidThisPass = 0;
             _held = false;
             HeldFirst = false;
+            _lastLaidNew = false;
         }
 
         /// <summary>The page's next part: whether it is drawn whole, else as waiting.</summary>
         public bool Lay()
         {
+            _lastLaidNew = false;
             if (!Active) return true;
             var i = _unit++;
             if (i < _laid) return true;
-            if (_repaint && !_skip && i == _laid && (_laidThisPass == 0 || _spentMs + _clock() - _passStart < _budgetMs))
+            if (_repaint && !_skip && i == _laid && (_laidThisPass == 0 || HasRoom()))
             {
                 _laid++;
                 _laidThisPass++;
+                _lastLaidNew = true;
                 return true;
             }
             HeldFirst = !_held;
             _held = true;
             return false;
+        }
+
+        /// <summary>Whether the frame's share has room left: Scry's other work of the frame and this drawing so far counted.</summary>
+        public bool HasRoom() => _spentMs + _clock() - _passStart < _budgetMs;
+
+        /// <summary>
+        /// The part just laid anew is not done yet (its facts worked out over several frames): it
+        /// waits after all, as does every part after it, and is asked again at the next repaint.
+        /// False where it was laid before, which cannot be taken back.
+        /// </summary>
+        public bool NotYet()
+        {
+            if (!_lastLaidNew) return false;
+            _lastLaidNew = false;
+            _laid--;
+            HeldFirst = !_held;
+            _held = true;
+            return true;
         }
 
         /// <summary>The drawing ends: a repaint that held nothing back has laid the whole page.</summary>
