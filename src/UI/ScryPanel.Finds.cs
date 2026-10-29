@@ -102,6 +102,28 @@ namespace Scry
         }
 
         /// <summary>
+        /// The title row's finds chip while the page is laid out: a faint chip with a track of how
+        /// far it has got, counting once the page is whole; none where no chip would count.
+        /// </summary>
+        private static float CountingChip(Explorer explorer, float right, float y)
+        {
+            FindsChipForTest = null;
+            if (!explorer.ShownWhole(out _) && !explorer.LeavingOut) return right;
+            var height = U(24f);
+            var bar = U(28f);
+            var text = PanelWords.CountingFinds;
+            var width = Skin.Width(Skin.Small, text) + bar + U(26f);
+            var chip = new Rect(right - width, y, width, height);
+            Skin.Box(chip, Skin.Raised);
+            var track = new Rect(chip.x + U(10f), chip.y + (height - U(4f)) / 2f, bar, U(4f));
+            Skin.Fill(track, Skin.Alpha(Skin.Accent, 0.25f));
+            Skin.Fill(new Rect(track.x, track.y, track.width * (float)Staging.Share, track.height), Skin.Accent);
+            Skin.LabelIn(new Rect(track.xMax + U(6f), chip.y, chip.xMax - track.xMax - U(10f), height), text, Skin.Small, Skin.Faint);
+            FindsChipForTest = text;
+            return chip.x;
+        }
+
+        /// <summary>
         /// The chip on a known page's title row under the strict rules, before copy and star: how
         /// much of what it keeps back was found out, its numbers and the names it could leave out,
         /// with a small bar, its tip what is still to find out and a click going to that in the You

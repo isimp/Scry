@@ -76,6 +76,12 @@ namespace Scry
             for (var i = 0; i < plan.Count; i++)
             {
                 var topic = plan[i];
+                // Laid one or a few a frame on a page opened for the first time; the rest keep their place meanwhile.
+                if (!Staging.Lay())
+                {
+                    y = WaitingTopic(topic.Heading, width, y);
+                    continue;
+                }
                 StrictSectionStarts();
                 if (topic.Heading == null)
                 {

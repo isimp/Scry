@@ -341,6 +341,11 @@ namespace Scry
         /// <summary>Whether grass is being scattered, the grass scattered last shown meanwhile, for the self-test.</summary>
         public bool Scattering => _scattering != null;
 
+        /// <summary>The patches of ground a scatter goes through, and how many it has; the share done, for the stage's caption.</summary>
+        private int _patchesAll;
+        private int _patchesDone;
+        public float ScatteredShare => _patchesAll > 0 ? Mathf.Clamp01((float)_patchesDone / _patchesAll) : 0f;
+
         /// <summary>Scatters on for a few milliseconds a frame, the game's own dice put back after.</summary>
         private void StepScatter()
         {
@@ -350,11 +355,19 @@ namespace Scry
             var watch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
-                while (watch.Elapsed.TotalMilliseconds < ScatterBudgetMs)
+                // A patch at least; then another only where it would end within the share, judged by
+                // the last one's time, as a patch of thick grass can take as long as the share itself.
+                var last = 0.0;
+                while (true)
                 {
-                    if (_scattering.MoveNext()) continue;
-                    _scattering = null;
-                    break;
+                    var before = watch.Elapsed.TotalMilliseconds;
+                    if (!_scattering.MoveNext())
+                    {
+                        _scattering = null;
+                        break;
+                    }
+                    last = watch.Elapsed.TotalMilliseconds - before;
+                    if (watch.Elapsed.TotalMilliseconds + last > ScatterBudgetMs) break;
                 }
             }
             finally
@@ -675,6 +688,8 @@ namespace Scry
             // reach cut short, thinning as if the ground ended there.
             var thinsBy = reach / 0.95f;
             var patches = Mathf.CeilToInt(reach / size);
+            _patchesAll = (2 * patches + 1) * (2 * patches + 1);
+            _patchesDone = 0;
             var at = _at;
             // The place's own shape, as it stood when scattering began; heights and slopes from the ground's middle.
             var shape = ShapeNow;
@@ -689,6 +704,7 @@ namespace Scry
                 {
                     var cx = at.x + px * size;
                     var cz = at.z + pz * size;
+                    _patchesDone++;
                     if (new Vector2(cx - at.x, cz - at.z).magnitude > reach) continue;
                     for (var i = 0; i < system.m_clutter.Count; i++)
                     {

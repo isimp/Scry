@@ -169,6 +169,9 @@ namespace Scry
             ScryPanel.PlanNamesShown = true;
             // Only where the test points the mouse lights a room, wherever the player's own stands.
             ScryPanel.MouseAwayForTest(true);
+            // Pages are drawn whole the frame they are picked, as the parts read them so; the part
+            // that watches a page laid out over frames turns this back on for itself.
+            ScryPanel.StagePagesForTest(false);
             _allKnown = null;
             AllKnown();
             // Each place rolls the same while the test runs, so its pictures compare run to run.
@@ -393,6 +396,7 @@ namespace Scry
         {
             // The player's mouse first, so it works again whatever else fails to be put back.
             ScryPanel.MouseAwayForTest(false);
+            ScryPanel.StagePagesForTest(true);
             var before = _before;
             if (before == null) return;
             Previews.StopSound();

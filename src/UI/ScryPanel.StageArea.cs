@@ -159,6 +159,7 @@ namespace Scry
             _pictureScreen = OnScreen(inner);
 
             StagePicture(entry, inner);
+            GrassCaption(inner);
 
             // The example's plan in the corner, which takes the mouse where it is.
             // Inside a dungeon, the plan box with its views; a camp keeps its plan from above.

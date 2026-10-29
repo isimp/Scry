@@ -10,6 +10,8 @@ namespace Scry
     {
         private static float FactsSection(Explorer explorer, Entry entry, float width, float y)
         {
+            // On a page laid out over frames, the facts are worked out in a frame of their own.
+            if (!Staging.Lay()) return WaitingFacts(width, y);
             var built = Timing.Start();
             var facts = Facts.For(entry);
             Timing.Add("facts built", built);

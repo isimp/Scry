@@ -86,6 +86,9 @@ namespace Scry
         /// <summary>A line telling what is still to find, set apart from a page's footnotes (<see cref="ScryPanel.HintLine"/>).</summary>
         HintLine,
 
+        /// <summary>A line saying a part of a page or its stage is still being laid out, or waits to be (<see cref="ScryPanel.WaitingLine"/>).</summary>
+        Waiting,
+
         /// <summary>The count of wares waiting for a boss not yet fallen: under a row's title, or at a section's end.</summary>
         ToUnlock,
         DamageKeptBack,

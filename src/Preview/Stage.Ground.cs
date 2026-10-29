@@ -58,9 +58,11 @@ namespace Scry
         [ForTest]
         public static (float Farthest, float Nearest, float ShortOut, float Reach) GrassSpread => TheGround.GrassSpread;
 
-        /// <summary>For the self-test: whether the grass is being scattered, the last grass shown meanwhile.</summary>
-        [ForTest]
+        /// <summary>Whether the grass is being scattered, the last grass shown meanwhile: for the stage's caption and the self-test.</summary>
         public static bool GrassScattering => TheGround.Scattering;
+
+        /// <summary>How much of the grass being scattered is done, as a share.</summary>
+        public static float GrassScattered => TheGround.ScatteredShare;
 
         /// <summary>The biome whose ground the model stands on, or null on the plain floor or the grid.</summary>
         public static string GroundUnderfoot => TheGround.On ? TheGround.Biome : null;

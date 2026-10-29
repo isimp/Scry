@@ -56,6 +56,21 @@ namespace Scry
         /// <summary>The button that changes the panel's view, by the view it changes to.</summary>
         public static string ViewButton(bool compact) => compact ? "Full view" : "Compact";
 
+        /// <summary>What a page opened for the first time says under its facts' heading while they are worked out.</summary>
+        public const string WorkingOutFacts = "Working out its facts";
+
+        /// <summary>What a topic or the end of a page still being laid out says: the one laid next is being laid, those after it wait.</summary>
+        public static string Laying(bool next) => next ? "Laying it out" : "Waiting";
+
+        /// <summary>The line at the end of a page whose sections below are still being laid out.</summary>
+        public const string LayingTheRest = "Laying out the rest of the page";
+
+        /// <summary>The title row's finds chip while the page is laid out, before it counts.</summary>
+        public const string CountingFinds = "Counting finds";
+
+        /// <summary>The stage's caption while the grass of its ground is being scattered: "Laying the grass of the Black Forest".</summary>
+        public static string LayingGrass(string biome) => $"Laying the grass of the {BiomeWords.Shown(biome)}";
+
         /// <summary>What a click on Copy says it copied.</summary>
         public static string Copied(string text) => $"Copied \"{text}\".";
 

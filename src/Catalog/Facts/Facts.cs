@@ -400,6 +400,13 @@ namespace Scry
         /// <summary>How many times an entry's facts were built since the game started, for the self-test to tell the first pages after the start.</summary>
         public static int BuiltSinceStartForTest { get; private set; }
 
+        /// <summary>Whether an entry's facts are kept and still fresh, so asking for them costs nothing.</summary>
+        public static bool Kept(Entry entry) => entry != null && Kept(entry, out _);
+
+        private static bool Kept(Entry entry, out Facts known) =>
+            Cache.TryGet(entry, out known) && (known._toldWith == Freshness || (!known._skilled && !known._keyed && entry.Kind != Kind.Creature && entry.Kind != Kind.Item && entry.Kind != Kind.Mod))
+            && (entry.Kind != Kind.Creature || known._starsOf == CreatureStars.Stamp);
+
         public static Facts For(Entry entry)
         {
             if (entry == null) return new Facts();
@@ -408,8 +415,7 @@ namespace Scry
             // it, which change as they are set.
             // What is told at the character's skill levels changes as a level does.
             // A creature's stars change as places are read (CreatureStars).
-            if (Cache.TryGet(entry, out var known) && (known._toldWith == Freshness || (!known._skilled && !known._keyed && entry.Kind != Kind.Creature && entry.Kind != Kind.Item && entry.Kind != Kind.Mod))
-                && (entry.Kind != Kind.Creature || known._starsOf == CreatureStars.Stamp)) return known;
+            if (Kept(entry, out var known)) return known;
 
             var facts = new Facts { _toldWith = Freshness, _starsOf = entry.Kind == Kind.Creature ? CreatureStars.Stamp : 0 };
             BuiltSinceStartForTest++;

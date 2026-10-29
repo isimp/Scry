@@ -112,7 +112,60 @@ namespace Scry
         /// <summary>The entry the side was last shown for; another starts at its top.</summary>
         private static Entry _sideFor;
 
+        /// <summary>
+        /// How far the page opened is laid out (<see cref="PageStaging"/>): a page whose facts are
+        /// not kept yet is laid over the frames after the click, a few milliseconds of each, its
+        /// parts waiting meanwhile say so; one at hand, or one a click goes to a section of, at once.
+        /// </summary>
+        private static readonly PageStaging Staging = new PageStaging(() => System.Diagnostics.Stopwatch.GetTimestamp() * 1000.0 / System.Diagnostics.Stopwatch.Frequency, StagingShareMs);
+
+        /// <summary>How much of a frame laying a page out may take beyond its first part.</summary>
+        private const double StagingShareMs = 6.0;
+
+        /// <summary>The entry the staging was begun for.</summary>
+        private static Entry _stagedFor;
+
+        /// <summary>Whether pages opened for the first time are laid out over frames; the self-test turns it off but where it watches that.</summary>
+        private static bool _stagePages = true;
+
+        /// <summary>Lays pages opened for the first time out over frames, or draws them whole at once, for the self-test.</summary>
+        [Diagnostic]
+        public static void StagePagesForTest(bool staged) => _stagePages = staged;
+
+        /// <summary>Whether a page being laid out is held where it got to.</summary>
+        private static bool _holdLaying;
+
+        /// <summary>Holds a page being laid out where it got to, for the self-test's picture of it part way, or lets it go on.</summary>
+        [Diagnostic]
+        public static void HoldLayingForTest(bool held) => _holdLaying = held;
+
+        /// <summary>Whether the page shown is still being laid out, for the self-test.</summary>
+        [Diagnostic, ForTest]
+        public static bool PageBeingLaid => Staging.Active;
+
         private static void Side(Explorer explorer, Rect rect, bool withStage)
+        {
+            var entry = explorer.Selected;
+            if (!ReferenceEquals(entry, _stagedFor))
+            {
+                _stagedFor = entry;
+                if (_stagePages && entry != null && !Facts.Kept(entry)) Staging.Begin();
+                else Staging.Stop();
+            }
+            // A section or a news line to go to is found by drawing the page whole.
+            if (_goingTo != null || _arriving != null) Staging.Stop();
+            Staging.StartPass(Event.current.type == EventType.Repaint && !_holdLaying);
+            try
+            {
+                SidePage(explorer, rect, withStage);
+            }
+            finally
+            {
+                Staging.EndPass();
+            }
+        }
+
+        private static void SidePage(Explorer explorer, Rect rect, bool withStage)
         {
             var entry = explorer.Selected;
             if (!ReferenceEquals(entry, _sideFor))
@@ -201,17 +254,19 @@ namespace Scry
             // hundreds of clips.
             y = Section("side adjust", y, at => Adjust(explorer, entry, cw, at, withStage));
             y = Section("side facts", y, at => FactsSection(explorer, entry, cw, at));
-            y = Section("side kinds", y, at => KindsSection(explorer, entry, cw, at));
-            y = Section("side tooltip", y, at => TooltipSection(explorer, entry, cw, at));
-            y = Section("side runes", y, at => RunesSection(explorer, entry, cw, at));
-            y = Section("side readme", y, at => ReadmeSection(entry, cw, at));
-            y = Section("side animations", y, at => Animations(explorer, entry, cw, at, withStage));
-            y = Section("side effects", y, at => Effects(explorer, entry, cw, at, withStage));
-            y = Section("side plays in", y, at => PlaysInSection(explorer, entry, cw, at));
-            y = Section("side links", y, at => LinksSection(explorer, entry, cw, at));
+            // Below the facts, each section is laid in its turn on a page opened for the first time.
+            y = Laid("side kinds", y, at => KindsSection(explorer, entry, cw, at));
+            y = Laid("side tooltip", y, at => TooltipSection(explorer, entry, cw, at));
+            y = Laid("side runes", y, at => RunesSection(explorer, entry, cw, at));
+            y = Laid("side readme", y, at => ReadmeSection(entry, cw, at));
+            y = Laid("side animations", y, at => Animations(explorer, entry, cw, at, withStage));
+            y = Laid("side effects", y, at => Effects(explorer, entry, cw, at, withStage));
+            y = Laid("side plays in", y, at => PlaysInSection(explorer, entry, cw, at));
+            y = Laid("side links", y, at => LinksSection(explorer, entry, cw, at));
             // The game's commands that spawn or give a thing are no part of what a character knows.
-            if (explorer.ShowsCommands) y = Section("side command", y, at => Command(explorer, entry, cw, at));
-            y = Section("side details", y, at => Details(explorer, entry, cw, at));
+            if (explorer.ShowsCommands) y = Laid("side command", y, at => Command(explorer, entry, cw, at));
+            y = Laid("side details", y, at => Details(explorer, entry, cw, at));
+            y = WaitingRest(cw, y);
             EndMarking();
             EndNameCount(entry);
             // The height as this draw found it, so the scroll range is right from the next event on,
@@ -343,7 +398,9 @@ namespace Scry
             var size = ToolbarRow;
             var starRect = new Rect(width - size, y + U(3f), size, size);
             var copyRect = new Rect(starRect.x - U(6f) - size, starRect.y, size, size);
-            var nameRect = new Rect(0f, y, FindsChip(explorer, entry, copyRect.x - U(8f), copyRect.y) - U(10f), U(30f));
+            // The finds are counted once the page is laid out whole.
+            var chipX = Staging.Active ? CountingChip(explorer, copyRect.x - U(8f), copyRect.y) : FindsChip(explorer, entry, copyRect.x - U(8f), copyRect.y);
+            var nameRect = new Rect(0f, y, chipX - U(10f), U(30f));
             var fits = FitLabel(nameRect, primary, Skin.Big, 13f);
             // With the compendium on the prefab's name stays off the line under the name, as the list leaves it out; it shows on the name's hover.
             var prefabOff = explorer.CompendiumOn && entry.Name != primary;
@@ -462,6 +519,7 @@ namespace Scry
         private static void ForgetSelection()
         {
             _sideFor = null;
+            _stagedFor = null;
             ForgetSectionLine();
             ForgetFactPlan();
             ForgetYou();

@@ -248,6 +248,48 @@ namespace Scry
             p.Check(X.Forward() && X.Selected == b, "Forward goes on again");
         }
 
+        /// <summary>The most Scry's work may take in a frame while a page is laid out over frames.</summary>
+        private const double LayingFrameMs = 60;
+
+        /// <summary>
+        /// A page whose facts are not kept yet answers the click in its first frame, its parts not
+        /// laid yet saying so, is laid out whole within a few frames none of which takes long, and
+        /// counts its finds once whole. A picture is taken part way, the laying held there.
+        /// </summary>
+        private static IEnumerator PageLaidOut(Probe p)
+        {
+            var page = Pick(Kind.Creature, "Troll", "Draugr", "Greydwarf_Elite", "Abomination");
+            if (page == null || Facts.Kept(page)) page = X.Entries.All.FirstOrDefault(e => e.Kind == Kind.Creature && e.Origin == Origin.Vanilla && !Facts.Kept(e));
+            if (page == null) p.Skip("every creature's facts are kept already");
+            ScryPanel.StagePagesForTest(true);
+            var from = Frames.Frames;
+            var waiting = ScryPanel.Drawn(PanelPart.Waiting);
+            Timing.ForgetBytesByPart();
+            Select(page);
+            yield return null;
+            p.Check(ScryPanel.PageBeingLaid && ScryPanel.Drawn(PanelPart.Waiting) > waiting, $"{page.ShownName}'s page answers the click at once, its parts not laid yet saying so",
+                ScryPanel.PageBeingLaid ? "no waiting line drawn" : "laid whole in its first frame");
+            yield return null;
+            ScryPanel.HoldLayingForTest(true);
+            yield return Shot(p, "a page laid out over frames, part way");
+            ScryPanel.HoldLayingForTest(false);
+            var frames = 0;
+            while (ScryPanel.PageBeingLaid && frames < 300)
+            {
+                frames++;
+                yield return null;
+            }
+            p.Check(!ScryPanel.PageBeingLaid, "the page is laid out whole within a few frames", $"{Numbers.Count(frames)} frames after the picture");
+            yield return null;
+            yield return null;
+            var laid = Frames.Since(from);
+            p.Note($"laying it out took {Numbers.Count(frames + 3)} frames; the longest each part took in one: {string.Join(", ", FirstPageParts.Select(part => $"{part} {Numbers.Amount(Timing.MostMs(part), 1)} ms"))}");
+            p.Check(laid.Max < LayingFrameMs, "no frame of laying it out takes long", $"{Numbers.Amount(laid.Max, 1)} ms at the most{Slowest(laid, 1)}");
+            p.Check(ScryPanel.FindsChipForTest != PanelWords.CountingFinds, "the finds chip counts once the page is whole", ScryPanel.FindsChipForTest ?? "no chip");
+            ScryPanel.StagePagesForTest(false);
+            yield return Picture(p, "a page laid out over frames, whole");
+        }
+
         /// <summary>Each kind's tab lists as many as its count says, each group of it in one run, in whatever way the tab groups.</summary>
         private static IEnumerator TabsAndGroups(Probe p)
         {
