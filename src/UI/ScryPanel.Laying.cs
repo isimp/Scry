@@ -5,46 +5,93 @@ namespace Scry
 {
     /// <summary>
     /// A page opened for the first time, drawn while it is laid out over the frames after the
-    /// click (<see cref="PageStaging"/>): each part not laid yet keeps its place with a line saying
-    /// it is being laid or waits, the finds chip counts once the page is whole, and the stage says
-    /// while it still lays its ground's grass.
+    /// click (<see cref="PageStaging"/>): each part not laid yet stands as its skeleton, faint bars
+    /// in its shape with a band of light sweeping over them (<see cref="Skin.Skeleton"/>), and
+    /// fades in as it is laid; the section line and the finds chip stand as skeletons until the
+    /// page is whole and fade in together then; the stage says while it still lays its ground's grass.
     /// </summary>
     internal static partial class ScryPanel
     {
-        /// <summary>A section of the page drawn once its turn to be laid has come; nothing until then.</summary>
-        private static float Laid(string part, float y, Func<float, float> draw) => Staging.Lay() ? Section(part, y, draw) : y;
+        /// <summary>How long a part laid takes to fade in, in milliseconds.</summary>
+        private const double FadeMs = 180;
 
-        /// <summary>The line saying a part is being laid or waits: the accent's bar, faint words.</summary>
-        private static float WaitingLine(string said, float x, float width, float y)
+        /// <summary>A section of the page drawn once its turn to be laid has come, fading in then; nothing until then.</summary>
+        private static float Laid(string part, float y, Func<float, float> draw)
         {
-            Skin.Fill(new Rect(x, y + U(3f), U(2f), U(16f)), Skin.Alpha(Skin.Accent, 0.6f));
-            GUI.Label(new Rect(x + U(10f), y, Mathf.Max(0f, width - U(10f)), U(22f)), Skin.Fit(Skin.FaintLabel, said, width - U(10f)), Skin.FaintLabel);
-            CountDrawn(PanelPart.Waiting);
-            return y + U(22f);
+            if (!Staging.Lay()) return y;
+            var unit = Staging.LastUnit;
+            var after = Section(part, y, draw);
+            FadeIn(new Rect(0f, y, _sideWidth, after - y), Skin.Backdrop, Staging.Shown(unit, FadeMs));
+            return after;
         }
 
-        /// <summary>The facts' section while they are worked out: its heading and what it is doing.</summary>
+        /// <summary>
+        /// Covers what was just drawn with what lies under it, less as it is shown: a part laid
+        /// fades in from its background. Nothing once shown whole.
+        /// </summary>
+        private static void FadeIn(Rect area, Color under, double shown)
+        {
+            if (shown >= 1.0 || area.height <= 0f) return;
+            Skin.Fill(area, Skin.Alpha(under, (float)(1.0 - shown)));
+        }
+
+        /// <summary>The same over a rounded box, its corners kept.</summary>
+        private static void FadeInBox(Rect box, Color under, double shown)
+        {
+            if (shown >= 1.0 || box.height <= 0f) return;
+            Skin.Box(box, Skin.Alpha(under, (float)(1.0 - shown)));
+        }
+
+        /// <summary>A box's skeleton: the box, a short bar where its heading goes and a longer one under it.</summary>
+        private static float SkeletonBox(float width, float y, float height)
+        {
+            var top = y + U(6f);
+            Skin.Box(new Rect(0f, top, width, height), Skin.TopicFill);
+            var pad = U(12f);
+            Skin.Skeleton(new Rect(pad, top + U(12f), (width - pad * 2f) * 0.22f, U(11f)));
+            Skin.Skeleton(new Rect(pad, top + U(32f), (width - pad * 2f) * 0.55f, U(11f)));
+            CountDrawn(PanelPart.Waiting);
+            return top + height + U(4f);
+        }
+
+        /// <summary>A row of headline tiles' skeleton, two bars in each.</summary>
+        private static float SkeletonTiles(float width, float y, int tiles)
+        {
+            var gap = U(8f);
+            var w = (width - gap * (tiles - 1)) / tiles;
+            var height = U(46f);
+            for (var i = 0; i < tiles; i++)
+            {
+                var x = i * (w + gap);
+                Skin.Box(new Rect(x, y, w, height), Skin.TopicFill);
+                Skin.Skeleton(new Rect(x + U(10f), y + U(10f), w * 0.45f, U(10f)));
+                Skin.Skeleton(new Rect(x + U(10f), y + U(26f), w * 0.7f, U(10f)));
+            }
+            CountDrawn(PanelPart.Waiting);
+            return y + height + U(9f);
+        }
+
+        /// <summary>The facts' section while they are worked out: its heading, then the You box and a row of tiles as skeletons.</summary>
         private static float WaitingFacts(float width, float y)
         {
             GUI.Label(new Rect(0f, y, width, U(20f)), "IN THE GAME", Skin.Heading);
             y += U(26f);
-            return WaitingLine(PanelWords.WorkingOutFacts, 0f, width, y) + U(14f);
+            y = SkeletonBox(width, y - U(6f), U(52f));
+            return SkeletonTiles(width, y + U(2f), 3) + U(14f);
         }
 
-        /// <summary>A topic not laid yet: its box and heading where it will stand, and whether it is being laid or waits.</summary>
+        /// <summary>The topics while their plan is worked out, under the You box: a row of tiles as skeletons.</summary>
+        private static float WaitingPlan(float width, float y) => SkeletonTiles(width, y, 3) + U(14f);
+
+        /// <summary>A topic not laid yet: its box's skeleton where it will stand.</summary>
         private static float WaitingTopic(string heading, float width, float y)
         {
-            var top = y + U(6f);
-            var height = U(56f);
-            Skin.Box(new Rect(0f, top, width, height), Skin.TopicFill);
-            var pad = U(10f);
-            if (heading != null) GUI.Label(new Rect(pad, top + U(6f), width - pad * 2f, U(20f)), heading, Skin.TopicName);
-            WaitingLine(PanelWords.Laying(Staging.HeldFirst), pad, width - pad * 2f, top + U(30f));
-            return top + height + U(4f);
+            if (heading == null) return SkeletonTiles(width, y + U(6f), 3);
+            return SkeletonBox(width, y, U(56f));
         }
 
-        /// <summary>The line at the page's end while sections below are still to be laid.</summary>
-        private static float WaitingRest(float width, float y) => Staging.HeldAny ? WaitingLine(PanelWords.LayingTheRest, 0f, width, y + U(4f)) : y;
+        /// <summary>The page's end while sections below are still to be laid: one box's skeleton.</summary>
+        private static float WaitingRest(float width, float y) => Staging.HeldAny ? SkeletonBox(width, y, U(52f)) : y;
 
         /// <summary>The stage's caption while its ground's grass is scattered, with how far it has got.</summary>
         private static void GrassCaption(Rect stage)

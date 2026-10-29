@@ -171,6 +171,9 @@ namespace Scry
         /// <param name="anyOpen">Whether any section stands open, so the icon folds them all, else opens them all.</param>
         private static float SectionLineRow(float width, float y, float shown, float maxScroll, bool anyOpen)
         {
+            // The sections' names wait for the whole page, its skeleton standing meanwhile, so the
+            // line never grows a link at a time.
+            if (Staging.Active) return SkeletonLine(width, y);
             if (!SectionLine.Shows(Marks.Count))
             {
                 SectionLit = null;
@@ -202,7 +205,27 @@ namespace Scry
             }
             CountDrawn(PanelPart.SectionLine);
             if (Event.current.type == EventType.Repaint) ToolbarPartsForTest.Add(("line", new Rect(0f, lineStart, width - FoldRoom, flow.Below - lineStart)));
+            FadeIn(new Rect(0f, lineStart, width, flow.Below - lineStart), Skin.Backdrop, Staging.WholeShown(FadeMs));
             return flow.Below + U(6f);
+        }
+
+        /// <summary>The widths of the section line's skeleton pills, as names of sections run.</summary>
+        private static readonly float[] SkeletonLinks = { 50f, 70f, 90f, 60f, 56f };
+
+        /// <summary>The section line's skeleton while the page is laid out: a row of pills where the sections' names will stand.</summary>
+        private static float SkeletonLine(float width, float y)
+        {
+            var flow = LineFlow(width, y);
+            var x = 0f;
+            foreach (var each in SkeletonLinks)
+            {
+                var w = U(each);
+                if (x + w > width - FoldRoom) break;
+                Skin.Skeleton(new Rect(x, y + (flow.RowHeight - U(12f)) / 2f, w, U(12f)));
+                x += w + U(14f);
+            }
+            CountDrawn(PanelPart.Waiting);
+            return y + flow.RowHeight + U(6f);
         }
     }
 }

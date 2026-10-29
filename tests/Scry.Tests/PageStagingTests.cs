@@ -175,6 +175,73 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APartLaidOverFramesFadesInFromWhenItWasLaid()
+        {
+            // Each part fades in as it is laid, where its skeleton stood.
+            var clock = new Clock();
+            var staging = new PageStaging(clock.Now, budgetMs: 6);
+            staging.Begin();
+            staging.StartPass(true);
+            Assert.True(staging.Lay());
+            var first = staging.LastUnit;
+            clock.Ms += 7;
+            Assert.False(staging.Lay());
+            Assert.Equal(1, staging.LastUnit);
+            staging.EndPass();
+
+            clock.Ms += 83;
+            Assert.Equal(0, first);
+            Assert.Equal(0.5, staging.Shown(first, 180), 3);
+            clock.Ms += 200;
+            Assert.Equal(1, staging.Shown(first, 180), 3);
+            // A part not laid yet is not shown at all.
+            Assert.Equal(0, staging.Shown(1, 180), 3);
+        }
+
+        [Fact]
+        public void APageDrawnWholeAtOnceDoesNotFade()
+        {
+            var clock = new Clock();
+            var staging = new PageStaging(clock.Now, budgetMs: 6);
+            staging.Stop();
+            staging.StartPass(true);
+            staging.Lay();
+
+            Assert.Equal(1, staging.Shown(staging.LastUnit, 180), 3);
+            Assert.Equal(1, staging.WholeShown(180), 3);
+        }
+
+        [Fact]
+        public void WhatWaitsForTheWholePageFadesInOnceItIsWhole()
+        {
+            // The section line and the finds chip stand as skeletons until the page is whole.
+            var clock = new Clock();
+            var staging = new PageStaging(clock.Now, budgetMs: 6);
+            staging.Begin();
+            Pass(staging, clock, true, 10, 1);
+            Assert.Equal(0, staging.WholeShown(180), 3);
+
+            Pass(staging, clock, true, 0, 1);
+            Assert.False(staging.Active);
+            clock.Ms += 45;
+            Assert.Equal(0.25, staging.WholeShown(180), 3);
+        }
+
+        [Fact]
+        public void APartTakenBackIsNotShownAsLaid()
+        {
+            var clock = new Clock();
+            var staging = new PageStaging(clock.Now, budgetMs: 6);
+            staging.Begin();
+            staging.StartPass(true);
+            staging.Lay();
+            staging.NotYet();
+            clock.Ms += 500;
+
+            Assert.Equal(0, staging.Shown(0, 180), 3);
+        }
+
+        [Fact]
         public void OnlyARepaintEndsTheLayingOut()
         {
             // An event drawing fewer parts, a section folded meanwhile, holds none back, but the

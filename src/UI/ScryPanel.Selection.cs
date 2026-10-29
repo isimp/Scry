@@ -109,6 +109,9 @@ namespace Scry
         /// <summary>How tall the toolbar is for so many lines, with the gap under it; nothing for none.</summary>
         private static float ToolbarHeight(int lines) => lines > 0 ? lines * ToolbarRow + (lines - 1) * ToolbarLineGap + U(10f) : 0f;
 
+        /// <summary>The width the page's sections are drawn in, for their fades.</summary>
+        private static float _sideWidth;
+
         /// <summary>The entry the side was last shown for; another starts at its top.</summary>
         private static Entry _sideFor;
 
@@ -236,6 +239,7 @@ namespace Scry
             _sideVisible = new Rect(0f, _sideScroll.y, content.width, below.height);
 
             var cw = content.width;
+            _sideWidth = cw;
             var y = 0f;
             StartMarking();
             StartNameCount();
@@ -400,7 +404,10 @@ namespace Scry
             var starRect = new Rect(width - size, y + U(3f), size, size);
             var copyRect = new Rect(starRect.x - U(6f) - size, starRect.y, size, size);
             // The finds are counted once the page is laid out whole.
-            var chipX = Staging.Active ? CountingChip(explorer, copyRect.x - U(8f), copyRect.y) : FindsChip(explorer, entry, copyRect.x - U(8f), copyRect.y);
+            var chipRight = copyRect.x - U(8f);
+            var chipX = Staging.Active ? CountingChip(explorer, chipRight, copyRect.y) : FindsChip(explorer, entry, chipRight, copyRect.y);
+            // Counted once the page is whole, the chip fades in where its skeleton stood.
+            if (!Staging.Active) FadeIn(new Rect(chipX, copyRect.y, chipRight - chipX, U(24f)), Skin.Backdrop, Staging.WholeShown(FadeMs));
             var nameRect = new Rect(0f, y, chipX - U(10f), U(30f));
             var fits = FitLabel(nameRect, primary, Skin.Big, 13f);
             // With the compendium on the prefab's name stays off the line under the name, as the list leaves it out; it shows on the name's hover.

@@ -4,7 +4,7 @@
 
 The first page opened after the game starts has less to do: in the frames after a world loads, Scry also compiles the game's and Unity's code its pages call, with the hooks mods put on it, and readies the way the stage's picture is drawn.
 
-A page opened for the first time answers the click at once and fills in over the next frames, each part saying what it waits for, instead of holding the game for a moment. The stage says while it still lays its ground's grass.
+A page opened for the first time answers the click at once and fills in over the next frames instead of holding the game for a moment: each part stands in its place as a faint shimmering outline and fades in as it is ready. The stage says while it still lays its ground's grass.
 
 Under *Strict* a page says what it keeps back. Each section ends saying how many things it left out, and a section left with nothing keeps its heading to say so. The title row counts the names not yet seen together along with the numbers, so it reads *All found out* only once nothing is kept back, the *You* box says how many wait to be seen together, and `is:left` finds the same pages.
 

@@ -102,25 +102,17 @@ namespace Scry
         }
 
         /// <summary>
-        /// The title row's finds chip while the page is laid out: a faint chip with a track of how
-        /// far it has got, counting once the page is whole; none where no chip would count.
+        /// The title row's finds chip while the page is laid out: its skeleton, counting once the
+        /// page is whole and fading in then; none where no chip would count.
         /// </summary>
         private static float CountingChip(Explorer explorer, float right, float y)
         {
             FindsChipForTest = null;
             if (!explorer.ShownWhole(out _) && !explorer.LeavingOut) return right;
-            var height = U(24f);
-            var bar = U(28f);
-            var text = PanelWords.CountingFinds;
-            var width = Skin.Width(Skin.Small, text) + bar + U(26f);
-            var chip = new Rect(right - width, y, width, height);
-            Skin.Box(chip, Skin.Raised);
-            var track = new Rect(chip.x + U(10f), chip.y + (height - U(4f)) / 2f, bar, U(4f));
-            Skin.Fill(track, Skin.Alpha(Skin.Accent, 0.25f));
-            Skin.Fill(new Rect(track.x, track.y, track.width * (float)Staging.Share, track.height), Skin.Accent);
-            Skin.LabelIn(new Rect(track.xMax + U(6f), chip.y, chip.xMax - track.xMax - U(10f), height), text, Skin.Small, Skin.Faint);
-            FindsChipForTest = text;
-            return chip.x;
+            var width = U(110f);
+            Skin.Skeleton(new Rect(right - width, y + U(5f), width, U(14f)));
+            CountDrawn(PanelPart.Waiting);
+            return right - width;
         }
 
         /// <summary>

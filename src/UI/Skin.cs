@@ -9,7 +9,7 @@ namespace Scry
     /// so the mod ships no assets. Styles are rebuilt when the panel's scale changes, since text is
     /// sharper drawn at its real size than scaled.
     /// </summary>
-    internal static class Skin
+    internal static partial class Skin
     {
         public static readonly Color Backdrop = new Color(0.066f, 0.071f, 0.086f, 0.97f);
         public static readonly Color Panel = new Color(0.098f, 0.105f, 0.126f, 1f);

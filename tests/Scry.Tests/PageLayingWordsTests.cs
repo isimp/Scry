@@ -4,14 +4,7 @@ namespace Scry.Tests
 {
     public class PageLayingWordsTests
     {
-        // A page laid out over a few frames says what it waits for, in plain words.
-
-        [Fact]
-        public void ThePartLaidNextIsBeingLaidAndThoseAfterItWait()
-        {
-            Assert.Equal("Laying it out", PanelWords.Laying(next: true));
-            Assert.Equal("Waiting", PanelWords.Laying(next: false));
-        }
+        // The stage says while it lays its ground's grass, in plain words.
 
         [Fact]
         public void TheStageNamesTheGroundWhoseGrassItLays()

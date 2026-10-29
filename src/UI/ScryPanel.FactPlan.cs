@@ -82,12 +82,15 @@ namespace Scry
                     y = WaitingTopic(topic.Heading, width, y);
                     continue;
                 }
+                var unit = Staging.LastUnit;
                 StrictSectionStarts();
                 if (topic.Heading == null)
                 {
                     NoteTopic(topic.Id, y);
+                    var from = y;
                     y = TopicBody(explorer, entry, facts, topic, places, width, Mathf.Min(U(130f), width * 0.36f), y);
                     y = StrictLeftLine(explorer, topic.Id, width, y);
+                    FadeIn(new Rect(0f, from, width, y - from), Skin.Backdrop, Staging.Shown(unit, FadeMs));
                     continue;
                 }
 
@@ -118,6 +121,8 @@ namespace Scry
                 GUI.Label(new Rect(pad, top + U(6f), inner, U(20f)), topic.Heading, Skin.TopicName);
                 y += U(4f);
                 if (Event.current.type == EventType.Repaint) TopicHeights[i] = y - top;
+                // Laid over frames, a topic's box stands at once and what it holds fades in.
+                FadeInBox(new Rect(0f, top, width, y - top), Skin.TopicFill, Staging.Shown(unit, FadeMs));
                 y += U(4f);
             }
             return y;

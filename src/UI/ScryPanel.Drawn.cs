@@ -86,7 +86,7 @@ namespace Scry
         /// <summary>A line telling what is still to find, set apart from a page's footnotes (<see cref="ScryPanel.HintLine"/>).</summary>
         HintLine,
 
-        /// <summary>A line saying a part of a page or its stage is still being laid out, or waits to be (<see cref="ScryPanel.WaitingLine"/>).</summary>
+        /// <summary>A skeleton standing where a part of a page will be laid (<see cref="Skin.Skeleton"/>).</summary>
         Waiting,
 
         /// <summary>The stage's caption while its ground's grass is laid (<see cref="ScryPanel.GrassCaption"/>).</summary>

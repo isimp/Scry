@@ -13,6 +13,7 @@ namespace Scry
             // On a page laid out over frames, the facts are worked out a few parts a frame, while
             // the frame's share lasts, and their section waits until they are done.
             if (!Staging.Lay()) return WaitingFacts(width, y);
+            var factsUnit = Staging.LastUnit;
             var built = Timing.Start();
             var facts = Staging.Active ? Facts.Building(entry, Staging.HasRoom) : Facts.For(entry);
             Timing.Add("facts built", built);
@@ -27,6 +28,7 @@ namespace Scry
 
             y = SectionHeading("IN THE GAME", width, y, null, "facts");
             if (IsFolded("facts")) return y;
+            var opened = y;
 
             if (facts.Description.Length > 0)
             {
@@ -40,6 +42,8 @@ namespace Scry
             var you = Timing.Start();
             y = YouBox(explorer, entry, facts, width, y);
             Timing.Add("facts drawn you", you);
+            // Laid over frames, what opens the facts fades in where its skeleton stood.
+            FadeIn(new Rect(0f, opened, width, y - opened), Skin.Backdrop, Staging.Shown(factsUnit, FadeMs));
 
             // A two-column table: what it is on the left, its value on the right.
             var labelW = Mathf.Min(U(130f), width * 0.36f);
@@ -48,7 +52,9 @@ namespace Scry
             // small heading, its headline numbers as tiles and what qualifies a row under it;
             // the others keep their facts, rows and blocks in the order they always had.
             // The topics' plan is worked out in a frame of its own, the You box shown meanwhile.
-            if (!Staging.Lay()) return WaitingLine(PanelWords.Laying(Staging.HeldFirst), 0f, width, y) + U(14f);
+            if (!Staging.Lay()) return WaitingPlan(width, y);
+            var planUnit = Staging.LastUnit;
+            var listed = y;
             var step = Timing.Start();
             var plan = PlanOf(explorer, entry, facts, places);
             Timing.Add("side facts plan", step);
@@ -68,6 +74,7 @@ namespace Scry
                 Timing.Add("facts drawn blocks", kind);
                 y = StrictLeftLine(explorer, null, width, y);
                 Timing.Add("side facts drawn", step);
+                FadeIn(new Rect(0f, listed, width, y - listed), Skin.Backdrop, Staging.Shown(planUnit, FadeMs));
                 return y + U(14f);
             }
 
