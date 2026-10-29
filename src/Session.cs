@@ -233,18 +233,19 @@ namespace Scry
         /// <summary>When what the character knows was last told to the list, by the unscaled clock.</summary>
         private static float _knownToldAt = float.NegativeInfinity;
 
-        /// <summary>Whether the world's chains were read since its catalog was.</summary>
-        private static bool _chainsRead;
+        /// <summary>When the world's chains were last asked for, by the unscaled clock.</summary>
+        private static float _chainsAt = float.NegativeInfinity;
 
         /// <summary>
-        /// Reads the world's chains (<see cref="Chains"/>) once its catalog is read, in a frame of
-        /// their own, rather than in the frame of the first page showing one: reading them looks
-        /// at every prefab of the world.
+        /// Keeps the world's chains (<see cref="Chains"/>) read, in a frame of their own, rather
+        /// than in the frame of the first page showing one: reading them looks at every prefab of
+        /// the world. Asked once a second, they are read again only where they changed: a new
+        /// world, or the altars the locations add, once their reading is done.
         /// </summary>
         private static void ReadChains()
         {
-            if (Explorer == null || _chainsRead) return;
-            _chainsRead = true;
+            if (Explorer == null || Locations.Now == Locations.State.Reading || Time.unscaledTime - _chainsAt < 1f) return;
+            _chainsAt = Time.unscaledTime;
             Chains.Of("");
         }
 
@@ -400,7 +401,7 @@ namespace Scry
             _scene = null;
             _job = null;
             _failedIn = null;
-            _chainsRead = false;
+            _chainsAt = float.NegativeInfinity;
             _inWorldSince = -1f;
             Guard.Run(Feature.Leaving, "closing on leaving a world", Hide);
             Guard.Run(Feature.Leaving, "clearing the world's previews", Previews.ClearWorld);

@@ -264,10 +264,13 @@ namespace Scry
             var page = Pick(Kind.Creature, "Troll", "Draugr", "Greydwarf_Elite", "Abomination");
             if (page == null || Facts.Kept(page)) page = X.Entries.All.FirstOrDefault(e => e.Kind == Kind.Creature && e.Origin == Origin.Vanilla && !Facts.Kept(e));
             if (page == null) p.Skip("every creature's facts are kept already");
-            // Timed as play meets a page: once Scry's code is compiled ahead, with no box open over it.
+            // Timed as play meets a page: once Scry's code is compiled ahead, with the panel open
+            // already, as opening it gives the search box the keyboard, and no box open over it.
             yield return Until(() => Session.Warmup?.Done == true, 50);
+            if (!Session.IsOpen) Session.Show(null);
+            for (var settle = 0; settle < 5; settle++) yield return null;
             ScryPanel.LeaveBoxes();
-            yield return null;
+            for (var settle = 0; settle < 3; settle++) yield return null;
             ScryPanel.StagePagesForTest(true);
             var from = Frames.Frames;
             var waiting = ScryPanel.Drawn(PanelPart.Waiting);
