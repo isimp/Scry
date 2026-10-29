@@ -74,13 +74,36 @@ namespace Scry
         /// its kills are news by the creatures learned rather than their health found out as well;
         /// what it learns is caught up (<see cref="CompendiumBook.CatchingUp"/>), with no moment or day.
         /// </summary>
-        public int Fill(CompendiumRecords records, CompendiumBook book, bool firstLoad)
+        public int Fill(CompendiumRecords records, CompendiumBook book, bool firstLoad) => Fill(records, book, firstLoad, null);
+
+        /// <summary>The records added since the last reading, read alone; kept so reading them makes no garbage of sets.</summary>
+        private readonly CompendiumRecords _added = new CompendiumRecords();
+
+        /// <summary>
+        /// Raises in the book what records grown since <paramref name="before"/> tell: from what was
+        /// added alone where that tells what all of them would (<see cref="CompendiumRecords.AddedSince"/>),
+        /// so a first kill of a kind costs that kill rather than every record again; else from all.
+        /// Never a first reading. Whether all were read.
+        /// </summary>
+        public bool FillGrown(CompendiumRecords now, CompendiumRecords before, CompendiumBook book)
+        {
+            if (!now.AddedSince(before, _added))
+            {
+                Fill(now, book, firstLoad: false);
+                return true;
+            }
+            Fill(_added, book, firstLoad: false, all: now);
+            return false;
+        }
+
+        /// <summary>Raises what <paramref name="records"/> tell, read with every record (<paramref name="all"/>, these where none) for what depends on all of them: the biomes entered and the kills taken back.</summary>
+        private int Fill(CompendiumRecords records, CompendiumBook book, bool firstLoad, CompendiumRecords all)
         {
             var caught = book.CatchingUp;
             book.CatchingUp = caught || firstLoad;
             try
             {
-                return FillFrom(records, book, firstLoad);
+                return FillFrom(records, all ?? records, book, firstLoad);
             }
             finally
             {
@@ -88,7 +111,7 @@ namespace Scry
             }
         }
 
-        private int FillFrom(CompendiumRecords records, CompendiumBook book, bool firstLoad)
+        private int FillFrom(CompendiumRecords records, CompendiumRecords all, CompendiumBook book, bool firstLoad)
         {
             // An unlocked recipe's item is known: the crafting menu shows it whole, its look, stats and what it takes.
             var items = Named(records.PickedUp, Kind.Item).Concat(Named(records.Crafted, Kind.Item)).Concat(Named(records.Eaten, Kind.Item)).Concat(Named(records.Recipes, Kind.Item)).ToList();
@@ -97,7 +120,7 @@ namespace Scry
             // Each record raises what it tells by its own way, the first way to tell a thing kept with it.
             var known = new List<(Entry Entry, CameBy Way)>();
             void Add(IEnumerable<Entry> entries, CameBy way) => known.AddRange(entries.Select(e => (e, way)));
-            var entered = Entered(records);
+            var entered = Entered(all);
             var killed = Killed(records, entered).ToList();
             Add(killed, CameBy.Killed);
             Add(Named(records.Crafted, Kind.Item), CameBy.Made);
@@ -141,7 +164,9 @@ namespace Scry
                 if (firstLoad) book.Prove(creature.Key, EntryKeys.Did(Deed.Killed));
                 else book.FoundOut(creature.Key, EntryKeys.Did(Deed.Killed));
             }
-            foreach (var stray in Unkilled(records, book, known.Select(k => k.Entry))) book.TakeBack(stray.Key, EntryKeys.Did(Deed.Killed));
+            // A stray kill is told by every kill the records hold, not only those read now.
+            var told = ReferenceEquals(all, records) ? known.Select(k => k.Entry) : known.Select(k => k.Entry).Concat(Killed(all, entered));
+            foreach (var stray in Unkilled(all, book, told)) book.TakeBack(stray.Key, EntryKeys.Did(Deed.Killed));
             foreach (var given in givers)
             {
                 foreach (var giver in given.Value) book.Witness(given.Key.Key, giver);

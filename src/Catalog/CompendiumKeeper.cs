@@ -28,6 +28,11 @@ namespace Scry
         private static readonly FileQueue Files = new FileQueue();
         private static readonly CompendiumRecords Records = new CompendiumRecords();
 
+        /// <summary>The records as last read into <see cref="_filledBook"/> by <see cref="_filledBy"/>, so a reading after them reads only what was added.</summary>
+        private static readonly CompendiumRecords RecordsBefore = new CompendiumRecords();
+        private static CompendiumBook _filledBook;
+        private static CompendiumCatchUp _filledBy;
+
         /// <summary>The file of the character whose book is held or being read.</summary>
         private static string _file;
 
@@ -142,8 +147,19 @@ namespace Scry
                 {
                     _recordsSize = size;
                     _recordsPower = power;
+                    var read = Timing.Start();
                     CharacterRecords.Read(player, profile, Records);
-                    _catchUp.Fill(Records, _book, firstLoad: CompendiumCatchUp.FirstReading(_caughtUp, _book.IsEmpty, CharacterRecords.Played(profile)));
+                    Timing.Add("compendium records read", read);
+                    var filled = Timing.Start();
+                    // Grown since the last reading into the same book with the same catalog, only
+                    // what was added is read (CompendiumCatchUp.FillGrown); else all of it.
+                    var first = CompendiumCatchUp.FirstReading(_caughtUp, _book.IsEmpty, CharacterRecords.Played(profile));
+                    if (!first && ReferenceEquals(_filledBook, _book) && ReferenceEquals(_filledBy, _catchUp)) _catchUp.FillGrown(Records, RecordsBefore, _book);
+                    else _catchUp.Fill(Records, _book, firstLoad: first);
+                    RecordsBefore.CopyFrom(Records);
+                    _filledBook = _book;
+                    _filledBy = _catchUp;
+                    Timing.Add("compendium records filled", filled);
                     // What the records show by, as a recipe the game lists, may have changed: told again.
                     _book.RecordsRead();
                     if (!ReferenceEquals(_bossesOf, catalog))
@@ -670,7 +686,9 @@ namespace Scry
         {
             if (_book == null || _unreadable || !_book.Changed || (!now && Time.unscaledTime - _savedAt < CompendiumBook.WriteEvery)) return;
             _savedAt = Time.unscaledTime;
-            var text = _book.ToSave();
+            // The copies the last save made are filled again only once nothing waits on the worker,
+            // the last save's text among it.
+            var text = _book.ToSave(mayReuse: !Files.Busy);
             var path = PathOf(_file);
             Files.Then("keeping what the character knows", () => FileSwap.Write(path, aside => File.WriteAllText(aside, text()), lasting: true));
         }
@@ -824,6 +842,8 @@ namespace Scry
             TameableNear.Clear();
             _catchUp = null;
             _catchUpOf = null;
+            _filledBook = null;
+            _filledBy = null;
             _recordsSize = -1;
             _bosses = null;
             _bossesOf = null;

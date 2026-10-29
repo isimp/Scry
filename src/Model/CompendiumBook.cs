@@ -705,47 +705,87 @@ namespace Scry
         public string Save() => ToSave()();
 
         /// <summary>
+        /// The copies a save takes of what the book holds, each kept to be filled again by the next
+        /// save once the last one's text is worked out (<see cref="ToSave(bool)"/>): a grown book
+        /// holds thousands of levels and pairs, and saving every few seconds made a megabyte of
+        /// garbage a save.
+        /// </summary>
+        private sealed class SaveCopies
+        {
+            public readonly SaveCopy<KeyValuePair<string, KnownLevel>> Levels = new SaveCopy<KeyValuePair<string, KnownLevel>>();
+            public readonly SaveCopy<(string A, string B, int Ways)> Pairs = new SaveCopy<(string, string, int)>();
+            public readonly SaveCopy<string> Lately = new SaveCopy<string>();
+            public readonly SaveCopy<string> MetLately = new SaveCopy<string>();
+            public readonly SaveCopy<KeyValuePair<string, int>> MetDay = new SaveCopy<KeyValuePair<string, int>>();
+            public readonly SaveCopy<KeyValuePair<string, string>> MetWorld = new SaveCopy<KeyValuePair<string, string>>();
+            public readonly SaveCopy<string> Mapped = new SaveCopy<string>();
+            public readonly SaveCopy<string> Read = new SaveCopy<string>();
+            public readonly SaveCopy<(string World, WorldSource Source, string Kind)> FoundIn = new SaveCopy<(string, WorldSource, string)>();
+            public readonly SaveCopy<KeyValuePair<WorldSource, SourceLevel>> Shows = new SaveCopy<KeyValuePair<WorldSource, SourceLevel>>();
+            public readonly SaveCopy<string> KeptLines = new SaveCopy<string>();
+            public readonly SaveCopy<WorldSource> Marks = new SaveCopy<WorldSource>();
+            public readonly SaveCopy<(string, string)> Proofs = new SaveCopy<(string, string)>();
+            public readonly SaveCopy<(string Key, string Token)> Sightings = new SaveCopy<(string, string)>();
+            public readonly SaveCopy<KeyValuePair<string, (CameBy Way, Moment At)>> Came = new SaveCopy<KeyValuePair<string, (CameBy, Moment)>>();
+            public readonly SaveCopy<KeyValuePair<string, (Moment At, int Stars)>> Seen = new SaveCopy<KeyValuePair<string, (Moment, int)>>();
+            public readonly SaveCopy<KeyValuePair<string, (int Count, int LastDay, string World)>> Deaths = new SaveCopy<KeyValuePair<string, (int, int, string)>>();
+            public readonly SaveCopy<KeyValuePair<string, int>> NewsDay = new SaveCopy<KeyValuePair<string, int>>();
+            public readonly SaveCopy<KeyValuePair<string, string>> NewsWorld = new SaveCopy<KeyValuePair<string, string>>();
+            public readonly SaveCopy<KeyValuePair<string, string>> Found = new SaveCopy<KeyValuePair<string, string>>();
+            public readonly SaveCopy<string> Opened = new SaveCopy<string>();
+            public readonly SaveCopy<KeyValuePair<string, string>> RulesTold = new SaveCopy<KeyValuePair<string, string>>();
+        }
+
+        private readonly SaveCopies _copies = new SaveCopies();
+
+        /// <summary>A pair's key and ways, as a save copies it.</summary>
+        private static (string A, string B, int Ways) PairCopy(KeyValuePair<(string, string), int> pair) => (pair.Key.Item1, pair.Key.Item2, pair.Value);
+
+        /// <summary>
         /// The book's text (<see cref="Save"/>) as it stands now, worked out when called: what it
         /// holds is copied now and sorted and written out then, on a worker thread while more is
-        /// learned. The book counts as saved from now until it changes again.
+        /// learned. The book counts as saved from now until it changes again. With
+        /// <paramref name="mayReuse"/>, the copies the last save made are filled again: only for
+        /// one asking once nothing works out the text of an earlier save any more.
         /// </summary>
-        public Func<string> ToSave()
+        public Func<string> ToSave(bool mayReuse = false)
         {
-            var levels = _levels.ToArray();
-            var lately = _lately.ToArray();
-            var metLately = _metLately.ToArray();
-            var metDay = new Dictionary<string, int>(_metDay, StringComparer.Ordinal);
-            var metWorld = new Dictionary<string, string>(_metWorld, StringComparer.Ordinal);
-            var mapped = _mapped.ToArray();
-            var read = _read.ToArray();
-            var foundIn = _foundIn.SelectMany(p => p.Value.Select(kind => (p.Key.World, p.Key.Source, Kind: kind))).ToArray();
-            var shows = _shows.Where(p => p.Value != WorldSources.Starts(p.Key)).ToArray();
+            var c = _copies;
+            var levels = c.Levels.Of(_levels, mayReuse);
+            var pairs = c.Pairs.Of(_pairs.Select(PairCopy), mayReuse);
+            var lately = c.Lately.Of(_lately, mayReuse);
+            var metLately = c.MetLately.Of(_metLately, mayReuse);
+            var metDayKept = c.MetDay.Of(_metDay, mayReuse);
+            var metWorldKept = c.MetWorld.Of(_metWorld, mayReuse);
+            var mapped = c.Mapped.Of(_mapped, mayReuse);
+            var read = c.Read.Of(_read, mayReuse);
+            var foundIn = c.FoundIn.Of(_foundIn.SelectMany(p => p.Value.Select(kind => (p.Key.World, p.Key.Source, Kind: kind))), mayReuse);
+            var shows = c.Shows.Of(_shows.Where(p => p.Value != WorldSources.Starts(p.Key)), mayReuse);
             var mapApart = _mapApart;
             var biomesApart = _biomesApart;
-            var keptLines = _keptLines.ToArray();
+            var keptLines = c.KeptLines.Of(_keptLines, mayReuse);
             // A book of a later format keeps saying so, so its lines this Scry cannot read stay kept past this save.
             var format = Math.Max(Format, _formatSeen);
-            var marks = _marks.ToArray();
+            var marks = c.Marks.Of(_marks, mayReuse);
             var rule = _rule;
             var floor = _floor;
-            var pairs = _pairs.Select(p => (p.Key.Item1, p.Key.Item2, Ways: WaysKept(p.Value))).ToArray();
-            var proofs = _proofs.ToArray();
-            var sightings = SightingLines().ToArray();
+            var proofs = c.Proofs.Of(_proofs, mayReuse);
+            var sightings = c.Sightings.Of(SightingLines(), mayReuse);
             var attacksAsPairs = _attacksAsPairs;
-            var came = _came.ToArray();
-            var seen = _seen.ToArray();
-            var deaths = _deaths.ToArray();
-            var newsDay = new Dictionary<string, int>(_newsDay, StringComparer.Ordinal);
-            var newsWorld = new Dictionary<string, string>(_newsWorld, StringComparer.Ordinal);
-            var found = _found.ToArray();
+            var came = c.Came.Of(_came, mayReuse);
+            var seen = c.Seen.Of(_seen, mayReuse);
+            var deaths = c.Deaths.Of(_deaths, mayReuse);
+            var newsDayKept = c.NewsDay.Of(_newsDay, mayReuse);
+            var newsWorldKept = c.NewsWorld.Of(_newsWorld, mayReuse);
+            var found = c.Found.Of(_found, mayReuse);
             var fell = _fell.Save();
             var starFell = _starFell.Save();
             var gave = _gave.Save();
             var held = _held.Save();
             var weathers = _weathers.Save();
-            var opened = _opened.ToArray();
+            var opened = c.Opened.Of(_opened, mayReuse);
             var welcomed = _welcomed;
-            var rulesTold = _rulesTold.ToArray();
+            var rulesTold = c.RulesTold.Of(_rulesTold, mayReuse);
             Changed = false;
             return () =>
             {
@@ -756,26 +796,8 @@ namespace Scry
                 {
                     text.Append("know\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(Stored.Count((int)pair.Value)).Append('\n');
                 }
-                foreach (var key in lately)
-                {
-                    text.Append("lately\t").Append(Stored.Escaped(key));
-                    if (newsDay.TryGetValue(key, out var day) && day >= 0)
-                    {
-                        text.Append('\t').Append(Stored.Count(day));
-                        if (newsWorld.TryGetValue(key, out var world) && !string.IsNullOrEmpty(world)) text.Append('\t').Append(Stored.Escaped(world));
-                    }
-                    text.Append('\n');
-                }
-                foreach (var key in metLately)
-                {
-                    text.Append("met\t").Append(Stored.Escaped(key));
-                    if (metDay.TryGetValue(key, out var day) && day >= 0)
-                    {
-                        text.Append('\t').Append(Stored.Count(day));
-                        if (metWorld.TryGetValue(key, out var world) && !string.IsNullOrEmpty(world)) text.Append('\t').Append(Stored.Escaped(world));
-                    }
-                    text.Append('\n');
-                }
+                NewsLines(text, "lately", lately, newsDayKept, newsWorldKept);
+                NewsLines(text, "met", metLately, metDayKept, metWorldKept);
                 foreach (var world in mapped.OrderBy(w => w, StringComparer.Ordinal)) text.Append("mapped\t").Append(Stored.Escaped(world)).Append('\n');
                 foreach (var said in read.OrderBy(t => t, StringComparer.Ordinal)) text.Append("read\t").Append(Stored.Escaped(said)).Append('\n');
                 foreach (var (world, source, kind) in foundIn.OrderBy(f => f.World, StringComparer.Ordinal).ThenBy(f => f.Source).ThenBy(f => f.Kind, StringComparer.Ordinal))
@@ -790,7 +812,7 @@ namespace Scry
                 if (mapApart) text.Append("mapapart\tyes\n");
                 if (biomesApart) text.Append("biomesapart\tyes\n");
                 foreach (var told in rulesTold.OrderBy(t => t.Key, StringComparer.Ordinal)) text.Append("ruled\t").Append(Stored.Escaped(told.Key)).Append('\t').Append(Stored.Escaped(told.Value)).Append('\n');
-                SawLines(text, pairs);
+                SawLines(text, pairs.Select(p => (p.A, p.B, WaysKept(p.Ways))));
                 foreach (var (key, proof) in proofs.OrderBy(p => p.Item1, StringComparer.Ordinal).ThenBy(p => p.Item2, StringComparer.Ordinal))
                 {
                     text.Append("did\t").Append(Stored.Escaped(key)).Append('\t').Append(Stored.Escaped(proof)).Append('\n');
@@ -827,6 +849,28 @@ namespace Scry
                 foreach (var line in keptLines) text.Append(line).Append('\n');
                 return text.ToString();
             };
+        }
+
+        /// <summary>
+        /// The lines of the news or the meetings, latest first, each with the day and world it came
+        /// on where one was kept; the save's copies of those days and worlds looked up by key again.
+        /// </summary>
+        private static void NewsLines(StringBuilder text, string kind, IEnumerable<string> keys, IEnumerable<KeyValuePair<string, int>> daysKept, IEnumerable<KeyValuePair<string, string>> worldsKept)
+        {
+            var days = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var pair in daysKept) days[pair.Key] = pair.Value;
+            var worlds = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var pair in worldsKept) worlds[pair.Key] = pair.Value;
+            foreach (var key in keys)
+            {
+                text.Append(kind).Append('\t').Append(Stored.Escaped(key));
+                if (days.TryGetValue(key, out var day) && day >= 0)
+                {
+                    text.Append('\t').Append(Stored.Count(day));
+                    if (worlds.TryGetValue(key, out var world) && !string.IsNullOrEmpty(world)) text.Append('\t').Append(Stored.Escaped(world));
+                }
+                text.Append('\n');
+            }
         }
 
         /// <summary>

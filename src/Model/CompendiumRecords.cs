@@ -55,6 +55,41 @@ namespace Scry
         /// <summary>The guardian power chosen at a boss stone, by its status effect's prefab; none before one is chosen.</summary>
         public readonly HashSet<string> Powers = Names();
 
+        /// <summary>Every kind of record, in a fixed order, so two records' sets are walked side by side.</summary>
+        private HashSet<string>[] Sets() => new[] { Materials, Recipes, Stations, Biomes, Trophies, Killed, PickedUp, Crafted, Eaten, Picked, Placed, Uniques, Powers };
+
+        /// <summary>Takes every record of another in place of its own.</summary>
+        public void CopyFrom(CompendiumRecords other)
+        {
+            var mine = Sets();
+            var theirs = other.Sets();
+            for (var i = 0; i < mine.Length; i++)
+            {
+                mine[i].Clear();
+                mine[i].UnionWith(theirs[i]);
+            }
+        }
+
+        /// <summary>
+        /// What these records hold that those before did not, into <paramref name="added"/>, which
+        /// is emptied first. False where reading only that would not tell what reading all of them
+        /// tells: a biome entered or a power chosen anew changes what the older records say, and a
+        /// record gone can take back what it told.
+        /// </summary>
+        public bool AddedSince(CompendiumRecords before, CompendiumRecords added)
+        {
+            var now = Sets();
+            var was = before.Sets();
+            var into = added.Sets();
+            for (var i = 0; i < now.Length; i++)
+            {
+                into[i].Clear();
+                foreach (var name in now[i]) if (!was[i].Contains(name)) into[i].Add(name);
+                if (was[i].Count + into[i].Count != now[i].Count) return false;
+            }
+            return added.Biomes.Count == 0 && added.Powers.Count == 0;
+        }
+
         private static HashSet<string> Names() => new HashSet<string>(StringComparer.Ordinal);
     }
 }
