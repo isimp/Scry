@@ -211,13 +211,15 @@ namespace Scry
         /// prefab: its page tells what it adds and which of the game's rules it hooks into, what
         /// its package says of it (<see cref="ModFolders"/>), and how it ties to the other mods
         /// (<see cref="ModLinks"/>). It is listed by whether it adds to the game, only hooks into
-        /// its drops or spawning, or neither.
+        /// its drops or spawning, or neither. Made a mod at a time, telling how many are made, as
+        /// reading a mod's package folder is work on the disk.
         /// </summary>
-        private static void Mods(List<Entry> entries)
+        private static IEnumerable<int> Mods(List<Entry> entries)
         {
             var adding = new HashSet<string>(entries.Where(e => e.ModName.Length > 0).Select(e => e.ModName), StringComparer.Ordinal);
             var mods = new List<(Entry Entry, ModFacts Facts)>();
-            foreach (var info in BepInEx.Bootstrap.Chainloader.PluginInfos.Values)
+            var made = 0;
+            foreach (var info in BepInEx.Bootstrap.Chainloader.PluginInfos.Values.ToList())
             {
                 var name = info?.Metadata?.Name;
                 if (string.IsNullOrEmpty(name)) continue;
@@ -266,6 +268,7 @@ namespace Scry
                     entries.Add(entry);
                     mods.Add((entry, facts));
                 });
+                yield return ++made;
             }
 
             var links = ModLinks.Of(mods.Select(m => m.Facts));

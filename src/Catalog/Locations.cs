@@ -406,9 +406,10 @@ namespace Scry
                     continue;
                 }
 
-                // Then each of its parts, a few at a time, in the order the prefab holds them.
+                // Then each of its parts, a few at a time within the frame's share, in the order the
+                // prefab holds them; one part at least, so a costly one is still read.
                 var walked = watch.Elapsed.TotalMilliseconds;
-                for (var n = 0; n < 8 && _walk.Next(out var part); n++)
+                for (var n = 0; n < 8 && (n == 0 || watch.Elapsed.TotalMilliseconds < BudgetMs) && _walk.Next(out var part); n++)
                 {
                     part.GetComponents(Components);
                     foreach (var component in Components) Read(component);

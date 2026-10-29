@@ -86,13 +86,18 @@ namespace Scry
             }
             // What only creatures have is tagged with them once grouped as theirs.
             Timed("attack tags", () => Guard.Run(Feature.Groups, "tagging creatures' attacks", AttackTags.Tell, read.Entries));
+            yield return "Reading where things live";
 
             // Locations and rooms take their names from creatures' (a Fuling camp), so they come
             // last but for the mods, which come once every entry knows the mod that added it.
             Timed("locations", () => Guard.Run(Feature.Locations, "the locations and dungeon rooms", PlaceEntries.Add, read.Entries));
             Timed("biomes", () => Guard.Run(Feature.Biomes, "the biomes", Biomes, read.Entries));
             Timed("weather givers", () => Guard.Run(Feature.CodeGiven, "what the weather gives", WeatherGivers, read.Entries));
-            Timed("mods", () => Guard.Run(Feature.ModPages, "the mods' own entries", Mods, read.Entries));
+            yield return "Reading the mods";
+            foreach (var done in Stepped(() => Mods(read.Entries), Feature.ModPages, "mods", "the mods' own entries"))
+            {
+                yield return CatalogWords.Progress("Reading the mods", done);
+            }
             Timed("skills", () => Guard.Run(Feature.SkillPages, "the skills", SkillEntries, read.Entries));
             Timed("what skills work on", () => SkillReading.Read(read.Entries));
             foreach (var step in ModIcons(read)) yield return step;

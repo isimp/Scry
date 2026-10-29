@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.IO;
+using HarmonyLib;
 using UnityEngine;
 
 namespace Scry
@@ -12,6 +14,9 @@ namespace Scry
         private static float _whereAt;
         private static string _whereLast;
         private static KnownLevel _whereLevel;
+
+        /// <summary>The places standing in the world as the game keeps them (<c>Location.s_allLocations</c>, followed by the startup check).</summary>
+        private static AccessTools.FieldRef<List<Location>> _places;
 
         /// <summary>
         /// While no part runs, once a second: the place the game says the character stands in, as
@@ -62,14 +67,19 @@ namespace Scry
             File.AppendAllText(WhereFile, line + System.Environment.NewLine);
         }
 
-        /// <summary>The location standing in the world whose middle stands nearest a point across, and how far.</summary>
+        /// <summary>
+        /// The location standing in the world whose middle stands nearest a point across, and how
+        /// far: from the game's own list, as a search of the whole scene once a second holds up
+        /// a frame for tens of milliseconds in a built-up world.
+        /// </summary>
         private static Location Nearest(Vector3 at, out float away)
         {
             away = float.MaxValue;
             Location nearest = null;
-            foreach (var location in Object.FindObjectsByType<Location>(FindObjectsSortMode.None))
+            if (_places == null) _places = AccessTools.StaticFieldRefAccess<List<Location>>(AccessTools.Field(typeof(Location), "s_allLocations"));
+            foreach (var location in _places())
             {
-                if (location == null) continue;
+                if (location == null || !location.gameObject.activeInHierarchy) continue;
                 var d = Utils.DistanceXZ(location.transform.position, at);
                 if (d >= away) continue;
                 away = d;

@@ -39,7 +39,13 @@ namespace Scry
             var factors = Factors(prefab);
             yield return "locations factors";
 
-            Guard.Each(Feature.Locations, "names of locations", prefab.name, () => NameFacts(prefab, contents));
+            Guard.Each(Feature.Locations, "names of locations", prefab.name, () => DoorNames(prefab, contents));
+            yield return "locations names";
+            Guard.Each(Feature.Locations, "names of locations", prefab.name, () => DiscoverNames(prefab, contents));
+            yield return "locations names";
+            Guard.Each(Feature.Locations, "names of locations", prefab.name, () => BossNames(prefab, contents));
+            yield return "locations names";
+            Guard.Each(Feature.Locations, "names of locations", prefab.name, () => TraderNames(prefab, contents));
             yield return "locations names";
 
             var parts = new List<(string, float)>();
@@ -215,25 +221,43 @@ namespace Scry
             return chance;
         }
 
-        /// <summary>What names a place, each as the game shows it (see <see cref="Places.LocationLabel"/>).</summary>
+        // What names a place, each as the game shows it (see Places.LocationLabel): the first of
+        // each the game has words for, a kind of part at a time, as each is a walk over the whole
+        // prefab. Its doorways' words come before its discovery banner's.
+
+        private static bool Said(string key) => CatalogBuilder.Localize(key).Length > 0;
+
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static void NameFacts(GameObject prefab, PlaceContents contents)
+        private static void DoorNames(GameObject prefab, PlaceContents contents)
         {
-            // The first of each the game has words for.
-            bool Said(string key) => CatalogBuilder.Localize(key).Length > 0;
             foreach (var door in prefab.GetComponentsInChildren<Teleport>(true))
             {
                 if (contents.GameNameKey.Length == 0 && door != null && Said(door.m_enterText)) contents.GameNameKey = door.m_enterText;
             }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void DiscoverNames(GameObject prefab, PlaceContents contents)
+        {
             foreach (var location in prefab.GetComponentsInChildren<Location>(true))
             {
                 if (contents.GameNameKey.Length == 0 && location != null && Said(location.m_discoverLabel)) contents.GameNameKey = location.m_discoverLabel;
             }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void BossNames(GameObject prefab, PlaceContents contents)
+        {
             foreach (var bowl in prefab.GetComponentsInChildren<OfferingBowl>(true))
             {
                 var boss = bowl != null && bowl.m_bossPrefab != null ? bowl.m_bossPrefab.GetComponent<Character>() : null;
                 if (contents.BossPrefab.Length == 0 && boss != null && Said(boss.m_name)) contents.BossPrefab = bowl.m_bossPrefab.name;
             }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void TraderNames(GameObject prefab, PlaceContents contents)
+        {
             foreach (var trader in prefab.GetComponentsInChildren<Trader>(true))
             {
                 if (contents.TraderKey.Length == 0 && trader != null && Said(trader.m_name)) contents.TraderKey = trader.m_name;
