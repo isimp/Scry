@@ -61,6 +61,23 @@ namespace Scry
         /// <summary>Whether the grass is being scattered, the last grass shown meanwhile: for the stage's caption and the self-test.</summary>
         public static bool GrassScattering => TheGround.Scattering;
 
+        /// <summary>
+        /// Whether the stage's grass moves in the game's wind now (<see cref="StageFilm.GrassMoves"/>),
+        /// so the stage is filmed every frame rather than every few, where the grass would jump.
+        /// </summary>
+        private static bool GrassMoving()
+        {
+            if (!TheGround.GrassShown) return false;
+            // The game's wind read in a method of its own, so a game that renamed it costs only the grass's pace.
+            var wind = 0f;
+            if (Scry.Steps.Run(() => wind = WindNow(), null) != null) return false;
+            return StageFilm.GrassMoves(true, wind);
+        }
+
+        /// <summary>The game's wind now, nought to one (<c>EnvMan.GetWindIntensity</c>); none outside a world.</summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static float WindNow() => EnvMan.instance != null ? EnvMan.instance.GetWindIntensity() : 0f;
+
         /// <summary>How much of the grass being scattered is done, as a share.</summary>
         public static float GrassScattered => TheGround.ScatteredShare;
 

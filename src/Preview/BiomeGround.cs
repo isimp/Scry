@@ -341,6 +341,9 @@ namespace Scry
         /// <summary>Whether grass is being scattered, the grass scattered last shown meanwhile, for the self-test.</summary>
         public bool Scattering => _scattering != null;
 
+        /// <summary>Whether the ground shows any grass, which sways with the game's wind.</summary>
+        public bool GrassShown => On && (_grass.Count > 0 || _grassCopies.Count > 0);
+
         /// <summary>The patches of ground a scatter goes through, and how many it has; the share done, for the stage's caption.</summary>
         private int _patchesAll;
         private int _patchesDone;

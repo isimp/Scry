@@ -8,7 +8,8 @@ namespace Scry
     /// zoom, the cut, the camera and the size), what was touched since (<see cref="Touch"/>: a
     /// copy made, a room added or put away, modifiers applied), what is alive on it (a creature's
     /// animator, a particle system playing, a flickering light, an effect played, a drag or a
-    /// glide), and a floor of a film every few frames for anything that changed unnoticed.
+    /// glide, grass the wind bends), and a floor of a film every few frames for anything that
+    /// changed unnoticed.
     /// </summary>
     internal static partial class Stage
     {
@@ -71,7 +72,7 @@ namespace Scry
             var cut = TheCut.At;
             var moved = Yaw != _filmedYaw || Pitch != _filmedPitch || Zoom != _filmedZoom || cut != _filmedCut || at != _filmedAt || turn != _filmedTurn
                 || _width != _filmedWidth || _height != _filmedHeight;
-            var due = _touched || moved || Dragging || Gliding || Played.Count > 0 || Time.frameCount - _lastFilmFrame >= FilmFloorFrames || Live();
+            var due = _touched || moved || Dragging || Gliding || Played.Count > 0 || Time.frameCount - _lastFilmFrame >= FilmFloorFrames || GrassMoving() || Live();
             if (!due)
             {
                 FilmsSkipped++;
