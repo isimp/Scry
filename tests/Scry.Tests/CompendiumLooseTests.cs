@@ -246,6 +246,48 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void UnderStrictEverySectionSaysHowManyItLeftOut()
+        {
+            // Strict leaves out what was not seen together with the page; each section says how
+            // many at its end, so the page never goes quiet on what it keeps back.
+            var world = new World().Rule(CompendiumRule.Strict);
+            world.Explorer.Select(world.Windmill);
+            Assert.Equal("2 more not yet seen together", world.Explorer.LeftOutLine("making", 2));
+            Assert.Equal("1 more not yet seen give it", world.Explorer.LeftOutLine("from", 1));
+            // A section with no topic of its own, as LINKED, counts too; one left with nothing else says it alone.
+            Assert.Equal("11 not yet seen together", world.Explorer.LeftOutLine(null, 11, alone: true));
+            Assert.Null(world.Explorer.LeftOutLine("making", 0));
+            // Loose leaves out only what was never met: still only counts the player can act on.
+            world.Rule(CompendiumRule.Loose);
+            Assert.Null(world.Explorer.LeftOutLine("making", 2));
+            Assert.Null(world.Explorer.LeftOutLine(null, 11, alone: true));
+        }
+
+        [Fact]
+        public void UnderStrictEveryNameThePageCouldLeaveOutIsOneOfItsFinds()
+        {
+            // A name the page could leave out counts toward the title chip whether it is left out
+            // now or was seen together with the page: the grain never met, the stone met but not
+            // seen with the windmill. The page's own, a mod's, one the game shows and one not in
+            // the catalog are no finds, and none of them is ever left out.
+            var world = new World().Rule(CompendiumRule.Strict);
+            world.Explorer.Select(world.Windmill);
+            Assert.True(world.Explorer.Hideable(world.Barley.Key));
+            Assert.True(world.Explorer.LeavesOut(world.Barley.Key));
+            Assert.True(world.Explorer.Hideable(world.Stone.Key));
+            Assert.True(world.Explorer.LeavesOut(world.Stone.Key));
+            foreach (var (key, gameShown) in new[] { (world.Windmill.Key, false), (world.Mod.Key, false), (world.Stone.Key, true), ("NotInTheCatalog", false), ((string)null, false) })
+            {
+                Assert.False(world.Explorer.Hideable(key, gameShown));
+                Assert.False(world.Explorer.LeavesOut(key, gameShown));
+            }
+            // Loose shows a known page whole: nothing to find.
+            world.Rule(CompendiumRule.Loose);
+            world.Explorer.Select(world.Windmill);
+            Assert.False(world.Explorer.Hideable(world.Barley.Key));
+        }
+
+        [Fact]
         public void ARoomCardCountsWhatWasNotMetWithNoTopicOfItsOwn()
         {
             // A dungeon room's card asks for its room: the creatures and loot of the room not met

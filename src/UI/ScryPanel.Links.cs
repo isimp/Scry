@@ -183,10 +183,13 @@ namespace Scry
         private static float LinksSection(Explorer explorer, Entry entry, float width, float y)
         {
             MakeLinkRowsFor(explorer, entry);
-            // A section the rules leave nothing in draws neither its heading nor its count.
-            if (LinkRows.Count == 0 || LinkedCount(explorer) == 0) return y;
+            // A section the rules leave nothing in keeps its heading under the strict rules, to say
+            // how many it left out; under the loose ones it draws neither its heading nor its count.
+            if (LinkRows.Count == 0) return y;
+            var linked = LinkedCount(explorer);
+            if (linked == 0 && !explorer.LeavingOut) return y;
 
-            y = SectionHeading("LINKED", width, y, null, "links", LinkedCount(explorer));
+            y = SectionHeading("LINKED", width, y, null, "links", linked > 0 ? linked : -1);
             if (IsFolded("links")) return y;
 
             // What the rules leave out of it is counted at its end, as in any section.
@@ -222,7 +225,7 @@ namespace Scry
             _linksIn = explorer;
             LinkRows.Clear();
             PlacedLinkRows.Clear();
-            MakeLinkRows(explorer, entry);
+            MakeLinkRows(explorer, entry, LinkRows, PlacedLinkRows);
             _linkedStamp = -1;
         }
 
@@ -263,20 +266,32 @@ namespace Scry
         /// Adds a row of links: to In the game's where a topic shows its group, else to LINKED
         /// without what In the game links already, and not at all with nothing left.
         /// </summary>
-        private static void AddLinkRow(Entry entry, string title, List<(string Key, string Text, string Tip, Action Click)> items, ICollection<string> shown)
+        private static void AddLinkRow(Entry entry, string title, List<(string Key, string Text, string Tip, Action Click)> items, ICollection<string> shown, LinkRowList rows, PlacedRows placed)
         {
             if (FactLayout.Places(entry.Kind, title))
             {
-                PlacedLinkRows[title] = items;
+                placed[title] = items;
                 return;
             }
             var left = FactLayout.LeftInLinked(entry.Kind, title, items.Select(i => i.Key).ToList(), shown);
-            if (left.Count > 0) LinkRows.Add((title, left.Select(i => items[i]).ToList()));
+            if (left.Count > 0) rows.Add((title, left.Select(i => items[i]).ToList()));
+        }
+
+        /// <summary>Rows of links, each its title and chips: those of LINKED.</summary>
+        private sealed class LinkRowList : List<(string Title, List<(string Key, string Text, string Tip, Action Click)> Items)>
+        {
+        }
+
+        /// <summary>Rows of links a topic of In the game shows, by their group.</summary>
+        private sealed class PlacedRows : Dictionary<string, List<(string Key, string Text, string Tip, Action Click)>>
+        {
+            public PlacedRows() : base(StringComparer.Ordinal)
+            {
+            }
         }
 
         /// <summary>The link rows a topic of In the game shows, by their group.</summary>
-        private static readonly Dictionary<string, List<(string Key, string Text, string Tip, Action Click)>> PlacedLinkRows =
-            new Dictionary<string, List<(string, string, string, Action)>>(StringComparer.Ordinal);
+        private static readonly PlacedRows PlacedLinkRows = new PlacedRows();
 
         private static Entry _linksFor;
         private static Explorer _linksIn;
@@ -284,18 +299,17 @@ namespace Scry
         /// <summary>How many things the section links, counted with its rows.</summary>
         private static int _linkedCount;
 
-        private static readonly List<(string Title, List<(string Key, string Text, string Tip, Action Click)> Items)> LinkRows =
-            new List<(string, List<(string, string, string, Action)>)>();
+        private static readonly LinkRowList LinkRows = new LinkRowList();
 
         /// <summary>The rows of the LINKED section, each chip with its text, tip and what it does.</summary>
-        private static void MakeLinkRows(Explorer explorer, Entry entry)
+        private static void MakeLinkRows(Explorer explorer, Entry entry, LinkRowList rows, PlacedRows placed)
         {
             // What In the game links already is not linked again.
             var shown = Facts.For(entry).LinkedTargets();
             void Plain(string title, List<string> names)
             {
                 var told = Naming.TellApart(names.Select(n => (ShownName(explorer, n, n), n)).ToList());
-                AddLinkRow(entry, title, names.Select((n, i) => (n, told[i], (string)null, (Action)(() => Go(explorer, n)))).ToList(), shown);
+                AddLinkRow(entry, title, names.Select((n, i) => (n, told[i], (string)null, (Action)(() => Go(explorer, n)))).ToList(), shown, rows, placed);
             }
             if (entry.LeftBy.Count > 0) Plain("Left behind by", entry.LeftBy);
             if (entry.LeavesBehind.Count > 0) Plain("Leaves behind", entry.LeavesBehind);
@@ -321,7 +335,7 @@ namespace Scry
                             }));
                         });
                     // A chip here plays an animation too, which nothing in In the game does.
-                    AddLinkRow(entry, title, items.ToList(), Array.Empty<string>());
+                    AddLinkRow(entry, title, items.ToList(), Array.Empty<string>(), rows, placed);
                     continue;
                 }
 
@@ -333,7 +347,7 @@ namespace Scry
                     var name = told[i];
                     var notes = giver ? l.Notes.Select(Groups.GiverWords).ToList() : l.Notes;
                     return (l.Target, LinkWords.Chip(name, notes), LinkWords.Tip(name, notes), (Action)(() => Go(explorer, l.Target)));
-                }).ToList(), shown);
+                }).ToList(), shown, rows, placed);
             }
         }
 
@@ -500,10 +514,57 @@ namespace Scry
         /// <summary>Counts a recipe row the section being drawn leaves out, waiting for the game to list it, for its last line.</summary>
         private static void RecipeWaiting() => _recipesWait++;
 
-        /// <summary>Counts things the strict rules left out of the section being drawn.</summary>
+        /// <summary>Counts things the strict rules left out of the section being drawn, and of the page unless they show only while a list plays (<see cref="_passing"/>).</summary>
         private static void StrictLeft(int count)
         {
-            if (count > 0) _strictLeft += count;
+            if (count <= 0) return;
+            _strictLeft += count;
+            if (!_passing) _drawLeft += count;
+        }
+
+        /// <summary>Whether what is drawn shows only while a list plays, the parts of the effect list or clip played last: no part of the page's own count.</summary>
+        private static bool _passing;
+
+        /// <summary>The names the details' draw going on left out under the strict rules, of the page's own.</summary>
+        private static int _drawLeft;
+
+        /// <summary>
+        /// The names the last whole draw of an entry's details left out under the strict rules, the
+        /// sections' last lines together, and whether a section that names things was folded, so not
+        /// counted; for the self-test to hold against the page's count (<see cref="PageNames"/>).
+        /// </summary>
+        [Diagnostic]
+        public static (Entry Of, int Left, bool Folded) NamesDrawnForTest { get; private set; }
+
+        /// <summary>How many names the page last gathered leaves out where a section's last line counts them, for the self-test.</summary>
+        [Diagnostic]
+        public static int NamesLinedForTest => _findsLined;
+
+        /// <summary>A draw of an entry's details begins: nothing left out yet.</summary>
+        private static void StartNameCount() => _drawLeft = 0;
+
+        /// <summary>What is drawn from here shows only while a list plays, or not; what it was before, to put back (<see cref="PassingEnds"/>).</summary>
+        private static bool PassingStarts(bool passing)
+        {
+            var was = _passing;
+            _passing = passing;
+            return was;
+        }
+
+        /// <summary>Puts back whether what is drawn shows only while a list plays, as it was before (<see cref="PassingStarts"/>).</summary>
+        private static void PassingEnds(bool was) => _passing = was;
+
+        /// <summary>A whole draw of an entry's details ended: what it left out is the page's.</summary>
+        private static void EndNameCount(Entry entry) => NamesDrawnForTest = (entry, _drawLeft, NamingSectionFolded());
+
+        /// <summary>The sections a page's names stand in, which the strict rules leave out of.</summary>
+        private static readonly string[] NamingSections = { "facts", "links", "playsin" };
+
+        /// <summary>Whether a section of the details that names things is folded, so what it would leave out goes uncounted in a draw.</summary>
+        private static bool NamingSectionFolded()
+        {
+            foreach (var section in NamingSections) if (IsFolded(section)) return true;
+            return false;
         }
 
         /// <summary>

@@ -4,6 +4,8 @@
 
 The first page opened after the game starts has less to do: in the frames after a world loads, Scry also compiles the game's and Unity's code its pages call, with the hooks mods put on it, and readies the way the stage's picture is drawn.
 
+Under *Strict* a page says what it keeps back. Each section ends saying how many things it left out, and a section left with nothing keeps its heading to say so. The title row counts the names not yet seen together along with the numbers, so it reads *All found out* only once nothing is kept back, the *You* box says how many wait to be seen together, and `is:left` finds the same pages.
+
 ## 0.3.2
 
 A place on the stage stands on the ground it digs for itself, so a tar pit sits in its bowl and a Burial Chambers' entrance in its stair pit.

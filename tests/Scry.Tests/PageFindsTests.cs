@@ -27,6 +27,37 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ANameLeftOutCountsAsAFindSoThePageIsNotFoundOutWhileOneIsLeft()
+        {
+            // The numbers were all found, but the page still leaves a name out: not all found out.
+            var finds = new PageFinds();
+            finds.Count(kept: false);
+            finds.Name(kept: false);
+            finds.Name(kept: true);
+            finds.Name(kept: true);
+            Assert.Equal((2, 4), (finds.Found, finds.Of));
+            Assert.Equal(2, finds.NamesLeft);
+            Assert.False(finds.AllFound);
+            // Once each was seen together, the page is found out.
+            var seen = new PageFinds();
+            seen.Count(kept: false);
+            seen.Name(kept: false);
+            Assert.Equal(0, seen.NamesLeft);
+            Assert.True(seen.AllFound);
+        }
+
+        [Fact]
+        public void TheYouBoxSaysHowManyNamesWaitToBeSeenTogether()
+        {
+            Assert.Contains(("See it together", "12 things it names"), CompendiumWords.StillToFindOut(new string[0], new string[0], 0, 0, new Tally[0], namesLeft: 12));
+            Assert.Contains(("See it together", "1 thing it names"), CompendiumWords.StillToFindOut(new string[0], new string[0], 0, 0, new Tally[0], namesLeft: 1));
+            Assert.Empty(CompendiumWords.StillToFindOut(new string[0], new string[0], 0, 0, new Tally[0], namesLeft: 0));
+            // The chip's tip lists it with the rest, so a click goes to it.
+            Assert.Equal("Still to find out:\nSee it together · 12 things it names\nA click goes to them in its You box",
+                CompendiumWords.FindsTip(new[] { ("See it together", "12 things it names") }));
+        }
+
+        [Fact]
         public void TheChipSaysHowMuchWasFoundOutOrWhyThePageShowsWhole()
         {
             Assert.Equal("7 of 12 found out", CompendiumWords.FoundOutCount(7, 12, narrow: false));

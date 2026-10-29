@@ -13,7 +13,7 @@ namespace Scry
             var built = Timing.Start();
             var facts = Facts.For(entry);
             Timing.Add("facts built", built);
-            var places = !EntryKeys.HasOwnNamespace(entry.Kind) && (Locations.Now != Locations.State.Read || entry.FoundIn.Length > 0);
+            var places = PlacesShown(entry);
             if (facts.IsEmpty && !places && entry.Biomes.Length == 0 && Users(explorer, entry).Count == 0) return y;
 
             y = SectionHeading("IN THE GAME", width, y, null, "facts");
@@ -636,12 +636,18 @@ namespace Scry
         {
             if (ReferenceEquals(_usersFor, entry)) return _users;
             _usersFor = entry;
-            _users = entry.UsedBy.Count == 0 || EffectLinks.For(entry.Name).Count > 0
-                ? new List<(string, string, string, Action)>()
-                : entry.UsedBy.Where(u => InCatalog(explorer, u)).Select(n => (n, ShownName(explorer, n, n), (string)null, (Action)(() => Go(explorer, n)))).ToList();
+            _users = UserKeys(explorer, entry).Select(n => (n, ShownName(explorer, n, n), (string)null, (Action)(() => Go(explorer, n)))).ToList();
             _usersTitle = Naming.Counted("Played by", _users.Count);
             return _users;
         }
+
+        /// <summary>What plays an entry, as its Played by row names them: none where its Plays in section tells them.</summary>
+        private static IEnumerable<string> UserKeys(Explorer explorer, Entry entry) =>
+            entry.UsedBy.Count == 0 || EffectLinks.For(entry.Name).Count > 0 ? Enumerable.Empty<string>() : entry.UsedBy.Where(u => InCatalog(explorer, u));
+
+        /// <summary>Whether In the game draws where an entry is found: its places were read, or are being read, and it has none of its own name space.</summary>
+        private static bool PlacesShown(Entry entry) =>
+            !EntryKeys.HasOwnNamespace(entry.Kind) && (Locations.Now != Locations.State.Read || entry.FoundIn.Length > 0);
 
         private static float Details(Explorer explorer, Entry entry, float width, float y)
         {

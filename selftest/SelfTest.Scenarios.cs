@@ -94,6 +94,7 @@ namespace Scry
             yield return S("what the game leaves unnamed reads as words, givers alike but for their biome go into one chip, and creatures' attacks say whose they are", ReadableNames, 20, ResetList);
             yield return S("with the compendium on the list holds the world a player meets, names alike say which each is, and no page offers a spawn command", CompendiumPlayerView, 30, () => { AllKnown(); ResetList(); });
             yield return S("with the compendium on, a made-up character sees only what it met", CompendiumShown, 60, () => { AllKnown(); ResetList(); });
+            yield return S("under the strict rules a page counts the names it leaves out, as its sections, its title chip and is:left tell them", StrictNamesRead, 60, () => { AllKnown(); ResetList(); });
             yield return S("a dungeon only seen from outside shows its outside alone", SeenFromOutside, 60, () => { AllKnown(); ResetList(); });
             yield return S("with a ground shown with insides, a dungeon's page names what its rooms walked on this server hold", InsidesFromWalks, 30, () => { AllKnown(); ResetList(); });
             yield return S("a dungeon's page is told again quickly, however many parts its rooms hold", DungeonPagesQuick, 20);

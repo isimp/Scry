@@ -41,9 +41,13 @@ namespace Scry
                 _findsStamp = explorer.KnowStamp;
                 _findsAt = Time.unscaledTime;
                 (_findsStill, _finds) = StillToFindOut(explorer, Facts.For(entry));
+                _findsLined = _gatheredLined;
             }
             return (_findsStill, _finds);
         }
+
+        /// <summary>How many names the page the finds were gathered for leaves out where a section's last line counts them.</summary>
+        private static int _findsLined;
 
         /// <summary>Whether a page still has something to find out, by entry, as last gathered; told anew as what the character knows changes.</summary>
         private static readonly Dictionary<Entry, bool> LeftByPages = new Dictionary<Entry, bool>();
@@ -99,11 +103,11 @@ namespace Scry
 
         /// <summary>
         /// The chip on a known page's title row under the strict rules, before copy and star: how
-        /// many of the numbers it keeps back were found out, with a small bar, its tip what is
-        /// still to find out and a click going to that in the You box; lit once all were; faint
-        /// where the floor or a source of the world shows the page whole, its tip saying what does
-        /// and how to see what is left; lit from the start on a page that keeps nothing back, so
-        /// every known page under the rules carries it. Where the chip begins, else <paramref name="right"/>.
+        /// much of what it keeps back was found out, its numbers and the names it could leave out,
+        /// with a small bar, its tip what is still to find out and a click going to that in the You
+        /// box; lit once all was; faint where the floor or a source of the world shows the page
+        /// whole, its tip saying what does and how to see what is left; none on a page that keeps
+        /// nothing back. Where the chip begins, else <paramref name="right"/>.
         /// </summary>
         private static float FindsChip(Explorer explorer, Entry entry, float right, float y)
         {

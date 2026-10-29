@@ -151,6 +151,20 @@ namespace Scry
         /// </summary>
         private static float Members(Explorer explorer, string title, object list, IReadOnlyList<string> members, string self, float width, float y)
         {
+            // The parts of a list played last (no page's own, so no self) show only while it plays: none of the page's own count.
+            var was = PassingStarts(self == null);
+            try
+            {
+                return MembersDrawn(explorer, title, list, members, self, width, y);
+            }
+            finally
+            {
+                PassingEnds(was);
+            }
+        }
+
+        private static float MembersDrawn(Explorer explorer, string title, object list, IReadOnlyList<string> members, string self, float width, float y)
+        {
             // A titled row the compendium's rules leave with nothing draws nothing, its title neither.
             if (title != null && members.Count > 0 && explorer.NamesOnlyMet && members.All(explorer.LeavesOut))
             {
@@ -215,6 +229,21 @@ namespace Scry
         private static int _playsInStamp = -1;
         private static List<PlaysInRow> _playsInKeptOf;
 
+        /// <summary>
+        /// The effect lists an entry plays in, a row each, as PLAYS IN shows them: a list the entry
+        /// itself plays is its own, not one it plays in, and it is not named among what plays along.
+        /// </summary>
+        private static List<PlaysInRow> PlaysInRowsOf(Entry entry) =>
+            EffectLinks.For(entry.Name)
+                .Select(r => new PlaysInRow
+                {
+                    Label = r.Label, List = r.List,
+                    Owners = r.Owners.Where(o => o.Key != entry.Name).ToList(),
+                    Members = r.Members.Where(m => m != entry.Name).ToArray(),
+                })
+                .Where(r => r.Owners.Count > 0)
+                .ToList();
+
         private static List<PlaysInRow> PlaysInShown(Explorer explorer)
         {
             if (_playsInStamp == explorer.KnowStamp && ReferenceEquals(_playsInKeptOf, _playsInRows)) return PlaysInKept;
@@ -241,27 +270,18 @@ namespace Scry
             {
                 _playsInFor = entry;
 
-                // A list the entry itself plays is its own, not one it plays in; and it is not
-                // named among what plays along.
-                _playsInRows = EffectLinks.For(entry.Name)
-                    .Select(r => new PlaysInRow
-                    {
-                        Label = r.Label, List = r.List,
-                        Owners = r.Owners.Where(o => o.Key != entry.Name).ToList(),
-                        Members = r.Members.Where(m => m != entry.Name).ToArray(),
-                    })
-                    .Where(r => r.Owners.Count > 0)
-                    .ToList();
+                _playsInRows = PlaysInRowsOf(entry);
                 foreach (var row in _playsInRows)
                 {
                     row.Names = ChipNames.Apart(row.Owners.Select(o => (o.Key, ShownName(explorer, o.Key, o.Shown))).ToList());
                 }
             }
             // The rows with an owner the rules keep, those left out counted at the section's end.
+            // One the rules leave nothing in keeps its heading under the strict rules, to say how many it left out.
             var rows = PlaysInShown(explorer);
-            if (rows.Count == 0) return y;
+            if (rows.Count == 0 && (_playsInRows.Count == 0 || !explorer.LeavingOut)) return y;
 
-            y = SectionHeading("PLAYS IN", width, y, null, "playsin", rows.Count);
+            y = SectionHeading("PLAYS IN", width, y, null, "playsin", rows.Count > 0 ? rows.Count : -1);
             if (IsFolded("playsin")) return y;
             StrictSectionStarts();
             StrictLeft(_playsInLeft);
@@ -332,6 +352,15 @@ namespace Scry
                 // What plays along.
                 if (list != null) y = Members(explorer, null, list, row.Members, entry.Name, width, y);
                 y += U(6f);
+            }
+            // Rows not shown yet count what they leave out too, so the section's last line tells all of it.
+            if (explorer.LeavingOut)
+            {
+                foreach (var row in rows.Skip(ShownOf("playsin", rows.Count, firstRows)))
+                {
+                    foreach (var owner in row.Owners) if (owner.Key != null && explorer.LeavesOut(owner.Key)) StrictLeft(1);
+                    if (row.List is EffectList) StrictLeft(row.Members.Count(explorer.LeavesOut));
+                }
             }
 
             y = StrictLeftLine(explorer, null, width, y);

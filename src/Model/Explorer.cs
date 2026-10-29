@@ -316,6 +316,21 @@ namespace Scry
         }
 
         /// <summary>
+        /// Whether the page shown, under the strict rules, could leave a name out (<see cref="LeavesOut(string, bool, Tie?)"/>):
+        /// one not met as anywhere, or one met that only being seen together with the page shows;
+        /// never the page's own, a mod, a skill or one the game shows, which no deed shows. A name
+        /// it could leave out is one of the page's finds, left out or shown.
+        /// </summary>
+        public bool Hideable(string key, bool gameShown = false)
+        {
+            if (!LeavingOut) return false;
+            var other = Find(key);
+            if (other == null || other == _selected || other.Kind == Kind.Mod) return false;
+            if (_view.Of(other) < KnownLevel.Seen) return !NamesAllHeld(other);
+            return !gameShown && other.Kind != Kind.Skill;
+        }
+
+        /// <summary>
         /// Whether the page shown names only what the character has met, seen or come to know
         /// (<see cref="LeavesOut(string)"/>): a known page with the compendium on, under either rules and
         /// whatever the floor; never a mod's page, which lists only what was seen of what it adds.
@@ -378,15 +393,19 @@ namespace Scry
         /// The faint line at a section's end telling how many things its page left out, in the
         /// words of the rules leaving them out: what the character has not met, or under the
         /// strict rules what it has not seen together (<see cref="CompendiumWords.LeftOutOf"/>);
-        /// without "more" where the section lists nothing else (<paramref name="alone"/>). Only
-        /// for a creature's loot and where it lives, counts the player can act on; none elsewhere.
+        /// without "more" where the section lists nothing else (<paramref name="alone"/>). Under
+        /// the strict rules for every section; otherwise only for a creature's loot, where it
+        /// lives, a room's card and a raid, counts the player can act on.
         /// </summary>
         public string LeftOutLine(string topic, int count, bool alone = false)
         {
-            // Only a count the player can act on is said: drops not yet seen fall, places it lives
-            // not met in, what a dungeon room's card holds not yet met, and what a raid brings not yet met.
+            // Strict leaves out what was not seen together with the page: every section says how
+            // many, so the page never goes quiet on what it keeps back.
+            if (LeavingOut) return CompendiumWords.LeftOutOf(topic, count, alone);
+            // Otherwise only a count the player can act on is said: drops not yet seen fall, places it
+            // lives not met in, what a dungeon room's card holds not yet met, and what a raid brings not yet met.
             if (topic != "loot" && topic != "lives" && topic != "room" && topic != "raid") return null;
-            return LeavingOut ? CompendiumWords.LeftOutOf(topic, count, alone) : CompendiumWords.NotYetMet(topic, count, alone);
+            return CompendiumWords.NotYetMet(topic, count, alone);
         }
 
         /// <summary>

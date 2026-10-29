@@ -449,7 +449,7 @@ namespace Scry
         /// stage, the star levels and the gear not yet seen up close.
         /// </summary>
         public static List<(string Label, string Value)> StillToFindOut(IEnumerable<string> deeds, IReadOnlyList<string> types, int attacks, int spots, IEnumerable<Tally> uncounted,
-            IEnumerable<int> starsUnseen = null, IEnumerable<string> gearUnseen = null, bool ofItem = false)
+            IEnumerable<int> starsUnseen = null, IEnumerable<string> gearUnseen = null, bool ofItem = false, int namesLeft = 0)
         {
             var rows = new List<(string, string)>();
             var pending = new HashSet<Deed>();
@@ -489,6 +489,7 @@ namespace Scry
             if (tallies.Contains(Tally.Weather)) rows.Add(("Spend time in it", "how often each weather comes"));
             foreach (var stars in starsUnseen ?? Array.Empty<int>()) rows.Add(($"See {Naming.Count(stars, "star", "stars")} up close", "shows it so on the stage"));
             foreach (var gear in gearUnseen ?? Array.Empty<string>()) rows.Add(("See it carry", $"{gear} up close: dresses it so on the stage"));
+            if (namesLeft > 0) rows.Add(("See it together", Naming.Count(namesLeft, "thing it names", "things it names")));
             return rows;
         }
 

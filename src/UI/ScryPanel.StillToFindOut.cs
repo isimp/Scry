@@ -61,7 +61,161 @@ namespace Scry
             }
             Sourced(explorer, facts, deeds, uncounted, finds);
             var (starsUnseen, gearUnseen) = SightLacks(explorer, facts, finds);
-            return (CompendiumWords.StillToFindOut(deeds, types, attacks, spots, uncounted, starsUnseen, gearUnseen, explorer.Selected?.Kind == Kind.Item), finds);
+            _gatheredLined = PageNames(explorer, facts, finds);
+            return (CompendiumWords.StillToFindOut(deeds, types, attacks, spots, uncounted, starsUnseen, gearUnseen, explorer.Selected?.Kind == Kind.Item, finds.NamesLeft), finds);
+        }
+
+        /// <summary>
+        /// Each name the page shown could leave out until seen together with it (<see cref="Explorer.Hideable"/>),
+        /// counted as left out or shown, wherever the page draws it: its facts and notes, the
+        /// chips, tables and chains of its rows, where it comes from, its biomes, what plays it and
+        /// where it is found, its links, and the lists it plays in. Gathered from what the page
+        /// draws, as the numbers are, without drawing it, so a search finds what the chip counts;
+        /// the parts of a list played last, which show only while it plays, are no part of the page.
+        /// With it, how many of them the sections count at their ends (<see cref="StrictLeftLine"/>),
+        /// the rest reading a smudge in a cell or a chain, for the self-test to hold against a draw.
+        /// </summary>
+        private static int PageNames(Explorer explorer, Facts facts, PageFinds finds)
+        {
+            var page = explorer.Selected;
+            if (!explorer.LeavingOut || page == null) return 0;
+            var names = new NameTally(explorer, finds);
+            bool Hinged(string part) => part != null && facts.PartHinges.TryGetValue(part, out var hinge) && explorer.HidesHinged(hinge);
+
+            for (var i = 0; i < facts.Pairs.Count; i++)
+            {
+                var key = facts.Pairs[i].Key;
+                if (Hinged(facts.PairParts[i]) || !facts.Links.TryGetValue(key, out var linked)) continue;
+                // A line only naming what the page lists waits for that to be met, said nowhere (FactPair).
+                if (facts.Listing.Contains(key) && LeftOut(explorer, linked)) continue;
+                names.Named(linked, GameShows(explorer, facts, key));
+            }
+            foreach (var row in facts.Rows)
+            {
+                if (!Hinged(row.Part) && !UnmetWhole(explorer, row)) RowNames(explorer, row, names);
+            }
+            foreach (var row in facts.UseRows) RowNames(explorer, row, names);
+            foreach (var s in facts.Where)
+            {
+                names.Name(s.Prefab, s.AllPlay ? explorer.NotMet(s.Prefab) : explorer.LeavesOut(s.Prefab, false, TieOfSource(s.Record)) || explorer.LeavesOutAll(s.MetIn));
+            }
+            if (page.Kind != Kind.Biome) foreach (var biome in page.Biomes) names.Named(EntryKeys.For(Kind.Biome, biome));
+            foreach (var user in UserKeys(explorer, page)) names.Named(user);
+            if (PlacesShown(page))
+            {
+                foreach (var place in page.FoundIn) if (Places.LocationNamed(explorer.Catalog, place) is Entry location) names.Named(location.Key);
+            }
+            var rows = new LinkRowList();
+            var placed = new PlacedRows();
+            MakeLinkRows(explorer, page, rows, placed);
+            foreach (var (_, items) in rows) foreach (var item in items) names.Named(item.Key);
+            foreach (var pair in placed)
+            {
+                var items = pair.Key == LinkWords.Carries ? CarriedBesidesAttacks(facts, pair.Value) : pair.Value;
+                foreach (var item in items) names.Named(item.Key);
+            }
+            foreach (var row in PlaysInRowsOf(page))
+            {
+                // A row none of whose owners the rules keep is left out whole, its owners counted; what plays along with it goes unseen.
+                if (!row.Owners.Exists(o => o.Key == null || !explorer.LeavesOut(o.Key)))
+                {
+                    foreach (var owner in row.Owners) names.Name(owner.Key, true);
+                    continue;
+                }
+                foreach (var owner in row.Owners) if (owner.Key != null) names.Named(owner.Key);
+                if (row.List is EffectList) foreach (var member in row.Members) names.Named(member);
+            }
+            return names.Lined;
+        }
+
+        /// <summary>How many names the page gathered last leaves out where a section's last line counts them (<see cref="PageNames"/>).</summary>
+        private static int _gatheredLined;
+
+        /// <summary>The names a page under the strict rules could leave out, as they are gathered (<see cref="PageNames"/>).</summary>
+        private sealed class NameTally
+        {
+            private readonly Explorer _explorer;
+            private readonly PageFinds _finds;
+
+            public NameTally(Explorer explorer, PageFinds finds)
+            {
+                _explorer = explorer;
+                _finds = finds;
+            }
+
+            /// <summary>How many of the names left out a section's last line counts; the rest read a smudge where they stand.</summary>
+            public int Lined { get; private set; }
+
+            /// <summary>A name left out, or shown where it could have been; one the page could never leave out is no find.</summary>
+            public void Name(string key, bool kept, bool lined = true, bool gameShown = false)
+            {
+                if (kept)
+                {
+                    _finds.Name(true);
+                    if (lined) Lined++;
+                }
+                else if (_explorer.Hideable(key, gameShown)) _finds.Name(false);
+            }
+
+            /// <summary>A name the page leaves out as any list does (<see cref="Explorer.LeavesOut(string, bool, Tie?)"/>).</summary>
+            public void Named(string key, bool gameShown = false, Tie? tie = null) => Name(key, _explorer.LeavesOut(key, gameShown, tie), true, gameShown);
+        }
+
+        /// <summary>
+        /// The names one of the page's rows draws, as <see cref="FactRow"/> draws them: none of a
+        /// row the game does not list yet, nor of wares counted as waiting, nor of a table kept
+        /// back whole or an attack's line folded while it waits.
+        /// </summary>
+        private static void RowNames(Explorer explorer, Facts.Row row, NameTally names)
+        {
+            if (row.GameShown && explorer.RecipeWaits(row.Recipe)) return;
+            if (row.WaitsFor != null && UnlockRows.Of(row.WaitsFor, explorer.NamesOnlyMet, WorldKeySet) == UnlockShown.Counted) return;
+            if (row.Cells != null) return;
+            if (row.Columns != null)
+            {
+                // A table every line of which is left out counts them all; one every line of which is kept back names nothing (TableRow).
+                if (row.Lines.Count > 0 && row.Lines.TrueForAll(l => LineLeftOut(explorer, l.Link)))
+                {
+                    foreach (var line in row.Lines) names.Name(line.Link, true);
+                    return;
+                }
+                if (explorer.KeepsBackWhole(row.LineProofs, row.Lines.Count) != null) return;
+                for (var l = 0; l < row.Lines.Count; l++)
+                {
+                    var link = row.Lines[l].Link;
+                    if (LineLeftOut(explorer, link))
+                    {
+                        names.Name(link, true);
+                        continue;
+                    }
+                    if (AttackKept(explorer, row, l)) continue;
+                    if (!string.IsNullOrEmpty(link)) names.Named(link);
+                    // A cell naming what was not seen together reads a smudge, unless its numbers are kept back already (CellDrawn).
+                    if (LineKept(explorer, row, l, out _)) continue;
+                    for (var c = 1; c < row.Lines[l].Cells.Length; c++)
+                    {
+                        if (!row.CellLinks.TryGetValue((l, c), out var to) || CellKept(explorer, row, l, c, out _)) continue;
+                        names.Name(to, explorer.LeavesOut(to), lined: false);
+                    }
+                }
+                return;
+            }
+            if (row.Chain != null)
+            {
+                // A step not seen together reads a smudge in its chip (ChainRow).
+                var shown = explorer.Selected;
+                foreach (var step in row.Chain.Steps)
+                {
+                    foreach (var key in step)
+                    {
+                        if (shown != null && (shown.Name == key || shown.Key == key)) continue;
+                        names.Name(key, explorer.LeavesOut(row.Chain, key), lined: false);
+                    }
+                }
+                return;
+            }
+            var listed = row.Lists ? Listed(explorer, row.Items, i => i.Prefab) : row.Items;
+            foreach (var item in listed) names.Named(item.Prefab, GameShows(explorer, row, item), TieOf(row));
         }
 
         /// <summary>A counted cell of a row, as found or kept back; whether it is kept back.</summary>
