@@ -21,6 +21,9 @@ namespace Scry
         private double _passStart;
         private int _laidThisPass;
         private bool _held;
+        private double _spentMs;
+        private bool _skip;
+        private bool _laidLastRepaint;
 
         /// <param name="clock">The time now, in milliseconds.</param>
         /// <param name="budgetMs">How much of a repaint may go to laying parts beyond the first.</param>
@@ -48,16 +51,24 @@ namespace Scry
             Active = true;
             _laid = 0;
             _seen = 0;
+            _laidLastRepaint = true;
         }
 
         /// <summary>Lays the rest at once: for a page whose parts are all at hand.</summary>
         public void Stop() => Active = false;
 
-        /// <summary>A drawing of the page begins: a repaint, or an event between repaints.</summary>
-        public void StartPass(bool repaint)
+        /// <summary>
+        /// A drawing of the page begins: a repaint, or an event between repaints. A repaint in a
+        /// frame whose other work of Scry's already took the share (<paramref name="spentMs"/>, the
+        /// stage's copy made and filmed) lays nothing new, unless the last repaint laid nothing
+        /// either, so the page always gets on.
+        /// </summary>
+        public void StartPass(bool repaint, double spentMs = 0)
         {
             _unit = 0;
             _repaint = repaint;
+            _spentMs = spentMs;
+            _skip = repaint && Active && spentMs >= _budgetMs && _laidLastRepaint;
             _passStart = _clock();
             _laidThisPass = 0;
             _held = false;
@@ -70,7 +81,7 @@ namespace Scry
             if (!Active) return true;
             var i = _unit++;
             if (i < _laid) return true;
-            if (_repaint && i == _laid && (_laidThisPass == 0 || _clock() - _passStart < _budgetMs))
+            if (_repaint && !_skip && i == _laid && (_laidThisPass == 0 || _spentMs + _clock() - _passStart < _budgetMs))
             {
                 _laid++;
                 _laidThisPass++;
@@ -86,6 +97,7 @@ namespace Scry
         {
             if (!Active) return;
             if (_repaint) _seen = _unit;
+            if (_repaint) _laidLastRepaint = _laidThisPass > 0;
             if (_repaint && !_held) Active = false;
         }
     }

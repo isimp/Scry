@@ -14,9 +14,12 @@ namespace Scry.Tests
         }
 
         /// <summary>One drawing of the page: each part costs its milliseconds when laid; which were laid.</summary>
-        private static bool[] Pass(PageStaging staging, Clock clock, bool repaint, params double[] costs)
+        private static bool[] Pass(PageStaging staging, Clock clock, bool repaint, params double[] costs) => PassAfter(staging, clock, repaint, 0, costs);
+
+        /// <summary>The same, in a frame whose other work of Scry's already took <paramref name="spentMs"/>.</summary>
+        private static bool[] PassAfter(PageStaging staging, Clock clock, bool repaint, double spentMs, params double[] costs)
         {
-            staging.StartPass(repaint);
+            staging.StartPass(repaint, spentMs);
             var laid = new bool[costs.Length];
             for (var i = 0; i < costs.Length; i++)
             {
@@ -80,6 +83,46 @@ namespace Scry.Tests
             // The two laid parts take 20 ms to draw again, past the share: the third is laid all the same.
             Assert.Equal(new[] { true, true, true }, Pass(staging, clock, true, 10, 10, 1));
             Assert.False(staging.Active);
+        }
+
+        [Fact]
+        public void AFrameWhoseOtherWorkAlreadyTookItsShareLaysNothingNewAndTheNextLaysOneWhatever()
+        {
+            // The frame after a click makes the stage's copy and films it: the page waits a frame
+            // rather than adding to it, and goes on in the next, however busy that is.
+            var clock = new Clock();
+            var staging = new PageStaging(clock.Now, budgetMs: 6);
+            staging.Begin();
+            Pass(staging, clock, true, 20, 1, 1);
+
+            Assert.Equal(new[] { true, false, false }, PassAfter(staging, clock, true, 30.0, 1, 1, 1));
+            Assert.True(staging.Active);
+            Assert.Equal(new[] { true, true, false }, PassAfter(staging, clock, true, 30.0, 1, 7, 1));
+            // A frame with little other work lays as many as its share holds again.
+            Assert.Equal(new[] { true, true, true }, PassAfter(staging, clock, true, 2.0, 0, 0, 1));
+            Assert.False(staging.Active);
+        }
+
+        [Fact]
+        public void TheFramesOtherWorkCountsAgainstItsShare()
+        {
+            // Four milliseconds of the frame went to Scry's other work: two parts fit in what is left.
+            var clock = new Clock();
+            var staging = new PageStaging(clock.Now, budgetMs: 6);
+            staging.Begin();
+
+            Assert.Equal(new[] { true, true, false, false, false }, PassAfter(staging, clock, true, 4.0, 1, 1, 1, 1, 1));
+        }
+
+        [Fact]
+        public void TheClicksOwnFrameLaysNothingWhenOtherWorkFilledIt()
+        {
+            var clock = new Clock();
+            var staging = new PageStaging(clock.Now, budgetMs: 6);
+            staging.Begin();
+
+            Assert.Equal(new[] { false, false }, PassAfter(staging, clock, true, 30.0, 20, 1));
+            Assert.Equal(new[] { true, false }, PassAfter(staging, clock, true, 30.0, 20, 1));
         }
 
         [Fact]

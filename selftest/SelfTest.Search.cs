@@ -248,8 +248,11 @@ namespace Scry
             p.Check(X.Forward() && X.Selected == b, "Forward goes on again");
         }
 
-        /// <summary>The most Scry's work may take in a frame while a page is laid out over frames.</summary>
+        /// <summary>The most Scry's work may take in a frame while a page is laid out over frames, the stage's copy and film of it included.</summary>
         private const double LayingFrameMs = 60;
+
+        /// <summary>The most the page's own drawing may take in a frame while it is laid out.</summary>
+        private const double LayingPanelMs = 40;
 
         /// <summary>
         /// A page whose facts are not kept yet answers the click in its first frame, its parts not
@@ -261,6 +264,10 @@ namespace Scry
             var page = Pick(Kind.Creature, "Troll", "Draugr", "Greydwarf_Elite", "Abomination");
             if (page == null || Facts.Kept(page)) page = X.Entries.All.FirstOrDefault(e => e.Kind == Kind.Creature && e.Origin == Origin.Vanilla && !Facts.Kept(e));
             if (page == null) p.Skip("every creature's facts are kept already");
+            // Timed as play meets a page: once Scry's code is compiled ahead, with no box open over it.
+            yield return Until(() => Session.Warmup?.Done == true, 50);
+            ScryPanel.LeaveBoxes();
+            yield return null;
             ScryPanel.StagePagesForTest(true);
             var from = Frames.Frames;
             var waiting = ScryPanel.Drawn(PanelPart.Waiting);
@@ -269,7 +276,7 @@ namespace Scry
             yield return null;
             p.Check(ScryPanel.PageBeingLaid && ScryPanel.Drawn(PanelPart.Waiting) > waiting, $"{page.ShownName}'s page answers the click at once, its parts not laid yet saying so",
                 ScryPanel.PageBeingLaid ? "no waiting line drawn" : "laid whole in its first frame");
-            yield return null;
+            // Held where the first frame left it, its topic boxes waiting in sight under its facts' heading.
             ScryPanel.HoldLayingForTest(true);
             yield return Shot(p, "a page laid out over frames, part way");
             ScryPanel.HoldLayingForTest(false);
@@ -283,8 +290,10 @@ namespace Scry
             yield return null;
             yield return null;
             var laid = Frames.Since(from);
-            p.Note($"laying it out took {Numbers.Count(frames + 3)} frames; the longest each part took in one: {string.Join(", ", FirstPageParts.Select(part => $"{part} {Numbers.Amount(Timing.MostMs(part), 1)} ms"))}");
-            p.Check(laid.Max < LayingFrameMs, "no frame of laying it out takes long", $"{Numbers.Amount(laid.Max, 1)} ms at the most{Slowest(laid, 1)}");
+            p.Note($"laying it out took {Numbers.Count(frames + 2)} frames; the longest each part took in one: {string.Join(", ", FirstPageParts.Select(part => $"{part} {Numbers.Amount(Timing.MostMs(part), 1)} ms"))}");
+            foreach (var slow in laid.PartsOfSlowest(3)) p.Note("a slow frame of it: " + slow);
+            p.Check(Timing.MostMs("panel") < LayingPanelMs, "no frame of drawing the page while it is laid out takes long", $"{Numbers.Amount(Timing.MostMs("panel"), 1)} ms at the most");
+            p.Check(laid.Max < LayingFrameMs, "no frame of laying it out takes long, the stage's copy and film included", $"{Numbers.Amount(laid.Max, 1)} ms at the most{Slowest(laid, 1)}");
             p.Check(ScryPanel.FindsChipForTest != PanelWords.CountingFinds, "the finds chip counts once the page is whole", ScryPanel.FindsChipForTest ?? "no chip");
             ScryPanel.StagePagesForTest(false);
             yield return Picture(p, "a page laid out over frames, whole");

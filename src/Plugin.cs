@@ -157,6 +157,7 @@ namespace Scry
             Guard.Run(Feature.DungeonMaps, "the dungeons in the ground shown with insides", DungeonsInGround.Update);
             Timing.Add("links", links);
             if (_server) return;
+            FrameWork.Begin();
             var started = Timing.Start();
             Guard.Run(Feature.World, "the frame", Session.Update);
             var drops = Timing.Start();
@@ -164,15 +165,18 @@ namespace Scry
             WornWatch.Save();
             Timing.Add("update drops", drops);
             Timing.Add("update", started);
+            FrameWork.End();
         }
 
         private void LateUpdate()
         {
             if (_server) return;
+            FrameWork.Begin();
             // Once the game's map has moved this frame, so the dungeons' marks keep to it as it is dragged;
             // timed as a part of the frame's own, "marks".
             Guard.Run(Feature.DungeonMarksOnMap, "the marks on Valheim's map", MapMarkButtons.Update, "marks");
             Guard.Run(Feature.Stage, "drawing the stage", Session.LateUpdate, "render");
+            FrameWork.End();
         }
 
         /// <summary>How often the panel was repainted this session: the panel draws once per event, so what it allocates is told per repaint, not per frame.</summary>

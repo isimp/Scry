@@ -154,7 +154,8 @@ namespace Scry
             }
             // A section or a news line to go to is found by drawing the page whole.
             if (_goingTo != null || _arriving != null) Staging.Stop();
-            Staging.StartPass(Event.current.type == EventType.Repaint && !_holdLaying);
+            // The frame's other work of Scry's counts against laying more: the stage's copy made, its film taken.
+            Staging.StartPass(Event.current.type == EventType.Repaint && !_holdLaying, FrameWork.SpentMs);
             try
             {
                 SidePage(explorer, rect, withStage);
