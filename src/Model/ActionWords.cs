@@ -36,7 +36,7 @@ namespace Scry
         public const string EverythingHere = "Search for everything that lives, grows or is found in this biome";
 
         /// <summary>A place's roll.</summary>
-        public const string RollPlace = "Roll again what the game leaves to chance here: which chests, piles and creatures appear";
+        public const string RollPlace = "Roll again what the game leaves to chance here: which containers, piles and creatures appear";
 
         /// <summary>A dungeon's or camp's new layout.</summary>
         public const string AnotherLayout = "Lay out another example, as the game might in another world";

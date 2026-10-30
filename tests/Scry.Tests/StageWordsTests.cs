@@ -62,7 +62,7 @@ namespace Scry.Tests
         [Fact]
         public void ARoomPeeksWithWhereItIsWhatItHoldsAndThatAClickPicksIt()
         {
-            Assert.Equal("Burial chamber\n12 m below the entrance  ·  4 rooms in  ·  3 ways\nCreatures 2  ·  Chests and pickups 5\nPick it, or double-click to go into it",
+            Assert.Equal("Burial chamber\n12 m below the entrance  ·  4 rooms in  ·  3 ways\nCreatures 2  ·  To loot 5\nPick it, or double-click to go into it",
                 StageWords.RoomPeek("Burial chamber", "12 m below the entrance  ·  4 rooms in  ·  3 ways", creatures: 2, chests: 5, goneInto: false));
         }
 

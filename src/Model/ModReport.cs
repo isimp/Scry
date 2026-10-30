@@ -122,7 +122,7 @@ namespace Scry
     internal static class ModReportWords
     {
         /// <summary>What a mod's page says it adds when Scry sees nothing it adds or hooks into.</summary>
-        public const string NothingAdded = "nothing Scry can see, and it hooks into none of what Scry tells";
+        public const string NothingAdded = "nothing Scry can see, and it changes none of what Scry tells";
 
         /// <summary>The tip of the report's switch to show only mods that add something.</summary>
         public static string AddingTip(bool on) => on

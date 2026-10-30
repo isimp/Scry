@@ -156,7 +156,7 @@ namespace Scry
         /// <summary>How high the woods' openness goes, the game's forest factor: three layers of noise, halved in weight each time and a bit (<c>WorldGenerator.GetForestFactor</c>).</summary>
         private const float ForestTop = 2.19f;
 
-        private const string ForestScale = " (0 is the thickest woods, about 2.2 the most open; the Meadows are wooded below 1.15)";
+        private const string ForestScale = " (0 is the thickest forest, about 2.2 the most open; the Meadows are wooded below 1.15)";
 
         /// <summary>The range of the woods' openness (the game's forest factor) it keeps to, or null when it keeps to none or to all of it.</summary>
         private static string Woods(LocationRules rules)

@@ -10,6 +10,8 @@ On the ocean's ground the sea holds what lives in it: a Serpent swims at its dep
 
 Under *Strict* a page says what it keeps back. Each section ends saying how many things it left out, and a section left with nothing keeps its heading to say so. The title row counts the names not yet seen together along with the numbers, so it reads *All found out* only once nothing is kept back, the *You* box says how many wait to be seen together, and `is:left` finds the same pages.
 
+With the compendium on, Scry's own words no longer read as a dash where they happen to hold the name of a thing not yet seen, such as a chest, wood or a hook. A place's row of chests and pickups is now *To loot*, and a fish bites once it swims to the float.
+
 ## 0.3.2
 
 A place on the stage stands on the ground it digs for itself, so a tar pit sits in its bowl and a Burial Chambers' entrance in its stair pit.

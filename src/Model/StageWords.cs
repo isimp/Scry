@@ -40,7 +40,7 @@ namespace Scry
         /// a click and a double-click do; the room gone into, how to come back out.
         /// </summary>
         public static string RoomPeek(string name, string where, int creatures, int chests, bool goneInto, bool layoutOnly = false) =>
-            name + "\n" + where + (layoutOnly ? "" : "\nCreatures " + Numbers.Count(creatures) + "  ·  Chests and pickups " + Numbers.Count(chests))
+            name + "\n" + where + (layoutOnly ? "" : "\nCreatures " + Numbers.Count(creatures) + "  ·  To loot " + Numbers.Count(chests))
             + (goneInto ? "\nEsc, the breadcrumb's level or the mouse's back button comes back out" : "\nPick it, or double-click to go into it");
 
         /// <summary>The link on the card of a room picked, not gone into, and its tip.</summary>

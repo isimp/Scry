@@ -203,7 +203,7 @@ namespace Scry.Tests
         // A mod's page, in words.
 
         [Fact]
-        public void AModAddingNothingSaysSo() => Assert.Equal("nothing Scry can see, and it hooks into none of what Scry tells", ModReportWords.NothingAdded);
+        public void AModAddingNothingSaysSo() => Assert.Equal("nothing Scry can see, and it changes none of what Scry tells", ModReportWords.NothingAdded);
 
         [Fact]
         public void WhatItHooksIntoWarnsThatScryMayTellOtherwise()

@@ -14,7 +14,7 @@ namespace Scry
         private const string Apart = "  ·  ";
 
         public const string Creatures = "Creatures in this roll";
-        public const string Loot = "Chests and pickups";
+        public const string Loot = "To loot";
         public const string Ways = "Ways on";
         public const string Floors = "Floors in this room";
         /// <summary>The link on the card's name's line going to the room's page.</summary>
@@ -42,7 +42,7 @@ namespace Scry
         }
 
         public const string CreaturesTip = "The creatures this preview's spawn points put in the room; another preview rolls them anew";
-        public const string LootTip = "The chests and pickups this preview's rolls put in the room, each with how likely a room of its kind holds it";
+        public const string LootTip = "What this preview's rolls put in the room to loot, each with how likely a room of its kind holds it";
         public const string FloorTip = "Cut at head height over this floor";
         public const string OpenPageTip = "The page of this kind of room";
 

@@ -218,11 +218,11 @@ namespace Scry.Tests
         }
 
         [Theory]
-        [InlineData(PartRole.Loot, false, "Chests and pickups")]
+        [InlineData(PartRole.Loot, false, "To loot")]
         [InlineData(PartRole.Gather, false, "To gather")]
         [InlineData(PartRole.Other, false, "Holds")]
         [InlineData(PartRole.Built, false, "Built of")]
-        [InlineData(PartRole.Loot, true, "Chests and pickups in its rooms")]
+        [InlineData(PartRole.Loot, true, "To loot in its rooms")]
         [InlineData(PartRole.Gather, true, "To gather in its rooms")]
         [InlineData(PartRole.Other, true, "Its rooms hold")]
         [InlineData(PartRole.Built, true, "Its rooms are built of")]
