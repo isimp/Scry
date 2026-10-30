@@ -172,10 +172,11 @@ namespace Scry.Tests
             Assert.Equal("rising 5–10 m within 12 m of it", Row(rules, "Ground"));
         }
 
-        // WorldGenerator.GetForestFactor is noise from 0, the thickest woods, to about 2.2; the
-        // Meadows count as wooded below 1.15 (InForest). A location in woods keeps to a range of it.
+        // WorldGenerator.GetForestFactor is noise from 0, the thickest woods, to about 2.2. A
+        // location in woods keeps to a range of it. The scale names no biome, so no name of the
+        // game's things in it reads a dash for a character who has not met it.
 
-        private const string ForestScale = " (0 is the thickest forest, about 2.2 the most open; the Meadows are wooded below 1.15)";
+        private const string ForestScale = " (0 is the thickest forest, about 2.2 the most open)";
 
         [Fact]
         public void AWoodsRuleSaysItsRangeOfTheForestFactor()
