@@ -254,8 +254,8 @@ namespace Scry.Tests
 
             var fish = Item(new[] { ("Type", "") }, new[] { (FishWords.BitesOn, "fishing") });
             Assert.Equal(new[] { "row " + FishWords.BitesOn }, fish.Single(t => t.Heading == "What it does").Shown);
-            var bait = Item(new[] { ("Type", "") }, new[] { ("Catches, when one reaches the hook", "bait") });
-            Assert.Equal(new[] { "row Catches, when one reaches the hook" }, bait.Single(t => t.Heading == "What it does").Shown);
+            var bait = Item(new[] { ("Type", "") }, new[] { (FishWords.CatchesOn, "bait") });
+            Assert.Equal(new[] { "row " + FishWords.CatchesOn }, bait.Single(t => t.Heading == "What it does").Shown);
             var key = Item(new[] { ("Type", "") }, new[] { ("Opens", "") });
             Assert.Equal(new[] { "row Opens" }, key.Single(t => t.Heading == "What it does").Shown);
 

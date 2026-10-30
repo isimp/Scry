@@ -477,10 +477,7 @@ namespace Scry
                 var seen = new List<string>();
                 foreach (var entry in explorer.Catalog)
                 {
-                    // Only the names of the world a player meets: an effect, a sound or a projectile is
-                    // never met, and its name ("Fire") is often a plain word of the text ("fires").
-                    // A name made of a prefab's words ("Rock heath", the Swamp's "Well") is no name a text holds.
-                    if (!NameMask.Keeps(entry, entry.Source is PlaceSource place && Places.NamedByWords(place.Contents, place.IsRoom))) continue;
+                    if (!Maskable(entry)) continue;
                     // Named too as one of all a room or place shown whole holds (Explorer.NamedAsHeld), as the chips name it.
                     var met = explorer.LevelOf(entry) >= KnownLevel.Seen || explorer.NamedAsHeld(entry);
                     // A skill's name is mostly a word of what one does (run, swim, sneak), so text keeps it; facts naming one not learned are left out instead.
@@ -493,6 +490,14 @@ namespace Scry
             if (MaskedTexts.Count > 4000) MaskedTexts.Clear();
             return MaskedTexts[text] = _mask.Apply(text);
         }
+
+        /// <summary>
+        /// Whether a page's text keeps back an entry's name while it is not met: only the names of
+        /// the world a player meets. An effect, a sound or a projectile is never met, and its name
+        /// ("Fire") is often a plain word of the text ("fires"); a name made of a prefab's words
+        /// ("Rock heath", the Swamp's "Well") is no name a text holds.
+        /// </summary>
+        public static bool Maskable(Entry entry) => NameMask.Keeps(entry, entry.Source is PlaceSource place && Places.NamedByWords(place.Contents, place.IsRoom));
 
         /// <summary>How many things the strict rules left out of the section being drawn, for its last line (<see cref="StrictLeftLine"/>).</summary>
         private static int _strictLeft;

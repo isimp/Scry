@@ -32,8 +32,15 @@ namespace Scry
         public const string RawFish = "Cuts into";
 
 
-        /// <summary>The title of the baits a fish bites on, each with its chance once it reaches the hook (<c>Fish.TestBate</c>).</summary>
-        public const string BitesOn = "Bites on, when it reaches the hook";
+        /// <summary>
+        /// The title of the baits a fish bites on, each with its chance once it swims to the float
+        /// (<c>Fish.TestBate</c>). It names no hook: the game has an item of that name, which the
+        /// name mask keeps back while it is not seen.
+        /// </summary>
+        public const string BitesOn = "Bites on, once it swims to the float";
+
+        /// <summary>The title of the fish a bait catches, each with its chance once one swims to the float.</summary>
+        public const string CatchesOn = "Catches, once one swims to the float";
 
         /// <summary>What drives a fish off (<c>Fish.CustomFixedUpdate</c> through <c>Player.GetPlayerNoiseRange</c>): the noise a player makes, by <c>Character.AddNoise</c>'s ranges, effects changing it (<c>SEMan.ModifyNoise</c>).</summary>
         public const string SwimsOffLine = "from your noise: walking or swimming 15 m, running or jumping 30 m, building 50 m; some effects change it";

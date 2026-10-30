@@ -26,6 +26,16 @@ namespace Scry
             }
         }
 
+        /// <summary>The constant strings a type declares itself, of any visibility.</summary>
+        [ForTest]
+        public static IEnumerable<string> Constants(Type type)
+        {
+            foreach (var field in type.GetFields(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
+            {
+                if (field.IsLiteral && field.FieldType == typeof(string) && field.GetRawConstantValue() is string words) yield return words;
+            }
+        }
+
         /// <summary>The fields of a type that match, found once and kept in the cache given.</summary>
         public static FieldInfo[] Matching(Dictionary<Type, FieldInfo[]> cache, Type type, Func<FieldInfo, bool> match) =>
             Picked(cache, type, field => match(field) ? new[] { field } : Array.Empty<FieldInfo>());

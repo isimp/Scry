@@ -1,12 +1,33 @@
+using System;
 using System.Collections;
 using System.Linq;
 using UnityEngine;
 
 namespace Scry
 {
-    /// <summary>The self-test's case for what hinges on a thing not met.</summary>
+    /// <summary>The self-test's cases for what hinges on a thing not met, and for Scry's own words naming none.</summary>
     internal static partial class SelfTest
     {
+        /// <summary>
+        /// Scry's own fixed words (its word classes' constants) go through the name mask as the
+        /// game's texts do, so a word of them that is also a thing's whole name reads a dash while
+        /// the thing is not met: the game's Hook would blank "the hook" in a heading. A clash
+        /// with a name of the game fails; one with a mod's name is noted, a mod's names being its
+        /// own. Text a page writes outside the word classes is not checked.
+        /// </summary>
+        private static IEnumerator FixedWordsNameNoThing(Probe p)
+        {
+            var names = X.Catalog.Where(e => ScryPanel.Maskable(e) && e.Kind != Kind.Skill).ToList();
+            var words = typeof(ScryPanel).Assembly.GetTypes().Where(t => t.Name.EndsWith("Words", StringComparison.Ordinal)).SelectMany(TypeFields.Constants).Distinct().ToList();
+            p.Check(words.Contains(FishWords.BitesOn) && words.Contains(ChainWords.Summoning), $"the word classes' {Numbers.Count(words.Count)} fixed words are read, a fish's biting heading among them");
+            var game = HeadingClashes.Of(words, names.Where(e => e.Origin == Origin.Vanilla).Select(e => e.ShownName).Distinct());
+            var mods = HeadingClashes.Of(words, names.Where(e => e.Origin != Origin.Vanilla).Select(e => e.ShownName).Distinct());
+            p.Check(game.Count == 0, $"none of {Numbers.Count(words.Count)} fixed words holds a name of the game's {Numbers.Count(names.Count(e => e.Origin == Origin.Vanilla))} things",
+                string.Join("; ", game.Take(20).Select(c => $"\"{c.Heading}\" holds {c.Name}")));
+            p.Note(mods.Count == 0 ? "and none a mod's thing's name" : $"{Numbers.Count(mods.Count)} hold a mod's thing's name: " + string.Join("; ", mods.Take(20).Select(c => $"\"{c.Heading}\" holds {c.Name}")));
+            yield break;
+        }
+
         /// <summary>
         /// With the compendium on, what exists only through a thing the character has not met is
         /// left out whole: a made-up character who knows the Lox but never met its saddle sees no

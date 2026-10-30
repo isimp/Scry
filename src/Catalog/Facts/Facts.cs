@@ -785,7 +785,7 @@ namespace Scry
             yield return true;
             if (fish != null) Part("fish catch", () => Catch(fish));
             yield return true;
-            Part("bait", () => ChanceRow("Catches, when one reaches the hook", Knowledge.Catches(prefab.name)));
+            Part("bait", () => ChanceRow(FishWords.CatchesOn,Knowledge.Catches(prefab.name)));
             yield return true;
 
             // What a door is opened with, and what a key opens.
