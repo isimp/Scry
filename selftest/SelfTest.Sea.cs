@@ -114,8 +114,29 @@ namespace Scry
                 var landed = animator != null && animator.GetCurrentAnimatorStateInfo(0).IsName("Movement_Ground");
                 p.Check(Stage.ShownFlies && animator != null && animator.GetBool("flying") && !landed, $"{flyer.Name} is told it flies and stays in its flight",
                     animator == null ? "no animator with the flying switch" : $"flying {animator.GetBool("flying")}, landed {landed}");
+                var lift = PlaceSpawns.FlyingHeight(flyer.Source as GameObject);
+                p.Check(lift > 0f && Mathf.Abs(-Stage.Ground - lift) < 0.05f, $"{flyer.Name} flies as high over the ground as the game keeps it at the least",
+                    $"{Numbers.Fixed(-Stage.Ground, 2)} m over it, the game's least {Numbers.Fixed(lift, 2)} m");
                 yield return Picture(p, flyer.Name + " in flight");
             }
+
+            // A raid bringing flyers: each comes flying, as high as the game keeps it, told it flies.
+            var raid = X.Catalog.FirstOrDefault(e => e.Source is RandomEvent ev && ev.m_spawn != null && ev.m_spawn.Any(s => s?.m_prefab != null && PlaceSpawns.FlyingHeight(s.m_prefab) > 0f));
+            if (raid == null)
+            {
+                p.Note("no raid brings flyers");
+                yield break;
+            }
+            Select(raid);
+            yield return Until(() => CopyOf(raid) != null && RaidCrowd.LastCopies.Count > 0, 20);
+            yield return new Wait(1.5f);
+            var holder = CopyOf(raid);
+            var flying = RaidCrowd.LastCopies.Where(c => c.Copy != null && PlaceSpawns.FlyingHeight(c.Prefab) > 0f).ToList();
+            var low = flying.Count(c => Mathf.Abs(c.Copy.transform.position.y - holder.transform.position.y - PlaceSpawns.FlyingHeight(c.Prefab)) > 0.05f);
+            var untold = flying.Count(c => c.Copy.GetComponentsInChildren<Animator>().Any(a => a.parameters.Any(x => x.name == "flying") && !a.GetBool("flying")));
+            p.Check(flying.Count > 0 && low == 0 && untold == 0, $"{raid.Name}'s flyers come flying as high as the game keeps them, told they fly",
+                $"{Numbers.Count(flying.Count)} flyers, {Numbers.Count(low)} off their height, {Numbers.Count(untold)} not told");
+            yield return Picture(p, raid.Name + " with its flyers");
         }
 
         private static void CameraOverSurface(Probe p, float surface)

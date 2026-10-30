@@ -169,6 +169,7 @@ namespace Scry
             copy.transform.SetParent(at, true);
             Tune(copy, audible: false);
             Ghost.SetLayer(copy.transform, CreatureLayer);
+            TellOnce(copy, prefab);
 
             // Held in its first pose, to spare the frame an animator running for each.
             foreach (var animator in copy.GetComponentsInChildren<Animator>(true))

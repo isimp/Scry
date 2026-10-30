@@ -24,12 +24,21 @@ namespace Scry
         /// <summary>The level a creature of the crowd stands at, by its prefab's name and the level rolled, as of a place's copy (<see cref="Stage.StarLevelFor"/>); told by the session.</summary>
         public static System.Func<string, int, int> StarLevelFor;
 
+        /// <summary>The copies the last roll stood, each with the prefab it is a copy of, so the stage can tell each how it moves (<see cref="Stage"/>).</summary>
+        public static IReadOnlyList<(GameObject Copy, GameObject Prefab)> LastCopies => Copies;
+
+        private static readonly List<(GameObject Copy, GameObject Prefab)> Copies = new List<(GameObject, GameObject)>();
+
+        /// <summary>Leaving a world forgets the copies stood (<see cref="WorldCaches"/>).</summary>
+        static RaidCrowd() => WorldCaches.Register(nameof(RaidCrowd), Copies.Clear);
+
         /// <summary>Whether a raid brings any creature to roll.</summary>
         public static bool Brings(RandomEvent raid) => raid?.m_spawn != null && raid.m_spawn.Exists(s => s != null && s.m_enabled && s.m_prefab != null);
 
         /// <summary>A new roll of the raid, made under the parent; null when it has no creature to roll.</summary>
         public static GameObject Make(Entry entry, RandomEvent raid, Transform parent, Vector3 origin, int layer)
         {
+            Copies.Clear();
             if (!Brings(raid)) return null;
             var spawns = new List<RaidSpawn>();
             var radii = new Dictionary<string, float>();
@@ -95,7 +104,11 @@ namespace Scry
                     modifiers.ResetFor(creatureEntry);
                     modifiers.Level = StarLevelFor != null ? StarLevelFor(creature.Prefab, creature.Level) : creature.Level;
                     var turned = Quaternion.Euler(0f, Random.Range(-30f, 30f), 0f);
-                    Looks.Copy(creatureEntry, modifiers, holder.transform, origin + new Vector3(place.X, 0f, place.Z), turned, layer, null);
+                    // One that flies comes flying, as high as the game keeps it at the least.
+                    var prefab = creatureEntry.Source as GameObject;
+                    var height = PlaceSpawns.FlyingHeight(prefab);
+                    var copy = Looks.Copy(creatureEntry, modifiers, holder.transform, origin + new Vector3(place.X, height, place.Z), turned, layer, null);
+                    if (copy != null && prefab != null) Copies.Add((copy, prefab));
                 }
             }
             return holder;

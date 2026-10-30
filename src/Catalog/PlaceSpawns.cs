@@ -57,16 +57,14 @@ namespace Scry
         }
 
         /// <summary>
-        /// How high above the ground a creature that flies keeps (<c>Character.m_flying</c>,
-        /// <c>BaseAI.m_flyAltitudeMin</c>): the game drops what it spawns to the ground, and one
-        /// that flies takes off and is kept at least this high; 0 for one that walks.
+        /// How high above the ground a creature that flies keeps (<see cref="FlyHeight"/>): the game
+        /// drops what it spawns to the ground, and one that flies takes off and is kept at least
+        /// this high; 0 for one that walks or has no AI to keep it up.
         /// </summary>
-        private static float FlyingHeight(GameObject creature)
+        public static float FlyingHeight(GameObject creature)
         {
-            var character = creature.GetComponent<Character>();
-            if (character == null || !character.m_flying) return 0f;
-            var ai = creature.GetComponent<BaseAI>();
-            return ai != null ? Mathf.Max(0f, ai.m_flyAltitudeMin) : 0f;
+            var ai = creature != null ? creature.GetComponent<BaseAI>() : null;
+            return ai != null ? FlyHeight.Over(creature.GetComponent<Character>().OrNull()?.m_flying == true, ai.m_flyAltitudeMin) : 0f;
         }
 
         /// <summary>Whether the world rolls its creatures' stars at all: a chance of each star more above nothing, its own or 10%, as the world has it.</summary>

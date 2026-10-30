@@ -15,9 +15,6 @@ namespace Scry
         /// <summary>How the sea holds what is shown, read as it is shown.</summary>
         private static SeaHold _sea;
 
-        /// <summary>Whether what is shown lives only in water (<c>MonsterAI.m_avoidLand</c>), so it swims on any ground.</summary>
-        private static bool _livesInWater;
-
         /// <summary>Whether the sea's ground lies under what is shown this frame.</summary>
         private static bool _seaShown;
 
@@ -28,7 +25,6 @@ namespace Scry
         private static void ForgetSea()
         {
             _sea = SeaHold.Not;
-            _livesInWater = false;
             _seaShown = false;
         }
 
@@ -63,7 +59,6 @@ namespace Scry
         private static void ReadSea(Entry entry)
         {
             _sea = SeaHold.Not;
-            _livesInWater = false;
             var prefab = entry?.Source as GameObject;
             if (prefab == null || _subjectIsPerson || _subject == null) return;
 
@@ -72,7 +67,6 @@ namespace Scry
             var leviathan = prefab.GetComponent<Leviathan>();
             if (character != null && character.m_canSwim && !character.m_flying) _sea = SeaHold.Swims(character.m_swimDepth, placed);
             else if (leviathan != null && leviathan.m_alignToWaterLevel) _sea = SeaHold.AtSurface(leviathan.m_floatOffset, placed);
-            _livesInWater = prefab.GetComponent<MonsterAI>().OrNull()?.m_avoidLand == true;
         }
 
         /// <summary>Each frame, once the ground is kept: whether the sea lies under what is shown, the person beside it placed again as it comes or goes; how they move is told after (<see cref="KeepMotion"/>).</summary>

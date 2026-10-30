@@ -54,7 +54,14 @@ namespace Scry
             _groundFixed = capsule != null && capsule.direction == 1;
             if (_groundFixed) _bodyMinY = Origin.y + (capsule.center.y - capsule.height / 2f) * _baseScale.y;
 
-            // A raid's creatures stand where they were put, on the stage's ground.
+            // A flyer flies as high over the ground as the game keeps it at the least.
+            if (!_subjectIsPerson && entry.Source is GameObject flier && PlaceSpawns.FlyingHeight(flier) is float lift && lift > 0f)
+            {
+                _groundFixed = true;
+                _bodyMinY = Origin.y - lift;
+            }
+
+            // A raid's creatures stand where they were put, on the stage's ground, its flyers over it.
             if (entry.Source is RandomEvent)
             {
                 _groundFixed = true;
@@ -404,7 +411,7 @@ namespace Scry
                 if (_person == null) return;
                 Gear.Body(prefab, _person);
                 Tune(_person, audible: false);
-                GatherSwitches(_person, PersonMotionAnimators);
+                GatherPersonSwitches(_person);
 
                 // Its size relative to its own root, measured once.
                 var measured = Measure(_person);
