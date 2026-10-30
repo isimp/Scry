@@ -129,14 +129,15 @@ namespace Scry
             t.position = _lookAt - t.forward * distance;
         }
 
-        /// <summary>What the model shows, as if at size one: above where it stands, a root's base in the ground left out.</summary>
+        /// <summary>What the model shows, as if at size one: above where it stands, a root's base in the ground left out; held in the sea, over its surface, what lies under seen through the water.</summary>
         private static Bounds Shown
         {
             get
             {
-                if (!_groundFixed || _bounds.min.y >= _bodyMinY || _bounds.max.y <= _bodyMinY) return _bounds;
+                var from = HeldInSea ? SurfaceUnscaled : _groundFixed ? _bodyMinY : float.NegativeInfinity;
+                if (_bounds.min.y >= from || _bounds.max.y <= from) return _bounds;
                 var shown = new Bounds();
-                shown.SetMinMax(new Vector3(_bounds.min.x, _bodyMinY, _bounds.min.z), _bounds.max);
+                shown.SetMinMax(new Vector3(_bounds.min.x, from, _bounds.min.z), _bounds.max);
                 return shown;
             }
         }
@@ -258,8 +259,7 @@ namespace Scry
             _camera.farClipPlane = far;
             _camera.aspect = (float)_width / _height;
 
-            var groundY = Mathf.Min(FloorY, _person != null && _person.activeSelf ? _personBounds.min.y : FloorY);
-            if (!Finite(groundY)) groundY = Origin.y;
+            var groundY = GroundUnderModel();
             if (_sky != null && _sky.activeSelf)
             {
                 var depth = _camera.farClipPlane * 0.95f;
@@ -404,6 +404,7 @@ namespace Scry
                 if (_person == null) return;
                 Gear.Body(prefab, _person);
                 Tune(_person, audible: false);
+                GatherInWater(_person, PersonSeaAnimators);
 
                 // Its size relative to its own root, measured once.
                 var measured = Measure(_person);
@@ -412,10 +413,12 @@ namespace Scry
 
             _person.SetActive(true);
 
-            // Its right side a little to the left of the model, its feet on the model's ground.
+            // Its right side a little to the left of the model, its feet on the model's ground, or
+            // swimming beside what the sea holds.
             var subjectMin = Origin + (_bounds.min - Origin) * _scale;
             var subjectCenter = Origin + (_bounds.center - Origin) * _scale;
-            var wanted = new Vector3(StageFraming.PersonX(subjectMin.x, _personLocal.extents.x), FloorY + _personLocal.extents.y, subjectCenter.z);
+            var height = PersonSwimsAt() is float root ? root + _personLocal.center.y : FloorY + _personLocal.extents.y;
+            var wanted = new Vector3(StageFraming.PersonX(subjectMin.x, _personLocal.extents.x), height, subjectCenter.z);
             _person.transform.position = wanted - _personLocal.center;
             _personBounds = new Bounds(wanted, _personLocal.size);
         }

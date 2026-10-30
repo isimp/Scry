@@ -250,6 +250,7 @@ namespace Scry
             // has run a moment; a flying creature is measured over its flight a while longer.
             _baseScale = _subject.transform.localScale;
             MeasureNew(entry);
+            if (!Guard.Run(Feature.SeaHoldsOnStage, SeaPart, ReadSea, entry)) ForgetSea();
 
             // A room opens on its top floor to be looked into; a location keeps its roof.
             if (entry.Source is PlaceSource shown) SetFloors(entry, _placeFloors, shown.IsRoom, PlaceCeiling, _placeTop);

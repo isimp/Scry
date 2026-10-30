@@ -59,6 +59,9 @@ namespace Scry
         /// <summary>The height of the water the terrain's shader is told of (<c>_WaterLevel</c>) over the sea's floor, as last told; not a number for none.</summary>
         private float _waterAt = float.NaN;
 
+        /// <summary>How deep the water over the sea's floor is, as last laid; null for ground in the open.</summary>
+        private float? _waterOver;
+
         /// <summary>How the ground was last laid: for which entry and biome, with the sky or not, how far across, for what it framed and where.</summary>
         private Entry _for;
         private string _laidBiome;
@@ -176,10 +179,13 @@ namespace Scry
         /// paint, or the player's grass quality, or as what is framed grows; its grass goes up and
         /// down with it, short round the model (<paramref name="shortOut"/> metres,
         /// <see cref="StageGround.ShortGrassOut"/>). Its edge fades into the colour given, what is behind it.
+        /// The sea's floor has <paramref name="waterOver"/> metres of water over it (<see cref="SeaHold"/>),
+        /// the shallows where none is given.
         /// </summary>
-        public void Lay(float groundY, Entry shown, bool sky, float frameRadius, float shortOut, Vector3 origin, Color edge, GameObject root, int layer, GroundSettle settle = null)
+        public void Lay(float groundY, Entry shown, bool sky, float frameRadius, float shortOut, Vector3 origin, Color edge, GameObject root, int layer, GroundSettle settle = null, float? waterOver = null)
         {
             _settle = settle;
+            _waterOver = StageGround.WaterOver(Biome) is float shallows ? waterOver ?? shallows : (float?)null;
             var on = On && _terrain != null && _terrain.activeSelf;
             if (_fade != null && _fade.activeSelf != on) _fade.SetActive(on);
             if (!on)
@@ -463,7 +469,7 @@ namespace Scry
         {
             _terrain.transform.position = at;
             _terrain.transform.localScale = new Vector3(across, 1f, across);
-            var water = StageGround.WaterOver(Biome) is float over ? at.y + over : float.NaN;
+            var water = _waterOver is float over ? at.y + over : float.NaN;
             if (float.IsNaN(water) == float.IsNaN(_waterAt) && (float.IsNaN(water) || Mathf.Abs(water - _waterAt) < 0.1f)) return;
             _waterAt = water;
             _hideSet = false;
@@ -683,7 +689,7 @@ namespace Scry
             ground.a = StageGround.MaskShare(Biome);
             var bare = (ground.r, ground.g, ground.b, ground.a);
             var altitude = StageGround.Altitude(Biome);
-            var depth = StageGround.WaterOver(Biome) ?? 0f;
+            var depth = _waterOver ?? 0f;
             var size = Mathf.Max(1f, system.m_grassPatchSize);
             var half = size / 2f;
             var reach = Mathf.Min(StageGround.GrassOut(_across), MostGrassReach);
@@ -860,7 +866,7 @@ namespace Scry
         /// </summary>
         private void PlaceWater(GameObject root, int layer)
         {
-            var over = StageGround.WaterOver(Biome);
+            var over = _waterOver;
             if (over == null)
             {
                 if (_water != null && _water.activeSelf) _water.SetActive(false);
@@ -919,7 +925,7 @@ namespace Scry
             }
             var material = _fade.GetComponent<MeshRenderer>().sharedMaterial;
             if (material.color != edge) material.color = edge;
-            var top = _at.y + (StageGround.WaterOver(Biome) ?? 0f) + Below + 0.02f;
+            var top = _at.y + (_waterOver ?? 0f) + Below + 0.02f;
             _fade.transform.position = new Vector3(_at.x, top, _at.z);
             _fade.transform.localScale = new Vector3(_across, _across, _across);
         }

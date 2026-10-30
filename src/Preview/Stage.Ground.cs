@@ -92,6 +92,7 @@ namespace Scry
         {
             var biome = GroundBiomeOverride ?? StageGround.Chosen(GroundChoice, _lastShown?.Biomes);
             var changed = TheGround.Keep(StageGround.Ground(_backdrop, Underground), biome, _root, _layer);
+            if (!Guard.Run(Feature.SeaHoldsOnStage, SeaPart, KeepSea)) ForgetSea();
             var floor = !StageGround.Grid(_backdrop) && !TheGround.On;
             if (_floor != null && _floor.activeSelf != floor) _floor.SetActive(floor);
             // The light and sky take the biome's colours, and the key light casts shadows, while it is laid.
@@ -133,7 +134,7 @@ namespace Scry
             edge.a = 1f;
             var size = SubjectSize;
             var shortOut = StageGround.ShortGrassOut(Mathf.Max(size.x, size.z) / 2f, size.y, StageGround.StandsAs(_lastShown?.Kind));
-            TheGround.Lay(groundY, _lastShown, sky, _frameRadius, shortOut, Origin, edge, _root, _layer, TheSettle);
+            TheGround.Lay(groundY, _lastShown, sky, _frameRadius, shortOut, Origin, edge, _root, _layer, TheSettle, _waterOver);
         }
 
         private static void DrawGrass()

@@ -94,6 +94,21 @@ namespace Scry
             LevelUpChance = WorldGenerator.instance != null && Game.instance != null ? SpawnSystem.GetLevelUpChance(Vector3.zero, data) : 10f,
         };
 
+        /// <summary>The world's rules placing each thing in the sea, by its prefab: each one's least ocean depth and highest altitude (<see cref="SeaHold.Shallowest"/>).</summary>
+        private static readonly Dictionary<string, List<(float MinOceanDepth, float MaxAltitude)>> SeaRules = new Dictionary<string, List<(float, float)>>(StringComparer.Ordinal);
+
+        /// <summary>The shallowest sea the world places a thing in; null for one no rule places in the sea.</summary>
+        public static float? SeaDepth(string prefab) =>
+            prefab != null && SeaRules.TryGetValue(prefab, out var rules) ? SeaHold.Shallowest(rules) : null;
+
+        /// <summary>Notes a rule of the world's placing a thing, where it places it in the sea.</summary>
+        private static void AddSeaRule(string prefab, Heightmap.Biome biome, float minOceanDepth, float maxAltitude)
+        {
+            if ((biome & Heightmap.Biome.Ocean) == 0) return;
+            if (!SeaRules.TryGetValue(prefab, out var rules)) SeaRules[prefab] = rules = new List<(float, float)>();
+            rules.Add((minOceanDepth, maxAltitude));
+        }
+
         /// <summary>The doors each key opens (<c>Door.m_keyItem</c>).</summary>
         private static readonly Dictionary<string, List<string>> Keys = new Dictionary<string, List<string>>(StringComparer.Ordinal);
 
@@ -285,6 +300,7 @@ namespace Scry
                     foreach (var key in events) AddBiomeKey(EventBiomesOf, name, key);
                     PlacedByWorld.Add(name);
                     Stars.Add(name, LevelWay.World, data.m_minLevel, data.m_maxLevel);
+                    AddSeaRule(name, data.m_biome, data.m_minOceanDepth, data.m_maxAltitude);
                     if (data.m_prefab.GetComponent<Fish>() != null)
                     {
                         if (!FishSpawned.TryGetValue(name, out var rules)) FishSpawned[name] = rules = new List<FishSpawnRule>();
@@ -450,6 +466,7 @@ namespace Scry
                 var name = veg.m_prefab.name;
                 AddBiomes(name, veg.m_biome);
                 PlacedByWorld.Add(name);
+                AddSeaRule(name, veg.m_biome, veg.m_minOceanDepth, veg.m_maxAltitude);
 
                 Add(name, new Source(SpawnWords.Grows(BiomeNames(veg.m_biome), veg.m_minAltitude, veg.m_maxAltitude,
                     veg.m_minOceanDepth > 0f || veg.m_maxOceanDepth > 0f, veg.m_inForest, veg.m_groupSizeMin, veg.m_groupSizeMax), null) { MetIn = BiomeEntryKeys(veg.m_biome) });
@@ -820,6 +837,7 @@ namespace Scry
             PlacedByWorld.Clear();
             Baits.Clear();
             FishSpawned.Clear();
+            SeaRules.Clear();
             Keys.Clear();
             Powers.Clear();
             Unlocks.Clear();
