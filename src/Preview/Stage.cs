@@ -114,6 +114,14 @@ namespace Scry
         [ForTest]
         public static float? LookedFloor => _lookedFloor;
 
+        /// <summary>For the self-test: the camera's height, as it stands after the framing; NaN with no camera.</summary>
+        [ForTest]
+        public static float CameraHeight => _camera != null ? _camera.transform.position.y : float.NaN;
+
+        /// <summary>For the self-test: the size what is shown stands at on the stage.</summary>
+        [ForTest]
+        public static float Scale => _scale;
+
         /// <summary>How far off the pointer may find the floor: a few times what is framed beyond the camera's distance.</summary>
         private static float Farthest => _camera == null ? 0f : (Vector3.Distance(_camera.transform.position, _lookAt) + _frameRadius) * 4f;
 

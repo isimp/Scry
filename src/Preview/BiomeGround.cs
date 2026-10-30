@@ -333,6 +333,7 @@ namespace Scry
         private void Scatter(GameObject root, int layer)
         {
             StopScatter();
+            _laidAny = false;
             _scattering = ScatterGrass(root, layer);
             StepScatter();
         }
@@ -346,6 +347,10 @@ namespace Scry
 
         /// <summary>Whether grass is being scattered, the grass scattered last shown meanwhile, for the self-test.</summary>
         public bool Scattering => _scattering != null;
+
+        /// <summary>Whether the scatter under way has found a stem that grows, so the stage says it lays some; none where nothing of the biome grows.</summary>
+        private bool _laidAny;
+        public bool Laying => Scattering && _laidAny;
 
         /// <summary>Whether the ground shows any grass, which sways with the game's wind.</summary>
         public bool GrassShown => On && (_grass.Count > 0 || _grassCopies.Count > 0);
@@ -731,6 +736,7 @@ namespace Scry
                             if (kept >= StageGround.GrassKept(away / thinsBy)) continue;
                             var (nx, ny, nz) = shape.NormalAt(point.x - at.x, point.z - at.z);
                             if (!Grows(clutter, point, offset, altitude, depth, bare, paints, ny)) continue;
+                            _laidAny = true;
                             farthest = Mathf.Max(farthest, away);
                             nearest = Mathf.Min(nearest, away);
                             point.y = clutter.m_snapToWater ? at.y + depth : at.y + Below + shape.HeightAt(point.x - at.x, point.z - at.z);

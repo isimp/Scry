@@ -56,8 +56,12 @@ namespace Scry
         /// <summary>The button that changes the panel's view, by the view it changes to.</summary>
         public static string ViewButton(bool compact) => compact ? "Full view" : "Compact";
 
-        /// <summary>The stage's caption while the grass of its ground is being scattered: "Laying the grass of the Black Forest".</summary>
-        public static string LayingGrass(string biome) => $"Laying the grass of the {BiomeWords.Shown(biome)}";
+        /// <summary>
+        /// The stage's caption while the vegetation of its ground is being scattered: "Laying the
+        /// vegetation of the Black Forest". Vegetation, as what the game scatters is grass in some
+        /// biomes and frosted tufts or small plants in others.
+        /// </summary>
+        public static string LayingGrass(string biome) => $"Laying the vegetation of the {BiomeWords.Shown(biome)}";
 
         /// <summary>What a click on Copy says it copied.</summary>
         public static string Copied(string text) => $"Copied \"{text}\".";

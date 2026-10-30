@@ -97,7 +97,7 @@ namespace Scry
         private static void GrassCaption(Rect stage)
         {
             var biome = Stage.GroundUnderfoot;
-            if (!Stage.GrassScattering || biome == null || Event.current.type != EventType.Repaint) return;
+            if (!Stage.GrassLaying || biome == null || Event.current.type != EventType.Repaint) return;
             var text = PanelWords.LayingGrass(biome);
             var height = U(20f);
             var bar = U(28f);

@@ -59,7 +59,11 @@ namespace Scry
         public static (float Farthest, float Nearest, float ShortOut, float Reach) GrassSpread => TheGround.GrassSpread;
 
         /// <summary>Whether the grass is being scattered, the last grass shown meanwhile: for the stage's caption and the self-test.</summary>
+        [ForTest]
         public static bool GrassScattering => TheGround.Scattering;
+
+        /// <summary>Whether the stage says it lays its ground's vegetation: while it is scattered, once a stem of it grows, so never where none does.</summary>
+        public static bool GrassLaying => TheGround.Laying;
 
         /// <summary>
         /// Whether the stage's grass moves in the game's wind now (<see cref="StageFilm.GrassMoves"/>),

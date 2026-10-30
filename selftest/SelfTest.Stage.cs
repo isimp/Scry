@@ -383,15 +383,12 @@ namespace Scry
             var looks = new List<Color32>();
             var grass = new Dictionary<string, int>();
             var water = new Dictionary<string, bool>();
+            var said = new Dictionary<string, bool>();
             Stage.BackdropIndex = 5;
             foreach (var biome in new[] { "Meadows", "BlackForest", "Swamp", "Mountain", "Plains", "Mistlands", "AshLands", "DeepNorth", "Ocean" })
             {
                 Stage.GroundBiomeOverride = biome;
-                yield return null;
-                yield return Until(() => !Stage.GrassScattering, 5);
-                yield return null;
-                grass[biome] = Stage.GrassCount;
-                water[biome] = Stage.WaterShown;
+                yield return GroundLaid(biome, grass, water, said);
                 var front = PictureWithin(new Rect(0f, 0f, 1f, 0.15f), out _, out _);
                 var whole = PictureWithin(new Rect(0f, 0f, 1f, 1f), out var width, out var height);
                 if (whole != null) WriteTga(System.IO.Path.Combine(folder, $"stage-{biome}.tga"), width, height, whole);
@@ -410,6 +407,7 @@ namespace Scry
             Stage.GroundBiomeOverride = null;
             p.Check(grass["Meadows"] > 0, "grass grows on the Meadows' ground", $"{Numbers.Count(grass["Meadows"])}");
             p.Check(water["Ocean"] && !water["Meadows"], "the sea's floor has water over it, and only it");
+            SaysLayingWhereSomeGrows(p, grass, said);
             p.Note($"the ground before it, by biome: {string.Join("; ", told)}; pictures in {folder}");
             var distinct = looks.Where((look, i) => !looks.Take(i).Any(other => !Apart(look, other))).Count();
             p.Check(distinct >= 5, "each biome's ground looks its own", $"{Numbers.Count(distinct)} looks among {Numbers.Count(looks.Count)} biomes");
@@ -455,6 +453,34 @@ namespace Scry
             Stage.BackdropIndex = backdrop;
             Stage.Spin = spin;
             Stage.GroundChoice = choice;
+        }
+
+        /// <summary>
+        /// Waits out a biome's ground being laid, a few seconds at the most, and keeps how much
+        /// vegetation grew on it, whether water lies over it, and whether the stage said at any
+        /// frame of it that it lays the biome's vegetation.
+        /// </summary>
+        private static IEnumerator GroundLaid(string biome, Dictionary<string, int> grass, Dictionary<string, bool> water, Dictionary<string, bool> said)
+        {
+            yield return null;
+            said[biome] = false;
+            var until = Time.unscaledTime + 5f;
+            while (Stage.GrassScattering && Time.unscaledTime < until)
+            {
+                said[biome] |= Stage.GrassLaying;
+                yield return null;
+            }
+            yield return null;
+            grass[biome] = Stage.GrassCount;
+            water[biome] = Stage.WaterShown;
+        }
+
+        /// <summary>The stage says it lays a ground's vegetation on the Meadows, and on no ground where none grows.</summary>
+        private static void SaysLayingWhereSomeGrows(Probe p, Dictionary<string, int> grass, Dictionary<string, bool> said)
+        {
+            var barren = grass.Where(g => g.Value == 0).Select(g => g.Key).ToList();
+            p.Check(said["Meadows"] && barren.All(b => !said[b]), "the stage says it lays a ground's vegetation where some grows, and never where none does",
+                $"said for {string.Join(", ", said.Where(s => s.Value).Select(s => s.Key))}; nothing grows on {(barren.Count > 0 ? string.Join(", ", barren) : "none")}");
         }
 
         /// <summary>Waits until the stage's camera stops gliding to what it frames.</summary>

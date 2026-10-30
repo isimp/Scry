@@ -14,10 +14,11 @@ namespace Scry
 
         /// <summary>
         /// On the ocean's ground a Serpent swims its swim depth under the surface, its animator told
-        /// it is in water so it swims rather than lies stranded; a Leviathan rides the surface over a
-        /// sea as deep as the world places it, its floor clear under its body; a workbench stands in
-        /// the shallows; and the camera looks at each from over the surface. Each is pictured, and
-        /// the backdrop, spin and ground put back.
+        /// it is in water so it swims rather than lies stranded, its tail bent as the game bends it;
+        /// a Leviathan rides the surface over a sea as deep as the world places it, its floor clear
+        /// under its body; a workbench stands in the shallows; and the camera looks at each from over
+        /// the surface, kept over it as the game keeps its own when turned to look from below. Each
+        /// is pictured, and the backdrop, spin and ground put back.
         /// </summary>
         private static IEnumerator SeaHolds(Probe p)
         {
@@ -50,8 +51,22 @@ namespace Scry
                     animator == null ? "no animator with the in-water switch" : $"in water {animator.GetBool("inWater")}, on land {animator.GetCurrentAnimatorStateInfo(0).IsName("OnLand")}");
                 var top = CopyOf(serpent).GetComponentsInChildren<Renderer>().Where(r => r.enabled && !(r is ParticleSystemRenderer)).Select(r => r.bounds.max.y).DefaultIfEmpty(surface).Max();
                 p.Note($"a Serpent shows {Numbers.Fixed(top - surface, 2)} m over the surface at its highest");
+                var prefabTail = (serpent.Source as GameObject).GetComponentInChildren<Tail>(true);
+                p.Check(prefabTail != null && Stage.TailJointsBent == prefabTail.m_tailJoints.Count, "its tail is bent joint by joint as the game bends it",
+                    $"{Numbers.Count(Stage.TailJointsBent)} of {(prefabTail != null ? Numbers.Count(prefabTail.m_tailJoints.Count) : "no")} joints");
                 CameraOverSurface(p, surface);
                 yield return Picture(p, "a Serpent in the sea");
+                // Turned to look up from under the water, the camera stays over it, as the game's does.
+                var pitch = Stage.Pitch;
+                Stage.TurnTo(Stage.Yaw, -40f);
+                yield return null;
+                yield return null;
+                var over = Stage.CameraHeight - surface;
+                p.Check(over >= StageCamera.OverWaterMetres * 0.99f * Stage.Scale, "turned to look from below, the camera stays over the surface as the game keeps its own",
+                    $"{Numbers.Fixed(over, 2)} m over it");
+                yield return Picture(p, "a Serpent in the sea looked at from below");
+                Stage.TurnTo(Stage.Yaw, pitch);
+                yield return null;
 
                 // On the plain floor it still swims: it is never seen out of water but stranded.
                 Stage.BackdropIndex = 0;
@@ -143,7 +158,7 @@ namespace Scry
 
         private static void CameraOverSurface(Probe p, float surface)
         {
-            var eye = Stage.LookAt.y + Stage.LookDistance * Mathf.Sin(Stage.Pitch * Mathf.Deg2Rad);
+            var eye = Stage.CameraHeight;
             p.Check(eye > surface, "the camera looks at it from over the surface", $"{Numbers.Fixed(eye - surface, 2)} m over it");
         }
 

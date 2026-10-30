@@ -252,6 +252,7 @@ namespace Scry
             MeasureNew(entry);
             if (!Guard.Run(Feature.SeaHoldsOnStage, SeaPart, ReadSea, entry)) ForgetSea();
             if (!Guard.Run(Feature.MotionToldOnStage, MotionPart, ReadMotion, entry)) ForgetMotion();
+            if (!Guard.Run(Feature.TailBentOnStage, TailPart, ReadTail, entry)) ForgetTail();
 
             // A room opens on its top floor to be looked into; a location keeps its roof.
             if (entry.Source is PlaceSource shown) SetFloors(entry, _placeFloors, shown.IsRoom, PlaceCeiling, _placeTop);

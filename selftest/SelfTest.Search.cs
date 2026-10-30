@@ -293,20 +293,20 @@ namespace Scry
             while ((ScryPanel.PageBeingLaid || Stage.GrassScattering) && frames < 600)
             {
                 frames++;
-                if (Stage.GrassScattering && Stage.GroundUnderfoot != null)
+                if (Stage.GrassLaying && Stage.GroundUnderfoot != null)
                 {
                     grassSeen = true;
                     if (!grassPictured && !ScryPanel.PageBeingLaid)
                     {
                         grassPictured = true;
-                        yield return Shot(p, "the stage laying its ground's grass");
+                        yield return Shot(p, "the stage laying its ground's vegetation");
                         continue;
                     }
                 }
                 yield return null;
             }
-            if (grassSeen) p.Check(ScryPanel.Drawn(PanelPart.GrassCaption) > captions, "the stage says while it lays its ground's grass");
-            else p.Note("the stage laid no grass while this part watched, so its caption was not looked for");
+            if (grassSeen) p.Check(ScryPanel.Drawn(PanelPart.GrassCaption) > captions, "the stage says while it lays its ground's vegetation");
+            else p.Note("the stage laid no vegetation while this part watched, so its caption was not looked for");
             p.Check(!ScryPanel.PageBeingLaid, "the page is laid out whole within a few frames", $"{Numbers.Count(frames)} frames after the picture");
             var lines = ScryPanel.Drawn(PanelPart.SectionLine);
             yield return null;

@@ -47,6 +47,8 @@ namespace Scry
             Timing.Add("render ground", step);
             step = Timing.Start();
             Frame();
+            // After the framing, which finds the ground and the sea's surface the tail is kept over.
+            if (!Guard.Run(Feature.TailBentOnStage, TailPart, KeepTail)) ForgetTail();
             KeepOutline();
             KeepLitOutline();
             KeepGhosts();

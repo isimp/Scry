@@ -258,15 +258,14 @@ namespace Scry
                 var wide = 2f * distance * Mathf.Tan(FieldOfView * 0.5f * Mathf.Deg2Rad) * _width / _height;
                 _lookAt -= rotation * Vector3.right * (ViewShift * wide);
             }
-            var t = _camera.transform;
-            t.rotation = rotation;
-            t.position = _lookAt - rotation * Vector3.forward * distance;
+            // The ground first, the sea's surface with it, which the camera stays over.
+            var groundY = _groundY = GroundUnderModel();
+            PlaceCamera(rotation, distance);
             var (near, far) = StageFraming.Clipping(distance, radius);
             _camera.nearClipPlane = near;
             _camera.farClipPlane = far;
             _camera.aspect = (float)_width / _height;
 
-            var groundY = GroundUnderModel();
             if (_sky != null && _sky.activeSelf)
             {
                 var depth = _camera.farClipPlane * 0.95f;
@@ -306,6 +305,17 @@ namespace Scry
             step = Timing.Start();
             ApplyCut();
             Timing.Add("render frame cut", step);
+        }
+
+        /// <summary>The ground's height under the model this frame, as the framing found it, which a tail is kept over too.</summary>
+        private static float _groundY = float.NaN;
+
+        /// <summary>The camera turned and set its distance back from what it looks at, kept over the sea's surface as the game keeps its own.</summary>
+        private static void PlaceCamera(Quaternion rotation, float distance)
+        {
+            var at = _lookAt - rotation * Vector3.forward * distance;
+            at.y = StageCamera.OverWater(at.y, _seaLevels.Surface, _scale);
+            _camera.transform.SetPositionAndRotation(at, rotation);
         }
 
         /// <summary>

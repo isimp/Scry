@@ -153,6 +153,13 @@ namespace Scry
             return up / (float)Math.Sin(pitch * Math.PI / 180.0);
         }
 
+        /// <summary>How far over the water the game holds its camera, in metres (<c>GameCamera.m_minWaterDistance</c>).</summary>
+        public const float OverWaterMetres = 0.3f;
+
+        /// <summary>The camera's height kept over the sea's surface as the game keeps its own, by the stage's size; as it is with no sea (NaN).</summary>
+        public static float OverWater(float cameraY, float surface, float size) =>
+            float.IsNaN(surface) ? cameraY : Math.Max(cameraY, surface + OverWaterMetres * size);
+
         /// <summary>The middle of what stands on a floor, across, and how far it reaches from there: half the way from corner to corner. Null for nothing.</summary>
         public static (float X, float Z, float Radius)? Across(IEnumerable<Vec3> corners)
         {

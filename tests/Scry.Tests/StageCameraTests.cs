@@ -249,6 +249,18 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void OverTheSeaTheCameraStaysOverItsSurfaceAsTheGamesDoes()
+        {
+            // The game holds its camera 0.3 m over the water (GameCamera.m_minWaterDistance), the
+            // sea's surface never seen from under it: so does the stage, by its size.
+            Assert.Equal(4.3f, StageCamera.OverWater(1f, 4f, 1f), 3);
+            Assert.Equal(4.6f, StageCamera.OverWater(1f, 4f, 2f), 3);
+            // Over it already, or with no sea, it stays where it is.
+            Assert.Equal(7f, StageCamera.OverWater(7f, 4f, 1f), 3);
+            Assert.Equal(-3f, StageCamera.OverWater(-3f, float.NaN, 1f), 3);
+        }
+
+        [Fact]
         public void BelowTheCutTheCameraKeepsNoSuchPicture()
         {
             Assert.Null(StageCamera.AboveCutRow(0f, 1f, 0f, 0f, 0.1f));
