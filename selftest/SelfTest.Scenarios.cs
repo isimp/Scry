@@ -216,6 +216,7 @@ namespace Scry
             yield return S("a meadow's grass grows out to where its ground fades, and a big creature, a raid and a camp stand in it", GroundGrass, 120, GroundAsItWas);
             yield return S("a place's own modifiers dig its ground on the stage, its tar settled in it and its parts at rest", DugGround, 120, DugGroundAsItWas);
             yield return S("the sea holds a Serpent at its swim depth, swimming, and a Leviathan at its surface, over a sea as deep as the world places them", SeaHolds, 90, SeaAsItWas, bearsSkips: true);
+            yield return S("a Drake and Moder are told they fly, as the game starts them, and stay in their flight", FlyersFly, 40, StageAsItWas, bearsSkips: true);
             yield return S("Scry costs next to nothing idling with the panel closed", IdleCost, 320);
             yield return S("the resource monitor shows what Scry costs and holds", ResourceMonitor, 10);
             yield return S("standing open on a page and on a dungeon, what Scry's own work costs and allocates a frame, by part", OpenCost, 240);

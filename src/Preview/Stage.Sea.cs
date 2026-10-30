@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace Scry
@@ -6,7 +5,7 @@ namespace Scry
     /// <summary>
     /// The stage's sea: over the ocean's ground the water holds what the game holds in it (<see cref="SeaHold"/>).
     /// A creature that swims keeps its swim depth under the surface, its animator told it is in
-    /// water, the person beside it swimming too; a Leviathan rides the surface; the sea under
+    /// water (<see cref="KeepMotion"/>), the person beside it swimming too; a Leviathan rides the surface; the sea under
     /// them is as deep as the world places them, and the camera frames what shows over the
     /// surface, so it looks down onto open water. What the sea does not hold stands on its floor
     /// in the shallows.
@@ -22,13 +21,6 @@ namespace Scry
         /// <summary>Whether the sea's ground lies under what is shown this frame.</summary>
         private static bool _seaShown;
 
-        /// <summary>What is shown's animators that are told whether they are in water (<c>inWater</c>), gathered as it is shown.</summary>
-        private static readonly List<Animator> SeaAnimators = new List<Animator>();
-
-        private static readonly List<Animator> PersonSeaAnimators = new List<Animator>();
-
-        private const string InWater = "inWater";
-
         /// <summary>A fault in the sea is told once and lets go of it, what is shown standing as on any ground.</summary>
         private const string SeaPart = "holding what is shown in the sea";
 
@@ -38,7 +30,6 @@ namespace Scry
             _sea = SeaHold.Not;
             _livesInWater = false;
             _seaShown = false;
-            SeaAnimators.Clear();
         }
 
         /// <summary>Whether the sea holds what is shown this frame.</summary>
@@ -73,7 +64,6 @@ namespace Scry
         {
             _sea = SeaHold.Not;
             _livesInWater = false;
-            SeaAnimators.Clear();
             var prefab = entry?.Source as GameObject;
             if (prefab == null || _subjectIsPerson || _subject == null) return;
 
@@ -83,55 +73,14 @@ namespace Scry
             if (character != null && character.m_canSwim && !character.m_flying) _sea = SeaHold.Swims(character.m_swimDepth, placed);
             else if (leviathan != null && leviathan.m_alignToWaterLevel) _sea = SeaHold.AtSurface(leviathan.m_floatOffset, placed);
             _livesInWater = prefab.GetComponent<MonsterAI>().OrNull()?.m_avoidLand == true;
-
-            GatherInWater(_subject, SeaAnimators);
         }
 
-        /// <summary>The animators of a copy that have the game's in-water switch.</summary>
-        private static void GatherInWater(GameObject copy, List<Animator> into)
-        {
-            into.Clear();
-            foreach (var animator in copy.GetComponentsInChildren<Animator>(true))
-            {
-                if (animator.runtimeAnimatorController == null) continue;
-                foreach (var parameter in animator.parameters)
-                {
-                    if (parameter.type != AnimatorControllerParameterType.Bool || parameter.name != InWater) continue;
-                    into.Add(animator);
-                    break;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Each frame, once the ground is kept: whether the sea lies under what is shown, and its
-        /// animators and the person's told whether they are in water, as the game tells a
-        /// swimming creature's (<c>Character.UpdateSwimming</c>); told every frame, as playing a
-        /// clip may set an animator back.
-        /// </summary>
+        /// <summary>Each frame, once the ground is kept: whether the sea lies under what is shown, the person beside it placed again as it comes or goes; how they move is told after (<see cref="KeepMotion"/>).</summary>
         private static void KeepSea()
         {
             var was = _seaShown;
             _seaShown = TheGround.On && StageGround.WaterOver(TheGround.Biome) != null && _subject != null;
             if (_seaShown != was) PlacePerson();
-            Tell(SeaAnimators, SeaHold.InWater(_sea.Held, _seaShown, _livesInWater));
-            Tell(PersonSeaAnimators, HeldInSea);
-        }
-
-        private static void Tell(List<Animator> animators, bool inWater)
-        {
-            for (var i = animators.Count - 1; i >= 0; i--)
-            {
-                var animator = animators[i];
-                if (animator == null)
-                {
-                    animators.RemoveAt(i);
-                    continue;
-                }
-                if (!animator.isActiveAndEnabled || animator.GetBool(InWater) == inWater) continue;
-                animator.SetBool(InWater, inWater);
-                Touch();
-            }
         }
 
         /// <summary>

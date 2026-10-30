@@ -93,6 +93,7 @@ namespace Scry
             var biome = GroundBiomeOverride ?? StageGround.Chosen(GroundChoice, _lastShown?.Biomes);
             var changed = TheGround.Keep(StageGround.Ground(_backdrop, Underground), biome, _root, _layer);
             if (!Guard.Run(Feature.SeaHoldsOnStage, SeaPart, KeepSea)) ForgetSea();
+            if (!Guard.Run(Feature.MotionToldOnStage, MotionPart, KeepMotion)) ForgetMotion();
             var floor = !StageGround.Grid(_backdrop) && !TheGround.On;
             if (_floor != null && _floor.activeSelf != floor) _floor.SetActive(floor);
             // The light and sky take the biome's colours, and the key light casts shadows, while it is laid.

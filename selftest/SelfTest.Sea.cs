@@ -9,6 +9,9 @@ namespace Scry
     {
         private static (int Backdrop, bool Spin, string Choice)? _seaBefore;
 
+        /// <summary>The creatures the game starts flying whose animators land them when not told: a Drake and Moder.</summary>
+        private static readonly string[] FlyerNames = { "Hatchling", "Dragon" };
+
         /// <summary>
         /// On the ocean's ground a Serpent swims its swim depth under the surface, its animator told
         /// it is in water so it swims rather than lies stranded; a Leviathan rides the surface over a
@@ -92,6 +95,27 @@ namespace Scry
                 Stage.GroundBiomeOverride = null;
             }
             SeaAsItWas();
+        }
+
+        /// <summary>
+        /// A Drake and Moder, which the game starts flying, are told they fly and stay in their
+        /// flight rather than dropping to their landed pose; each is pictured.
+        /// </summary>
+        private static IEnumerator FlyersFly(Probe p)
+        {
+            var flyers = FlyerNames.Select(name => X.Catalog.FirstOrDefault(e => e.Name == name && e.Source is GameObject)).Where(e => e != null).ToList();
+            if (flyers.Count == 0) p.Skip("there is neither a Drake nor Moder to show");
+            foreach (var flyer in flyers)
+            {
+                Select(flyer);
+                yield return Until(() => CopyOf(flyer) != null, 20);
+                yield return new Wait(1.5f);
+                var animator = CopyOf(flyer).GetComponentsInChildren<Animator>().FirstOrDefault(a => a.parameters.Any(x => x.name == "flying"));
+                var landed = animator != null && animator.GetCurrentAnimatorStateInfo(0).IsName("Movement_Ground");
+                p.Check(Stage.ShownFlies && animator != null && animator.GetBool("flying") && !landed, $"{flyer.Name} is told it flies and stays in its flight",
+                    animator == null ? "no animator with the flying switch" : $"flying {animator.GetBool("flying")}, landed {landed}");
+                yield return Picture(p, flyer.Name + " in flight");
+            }
         }
 
         private static void CameraOverSurface(Probe p, float surface)

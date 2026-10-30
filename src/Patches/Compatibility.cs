@@ -392,6 +392,7 @@ namespace Scry
             ("StaticPhysics", "PushUp", 0, 0xA5499072, Feature.PlacesGroundOnStage),
             ("Floating", "GetFloatDepth", 0, 0xACCC3409, Feature.PlacesGroundOnStage),
             ("Character", "UpdateSwimming", 1, 0x0FCF0647, Feature.SeaHoldsOnStage),
+            ("Character", "UpdateFlying", 1, 0x501E9C50, Feature.MotionToldOnStage),
             ("Leviathan", "FixedUpdate", 0, 0xD1B2386F, Feature.SeaHoldsOnStage),
             ("WaterVolume", "DetectWaterDepth", 0, 0x825ECE7E, Feature.SeaHoldsOnStage),
             ("HitData", "ApplyModifier", 6, 0xDC32A000, Feature.Resistances),

@@ -404,7 +404,7 @@ namespace Scry
                 if (_person == null) return;
                 Gear.Body(prefab, _person);
                 Tune(_person, audible: false);
-                GatherInWater(_person, PersonSeaAnimators);
+                GatherSwitches(_person, PersonMotionAnimators);
 
                 // Its size relative to its own root, measured once.
                 var measured = Measure(_person);
