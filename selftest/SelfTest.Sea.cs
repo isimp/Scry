@@ -48,6 +48,8 @@ namespace Scry
                 p.Check(animator != null && animator.GetBool("inWater") && !animator.GetCurrentAnimatorStateInfo(0).IsName("OnLand"),
                     "its animator is told it is in water and swims rather than lying stranded",
                     animator == null ? "no animator with the in-water switch" : $"in water {animator.GetBool("inWater")}, on land {animator.GetCurrentAnimatorStateInfo(0).IsName("OnLand")}");
+                var top = CopyOf(serpent).GetComponentsInChildren<Renderer>().Where(r => r.enabled && !(r is ParticleSystemRenderer)).Select(r => r.bounds.max.y).DefaultIfEmpty(surface).Max();
+                p.Note($"a Serpent shows {Numbers.Fixed(top - surface, 2)} m over the surface at its highest");
                 CameraOverSurface(p, surface);
                 yield return Picture(p, "a Serpent in the sea");
 

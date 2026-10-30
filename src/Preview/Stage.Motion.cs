@@ -47,7 +47,13 @@ namespace Scry
         [ForTest]
         public static bool ShownFlies => _flies;
 
-        /// <summary>Reads whether a copy newly shown flies, a person wearing what is shown never, and gathers its animators' switches; a raid's crowd's by each creature's own kind.</summary>
+        /// <summary>
+        /// Reads whether a copy newly shown flies, a person wearing what is shown never, and
+        /// gathers its animators' switches, a raid's crowd's by each creature's own kind, telling
+        /// them at once: the copy is made before its animators first run, and one first run untold
+        /// can leave a state it cannot soon leave again (a Serpent stranded, its way back to
+        /// swimming open only late in a clip played at a tenth of its speed).
+        /// </summary>
         private static void ReadMotion(Entry entry)
         {
             _flies = false;
@@ -56,22 +62,25 @@ namespace Scry
             if (entry?.Source is RandomEvent)
             {
                 foreach (var (copy, kind) in RaidCrowd.LastCopies) GatherSwitches(copy, kind, shown: false, MotionAnimators);
-                return;
             }
-            if (!(entry?.Source is GameObject prefab)) return;
-            _flies = Flies(prefab);
-            GatherSwitches(_subject, prefab, shown: true, MotionAnimators);
+            else if (entry?.Source is GameObject prefab)
+            {
+                _flies = Flies(prefab);
+                GatherSwitches(_subject, prefab, shown: true, MotionAnimators);
+            }
+            Tell(MotionAnimators);
         }
 
         private static bool Flies(GameObject prefab) => prefab != null && prefab.GetComponent<Character>().OrNull()?.m_flying == true;
 
         private static bool LivesInWater(GameObject prefab) => prefab != null && prefab.GetComponent<MonsterAI>().OrNull()?.m_avoidLand == true;
 
-        /// <summary>The person beside what is shown, its in-water switch told while the sea holds what is shown.</summary>
+        /// <summary>The person beside what is shown, its in-water switch told while the sea holds what is shown, at once as for what is shown.</summary>
         private static void GatherPersonSwitches(GameObject person)
         {
             PersonMotionAnimators.Clear();
             GatherSwitches(person, null, shown: false, PersonMotionAnimators);
+            TellPerson();
         }
 
         /// <summary>A place's creature, held in its first pose, told how it moves before it is held, as the game would tell it there.</summary>
@@ -113,6 +122,11 @@ namespace Scry
         private static void KeepMotion()
         {
             Tell(MotionAnimators);
+            TellPerson();
+        }
+
+        private static void TellPerson()
+        {
             for (var i = PersonMotionAnimators.Count - 1; i >= 0; i--)
             {
                 var person = PersonMotionAnimators[i];
