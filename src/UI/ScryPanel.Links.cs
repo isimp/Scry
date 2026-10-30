@@ -262,6 +262,15 @@ namespace Scry
         [ForTest]
         public static bool LinkedShows(string group) => LinkRows.Exists(r => r.Title == group);
 
+        /// <summary>The rows LINKED holds for an entry as its page makes them, each its group and what each chip goes to, before any rules leave some out, for the self-test's tally.</summary>
+        [ForTest]
+        public static List<(string Group, List<string> Targets)> LinkedRowsForTest(Explorer explorer, Entry entry)
+        {
+            var rows = new LinkRowList();
+            MakeLinkRows(explorer, entry, rows, new PlacedRows());
+            return rows.ConvertAll(r => (r.Title, r.Items.ConvertAll(i => i.Key)));
+        }
+
         /// <summary>
         /// Adds a row of links: to In the game's where a topic shows its group, else to LINKED
         /// without what In the game links already, and not at all with nothing left.

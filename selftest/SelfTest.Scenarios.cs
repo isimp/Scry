@@ -26,6 +26,7 @@ namespace Scry
             yield return S("favourites, recent and history keep what they should", FavouritesRecentHistory, 60);
             yield return S("a page opened for the first time answers at once and is laid out over the next frames, saying what it waits for", PageLaidOut, 20, () => { ScryPanel.StagePagesForTest(false); ScryPanel.HoldLayingForTest(false); });
             yield return S("an entry's facts worked out a step a frame, many side by side, are the facts worked out at once", FactsSteppedAsWhole, 180);
+            yield return S("a tally of what LINKED holds over every page is written beside the log", LinkedTallied, 600, full: true);
             yield return S("every tab lists all it counts, group by group", TabsAndGroups, 20);
             yield return S("both views draw, and /scry searches", PanelViews, 10);
             yield return S("the arrow keys move, Game and Mods filter, and an empty tab shows every kind", ListKeysAndFilters, 10, ResetList);
