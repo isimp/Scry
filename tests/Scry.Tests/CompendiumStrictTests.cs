@@ -177,6 +177,94 @@ namespace Scry.Tests
             Assert.True(explorer.LeavesOut(plain, totem.Key));
         }
 
+        /// <summary>Yagluth, whose fall sets a key the Bog Witch's and Haldor's wares and a raid wait for, with the book and rules of a page.</summary>
+        private sealed class Fallen
+        {
+            public readonly Entry Boss = E("GoblinKing", Kind.Creature);
+            public readonly Entry Witch = E("BogWitch", Kind.Creature);
+            public readonly Entry Haldor = E("Haldor", Kind.Creature);
+            public readonly Entry Spice = E("SpicePlains", Kind.Item);
+            public readonly Entry Egg = E("ChickenEgg", Kind.Item);
+            public readonly Entry Seekers = E("army_seekers", Kind.Raid);
+            public readonly Entry Goblin = E("Goblin", Kind.Creature);
+            public readonly Explorer Explorer;
+            public readonly CompendiumView View;
+            public readonly CompendiumBook Book = new CompendiumBook();
+            public readonly UnlockBook Unlocks = new UnlockBook();
+
+            public Fallen()
+            {
+                var all = new[] { Boss, Witch, Haldor, Spice, Egg, Seekers, Goblin };
+                Explorer = new Explorer(all.ToList(), new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+                View = new CompendiumView(Explorer.Entries) { Unlocks = Unlocks, FallSets = key => key == Boss.Key ? "defeated_goblinking" : null };
+                Unlocks.Add("defeated_goblinking", Unlock.Sells, Spice.Name, Witch.Name);
+                Unlocks.Add("defeated_goblinking", Unlock.Sells, Egg.Name, Haldor.Name);
+                Unlocks.Add("defeated_goblinking", Unlock.RaidStarts, Seekers.Key);
+                Unlocks.Add("defeated_goblinking", Unlock.Spawns, Goblin.Name);
+                // A raid comes to be known only by living through it.
+                foreach (var e in all) Book.Raise(e.Key, e == Seekers ? KnownLevel.Seen : KnownLevel.Known);
+            }
+
+            /// <summary>Whether a page shows a name under the strict rules.</summary>
+            public bool Shows(Entry page, Entry named)
+            {
+                View.Tell(Book, CompendiumRule.Strict);
+                Explorer.Know(View);
+                Explorer.Select(page);
+                return !Explorer.LeavesOut(named.Key);
+            }
+        }
+
+        [Fact]
+        public void AWareSeenOnTheStoreThatSellsItOnceABossFellLinksTheBossAndTheWare()
+        {
+            // A store lists a ware waiting for a boss only once the boss fell: seeing it on the
+            // store that sells it so shows the boss's fall and the ware went together.
+            var world = new Fallen();
+            Assert.False(world.Shows(world.Boss, world.Spice));
+            world.Book.Witness(world.Witch.Key, world.Spice.Key);
+            Assert.True(world.Shows(world.Boss, world.Spice));
+            Assert.True(world.Shows(world.Spice, world.Boss));
+
+            // Not a ware seen on a store that sells it without waiting for the boss.
+            Assert.False(world.Shows(world.Boss, world.Egg));
+            world.Book.Witness(world.Witch.Key, world.Egg.Key);
+            Assert.False(world.Shows(world.Boss, world.Egg));
+            world.Book.Witness(world.Haldor.Key, world.Egg.Key);
+            Assert.True(world.Shows(world.Boss, world.Egg));
+
+            // Nor a ware another fall opens, nor with a creature whose fall sets no key.
+            world.View.FallSets = key => null;
+            Assert.False(world.Shows(world.Boss, world.Spice));
+        }
+
+        [Fact]
+        public void ARaidLivedThroughLinksTheBossWhoseFallLetsItCome()
+        {
+            // The game starts a raid only while every key it waits for is set, so one lived through
+            // went together with each fall it waits for.
+            var world = new Fallen();
+            Assert.False(world.Shows(world.Boss, world.Seekers));
+            world.Book.Raise(world.Seekers.Key, KnownLevel.Known, way: CameBy.LivedThrough);
+            Assert.True(world.Shows(world.Boss, world.Seekers));
+            Assert.True(world.Shows(world.Seekers, world.Boss));
+        }
+
+        [Fact]
+        public void ACreatureMetAfterABossFellIsNotLinkedToTheFall()
+        {
+            // Meeting a Fuling shows nothing of the key it may wait for: the spawn stays apart, and
+            // under the strict rules its row has no way to show at all, so it is left out whole.
+            var world = new Fallen();
+            world.Book.Witness(world.Witch.Key, world.Spice.Key);
+            Assert.False(world.Shows(world.Boss, world.Goblin));
+            Assert.True(UnlockWays.SeenTogether(Unlock.Sells));
+            Assert.True(UnlockWays.SeenTogether(Unlock.RaidStarts));
+            Assert.False(UnlockWays.SeenTogether(Unlock.RaidEnds));
+            Assert.False(UnlockWays.SeenTogether(Unlock.Spawns));
+            Assert.False(UnlockWays.SeenTogether(Unlock.StopsSpawning));
+        }
+
         [Fact]
         public void WhatTheGameShowsComesWithAThingOnlyOnceTheGameListsItsRecipe()
         {

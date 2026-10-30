@@ -397,7 +397,7 @@ namespace Scry
                 var targets = Knowledge.Unlocks.Of(key, kind);
                 if (targets.Count == 0) continue;
                 // The row's title tells what the fall opens, so while none of it was met it is left out whole.
-                var row = new Row { Title = UnlockWords.Title(kind, targets.Count), UnmetLeftOut = true };
+                var row = new Row { Title = UnlockWords.Title(kind, targets.Count), UnmetLeftOut = true, StrictLeftOut = !UnlockWays.SeenTogether(kind) };
                 foreach (var target in targets)
                 {
                     if (kind == Unlock.RaidStarts || kind == Unlock.RaidEnds)

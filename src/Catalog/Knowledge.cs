@@ -228,6 +228,12 @@ namespace Scry
         /// <summary>The prefab of the creature whose defeat sets a world key, or null.</summary>
         public static string BossPrefabOf(string key) => key != null && Bosses.TryGetValue(key, out var boss) ? boss.name : null;
 
+        /// <summary>The world key each creature's defeat sets, by its prefab (<c>Character.m_defeatSetGlobalKey</c>).</summary>
+        private static readonly Dictionary<string, string> FallKeys = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        /// <summary>The world key a creature's defeat sets, by its prefab's name, or null.</summary>
+        public static string FallKeyOf(string prefab) => prefab != null && FallKeys.TryGetValue(prefab, out var key) ? key : null;
+
         /// <summary>Which build tools build which pieces, on which tab, noted as the list is grouped.</summary>
         public static readonly ToolBook Tools = new ToolBook();
 
@@ -256,6 +262,7 @@ namespace Scry
             Crafted.Clear();
             Tools.Clear();
             Bosses.Clear();
+            FallKeys.Clear();
             BossEvents.Clear();
             Altars.Clear();
             Turned.Clear();
@@ -295,9 +302,10 @@ namespace Scry
 
             foreach (var component in components)
             {
-                if (component is Character boss && !string.IsNullOrEmpty(boss.m_defeatSetGlobalKey) && !Bosses.ContainsKey(boss.m_defeatSetGlobalKey))
+                if (component is Character boss && !string.IsNullOrEmpty(boss.m_defeatSetGlobalKey))
                 {
-                    Bosses[boss.m_defeatSetGlobalKey] = prefab;
+                    if (!Bosses.ContainsKey(boss.m_defeatSetGlobalKey)) Bosses[boss.m_defeatSetGlobalKey] = prefab;
+                    FallKeys[prefab.name] = boss.m_defeatSetGlobalKey;
                 }
                 // A boss's fight only where its event is on: the game finds none switched off (RandEventSystem.GetEvent).
                 if (component is Character fought && !string.IsNullOrEmpty(fought.m_bossEvent) && !BossEvents.ContainsKey(fought.m_bossEvent)

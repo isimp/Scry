@@ -346,8 +346,27 @@ namespace Scry
         /// <summary>Whether an entry is one of a known owner's own parts: what it plays, leaves behind or links to as its own.</summary>
         public bool Owns(Entry owner, Entry owned) => owner != null && owned != null && _owns.Contains((owner, owned));
 
-        /// <summary>Whether two entries go together for the strict rules: seen together, the way given where a row has one, one a part of the other, or a room's dungeon seen together with the other.</summary>
-        public bool Related(Entry a, Entry b, Tie? tie = null) => Witnessed(a, b, tie) || Owns(a, b) || Owns(b, a) || ThroughDungeon(a, b, tie) || ThroughDungeon(b, a, tie);
+        /// <summary>Whether two entries go together for the strict rules: seen together, the way given where a row has one, one a part of the other, a room's dungeon seen together with the other, or a fall seen to open the other.</summary>
+        public bool Related(Entry a, Entry b, Tie? tie = null) =>
+            Witnessed(a, b, tie) || Owns(a, b) || Owns(b, a) || ThroughDungeon(a, b, tie) || ThroughDungeon(b, a, tie) || tie == null && (FallOpened(a, b) || FallOpened(b, a));
+
+        /// <summary>What waits for each world key, as the catalog read it; none links no fall to what it opens.</summary>
+        public UnlockBook Unlocks { get; set; }
+
+        /// <summary>The world key a creature's fall sets, by its key (<c>Character.m_defeatSetGlobalKey</c>); null for none.</summary>
+        public Func<string, string> FallSets { get; set; }
+
+        /// <summary>
+        /// Whether the character saw a creature's fall open a thing (<see cref="UnlockBook.SeenOpened"/>):
+        /// its ware seen on the store selling it once the fall's key is set, or a raid waiting for
+        /// that key lived through, as the book holds it, a raid being known only so.
+        /// </summary>
+        private bool FallOpened(Entry fallen, Entry opened)
+        {
+            if (fallen == null || opened == null || _book == null || Unlocks == null || FallSets == null || fallen.Kind != Kind.Creature) return false;
+            var key = FallSets(fallen.Key);
+            return key != null && Unlocks.SeenOpened(key, opened.Key, (seller, ware) => _book.Witnessed(seller, ware), raid => _book.Level(raid) == KnownLevel.Known);
+        }
 
         /// <summary>
         /// Whether a room's dungeon saw a thing go together with it: what is met inside is paired

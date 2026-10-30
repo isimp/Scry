@@ -46,6 +46,9 @@ namespace Scry
             /// <summary>Left out of the page whole while every thing it names was never met, as its title alone would tell what it holds: what a boss's fall opens.</summary>
             public bool UnmetLeftOut;
 
+            /// <summary>Left out of the page whole under the strict rules, as nothing in play shows what it names go together with the page: what a fall lets spawn (<see cref="UnlockWays.SeenTogether"/>).</summary>
+            public bool StrictLeftOut;
+
             /// <summary>
             /// The game shows the row the moment the thing is known: a recipe's materials, a piece's
             /// cost, what a thing is made into, a station's recipes, a store's wares. Such a row names

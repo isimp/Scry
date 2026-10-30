@@ -32,12 +32,19 @@ namespace Scry
         private readonly Dictionary<(string Key, Unlock Kind), List<string>> _opens = new Dictionary<(string, Unlock), List<string>>();
         private readonly HashSet<string> _keys = new HashSet<string>(StringComparer.Ordinal);
 
-        public void Add(string key, Unlock kind, string target)
+        /// <summary>The traders selling each ware once a key is set, by the key and the ware.</summary>
+        private readonly Dictionary<(string Key, string Ware), List<string>> _sellers = new Dictionary<(string, string), List<string>>();
+
+        /// <summary>Keeps a thing waiting for a key; a ware with the trader selling it so (<paramref name="seller"/>).</summary>
+        public void Add(string key, Unlock kind, string target, string seller = null)
         {
             if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(target)) return;
             if (!_opens.TryGetValue((key, kind), out var targets)) _opens[(key, kind)] = targets = new List<string>();
             if (!targets.Contains(target)) targets.Add(target);
             _keys.Add(key);
+            if (kind != Unlock.Sells || string.IsNullOrEmpty(seller)) return;
+            if (!_sellers.TryGetValue((key, target), out var sellers)) _sellers[(key, target)] = sellers = new List<string>();
+            if (!sellers.Contains(seller)) sellers.Add(seller);
         }
 
         public IReadOnlyList<string> Of(string key, Unlock kind) =>
@@ -46,11 +53,41 @@ namespace Scry
         /// <summary>Whether anything waits for the key.</summary>
         public bool Any(string key) => key != null && _keys.Contains(key);
 
+        /// <summary>
+        /// Whether the character saw a key's setting go together with what waits for it: a ware
+        /// seen on the store of a trader selling it once the key is set (<paramref name="paired"/>,
+        /// trader and ware), as a store lists it only then (<c>Trader.GetAvailableItems</c>), or a
+        /// raid lived through (<paramref name="livedThrough"/>), as the game starts one only while
+        /// every key it waits for is set (<c>RandEventSystem.HaveGlobalKeys</c>). Nothing else that
+        /// waits for a key shows it was set (<see cref="UnlockWays.SeenTogether"/>).
+        /// </summary>
+        public bool SeenOpened(string key, string target, Func<string, string, bool> paired, Func<string, bool> livedThrough)
+        {
+            if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(target)) return false;
+            if (_sellers.TryGetValue((key, target), out var sellers))
+            {
+                foreach (var seller in sellers) if (paired(seller, target)) return true;
+            }
+            return _opens.TryGetValue((key, Unlock.RaidStarts), out var raids) && raids.Contains(target) && livedThrough(target);
+        }
+
         public void Clear()
         {
             _opens.Clear();
             _keys.Clear();
+            _sellers.Clear();
         }
+    }
+
+    /// <summary>Which of what waits for a key the character can see go together with the key's setting (<see cref="UnlockBook.SeenOpened"/>).</summary>
+    internal static class UnlockWays
+    {
+        /// <summary>
+        /// A ware, seen on its store, and a raid that may come, lived through; a raid that stops, a
+        /// creature that then spawns or stops spawning shows nothing of the key, so under the strict
+        /// rules its row is left out whole.
+        /// </summary>
+        public static bool SeenTogether(Unlock kind) => kind == Unlock.Sells || kind == Unlock.RaidStarts;
     }
 
     /// <summary>How a creature's page titles what its defeat opens.</summary>

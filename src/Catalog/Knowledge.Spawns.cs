@@ -631,7 +631,7 @@ namespace Scry
                 {
                     if (trade?.m_prefab == null || !sold.Add(trade.m_prefab.gameObject.name)) continue;
                     From(trade.m_prefab.gameObject.name, Told(SourceFacts.Sold(self, name, trade.m_stack, trade.m_price, trade.m_requiredGlobalKey)));
-                    Unlocks.Add(trade.m_requiredGlobalKey, Unlock.Sells, trade.m_prefab.gameObject.name);
+                    Unlocks.Add(trade.m_requiredGlobalKey, Unlock.Sells, trade.m_prefab.gameObject.name, self);
                 }
             });
         }

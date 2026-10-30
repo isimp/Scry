@@ -280,9 +280,13 @@ namespace Scry
         /// <summary>How wide each heading of the table being drawn is, which its column keeps where it can.</summary>
         private static readonly List<float> HeadingWidths = new List<float>();
 
-        /// <summary>Whether a row left out while all it names is unmet names nothing met (<see cref="Facts.Row.UnmetLeftOut"/>).</summary>
+        /// <summary>
+        /// Whether a row left out while all it names is unmet names nothing met (<see cref="Facts.Row.UnmetLeftOut"/>),
+        /// or one with no way to be seen together is shown under the strict rules (<see cref="Facts.Row.StrictLeftOut"/>).
+        /// </summary>
         private static bool UnmetWhole(Explorer explorer, Facts.Row row)
         {
+            if (row.StrictLeftOut && explorer.LeavingOut) return true;
             if (!row.UnmetLeftOut || row.Items.Count == 0) return false;
             foreach (var item in row.Items) if (!explorer.NotMet(item.Prefab)) return false;
             return true;
