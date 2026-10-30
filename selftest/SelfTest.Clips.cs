@@ -115,6 +115,8 @@ namespace Scry
             p.Check(Of("Standing Up") != ClipGroup.Moving, "standing up from a bed is no moving clip, each run of the sweep starting awake", Of("Standing Up").ToString());
             // Kept for the next session, and taken up again with nothing watched anew.
             p.Check(ClipStore.Holds("Player|stances"), "what the person plays by stance is kept for the next session", $"{Numbers.Count(ClipStore.Count)} looks kept");
+            // A probe still running from the first opening (another stance's) is not one watched anew: it ends first.
+            yield return Until(() => !TriggerProbe.Busy, 60);
             var probes = TriggerProbe.DoneForTest.Count;
             var again = UnityEngine.Time.unscaledTime;
             Previews.ForgetClipsInMemory();
@@ -122,7 +124,7 @@ namespace Scry
             yield return Until(() => !Previews.ClipsSorting && !Previews.ClipsProvisional, 30);
             p.Check(!Previews.ClipsSorting && TriggerProbe.DoneForTest.Count == probes && Previews.ClipsOtherGear()?.ContainsKey("Run New Pickaxe") == true,
                 "opened again, the sword's clips are taken from what was kept, no animator watched anew",
-                $"after {Numbers.Amount(UnityEngine.Time.unscaledTime - again, 1)} s, {Numbers.Count(TriggerProbe.DoneForTest.Count - probes)} watched anew");
+                $"after {Numbers.Amount(UnityEngine.Time.unscaledTime - again, 1)} s, {Numbers.Count(TriggerProbe.DoneForTest.Count - probes)} watched anew: {string.Join(", ", TriggerProbe.DoneForTest.Skip(probes).Select(d => d.Key))}");
             p.Note("left in Other: " + (groups != null ? string.Join(", ", groups.Where(g => g.Value == ClipGroup.Other && !(other?.ContainsKey(g.Key) ?? false)).Select(g => g.Key)) : "none"));
             yield return PictureOf(p, "animations", "the person's clips holding a sword");
 

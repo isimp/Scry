@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Linq;
+using UnityEngine;
 
 namespace Scry
 {
@@ -54,7 +55,8 @@ namespace Scry
             Session.ShowKnownInstead(null);
             yield return Until(() => X.Compendium != view, 3);
 
-            var fish = X.Catalog.Where(e => e.Kind == Kind.Item && Facts.For(e).Pairs.Any(x => x.Key == FishWords.Swims)).ToList();
+            // Found by the game's Fish first: the facts of every item at once would cost a second's frame.
+            var fish = X.Catalog.Where(e => e.Kind == Kind.Item && e.Source is GameObject swims && swims.GetComponent<Fish>() != null && Facts.For(e).Pairs.Any(x => x.Key == FishWords.Swims)).ToList();
             p.Note($"{Numbers.Count(fish.Count)} fish: " + string.Join("; ", fish.Take(20).Select(f => f.ShownName + " " + (Facts.For(f).Pairs.Where(x => x.Key == FishWords.Water).Select(x => x.Value).FirstOrDefault() ?? "no world spawn"))));
         }
 

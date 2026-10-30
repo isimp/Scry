@@ -426,9 +426,12 @@ namespace Scry
                 Timing.ForgetBytesByPart();
                 var others = new OtherThreads(() => GC.GetTotalMemory(false), () => GC.CollectionCount(0), () => System.Diagnostics.Stopwatch.GetTimestamp() * 1000.0 / System.Diagnostics.Stopwatch.Frequency);
                 var until = Time.unscaledTime + 4f;
+                // Grass the wind bends is filmed every frame on purpose; those frames are no still page's.
+                var windFrames = 0;
                 while (Time.unscaledTime < until)
                 {
                     if (!Timing.CountsPerThread && Timing.Measuring != null) others.Wait(Timing.Measuring.Last);
+                    if (Stage.GrassMovingForTest) windFrames++;
                     yield return null;
                 }
                 var held = Timing.Measuring?.Since(first);
@@ -452,7 +455,8 @@ namespace Scry
                 p.Check(panelBytes / repaints < 64 * 1024 && renderBytes / films < 72 * 1024 && updateBytes / count < 24 * 1024,
                     $"{what}: Scry's own work allocates within bounds standing open: under 64 KB a repaint, 72 KB a film and 24 KB a frame",
                     $"{Numbers.Count((int)(panelBytes / repaints / 1024))} KB a repaint, {Numbers.Count((int)(renderBytes / films / 1024))} KB a film, {Numbers.Count((int)(updateBytes / count / 1024))} KB a frame");
-                if (entry == piece) p.Check(filmsMade <= count / 3 + 2, "a still page is filmed in a third of its frames at most", $"{Numbers.Count(filmsMade)} of {Numbers.Count(count)}");
+                if (entry == piece) p.Check(filmsMade <= windFrames + (count - windFrames) / 3 + 2, "a still page is filmed in a third of its frames at most, besides those the wind bends its grass in",
+                    $"{Numbers.Count(filmsMade)} of {Numbers.Count(count)}, the grass moving in {Numbers.Count(windFrames)}");
             }
             Stage.Spin = spinWas;
             Stage.Inside = wasInside;

@@ -74,6 +74,10 @@ namespace Scry
             return StageFilm.GrassMoves(true, wind);
         }
 
+        /// <summary>For the self-test: whether the stage's grass moves in the wind now, so the stage is filmed every frame.</summary>
+        [ForTest]
+        public static bool GrassMovingForTest => GrassMoving();
+
         /// <summary>The game's wind now, nought to one (<c>EnvMan.GetWindIntensity</c>); none outside a world.</summary>
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static float WindNow() => EnvMan.instance != null ? EnvMan.instance.GetWindIntensity() : 0f;

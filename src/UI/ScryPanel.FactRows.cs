@@ -59,7 +59,7 @@ namespace Scry
         [Diagnostic]
         public static bool KeepUnlockTitlesForTest { get; set; }
 
-        /// <summary>The titles of rows told as waiting for a boss, with the frame each was drawn in, while kept for the self-test.</summary>
+        /// <summary>The titles of rows told as waiting for a boss, with the frame each was painted in, while kept for the self-test; a mouse's event drawing the panel too is not a paint.</summary>
         [Diagnostic]
         public static List<(int Frame, string Title)> UnlockTitlesForTest { get; } = new List<(int, string)>();
 
@@ -132,7 +132,7 @@ namespace Scry
             var countedAs = CountedAs(explorer, row);
             var waiting = rows != null && rowAt >= 0 ? UnlockRows.Told(rows, rowAt, r => CountedAs(explorer, r), r => r.Items.Count) : row.Items.Count;
             if (waiting == null) return true;
-            if (KeepUnlockTitlesForTest) UnlockTitlesForTest.Add((Time.frameCount, countedAs));
+            if (KeepUnlockTitlesForTest && Event.current.type == EventType.Repaint) UnlockTitlesForTest.Add((Time.frameCount, countedAs));
             y += U(6f);
             GUI.Label(new Rect(0f, y, width, U(20f)), countedAs, Skin.DimLabel);
             y = HintLine(CompendiumWords.ToUnlock(waiting.Value), "to-unlock:", row.Title, PanelPart.ToUnlock, width, y + U(20f));
