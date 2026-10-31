@@ -167,6 +167,16 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ARunestoneTextNotYetReadIsLeftToFind()
+        {
+            // Each text a place's runestones give is learned by reading it, under either rules, and
+            // the page's You box says how many are left.
+            var rows = CompendiumWords.StillToFindOut(new string[0], new string[0], attacks: 0, spots: 0, new Tally[0], unread: 2);
+            Assert.Equal(new[] { ("Read its runestones", "2 texts not yet read") }, rows.ToArray());
+            Assert.Empty(CompendiumWords.StillToFindOut(new string[0], new string[0], attacks: 0, spots: 0, new Tally[0], unread: 0));
+        }
+
+        [Fact]
         public void HowLongAMealLastsWaitsForOneSeenEating()
         {
             // A creature born tame, as a hen or a summon, is never tamed: how long its meal lasts

@@ -23,7 +23,8 @@ namespace Scry
             if (!explorer.LeavingOut)
             {
                 finds.Lined = PageNames(explorer, facts, finds);
-                return (CompendiumWords.StillToFindOut(Array.Empty<string>(), Array.Empty<string>(), 0, 0, Array.Empty<Tally>(), namesApart: finds.NamesApart, namesUnmet: finds.NamesUnmet), finds);
+                var unreadHere = RunesUnread(explorer, finds);
+                return (CompendiumWords.StillToFindOut(Array.Empty<string>(), Array.Empty<string>(), 0, 0, Array.Empty<Tally>(), namesApart: finds.NamesApart, namesUnmet: finds.NamesUnmet, unread: unreadHere), finds);
             }
             var deeds = new List<string>();
             var counted = new HashSet<string>(System.StringComparer.Ordinal);
@@ -68,7 +69,29 @@ namespace Scry
             Sourced(explorer, facts, deeds, uncounted, finds);
             var (starsUnseen, gearUnseen) = SightLacks(explorer, facts, finds);
             finds.Lined = PageNames(explorer, facts, finds);
-            return (CompendiumWords.StillToFindOut(deeds, types, attacks, spots, uncounted, starsUnseen, gearUnseen, explorer.Selected?.Kind == Kind.Item, finds.NamesApart, finds.NamesUnmet), finds);
+            var unread = RunesUnread(explorer, finds);
+            return (CompendiumWords.StillToFindOut(deeds, types, attacks, spots, uncounted, starsUnseen, gearUnseen, explorer.Selected?.Kind == Kind.Item, finds.NamesApart, finds.NamesUnmet, unread), finds);
+        }
+
+        /// <summary>
+        /// Each text the page's runestones give, a find under either rules, read or not yet read
+        /// (<see cref="TextRead"/>), as the runestones' section shows only those read: how many are
+        /// not yet read.
+        /// </summary>
+        private static int RunesUnread(Explorer explorer, PageFinds finds)
+        {
+            if (!explorer.CompendiumOn || !(explorer.Selected?.Source is PlaceSource place) || place.Contents == null) return 0;
+            var unread = 0;
+            foreach (var stone in place.Contents.Runestones)
+            {
+                foreach (var text in stone.Texts)
+                {
+                    var kept = !TextRead(explorer, text);
+                    finds.Count(kept);
+                    if (kept) unread++;
+                }
+            }
+            return unread;
         }
 
         /// <summary>

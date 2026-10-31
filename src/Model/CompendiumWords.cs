@@ -462,7 +462,7 @@ namespace Scry
         /// out, those never met (to meet first) apart from those met but not seen together.
         /// </summary>
         public static List<(string Label, string Value)> StillToFindOut(IEnumerable<string> deeds, IReadOnlyList<string> types, int attacks, int spots, IEnumerable<Tally> uncounted,
-            IEnumerable<int> starsUnseen = null, IEnumerable<string> gearUnseen = null, bool ofItem = false, int namesApart = 0, int namesUnmet = 0)
+            IEnumerable<int> starsUnseen = null, IEnumerable<string> gearUnseen = null, bool ofItem = false, int namesApart = 0, int namesUnmet = 0, int unread = 0)
         {
             var rows = new List<(string, string)>();
             var pending = new HashSet<Deed>();
@@ -505,6 +505,7 @@ namespace Scry
             foreach (var gear in gearUnseen ?? Array.Empty<string>()) rows.Add(("See it carry", $"{gear} up close: dresses it so on the stage"));
             if (namesUnmet > 0) rows.Add(("Meet first", Naming.Count(namesUnmet, "thing it names", "things it names")));
             if (namesApart > 0) rows.Add(("See it together", Naming.Count(namesApart, "thing it names", "things it names")));
+            if (unread > 0) rows.Add(("Read its runestones", Naming.Count(unread, "text", "texts") + " not yet read"));
             return rows;
         }
 
