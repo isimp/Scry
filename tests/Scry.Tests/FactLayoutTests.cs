@@ -600,6 +600,17 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ANestsSpawnTableNamesTheCreaturesMetUnderEitherRules()
+        {
+            // Nothing in play pairs a nest with what it spawns, so its table's lines name each
+            // creature once met, as a spawn point's Spawns does; other tables wait to be seen together.
+            Assert.True(FactLayout.LinesOnceMet(Kind.Spawner, SpawnWords.PoolTitle));
+            Assert.False(FactLayout.LinesOnceMet(Kind.Creature, CombatWords.AttacksTitle));
+            Assert.False(FactLayout.LinesOnceMet(Kind.Spawner, "Drops"));
+            Assert.False(FactLayout.LinesOnceMet(Kind.Sound, SpawnWords.PoolTitle));
+        }
+
+        [Fact]
         public void ARowMovedIntoATopicIsTitledInThatTopicsWords()
         {
             Assert.Equal("Gives", FactLayout.LinkTitle(Kind.Piece, LinkWords.StatusEffects));

@@ -72,6 +72,8 @@ namespace Scry
             public readonly HashSet<string> LinksOnceMet = new HashSet<string>(StringComparer.Ordinal);
             /// <summary>Groups moved into a topic from Linked, which leave out what the page links already, as Linked does.</summary>
             public readonly HashSet<string> LinksMoved = new HashSet<string>(StringComparer.Ordinal);
+            /// <summary>Tables, by title, whose lines name what the character met under either rules, nothing in play pairing them with the page.</summary>
+            public readonly HashSet<string> TablesOnceMet = new HashSet<string>(StringComparer.Ordinal);
         }
 
         private const string More = "more";
@@ -473,9 +475,10 @@ namespace Scry
             Label(plan, More, "Not shown");
             Part(plan, "spawns", "spawner");
             Lead(plan, "spawns", SpawnWords.PoolTitle);
-            // A single spawn point's creature, which no deed pairs with it.
+            // A single spawn point's creature and a nest's, which no deed pairs with it.
             Moved(plan, "spawns", LinkWords.Spawns);
             OnceMet(plan, LinkWords.Spawns);
+            plan.TablesOnceMet.Add(SpawnWords.PoolTitle);
             Part(plan, "breaking", "resource");
             plan.Blocks[FactBlock.Where] = "where";
             plan.Blocks[FactBlock.FoundIn] = "where";
@@ -548,6 +551,9 @@ namespace Scry
             for (var i = 0; i < targets.Count; i++) if (!moved || !shown.Contains(targets[i])) left.Add(i);
             return left;
         }
+
+        /// <summary>Whether a kind's table, by its title, names in its lines what the character met under either rules, as a nest's spawn table, rather than waiting for each to be seen together with the page.</summary>
+        public static bool LinesOnceMet(Kind kind, string table) => Kinds.TryGetValue(kind, out var plan) && plan.TablesOnceMet.Contains(table);
 
         /// <summary>How a group of a kind's links is titled where it shows: in its topic's words where they differ, else by its name.</summary>
         public static string LinkTitle(Kind kind, string group) =>

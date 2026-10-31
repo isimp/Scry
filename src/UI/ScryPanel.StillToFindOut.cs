@@ -175,7 +175,7 @@ namespace Scry
             if (row.Columns != null)
             {
                 // A table every line of which is left out counts them all; one every line of which is kept back names nothing (TableRow).
-                if (row.Lines.Count > 0 && row.Lines.TrueForAll(l => LineLeftOut(explorer, l.Link)))
+                if (row.Lines.Count > 0 && row.Lines.TrueForAll(l => LineLeftOut(explorer, row, l.Link)))
                 {
                     foreach (var line in row.Lines) names.Name(line.Link, true);
                     return;
@@ -184,13 +184,13 @@ namespace Scry
                 for (var l = 0; l < row.Lines.Count; l++)
                 {
                     var link = row.Lines[l].Link;
-                    if (LineLeftOut(explorer, link))
+                    if (LineLeftOut(explorer, row, link))
                     {
                         names.Name(link, true);
                         continue;
                     }
                     if (AttackKept(explorer, row, l)) continue;
-                    if (!string.IsNullOrEmpty(link)) names.Named(link);
+                    if (!string.IsNullOrEmpty(link)) names.Named(link, LinesOnceMet(explorer, row));
                     // A cell naming what was not seen together reads a smudge, unless its numbers are kept back already (CellDrawn).
                     if (LineKept(explorer, row, l, out _)) continue;
                     for (var c = 1; c < row.Lines[l].Cells.Length; c++)

@@ -343,7 +343,7 @@ namespace Scry
             // Under the strict rules an attack not yet seen begun or taken is folded, as its clips
             // are: the table lists the rest, and one faint line counts those that wait.
             var waiting = 0;
-            for (var l = 0; l < row.Lines.Count; l++) if (!LineLeftOut(explorer, row.Lines[l].Link) && AttackKept(explorer, row, l)) waiting++;
+            for (var l = 0; l < row.Lines.Count; l++) if (!LineLeftOut(explorer, row, row.Lines[l].Link) && AttackKept(explorer, row, l)) waiting++;
             var gap = U(12f);
             if (waiting < row.Lines.Count)
             {
@@ -355,7 +355,7 @@ namespace Scry
             {
                 var (cells, link) = row.Lines[l];
                 // A line of what was not seen together with the page (an attack never seen) is left out.
-                if (LineLeftOut(explorer, link))
+                if (LineLeftOut(explorer, row, link))
                 {
                     StrictLeft(1);
                     continue;
@@ -431,7 +431,7 @@ namespace Scry
                 HeadingWidths.Add(w + U(2f));
                 for (var l = 0; l < row.Lines.Count; l++)
                 {
-                    if (LineLeftOut(explorer, row.Lines[l].Link) || AttackKept(explorer, row, l)) continue;
+                    if (LineLeftOut(explorer, row, row.Lines[l].Link) || AttackKept(explorer, row, l)) continue;
                     var drawn = CellDrawn(explorer, row, l, c);
                     if (drawn != null) w = Mathf.Max(w, (drawn == CompendiumWords.Hidden ? Mathf.Max(SmudgeWidth, Skin.Width(Skin.Small, drawn)) : Skin.Width(Skin.Small, drawn)) + (drawn != CompendiumWords.Hidden && explorer.ShownByChoice(CellLink(row, l, c)) ? FloorRoom : 0f));
                     if (!row.Yours.TryGetValue(l, out var yours) || LineKept(explorer, row, l, out _) || AttackKept(explorer, row, l)) continue;
@@ -646,8 +646,14 @@ namespace Scry
             return null;
         }
 
-        /// <summary>Whether a table's line is left out, what it names not seen together with the page (an attack never seen).</summary>
-        private static bool LineLeftOut(Explorer explorer, string link) => !string.IsNullOrEmpty(link) && explorer.LeavesOut(link);
+        /// <summary>
+        /// Whether a table's line is left out, what it names not seen together with the page (an
+        /// attack never seen); of a table whose lines name what was met (a nest's spawns), only one never met.
+        /// </summary>
+        private static bool LineLeftOut(Explorer explorer, Facts.Row row, string link) => !string.IsNullOrEmpty(link) && explorer.LeavesOut(link, LinesOnceMet(explorer, row));
+
+        /// <summary>Whether a table of the page shown names in its lines what was met under either rules (<see cref="FactLayout.LinesOnceMet"/>).</summary>
+        private static bool LinesOnceMet(Explorer explorer, Facts.Row row) => explorer.Selected != null && FactLayout.LinesOnceMet(explorer.Selected.Kind, row.Title);
 
         /// <summary>Whether a table's line keeps all its numbers back, as one only something seen done tells (health by stars).</summary>
         private static bool LineKept(Explorer explorer, Facts.Row row, int line, out string proof) => row.LineProofs.TryGetValue(line, out proof) && explorer.KeepsBack(proof);
