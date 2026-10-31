@@ -467,10 +467,12 @@ namespace Scry
             var rows = new List<(string, string)>();
             var pending = new HashSet<Deed>();
             var starsPending = new SortedSet<int>();
+            var raiders = 0;
             foreach (var proof in deeds)
             {
                 if (EntryKeys.IsDeed(proof, out var deed)) pending.Add(deed);
                 else if (EntryKeys.IsStarsFell(proof, out var fell)) starsPending.Add(fell);
+                else if (EntryKeys.IsRaider(proof, out _)) raiders++;
             }
             foreach (var fell in starsPending) rows.Add(($"See {Naming.Count(fell, "star", "stars")} fall", $"shows what {StarsChange(fell)}"));
             void Pending(Deed what, string label, string value)
@@ -481,6 +483,9 @@ namespace Scry
             Pending(Deed.Fought, "Fight one", "shows how it senses, chases and flees");
             Pending(Deed.Felt, "Have it on you", "shows how it works on you");
             Pending(Deed.Sprang, "See one spring", "shows how it hurts and rearms");
+            Pending(Deed.Raided, "See its raiders up close", "shows how it is rolled");
+            Pending(Deed.Guarded, "See its creatures up close", "shows the stars its spawn points give");
+            if (raiders > 0) rows.Add(("See them up close", Naming.Count(raiders, "kind of raider", "kinds of raider") + ": how many come, how often, how strong"));
             Pending(Deed.Tamed, "Tame one", "shows how long taming and a meal take");
             Pending(Deed.Fed, "See one eat", "shows how long a meal lasts");
             Pending(Deed.Born, "See one born", "shows how long it is pregnant");
@@ -518,6 +523,7 @@ namespace Scry
             if (string.IsNullOrEmpty(proof)) return null;
             if (proof == EntryKeys.OnMap) return "seen on your explored map";
             if (EntryKeys.IsStarsFell(proof, out var fell)) return $"what {StarsChange(fell)} found out";
+            if (EntryKeys.IsRaider(proof, out _)) return "a raider's numbers found out";
             if (EntryKeys.IsDeed(proof, out var deed))
             {
                 switch (deed)
@@ -527,6 +533,8 @@ namespace Scry
                     case Deed.Fought: return "its ways found out";
                     case Deed.Felt: return "how it works found out";
                     case Deed.Sprang: return "its springing found out";
+                    case Deed.Raided: return "how it is rolled found out";
+                    case Deed.Guarded: return "its creatures' stars found out";
                     case Deed.Born: return "its pregnancy found out";
                     case Deed.Hatched: return "its hatching found out";
                     case Deed.Ridden: return "its riding found out";
@@ -600,6 +608,7 @@ namespace Scry
         private static string Seen(string proof)
         {
             if (EntryKeys.IsStarsFell(proof, out var fell)) return $"seen one with {Naming.Count(fell, "star", "stars")} fall";
+            if (EntryKeys.IsRaider(proof, out _)) return "seen one of these raiders up close";
             EntryKeys.IsDeed(proof, out var deed);
             switch (deed)
             {
@@ -608,6 +617,8 @@ namespace Scry
                 case Deed.Fought: return "fought one";
                 case Deed.Felt: return "had it on you";
                 case Deed.Sprang: return "seen one spring";
+                case Deed.Raided: return "seen one of its raiders up close";
+                case Deed.Guarded: return "seen one of its creatures up close there";
                 case Deed.Born: return "seen one born";
                 case Deed.Hatched: return "seen one hatch";
                 case Deed.Ridden: return "ridden one";

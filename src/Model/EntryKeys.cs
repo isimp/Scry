@@ -59,6 +59,12 @@ namespace Scry
 
         /// <summary>Saw a trap spring: how it hurts, staggers and rearms.</summary>
         Sprang,
+
+        /// <summary>Saw one of a raid's own raiders up close: how the raid is rolled.</summary>
+        Raided,
+
+        /// <summary>Saw up close, standing in a place, a creature its spawn points place: the stars they give.</summary>
+        Guarded,
     }
 
     /// <summary>How two things were seen go together in play, the second shown on the first's page under the strict rules (<see cref="CompendiumBook.SawWith"/>).</summary>
@@ -135,6 +141,19 @@ namespace Scry
         {
             stars = 0;
             return key != null && key.StartsWith(Fell, StringComparison.Ordinal) && Stored.TryCount(key.Substring(Fell.Length), out stars);
+        }
+
+        /// <summary>A raider of one kind seen up close, kept only as a proof on the raid (<see cref="Raider"/>); no entry goes by it.</summary>
+        private const string Raiders = "raider:";
+
+        /// <summary>The key a raid's raider of a kind seen up close is proved under: what the raid brings of that kind shows once one was.</summary>
+        public static string Raider(string creature) => Raiders + creature;
+
+        /// <summary>Whether a key is a raider's (<see cref="Raider"/>), and of what kind.</summary>
+        public static bool IsRaider(string key, out string creature)
+        {
+            creature = key != null && key.StartsWith(Raiders, StringComparison.Ordinal) ? key.Substring(Raiders.Length) : null;
+            return creature != null;
         }
 
         /// <summary>The note of what a reading of the explored map brought (<see cref="CompendiumBook.NoteNews"/>); no entry goes by it.</summary>

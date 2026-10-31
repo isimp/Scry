@@ -148,6 +148,7 @@ namespace Scry
         public static string FoundOutOf(string proof, string name)
         {
             if (EntryKeys.IsStarsFell(proof, out var fell)) return $"what {CompendiumWords.StarsChange(fell)} on {name}";
+            if (EntryKeys.IsRaider(proof, out _)) return $"what {name} brings";
             if (EntryKeys.IsDeed(proof, out var deed))
             {
                 switch (deed)
@@ -157,6 +158,8 @@ namespace Scry
                     case Deed.Fought: return $"how {name} senses and chases";
                     case Deed.Felt: return $"how {name} works on you";
                     case Deed.Sprang: return $"how {name} springs";
+                    case Deed.Raided: return $"how {name} is rolled";
+                    case Deed.Guarded: return $"what stars {name}'s creatures have";
                     case Deed.Born: return $"how {name} breeds";
                     case Deed.Hatched: return $"how {name} hatches";
                     case Deed.Ridden: return $"how {name} rides";

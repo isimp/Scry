@@ -207,6 +207,35 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatARaidBringsWaitsForItsRaidersSeenUpClose()
+        {
+            // Each line of what a raid brings, how many, how often and how strong, shows once one of
+            // those raiders was seen up close; how it is rolled once any of them was.
+            var troll = EntryKeys.Raider("Troll");
+            Assert.True(EntryKeys.IsRaider(troll, out var kind) && kind == "Troll");
+            Assert.False(EntryKeys.IsRaider(EntryKeys.Did(Deed.Raided), out _));
+            Assert.Equal("shows once you have seen one of these raiders up close", CompendiumWords.ShowsOnce(troll));
+            Assert.Equal("shows once you have seen one of its raiders up close", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Raided)));
+            var rows = CompendiumWords.StillToFindOut(new[] { troll, EntryKeys.Raider("Greydwarf"), EntryKeys.Did(Deed.Raided) }, new string[0], attacks: 0, spots: 0, new Tally[0]);
+            Assert.Equal(new[] { ("See its raiders up close", "shows how it is rolled"), ("See them up close", "2 kinds of raider: how many come, how often, how strong") }, rows.ToArray());
+            Assert.Equal("a raider's numbers found out", CompendiumWords.FoundOutNote(troll));
+            Assert.Equal("what Troll raid brings", JournalWords.FoundOutOf(troll, "Troll raid"));
+            Assert.True(StrictDeeds.Fits(Deed.Raided, Kind.Raid));
+        }
+
+        [Fact]
+        public void APlacesSpawnStarsWaitForItsCreaturesSeenUpClose()
+        {
+            Assert.Equal("shows once you have seen one of its creatures up close there", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Guarded)));
+            var rows = CompendiumWords.StillToFindOut(new[] { EntryKeys.Did(Deed.Guarded) }, new string[0], attacks: 0, spots: 0, new Tally[0]);
+            Assert.Equal(new[] { ("See its creatures up close", "shows the stars its spawn points give") }, rows.ToArray());
+            Assert.Equal("its creatures' stars found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.Guarded)));
+            Assert.Equal("what stars Crypt's creatures have", JournalWords.FoundOutOf(EntryKeys.Did(Deed.Guarded), "Crypt"));
+            Assert.True(StrictDeeds.Fits(Deed.Guarded, Kind.Location));
+            Assert.False(StrictDeeds.Fits(Deed.Guarded, Kind.Creature));
+        }
+
+        [Fact]
         public void ARunestoneTextNotYetReadIsLeftToFind()
         {
             // Each text a place's runestones give is learned by reading it, under either rules, and

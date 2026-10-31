@@ -667,6 +667,27 @@ namespace Scry
             if (raid.m_biome == Heightmap.Biome.None || raid.InEventBiome()) MetInBiome(key, at);
         }
 
+        /// <summary>One of the running raid's own raiders seen up close: what the raid brings of its kind found out, and how the raid is rolled.</summary>
+        public static void RaiderSeen(string creature)
+        {
+            if (Into == null || RaidNow == null || string.IsNullOrEmpty(creature)) return;
+            Into.FoundOut(RaidNow, EntryKeys.Raider(creature));
+            Into.FoundOut(RaidNow, EntryKeys.Did(Deed.Raided));
+        }
+
+        /// <summary>A creature seen up close standing in a place whose spawn points place its kind: the stars they give found out on the place.</summary>
+        public static void SeenInPlace(string creature, Vector3 at)
+        {
+            if (Into == null || string.IsNullOrEmpty(creature)) return;
+            var place = PlaceKeyAt(at);
+            if (place == null || Into.Proved(place, GuardedProof)) return;
+            if (WorldCatalog.Current?.Find(place)?.Source is PlaceSource source && source.Contents != null && source.Contents.SpawnLevels.Any(l => l.Creature == creature))
+                Into.FoundOut(place, EntryKeys.Did(Deed.Guarded));
+        }
+
+        /// <summary>The proof a place's spawn stars wait for, asked after each second for each creature up close, so made once.</summary>
+        private static readonly string GuardedProof = EntryKeys.Did(Deed.Guarded);
+
         /// <summary>The character met a thing where it stands: with the biome there, and the place it is in.</summary>
         public static void MetIn(string key, Vector3 at)
         {

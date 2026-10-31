@@ -134,6 +134,8 @@ namespace Scry
         private void PlaceHolds(Entry entry, PlaceContents contents)
         {
             Add("Stars at its spawn points", SpawnWords.LocationLevels(contents.EnemyMinLevel, contents.EnemyMaxLevel, contents.EnemyLevelUpChance, contents.LevelOverrideExceptions));
+            // The stars its spawn points give, which the game never shows, wait for one of the creatures they place seen up close there.
+            if (contents.SpawnLevels.Count > 0) Proofs["Stars at its spawn points"] = EntryKeys.Did(Deed.Guarded);
             if (contents.NoBuild && contents.NoBuildRadius > 0f) Add("Building", LocationWords.NoBuild(contents.NoBuildRadius));
             Add("Music", LocationWords.Music(contents.Music), contents.Music.Count > 0 ? EntryKeys.PlayMusic : null);
 

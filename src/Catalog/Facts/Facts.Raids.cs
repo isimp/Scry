@@ -59,6 +59,9 @@ namespace Scry
             var system = RandEventSystem.instance;
             if (raid.m_random && system != null) Add("Rolled", RaidWords.Roll(system.m_eventIntervalMin, system.m_eventChance));
             Add("Also rolled", RaidWords.OwnRoll(raid.m_standaloneInterval, raid.m_standaloneChance));
+            // How likely it is rolled, a chance the game never shows, waits for one of its raiders seen up close.
+            if (raid.m_random && system != null) Proofs["Rolled"] = EntryKeys.Did(Deed.Raided);
+            Proofs["Also rolled"] = EntryKeys.Did(Deed.Raided);
             if (!raid.m_random && raid.m_standaloneInterval <= 0f) Add("Rolled", RaidWords.NeverRolled);
             Add("Lasts", RaidWords.Lasts(raid.m_duration, raid.m_pauseIfNoPlayerInArea, raid.m_eventRange));
             var brought = (raid.m_spawn ?? new List<SpawnSystem.SpawnData>()).Where(d => d != null && d.m_enabled && d.m_prefab != null).ToList();
@@ -78,6 +81,8 @@ namespace Scry
             {
                 var name = AnyName(data.m_prefab, data.m_prefab.name);
                 if (table.Lines.Any(l => l.Cells[0] == name)) continue;
+                // How many come, how often and how strong, which the game never shows, waits for one of these raiders seen up close.
+                table.LineProofs[table.Lines.Count] = EntryKeys.Raider(data.m_prefab.name);
                 table.Lines.Add((RaidWords.BringLine(name, data.m_maxSpawned, data.m_spawnInterval, data.m_spawnChance, data.m_minLevel, data.m_maxLevel, data.m_groupSizeMin, data.m_groupSizeMax,
                     data.m_spawnAtNight, data.m_spawnAtDay, data.m_huntPlayer), data.m_prefab.name));
             }

@@ -130,6 +130,7 @@ namespace Scry
             NothingToSeeTells(p);
             EffectOnYouTells(p);
             BuiltThingsTell(p, Fresh);
+            RaidsAndPlacesTell(p, Fresh);
 
             CompendiumKeeper.RecordInto(null);
             p.Check(real.Version == version && real.PairsVersion == pairs, "the character's book was left alone");
@@ -170,6 +171,36 @@ namespace Scry
                 if (fish == null || !records.Picked.Contains(fish.m_name) || !told.Proved(name, EntryKeys.Did(Deed.Caught))) odd.Add(name);
             }
             p.Check(odd.Count == 0, "what its records tell of picks, takes and catches names the right things, each paired or shown", string.Join(", ", odd.Take(10)));
+        }
+
+        /// <summary>What a raid brings waits line by line for its raiders seen up close, how it is rolled for any of them; a place's spawn stars wait for one of its creatures seen up close there, as a loaded one standing in its place shows.</summary>
+        private static void RaidsAndPlacesTell(Probe p, System.Func<CompendiumBook> fresh)
+        {
+            var raid = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Raid && Facts.For(e).Rows.Any(r => r.Title == RaidWords.BringsTitle));
+            if (raid == null) p.Note("no raid brings anything: its lines untried");
+            else
+            {
+                var brings = Facts.For(raid).Rows.First(r => r.Title == RaidWords.BringsTitle);
+                p.Check(brings.Lines.Count > 0 && Enumerable.Range(0, brings.Lines.Count).All(i => brings.LineProofs.TryGetValue(i, out var proof) && EntryKeys.IsRaider(proof, out var kind) && kind == brings.Lines[i].Link),
+                    $"each line of what {raid.Name} brings waits for one of those raiders seen up close");
+            }
+            var place = X.Catalog.FirstOrDefault(e => e.Source is PlaceSource source && source.Contents?.SpawnLevels.Count > 0);
+            if (place == null) p.Note("no place with spawn points: its stars untried");
+            else p.Check(Facts.For(place).Proofs.TryGetValue("Stars at its spawn points", out var stars) && stars == EntryKeys.Did(Deed.Guarded), $"{place.Name}'s spawn stars wait for one of its creatures seen up close there");
+            // A creature loaded standing in a place whose spawn points place its kind.
+            foreach (var creature in Object.FindObjectsByType<Character>(FindObjectsSortMode.None))
+            {
+                if (creature == null || creature.IsPlayer()) continue;
+                var location = Location.GetLocation(creature.transform.position);
+                var entry = location != null ? X.Find(EntryKeys.For(Kind.Location, Utils.GetPrefabName(location.gameObject))) : null;
+                var key = Utils.GetPrefabName(creature.gameObject);
+                if (!(entry?.Source is PlaceSource source) || source.Contents == null || !source.Contents.SpawnLevels.Any(l => l.Creature == key)) continue;
+                var book = fresh();
+                CompendiumKeeper.SeenInPlace(key, creature.transform.position);
+                p.Check(book.Proved(entry.Key, EntryKeys.Did(Deed.Guarded)), $"{key} up close in {entry.Name} shows the stars its spawn points give");
+                return;
+            }
+            p.Note("no creature loaded stands in a place whose spawn points place it");
         }
 
         /// <summary>A trap's numbers wait for one seen springing; a hit of the character's on a piece near by tells how its damage landed, the piece's grid following its own hits.</summary>

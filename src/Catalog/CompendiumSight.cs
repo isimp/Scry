@@ -127,7 +127,14 @@ namespace Scry
                     // A creature the running raid brought, as the game marks the raid's own on every
                     // game (MonsterAI.IsEventCreature), was seen in the raid; one of its kind the
                     // world spawned meanwhile was not.
-                    if (CompendiumKeeper.RaidBrings(key) && creature.GetBaseAI() is MonsterAI raider && raider.IsEventCreature()) CompendiumKeeper.Saw(CompendiumKeeper.RaidNow, key);
+                    if (CompendiumKeeper.RaidBrings(key) && creature.GetBaseAI() is MonsterAI raider && raider.IsEventCreature())
+                    {
+                        CompendiumKeeper.Saw(CompendiumKeeper.RaidNow, key);
+                        // One of its raiders up close shows what the raid brings of its kind, and how the raid is rolled.
+                        if (upClose) CompendiumKeeper.RaiderSeen(key);
+                    }
+                    // Up close in a place, one its spawn points place shows the stars they give.
+                    if (upClose) CompendiumKeeper.SeenInPlace(key, creature.transform.position);
                     // Near enough for the game to name it and mark its stars, it is seen up close: its stars and what it carries are kept.
                     if (upClose && catchUp.Lists(key)) CompendiumKeeper.Sighted(key, creature.GetLevel() - 1, Carried(creature));
                 }
