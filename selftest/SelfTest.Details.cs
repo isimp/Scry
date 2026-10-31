@@ -47,7 +47,7 @@ namespace Scry
             foreach (var (kind, name, fact, deed) in new[]
             {
                 (Kind.Creature, "Boar", "Tames in", Deed.Tamed), (Kind.Creature, "Boar", "Pregnant for", Deed.Born),
-                (Kind.Creature, "Boar_piggy", "Grows up in", Deed.GrewUp), (Kind.Resource, "RaspberryBush", "Regrows in", Deed.GrewBack), (Kind.Resource, "RaspberryBush", "Gives", Deed.GrewBack),
+                (Kind.Creature, "Boar_piggy", "Grows up in", Deed.GrewUp), (Kind.Resource, "RaspberryBush", "Regrows in", Deed.GrewBack), (Kind.Resource, "RaspberryBush", "Gives", Deed.GrewBack), (Kind.Creature, "Hen", "Fed for", Deed.Fed),
             })
             {
                 var entry = Pick(kind, name);

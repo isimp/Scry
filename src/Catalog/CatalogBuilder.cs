@@ -476,9 +476,14 @@ namespace Scry
         {
             switch (component)
             {
-                case Character _: deeds.Add(Deed.Killed); break;
+                // A summon is killed only by slaughtering one's own, so its health waits for nothing.
+                case Character creature:
+                    if (!BornTame.FightsForPlayers(creature.gameObject)) deeds.Add(Deed.Killed);
+                    break;
+                // One born tame is never tamed: how long its meal lasts waits for one seen eating, where it eats.
                 case Tameable tame:
-                    deeds.Add(Deed.Tamed);
+                    if (!tame.m_startsTamed) deeds.Add(Deed.Tamed);
+                    else if (BornTame.Eats(tame.gameObject)) deeds.Add(Deed.Fed);
                     if (tame.m_saddle != null) deeds.Add(Deed.Ridden);
                     break;
                 case Procreation _: deeds.Add(Deed.Born); break;

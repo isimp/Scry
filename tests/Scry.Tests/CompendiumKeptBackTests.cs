@@ -167,6 +167,20 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void HowLongAMealLastsWaitsForOneSeenEating()
+        {
+            // A creature born tame, as a hen or a summon, is never tamed: how long its meal lasts
+            // shows once one was seen eating.
+            Assert.Equal("shows once you have seen one eat", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Fed)));
+            var rows = CompendiumWords.StillToFindOut(new[] { EntryKeys.Did(Deed.Fed) }, new string[0], attacks: 0, spots: 0, new Tally[0]);
+            Assert.Equal(new[] { ("See one eat", "shows how long a meal lasts") }, rows.ToArray());
+            Assert.Equal("its meals found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.Fed)));
+            Assert.Equal("how Hen eats", JournalWords.FoundOutOf(EntryKeys.Did(Deed.Fed), "Hen"));
+            Assert.True(StrictDeeds.Fits(Deed.Fed, Kind.Creature));
+            Assert.False(StrictDeeds.Fits(Deed.Fed, Kind.Item));
+        }
+
+        [Fact]
         public void ACropsTimeAndAStationsWorkingWaitToBeSeen()
         {
             // A crop growing in sight shows how long it takes; a station handing out what it made, how long each takes and what it burns.

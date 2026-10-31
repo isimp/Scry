@@ -46,7 +46,7 @@ namespace Scry
         private IEnumerable<bool> Creature(GameObject prefab, Character character)
         {
             Add("Health", Numbers.Amount(character.m_health));
-            Proofs["Health"] = EntryKeys.Did(Deed.Killed);
+            if (!BornTame.FightsForPlayers(prefab)) Proofs["Health"] = EntryKeys.Did(Deed.Killed);
             Add("Faction", Groups.FactionName(character.m_faction.ToString()));
             Boss = character.m_boss;
             if (character.m_boss) Add("Boss", "yes");
@@ -175,7 +175,7 @@ namespace Scry
             // without stars what it hits and drops is the creature itself, nothing to find out.
             for (var line = 0; line < stars.Lines.Count; line++)
             {
-                if (line == 0) stars.CellProofs[(line, 1)] = EntryKeys.Did(Deed.Killed);
+                if (line == 0 && !BornTame.FightsForPlayers(prefab)) stars.CellProofs[(line, 1)] = EntryKeys.Did(Deed.Killed);
                 for (var star = 1; star <= _stars; star++) stars.CellProofs[(line, star + 1)] = EntryKeys.StarsFell(star);
             }
             // A drop that only gets likelier, such as every trophy, has a line of its chances,
@@ -364,7 +364,8 @@ namespace Scry
             var tame = prefab.GetComponent<Tameable>();
             if (tame != null)
             {
-                Add("Tames in", Numbers.Duration(tame.m_tamingTime));
+                // One born tame is never tamed, so it has no taming time to tell.
+                if (!tame.m_startsTamed) Add("Tames in", Numbers.Duration(tame.m_tamingTime));
                 // A summon's hits train its summoner's skill, by its share of a rise (Character.RaiseSkill).
                 if (tame.m_levelUpOwnerSkill != Skills.SkillType.None && tame.m_levelUpFactor > 0f)
                 {
@@ -372,7 +373,8 @@ namespace Scry
                     Add("Trains", SkillWords.TrainsOwner(SkillName(tame.m_levelUpOwnerSkill), tame.m_levelUpFactor), EntryOf(page) != null ? page : null);
                 }
                 Add("Fed for", Numbers.Duration(tame.m_fedDuration));
-                Proofs["Tames in"] = Proofs["Fed for"] = EntryKeys.Did(Deed.Tamed);
+                if (!tame.m_startsTamed) Proofs["Tames in"] = Proofs["Fed for"] = EntryKeys.Did(Deed.Tamed);
+                else if (BornTame.Eats(prefab)) Proofs["Fed for"] = EntryKeys.Did(Deed.Fed);
                 // Riding hinges on the saddle, breeding on the young it brings: neither is told
                 // before the character met it.
                 Part("riding", () => Riding(tame, character), tame.m_saddleItem != null ? tame.m_saddleItem.gameObject.name : null);

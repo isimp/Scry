@@ -479,6 +479,7 @@ namespace Scry
             }
             Pending(Deed.Killed, pending.Contains(Deed.Ridden) ? "Kill or ride one" : "Kill one", "shows its health");
             Pending(Deed.Tamed, "Tame one", "shows how long taming and a meal take");
+            Pending(Deed.Fed, "See one eat", "shows how long a meal lasts");
             Pending(Deed.Born, "See one born", "shows how long it is pregnant");
             Pending(Deed.GrewUp, "See one grow up", "shows how long that takes");
             Pending(Deed.Hatched, "See one hatch", "shows how long that takes");
@@ -518,6 +519,7 @@ namespace Scry
                 switch (deed)
                 {
                     case Deed.Tamed: return "its taming found out";
+                    case Deed.Fed: return "its meals found out";
                     case Deed.Born: return "its pregnancy found out";
                     case Deed.Hatched: return "its hatching found out";
                     case Deed.Ridden: return "its riding found out";
@@ -595,6 +597,7 @@ namespace Scry
             switch (deed)
             {
                 case Deed.Tamed: return "tamed one";
+                case Deed.Fed: return "seen one eat";
                 case Deed.Born: return "seen one born";
                 case Deed.Hatched: return "seen one hatch";
                 case Deed.Ridden: return "ridden one";

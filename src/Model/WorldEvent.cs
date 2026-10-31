@@ -170,6 +170,7 @@ namespace Scry
                 case Deed.Killed: return kind == Kind.Creature;
                 case Deed.Broke: return kind == Kind.Resource;
                 case Deed.Caught: return kind == Kind.Item;
+                case Deed.Fed: return kind == Kind.Creature;
                 default: return true;
             }
         }
@@ -299,6 +300,8 @@ namespace Scry
                     return;
                 case Happened.Ate:
                     book.SawWith(told.Thing, told.With, Tie.Eats);
+                    // Seen eating, how long its meal lasts shows, as for one born tame no taming does.
+                    book.FoundOut(told.Thing, EntryKeys.Did(Deed.Fed));
                     return;
                 default:
                     book.FoundOut(told.Thing, EntryKeys.Did(DeedOf(told.What)));

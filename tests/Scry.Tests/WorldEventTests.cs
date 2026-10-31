@@ -206,6 +206,8 @@ namespace Scry.Tests
         public void ACreatureSeenEatingIsPairedWithWhatItAte()
         {
             Assert.True(Told(Event(Happened.Ate, "Boar", 10f, with: "Raspberry")).Witnessed("Boar", "Raspberry"));
+            // Seen eating, how long its meal lasts shows.
+            Assert.True(Told(Event(Happened.Ate, "Hen", 10f, with: "Barley")).Proved("Hen", EntryKeys.Did(Deed.Fed)));
             Assert.False(Told(Event(Happened.Ate, "Boar", 40f, with: "Raspberry")).Witnessed("Boar", "Raspberry"));
         }
 
