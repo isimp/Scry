@@ -75,6 +75,7 @@ namespace Scry
             public float Reach;
             public float Height;
             public bool Moves;
+            public bool Regrows;
             public CompendiumCatchUp ListedBy;
             public bool Listed;
         }
@@ -267,6 +268,7 @@ namespace Scry
 
         // What a round looks with, set before each: the one delegate made once, so no frame makes one.
         private static readonly Func<ZNetView, Looked> LookAtThing = LookAt;
+        private static readonly string GrewBack = EntryKeys.Did(Deed.GrewBack);
         private static CompendiumCatchUp _catchUp;
         private static CompendiumBook _book;
         private static bool _letGo;
@@ -317,7 +319,10 @@ namespace Scry
                 var beyond = reach + Viewpoint.Step;
                 return Unchanged(shape, away > beyond * beyond);
             }
-            if (_letGo && _book.Level(shape.Key) >= KnownLevel.Seen && CompendiumKeeper.PairedIn(shape.Key, at)) return Looked.LetGo;
+            // A pickable whose growing back is not yet found out is kept, as the usual way to meet
+            // it is coming back to one bearing again (DeedWatch.SeenBearingAgain).
+            var regrowth = shape.Regrows && !_book.Proved(shape.Key, GrewBack);
+            if (_letGo && !regrowth && _book.Level(shape.Key) >= KnownLevel.Seen && CompendiumKeeper.PairedIn(shape.Key, at)) return Looked.LetGo;
             var toward = middle - _eye;
             var angle = Vector3.Angle(_forward, toward);
             if (angle > HalfView)
@@ -329,9 +334,10 @@ namespace Scry
             if (!Clear(_eye, middle, thing.transform)) return Unchanged(shape, true);
             _catchUp.Met(shape.Key, KnownLevel.Seen, _book);
             CompendiumKeeper.MetIn(shape.Key, at);
+            if (regrowth) DeedWatch.SeenBearingAgain(thing.GetComponent<Pickable>());
             // It stays where it is: seen and paired once, it is let go, so a farm of crops or a
             // forest in view costs nothing the next second.
-            return _letGo ? Looked.LetGo : Looked.Kept;
+            return _letGo && !regrowth ? Looked.LetGo : Looked.Kept;
         }
 
         /// <summary>
@@ -348,7 +354,8 @@ namespace Scry
             if (Shapes.TryGetValue(prefab, out var shape)) return shape;
             var source = GamePrefabs.Hashed(prefab);
             if (source == null) return null;
-            shape = new Shape { Key = source.name, Creature = thing.GetComponent<Character>() != null, Moves = Moves(thing) };
+            var pickable = thing.GetComponent<Pickable>();
+            shape = new Shape { Key = source.name, Creature = thing.GetComponent<Character>() != null, Moves = Moves(thing), Regrows = pickable != null && pickable.m_respawnTimeMinutes > 0f };
             if (Measure(thing.transform, out var bounds))
             {
                 var size = bounds.size;

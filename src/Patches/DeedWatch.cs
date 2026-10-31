@@ -159,6 +159,18 @@ namespace Scry
             if (!string.IsNullOrEmpty(item)) CompendiumKeeper.Saw(key, item, Tie.Gives);
         }
 
+        /// <summary>
+        /// A pickable that grows back, seen bearing again after a pick (<see cref="Regrowth.SeenBearingAgain"/>):
+        /// how long it takes to grow back found out, whoever picked it and whenever it grew, as one
+        /// grows back while its ground loads, mostly before the player comes near.
+        /// </summary>
+        public static void SeenBearingAgain(Pickable pickable)
+        {
+            var zdo = pickable != null ? pickable.GetComponent<ZNetView>().OrNull()?.GetZDO() : null;
+            if (zdo == null || !Regrowth.SeenBearingAgain(pickable.GetPicked(), zdo.GetLong(ZDOVars.s_pickedTime))) return;
+            CompendiumKeeper.FoundOut(Utils.GetPrefabName(pickable.gameObject), EntryKeys.Did(Deed.GrewBack));
+        }
+
         /// <summary>A picked pickable set back to not picked: grown back.</summary>
         public static void SetPicked(Pickable pickable, bool wasPicked, bool picked)
         {

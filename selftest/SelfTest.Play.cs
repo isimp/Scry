@@ -60,6 +60,43 @@ namespace Scry
             TreasurePickTells(p, book, player);
             BreakingOpenTells(p, book, player);
             CookingSeenTells(p, book, player);
+            BearingAgainTells(p, book);
+        }
+
+        /// <summary>A loaded pickable picked before and bearing again, looked at: its growing back found out; one never picked shows nothing. Fed into a book of its own, as the regrowth seen earlier in the run is in the run's.</summary>
+        private static void BearingAgainTells(Probe p, CompendiumBook runs)
+        {
+            var book = new CompendiumBook();
+            CompendiumKeeper.RecordInto(book);
+            try
+            {
+                BearingAgainInto(p, book);
+            }
+            finally
+            {
+                CompendiumKeeper.RecordInto(runs);
+            }
+        }
+
+        /// <summary>The bearing-again row's checks, into the book the hooks feed now.</summary>
+        private static void BearingAgainInto(Probe p, CompendiumBook book)
+        {
+            var bushes = UnityEngine.Object.FindObjectsByType<Pickable>(FindObjectsSortMode.None).Where(b => b != null && b.m_respawnTimeMinutes > 0f && !b.GetPicked()).ToList();
+            long PickedAt(Pickable b) => b.GetComponent<ZNetView>().OrNull()?.GetZDO()?.GetLong(ZDOVars.s_pickedTime) ?? 0L;
+            var again = bushes.FirstOrDefault(b => PickedAt(b) > 1);
+            var never = bushes.FirstOrDefault(b => PickedAt(b) == 0 && (again == null || Utils.GetPrefabName(b.gameObject) != Utils.GetPrefabName(again.gameObject)));
+            if (never != null)
+            {
+                DeedWatch.SeenBearingAgain(never);
+                p.Check(!book.Proved(Utils.GetPrefabName(never.gameObject), EntryKeys.Did(Deed.GrewBack)), $"{Utils.GetPrefabName(never.gameObject)}, never picked, shows nothing of its growing back");
+            }
+            if (again == null)
+            {
+                p.Note("no pickable picked before and bearing again is loaded");
+                return;
+            }
+            DeedWatch.SeenBearingAgain(again);
+            p.Check(book.Proved(Utils.GetPrefabName(again.gameObject), EntryKeys.Did(Deed.GrewBack)), $"{Utils.GetPrefabName(again.gameObject)}, picked before and bearing again, shows how long it takes to grow back");
         }
 
         /// <summary>Food seen turning done, then burnt, on the nearest loaded cooking station: how long cooking takes shown, the station seen giving each.</summary>
