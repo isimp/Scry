@@ -23,6 +23,36 @@ namespace Scry
         /// </summary>
         private static IEnumerator FactsSteppedAsWhole(Probe p)
         {
+            yield return FactsBuildBegunAfresh(p);
+            yield return FactsSteppedAsWholeAll(p);
+        }
+
+        /// <summary>
+        /// A page's facts worked out over frames begin afresh where what they tell changed since
+        /// their first step, and where the entry's facts were forgotten meanwhile, rather than
+        /// finish with their first parts told as they were.
+        /// </summary>
+        private static IEnumerator FactsBuildBegunAfresh(Probe p)
+        {
+            var creature = Pick(Kind.Creature, "Troll", "Greydwarf");
+            if (!p.Check(creature != null, "a creature to work out the facts of")) yield break;
+            Facts.Forget(creature);
+            var before = Facts.BuiltSinceStartForTest;
+            p.Check(Facts.Building(creature, () => false) == null, $"{creature.Name}'s facts are not done after one step");
+            Facts.AgeBuildForTest();
+            p.Check(Facts.Building(creature, () => true) != null && Facts.BuiltSinceStartForTest == before + 2,
+                "a build begun before what it tells changed begins afresh", $"{Numbers.Count(Facts.BuiltSinceStartForTest - before)} begun");
+            Facts.Forget(creature);
+            Facts.Building(creature, () => false);
+            Learned.About(creature);
+            p.Check(Facts.Building(creature, () => true) != null && Facts.BuiltSinceStartForTest == before + 4,
+                "a build of facts forgotten meanwhile begins afresh", $"{Numbers.Count(Facts.BuiltSinceStartForTest - before)} begun");
+            yield break;
+        }
+
+        /// <summary>Every sampled entry's facts worked out a step a frame side by side against the same worked out at once.</summary>
+        private static IEnumerator FactsSteppedAsWholeAll(Probe p)
+        {
             var sample = X.Entries.All.GroupBy(e => e.Kind).SelectMany(g => g.Take(StepsPerKind)).ToList();
             var running = new List<(Entry Entry, Func<Facts> Step, int Steps)>();
             var next = 0;

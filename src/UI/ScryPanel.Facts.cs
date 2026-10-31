@@ -15,13 +15,26 @@ namespace Scry
             if (!Staging.Lay()) return WaitingFacts(width, y);
             var factsUnit = Staging.LastUnit;
             var built = Timing.Start();
-            var facts = Staging.Active ? Facts.Building(entry, Staging.HasRoom) : Facts.For(entry);
+            Facts facts;
+            var told = false;
+            try
+            {
+                facts = Staging.Active ? Facts.Building(entry, Staging.HasRoom) : Facts.For(entry);
+                told = true;
+            }
+            finally
+            {
+                // A step that failed would leave its part counted as laid and the rest laid in its
+                // place: the page is drawn whole from here, as one not laid over frames.
+                if (!told) Staging.Stop();
+            }
             Timing.Add("facts built", built);
             if (facts == null)
             {
                 if (Staging.NotYet()) return WaitingFacts(width, y);
-                // Laid before and gone stale since: worked out whole.
-                facts = Facts.For(entry);
+                // Laid before and gone stale since: shown as they were while they are worked out
+                // again over the next frames, or worked out whole where none were kept.
+                facts = Facts.KeptBefore(entry) ?? Facts.For(entry);
             }
             var places = PlacesShown(entry);
             if (facts.IsEmpty && !places && entry.Biomes.Length == 0 && Users(explorer, entry).Count == 0) return y;

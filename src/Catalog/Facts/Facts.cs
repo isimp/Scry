@@ -410,6 +410,12 @@ namespace Scry
             Cache.TryGet(entry, out known) && (known._toldWith == Freshness || (!known._skilled && !known._keyed && entry.Kind != Kind.Creature && entry.Kind != Kind.Item && entry.Kind != Kind.Mod))
             && (entry.Kind != Kind.Creature || known._starsOf == CreatureStars.Stamp);
 
+        /// <summary>Whether facts were told with everything they may tell as it is now (a build under way has not yet said which it tells).</summary>
+        private static bool Fresh(Facts facts, Entry entry) => facts._toldWith == Freshness && (entry.Kind != Kind.Creature || facts._starsOf == CreatureStars.Stamp);
+
+        /// <summary>The facts last kept of an entry, gone stale or not: what a page laid before shows while they are worked out again.</summary>
+        public static Facts KeptBefore(Entry entry) => entry != null && Cache.TryGet(entry, out var known) ? known : null;
+
         public static Facts For(Entry entry)
         {
             if (entry == null) return new Facts();
@@ -422,6 +428,7 @@ namespace Scry
 
             var facts = Built(entry);
             Cache.Set(entry, facts);
+            if (_building != null && ReferenceEquals(_building.Entry, entry)) _building = null;
             return facts;
         }
 
@@ -495,6 +502,13 @@ namespace Scry
         /// <summary>The build under way for a page laid out over frames; one at a time.</summary>
         private static Build _building;
 
+        /// <summary>Makes the build under way one begun before what it tells changed, as a kill seen or gear put on would, without either.</summary>
+        [ForTest]
+        internal static void AgeBuildForTest()
+        {
+            if (_building != null) _building.Facts._toldWith = default;
+        }
+
         /// <summary>
         /// An entry's facts worked out a step at a time for a page laid out over frames: kept
         /// ones at once; else steps run for as long as <paramref name="more"/> says, one at
@@ -505,7 +519,9 @@ namespace Scry
         {
             if (entry == null) return new Facts();
             if (Kept(entry, out var known)) return known;
-            if (_building == null || !ReferenceEquals(_building.Entry, entry)) _building = new Build(entry);
+            // A build begun before what it tells changed (a drop seen, a skill raised) would keep
+            // its earlier parts as they were told then: it begins afresh.
+            if (_building == null || !ReferenceEquals(_building.Entry, entry) || !Fresh(_building.Facts, entry)) _building = new Build(entry);
             var build = _building;
             var steady = false;
             try
@@ -731,7 +747,9 @@ namespace Scry
         /// <summary>Forgets what was told of one entry, which knows more now (a location, once read).</summary>
         public static void Forget(Entry entry)
         {
-            if (entry != null) Cache.Remove(entry);
+            if (entry == null) return;
+            Cache.Remove(entry);
+            if (_building != null && ReferenceEquals(_building.Entry, entry)) _building = null;
         }
 
         private IEnumerable<bool> Prefab(GameObject prefab)
