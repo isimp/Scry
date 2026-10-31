@@ -38,6 +38,27 @@ namespace Scry
         [ForTest]
         public static int TailJointsBent => _tailTaken ? TailJoints.Count : 0;
 
+        /// <summary>For the self-test: lets go of the tail, left as the animator poses it until what is shown is shown again, to set beside the bent one.</summary>
+        [ForTest]
+        public static void LetTailGoForTest() => ForgetTail();
+
+        /// <summary>For the self-test: how far the tail's joints stand from their parents at the most, as a share of how far they hung when taken; 0 with no tail.</summary>
+        [ForTest]
+        public static float TailStretch
+        {
+            get
+            {
+                if (!_tailTaken) return 0f;
+                var most = 0f;
+                foreach (var joint in TailJoints)
+                {
+                    if (joint.Bone == null || joint.Length <= 0f) continue;
+                    most = Mathf.Max(most, Vector3.Distance(joint.Bone.parent.position, joint.Bone.position) / joint.Length);
+                }
+                return most;
+            }
+        }
+
         private static void ForgetTail()
         {
             TailJoints.Clear();

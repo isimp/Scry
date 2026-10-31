@@ -17,8 +17,9 @@ namespace Scry
         /// it is in water so it swims rather than lies stranded, its tail bent as the game bends it;
         /// a Leviathan rides the surface over a sea as deep as the world places it, its floor clear
         /// under its body; a workbench stands in the shallows; and the camera looks at each from over
-        /// the surface, kept over it as the game keeps its own when turned to look from below. Each
-        /// is pictured, and the backdrop, spin and ground put back.
+        /// the surface, kept over it as the game keeps its own when turned to look from below, and
+        /// still looking at what it frames from there. Each is pictured, and the backdrop, spin and
+        /// ground put back.
         /// </summary>
         private static IEnumerator SeaHolds(Probe p)
         {
@@ -64,6 +65,7 @@ namespace Scry
                 var over = Stage.CameraHeight - surface;
                 p.Check(over >= StageCamera.OverWaterMetres * 0.99f * Stage.Scale, "turned to look from below, the camera stays over the surface as the game keeps its own",
                     $"{Numbers.Fixed(over, 2)} m over it");
+                p.Check(Stage.CameraOffAim < 1f, "and still looks at what it frames, rather than up at the sky", $"{Numbers.Fixed(Stage.CameraOffAim, 1)} degrees off it");
                 yield return Picture(p, "a Serpent in the sea looked at from below");
                 Stage.TurnTo(Stage.Yaw, pitch);
                 yield return null;
@@ -154,6 +156,74 @@ namespace Scry
             p.Check(flying.Count > 0 && low == 0 && untold == 0, $"{raid.Name}'s flyers come flying as high as the game keeps them, told they fly",
                 $"{Numbers.Count(flying.Count)} flyers, {Numbers.Count(low)} off their height, {Numbers.Count(untold)} not told");
             yield return Picture(p, raid.Name + " with its flyers");
+        }
+
+        /// <summary>
+        /// A Serpent's bite and roar in the sea: the bite pictured a quarter, half and three
+        /// quarters through, held there a moment so its tail settles, the roar half through, and
+        /// last the bite half through with its tail left as the animator poses it, to set beside
+        /// the bent one. Played through once, how far its tail's joints stand from their parents at
+        /// the most is noted, against how far they hung when it was shown.
+        /// </summary>
+        private static IEnumerator SerpentAttacks(Probe p)
+        {
+            var serpent = X.Catalog.FirstOrDefault(e => e.Name == "Serpent" && e.Source is GameObject);
+            if (serpent == null) p.Skip("there is no Serpent to show");
+            _seaBefore = (Stage.BackdropIndex, Stage.Spin, Stage.GroundChoice);
+            Stage.Spin = false;
+            Stage.GroundChoice = "Auto";
+            Stage.BackdropIndex = 5;
+            Select(serpent);
+            yield return Until(() => CopyOf(serpent) != null && Stage.WaterShown && Previews.Clips().Count > 0, 20);
+            yield return new Wait(1f);
+            var clips = Previews.Clips();
+            p.Note("its clips: " + string.Join(", ", clips.Select(c => $"{c.name} {Numbers.Fixed(c.length, 2)} s")));
+            var bite = clips.FirstOrDefault(c => c.name == "Bite");
+            var roar = clips.FirstOrDefault(c => c.name == "Rawr");
+            if (!p.Check(bite != null, "its bite is among its clips")) yield break;
+
+            // Played through once, the tail's stretch watched every frame.
+            var still = Stage.TailStretch;
+            Previews.PlayClip(bite);
+            var most = 0f;
+            var until = Time.unscaledTime + bite.length + 0.5f;
+            while (Time.unscaledTime < until)
+            {
+                most = Mathf.Max(most, Stage.TailStretch);
+                yield return null;
+            }
+            p.Note($"swimming, its tail's joints stand at most {Numbers.Fixed(still, 2)} times as far from their parents as when shown; through its bite {Numbers.Fixed(most, 2)} times");
+
+            foreach (var share in new[] { 0.25f, 0.5f, 0.75f }) yield return HeldAt(p, bite, share, "bent");
+            if (roar != null) yield return HeldAt(p, roar, 0.5f, "bent");
+            // Last, as the tail stays let go of until the Serpent is shown again.
+            Stage.LetTailGoForTest();
+            yield return HeldAt(p, bite, 0.5f, "as the animator poses it");
+            Previews.StopClip();
+            SerpentAttacksAsItWas();
+        }
+
+        /// <summary>A clip played, paused at a share of its length and held a moment, then pictured with its tail's stretch noted.</summary>
+        private static IEnumerator HeldAt(Probe p, AnimationClip clip, float share, string tail)
+        {
+            Previews.PlayClip(clip);
+            yield return Until(() => Previews.PlayingClip() == clip, 3);
+            Previews.PauseClip(true);
+            Previews.SeekClip(clip.length * share);
+            yield return new Wait(0.8f);
+            var name = $"a Serpent's {clip.name} {Numbers.Count(Mathf.RoundToInt(share * 100f))}% through, its tail {tail}";
+            p.Note($"{name}: its tail's joints at most {Numbers.Fixed(Stage.TailStretch, 2)} times as far from their parents as when shown");
+            yield return Picture(p, name);
+            Previews.PauseClip(false);
+            Previews.StopClip();
+            yield return null;
+        }
+
+        /// <summary>The clip stopped, and the backdrop, spin and ground put back.</summary>
+        private static void SerpentAttacksAsItWas()
+        {
+            Previews.StopClip();
+            SeaAsItWas();
         }
 
         private static void CameraOverSurface(Probe p, float surface)

@@ -310,11 +310,20 @@ namespace Scry
         /// <summary>The ground's height under the model this frame, as the framing found it, which a tail is kept over too.</summary>
         private static float _groundY = float.NaN;
 
-        /// <summary>The camera turned and set its distance back from what it looks at, kept over the sea's surface as the game keeps its own.</summary>
+        /// <summary>
+        /// The camera turned and set its distance back from what it looks at, kept over the sea's
+        /// surface as the game keeps its own; lifted so, it is turned back onto what it looks at,
+        /// which a camera lifted but still turned up would leave out of the picture.
+        /// </summary>
         private static void PlaceCamera(Quaternion rotation, float distance)
         {
             var at = _lookAt - rotation * Vector3.forward * distance;
-            at.y = StageCamera.OverWater(at.y, _seaLevels.Surface, _scale);
+            var kept = StageCamera.OverWater(at.y, _seaLevels.Surface, _scale);
+            if (kept > at.y)
+            {
+                at.y = kept;
+                if ((_lookAt - at).sqrMagnitude > 1e-6f) rotation = Quaternion.LookRotation(_lookAt - at);
+            }
             _camera.transform.SetPositionAndRotation(at, rotation);
         }
 

@@ -118,6 +118,10 @@ namespace Scry
         [ForTest]
         public static float CameraHeight => _camera != null ? _camera.transform.position.y : float.NaN;
 
+        /// <summary>For the self-test: how many degrees the camera looks off what it frames.</summary>
+        [ForTest]
+        public static float CameraOffAim => _camera != null ? Vector3.Angle(_camera.transform.forward, _lookAt - _camera.transform.position) : float.NaN;
+
         /// <summary>For the self-test: the size what is shown stands at on the stage.</summary>
         [ForTest]
         public static float Scale => _scale;
