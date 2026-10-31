@@ -8,9 +8,10 @@ namespace Scry
     internal static partial class SelfTest
     {
         /// <summary>
-        /// A made-up character that fought a creature and saw one of its drops fall: under the
-        /// strict rules the creature's page leaves the rest of what it names out, its title chip
-        /// counts them and is not lit, its You box says to see them together, is:left finds it,
+        /// A made-up character that fought a creature, saw one of its drops fall and met another
+        /// apart: under the strict rules the creature's page leaves the rest of what it names out,
+        /// its title chip counts them and is not lit, its You box says to see together what was
+        /// met and to meet first what was not, is:left finds it,
         /// and the page counts as many as its sections do at their ends; then pages of other
         /// kinds, known for the test, the same, and a nest whose creatures were all met.
         /// </summary>
@@ -18,13 +19,15 @@ namespace Scry
         {
             var fought = Pick(Kind.Creature, "Troll", "Greydwarf");
             var drops = fought?.TermLinks("drops");
-            var drop = drops != null && drops.Count > 0 ? drops[0] : null;
-            if (!p.Check(fought != null && drop != null, "a creature that drops something, to make up a character with")) yield break;
+            var drop = drops != null && drops.Count > 1 ? drops[0] : null;
+            if (!p.Check(fought != null && drop != null, "a creature that drops two things, to make up a character with")) yield break;
             var book = new CompendiumBook();
             book.Raise(fought.Key, KnownLevel.Known);
             // As in play, a drop seen falling is seen, and seen together with what dropped it.
             book.Raise(drop.Key, KnownLevel.Seen);
             book.Witness(fought.Key, drop.Key);
+            // Another drop met elsewhere waits to be seen together; what was never met waits to be met first.
+            book.Raise(drops[1].Key, KnownLevel.Seen);
             var view = new CompendiumView(X.Entries);
             view.Tell(book, CompendiumRule.Strict);
             X.Select(fought);
@@ -37,7 +40,7 @@ namespace Scry
             var still = ScryPanel.Drawn(PanelPart.StillToFindOut);
             yield return Until(() => ScryPanel.Drawn(PanelPart.StillToFindOut) > still + 2, 3);
             p.Check(ScryPanel.FindsChipForTest != null && ScryPanel.FindsChipForTest != CompendiumWords.AllFoundOut, "while it leaves names out, its title chip counts them and is not lit", ScryPanel.FindsChipForTest);
-            p.Check(ScryPanel.StillForTest.Contains("See it together"), "its You box says to see them together", string.Join("; ", ScryPanel.StillForTest));
+            p.Check(ScryPanel.StillForTest.Contains("See it together") && ScryPanel.StillForTest.Contains("Meet first"), "its You box says to see together what was met and to meet first what was not", string.Join("; ", ScryPanel.StillForTest));
             p.Check(view.Is(fought, "left", view.Today), "and is:left finds its page");
             yield return NamesCountedAsDrawn(p, fought);
 
