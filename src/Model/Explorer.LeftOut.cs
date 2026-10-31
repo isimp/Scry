@@ -58,6 +58,21 @@ namespace Scry
         }
 
         /// <summary>
+        /// What a line of where something spawns or grows waits on, the name it is counted by on
+        /// the page: the boss it names where that was not met; else, while none of its biomes
+        /// (<paramref name="metIn"/>) was met, the first of them, so the line counts as never met
+        /// while hidden for it; else the boss, or a biome met where it names none, so the line
+        /// still counts once shown and the page's total holds.
+        /// </summary>
+        public string WaitsOn(string prefab, IReadOnlyList<string> metIn)
+        {
+            if (prefab != null && NotMet(prefab)) return prefab;
+            if (metIn == null || metIn.Count == 0) return prefab;
+            foreach (var key in metIn) if (!NotMet(key)) return prefab ?? key;
+            return metIn[0];
+        }
+
+        /// <summary>
         /// A chain's steps seen together (<see cref="Chain.Linked"/>), worked out once for what the
         /// character knows as handed over last, as the chain is asked about step by step each time
         /// the page is drawn.

@@ -112,6 +112,44 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ALineOfWhereSomethingSpawnsWaitsOnTheBiomeNotYetMetAndCountsByItOnceShown()
+        {
+            // A Troll's page: a world spawn line naming no boss, and one waiting for The Elder,
+            // both in the Swamp; the Black Forest met, the Swamp not.
+            var troll = E("Troll", Kind.Creature);
+            var elder = E("gd_king", Kind.Creature);
+            var forest = E("BlackForest", Kind.Biome);
+            var swamp = E("Swamp", Kind.Biome);
+            var explorer = new Explorer(new[] { troll, elder, forest, swamp }.ToList(), new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+            var view = new CompendiumView(explorer.Entries);
+            var book = new CompendiumBook();
+            book.Raise(troll.Key, KnownLevel.Known);
+            book.Raise(forest.Key, KnownLevel.Known);
+            view.Tell(book, CompendiumRule.Strict);
+            explorer.Know(view);
+            explorer.Select(troll);
+
+            // Hidden for its biome, a line waits on meeting that biome, so it counts as never met.
+            Assert.Equal(swamp.Key, explorer.WaitsOn(null, new[] { swamp.Key }));
+            Assert.True(explorer.NotMet(explorer.WaitsOn(null, new[] { swamp.Key })));
+            // A boss not met is waited on first; one met waits on the biome still to meet.
+            Assert.Equal(elder.Key, explorer.WaitsOn(elder.Key, new[] { swamp.Key }));
+            book.Raise(elder.Key, KnownLevel.Known);
+            view.Tell(book, CompendiumRule.Strict);
+            explorer.Know(view);
+            Assert.Equal(swamp.Key, explorer.WaitsOn(elder.Key, new[] { swamp.Key }));
+
+            // Its biome met, the line counts by it, found, so the page's total stays the same.
+            book.Raise(swamp.Key, KnownLevel.Known);
+            view.Tell(book, CompendiumRule.Strict);
+            explorer.Know(view);
+            Assert.Equal(forest.Key, explorer.WaitsOn(null, new[] { forest.Key, swamp.Key }));
+            Assert.False(explorer.NotMet(explorer.WaitsOn(null, new[] { swamp.Key })));
+            Assert.Equal(elder.Key, explorer.WaitsOn(elder.Key, new[] { swamp.Key }));
+            Assert.Null(explorer.WaitsOn(null, null));
+        }
+
+        [Fact]
         public void AChainReadsTheSameOnEveryPageOfIt()
         {
             // A hen's breeding chain, egg hatching and chick growing up seen, its laying not: the hen

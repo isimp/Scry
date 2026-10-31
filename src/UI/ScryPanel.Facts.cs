@@ -347,6 +347,9 @@ namespace Scry
             }
         }
 
+        /// <summary>The name a line of where it comes from is counted by: its prefab, or for the character's own line what it waits on (<see cref="Explorer.WaitsOn"/>), as drawing and counting must agree.</summary>
+        private static string WhereKey(Explorer explorer, Source s) => s.AllPlay ? s.Prefab : explorer.WaitsOn(s.Prefab, s.MetIn);
+
         /// <summary>Where it lives, comes from, or what gives it: a line naming a prefab in the catalog a chip that goes there.</summary>
         private static float WhereBlock(Explorer explorer, Facts facts, bool titled, float width, float y)
         {
@@ -355,7 +358,8 @@ namespace Scry
             // page counting this character's own, and under the loose rules where its giver was not met.
             // One counted over every character's play stands faint under the strict rules, as a creature's rows do, uncounted for your character;
             // its giver not met, it is left out as any line naming one not met is.
-            var where = ShownStrictly(explorer, facts.Where, s => s.Prefab, s => s.AllPlay
+            // A line left out for a biome not met counts as never met, by that biome (Explorer.WaitsOn).
+            var where = ShownStrictly(explorer, facts.Where, s => WhereKey(explorer, s), s => s.AllPlay
                 ? explorer.NotMet(s.Prefab)
                 : explorer.LeavesOut(s.Prefab, false, TieOfSource(s.Record)) || explorer.LeavesOutAll(s.MetIn));
             if (where.Count == 0) return y;

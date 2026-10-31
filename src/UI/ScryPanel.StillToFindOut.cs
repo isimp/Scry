@@ -103,7 +103,7 @@ namespace Scry
             foreach (var row in facts.UseRows) RowNames(explorer, row, names);
             foreach (var s in facts.Where)
             {
-                names.Name(s.Prefab, s.AllPlay ? explorer.NotMet(s.Prefab) : explorer.LeavesOut(s.Prefab, false, TieOfSource(s.Record)) || explorer.LeavesOutAll(s.MetIn));
+                names.Name(WhereKey(explorer, s), s.AllPlay ? explorer.NotMet(s.Prefab) : explorer.LeavesOut(s.Prefab, false, TieOfSource(s.Record)) || explorer.LeavesOutAll(s.MetIn));
             }
             if (page.Kind != Kind.Biome) foreach (var biome in page.Biomes) names.Named(EntryKeys.For(Kind.Biome, biome));
             foreach (var user in UserKeys(explorer, page)) names.Named(user);
