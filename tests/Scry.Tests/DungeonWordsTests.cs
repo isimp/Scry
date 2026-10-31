@@ -120,7 +120,25 @@ namespace Scry.Tests
             Assert.Equal("8 × 16 m, 4 m high", DungeonWords.Size(room));
             Assert.Equal("an end cap, closing a doorway nothing else took", DungeonWords.Role(room));
             Assert.Equal("an entrance, where the dungeon starts", DungeonWords.Role(new RoomShape { Entrance = true }));
-            Assert.Equal("a room", DungeonWords.Role(new RoomShape()));
+        }
+
+        [Fact]
+        public void ARoomSaysHowManyWaysLeadOnFromItAsYouWalkThrough()
+        {
+            // A room is joined to the one before at its own way in (RoomConnection.m_entrance); each
+            // other doorway is where a further room may join: none a dead end, one a passage, more a junction.
+            RoomShape Room(int waysOn, bool wayIn = true)
+            {
+                var room = new RoomShape();
+                if (wayIn) room.Doorways.Add(new Doorway { Entrance = true });
+                for (var i = 0; i < waysOn; i++) room.Doorways.Add(new Doorway { Type = "wall" });
+                return room;
+            }
+            Assert.Equal("a dead end", DungeonWords.Role(Room(0)));
+            Assert.Equal("a passage, one way on", DungeonWords.Role(Room(1)));
+            Assert.Equal("a junction, 3 ways on", DungeonWords.Role(Room(3)));
+            // One with no way in marked counts every doorway as a way on.
+            Assert.Equal("a junction, 2 ways on", DungeonWords.Role(Room(2, wayIn: false)));
         }
 
         // The example layout under a dungeon's details: its rooms are read first, then what the
@@ -179,14 +197,16 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void ARoomsDoorwaysAreCountedByType()
+        public void ARoomsConnectionTagsAreCountedForTheCurious()
         {
+            // The builder's tags, which only rooms of the same tag join at: under More, the untagged told so.
             var room = new RoomShape();
             room.Doorways.Add(new Doorway { Type = "crypt" });
             room.Doorways.Add(new Doorway { Type = "crypt" });
             room.Doorways.Add(new Doorway { Type = "large" });
-            Assert.Equal("3: 2 crypt, 1 large", DungeonWords.Doorways(room));
-            Assert.Equal("none", DungeonWords.Doorways(new RoomShape()));
+            room.Doorways.Add(new Doorway { Type = "" });
+            Assert.Equal("2 crypt, 1 large, 1 untagged", DungeonWords.ConnectionTags(room));
+            Assert.Null(DungeonWords.ConnectionTags(new RoomShape()));
         }
 
         [Fact]

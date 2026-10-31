@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Scry
 {
     /// <summary>What the stage says: the grid's measure, its chips and their tips, its roof and floor ruler, and a room's tip.</summary>
@@ -36,12 +38,21 @@ namespace Scry
         /// <summary>
         /// The peek on a room of a dungeon's example under the mouse, on the stage or in the plan
         /// box: its name, where it is, how many creatures and chests and pickups this copy rolled
-        /// in it (none for a room of the world's own dungeon, shown by its layout alone), and what
+        /// in it, with the compendium on what the rules left out after each as its card says it (none
+        /// for a room of the world's own dungeon, shown by its layout alone), and what
         /// a click and a double-click do; the room gone into, how to come back out.
         /// </summary>
-        public static string RoomPeek(string name, string where, int creatures, int chests, bool goneInto, bool layoutOnly = false) =>
-            name + "\n" + where + (layoutOnly ? "" : "\nCreatures " + Numbers.Count(creatures) + "  ·  To loot " + Numbers.Count(chests))
+        public static string RoomPeek(string name, string where, int creatures, int chests, bool goneInto, bool layoutOnly = false,
+            IReadOnlyList<string> creaturesLeft = null, IReadOnlyList<string> lootLeft = null) =>
+            name + "\n" + where + (layoutOnly ? "" : "\n" + PeekCount("Creatures", creatures, creaturesLeft) + "  ·  " + PeekCount("To loot", chests, lootLeft))
             + (goneInto ? "\nEsc, the breadcrumb's level or the mouse's back button comes back out" : "\nPick it, or double-click to go into it");
+
+        /// <summary>A count on a room's peek, what the rules left out after it, as its card's lines say them; with none shown, the counts alone.</summary>
+        private static string PeekCount(string what, int shown, IReadOnlyList<string> left)
+        {
+            if (left == null || left.Count == 0) return what + " " + Numbers.Count(shown);
+            return shown == 0 ? what + ": " + string.Join(", ", left) : what + " " + Numbers.Count(shown) + ", " + string.Join(", ", left);
+        }
 
         /// <summary>The link on the card of a room picked, not gone into, and its tip.</summary>
         public const string GoInLink = "Go in";

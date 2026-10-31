@@ -418,16 +418,18 @@ namespace Scry.Tests
         [Fact]
         public void ARoomShowsItsSizeThenWhatItIsAndHowItJoinsTheRest()
         {
-            var pairs = new[] { ("Role", "room"), ("Size", "room"), ("Doorways", "room"), ("Not before", "room"), ("Built into", "room") };
+            var pairs = new[] { ("Role", "room"), ("Size", "room"), ("Connection tags", "room"), ("Not before", "room"), ("Built into", "room") };
             var plan = FactLayout.Plan(Kind.Location, pairs, new (string, string)[0], new FactBlock[0]);
-            // The dungeon it is built into comes first.
-            Assert.Equal(new[] { null, "Layout", "Placement" }, plan.Select(t => t.Heading));
+            // The dungeon it is built into comes first; what kind of room it is goes with how it joins
+            // the rest, the builder's tags under More.
+            Assert.Equal(new[] { null, "Layout", "Placement", "More" }, plan.Select(t => t.Heading));
             Assert.Equal(new[] { "Size" }, plan[0].Tiles.Select(i => pairs[i].Item1));
-            Assert.Equal(new[] { "Doorways", "Built into" }, plan[1].Bits.Select(b => pairs[b.Pair].Item1));
-            Assert.Equal(new[] { "Role", "Not before" }, plan[2].Bits.Select(b => pairs[b.Pair].Item1));
+            Assert.Equal(new[] { "Role", "Built into" }, plan[1].Bits.Select(b => pairs[b.Pair].Item1));
+            Assert.Equal(new[] { "Not before" }, plan[2].Bits.Select(b => pairs[b.Pair].Item1));
+            Assert.Equal(new[] { "Connection tags" }, plan[3].Bits.Select(b => pairs[b.Pair].Item1));
             // Told as a row of the dungeons it is built into, the same; before what the room holds, where a dungeon's own come first.
             var asRow = FactLayout.Plan(Kind.Location, new[] { ("Role", "room"), ("Size", "room"), ("What it holds", "location") }, new[] { ("Built into", "room") }, new FactBlock[0]);
-            Assert.Equal(new[] { null, "Layout", "Contents", "Placement" }, asRow.Select(t => t.Heading));
+            Assert.Equal(new[] { null, "Layout", "Contents" }, asRow.Select(t => t.Heading));
         }
 
         [Fact]

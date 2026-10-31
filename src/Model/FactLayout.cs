@@ -329,11 +329,11 @@ namespace Scry
             };
             Order(plan, "Built into", "overview", "layout");
             Tile(plan, "overview", null, "Biome", "Per world", "Size");
-            Label(plan, "placement", "Role", "Not before");
-            Label(plan, "layout", "Building", "Doorways", "Built into");
+            Label(plan, "placement", "Not before");
+            Label(plan, "layout", "Building", "Role", "Built into");
             Label(plan, "contents", "What it holds", "What its rooms hold", "Stars at its spawn points");
             Label(plan, "music", "Music");
-            Label(plan, More, "Not shown");
+            Label(plan, More, "Not shown", "Connection tags");
             // What a dungeon's rooms hold, read with its example: "Its rooms hold", "Loot in its rooms" and the like.
             plan.Starts.Add((l => l.StartsWith("Its rooms", StringComparison.Ordinal) || l.Contains(" in its rooms"), "contents"));
             Part(plan, "placement", "placement");

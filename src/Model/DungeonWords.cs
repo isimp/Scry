@@ -102,13 +102,17 @@ namespace Scry
 
         public static string Size(RoomShape room) => $"{Numbers.Amount(room.Size.X)} × {Numbers.Amount(room.Size.Z)} m, {Numbers.Amount(room.Size.Y)} m high";
 
+        /// <summary>What kind of room it is: an entrance, an end cap, a divider, a piece of a camp's wall, or as you walk through it, a dead end, a passage or a junction by its ways on.</summary>
         public static string Role(RoomShape room)
         {
             if (room.Entrance) return "an entrance, where the dungeon starts";
             if (room.EndCap) return "an end cap, closing a doorway nothing else took";
             if (room.Divider) return "a divider, between doorways of two types that meet";
             if (room.Perimeter) return "a piece of a camp's wall";
-            return "a room";
+            // Joined to the room before at its way in (RoomConnection.m_entrance); every other doorway may lead on.
+            var waysOn = room.Doorways.Count(d => !d.Entrance);
+            if (waysOn == 0) return "a dead end";
+            return waysOn == 1 ? "a passage, one way on" : $"a junction, {Numbers.Count(waysOn)} ways on";
         }
 
         /// <summary>How many rooms from the entrance a room may stand at the nearest (<c>Room.m_minPlaceOrder</c>).</summary>
@@ -197,12 +201,17 @@ namespace Scry
             walked > 0 ? PlanBoxWords.Walked(walked, rooms)
             : "none of its " + Naming.Count(rooms, "room", "rooms") + " walked yet; peek shows " + (rooms == 1 ? "it" : "them");
 
-        /// <summary>How many doorways and of which types, the commonest first.</summary>
-        public static string Doorways(RoomShape room)
+        /// <summary>
+        /// The dungeon builder's tags of a room's doorways (<c>RoomConnection.m_type</c>), only rooms
+        /// of the same tag joining at one: how many of each, the commonest first, those with none
+        /// told as untagged; none for a room without doorways.
+        /// </summary>
+        public static string ConnectionTags(RoomShape room)
         {
-            if (room.Doorways.Count == 0) return "none";
-            var types = room.Doorways.GroupBy(d => d.Type).OrderByDescending(g => g.Count()).ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase).Select(g => $"{Numbers.Count(g.Count())} {g.Key}");
-            return $"{Numbers.Count(room.Doorways.Count)}: {string.Join(", ", types)}";
+            if (room.Doorways.Count == 0) return null;
+            var types = room.Doorways.GroupBy(d => d.Type ?? "").OrderBy(g => g.Key.Length == 0).ThenByDescending(g => g.Count()).ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(g => $"{Numbers.Count(g.Count())} {(g.Key.Length > 0 ? g.Key : "untagged")}");
+            return string.Join(", ", types);
         }
     }
 }

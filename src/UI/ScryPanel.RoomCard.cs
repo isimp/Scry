@@ -140,10 +140,14 @@ namespace Scry
             var ways = Stage.ExampleWays;
             var rise = ways?.Entrance != null ? Stage.ExampleRoomGround(room) - Stage.ExampleRoomGround(ways.Entrance) : 0f;
             var where = RoomCardWords.Where(rise, ways != null ? ways.StepsIn(room) : -1, ways != null ? ways.WaysOf(room).Count : 0);
-            // Counted as the room's card counts: what the character met, under the strict rules what was seen together with the page.
-            var creatures = Stage.RoomCreatures(room).Count(c => !explorer.LeavesOut(c));
-            var loot = Stage.RoomLoot(room).Count(l => !explorer.LeavesOut(l.Prefab));
-            _peekText = StageWords.RoomPeek(BoxRoomName(explorer, room), where, creatures, loot, inside, ExampleLayouts.ShowsWorlds);
+            // Counted as the room's card counts: what the character met, under the strict rules what was seen together with the page; the rest as its lines say it.
+            var creatureKeys = Stage.RoomCreatures(room);
+            var lootKeys = Stage.RoomLoot(room).Select(l => l.Prefab).ToList();
+            var creatures = creatureKeys.Count(c => !explorer.LeavesOut(c));
+            var loot = lootKeys.Count(l => !explorer.LeavesOut(l));
+            _peekText = StageWords.RoomPeek(BoxRoomName(explorer, room), where, creatures, loot, inside, ExampleLayouts.ShowsWorlds,
+                explorer.LeftOutCounts("room", creatureKeys.Where(explorer.LeavesOut), alone: creatures == 0),
+                explorer.LeftOutCounts("room", lootKeys.Where(explorer.LeavesOut), alone: loot == 0));
             return _peekText;
         }
 

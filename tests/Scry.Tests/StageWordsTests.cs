@@ -67,6 +67,19 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ARoomPeeksWithWhatTheRulesLeftOutOfIt()
+        {
+            // As its card's lines say them: what to meet and what to see here, after what shows.
+            Assert.Equal("Burial chamber\nEntrance\nCreatures 2, 1 more not yet met, 1 more not yet seen here  ·  To loot 5\nPick it, or double-click to go into it",
+                StageWords.RoomPeek("Burial chamber", "Entrance", creatures: 2, chests: 5, goneInto: false,
+                    creaturesLeft: new[] { "1 more not yet met", "1 more not yet seen here" }));
+            // With none shown, the counts alone.
+            Assert.Equal("Burial chamber\nEntrance\nCreatures: 3 not yet met  ·  To loot: 2 not yet seen here\nPick it, or double-click to go into it",
+                StageWords.RoomPeek("Burial chamber", "Entrance", creatures: 0, chests: 0, goneInto: false,
+                    creaturesLeft: new[] { "3 not yet met" }, lootLeft: new[] { "2 not yet seen here" }));
+        }
+
+        [Fact]
         public void ARoomOfTheWorldsOwnDungeonPeeksWithoutWhatItHolds()
         {
             // Shown by its layout alone: what lives and lies there is the world's, which Scry does not read.

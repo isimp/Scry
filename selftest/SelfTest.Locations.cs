@@ -135,9 +135,9 @@ namespace Scry
             var shape = place.Contents?.Room;
             if (!p.Check(shape != null, "its shape has been read")) yield break;
             p.Check(shape.Size.X > 0 && shape.Size.Z > 0 || shape.EndCap || shape.Divider, "it has a floor", DungeonWords.Size(shape));
-            p.Check(shape.Doorways.Count > 0, "it has doorways", DungeonWords.Doorways(shape));
+            p.Check(shape.Doorways.Count > 0, "it has doorways", DungeonWords.ConnectionTags(shape));
             p.Check(shape.Name == place.Prefab, "its prefab goes by the name its entry has", $"{shape.Name} and {place.Prefab}");
-            p.Note($"{DungeonWords.Role(shape)}, {DungeonWords.Size(shape)}, doorways {DungeonWords.Doorways(shape)}");
+            p.Note($"{DungeonWords.Role(shape)}, {DungeonWords.Size(shape)}, connection tags {DungeonWords.ConnectionTags(shape)}");
             var floor = PlaceView.Ground(place.Contents, true);
             p.Check(Mathf.Abs(Stage.Ground - floor) < 0.01f, "it stands on the floor it is walked into on", $"{Numbers.Fixed(Stage.Ground, 2)} m, its lowest doorway {Numbers.Fixed(floor, 2)} m");
 
