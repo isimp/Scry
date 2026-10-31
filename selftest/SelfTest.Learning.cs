@@ -132,6 +132,43 @@ namespace Scry
             p.Check(real.Version == version && real.PairsVersion == pairs, "the character's book was left alone");
         }
 
+        /// <summary>The character's records read whole: every kind counted, honey and sap taken among them, as the game grows them.</summary>
+        private static void RecordsReadWhole(Probe p, Player player, PlayerProfile profile, CompendiumRecords records)
+        {
+            var sets = new[] { records.Materials, records.Recipes, records.Stations, records.Biomes, records.Trophies, records.Uniques, records.Killed, records.PickedUp, records.Crafted, records.Eaten, records.Picked, records.Placed, records.Powers };
+            var size = CharacterRecords.Size(player, profile);
+            var harvests = CharacterRecords.Harvests(profile);
+            p.Check(sets.Sum(s => s.Count) + harvests == size, "the character's records are read whole", $"{Numbers.Count(sets.Sum(s => s.Count) + harvests)} of {Numbers.Count(size)}");
+            p.Note($"records: {Numbers.Count(records.Materials.Count)} items had, {Numbers.Count(records.Recipes.Count)} recipes, {Numbers.Count(records.Stations.Count)} stations, {Numbers.Count(records.Biomes.Count)} biomes, {Numbers.Count(records.Trophies.Count)} trophies, {Numbers.Count(records.Uniques.Count)} marks of what was done, {Numbers.Count(records.Killed.Count)} kinds killed, {Numbers.Count(records.PickedUp.Count)} picked up, {Numbers.Count(records.Crafted.Count)} crafted, {Numbers.Count(records.Eaten.Count)} eaten, {Numbers.Count(records.Picked.Count)} picked, {Numbers.Count(records.Placed.Count)} placed");
+        }
+
+        /// <summary>
+        /// What the records tell of picks, takes and catches, read from the game's prefabs: each
+        /// thing picked from gives an item picked, each producer taken from is a hive or a tap, each
+        /// fish caught goes by a name the records count; and the catch-up pairs or proves each.
+        /// </summary>
+        private static void RecordsOfDeeds(Probe p, CompendiumRecords records, CompendiumBook told)
+        {
+            p.Note($"records of deeds: {Numbers.Count(records.PickedFrom.Count)} things picked from, {Numbers.Count(records.Collected.Count)} producers taken from, {Numbers.Count(records.Caught.Count)} fish caught");
+            var odd = new List<string>();
+            foreach (var name in records.PickedFrom)
+            {
+                var item = GamePrefabs.Named(name).OrNull()?.GetComponent<Pickable>().OrNull()?.m_itemPrefab;
+                if (item == null || !records.Picked.Contains(item.name) || !told.Witnessed(name, item.name, Tie.Gives)) odd.Add(name);
+            }
+            foreach (var name in records.Collected)
+            {
+                var producer = GamePrefabs.Named(name);
+                if (producer == null || (producer.GetComponent<Beehive>() == null && producer.GetComponent<SapCollector>() == null) || !told.Proved(name, EntryKeys.Did(Deed.Collected))) odd.Add(name);
+            }
+            foreach (var name in records.Caught)
+            {
+                var fish = GamePrefabs.Named(name).OrNull()?.GetComponent<Fish>();
+                if (fish == null || !records.Picked.Contains(fish.m_name) || !told.Proved(name, EntryKeys.Did(Deed.Caught))) odd.Add(name);
+            }
+            p.Check(odd.Count == 0, "what its records tell of picks, takes and catches names the right things, each paired or shown", string.Join(", ", odd.Take(10)));
+        }
+
         /// <summary>A Vegvisir loaded in a place, read: the place it marks seen together with the place it stands in, under the strict rules.</summary>
         private static void VegvisirReadTells(Probe p, System.Func<CompendiumBook> fresh, System.Func<CompendiumBook, Entry, Entry, bool> shows)
         {

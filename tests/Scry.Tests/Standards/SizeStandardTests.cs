@@ -21,7 +21,7 @@ namespace Scry.Tests
         private static readonly Dictionary<string, int> LongMethods = new Dictionary<string, int>
         {
             ["selftest/SelfTest.Card.cs SelfTest.RoomCardShows"] = 174,
-            ["selftest/SelfTest.Compendium.cs SelfTest.CompendiumKept"] = 124,
+            ["selftest/SelfTest.Compendium.cs SelfTest.CompendiumKept"] = 122,
             ["selftest/SelfTest.Compendium.cs SelfTest.CompendiumShown"] = 264,
             ["selftest/SelfTest.Focus.cs SelfTest.GoesIntoRooms"] = 123,
             ["selftest/SelfTest.Layouts.cs SelfTest.Layout"] = 155,

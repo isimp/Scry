@@ -8,7 +8,7 @@ namespace Scry
     /// with (<see cref="CompendiumCatchUp"/>): the player's own records (<c>Player.m_knownMaterial</c>,
     /// <c>m_knownRecipes</c>, <c>m_knownStations</c>, <c>m_knownBiome</c>, <c>m_trophies</c>), the guardian power it chose and
     /// what its statistics count (<c>PlayerProfile.m_playerStats</c>). All are the game's name
-    /// tokens (<c>$item_wood</c>) but trophies, things picked and the power, which are prefab names.
+    /// tokens (<c>$item_wood</c>) but trophies, things picked, what was picked from, taken from or caught, and the power, which are prefab names.
     /// </summary>
     internal sealed class CompendiumRecords
     {
@@ -46,6 +46,19 @@ namespace Scry
         /// <summary>Things picked (berries, mushrooms, flint), by the prefab of the item each gives.</summary>
         public readonly HashSet<string> Picked = Names();
 
+        /// <summary>
+        /// Things the character picked from, by prefab: each the one kind of thing that gives an
+        /// item picked (<see cref="Picked"/>) by picking, so what gave that item, as the game counts
+        /// picks by the item alone.
+        /// </summary>
+        public readonly HashSet<string> PickedFrom = Names();
+
+        /// <summary>Producers the character took from, by prefab: the one kind of beehive where honey was taken, the one kind of sap collector where sap was, as the game counts those by what was taken alone.</summary>
+        public readonly HashSet<string> Collected = Names();
+
+        /// <summary>Fish the character caught, by the prefab of the fish, as the game counts each catch by the fish's own name.</summary>
+        public readonly HashSet<string> Caught = Names();
+
         /// <summary>Build pieces placed.</summary>
         public readonly HashSet<string> Placed = Names();
 
@@ -56,7 +69,7 @@ namespace Scry
         public readonly HashSet<string> Powers = Names();
 
         /// <summary>Every kind of record, in a fixed order, so two records' sets are walked side by side.</summary>
-        private HashSet<string>[] Sets() => new[] { Materials, Recipes, Stations, Biomes, Trophies, Killed, PickedUp, Crafted, Eaten, Picked, Placed, Uniques, Powers };
+        private HashSet<string>[] Sets() => new[] { Materials, Recipes, Stations, Biomes, Trophies, Killed, PickedUp, Crafted, Eaten, Picked, PickedFrom, Collected, Caught, Placed, Uniques, Powers };
 
         /// <summary>Takes every record of another in place of its own.</summary>
         public void CopyFrom(CompendiumRecords other)

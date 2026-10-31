@@ -44,6 +44,66 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatTheCharacterPickedBeforeIsSeenTogetherWithTheOneThingThatGivesIt()
+        {
+            // The game counts picks by the item picked; where one kind of thing alone gives it by
+            // picking, the character picked it from that, as play would have paired them.
+            var raspberry = E(Kind.Item, "Raspberry", "$item_raspberries");
+            var bush = E(Kind.Resource, "RaspberryBush", "$prop_raspberrybush");
+            var cloudberry = E(Kind.Item, "Cloudberry", "$item_cloudberries");
+            var other = E(Kind.Resource, "CloudberryBush", "$prop_cloudberrybush");
+            raspberry.AddTermLink("from", bush);
+            cloudberry.AddTermLink("from", other);
+            var (catchUp, book) = Fresh(raspberry, bush, cloudberry, other);
+            var records = new CompendiumRecords();
+            records.Picked.Add("Raspberry");
+            records.Picked.Add("Cloudberry");
+            records.PickedFrom.Add("RaspberryBush");
+
+            catchUp.Fill(records, book, firstLoad: true);
+
+            Assert.True(book.Witnessed(bush.Key, raspberry.Key, Tie.Gives));
+            // Cloudberries picked, but the records cannot tell from which of what gives them.
+            Assert.False(book.Witnessed(other.Key, cloudberry.Key));
+        }
+
+        [Fact]
+        public void HoneyAndSapTakenBeforeShowTheirProducersPace()
+        {
+            // The game counts honey and sap taken, not from which; the records name the producer only
+            // where one kind of it stands in the game, and taking from it shows its pace.
+            var hive = E(Kind.Piece, "piece_beehive", "$piece_beehive");
+            var tap = E(Kind.Piece, "piece_sapcollector", "$piece_sapcollector");
+            var (catchUp, book) = Fresh(hive, tap);
+            var records = new CompendiumRecords();
+            records.Collected.Add("piece_beehive");
+
+            catchUp.Fill(records, book, firstLoad: false);
+
+            Assert.True(book.Proved(hive.Key, EntryKeys.Did(Deed.Collected)));
+            Assert.Equal(EntryKeys.Did(Deed.Collected), book.FoundOutOf(hive.Key));
+            Assert.False(book.Proved(tap.Key, EntryKeys.Did(Deed.Collected)));
+        }
+
+        [Fact]
+        public void FishCaughtBeforeShowHowTheyFight()
+        {
+            // The game counts each catch by the fish's own name; the records name the fish caught, and
+            // a catch shows how it fights, read as a character loads without its being news.
+            var perch = E(Kind.Item, "Fish1", "$item_fish1");
+            var pike = E(Kind.Item, "Fish2", "$item_fish2");
+            var (catchUp, book) = Fresh(perch, pike);
+            var records = new CompendiumRecords();
+            records.Caught.Add("Fish1");
+
+            catchUp.Fill(records, book, firstLoad: true);
+
+            Assert.True(book.Proved(perch.Key, EntryKeys.Did(Deed.Caught)));
+            Assert.Null(book.FoundOutOf(perch.Key));
+            Assert.False(book.Proved(pike.Key, EntryKeys.Did(Deed.Caught)));
+        }
+
+        [Fact]
         public void AKillCountedUnderANameSeveralCreaturesShareIsTheOnesLivingWhereTheCharacterWent()
         {
             // The game counts kills by the name a creature shows, and the frozen greydwarf, living

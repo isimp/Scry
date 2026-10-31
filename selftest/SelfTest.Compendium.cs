@@ -36,10 +36,7 @@ namespace Scry
             // The records as the game keeps them, read whole.
             var records = new CompendiumRecords();
             CharacterRecords.Read(player, profile, records);
-            var sets = new[] { records.Materials, records.Recipes, records.Stations, records.Biomes, records.Trophies, records.Uniques, records.Killed, records.PickedUp, records.Crafted, records.Eaten, records.Picked, records.Placed, records.Powers };
-            var size = CharacterRecords.Size(player, profile);
-            p.Check(sets.Sum(s => s.Count) == size, "the character's records are read whole", $"{Numbers.Count(sets.Sum(s => s.Count))} of {Numbers.Count(size)}");
-            p.Note($"records: {Numbers.Count(records.Materials.Count)} items had, {Numbers.Count(records.Recipes.Count)} recipes, {Numbers.Count(records.Stations.Count)} stations, {Numbers.Count(records.Biomes.Count)} biomes, {Numbers.Count(records.Trophies.Count)} trophies, {Numbers.Count(records.Uniques.Count)} marks of what was done, {Numbers.Count(records.Killed.Count)} kinds killed, {Numbers.Count(records.PickedUp.Count)} picked up, {Numbers.Count(records.Crafted.Count)} crafted, {Numbers.Count(records.Eaten.Count)} eaten, {Numbers.Count(records.Picked.Count)} picked, {Numbers.Count(records.Placed.Count)} placed");
+            RecordsReadWhole(p, player, profile, records);
 
             var power = CharacterRecords.Power(player);
             p.Check(power.Length == 0 ? records.Powers.Count == 0 : records.Powers.SetEquals(new[] { power }), "the guardian power chosen is read", power.Length == 0 ? "none chosen" : power);
@@ -57,6 +54,7 @@ namespace Scry
             yield return Until(() => Short(told, CompendiumKeeper.Book).Count == 0, 5);
             var shortOf = Short(told, CompendiumKeeper.Book);
             p.Check(shortOf.Count == 0, $"everything its records tell is in its book ({Numbers.Count(told.Count(KnownLevel.HeardOf))} entries)", string.Join(", ", shortOf.Take(10)));
+            RecordsOfDeeds(p, records, told);
 
             // What gives an item counts only in the biomes entered, so the biomes a resource grows
             // in must be named as the biomes' own entries name them.

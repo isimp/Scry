@@ -13,6 +13,8 @@ namespace Scry
     /// </summary>
     internal static class CharacterRecords
     {
+        static CharacterRecords() => WorldCaches.Register(nameof(CharacterRecords), Forget);
+
         private static AccessTools.FieldRef<Player, HashSet<string>> _materials;
         private static AccessTools.FieldRef<Player, HashSet<string>> _recipes;
         private static AccessTools.FieldRef<Player, Dictionary<string, int>> _stations;
@@ -38,6 +40,7 @@ namespace Scry
             return _materials(player).Count + _recipes(player).Count + _stations(player).Count + _biomes(player).Count + _trophies(player).Count + _uniques(player).Count
                 + stats.m_enemyStats[0].Count + stats.m_itemPickupStats.Count + stats.m_itemCraftStats.Count + stats.m_foodEatenStats.Count
                 + stats.m_pickableStats.Count + stats.m_piecesPlacedStats.Count
+                + Harvests(profile)
                 + (Power(player).Length > 0 ? 1 : 0);
         }
 
@@ -57,6 +60,11 @@ namespace Scry
             Copy(stats.m_itemCraftStats.Keys, into.Crafted);
             Copy(stats.m_foodEatenStats.Keys, into.Eaten);
             Copy(stats.m_pickableStats.Keys, into.Picked);
+            // Before the game's prefabs are read, nothing is told of what was picked from, taken from or caught.
+            var ready = Kinds();
+            Copy(ready ? stats.m_pickableStats.Keys.SelectMany(item => _pickedFrom.TryGetValue(item, out var givers) && givers.Count == 1 ? givers : Enumerable.Empty<string>()) : Enumerable.Empty<string>(), into.PickedFrom);
+            Copy(ready ? Sole(_hives, Taken(stats, PlayerStatType.BeesHarvested)).Concat(Sole(_taps, Taken(stats, PlayerStatType.SapHarvested))) : Enumerable.Empty<string>(), into.Collected);
+            Copy(ready ? stats.m_pickableStats.Keys.SelectMany(name => _fish.TryGetValue(name, out var fish) ? fish : Enumerable.Empty<string>()) : Enumerable.Empty<string>(), into.Caught);
             Copy(stats.m_piecesPlacedStats.Keys, into.Placed);
             var power = Power(player);
             Copy(power.Length > 0 ? new[] { power } : Array.Empty<string>(), into.Powers);
@@ -123,6 +131,67 @@ namespace Scry
             _biomes = AccessTools.FieldRefAccess<Player, HashSet<string>>("m_knownBiome");
             _trophies = AccessTools.FieldRefAccess<Player, HashSet<string>>("m_trophies");
             _uniques = AccessTools.FieldRefAccess<Player, HashSet<string>>("m_uniques");
+        }
+
+        /// <summary>How many of honey and sap the character ever took, none, one or both, as the game counts them: a first take grows the records.</summary>
+        public static int Harvests(PlayerProfile profile)
+        {
+            var stats = profile.m_playerStats[0];
+            return (Taken(stats, PlayerStatType.BeesHarvested) ? 1 : 0) + (Taken(stats, PlayerStatType.SapHarvested) ? 1 : 0);
+        }
+
+        /// <summary>Whether the character took honey or sap, as the game counts it.</summary>
+        private static bool Taken(PlayerProfile.PlayerStats stats, PlayerStatType what) => stats.m_stats != null && stats.m_stats.TryGetValue(what, out var count) && count > 0f;
+
+        /// <summary>The one kind of producer of a sort, where the game has only one and the character took from it; none otherwise, as the game counts what was taken, not from which.</summary>
+        private static IEnumerable<string> Sole(List<string> kinds, bool taken) => taken && kinds.Count == 1 ? kinds : Enumerable.Empty<string>();
+
+        private static Dictionary<string, List<string>> _pickedFrom;
+        private static Dictionary<string, List<string>> _fish;
+        private static List<string> _hives;
+        private static List<string> _taps;
+
+        /// <summary>
+        /// The game's prefabs by what the records count them by, worked out once: what gives each
+        /// item by picking (<c>Pickable.m_itemPrefab</c>, as <c>Pickable.Interact</c> counts a pick by
+        /// the item), the fish going by each name (<c>Fish.m_name</c>, as a catch is counted), and
+        /// the kinds of beehive and sap collector. False while the game has no prefabs to read.
+        /// </summary>
+        private static bool Kinds()
+        {
+            if (_pickedFrom != null) return true;
+            if (ZNetScene.instance == null) return false;
+            var pickedFrom = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            var fish = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            var hives = new List<string>();
+            var taps = new List<string>();
+            void Add(Dictionary<string, List<string>> by, string key, string prefab)
+            {
+                if (string.IsNullOrEmpty(key)) return;
+                if (!by.TryGetValue(key, out var list)) by[key] = list = new List<string>();
+                if (!list.Contains(prefab)) list.Add(prefab);
+            }
+            foreach (var prefab in ZNetScene.instance.m_prefabs)
+            {
+                if (prefab == null) continue;
+                var pickable = prefab.GetComponent<Pickable>();
+                if (pickable != null && pickable.m_itemPrefab != null) Add(pickedFrom, pickable.m_itemPrefab.name, prefab.name);
+                var swimmer = prefab.GetComponent<Fish>();
+                if (swimmer != null) Add(fish, swimmer.m_name, prefab.name);
+                if (prefab.GetComponent<Beehive>() != null) hives.Add(prefab.name);
+                if (prefab.GetComponent<SapCollector>() != null) taps.Add(prefab.name);
+            }
+            (_pickedFrom, _fish, _hives, _taps) = (pickedFrom, fish, hives, taps);
+            return true;
+        }
+
+        /// <summary>The game's prefabs as read for the records, read again in the next world, where mods may bring others.</summary>
+        private static void Forget()
+        {
+            _pickedFrom = null;
+            _fish = null;
+            _hives = null;
+            _taps = null;
         }
 
         private static void Copy(IEnumerable<string> from, HashSet<string> into)

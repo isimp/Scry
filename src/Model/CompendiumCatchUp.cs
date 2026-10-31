@@ -164,6 +164,13 @@ namespace Scry
                 if (firstLoad) book.Prove(creature.Key, EntryKeys.Did(Deed.Killed));
                 else book.FoundOut(creature.Key, EntryKeys.Did(Deed.Killed));
             }
+            // Honey or sap taken, a fish caught: what each shows found out, as news after the first reading.
+            foreach (var (thing, proof) in Prefabs(records.Collected, Kind.Piece).Select(e => (e, EntryKeys.Did(Deed.Collected)))
+                .Concat(Prefabs(records.Caught, Kind.Item).Select(e => (e, EntryKeys.Did(Deed.Caught)))))
+            {
+                if (firstLoad) book.Prove(thing.Key, proof);
+                else book.FoundOut(thing.Key, proof);
+            }
             // A stray kill is told by every kill the records hold, not only those read now.
             var told = ReferenceEquals(all, records) ? known.Select(k => k.Entry) : known.Select(k => k.Entry).Concat(Killed(all, entered));
             foreach (var stray in Unkilled(all, book, told)) book.TakeBack(stray.Key, EntryKeys.Did(Deed.Killed));
@@ -224,6 +231,11 @@ namespace Scry
                     var tool = tools != null && tools.Count == 1 ? _catalog.Find(tools[0]) : null;
                     if (tool != null) book.Witness(piece.Key, tool.Key);
                 }
+            }
+            // The records keep what was picked, not from what: one the character picked from, the one kind giving it so, gave it.
+            foreach (var item in Prefabs(records.Picked, Kind.Item))
+            {
+                foreach (var giver in item.TermLinks("from")) if (records.PickedFrom.Contains(giver.Name)) book.SawWith(giver.Key, item.Key, Tie.Gives);
             }
             foreach (var food in Named(records.Eaten, Kind.Item))
             {
