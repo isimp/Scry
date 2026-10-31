@@ -231,11 +231,11 @@ namespace Scry
             const string Made = "ScrySelfTestCreature";
             var far = player.transform.position + Vector3.right * (Sighting.PersonReach * 2f);
             CompendiumKeeper.Tell(WorldEvents.Make(Happened.Died, Made, far));
-            p.Check(book.Tallied(Tally.Fell).Kills(Made) == 0, "a death beyond sight that the character had no hand in records nothing");
+            p.Check(book.Tallied(Tally.Fell).Kills(Made) == 0 && !book.Proved(Made, EntryKeys.Did(Deed.Killed)), "a death beyond sight that the character had no hand in records nothing");
             var done = WorldEvents.Make(Happened.Died, Made, far, doers: me);
             CompendiumKeeper.Tell(done);
             CompendiumKeeper.Tell(done);
-            p.Check(book.Tallied(Tally.Fell).Kills(Made) == 1, "one the character had a hand in counts, once however often it is told");
+            p.Check(book.Tallied(Tally.Fell).Kills(Made) == 1 && book.Proved(Made, EntryKeys.Did(Deed.Killed)), "one the character had a hand in counts, once however often it is told, and shows that very creature's health");
             const string Buried = "ScrySelfTestBuried";
             var under = player.transform.position + Vector3.down * 12f;
             CompendiumKeeper.Tell(WorldEvents.Make(Happened.Died, Buried, under));

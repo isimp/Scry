@@ -50,6 +50,16 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AKillTheCharacterTookPartInShowsThatVeryCreaturesHealth()
+        {
+            // The death names the creature as it was, so its health shows, and no other going by its name.
+            var book = Told(Death(80f, doers: new[] { Friend, Me }));
+            Assert.True(book.Proved("Troll", EntryKeys.Did(Deed.Killed)));
+            // A death only seen, the kill a friend's, shows its loot but not its health.
+            Assert.False(Told(Death(20f, doers: new[] { Friend })).Proved("Troll", EntryKeys.Did(Deed.Killed)));
+        }
+
+        [Fact]
         public void ADeathFartherAwayThatTheCharacterHadNoHandInRecordsNothing()
         {
             var book = Told(Death(40f, doers: new[] { Friend }), Death(40f, number: 2));

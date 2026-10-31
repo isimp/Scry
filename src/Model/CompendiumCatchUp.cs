@@ -162,11 +162,18 @@ namespace Scry
                 + Raise(book, growing, KnownLevel.Seen)
                 + Raise(book, trophied, KnownLevel.Seen);
             Pair(records, book, entered);
-            // A creature the character killed shows its health under the strict rules: found out, as news after the first reading.
-            foreach (var creature in killed)
+            // A creature the character killed shows its health under the strict rules: found out, as
+            // news after the first reading. The game counts kills by the name a creature shows, which
+            // several can share at different health: in play the death itself names the creature
+            // killed (EventRule), so a count read then shows only a creature going by a name of its
+            // own; read as the character loads, kills from before show every creature going by the
+            // name, unless one of them was seen killed already, which tells which it was.
+            var killedProof = EntryKeys.Did(Deed.Killed);
+            var shown = killed.Where(c => firstLoad ? !Siblings(c, killed, records).Any(s => book.Proved(s.Key, killedProof)) : !Siblings(c, killed, records).Any()).ToList();
+            foreach (var creature in shown)
             {
-                if (firstLoad) book.Prove(creature.Key, EntryKeys.Did(Deed.Killed));
-                else book.FoundOut(creature.Key, EntryKeys.Did(Deed.Killed));
+                if (firstLoad) book.Prove(creature.Key, killedProof);
+                else book.FoundOut(creature.Key, killedProof);
             }
             // Honey or sap taken, a fish caught: what each shows found out, as news after the first reading.
             foreach (var (thing, proof) in Prefabs(records.Collected, Kind.Piece).Select(e => (e, EntryKeys.Did(Deed.Collected)))
@@ -443,6 +450,10 @@ namespace Scry
         [ForTest]
         public List<string> AreasNotKnown(CompendiumRecords records, CompendiumBook book) =>
             records.Biomes.Where(area => area != BiomeWords.NoBiome && !BiomesIn(area).Any(b => book.Level(b.Key) == KnownLevel.Known)).ToList();
+
+        /// <summary>The other creatures a kill counted under a name a creature goes by too may stand for, among those the kills stand for (<see cref="Killed"/>).</summary>
+        private static IEnumerable<Entry> Siblings(Entry creature, IReadOnlyList<Entry> killed, CompendiumRecords records) =>
+            killed.Where(other => other != creature && other.Tokens.Any(t => t != null && records.Killed.Contains(t) && creature.Tokens.Contains(t)));
 
         /// <summary>The resources giving an item that grow in a biome the character entered; one growing nowhere the world places it is left to be met.</summary>
         private static IEnumerable<Entry> ResourcesGiving(Entry item, HashSet<string> entered) =>

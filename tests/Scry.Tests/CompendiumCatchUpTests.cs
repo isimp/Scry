@@ -30,17 +30,49 @@ namespace Scry.Tests
             Assert.Equal(KnownLevel.Known, book.Level(skeleton.Key));
             Assert.Equal(KnownLevel.Known, book.Level(noArcher.Key));
             Assert.Equal(KnownLevel.Unknown, book.Level(troll.Key));
-            // Killed by the character, so the strict rules show its health, found out as news.
-            Assert.True(book.Proved(skeleton.Key, EntryKeys.Did(Deed.Killed)));
-            Assert.True(book.Proved(noArcher.Key, EntryKeys.Did(Deed.Killed)));
-            Assert.False(book.Proved(troll.Key, EntryKeys.Did(Deed.Killed)));
-            Assert.Equal(EntryKeys.Did(Deed.Killed), book.FoundOutOf(skeleton.Key));
-            // Read as a character loads, its kills are news by the creatures learned, not by their health as well.
+            // A kill counted in play under a name several share tells not which was killed: the death
+            // itself names it and shows its health (WorldEventTests), the count none of theirs.
+            Assert.False(book.Proved(skeleton.Key, EntryKeys.Did(Deed.Killed)));
+            Assert.False(book.Proved(noArcher.Key, EntryKeys.Did(Deed.Killed)));
+            // Read as a character loads, its kills from before show the health of every creature
+            // going by the name, and are news by the creatures learned, not by their health as well.
             var (first, firstBook) = Fresh(skeleton, noArcher, troll);
             first.Fill(records, firstBook, firstLoad: true);
             Assert.True(firstBook.Proved(skeleton.Key, EntryKeys.Did(Deed.Killed)));
+            Assert.True(firstBook.Proved(noArcher.Key, EntryKeys.Did(Deed.Killed)));
             Assert.Null(firstBook.FoundOutOf(skeleton.Key));
             Assert.Contains(skeleton.Key, firstBook.Lately);
+        }
+
+        [Fact]
+        public void AKillCountedInPlayUnderANameOfItsOwnShowsThatCreaturesHealth()
+        {
+            var troll = E(Kind.Creature, "Troll", "$enemy_troll");
+            var (catchUp, book) = Fresh(troll);
+            var records = new CompendiumRecords();
+            records.Killed.Add("$enemy_troll");
+
+            catchUp.Fill(records, book, firstLoad: false);
+
+            Assert.Equal(EntryKeys.Did(Deed.Killed), book.FoundOutOf(troll.Key));
+        }
+
+        [Fact]
+        public void ANameWhoseKilledCreatureIsKnownShowsNoOtherOfItsCreaturesAsTheBookIsRead()
+        {
+            // One skeleton was seen killed in play, its health shown; read again as the character
+            // loads, the skeletons' kills tell nothing more of the others going by the name.
+            var skeleton = E(Kind.Creature, "Skeleton", "$enemy_skeleton");
+            var swamp = E(Kind.Creature, "Skeleton_Swamps", "$enemy_skeleton");
+            var (catchUp, book) = Fresh(skeleton, swamp);
+            book.Prove(skeleton.Key, EntryKeys.Did(Deed.Killed));
+            var records = new CompendiumRecords();
+            records.Killed.Add("$enemy_skeleton");
+
+            catchUp.Fill(records, book, firstLoad: true);
+
+            Assert.True(book.Proved(skeleton.Key, EntryKeys.Did(Deed.Killed)));
+            Assert.False(book.Proved(swamp.Key, EntryKeys.Did(Deed.Killed)));
         }
 
         [Fact]

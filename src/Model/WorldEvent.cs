@@ -203,7 +203,7 @@ namespace Scry
             if (ledger.Marked(told, now)) Paired(told, book);
             else
             {
-                Record(told, book, counts, upClose, deathAttack);
+                Record(told, book, counts, share, upClose, deathAttack);
                 ledger.Recorded(told, now);
             }
             return share;
@@ -249,7 +249,7 @@ namespace Scry
         /// a young one grew into, known, as a creature seen tamed is, and seen together with what
         /// it came of (<see cref="YoungKnown"/>).
         /// </summary>
-        private static void Record(WorldEvent told, CompendiumBook book, PlayCounts counts, bool upClose = false, Func<string, bool> deathAttack = null)
+        private static void Record(WorldEvent told, CompendiumBook book, PlayCounts counts, EventShare share, bool upClose = false, Func<string, bool> deathAttack = null)
         {
             switch (told.What)
             {
@@ -257,6 +257,9 @@ namespace Scry
                     foreach (var (item, _) in told.Came) book.SawWith(told.Thing, item, Tie.Drops);
                     book.Dropped(told.Thing, told.Came, told.Level);
                     counts?.Note(PlayEvent.LootCounted);
+                    // A kill the character had a hand in shows the health of the very creature
+                    // killed, as the game's count of kills by name cannot tell which it was.
+                    if (share == EventShare.Did) book.FoundOut(told.Thing, EntryKeys.Did(Deed.Killed));
                     // A death up close is a sighting of the creature's stars, none included, as a look at it is.
                     if (upClose) book.Sighted(told.Thing, told.Level - 1, null);
                     // Where its death hurts what stands near, a death seen up close is that attack
