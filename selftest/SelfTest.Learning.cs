@@ -17,7 +17,8 @@ namespace Scry
         /// place pairs it with the biome there; at a dungeon's entrance it is seen, inside known; a
         /// rune stone read keeps its text as read whatever its label, its location's page showing it
         /// read though told there in words; a station in use, an upgrade
-        /// built near it and a station built near its upgrades pair the station with each. The
+        /// built near it and a station built near its upgrades pair the station with each; a raid
+        /// lived through pairs it with the biome there. The
         /// character's book is left alone. Rows needing a stone or a station with upgrades loaded
         /// near by are left out where there is none.
         /// </summary>
@@ -124,8 +125,26 @@ namespace Scry
             }
             else p.Note("no crafting station with upgrades loaded near by: its rows untried");
 
+            RaidLivedThroughTells(p, at, biome, Fresh, Shows);
+
             CompendiumKeeper.RecordInto(null);
             p.Check(real.Version == version && real.PairsVersion == pairs, "the character's book was left alone");
+        }
+
+        /// <summary>A raid lived through where the character stands, one of the world's that counts the biome there as its own: known, its biome shown under the strict rules.</summary>
+        private static void RaidLivedThroughTells(Probe p, Vector3 at, Entry biome, System.Func<CompendiumBook> fresh, System.Func<CompendiumBook, Entry, Entry, bool> shows)
+        {
+            var here = EnvMan.instance != null ? EnvMan.instance.GetCurrentBiome() : Heightmap.Biome.None;
+            var raid = RandEventSystem.instance.OrNull()?.m_events?.FirstOrDefault(e => e != null && e.m_biome != Heightmap.Biome.None && e.InEventBiome());
+            var entry = raid != null ? X.Find(EntryKeys.For(Kind.Raid, raid.m_name)) : null;
+            if (entry == null || biome == null)
+            {
+                p.Note($"no raid of the world's counts {here} as its own: living through one untried");
+                return;
+            }
+            var book = fresh();
+            CompendiumKeeper.LivedThrough(raid, at);
+            p.Check(book.Level(entry.Key) == KnownLevel.Known && shows(book, entry, biome), $"living through {entry.Name} in {biome.Name} makes it known, the biome shown with it under the strict rules", $"{book.Level(entry.Key)}, paired {book.Witnessed(entry.Key, biome.Key)}");
         }
 
         /// <summary>

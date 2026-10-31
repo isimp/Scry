@@ -242,7 +242,7 @@ namespace Scry
             }
             var raid = RandEventSystem.instance.OrNull()?.GetActiveEvent();
             RaidNow = raid != null ? EntryKeys.For(Kind.Raid, raid.m_name) : null;
-            if (raid != null) _catchUp.LivedThrough(RaidNow, _book);
+            LivedThrough(raid, player.transform.position);
             // A trader's store open: the trader known, its wares on show seen and paired with it.
             var trader = StoreGui.IsVisible() && StoreGui.instance != null ? TraderOf(StoreGui.instance) : null;
             if (trader != null) _catchUp.Traded(Utils.GetPrefabName(trader.gameObject), trader.GetAvailableItems().Where(t => t?.m_prefab != null).Select(t => t.m_prefab.name), _book);
@@ -641,6 +641,19 @@ namespace Scry
 
         /// <summary>The character saw a thing go together with another, the other shown on its strict page by how they go together, as news there (<see cref="CompendiumBook.SawWith"/>).</summary>
         public static void Saw(string thing, string other, Tie tie) => Into?.SawWith(thing, other, tie);
+
+        /// <summary>
+        /// A raid the character is in, standing at a point: known, and seen together with the biome
+        /// there where the raid counts that biome as its own, as the game does for its weather
+        /// (<c>RandomEvent.InEventBiome</c>), or with any biome for a raid that names none.
+        /// </summary>
+        public static void LivedThrough(RandomEvent raid, Vector3 at)
+        {
+            if (raid == null || Into == null || _catchUp == null) return;
+            var key = EntryKeys.For(Kind.Raid, raid.m_name);
+            _catchUp.LivedThrough(key, Into);
+            if (raid.m_biome == Heightmap.Biome.None || raid.InEventBiome()) MetInBiome(key, at);
+        }
 
         /// <summary>The character met a thing where it stands: with the biome there, and the place it is in.</summary>
         public static void MetIn(string key, Vector3 at)

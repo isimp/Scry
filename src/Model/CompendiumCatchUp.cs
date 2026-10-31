@@ -323,8 +323,7 @@ namespace Scry
         }
 
         /// <summary>
-        /// The raid the character is in, as news: known, and paired with the creatures it brings
-        /// that the character has met, for the strict rules. True when it was learned more of.
+        /// The raid the character is in, as news: known. True when it was learned more of.
         /// </summary>
         public bool LivedThrough(string raid, CompendiumBook book)
         {
