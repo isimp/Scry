@@ -30,7 +30,6 @@ namespace Scry.Tests
             ["selftest/SelfTest.PlanBox.cs SelfTest.PlanBoxShows"] = 493,
             ["selftest/SelfTest.Play.cs SelfTest.CompendiumHooksFed"] = 122,
             ["selftest/SelfTest.Stage.cs SelfTest.GroundBackdrop"] = 133,
-            ["src/Catalog/Facts/Facts.Resources.cs Facts.Resource"] = 122,
             ["src/Preview/Stage.Framing.cs Stage.Frame"] = 127,
             ["src/UI/ScryPanel.Header.cs ScryPanel.BookLayout"] = 125,
             ["src/UI/Skin.cs Skin.Ensure"] = 203,

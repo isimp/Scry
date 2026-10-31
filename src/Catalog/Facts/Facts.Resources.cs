@@ -34,6 +34,41 @@ namespace Scry
             _drops = true;
         }
 
+        /// <summary>A pickable's rows: what a pick gives, how long it takes to grow back and what that makes a day, what else it drops, and the skill picking it trains.</summary>
+        private void Picks(Pickable pickable, GameObject prefab, bool givesNothing)
+        {
+            if (pickable == null || pickable.m_itemPrefab == null) return;
+            var picked = new Row { Title = GatherWords.Picked(oneOf: false) };
+            picked.Items.Add(new Ingredient
+            {
+                Icon = Icon(pickable.m_itemPrefab), Name = ItemName(pickable.m_itemPrefab),
+                Amount = Numbers.Count(pickable.m_amount), Prefab = pickable.m_itemPrefab.name,
+            });
+            Rows.Add(picked);
+            _drops = true;
+            if (pickable.m_respawnTimeMinutes > 0f) Add("Regrows in", Numbers.Duration(pickable.m_respawnTimeMinutes * 60f));
+            Proofs["Regrows in"] = EntryKeys.Did(Deed.GrewBack);
+            var day = EnvMan.instance != null ? EnvMan.instance.m_dayLengthSec : 1200L;
+            var yields = Yield.PerDay(pickable.m_amount, pickable.m_respawnTimeMinutes, day);
+            if (yields != null)
+            {
+                Add("Gives", GatherWords.PerDay(yields, day));
+                // How much it gives a day is worked out from how long it takes to grow back, so
+                // it waits for the same deed; a row of the same title saying it gives nothing
+                // when broken keeps showing.
+                if (!givesNothing) Proofs["Gives"] = EntryKeys.Did(Deed.GrewBack);
+            }
+            Drops(pickable.m_extraDrops, GatherWords.AlsoDrops, tallied: prefab.name);
+            // Picking it trains a skill, which makes one more likelier (Pickable.Interact).
+            if (pickable.m_pickRaiseSkill != Skills.SkillType.None && pickable.m_maxLevelBonusChance > 0f)
+            {
+                TrainsSkill(pickable.m_pickRaiseSkill);
+                Add("Bonus when picked", SkillWords.BonusSpan(pickable.m_bonusYieldAmount, pickable.m_maxLevelBonusChance));
+                YoursAt("Bonus when picked", pickable.m_pickRaiseSkill, level => SkillWords.Bonus(pickable.m_bonusYieldAmount, SkillMath.BonusChance(level, pickable.m_maxLevelBonusChance)));
+            }
+            if (pickable.m_respawnTimeMinutes > 0f) Hooked(HookedRule.Growth);
+        }
+
         /// <summary>
         /// What is chopped, mined, broken, picked or grown: how much it takes and with what tool,
         /// what it resists, and what it gives, as the game's own scripts hold it. A prefab can be
@@ -108,34 +143,10 @@ namespace Scry
                 if (dropping != null) Drops(dropping.m_dropWhenDestroyed, GatherWords.WhenBroken, tallied: prefab.name);
             }
             // What breaks and gives nothing says so.
-            if (broken && Gives() == giving) Add("Gives", GatherWords.NothingWhenBroken);
+            var givesNothing = broken && Gives() == giving;
+            if (givesNothing) Add("Gives", GatherWords.NothingWhenBroken);
 
-            var pickable = prefab.GetComponent<Pickable>();
-            if (pickable != null && pickable.m_itemPrefab != null)
-            {
-                var picked = new Row { Title = GatherWords.Picked(oneOf: false) };
-                picked.Items.Add(new Ingredient
-                {
-                    Icon = Icon(pickable.m_itemPrefab), Name = ItemName(pickable.m_itemPrefab),
-                    Amount = Numbers.Count(pickable.m_amount), Prefab = pickable.m_itemPrefab.name,
-                });
-                Rows.Add(picked);
-                _drops = true;
-                if (pickable.m_respawnTimeMinutes > 0f) Add("Regrows in", Numbers.Duration(pickable.m_respawnTimeMinutes * 60f));
-                Proofs["Regrows in"] = EntryKeys.Did(Deed.GrewBack);
-                var day = EnvMan.instance != null ? EnvMan.instance.m_dayLengthSec : 1200L;
-                var yields = Yield.PerDay(pickable.m_amount, pickable.m_respawnTimeMinutes, day);
-                if (yields != null) Add("Gives", GatherWords.PerDay(yields, day));
-                Drops(pickable.m_extraDrops, GatherWords.AlsoDrops, tallied: prefab.name);
-                // Picking it trains a skill, which makes one more likelier (Pickable.Interact).
-                if (pickable.m_pickRaiseSkill != Skills.SkillType.None && pickable.m_maxLevelBonusChance > 0f)
-                {
-                    TrainsSkill(pickable.m_pickRaiseSkill);
-                    Add("Bonus when picked", SkillWords.BonusSpan(pickable.m_bonusYieldAmount, pickable.m_maxLevelBonusChance));
-                    YoursAt("Bonus when picked", pickable.m_pickRaiseSkill, level => SkillWords.Bonus(pickable.m_bonusYieldAmount, SkillMath.BonusChance(level, pickable.m_maxLevelBonusChance)));
-                }
-                if (pickable.m_respawnTimeMinutes > 0f) Hooked(HookedRule.Growth);
-            }
+            Picks(prefab.GetComponent<Pickable>(), prefab, givesNothing);
 
             var found = prefab.GetComponent<PickableItem>();
             if (found != null) Guard.Run(Feature.WhatTreasureGives, "what a treasure gives", Treasure, found);
