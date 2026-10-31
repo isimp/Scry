@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -808,14 +809,39 @@ namespace Scry
         /// <summary>The weather last seen and the biome it was seen in, so each change of weather is counted once.</summary>
         private static (Heightmap.Biome Biome, string Weather) _weatherSeen;
 
-        /// <summary>The weather now in the biome the character stands in, counted where it changed (<see cref="CompendiumBook.Weathered"/>).</summary>
+        private static AccessTools.FieldRef<EnvMan, string> _forcedWeather;
+        private static Func<EnvMan, string> _weatherInPlace;
+        private static bool _triedWeather;
+
+        /// <summary>
+        /// Whether the weather now is the biome's own (<see cref="BiomeWeather.Own"/>), as the game
+        /// keeps the one a zone forces (<c>EnvMan.m_forceEnv</c>) and works out the one put in the
+        /// biome's place (<c>EnvMan.GetEnvironmentOverride</c>); not where those cannot be read.
+        /// </summary>
+        private static bool BiomesOwnWeather(EnvMan env)
+        {
+            if (!_triedWeather)
+            {
+                _triedWeather = true;
+                Guard.Each(Feature.CompendiumSeen, "telling a biome's own weather", "EnvMan.m_forceEnv", () => _forcedWeather = AccessTools.FieldRefAccess<EnvMan, string>("m_forceEnv"));
+                Guard.Each(Feature.CompendiumSeen, "telling a biome's own weather", "EnvMan.GetEnvironmentOverride", () => _weatherInPlace = AccessTools.MethodDelegate<Func<EnvMan, string>>(AccessTools.Method(typeof(EnvMan), "GetEnvironmentOverride")));
+            }
+            return _forcedWeather != null && _weatherInPlace != null && BiomeWeather.Own(_forcedWeather(env), _weatherInPlace(env));
+        }
+
+        /// <summary>
+        /// The weather now in the biome the character stands in, counted where it changed
+        /// (<see cref="CompendiumBook.Weathered"/>); one something else put in the biome's place, as
+        /// inside a crypt or during a raid, is none of the biome's and leaves the last one counted
+        /// as it was, so coming out to the same weather counts nothing again.
+        /// </summary>
         private static void Weather()
         {
             var env = EnvMan.instance;
             var now = env != null ? env.GetCurrentEnvironment() : null;
             if (now == null) return;
             var biome = env.GetCurrentBiome();
-            if (biome == Heightmap.Biome.None) return;
+            if (biome == Heightmap.Biome.None || !BiomesOwnWeather(env)) return;
             if (_weatherSeen.Biome == biome && _weatherSeen.Weather == now.m_name) return;
             _weatherSeen = (biome, now.m_name);
             _book.Weathered(biome.ToString(), now.m_name);

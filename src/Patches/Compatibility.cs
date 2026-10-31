@@ -422,6 +422,8 @@ namespace Scry
             ("RandEventSystem", "PlayerIsReadyForEvent", 2, 0xF3BBA83A, Feature.CompendiumTiers),
             ("Room", "GetConnections", 0, 0xB3701829, Feature.ExampleDungeonAndCampLayouts),
             ("RuneStone", "GetRandomText", 0, 0x309CE075, Feature.RunestoneTexts),
+            // A biome's weather counts only where nothing puts another in its place.
+            ("EnvMan", "GetEnvironmentOverride", 0, 0x469036CF, Feature.CompendiumSeen),
             ("RuneStone", "Interact", 3, 0xB26864BA, Feature.RunestoneTexts),
             // The game keeps a text read only where it has a label, so the book keeps every text read too.
             ("Player", "AddKnownText", 2, 0x237D09AE, Feature.CompendiumTextsRead),
@@ -498,6 +500,7 @@ namespace Scry
             Each("ZSFX.m_fadeOutTimer", () => Member(list, "ZSFX", "m_fadeOutTimer", Feature.SoundsAfterSeek));
             Each("CharacterDrop.m_dropsEnabled", () => Member(list, "CharacterDrop", "m_dropsEnabled", Feature.DropsSeenInPlay));
             Each("Pickable.m_picked", () => Member(list, "Pickable", "m_picked", Feature.CompendiumTogether));
+            Each("EnvMan.m_forceEnv", () => Member(list, "EnvMan", "m_forceEnv", Feature.CompendiumSeen));
             Each("Pickable.m_enabled", () => Member(list, "Pickable", "m_enabled", Feature.CompendiumTogether));
             Each("Player.m_knownMaterial", () => Member(list, "Player", "m_knownMaterial", Feature.CompendiumCatchUp));
             Each("Character.m_lastHit", () => Member(list, "Character", "m_lastHit", Feature.CompendiumDeaths));
