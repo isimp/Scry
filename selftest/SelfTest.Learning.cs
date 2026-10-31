@@ -126,9 +126,28 @@ namespace Scry
             else p.Note("no crafting station with upgrades loaded near by: its rows untried");
 
             RaidLivedThroughTells(p, at, biome, Fresh, Shows);
+            VegvisirReadTells(p, Fresh, Shows);
 
             CompendiumKeeper.RecordInto(null);
             p.Check(real.Version == version && real.PairsVersion == pairs, "the character's book was left alone");
+        }
+
+        /// <summary>A Vegvisir loaded in a place, read: the place it marks seen together with the place it stands in, under the strict rules.</summary>
+        private static void VegvisirReadTells(Probe p, System.Func<CompendiumBook> fresh, System.Func<CompendiumBook, Entry, Entry, bool> shows)
+        {
+            var stone = Object.FindObjectsByType<Vegvisir>(FindObjectsSortMode.None)
+                .FirstOrDefault(v => v != null && Location.GetLocation(v.transform.position) != null && v.m_locations != null && v.m_locations.Any(l => !string.IsNullOrEmpty(l?.m_locationName)));
+            var holder = stone != null ? X.Find(EntryKeys.For(Kind.Location, Utils.GetPrefabName(Location.GetLocation(stone.transform.position).gameObject))) : null;
+            var name = stone != null ? stone.m_locations.First(l => !string.IsNullOrEmpty(l?.m_locationName)).m_locationName : null;
+            var marked = name != null ? X.Find(EntryKeys.For(Kind.Location, name)) : null;
+            if (holder == null || marked == null || holder == marked)
+            {
+                p.Note("no Vegvisir is loaded in a place to read: its place untried");
+                return;
+            }
+            var book = fresh();
+            CompendiumKeeper.Marked(stone.gameObject, name);
+            p.Check(shows(book, holder, marked), $"a Vegvisir read in {holder.Name} shows the place it marks, {marked.Name}, with it under the strict rules");
         }
 
         /// <summary>A raid lived through where the character stands, one of the world's that counts the biome there as its own: known, its biome shown under the strict rules.</summary>

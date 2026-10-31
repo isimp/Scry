@@ -544,7 +544,9 @@ namespace Scry
         /// <summary>
         /// A place a Vegvisir or a rune stone marked on the character's map: kept as a place marked
         /// for it in this world (<see cref="WorldSource.Marked"/>), shown through that row and never
-        /// written into the book, as the character never looked at it, and paired with the stone.
+        /// written into the book, as the character never looked at it, and paired with the stone and
+        /// with the place the stone stands in. A stone with no network view of its own sits under
+        /// its place's proxy, so the place is found where the stone stands, not by that view.
         /// </summary>
         public static void Marked(GameObject vegvisir, string place)
         {
@@ -553,6 +555,8 @@ namespace Scry
             Into.FoundIn(CompendiumMap.World, WorldSource.Marked, new[] { place });
             var stone = vegvisir.GetComponentInParent<ZNetView>();
             Into.Witness(Utils.GetPrefabName((stone != null ? stone.gameObject : vegvisir)), key);
+            var holder = PlaceKeyAt(vegvisir.transform.position);
+            if (holder != null && holder != key) Into.Witness(holder, key);
         }
 
         /// <summary>What the character used or hit lately, for what comes from it (<see cref="ActedOn"/>).</summary>
