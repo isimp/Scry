@@ -57,13 +57,11 @@ namespace Scry.Tests
         }
 
         [Theory]
-        [InlineData("", true, true, "Whole")]
-        [InlineData("defeated_bonemass", false, false, "Whole")]
-        [InlineData("defeated_gdking", true, false, "Whole")]
-        [InlineData("defeated_gdking", true, true, "Whole")]
-        [InlineData("defeated_bonemass", true, false, "Counted")]
-        [InlineData("defeated_bonemass", true, true, "Counted")]
-        public void WaresWaitingForABossNotYetFallenAreCountedNotNamed(string key, bool namesOnlyMet, bool strict, string shown)
+        [InlineData("", true, "Whole")]
+        [InlineData("defeated_bonemass", false, "Whole")]
+        [InlineData("defeated_gdking", true, "Whole")]
+        [InlineData("defeated_bonemass", true, "Counted")]
+        public void WaresWaitingForABossNotYetFallenAreCountedNotNamed(string key, bool namesOnlyMet, string shown)
         {
             // The Elder has fallen in this world, Bonemass not.
             bool Fallen(string k) => k == "defeated_gdking";
