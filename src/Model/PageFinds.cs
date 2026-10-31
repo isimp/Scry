@@ -14,6 +14,12 @@ namespace Scry
         /// <summary>How many of the names counted are still left out, not yet seen together with the page.</summary>
         public int NamesLeft { get; private set; }
 
+        /// <summary>How many of the names left out were never met, to meet first.</summary>
+        public int NamesUnmet { get; private set; }
+
+        /// <summary>How many of the names left out were met but not yet seen together with the page.</summary>
+        public int NamesApart => NamesLeft - NamesUnmet;
+
         /// <summary>Whether the page keeps anything back at all, found or not.</summary>
         public bool Any => Of > 0;
 
@@ -27,11 +33,13 @@ namespace Scry
             if (!kept) Found++;
         }
 
-        /// <summary>One more name the page could leave out under the rules, still left out or shown, seen together with it.</summary>
-        public void Name(bool kept)
+        /// <summary>One more name the page could leave out under the rules, still left out (never met, <paramref name="unmet"/>, or met) or shown, seen together with it.</summary>
+        public void Name(bool kept, bool unmet = false)
         {
             Count(kept);
-            if (kept) NamesLeft++;
+            if (!kept) return;
+            NamesLeft++;
+            if (unmet) NamesUnmet++;
         }
     }
 }

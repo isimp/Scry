@@ -62,7 +62,7 @@ namespace Scry
             Sourced(explorer, facts, deeds, uncounted, finds);
             var (starsUnseen, gearUnseen) = SightLacks(explorer, facts, finds);
             _gatheredLined = PageNames(explorer, facts, finds);
-            return (CompendiumWords.StillToFindOut(deeds, types, attacks, spots, uncounted, starsUnseen, gearUnseen, explorer.Selected?.Kind == Kind.Item, finds.NamesLeft), finds);
+            return (CompendiumWords.StillToFindOut(deeds, types, attacks, spots, uncounted, starsUnseen, gearUnseen, explorer.Selected?.Kind == Kind.Item, finds.NamesApart, finds.NamesUnmet), finds);
         }
 
         /// <summary>
@@ -152,7 +152,7 @@ namespace Scry
             {
                 if (kept)
                 {
-                    _finds.Name(true);
+                    _finds.Name(true, _explorer.NotMet(key));
                     if (lined) Lined++;
                 }
                 else if (_explorer.Hideable(key, gameShown)) _finds.Name(false);

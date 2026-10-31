@@ -47,11 +47,28 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void TheYouBoxSaysHowManyNamesWaitToBeSeenTogether()
+        public void ANameLeftOutIsCountedAsNeverMetOrAsMetButNotSeenTogether()
         {
-            Assert.Contains(("See it together", "12 things it names"), CompendiumWords.StillToFindOut(new string[0], new string[0], 0, 0, new Tally[0], namesLeft: 12));
-            Assert.Contains(("See it together", "1 thing it names"), CompendiumWords.StillToFindOut(new string[0], new string[0], 0, 0, new Tally[0], namesLeft: 1));
-            Assert.Empty(CompendiumWords.StillToFindOut(new string[0], new string[0], 0, 0, new Tally[0], namesLeft: 0));
+            var finds = new PageFinds();
+            finds.Name(kept: true, unmet: true);
+            finds.Name(kept: true, unmet: false);
+            finds.Name(kept: true, unmet: true);
+            finds.Name(kept: false, unmet: false);
+            Assert.Equal(3, finds.NamesLeft);
+            Assert.Equal(2, finds.NamesUnmet);
+            Assert.Equal(1, finds.NamesApart);
+        }
+
+        [Fact]
+        public void TheYouBoxSaysApartWhatToMeetFirstAndWhatToSeeTogether()
+        {
+            // Each is a different thing to do, so each is its own row of the You box and the chip's tip.
+            Assert.Equal(new[] { ("Meet first", "3 things it names"), ("See it together", "12 things it names") },
+                CompendiumWords.StillToFindOut(new string[0], new string[0], 0, 0, new Tally[0], namesApart: 12, namesUnmet: 3));
+            Assert.Contains(("See it together", "12 things it names"), CompendiumWords.StillToFindOut(new string[0], new string[0], 0, 0, new Tally[0], namesApart: 12));
+            Assert.Contains(("See it together", "1 thing it names"), CompendiumWords.StillToFindOut(new string[0], new string[0], 0, 0, new Tally[0], namesApart: 1));
+            Assert.Equal(new[] { ("Meet first", "1 thing it names") }, CompendiumWords.StillToFindOut(new string[0], new string[0], 0, 0, new Tally[0], namesUnmet: 1));
+            Assert.Empty(CompendiumWords.StillToFindOut(new string[0], new string[0], 0, 0, new Tally[0], namesApart: 0));
             // The chip's tip lists it with the rest, so a click goes to it.
             Assert.Equal("Still to find out:\nSee it together · 12 things it names\nA click goes to them in its You box",
                 CompendiumWords.FindsTip(new[] { ("See it together", "12 things it names") }));

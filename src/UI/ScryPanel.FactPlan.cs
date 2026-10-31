@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Scry
@@ -140,7 +141,7 @@ namespace Scry
                 foreach (var tile in topic.Tiles)
                 {
                     var named = facts.Links.TryGetValue(facts.Pairs[tile].Key, out var linked) && InCatalog(explorer, linked);
-                    if (named && explorer.LeavesOut(linked, GameShows(explorer, facts, facts.Pairs[tile].Key))) StrictLeft(1);
+                    if (named && explorer.LeavesOut(linked, GameShows(explorer, facts, facts.Pairs[tile].Key))) StrictLeft(explorer, linked);
                     else
                     {
                         ShownTiles.Add(tile);
@@ -319,7 +320,7 @@ namespace Scry
             // A table the compendium's rules leave every line out of draws nothing, its title and headings neither.
             if (row.Lines.Count > 0 && explorer.NamesOnlyMet && row.Lines.TrueForAll(l => !string.IsNullOrEmpty(l.Link) && explorer.LeavesOut(l.Link)))
             {
-                StrictLeft(row.Lines.Count);
+                StrictLeft(explorer, row.Lines.Select(l => l.Link));
                 CountDrawn(PanelPart.EmptyRowLeftOut);
                 return y;
             }
@@ -357,7 +358,7 @@ namespace Scry
                 // A line of what was not seen together with the page (an attack never seen) is left out.
                 if (LineLeftOut(explorer, row, link))
                 {
-                    StrictLeft(1);
+                    StrictLeft(explorer, link);
                     continue;
                 }
                 var attackKept = AttackKept(explorer, row, l);
@@ -703,7 +704,7 @@ namespace Scry
             // telling what is still to find out, it is left out or hinted at.
             if (facts.Links.TryGetValue(pair.Key, out var linked) && explorer.LeavesOut(linked, GameShows(explorer, facts, pair.Key)))
             {
-                StrictLeft(1);
+                StrictLeft(explorer, linked);
                 return y;
             }
             if (facts.Proofs.TryGetValue(pair.Key, out var proof) && explorer.KeepsBack(proof))

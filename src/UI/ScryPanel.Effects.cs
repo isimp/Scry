@@ -168,7 +168,7 @@ namespace Scry
             // A titled row the compendium's rules leave with nothing draws nothing, its title neither.
             if (title != null && members.Count > 0 && explorer.NamesOnlyMet && members.All(explorer.LeavesOut))
             {
-                StrictLeft(members.Count);
+                StrictLeft(explorer, members);
                 CountDrawn(PanelPart.EmptyRowLeftOut);
                 return y;
             }
@@ -223,9 +223,9 @@ namespace Scry
         /// <summary>The owners of the row being drawn the rules keep, by their place in its list; kept so no frame makes a new list.</summary>
         private static readonly List<int> KeptOwners = new List<int>();
 
-        /// <summary>The Plays in rows with an owner the rules keep, and how many owners the rows left out had; worked out again as what the character knows changes.</summary>
+        /// <summary>The Plays in rows with an owner the rules keep, and how many owners the rows left out had, never met and met; worked out again as what the character knows changes.</summary>
         private static readonly List<PlaysInRow> PlaysInKept = new List<PlaysInRow>();
-        private static int _playsInLeft;
+        private static int _playsInUnmet, _playsInApart;
         private static int _playsInStamp = -1;
         private static List<PlaysInRow> _playsInKeptOf;
 
@@ -250,11 +250,18 @@ namespace Scry
             _playsInStamp = explorer.KnowStamp;
             _playsInKeptOf = _playsInRows;
             PlaysInKept.Clear();
-            _playsInLeft = 0;
+            _playsInUnmet = 0;
+            _playsInApart = 0;
             foreach (var row in _playsInRows)
             {
-                if (row.Owners.Exists(o => o.Key == null || !explorer.LeavesOut(o.Key))) PlaysInKept.Add(row);
-                else _playsInLeft += row.Owners.Count;
+                if (row.Owners.Exists(o => o.Key == null || !explorer.LeavesOut(o.Key)))
+                {
+                    PlaysInKept.Add(row);
+                    continue;
+                }
+                var unmet = row.Owners.Count(o => explorer.NotMet(o.Key));
+                _playsInUnmet += unmet;
+                _playsInApart += row.Owners.Count - unmet;
             }
             return PlaysInKept;
         }
@@ -284,7 +291,7 @@ namespace Scry
             y = SectionHeading("PLAYS IN", width, y, null, "playsin", rows.Count > 0 ? rows.Count : -1);
             if (IsFolded("playsin")) return y;
             StrictSectionStarts();
-            StrictLeft(_playsInLeft);
+            StrictLeft(_playsInUnmet, _playsInApart);
             // Each row is a list of its own, so fewer show before the rest are asked for.
             const int firstRows = 8;
             var rowH = U(26f);
@@ -323,7 +330,7 @@ namespace Scry
                 KeptOwners.Clear();
                 for (var o = 0; o < row.Owners.Count; o++)
                 {
-                    if (row.Owners[o].Key != null && explorer.LeavesOut(row.Owners[o].Key)) StrictLeft(1);
+                    if (row.Owners[o].Key != null && explorer.LeavesOut(row.Owners[o].Key)) StrictLeft(explorer, row.Owners[o].Key);
                     else
                     {
                         KeptOwners.Add(o);
@@ -358,8 +365,8 @@ namespace Scry
             {
                 foreach (var row in rows.Skip(ShownOf("playsin", rows.Count, firstRows)))
                 {
-                    foreach (var owner in row.Owners) if (owner.Key != null && explorer.LeavesOut(owner.Key)) StrictLeft(1);
-                    if (row.List is EffectList) StrictLeft(row.Members.Count(explorer.LeavesOut));
+                    foreach (var owner in row.Owners) if (owner.Key != null && explorer.LeavesOut(owner.Key)) StrictLeft(explorer, owner.Key);
+                    if (row.List is EffectList) StrictLeft(explorer, row.Members.Where(explorer.LeavesOut));
                 }
             }
 

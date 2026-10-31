@@ -246,6 +246,36 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void UnderStrictASectionSaysApartWhatToMeetAndWhatToSeeTogether()
+        {
+            // What was never met and what was met but not seen with the page wait for different
+            // things, so each gets its own line and its hover says the way to it.
+            var world = new World().Rule(CompendiumRule.Strict);
+            world.Explorer.Select(world.Windmill);
+            Assert.Equal(new[]
+            {
+                ("9 more not yet met", CompendiumWords.MeetFirstTip(strict: true)),
+                ("3 more not yet seen together", CompendiumWords.TogetherTip("fight")),
+            }, world.Explorer.LeftOutLines("fight", unmet: 9, apart: 3));
+            // Alone, where the section names nothing else; only one line where only one kind was left out.
+            Assert.Equal(new[] { ("2 not yet seen fall", CompendiumWords.TogetherTip("loot")) }, world.Explorer.LeftOutLines("loot", 0, 2, alone: true));
+            Assert.Equal(new[] { ("1 more not yet met", CompendiumWords.MeetFirstTip(strict: true)) }, world.Explorer.LeftOutLines("from", 1, 0));
+            // Where it lives: a place never found apart from a place found but where it was not met.
+            Assert.Equal(new[]
+            {
+                ("2 more places it lives not yet found", CompendiumWords.MeetFirstTip(strict: true)),
+                ("1 more place it lives not yet met in", CompendiumWords.TogetherTip("lives")),
+            }, world.Explorer.LeftOutLines("lives", 2, 1));
+            Assert.Empty(world.Explorer.LeftOutLines("fight", 0, 0));
+
+            // Loose leaves out only what was never met, in one line where the player can act on it.
+            world.Rule(CompendiumRule.Loose);
+            Assert.Equal(new[] { ("2 more not yet met", CompendiumWords.MeetFirstTip(strict: false)) }, world.Explorer.LeftOutLines("loot", 2, 0));
+            Assert.Equal(new[] { ("3 more not yet met", CompendiumWords.MeetFirstTip(strict: false)) }, world.Explorer.LeftOutLines("loot", 2, 1));
+            Assert.Empty(world.Explorer.LeftOutLines("making", 2, 0));
+        }
+
+        [Fact]
         public void UnderStrictEverySectionSaysHowManyItLeftOut()
         {
             // Strict leaves out what was not seen together with the page; each section says how

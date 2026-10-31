@@ -390,25 +390,6 @@ namespace Scry
         private bool NamesAllHeld(Entry other) => other.Kind != Kind.Skill && (_view.HoldsNamed(_selected) || _view.HeldByWalks(_selected, other));
 
         /// <summary>
-        /// The faint line at a section's end telling how many things its page left out, in the
-        /// words of the rules leaving them out: what the character has not met, or under the
-        /// strict rules what it has not seen together (<see cref="CompendiumWords.LeftOutOf"/>);
-        /// without "more" where the section lists nothing else (<paramref name="alone"/>). Under
-        /// the strict rules for every section; otherwise only for a creature's loot, where it
-        /// lives, a room's card and a raid, counts the player can act on.
-        /// </summary>
-        public string LeftOutLine(string topic, int count, bool alone = false)
-        {
-            // Strict leaves out what was not seen together with the page: every section says how
-            // many, so the page never goes quiet on what it keeps back.
-            if (LeavingOut) return CompendiumWords.LeftOutOf(topic, count, alone);
-            // Otherwise only a count the player can act on is said: drops not yet seen fall, places it
-            // lives not met in, what a dungeon room's card holds not yet met, and what a raid brings not yet met.
-            if (topic != "loot" && topic != "lives" && topic != "room" && topic != "raid") return null;
-            return CompendiumWords.NotYetMet(topic, count, alone);
-        }
-
-        /// <summary>
         /// Whether the page shown keeps back how it takes a damage type, where a hit's popup tells
         /// it (a creature, or anything that breaks): under the strict rules, on a known page above
         /// the milestone floor, a type the game never told the character on a hit of it (<see cref="HitTold"/>).

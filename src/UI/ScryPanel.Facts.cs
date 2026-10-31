@@ -214,7 +214,7 @@ namespace Scry
                 if (facts.Listing.Contains(pair.Key) && LeftOut(explorer, linked)) return y;
                 if (explorer.LeavesOut(linked, GameShows(explorer, facts, pair.Key)))
                 {
-                    StrictLeft(1);
+                    StrictLeft(explorer, linked);
                     return y;
                 }
             }
@@ -342,7 +342,7 @@ namespace Scry
             // page counting this character's own, and under the loose rules where its giver was not met.
             // One counted over every character's play stands faint under the strict rules, as a creature's rows do, uncounted for your character;
             // its giver not met, it is left out as any line naming one not met is.
-            var where = ShownStrictly(explorer, facts.Where, s => s.AllPlay
+            var where = ShownStrictly(explorer, facts.Where, s => s.Prefab, s => s.AllPlay
                 ? explorer.NotMet(s.Prefab)
                 : explorer.LeavesOut(s.Prefab, false, TieOfSource(s.Record)) || explorer.LeavesOutAll(s.MetIn));
             if (where.Count == 0) return y;
@@ -496,8 +496,8 @@ namespace Scry
             // searching; a biome's own page names none.
             if (entry.Biomes.Length > 0 && entry.Kind != Kind.Biome)
             {
-                var biomesLeft = entry.Biomes.Count(b => explorer.LeavesOut(EntryKeys.For(Kind.Biome, b)));
-                StrictLeft(biomesLeft);
+                var biomesLeft = entry.Biomes.Select(b => EntryKeys.For(Kind.Biome, b)).Where(explorer.LeavesOut);
+                StrictLeft(explorer, biomesLeft);
                 y = ChipRow("Biomes", entry.Biomes.Where(b => !explorer.LeavesOut(EntryKeys.For(Kind.Biome, b))).Select(b =>
                 {
                     var page = EntryKeys.For(Kind.Biome, b);

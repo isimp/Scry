@@ -445,11 +445,12 @@ namespace Scry
         /// What a known page under the strict rules still keeps back, for the You box at its top,
         /// a row for each thing to do and what it shows: the deeds whose numbers it keeps back
         /// (each once), the damage types whose landing it keeps back, the attacks not yet taken,
-        /// the weak spots not yet found, the counts of drops or yields not yet seen, and, for the
-        /// stage, the star levels and the gear not yet seen up close.
+        /// the weak spots not yet found, the counts of drops or yields not yet seen, for the
+        /// stage the star levels and the gear not yet seen up close, and last the names it leaves
+        /// out, those never met (to meet first) apart from those met but not seen together.
         /// </summary>
         public static List<(string Label, string Value)> StillToFindOut(IEnumerable<string> deeds, IReadOnlyList<string> types, int attacks, int spots, IEnumerable<Tally> uncounted,
-            IEnumerable<int> starsUnseen = null, IEnumerable<string> gearUnseen = null, bool ofItem = false, int namesLeft = 0)
+            IEnumerable<int> starsUnseen = null, IEnumerable<string> gearUnseen = null, bool ofItem = false, int namesApart = 0, int namesUnmet = 0)
         {
             var rows = new List<(string, string)>();
             var pending = new HashSet<Deed>();
@@ -489,7 +490,8 @@ namespace Scry
             if (tallies.Contains(Tally.Weather)) rows.Add(("Spend time in it", "how often each weather comes"));
             foreach (var stars in starsUnseen ?? Array.Empty<int>()) rows.Add(($"See {Naming.Count(stars, "star", "stars")} up close", "shows it so on the stage"));
             foreach (var gear in gearUnseen ?? Array.Empty<string>()) rows.Add(("See it carry", $"{gear} up close: dresses it so on the stage"));
-            if (namesLeft > 0) rows.Add(("See it together", Naming.Count(namesLeft, "thing it names", "things it names")));
+            if (namesUnmet > 0) rows.Add(("Meet first", Naming.Count(namesUnmet, "thing it names", "things it names")));
+            if (namesApart > 0) rows.Add(("See it together", Naming.Count(namesApart, "thing it names", "things it names")));
             return rows;
         }
 
@@ -542,9 +544,34 @@ namespace Scry
         /// <summary>The hover of a chain's step kept back under the strict rules, named by the chain's own links (<see cref="Chain.Linked"/>).</summary>
         public const string ChainStepKeptTip = "Named once you see it go to the step before or after it";
 
-        /// <summary>The hover of a section's line counting what the rules left out: what names them here.</summary>
-        public static string LeftOutTip(bool strict) =>
-            strict ? "Named here once you see each together with this page; met elsewhere, it stays left out here" : "Named here once you meet each";
+        /// <summary>The hover of a section's line counting what the rules left out as never met: meeting it, the first step to its being named here.</summary>
+        public static string MeetFirstTip(bool strict) => strict ? "Met nowhere yet: meet each first" : "Named here once you meet each";
+
+        /// <summary>
+        /// The hover of a section's line counting what the strict rules left out though met: the
+        /// way it comes to be seen together with the page, by the section's topic.
+        /// </summary>
+        public static string TogetherTip(string topic)
+        {
+            switch (topic)
+            {
+                case "loot": return "Met, not yet seen to fall from this: named here once you see one drop as this dies";
+                case "from": return "Met, not yet seen to give this: named here once you see this come of it, picked, broken, mined, made or dropped";
+                case "lives": return "Met, but not in this place: named here once you meet this there";
+                case "room": return "Met, not yet seen in this room's dungeon: named here once you see it inside one";
+                default:
+                    return "Met, not yet seen together with this page: named here once you see the two go together in play, "
+                        + "as a drop falls, a ware stands in a store, an item goes into or comes out of a station, a tool breaks it or a creature eats it";
+            }
+        }
+
+        /// <summary>What the strict rules left out of a section as never met, said apart from what was met but not seen together: a creature's places not yet found, anything else not yet met.</summary>
+        public static string NeverMet(string topic, int count, bool alone = false)
+        {
+            if (count <= 0) return null;
+            var more = Numbers.Count(count) + (alone ? "" : " more");
+            return topic == "lives" ? more + (count == 1 ? " place" : " places") + " it lives not yet found" : more + " not yet met";
+        }
 
         /// <summary>The faint line under a section whose recipe rows wait for the game to list them for the character.</summary>
         public static string RecipeRowsWait(int rows) => rows == 1 ? "1 recipe row waits for the game to list it" : $"{Numbers.Count(rows)} recipe rows wait for the game to list them";

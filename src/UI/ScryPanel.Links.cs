@@ -515,13 +515,14 @@ namespace Scry
         /// </summary>
         public static bool Maskable(Entry entry) => NameMask.Keeps(entry, entry.Source is PlaceSource place && Places.NamedByWords(place.Contents, place.IsRoom));
 
-        /// <summary>How many things the strict rules left out of the section being drawn, for its last line (<see cref="StrictLeftLine"/>).</summary>
-        private static int _strictLeft;
+        /// <summary>How many things the rules left out of the section being drawn as never met, and as met but not seen together, for its last lines (<see cref="StrictLeftLine"/>).</summary>
+        private static int _strictUnmet, _strictApart;
 
         /// <summary>A section begins: what the strict rules leave out is counted afresh.</summary>
         private static void StrictSectionStarts()
         {
-            _strictLeft = 0;
+            _strictUnmet = 0;
+            _strictApart = 0;
             _recipesWait = 0;
             _strictNamed = 0;
         }
@@ -535,13 +536,34 @@ namespace Scry
         /// <summary>Counts a recipe row the section being drawn leaves out, waiting for the game to list it, for its last line.</summary>
         private static void RecipeWaiting() => _recipesWait++;
 
-        /// <summary>Counts things the strict rules left out of the section being drawn, and of the page unless they show only while a list plays (<see cref="_passing"/>).</summary>
-        private static void StrictLeft(int count)
+        /// <summary>
+        /// Counts things the rules left out of the section being drawn, those never met apart from
+        /// those met but not seen together, and of the page unless they show only while a list
+        /// plays (<see cref="_passing"/>).
+        /// </summary>
+        private static void StrictLeft(int unmet, int apart)
         {
-            if (count <= 0) return;
-            _strictLeft += count;
-            if (!_passing) _drawLeft += count;
+            if (unmet <= 0 && apart <= 0) return;
+            _strictUnmet += Math.Max(0, unmet);
+            _strictApart += Math.Max(0, apart);
+            if (!_passing) _drawLeft += Math.Max(0, unmet) + Math.Max(0, apart);
         }
+
+        /// <summary>Counts names the rules left out of the section being drawn, each as never met or as met but not seen together (<see cref="Explorer.NotMet"/>).</summary>
+        private static void StrictLeft(Explorer explorer, IEnumerable<string> keys)
+        {
+            var unmet = 0;
+            var apart = 0;
+            foreach (var key in keys)
+            {
+                if (explorer.NotMet(key)) unmet++;
+                else apart++;
+            }
+            StrictLeft(unmet, apart);
+        }
+
+        /// <summary>Counts one name the rules left out of the section being drawn (<see cref="StrictLeft(Explorer, IEnumerable{string})"/>).</summary>
+        private static void StrictLeft(Explorer explorer, string key) => StrictLeft(explorer, new[] { key });
 
         /// <summary>Whether what is drawn shows only while a list plays, the parts of the effect list or clip played last: no part of the page's own count.</summary>
         private static bool _passing;
@@ -589,21 +611,24 @@ namespace Scry
         }
 
         /// <summary>
-        /// Under the strict rules, what the section just drawn left out, said faintly at its end
-        /// by what the section is about (<see cref="CompendiumWords.LeftOutOf"/>); nothing where
-        /// nothing was. Starts the count afresh for the next section.
+        /// What the section just drawn left out, said faintly at its end by what the section is
+        /// about, what was never met apart from what was met but not seen together, each line's
+        /// hover saying the way to it (<see cref="Explorer.LeftOutLines"/>); nothing where nothing
+        /// was. Starts the count afresh for the next section.
         /// </summary>
         private static float StrictLeftLine(Explorer explorer, string topic, float width, float y)
         {
-            var left = _strictLeft;
+            var (unmet, apart) = (_strictUnmet, _strictApart);
             var waiting = _recipesWait;
-            _strictLeft = 0;
+            _strictUnmet = 0;
+            _strictApart = 0;
             _recipesWait = 0;
             if (!explorer.NamesOnlyMet) return y;
             // Names left out alone are said here, as they are gone from the page; a weak spot not
             // found, as every number held back, is in the You box's list. A recipe row waiting for
             // the game to list it is said the same way, so the page does not go silent on it.
-            y = HintLine(explorer.LeftOutLine(topic, left, alone: _strictNamed == 0), "strict-left:", topic, PanelPart.StrictLeftOut, width, y, CompendiumWords.LeftOutTip(explorer.LeavingOut));
+            var lines = explorer.LeftOutLines(topic, unmet, apart, alone: _strictNamed == 0);
+            for (var i = 0; i < lines.Count; i++) y = HintLine(lines[i].Line, "strict-left:", lines[i].Line, PanelPart.StrictLeftOut, width, y, lines[i].Tip);
             return HintLine(waiting > 0 ? CompendiumWords.RecipeRowsWait(waiting) : null, "recipe-wait:", topic, PanelPart.RecipeWaits, width, y);
         }
 
@@ -638,15 +663,19 @@ namespace Scry
         /// what the character has met, under the strict rules only what was seen together with the
         /// page or is part of it; all of it otherwise. Worked out
         /// once for each list while what the character knows and the page stay the same. What it
-        /// leaves out is counted for the section's last line (<see cref="StrictLeft"/>).
+        /// leaves out is counted for the section's last line (<see cref="StrictLeft(int, int)"/>).
         /// </summary>
         private static IReadOnlyList<T> ShownStrictly<T>(Explorer explorer, IReadOnlyList<T> items, Func<T, string> key, bool gameShown = false)
         {
-            return ShownStrictly(explorer, items, item => explorer.LeavesOut(key(item), gameShown));
+            return ShownStrictly(explorer, items, key, item => explorer.LeavesOut(key(item), gameShown));
         }
 
-        /// <summary>What a list keeps under the strict rules, each item left out as it says (<see cref="ShownStrictly{T}(Explorer, IReadOnlyList{T}, Func{T, string}, bool)"/>).</summary>
-        private static IReadOnlyList<T> ShownStrictly<T>(Explorer explorer, IReadOnlyList<T> items, Func<T, bool> leftOut)
+        /// <summary>
+        /// What a list keeps under the strict rules, each item left out as it says
+        /// (<see cref="ShownStrictly{T}(Explorer, IReadOnlyList{T}, Func{T, string}, bool)"/>), what
+        /// it leaves out counted by its key as never met or as met but not seen together.
+        /// </summary>
+        private static IReadOnlyList<T> ShownStrictly<T>(Explorer explorer, IReadOnlyList<T> items, Func<T, string> key, Func<T, bool> leftOut)
         {
             if (!explorer.NamesOnlyMet) return items;
             if (!ReferenceEquals(_strictIn, explorer) || _strictStamp != explorer.KnowStamp || _strictSelection != explorer.SelectionVersion || StrictLists.Count > 256)
@@ -658,16 +687,22 @@ namespace Scry
             }
             if (StrictLists.TryGetValue(items, out var had))
             {
-                StrictLeft(items.Count - ((IReadOnlyList<T>)had).Count);
-                _strictNamed += ((IReadOnlyList<T>)had).Count;
-                return (IReadOnlyList<T>)had;
+                var (kept, unmet) = ((IReadOnlyList<T>, int))had;
+                StrictLeft(unmet, items.Count - kept.Count - unmet);
+                _strictNamed += kept.Count;
+                return kept;
             }
-            var kept = new List<T>();
-            foreach (var item in items) if (!leftOut(item)) kept.Add(item);
-            IReadOnlyList<T> shown = kept.Count == items.Count ? items : kept;
+            var keeping = new List<T>();
+            var neverMet = 0;
+            foreach (var item in items)
+            {
+                if (!leftOut(item)) keeping.Add(item);
+                else if (explorer.NotMet(key(item))) neverMet++;
+            }
+            IReadOnlyList<T> shown = keeping.Count == items.Count ? items : keeping;
             _strictNamed += shown.Count;
-            StrictLists[items] = shown;
-            StrictLeft(items.Count - shown.Count);
+            StrictLists[items] = (shown, neverMet);
+            StrictLeft(neverMet, items.Count - shown.Count - neverMet);
             return shown;
         }
 
