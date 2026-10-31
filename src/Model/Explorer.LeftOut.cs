@@ -56,5 +56,26 @@ namespace Scry
             // was not yet met.
             return LeavingOut ? CompendiumWords.LeftOutOf(topic, count, alone) : CompendiumWords.NotYetMet(topic, count, alone);
         }
+
+        /// <summary>
+        /// A chain's steps seen together (<see cref="Chain.Linked"/>), worked out once for what the
+        /// character knows as handed over last, as the chain is asked about step by step each time
+        /// the page is drawn.
+        /// </summary>
+        private HashSet<string> LinkedOf(Chain chain)
+        {
+            if (_linkedStamp != KnowStamp)
+            {
+                _linkedStamp = KnowStamp;
+                _linked.Clear();
+            }
+            if (_linked.TryGetValue(chain, out var linked)) return linked;
+            linked = chain.Linked((a, b) => _view.Related(Find(a), Find(b)));
+            _linked[chain] = linked;
+            return linked;
+        }
+
+        private readonly Dictionary<Chain, HashSet<string>> _linked = new Dictionary<Chain, HashSet<string>>();
+        private int _linkedStamp = -1;
     }
 }

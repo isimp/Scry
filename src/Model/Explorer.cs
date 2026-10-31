@@ -294,9 +294,8 @@ namespace Scry
             if (other == null || other == _selected || other.Kind == Kind.Mod) return false;
             if (_view.Of(other) < KnownLevel.Seen) return !NamesAllHeld(other);
             if (other.Kind == Kind.Skill || !LeavingOut) return false;
-            return !chain.Linked((a, b) => _view.Related(Find(a), Find(b))).Contains(key);
+            return !LinkedOf(chain).Contains(key);
         }
-
 
         /// <summary>
         /// As <see cref="LeavesOut(string)"/>, but a fact the game shows the moment a thing is known

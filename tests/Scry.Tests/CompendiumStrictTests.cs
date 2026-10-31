@@ -84,6 +84,34 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AChainsStepSeenTogetherWhileItsPageIsShownIsNamedAtOnce()
+        {
+            // The egg's page shows the breeding chain with the hen left out; the hen is then seen
+            // growing up from a chick, and the chain names it as soon as that is handed over.
+            var hen = E("Hen", Kind.Creature);
+            var chicken = E("Chicken", Kind.Creature);
+            var egg = E("ChickenEgg", Kind.Item);
+            var explorer = new Explorer(new[] { hen, chicken, egg }.ToList(), new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+            var view = new CompendiumView(explorer.Entries);
+            var book = new CompendiumBook();
+            foreach (var e in new[] { hen, chicken, egg }) book.Raise(e.Key, KnownLevel.Known);
+            book.Witness(chicken.Key, egg.Key);
+            view.Tell(book, CompendiumRule.Strict);
+            explorer.Know(view);
+            var chain = new Chain { Title = ChainWords.Breeding, Steps = new List<string[]> { new[] { "Hen" }, new[] { "ChickenEgg" }, new[] { "Chicken" }, new[] { "Hen" } } };
+            explorer.Select(egg);
+            Assert.True(explorer.LeavesOut(chain, hen.Key));
+            Assert.False(explorer.LeavesOut(chain, chicken.Key));
+
+            book.Witness(chicken.Key, hen.Key);
+            explorer.Know(view);
+            Assert.False(explorer.LeavesOut(chain, hen.Key));
+            // Another chain shown beside it answers for its own steps.
+            var other = new Chain { Title = ChainWords.Breeding, Steps = new List<string[]> { new[] { "Hen" }, new[] { "ChickenEgg" } } };
+            Assert.True(explorer.LeavesOut(other, hen.Key));
+        }
+
+        [Fact]
         public void AChainReadsTheSameOnEveryPageOfIt()
         {
             // A hen's breeding chain, egg hatching and chick growing up seen, its laying not: the hen
