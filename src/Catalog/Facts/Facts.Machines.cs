@@ -50,14 +50,15 @@ namespace Scry
             if (catapult != null)
             {
                 PrefabChips("Loads these whatever their type", catapult.m_includeItemsOverride?.Where(i => i != null).Select(i => i.gameObject.name));
-                PrefabChips("Never loads these", catapult.m_excludeItemsOverride?.Where(i => i != null).Select(i => i.gameObject.name));
+                // A rule of the game's loading, met only as a refusal that names none of them, so each shows once met.
+                PrefabChips("Never loads these", catapult.m_excludeItemsOverride?.Where(i => i != null).Select(i => i.gameObject.name), gameShown: true);
             }
         }
 
         /// <summary>A row of chips of prefabs by name, each going to its page; none for none.</summary>
-        private void PrefabChips(string title, System.Collections.Generic.IEnumerable<string> prefabs)
+        private void PrefabChips(string title, System.Collections.Generic.IEnumerable<string> prefabs, bool gameShown = false)
         {
-            var row = new Row { Title = title };
+            var row = new Row { Title = title, GameShown = gameShown };
             foreach (var name in prefabs ?? System.Linq.Enumerable.Empty<string>()) row.Items.Add(Chip(name, ""));
             if (row.Items.Count > 0) Rows.Add(row);
         }

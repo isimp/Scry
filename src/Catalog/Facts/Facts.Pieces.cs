@@ -94,7 +94,9 @@ namespace Scry
             var apart = BuildWords.KeptApart(piece.m_blockRadius);
             if (apart != null && piece.m_blockingPieces != null)
             {
-                var row = new Row { Title = apart };
+                // A rule of the game's placing, met only as a refusal that names none of them, so
+                // each shows once met rather than waiting to be seen together.
+                var row = new Row { Title = apart, GameShown = true };
                 foreach (var other in piece.m_blockingPieces.Where(b => b != null).Select(b => b.gameObject.name).Distinct()) row.Items.Add(Chip(other, ""));
                 if (row.Items.Count > 0) Rows.Add(row);
             }
