@@ -176,11 +176,11 @@ namespace Scry
             {
                 case "Front":
                     Yaw = 180f;
-                    Pitch = 8f;
+                    Pitch = ViewPitch;
                     break;
                 case "Side":
                     Yaw = 90f;
-                    Pitch = 8f;
+                    Pitch = ViewPitch;
                     break;
                 case "Top":
                     Pitch = 85f;

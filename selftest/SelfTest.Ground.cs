@@ -12,8 +12,9 @@ namespace Scry
         /// On a meadow with the sky, a small creature's grass grows past forty metres, out to where
         /// the ground has faded away and no farther, thinning as it goes; a big creature stands in
         /// the grass up to its feet, none kept off round it however wide it is, and so do a raid's
-        /// crowd and a camp, whose own painted ground alone is clear. Each is pictured, and the
-        /// backdrop, spin and ground put back.
+        /// crowd and a camp, whose own painted ground alone is clear; wood and coins lying low
+        /// stand in short grass, no stem between them and the camera rising into the line it looks
+        /// along. Each is pictured, and the backdrop, spin and ground put back.
         /// </summary>
         private static IEnumerator GroundGrass(Probe p)
         {
@@ -64,12 +65,23 @@ namespace Scry
             if (lying != null)
             {
                 Select(lying);
-                yield return GrassFor(lying);
-                yield return new Wait(1);
+                yield return GrassSettledFor(lying);
                 var low = Stage.GrassSpread;
                 p.Check(low.ShortOut >= 1.5f && low.Nearest < low.ShortOut, $"{lying.Name} lies in short grass, stems growing at its feet, no bare circle round it",
                     $"short {Numbers.Fixed(low.ShortOut, 1)} m round it, the nearest stem {Numbers.Fixed(low.Nearest, 2)} m from its middle");
+                p.Check(Stage.StemsBesideSight > 0 && Stage.StemsInSight == 0, $"no stem between the camera and {lying.Name} rises into the line it is looked along, though stems grow there",
+                    $"{Numbers.Count(Stage.StemsInSight)} stems over it of {Numbers.Count(Stage.StemsBesideSight)} along it");
                 yield return Picture(p, "ground thing lying low");
+            }
+            // Coins, a few centimetres high, the camera low over them: still in view over the grass.
+            var coins = Pick(Kind.Item, "Coins");
+            if (coins != null)
+            {
+                Select(coins);
+                yield return GrassSettledFor(coins);
+                p.Check(Stage.StemsBesideSight > 0 && Stage.StemsInSight == 0, "no stem between the camera and coins lying in the grass rises into the line they are looked along, though stems grow there",
+                    $"{Numbers.Count(Stage.StemsInSight)} stems over them of {Numbers.Count(Stage.StemsBesideSight)} along it");
+                yield return Picture(p, "ground coins lying low");
             }
             GroundAsItWas();
         }
@@ -95,6 +107,14 @@ namespace Scry
             yield return null;
             yield return null;
             yield return Until(() => !Stage.GrassScattering && Stage.GrassCount > 0, 10);
+        }
+
+        /// <summary>Waits for the grass scattered for an entry, then past the time its copy is measured again as it settles, for any grass laid anew for that.</summary>
+        private static IEnumerator GrassSettledFor(Entry entry)
+        {
+            yield return GrassFor(entry);
+            yield return new Wait(2f);
+            yield return Until(() => !Stage.GrassScattering, 10);
         }
 
         /// <summary>The backdrop, spin and ground put back as they were before <see cref="GroundGrass"/>.</summary>

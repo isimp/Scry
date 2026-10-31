@@ -1,3 +1,4 @@
+using System;
 using Xunit;
 
 namespace Scry.Tests
@@ -76,6 +77,106 @@ namespace Scry.Tests
             Assert.Equal(1.5f, StageGround.ShortGrassOut(footprint: 0.05f, height: 0.05f, GrassStand.Thing), 3);
             // Something small but standing taller than grass needs only its own margin.
             Assert.Equal(0.54f, StageGround.ShortGrassOut(footprint: 0.2f, height: 1f, GrassStand.Thing), 3);
+        }
+
+        // The stage opens looking down 12 degrees; a stem of meadow grass grows 0.8 m whole.
+        private static readonly float Rise = (float)Math.Tan(12.0 * Math.PI / 180.0);
+
+        /// <summary>How tall a stem grows, whole and at a point, under the rules for what is shown.</summary>
+        private static float Grown(GrassShort rules, float away, float tallWhole = 0.8f) => rules.Stem(away, 1f, tallWhole) * tallWhole;
+
+        [Fact]
+        public void NoStemBetweenTheCameraAndAThingLyingLowRisesIntoTheLineItLooksAlong()
+        {
+            // Wood lying on the meadow, its middle 0.15 m up; a coin, 1 cm.
+            foreach (var middle in new[] { 0.15f, 0.01f })
+            {
+                var rules = StageGround.Short(footprint: 0.65f, height: middle * 2f, middle, GrassStand.Thing, 12f);
+                for (var away = 0f; away <= 6f; away += 0.25f)
+                    Assert.True(Grown(rules, away) <= middle + away * Rise, $"{away} m out from a thing {middle} m up");
+            }
+        }
+
+        [Fact]
+        public void PastWhereTheLineRisesOverTheGrassItGrowsWhole()
+        {
+            // The line from the camera to the wood's middle passes over 0.8 m stems some 3 m out: from
+            // there on, and the ring of short grass passed, they grow whole.
+            var rules = StageGround.Short(footprint: 0.65f, height: 0.3f, 0.15f, GrassStand.Thing, 12f);
+            Assert.Equal(0.8f, Grown(rules, 5f), 3);
+            Assert.Equal(0.8f, Grown(rules, 9f), 3);
+            // Closer, under the line, stems still grow: no bare ground round it, each as tall as keeps
+            // its tip a fifth of the line's height under it.
+            Assert.True(Grown(rules, 1f) > 0.1f);
+            Assert.Equal(GrassShort.SightRoom * (0.15f + Rise), Grown(rules, 1f), 3);
+        }
+
+        [Fact]
+        public void AThingStandingOverTheGrassKeepsItsGrassAsBefore()
+        {
+            // A workbench, its middle 0.9 m up: the line it is looked along runs over every stem.
+            var rules = StageGround.Short(footprint: 1f, height: 1.8f, 0.9f, GrassStand.Thing, 12f);
+            for (var away = 0f; away <= 6f; away += 0.5f)
+                Assert.Equal(StageGround.StemScale(away, rules.Out) * 0.8f, Grown(rules, away), 4);
+        }
+
+        [Fact]
+        public void AFigureOrAPlaceStandsInItsGrassAsBefore()
+        {
+            foreach (var stand in new[] { GrassStand.Figure, GrassStand.Place })
+            {
+                var rules = StageGround.Short(footprint: 0.3f, height: 0.3f, 0.15f, stand, 12f);
+                Assert.Equal(StageGround.ShortGrassOut(0.3f, 0.3f, stand), rules.Out, 4);
+                for (var away = 0f; away <= 6f; away += 0.5f)
+                    Assert.Equal(StageGround.StemScale(away, rules.Out) * 0.8f, Grown(rules, away), 4);
+            }
+        }
+
+        [Fact]
+        public void AStemKeepsItsOwnSizeWhereItStaysUnderTheLine()
+        {
+            // A small stem of a kind half as tall grows as it would; only what would rise into the line is cut.
+            var rules = StageGround.Short(footprint: 0.65f, height: 0.3f, 0.15f, GrassStand.Thing, 12f);
+            Assert.Equal(StageGround.StemScale(1f, rules.Out) * 0.7f, rules.Stem(1f, 0.7f, 0.1f), 4);
+            // A stem whose kind's height is not known grows as it would.
+            Assert.Equal(StageGround.StemScale(1f, rules.Out), rules.Stem(1f, 1f, 0f), 4);
+        }
+
+        [Fact]
+        public void AStemStandingRaisedOffTheGroundStillKeepsItsTipUnderTheLine()
+        {
+            // A kind the game sets a little up or down where it grows: its tip, not its size, stays under.
+            var rules = StageGround.Short(footprint: 0.65f, height: 0.3f, 0.15f, GrassStand.Thing, 12f);
+            foreach (var lift in new[] { 0.1f, -0.1f, 0.5f })
+            {
+                for (var away = 0.5f; away <= 3f; away += 0.5f)
+                {
+                    // One grown to nothing shows nothing.
+                    var grown = rules.Stem(away, 1f, 0.8f, lift) * 0.8f;
+                    Assert.True(grown == 0f || lift + grown <= 0.15f + away * Rise + 1e-4f, $"lifted {lift} at {away} m");
+                }
+            }
+            // Lifted so far that no stem fits under, it is not grown at all.
+            Assert.Equal(0f, rules.Stem(1f, 1f, 0.8f, lift: 2f), 4);
+            // One whose kind's height is not known grows as rolled however high it stands.
+            Assert.Equal(StageGround.StemScale(1f, rules.Out), rules.Stem(1f, 1f, 0f, lift: 2f), 4);
+        }
+
+        [Fact]
+        public void GrassIsLaidAgainOnlyAsItsRulesChangeEnoughToShow()
+        {
+            var wood = StageGround.Short(footprint: 0.65f, height: 0.3f, 0.15f, GrassStand.Thing, 12f);
+            Assert.True(wood.Same(StageGround.Short(footprint: 0.66f, height: 0.3f, 0.16f, GrassStand.Thing, 12f)));
+            Assert.False(wood.Same(StageGround.Short(footprint: 0.65f, height: 0.3f, 0.4f, GrassStand.Thing, 12f)));
+            // Made bigger, its middle 9 cm higher: a line that much higher would let stems over the lower one.
+            Assert.False(wood.Same(StageGround.Short(footprint: 0.65f, height: 0.3f, 0.24f, GrassStand.Thing, 12f)));
+            // Looked at from lower, the line is laid anew.
+            Assert.False(wood.Same(StageGround.Short(footprint: 0.65f, height: 0.3f, 0.15f, GrassStand.Thing, 8f)));
+            Assert.False(wood.Same(StageGround.Short(footprint: 2f, height: 0.3f, 0.15f, GrassStand.Thing, 12f)));
+            Assert.False(wood.Same(StageGround.Short(footprint: 0.65f, height: 0.3f, 0.15f, GrassStand.Figure, 12f)));
+            Assert.False(StageGround.Short(footprint: 0.65f, height: 0.3f, 0.15f, GrassStand.Figure, 12f).Same(wood));
+            var figure = StageGround.Short(footprint: 0.3f, height: 2f, 1f, GrassStand.Figure, 12f);
+            Assert.True(figure.Same(StageGround.Short(footprint: 0.3f, height: 2f, 1.5f, GrassStand.Figure, 12f)));
         }
 
         [Fact]

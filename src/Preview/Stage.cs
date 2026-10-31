@@ -26,6 +26,9 @@ namespace Scry
         private const float FrontYaw = 205f;
         private const float FrontPitch = 12f;
 
+        // The Front and Side views look down less, which the grass kept under the camera's line allows for.
+        private const float ViewPitch = 8f;
+
         // A long creature opens showing its side, its head the nearer end (StageFraming.OpensSideOn).
         private const float SideOnYaw = 250f;
 

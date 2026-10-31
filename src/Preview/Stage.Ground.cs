@@ -142,8 +142,8 @@ namespace Scry
             var edge = sky ? look.Horizon : look.Backdrop;
             edge.a = 1f;
             var size = SubjectSize;
-            var shortOut = StageGround.ShortGrassOut(Mathf.Max(size.x, size.z) / 2f, size.y, StageGround.StandsAs(_lastShown?.Kind));
-            TheGround.Lay(groundY, _lastShown, sky, _frameRadius, shortOut, Origin, edge, _root, _layer, TheSettle, _waterOver);
+            var rules = StageGround.Short(Mathf.Max(size.x, size.z) / 2f, size.y, ShownMiddle.y - groundY, StageGround.StandsAs(_lastShown?.Kind), Mathf.Min(FrontPitch, ViewPitch));
+            TheGround.Lay(groundY, _lastShown, sky, _frameRadius, rules, Origin, edge, _root, _layer, TheSettle, _waterOver);
         }
 
         private static void DrawGrass()
@@ -155,6 +155,17 @@ namespace Scry
 
         /// <summary>The ground the shown place's own modifiers shape, its liquids and its settling parts, whatever the backdrop.</summary>
         private static readonly GroundSettle TheSettle = new GroundSettle();
+
+        /// <summary>The middle of what the model shows, on the stage at its size, which the camera's line to it meets.</summary>
+        private static Vector3 ShownMiddle => Origin + (Shown.center - Origin) * _scale;
+
+        /// <summary>For the self-test: how many stems stand between the camera and the middle of what is shown, their tips over the line joining them, 0.3 m either side of it; -1 with nothing shown.</summary>
+        [ForTest]
+        public static int StemsInSight => _camera == null || _subject == null ? -1 : TheGround.StemsOver(_camera.transform.position, ShownMiddle, 0.3f);
+
+        /// <summary>For the self-test: how many stems stand between the camera and the middle of what is shown, 0.3 m either side of the line joining them, however tall.</summary>
+        [ForTest]
+        public static int StemsBesideSight => _camera == null || _subject == null ? 0 : TheGround.StemsOver(_camera.transform.position, ShownMiddle, 0.3f, overOnly: false);
 
         /// <summary>For the self-test: the shaped ground, its middle, the liquids laid and the parts at rest.</summary>
         [ForTest]

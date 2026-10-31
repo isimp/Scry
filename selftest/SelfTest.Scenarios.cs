@@ -215,7 +215,7 @@ namespace Scry
             yield return S("the stage's camera looks at the floor opened, zooms toward the pointer and drags with it", CameraMoves, 90, LightsAsTheyWere, bearsSkips: true);
             yield return S("the world's lights stay off the stage", WorldLightsOff, 20);
             yield return S("the Ground backdrop lays each biome's own ground", GroundBackdrop, 120, bearsSkips: true);
-            yield return S("a meadow's grass grows out to where its ground fades, and a big creature, a raid and a camp stand in it", GroundGrass, 120, GroundAsItWas);
+            yield return S("a meadow's grass grows out to where its ground fades, a big creature, a raid and a camp stand in it, and what lies low stays in view", GroundGrass, 120, GroundAsItWas);
             yield return S("a place's own modifiers dig its ground on the stage, its tar settled in it and its parts at rest", DugGround, 120, DugGroundAsItWas);
             yield return S("the sea holds a Serpent at its swim depth, swimming, and a Leviathan at its surface, over a sea as deep as the world places them", SeaHolds, 90, SeaAsItWas, bearsSkips: true);
             yield return S("a Serpent's attacks on the stage, pictured part way with its tail bent and without", SerpentAttacks, 60, SerpentAttacksAsItWas, bearsSkips: true);

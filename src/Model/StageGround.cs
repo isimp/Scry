@@ -25,6 +25,61 @@ namespace Scry
     }
 
     /// <summary>
+    /// How the stage's grass grows short round what is shown (<see cref="StageGround.Short"/>): out
+    /// to how far (<see cref="StageGround.ShortGrassOut"/>), and for a thing, under the line the
+    /// camera looks along at its middle as the stage opens, so no stem between them hides it.
+    /// </summary>
+    internal readonly struct GrassShort
+    {
+        public GrassShort(float @out, float sightFrom, float sightRise)
+        {
+            Out = @out;
+            SightFrom = sightFrom;
+            SightRise = sightRise;
+        }
+
+        /// <summary>How far round what is shown the grass grows short, in metres.</summary>
+        public float Out { get; }
+
+        /// <summary>How high over the ground the line the camera looks along meets what is shown; not a number where the grass may stand in it.</summary>
+        public float SightFrom { get; }
+
+        /// <summary>How much that line rises a metre out from what is shown.</summary>
+        public float SightRise { get; }
+
+        /// <summary>Whether the grass is kept under such a line, as for a thing; a stem's height is wanted only then.</summary>
+        public bool Sighted => !float.IsNaN(SightFrom);
+
+        /// <summary>How much of that line's height a stem under it may reach, so its tip stays clear.</summary>
+        public const float SightRoom = 0.8f;
+
+        /// <summary>
+        /// The size a stem <paramref name="away"/> metres out grows at, of a kind
+        /// <paramref name="tallAtOne"/> metres tall at size one, rolled at <paramref name="scale"/>:
+        /// short round what is shown (<see cref="StageGround.StemScale"/>), and no taller than keeps
+        /// its tip, standing <paramref name="lift"/> metres off the ground, under the line the camera
+        /// looks along; none where it stands too high for any; as rolled where it stays under, or
+        /// where its kind's height is not known.
+        /// </summary>
+        public float Stem(float away, float scale, float tallAtOne, float lift = 0f)
+        {
+            var stem = scale * StageGround.StemScale(away, Out);
+            if (!Sighted || !(tallAtOne > 0f)) return stem;
+            var under = SightRoom * (Math.Max(0f, SightFrom) + away * SightRise) - lift;
+            return stem * tallAtOne > under ? Math.Max(0f, under) / tallAtOne : stem;
+        }
+
+        /// <summary>
+        /// Whether grass laid by these rules looks as by <paramref name="other"/>: out as far within
+        /// 0.1 m, and the line as high within 2 cm and as steep, or none either way; what lies low
+        /// is a few centimetres high, so its line is laid anew for a few.
+        /// </summary>
+        public bool Same(GrassShort other) =>
+            Math.Abs(Out - other.Out) <= 0.1f && Sighted == other.Sighted
+            && (!Sighted || Math.Abs(SightFrom - other.SightFrom) <= 0.02f && Math.Abs(SightRise - other.SightRise) <= 0.001f);
+    }
+
+    /// <summary>
     /// What the stage's backdrop puts behind and under a model: the plain floor, the sky, the
     /// grid ruled in metres, or with the Ground backdrop its own biome's ground, painted by the
     /// world's terrain as the game paints it. Of the biomes it is in, the first players meet
@@ -146,6 +201,16 @@ namespace Scry
             if (height >= 0.6f) return stand == GrassStand.Figure ? 0f : footprint * 1.2f + 0.3f;
             return Math.Max(footprint * 1.2f + 0.3f, 1.5f);
         }
+
+        /// <summary>
+        /// How the grass grows short round what is shown, its footprint and height as for
+        /// <see cref="ShortGrassOut"/>: a thing, its <paramref name="middle"/> that high over the
+        /// ground, also keeps the grass under the line the camera looks along at it, looking down
+        /// <paramref name="pitch"/> degrees as the stage opens; a figure and a place stand in theirs.
+        /// </summary>
+        public static GrassShort Short(float footprint, float height, float middle, GrassStand stand, float pitch) =>
+            new GrassShort(ShortGrassOut(footprint, height, stand), stand == GrassStand.Thing ? Math.Max(0f, middle) : float.NaN,
+                (float)Math.Tan(pitch * Math.PI / 180.0));
 
         /// <summary>How tall a stem grows at a thing's feet, of its full height.</summary>
         public const float ShortStem = 0.2f;

@@ -31,7 +31,7 @@ namespace Scry
         /// kept by its forest, noise, height, slope, sea depth, vegetation and cleared ground rules,
         /// the ground taken at a height typical of the biome (<see cref="StageGround.Altitude"/>).
         /// As many of each kind grow as the game grows at the player's grass quality
-        /// (<see cref="StageGround.Amount"/>), short round the model (<see cref="StageGround.StemScale"/>).
+        /// (<see cref="StageGround.Amount"/>), short round the model and under the line the camera looks along at a thing (<see cref="GrassShort.Stem"/>).
         /// It grows out to where the ground has faded away, eighty metres at the most, thinning as
         /// the ground fades (<see cref="StageGround.GrassKept"/>), so grass and ground fade together.
         /// A patch a step, a few milliseconds a frame (<see cref="StepScatter"/>), the grass shown
@@ -63,7 +63,7 @@ namespace Scry
             var at = _at;
             // The place's own shape, as it stood when scattering began; heights and slopes from the ground's middle.
             var shape = ShapeNow;
-            var shortOut = _shortOut;
+            var rules = _short;
             var quality = _quality;
             var farthest = 0f;
             var nearest = float.MaxValue;
@@ -99,13 +99,14 @@ namespace Scry
                             if (clutter.m_randomOffset != 0f) point.y += UnityEngine.Random.Range(0f - clutter.m_randomOffset, clutter.m_randomOffset);
                             // Turned about the ground's facing where it leans with it (ClutterSystem.GenerateVegPatch).
                             var turn = clutter.m_terrainTilt ? Quaternion.AngleAxis(yaw, new Vector3(nx, ny, nz)) : Quaternion.Euler(0f, yaw, 0f);
-                            var stem = StageGround.StemScale(away, shortOut);
-                            if (clutter.m_instanced) AddGrass(kinds, clutter, point, turn, stem);
+                            // How far off the ground it stands, which the line it keeps under is measured from.
+                            var lift = point.y - (at.y + Below);
+                            if (clutter.m_instanced) AddGrass(kinds, clutter, point, turn, rules, away, lift);
                             else if (_scatteredCopies.Count < MostGrassCopies)
                             {
                                 var copy = Ghost.Make(clutter.m_prefab, root.transform, point, turn, layer);
                                 if (copy == null) continue;
-                                copy.transform.localScale *= stem;
+                                copy.transform.localScale *= rules.Stem(away, 1f, rules.Sighted ? TallOf(copy, point.y) : 0f, lift);
                                 copy.SetActive(false);
                                 _scatteredCopies.Add(copy);
                             }
@@ -152,10 +153,10 @@ namespace Scry
             return true;
         }
 
-        /// <summary>One stem of a kind drawn many times over, at its size, as the game adds it (<c>InstanceRenderer.AddInstance</c>), times <paramref name="stem"/> where it grows short.</summary>
-        private static void AddGrass(Dictionary<GameObject, GrassKind> kinds, ClutterSystem.Clutter clutter, Vector3 point, Quaternion turn, float stem)
+        /// <summary>One stem of a kind drawn many times over, at its size, as the game adds it (<c>InstanceRenderer.AddInstance</c>), shorter where it grows short (<paramref name="rules"/>, <paramref name="away"/> metres out, <paramref name="lift"/> metres off the ground).</summary>
+        private static void AddGrass(Dictionary<GameObject, GrassKind> kinds, ClutterSystem.Clutter clutter, Vector3 point, Quaternion turn, GrassShort rules, float away, float lift)
         {
-            var scale = UnityEngine.Random.Range(clutter.m_scaleMin, clutter.m_scaleMax) * stem;
+            var rolled = UnityEngine.Random.Range(clutter.m_scaleMin, clutter.m_scaleMax);
             if (!kinds.TryGetValue(clutter.m_prefab, out var kind))
             {
                 var renderer = clutter.m_prefab.GetComponent<InstanceRenderer>();
@@ -169,7 +170,9 @@ namespace Scry
                 kinds[clutter.m_prefab] = kind;
             }
             if (kind.Mesh == null) return;
-            var instance = Matrix4x4.TRS(point, turn, clutter.m_prefab.GetComponent<InstanceRenderer>().m_scale * scale);
+            var size = clutter.m_prefab.GetComponent<InstanceRenderer>().m_scale;
+            var scale = rules.Stem(away, rolled, size.y * kind.Mesh.bounds.max.y, lift);
+            var instance = Matrix4x4.TRS(point, turn, size * scale);
             if (kind.Batches.Count == 0 || kind.Counts[kind.Counts.Count - 1] == 1023)
             {
                 kind.Batches.Add(new Matrix4x4[1023]);
@@ -179,6 +182,53 @@ namespace Scry
             kind.Batches[last][kind.Counts[last]] = instance;
             kind.Counts[last]++;
             kind.Count++;
+        }
+
+        /// <summary>How tall a copy of a plant stands over where it grows, by what it draws; none where it draws nothing.</summary>
+        private static float TallOf(GameObject copy, float groundY)
+        {
+            var top = float.NegativeInfinity;
+            foreach (var renderer in copy.GetComponentsInChildren<Renderer>()) top = Mathf.Max(top, renderer.bounds.max.y);
+            return float.IsNegativeInfinity(top) ? 0f : top - groundY;
+        }
+
+        /// <summary>
+        /// For the self-test: how many stems stand between two points, within
+        /// <paramref name="within"/> metres across of the line joining them; of those only the ones
+        /// whose tips stand over it where <paramref name="overOnly"/>.
+        /// </summary>
+        public int StemsOver(Vector3 from, Vector3 to, float within, bool overOnly = true)
+        {
+            var over = 0;
+            foreach (var kind in _grass)
+            {
+                if (kind.Mesh == null) continue;
+                var tip = new Vector3(0f, kind.Mesh.bounds.max.y, 0f);
+                for (var b = 0; b < kind.Batches.Count; b++)
+                {
+                    var batch = kind.Batches[b];
+                    for (var i = 0; i < kind.Counts[b]; i++) if (TipOver(batch[i].MultiplyPoint3x4(tip), from, to, within, overOnly)) over++;
+                }
+            }
+            foreach (var copy in _grassCopies)
+            {
+                if (copy == null) continue;
+                var at = copy.transform.position;
+                if (TipOver(new Vector3(at.x, at.y + TallOf(copy, at.y), at.z), from, to, within, overOnly)) over++;
+            }
+            return over;
+        }
+
+        /// <summary>Whether a stem's tip stands between two points within a reach of the line across, and where <paramref name="overOnly"/>, over it.</summary>
+        private static bool TipOver(Vector3 tip, Vector3 from, Vector3 to, float within, bool overOnly)
+        {
+            var line = new Vector2(to.x - from.x, to.z - from.z);
+            var along = line.sqrMagnitude;
+            if (along < 1e-6f) return false;
+            var t = Vector2.Dot(new Vector2(tip.x - from.x, tip.z - from.z), line) / along;
+            if (t <= 0f || t >= 1f) return false;
+            var nearest = new Vector2(from.x, from.z) + line * t;
+            return (new Vector2(tip.x, tip.z) - nearest).magnitude <= within && (!overOnly || tip.y > Mathf.Lerp(from.y, to.y, t));
         }
 
         /// <summary>Moves the grass up or down with the ground.</summary>

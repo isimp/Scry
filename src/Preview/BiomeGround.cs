@@ -70,7 +70,7 @@ namespace Scry
         private float _basis;
 
         /// <summary>How far round the model its grass grew short when scattered, in metres (<see cref="StageGround.ShortGrassOut"/>).</summary>
-        private float _shortOut;
+        private GrassShort _short;
 
         /// <summary>The player's grass quality the grass was scattered at, as the game keeps it (<c>ClutterSystem.m_quality</c>).</summary>
         private int _quality = -1;
@@ -138,7 +138,7 @@ namespace Scry
 
         /// <summary>How far from the middle the farthest and the nearest stem grow, how far round the model the grass was kept off, and how far the ground reaches, in metres, for the self-test.</summary>
         [Diagnostic]
-        public (float Farthest, float Nearest, float ShortOut, float Reach) GrassSpread => (_farthest, _nearest, _shortOut, _across / 2f);
+        public (float Farthest, float Nearest, float ShortOut, float Reach) GrassSpread => (_farthest, _nearest, _short.Out, _across / 2f);
 
         private float _farthest, _nearest;
 
@@ -177,12 +177,12 @@ namespace Scry
         /// <summary>
         /// Lays the ground under the model at its height: again for another entry, biome, sky or
         /// paint, or the player's grass quality, or as what is framed grows; its grass goes up and
-        /// down with it, short round the model (<paramref name="shortOut"/> metres,
-        /// <see cref="StageGround.ShortGrassOut"/>). Its edge fades into the colour given, what is behind it.
+        /// down with it, short round the model and under the line the camera looks along at a thing
+        /// (<paramref name="shortRules"/>, <see cref="StageGround.Short"/>). Its edge fades into the colour given, what is behind it.
         /// The sea's floor has <paramref name="waterOver"/> metres of water over it (<see cref="SeaHold"/>),
         /// the shallows where none is given.
         /// </summary>
-        public void Lay(float groundY, Entry shown, bool sky, float frameRadius, float shortOut, Vector3 origin, Color edge, GameObject root, int layer, GroundSettle settle = null, float? waterOver = null)
+        public void Lay(float groundY, Entry shown, bool sky, float frameRadius, GrassShort shortRules, Vector3 origin, Color edge, GameObject root, int layer, GroundSettle settle = null, float? waterOver = null)
         {
             _settle = settle;
             _waterOver = StageGround.WaterOver(Biome) is float shallows ? waterOver ?? shallows : (float?)null;
@@ -201,7 +201,7 @@ namespace Scry
             var at = new Vector3(origin.x, groundY - Below, origin.z);
             var quality = QualityNow();
             var afresh = !ReferenceEquals(_for, shown) || _laidBiome != Biome || _sky != sky || _quality != quality;
-            var another = afresh || _paintsLaid != _paintsVersion || Mathf.Abs(shortOut - _shortOut) > 0.1f;
+            var another = afresh || _paintsLaid != _paintsVersion || !shortRules.Same(_short);
             if (another || basis > _basis * 1.25f)
             {
                 _basis = another ? basis : Mathf.Max(basis, _basis);
@@ -210,7 +210,7 @@ namespace Scry
                 _sky = sky;
                 _paintsLaid = _paintsVersion;
                 _across = StageGround.Across(_basis, sky);
-                _shortOut = shortOut;
+                _short = shortRules;
                 _quality = quality;
                 _at = at;
                 // The paint and the grass at once for another entry, biome or sky; for what changes
