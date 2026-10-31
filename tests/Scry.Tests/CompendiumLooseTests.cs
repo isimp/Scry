@@ -238,7 +238,7 @@ namespace Scry.Tests
             world.Explorer.Select(world.Windmill);
             // Every section counts what it left out as not yet met, a creature's places by what they are.
             Assert.Equal("2 more not yet met", world.Explorer.LeftOutLine("making", 2));
-            Assert.Equal("1 more place it lives not yet met in", world.Explorer.LeftOutLine("lives", 1));
+            Assert.Equal("1 more place it lives not yet found", world.Explorer.LeftOutLine("lives", 1));
             Assert.Null(world.Explorer.LeftOutLine("making", 0));
 
             world.Rule(CompendiumRule.Strict);

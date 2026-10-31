@@ -161,9 +161,10 @@ namespace Scry.Tests
             Assert.Equal("2 more not yet met", CompendiumWords.NotYetMet("loot", 2));
             Assert.Equal("1 more not yet met", CompendiumWords.NotYetMet("making", 1));
             Assert.Equal("1,200 more not yet met", CompendiumWords.NotYetMet(null, 1200));
-            // A place it lives says what it is, as the strict rules say it.
-            Assert.Equal("1 more place it lives not yet met in", CompendiumWords.NotYetMet("lives", 1));
-            Assert.Equal("3 more places it lives not yet met in", CompendiumWords.NotYetMet("lives", 3));
+            // A place it lives says what it is, as the strict rules say a place never found.
+            Assert.Equal("1 more place it lives not yet found", CompendiumWords.NotYetMet("lives", 1));
+            Assert.Equal("3 more places it lives not yet found", CompendiumWords.NotYetMet("lives", 3));
+            Assert.Equal("2 places it lives not yet found", CompendiumWords.NotYetMet("lives", 2, alone: true));
             Assert.Null(CompendiumWords.NotYetMet("loot", 0));
         }
 

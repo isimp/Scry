@@ -646,13 +646,14 @@ namespace Scry
 
         /// <summary>
         /// What the loose rules left out of a section, said at its end: how many more things the
-        /// character has not met, a creature's places by what they are; without "more" where
-        /// nothing else is listed (<paramref name="alone"/>); null for none.
+        /// character has not met, a creature's places by what they are, in the strict rules' words
+        /// for what was never met (<see cref="NeverMet"/>); without "more" where nothing else is
+        /// listed (<paramref name="alone"/>); null for none.
         /// </summary>
         public static string NotYetMet(string topic, int count, bool alone = false)
         {
             if (count <= 0) return null;
-            if (topic == "lives") return LeftOutOf(topic, count, alone);
+            if (topic == "lives") return NeverMet(topic, count, alone);
             return Numbers.Count(count) + (alone ? "" : " more") + " not yet met";
         }
 
