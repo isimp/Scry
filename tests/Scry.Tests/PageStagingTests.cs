@@ -212,6 +212,24 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APartFirstDrawnAfterThePageIsWholeShowsAtOnce()
+        {
+            // A page laid over frames gains a part later (a topic a kill adds, a section unfolded):
+            // nothing of it was ever waiting, so it shows whole rather than staying covered.
+            var clock = new Clock();
+            var staging = new PageStaging(clock.Now, budgetMs: 6);
+            staging.Begin();
+            Assert.Equal(new[] { true, true }, Pass(staging, clock, true, 1, 1));
+            Assert.False(staging.Active);
+
+            clock.Ms += 10;
+            Assert.Equal(new[] { true, true, true }, Pass(staging, clock, true, 1, 1, 1));
+            Assert.Equal(1, staging.Shown(2, 180), 3);
+            // What was laid while staging still fades from when it was laid.
+            Assert.Equal(15.0 / 180, staging.Shown(0, 180), 3);
+        }
+
+        [Fact]
         public void WhatWaitsForTheWholePageFadesInOnceItIsWhole()
         {
             // The section line and the finds chip stand as skeletons until the page is whole.

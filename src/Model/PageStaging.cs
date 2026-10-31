@@ -77,12 +77,13 @@ namespace Scry
         /// <summary>
         /// How far a part laid over frames has faded in, from nothing as it is laid to all once
         /// <paramref name="fadeMs"/> have passed; all for a page drawn whole at once, nothing for
-        /// a part not laid yet.
+        /// a part not laid yet, all for one first drawn once the page was whole, which never waited.
         /// </summary>
         public double Shown(int unit, double fadeMs)
         {
             if (!Active && _wholeAt == null) return 1.0;
-            if (unit < 0 || unit >= _laidAt.Count) return 0.0;
+            if (unit < 0) return 0.0;
+            if (unit >= _laidAt.Count) return Active ? 0.0 : 1.0;
             return Math.Min(1.0, Math.Max(0.0, (_clock() - _laidAt[unit]) / fadeMs));
         }
 
