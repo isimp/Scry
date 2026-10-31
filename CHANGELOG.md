@@ -10,6 +10,12 @@ On the ocean's ground the sea holds what lives in it: a Serpent swims at its dep
 
 Under *Strict* a page says what it keeps back. Each section ends saying how many things it left out, and a section left with nothing keeps its heading to say so. The title row counts the names not yet seen together along with the numbers, so it reads *All found out* only once nothing is kept back, the *You* box says how many wait to be seen together, and `is:left` finds the same pages.
 
+Under *Strict* what a page leaves out is told in two parts: what you never met, to meet first, and what you met but have not yet seen go together with it, on a page, a room's card and a raid's card alike. A boss's page links what its fall was seen to open, such as the wares a trader then sells, a summoning chain links its offering through the altar's place, and a nest's spawn table names the creatures you met.
+
+What a page links now stands in the topic it belongs to: what a bow shoots under its fight, where an item lies as treasure under *Where it comes from*, what a fire or a bed gives under *Resting* and a station's upgrades under *Building*. With the compendium on, *Linked* holds only a page's own parts and wiring, stands folded until opened and counts nothing toward a page's finds.
+
+A dungeon room's page says whether it is a dead end, a passage or a junction, and its peek says how many creatures and things to loot it left out.
+
 Under *Loose* every section ends saying how many things it left out as not yet met, not only a creature's loot, where it lives and a room's or raid's card. The title row counts how much of what a page names was met, such as "3 of 6 met", and reads *All met* once nothing is left out; its hover and the *You* box say how many are still to meet first, and `is:left` finds those pages under *Loose* too.
 
 Under *Strict* a boss's attacks count as seen begun from as far as the game shows its health bar, so a taunt that hurts no one is found out during the fight, and a boss and its fight's music and weather show on each other's pages once you lived through that fight.

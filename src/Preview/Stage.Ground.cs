@@ -58,7 +58,7 @@ namespace Scry
         [ForTest]
         public static (float Farthest, float Nearest, float ShortOut, float Reach) GrassSpread => TheGround.GrassSpread;
 
-        /// <summary>Whether the grass is being scattered, the last grass shown meanwhile: for the stage's caption and the self-test.</summary>
+        /// <summary>For the self-test: whether the grass is being scattered, the last grass shown meanwhile (the caption goes by <see cref="GrassLaying"/>).</summary>
         [ForTest]
         public static bool GrassScattering => TheGround.Scattering;
 
