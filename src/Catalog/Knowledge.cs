@@ -160,6 +160,9 @@ namespace Scry
         /// </summary>
         private static readonly Dictionary<string, GameObject> BossEvents = new Dictionary<string, GameObject>(StringComparer.Ordinal);
 
+        /// <summary>The raid key of each boss's own fight (<see cref="BossEvents"/>), by the boss's prefab.</summary>
+        private static readonly Dictionary<string, string> Fights = new Dictionary<string, string>(StringComparer.Ordinal);
+
         /// <summary>
         /// The station that takes items past their top quality with the upgrade kits their recipes
         /// name (<c>CraftingStation.m_upgrader</c>), and its name as the game shows it; null when
@@ -225,6 +228,9 @@ namespace Scry
         /// <summary>The boss whose fight an event is, or null.</summary>
         public static GameObject BossOfEvent(string raid) => raid != null && BossEvents.TryGetValue(raid, out var boss) ? boss : null;
 
+        /// <summary>The raid key of a boss's own fight, by the boss's prefab name, or null.</summary>
+        public static string FightOf(string prefab) => prefab != null && Fights.TryGetValue(prefab, out var fight) ? fight : null;
+
         /// <summary>The prefab of the creature whose defeat sets a world key, or null.</summary>
         public static string BossPrefabOf(string key) => key != null && Bosses.TryGetValue(key, out var boss) ? boss.name : null;
 
@@ -264,6 +270,7 @@ namespace Scry
             Bosses.Clear();
             FallKeys.Clear();
             BossEvents.Clear();
+            Fights.Clear();
             Altars.Clear();
             Turned.Clear();
             UpgradeStation = null;
@@ -312,6 +319,7 @@ namespace Scry
                     && RandEventSystem.instance != null && RandEventSystem.instance.m_events.Exists(e => e != null && e.m_name == fought.m_bossEvent && e.m_enabled))
                 {
                     BossEvents[fought.m_bossEvent] = prefab;
+                    Fights[prefab.name] = EntryKeys.For(Kind.Raid, fought.m_bossEvent);
                 }
                 if (component is OfferingBowl bowl)
                 {

@@ -30,6 +30,16 @@ namespace Scry
         public static float ThingReach(float reach, float seenReach) => seenReach <= 0f ? reach : Math.Min(reach, seenReach);
 
         /// <summary>
+        /// How far a creature's attack is seen begun (<c>CompendiumSight.SwingSeen</c>): within the
+        /// world's seen reach, which starts at the distance the game's enemy hud names a creature
+        /// within (<paramref name="hudReach"/>); a boss's as much farther as the hud shows a boss's
+        /// health bar (<paramref name="bossHudReach"/>), the fight's own reach. A seen reach of 0
+        /// keeps none, a boss's neither; with no hud reach to scale by, a boss's is seen as any.
+        /// </summary>
+        public static float AttackReach(bool boss, float seenReach, float hudReach, float bossHudReach) =>
+            boss && hudReach > 0f ? seenReach * bossHudReach / hudReach : seenReach;
+
+        /// <summary>
         /// Where a place is looked for, from its middle: there and four points half way out to its
         /// edge, a person's height over its ground, so one in a dip or behind a low wall is looked
         /// for where it stands up, and a big one half hidden is still found.

@@ -12,6 +12,8 @@ Under *Strict* a page says what it keeps back. Each section ends saying how many
 
 Under *Loose* every section ends saying how many things it left out as not yet met, not only a creature's loot, where it lives and a room's or raid's card. The title row counts how much of what a page names was met, such as "3 of 6 met", and reads *All met* once nothing is left out; its hover and the *You* box say how many are still to meet first, and `is:left` finds those pages under *Loose* too.
 
+Under *Strict* a boss's attacks count as seen begun from as far as the game shows its health bar, so a taunt that hurts no one is found out during the fight, and a boss and its fight's music and weather show on each other's pages once you lived through that fight.
+
 With the compendium on, Scry's own words no longer read as a dash where they happen to hold the name of a thing not yet seen, such as a chest, wood or a hook. A place's row of chests and pickups is now *To loot*, and a fish bites once it swims to the float.
 
 ## 0.3.2

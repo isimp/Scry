@@ -351,13 +351,29 @@ namespace Scry
 
         /// <summary>Whether two entries go together for the strict rules: seen together, the way given where a row has one, one a part of the other, a room's dungeon seen together with the other, or a fall seen to open the other.</summary>
         public bool Related(Entry a, Entry b, Tie? tie = null) =>
-            Witnessed(a, b, tie) || Owns(a, b) || Owns(b, a) || ThroughDungeon(a, b, tie) || ThroughDungeon(b, a, tie) || tie == null && (FallOpened(a, b) || FallOpened(b, a));
+            Witnessed(a, b, tie) || Owns(a, b) || Owns(b, a) || ThroughDungeon(a, b, tie) || ThroughDungeon(b, a, tie)
+            || tie == null && (FallOpened(a, b) || FallOpened(b, a) || Fought(a, b) || Fought(b, a));
+
+        /// <summary>
+        /// Whether the character lived through a boss's own fight (<see cref="FightOf"/>), as the
+        /// book holds it, a raid being known only so: the game plays that fight only while the
+        /// boss's health bar shows (<c>RandEventSystem.GetForcedEvent</c>, <c>EnemyHud.TestShow</c>),
+        /// so the boss and its fight went together.
+        /// </summary>
+        private bool Fought(Entry boss, Entry fight)
+        {
+            if (boss == null || fight == null || _book == null || FightOf == null || boss.Kind != Kind.Creature || fight.Kind != Kind.Raid) return false;
+            return FightOf(boss.Key) == fight.Key && _book.Level(fight.Key) == KnownLevel.Known;
+        }
 
         /// <summary>What waits for each world key, as the catalog read it; none links no fall to what it opens.</summary>
         public UnlockBook Unlocks { get; set; }
 
         /// <summary>The world key a creature's fall sets, by its key (<c>Character.m_defeatSetGlobalKey</c>); null for none.</summary>
         public Func<string, string> FallSets { get; set; }
+
+        /// <summary>The raid key of a boss's own fight, by the boss's key (<c>Character.m_bossEvent</c>); null for a creature with none.</summary>
+        public Func<string, string> FightOf { get; set; }
 
         /// <summary>
         /// Whether the character saw a creature's fall open a thing (<see cref="UnlockBook.SeenOpened"/>):

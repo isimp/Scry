@@ -69,5 +69,20 @@ namespace Scry.Tests
                 Assert.Equal(6f, System.MathF.Sqrt(x * x + z * z), 3);
             }
         }
+
+        [Fact]
+        public void ABossesAttackIsSeenBegunAsMuchFartherAsTheGameShowsItsHealthBar()
+        {
+            // The game names a creature within 10 m and shows a boss's health bar within 100 m,
+            // so Yagluth's taunt, which hurts no one, is seen begun from where its fight is fought.
+            Assert.Equal(100f, Sighting.AttackReach(true, 10f, 10f, 100f), 3);
+            Assert.Equal(10f, Sighting.AttackReach(false, 10f, 10f, 100f), 3);
+            // A world that sees up close nearer sees a boss's attacks as much nearer.
+            Assert.Equal(50f, Sighting.AttackReach(true, 5f, 10f, 100f), 3);
+            // One keeping no attacks seen up close keeps none of a boss's either.
+            Assert.Equal(0f, Sighting.AttackReach(true, 0f, 10f, 100f));
+            // Without the game's hud to read, a boss's attack is seen as near as any.
+            Assert.Equal(10f, Sighting.AttackReach(true, 10f, 0f, 100f));
+        }
     }
 }

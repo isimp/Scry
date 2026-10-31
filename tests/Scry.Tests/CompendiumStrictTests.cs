@@ -187,6 +187,8 @@ namespace Scry.Tests
             public readonly Entry Egg = E("ChickenEgg", Kind.Item);
             public readonly Entry Seekers = E("army_seekers", Kind.Raid);
             public readonly Entry Goblin = E("Goblin", Kind.Creature);
+            public readonly Entry Fight = E("boss_goblinking", Kind.Raid);
+            public readonly Entry OtherFight = E("boss_bonemass", Kind.Raid);
             public readonly Explorer Explorer;
             public readonly CompendiumView View;
             public readonly CompendiumBook Book = new CompendiumBook();
@@ -194,7 +196,7 @@ namespace Scry.Tests
 
             public Fallen()
             {
-                var all = new[] { Boss, Witch, Haldor, Spice, Egg, Seekers, Goblin };
+                var all = new[] { Boss, Witch, Haldor, Spice, Egg, Seekers, Goblin, Fight, OtherFight };
                 Explorer = new Explorer(all.ToList(), new Favourites(Path.Combine(TempDir(), "favourites.txt")));
                 View = new CompendiumView(Explorer.Entries) { Unlocks = Unlocks, FallSets = key => key == Boss.Key ? "defeated_goblinking" : null };
                 Unlocks.Add("defeated_goblinking", Unlock.Sells, Spice.Name, Witch.Name);
@@ -202,7 +204,7 @@ namespace Scry.Tests
                 Unlocks.Add("defeated_goblinking", Unlock.RaidStarts, Seekers.Key);
                 Unlocks.Add("defeated_goblinking", Unlock.Spawns, Goblin.Name);
                 // A raid comes to be known only by living through it.
-                foreach (var e in all) Book.Raise(e.Key, e == Seekers ? KnownLevel.Seen : KnownLevel.Known);
+                foreach (var e in all) Book.Raise(e.Key, e.Kind == Kind.Raid ? KnownLevel.Seen : KnownLevel.Known);
             }
 
             /// <summary>Whether a page shows a name under the strict rules.</summary>
@@ -236,6 +238,27 @@ namespace Scry.Tests
             // Nor a ware another fall opens, nor with a creature whose fall sets no key.
             world.View.FallSets = key => null;
             Assert.False(world.Shows(world.Boss, world.Spice));
+        }
+
+        [Fact]
+        public void ABossesFightLivedThroughLinksTheBossAndItsFight()
+        {
+            // The game plays a boss's fight only while its health bar shows, so the fight lived
+            // through went together with that boss: its page shows the fight, the fight's the boss.
+            var world = new Fallen();
+            var fight = world.Fight;
+            var other = world.OtherFight;
+            world.View.FightOf = key => key == world.Boss.Key ? fight.Key : null;
+            world.Book.Raise(other.Key, KnownLevel.Known, way: CameBy.LivedThrough);
+            Assert.False(world.Shows(world.Boss, fight));
+            world.Book.Raise(fight.Key, KnownLevel.Known, way: CameBy.LivedThrough);
+            Assert.True(world.Shows(world.Boss, fight));
+            Assert.True(world.Shows(fight, world.Boss));
+
+            // Not another boss's fight, nor a creature that is no boss.
+            Assert.False(world.Shows(world.Boss, other));
+            Assert.False(world.Shows(world.Goblin, fight));
+            Assert.False(world.Shows(fight, world.Goblin));
         }
 
         [Fact]

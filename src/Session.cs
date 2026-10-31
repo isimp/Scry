@@ -186,7 +186,7 @@ namespace Scry
             if (Explorer == null || (!IsOpen && _knownInstead == null)) return;
             if (_known == null || !ReferenceEquals(_known.Catalog, Explorer.Entries))
             {
-                _known = new CompendiumView(Explorer.Entries) { Unlocks = Knowledge.Unlocks, FallSets = Knowledge.FallKeyOf };
+                _known = new CompendiumView(Explorer.Entries) { Unlocks = Knowledge.Unlocks, FallSets = Knowledge.FallKeyOf, FightOf = Knowledge.FightOf };
                 _known.RoomsHold(RoomContents.Of);
             }
             // The floor as far as the character's bosses fell; the tiers worked out only once one is set.
