@@ -23,8 +23,10 @@ namespace Scry.Tests
         public void ALeviathanRidesTheSurfaceByItsFloatOffset()
         {
             Assert.Equal(0f, SeaHold.AtSurface(floatOffset: 0f, placed: 30f).SurfaceOverRoot, 3);
-            // A root held three metres under the surface has the surface three metres over it.
-            Assert.Equal(3f, SeaHold.AtSurface(floatOffset: -3f, placed: null).SurfaceOverRoot, 3);
+            // The game moves the root until it plus the offset meets the surface (Leviathan.FixedUpdate):
+            // an offset of 3 holds it three metres under the surface, one of -3 three metres over it.
+            Assert.Equal(3f, SeaHold.AtSurface(floatOffset: 3f, placed: null).SurfaceOverRoot, 3);
+            Assert.Equal(-3f, SeaHold.AtSurface(floatOffset: -3f, placed: null).SurfaceOverRoot, 3);
             Assert.Equal(SeaHeld.AtSurface, SeaHold.AtSurface(0f, null).Held);
         }
 

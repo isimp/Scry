@@ -56,8 +56,8 @@ namespace Scry
         /// <summary>A creature swimming, its root its swim depth under the surface (<c>m_swimDepth</c>).</summary>
         public static SeaHold Swims(float swimDepth, float? placed) => new SeaHold(SeaHeld.Swimming, swimDepth, placed);
 
-        /// <summary>Something riding the surface, its root at the surface plus its float offset (<c>m_floatOffset</c>).</summary>
-        public static SeaHold AtSurface(float floatOffset, float? placed) => new SeaHold(SeaHeld.AtSurface, -floatOffset, placed);
+        /// <summary>Something riding the surface, its root at the surface less its float offset (<c>m_floatOffset</c>).</summary>
+        public static SeaHold AtSurface(float floatOffset, float? placed) => new SeaHold(SeaHeld.AtSurface, floatOffset, placed);
 
         /// <summary>
         /// The shallowest sea any of the world's rules for a thing places it in: each at least its
