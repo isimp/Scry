@@ -26,6 +26,9 @@ namespace Scry
         private const float FrontYaw = 205f;
         private const float FrontPitch = 12f;
 
+        // A long creature opens showing its side, its head the nearer end (StageFraming.OpensSideOn).
+        private const float SideOnYaw = 250f;
+
         /// <summary>A way of lighting the stage: three lights that turn with the camera, an ambient and a backdrop.</summary>
         private sealed class Lighting
         {

@@ -163,7 +163,8 @@ namespace Scry
         /// quarters through, held there a moment so its tail settles, the roar half through, and
         /// last the bite half through with its tail left as the animator poses it, to set beside
         /// the bent one. Played through once, how far its tail's joints stand from their parents at
-        /// the most is noted, against how far they hung when it was shown.
+        /// the most is noted, against how far they hung when it was shown. Long, it opens showing
+        /// its side across most of the picture, pictured so; a Troll after it opens from the front.
         /// </summary>
         private static IEnumerator SerpentAttacks(Probe p)
         {
@@ -188,6 +189,14 @@ namespace Scry
             var deepLater = Stage.TailDeepest;
             p.Check(!float.IsNaN(deepFirst) && !float.IsNaN(deepLater) && deepLater - deepFirst < 0.5f, "held on the stage ten seconds, its tail stays as deep as it was rather than sinking",
                 $"deepest joint {Numbers.Fixed(deepFirst, 2)} m under the surface, then {Numbers.Fixed(deepLater, 2)} m");
+
+            // Long, it opens showing its side, its length across most of the picture and all of it inside.
+            var across = Stage.ShownAcross;
+            var (left, right) = across ?? (float.NaN, float.NaN);
+            p.Check(Stage.ShownSideOn && across != null && right - left >= 0.45f, "a Serpent opens showing its side, across nearly half the picture's width or more",
+                $"{(Stage.ShownSideOn ? "side on" : "from the front")}, from {Numbers.Fixed(left, 2)} to {Numbers.Fixed(right, 2)} of the width, turned {Numbers.Fixed(Stage.Yaw, 0)} degrees");
+            p.Check(across != null && left >= -0.02f && right <= 1.02f, "and none of it leaves the picture", $"from {Numbers.Fixed(left, 2)} to {Numbers.Fixed(right, 2)} of the width");
+            yield return Picture(p, "a Serpent as it opens on the stage");
 
             // Played through once, the tail's stretch watched every frame.
             var still = Stage.TailStretch;
@@ -217,6 +226,17 @@ namespace Scry
             Stage.LetTailGoForTest();
             yield return HeldAt(p, bite, 0.5f, "as the animator poses it");
             Previews.StopClip();
+
+            // A round creature opens from the front, as everything did before.
+            var sideYaw = Stage.Yaw;
+            var troll = Pick(Kind.Creature, "Troll");
+            if (troll != null)
+            {
+                Select(troll);
+                yield return Until(() => CopyOf(troll) != null, 10);
+                p.Check(CopyOf(troll) != null && !Stage.ShownSideOn && Mathf.Abs(Mathf.DeltaAngle(Stage.Yaw, sideYaw)) > 30f, "a Troll still opens from the front",
+                    $"{(Stage.ShownSideOn ? "side on" : "from the front")}, turned {Numbers.Fixed(Stage.Yaw, 0)} degrees");
+            }
             SerpentAttacksAsItWas();
         }
 

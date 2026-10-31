@@ -68,6 +68,18 @@ namespace Scry
         public static float ModelRadius(float own, float reach, bool followEffect) =>
             Math.Min(reach, followEffect ? EffectReach : own * ModelReach);
 
+        /// <summary>How many times as long as it is tall and wide a creature is to open showing its side.</summary>
+        public const float LongShare = 3f;
+
+        /// <summary>
+        /// Whether a creature so big (across, up, and along where it faces) opens showing its side:
+        /// one at least <see cref="LongShare"/> times as long as it is tall and wide, as a Serpent
+        /// is, which seen from the front shows little more than its head. Anything else, and a
+        /// creature long across, whose length the front shows already, opens from the front.
+        /// </summary>
+        public static bool OpensSideOn(Vec3 size, bool creature) =>
+            creature && size.Z >= LongShare * Math.Max(size.X, size.Y);
+
         /// <summary>The framing's radius after some seconds of gliding to what it is to frame: out quickly, back in slowly, to a floor stepped to quickly either way.</summary>
         public static float Glide(float current, float wanted, bool toFloor, float seconds) =>
             current + (wanted - current) * Share(toFloor || wanted > current ? WidenRate : NarrowRate, seconds);

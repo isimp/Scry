@@ -161,6 +161,34 @@ namespace Scry.Tests
             Assert.Equal(12f, StageFraming.FloorReach(12f), 3);
         }
 
+        // A Serpent's body, as the stage measures it: 4 m across, 6 m up, 36 m along where it faces.
+        private static readonly Vec3 SerpentSize = new Vec3(4f, 6f, 36f);
+
+        [Fact]
+        public void ACreatureMuchLongerThanItIsTallOrWideOpensShowingItsSide()
+        {
+            Assert.True(StageFraming.OpensSideOn(SerpentSize, creature: true));
+            // A Leech, long and thin, the same.
+            Assert.True(StageFraming.OpensSideOn(new Vec3(0.5f, 0.5f, 2.5f), creature: true));
+            // Three times as long as it is tall or wide is long; a little less is not.
+            Assert.True(StageFraming.OpensSideOn(new Vec3(1f, 2f, 6f), creature: true));
+            Assert.False(StageFraming.OpensSideOn(new Vec3(1f, 2f, 5.9f), creature: true));
+            Assert.False(StageFraming.OpensSideOn(new Vec3(2.1f, 2f, 6f), creature: true));
+        }
+
+        [Fact]
+        public void ARoundOrTallCreatureAndAnythingButACreatureOpenFromTheFront()
+        {
+            // A Troll, a Lox, a Drake with its wings spread.
+            Assert.False(StageFraming.OpensSideOn(new Vec3(3f, 5f, 3f), creature: true));
+            Assert.False(StageFraming.OpensSideOn(new Vec3(2.5f, 3f, 4.5f), creature: true));
+            Assert.False(StageFraming.OpensSideOn(new Vec3(8f, 2f, 5f), creature: true));
+            // A creature long across rather than along where it faces shows its length from the front already.
+            Assert.False(StageFraming.OpensSideOn(new Vec3(36f, 6f, 4f), creature: true));
+            // A spear is long, but no creature.
+            Assert.False(StageFraming.OpensSideOn(new Vec3(0.1f, 0.1f, 2.5f), creature: false));
+        }
+
         [Fact]
         public void ThePersonStandsALittleToTheLeftOfTheModel()
         {

@@ -63,7 +63,11 @@ namespace Scry
         /// <summary>The way from the camera through a point of its picture (0 to 1 across, 0 to 1 up).</summary>
         private static Vector3 RayAt(Vector2 point) => _camera.transform.rotation * U(StageCamera.Through(point.x, point.y, FieldOfView, _camera.aspect));
 
-        public static void Orbit(Vector2 delta) => (Yaw, Pitch) = StageCamera.Orbit(Yaw, Pitch, delta.x, delta.y);
+        public static void Orbit(Vector2 delta)
+        {
+            _opening = false;
+            (Yaw, Pitch) = StageCamera.Orbit(Yaw, Pitch, delta.x, delta.y);
+        }
 
         /// <summary>
         /// Zooms by the wheel toward what is under the pointer at a point of the picture (0 to 1
@@ -90,16 +94,30 @@ namespace Scry
 
         public static void ResetView()
         {
-            Yaw = FrontYaw;
+            Yaw = _long ? SideOnYaw : FrontYaw;
             Pitch = Cutting ? CutPitch : FrontPitch;
+            _opening = true;
             Zoom = 1f;
             FrameAnew();
             CenterView();
         }
 
+        /// <summary>Whether the view is still as it was reset, turned by nothing since, so a copy measured later may still turn it to its side.</summary>
+        private static bool _opening = true;
+
+        /// <summary>
+        /// Turns the camera to a long creature's side once its copy is measured (<see cref="StageFraming.OpensSideOn"/>),
+        /// while the view is still as it was reset: a view turned since, by a drag, a named view or the spin, stays as it is.
+        /// </summary>
+        private static void TurnSideOn()
+        {
+            if (_opening && _long) Yaw = SideOnYaw;
+        }
+
         /// <summary>Turns the camera to look from these angles, as spinning, opening a floor or the self-test does.</summary>
         public static void TurnTo(float yaw, float pitch)
         {
+            if (!Mathf.Approximately(Mathf.DeltaAngle(yaw, Yaw), 0f)) _opening = false;
             Yaw = yaw;
             Pitch = pitch;
         }
@@ -153,6 +171,7 @@ namespace Scry
         /// <summary>Turns the camera to a view: "Front", "Side", "Top", or "Fit" to frame it whole again.</summary>
         public static void View(string name)
         {
+            _opening = false;
             switch (name)
             {
                 case "Front":

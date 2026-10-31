@@ -118,6 +118,31 @@ namespace Scry
         [Diagnostic, ForTest]
         public static bool LevelFrameKept => _keptLevelFrame != null;
 
+        /// <summary>For the self-test: whether what is shown is a long creature, opened showing its side.</summary>
+        [ForTest]
+        public static bool ShownSideOn => _long;
+
+        /// <summary>For the self-test: where what is shown reaches across the picture, the corners of what it draws seen from the camera, as shares of the width from its left; none with nothing shown.</summary>
+        [ForTest]
+        public static (float Left, float Right)? ShownAcross
+        {
+            get
+            {
+                if (_subject == null || _camera == null) return null;
+                var drawn = Measure(_subject);
+                float left = float.PositiveInfinity, right = float.NegativeInfinity;
+                for (var i = 0; i < 8; i++)
+                {
+                    var corner = new Vector3((i & 1) == 0 ? drawn.min.x : drawn.max.x, (i & 2) == 0 ? drawn.min.y : drawn.max.y, (i & 4) == 0 ? drawn.min.z : drawn.max.z);
+                    var seen = _camera.WorldToViewportPoint(corner);
+                    if (seen.z <= 0f) continue;
+                    left = Mathf.Min(left, seen.x);
+                    right = Mathf.Max(right, seen.x);
+                }
+                return float.IsPositiveInfinity(left) ? null : ((float, float)?)(left, right);
+            }
+        }
+
         /// <summary>Has the grid tiled again for its size at the next frame, as a new grid is.</summary>
         private static void TileGridAnew() => _gridMetres = -1f;
 

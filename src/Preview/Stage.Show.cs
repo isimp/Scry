@@ -28,6 +28,9 @@ namespace Scry
         private static bool _onFeet;
         private static bool _followEffect;
 
+        /// <summary>Whether what is shown is a long creature, opened showing its side (<see cref="StageFraming.OpensSideOn"/>).</summary>
+        private static bool _long;
+
         /// <summary>Takes the copy shown off the stage, with what plays on it and a place still being built.</summary>
         public static void ClearSubject()
         {
@@ -43,6 +46,7 @@ namespace Scry
             ForgetGroundTaken(rooms: false);
             if (_subject != null) Object.Destroy(_subject);
             _subject = null;
+            _long = false;
             ClearPlayed();
         }
 
@@ -122,6 +126,7 @@ namespace Scry
             }
             if (_subject == null) return;
             Present(entry, modifiers);
+            TurnSideOn();
         }
 
         /// <summary>
@@ -250,6 +255,7 @@ namespace Scry
             // has run a moment; a flying creature is measured over its flight a while longer.
             _baseScale = _subject.transform.localScale;
             MeasureNew(entry);
+            _long = StageFraming.OpensSideOn(V(_bounds.size), entry.Kind == Kind.Creature);
             if (!Guard.Run(Feature.SeaHoldsOnStage, SeaPart, ReadSea, entry)) ForgetSea();
             if (!Guard.Run(Feature.MotionToldOnStage, MotionPart, ReadMotion, entry)) ForgetMotion();
             if (!Guard.Run(Feature.TailBentOnStage, TailPart, ReadTail, entry)) ForgetTail();

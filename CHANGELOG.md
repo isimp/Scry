@@ -4,7 +4,7 @@
 
 Pages open faster. The first page after the game starts has less to prepare, and a page opened for the first time answers the click at once and fills in over the next frames, each part fading in from a faint outline.
 
-The stage's sea holds what lives in it: a Serpent swims at its depth with its tail bending as in the game, a Leviathan rides the surface, and the camera stays above the water. Drakes, Moder and a raid's flyers show in flight.
+The stage's sea holds what lives in it: a Serpent swims at its depth with its tail bending as in the game and opens showing its side across the picture, a Leviathan rides the surface, and the camera stays above the water. Drakes, Moder and a raid's flyers show in flight.
 
 Under *Strict* every section says how many things it left out, telling what you never met apart from what you have not yet seen go together with the page, and the title row counts them, so `is:left` finds the pages with more to find out. Under *Loose* the same lines count what you have not met, and the title row reads like "3 of 6 met".
 
