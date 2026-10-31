@@ -221,6 +221,9 @@ namespace Scry
                 case Happened.Picked:
                     foreach (var (item, _) in told.Came) book.SawWith(told.Thing, item, Tie.Gives);
                     return;
+                case Happened.Grew:
+                    GrownInto(told, book);
+                    return;
                 default:
                     return;
             }
@@ -287,10 +290,17 @@ namespace Scry
                 default:
                     book.FoundOut(told.Thing, EntryKeys.Did(DeedOf(told.What)));
                     YoungKnown(told, book);
+                    GrownInto(told, book);
                     var noted = NotedAs(told.What);
                     if (noted != null) counts?.Note(noted.Value);
                     return;
             }
+        }
+
+        /// <summary>A plant grown into what the event names as its other thing: seen together with it, given by it, as a tree with the wood it gives; none where it names none.</summary>
+        private static void GrownInto(WorldEvent told, CompendiumBook book)
+        {
+            if (told.What == Happened.Grew && !string.IsNullOrEmpty(told.With)) book.SawWith(told.Thing, told.With, Tie.Gives);
         }
 
         /// <summary>

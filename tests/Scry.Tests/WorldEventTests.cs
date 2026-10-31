@@ -215,6 +215,21 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APlantSeenGrowingIsSeenTogetherWithWhatItBecame()
+        {
+            // A sapling grown into a beech within reach: the sapling's page names the beech it grew
+            // into and the beech's names the sapling it grew from, as given by it; too far, nothing.
+            var book = Told(Event(Happened.Grew, "Beech_Sapling", 10f, with: "Beech1"));
+            Assert.True(book.Witnessed("Beech_Sapling", "Beech1", Tie.Gives));
+            Assert.Equal(EntryKeys.Did(Deed.Grew), book.FoundOutOf("Beech_Sapling"));
+            Assert.False(Told(Event(Happened.Grew, "Beech_Sapling", 40f, with: "Beech1")).Witnessed("Beech_Sapling", "Beech1"));
+            // Told again by another game under the same mark, the pair still stands.
+            var twice = Told(Event(Happened.Grew, "Beech_Sapling", 10f, mark: "4:2"),
+                Event(Happened.Grew, "Beech_Sapling", 10f, 2, with: "Beech1", game: OtherGame, mark: "4:2"));
+            Assert.True(twice.Witnessed("Beech_Sapling", "Beech1", Tie.Gives));
+        }
+
+        [Fact]
         public void TheWaysTheYoungComeToBeKnownAreToldInAFewWords()
         {
             Assert.Equal("seen born", JournalWords.LearnedNote(new BookNews(NewsHow.Known, null, CameBy.Born, 3)));

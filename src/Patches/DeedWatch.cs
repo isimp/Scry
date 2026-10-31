@@ -110,11 +110,11 @@ namespace Scry
             Guard.Run(Feature.CompendiumTogether, "noting a producer collected from", () => CompendiumKeeper.CollectedFrom(producer.gameObject));
         }
 
-        /// <summary>A crop that grew in this call: grown.</summary>
-        public static void Grown(Plant plant, bool grew)
+        /// <summary>A crop that grew in this call: grown, into what it became.</summary>
+        public static void Grown(Plant plant, GameObject grown)
         {
-            if (!grew) return;
-            Guard.Run(Feature.CompendiumTogether, "noting a crop grown", () => WorldEvents.Tell(Happened.Grew, plant));
+            if (grown == null) return;
+            Guard.Run(Feature.CompendiumTogether, "noting a crop grown", () => WorldEvents.Tell(Happened.Grew, plant, Utils.GetPrefabName(grown)));
         }
 
         /// <summary>A station that handed out what it made in this call: its work finished.</summary>
@@ -203,7 +203,7 @@ namespace Scry
     [HarmonyPatch(typeof(Plant), nameof(Plant.Grow))]
     internal static class CropGrown
     {
-        private static void Postfix(Plant __instance, GameObject __result) => DeedWatch.Grown(__instance, __result != null);
+        private static void Postfix(Plant __instance, GameObject __result) => DeedWatch.Grown(__instance, __result);
     }
 
     /// <summary>A smelter, kiln, windmill or the like handing out what it made within sight shows how long each takes and what it burns (<c>Smelter.Spawn</c>).</summary>

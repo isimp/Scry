@@ -53,6 +53,24 @@ namespace Scry
             }
         }
 
+        /// <summary>A crop or sapling near by seen growing into what it becomes: its growing found out, the two seen together; a young creature growing up is left to play.</summary>
+        private static void PlantGrowthTells(Probe p, CompendiumBook book, Player player)
+        {
+            p.Note("growing up is seen in play only, as a young creature has to be gone for it");
+            var near = Sighting.PersonReach;
+            var plant = UnityEngine.Object.FindObjectsByType<Plant>(FindObjectsSortMode.None)
+                .FirstOrDefault(c => c != null && c.m_grownPrefabs != null && c.m_grownPrefabs.Length > 0 && c.m_grownPrefabs[0] != null
+                    && Vector3.Distance(c.transform.position, player.transform.position) <= near && InSight(c));
+            if (plant == null) p.Note("no plant is near to see grow");
+            else
+            {
+                var plantKey = Utils.GetPrefabName(plant.gameObject);
+                var grown = Utils.GetPrefabName(plant.m_grownPrefabs[0]);
+                DeedWatch.Grown(plant, plant.m_grownPrefabs[0]);
+                p.Check(book.Proved(plantKey, EntryKeys.Did(Deed.Grew)) && book.Witnessed(plantKey, grown, Tie.Gives), $"{plantKey} seen growing into {grown} shows how long that takes, the two seen together");
+            }
+        }
+
         /// <summary>A hit of the character's on the nearest loaded thing that breaks tells how its damage landed, as a creature's does; one on a rock's pieces knows the rock (<see cref="PiecesHitKnowTheirRock"/>).</summary>
         private static void ResourceHitTells(Probe p, CompendiumBook book, Player player)
         {
@@ -235,7 +253,7 @@ namespace Scry
                 CompendiumKeeper.Tamings(player, c => c == tame || c.IsTamed());
                 p.Check(book.Proved(Utils.GetPrefabName(tame.gameObject), EntryKeys.Did(Deed.Tamed)), "a creature near by seen wild, then tame, shows how long taming takes");
             }
-            p.Note("growing up is seen in play only, as a young creature has to be gone for it");
+            PlantGrowthTells(p, book, player);
 
             // A tree breaking by the character's hit with an item come to be meanwhile: counted as what it gave, however far.
             var tree = Nearest<TreeBase>(player);
