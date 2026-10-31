@@ -10,6 +10,8 @@ Under *Strict* every section says how many things it left out, telling what you 
 
 More is linked once you have seen it: what a boss's fall opens, a summoning chain's offering through its altar, a nest's creatures, a boss and its fight, and the weapons, attacks and blasts that put an effect on you. A boss's attacks count as seen from as far as its health bar shows. A rock broken whole before you struck it, such as the stone fingers at Yagluth's altar, comes to be known by mining its pieces.
 
+More of what you do counts toward a page under *Strict*. Watching a plant grow names what it became, a raid you lived through is seen with the biome you stood in, picking up a treasure names what it gave, and breaking a deposit's shell shows its health. Food seen turning done or burnt on any cooking station counts, whoever runs it, and names what the station burns food into. A Vegvisir you read is seen with the place it stands in, and coming back to a bush bearing again shows how long it takes to grow back. A character played before Scry has its picks, its honey and sap taken and its fish caught counted too.
+
 What a page links now stands in the topic it belongs to, and with the compendium on *Linked* stays folded until opened. A dungeon room says whether it is a dead end, a passage or a junction. Scry's own words no longer turn into a dash where they hold a thing's name. The stage's grass no longer hides an item or a low piece lying in it. Smaller fixes throughout.
 
 ## 0.3.2
