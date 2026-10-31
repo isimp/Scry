@@ -170,10 +170,10 @@ namespace Scry.Tests
         public void ACropsTimeAndAStationsWorkingWaitToBeSeen()
         {
             // A crop growing in sight shows how long it takes; a station handing out what it made, how long each takes and what it burns.
-            Assert.Equal("shows once you have seen one grow", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Grew)));
+            Assert.Equal("shows once you have grown or seen one grow", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Grew)));
             Assert.Equal("shows once you have seen one finish", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Finished)));
             var rows = CompendiumWords.StillToFindOut(new[] { EntryKeys.Did(Deed.Grew), EntryKeys.Did(Deed.Finished) }, new string[0], attacks: 0, spots: 0, new Tally[0]);
-            Assert.Equal(new[] { ("See one grow", "shows how long that takes"), ("See one finish", "shows how long each takes and what it burns") }, rows.ToArray());
+            Assert.Equal(new[] { ("Grow one or see one grow", "shows how long that takes"), ("See one finish", "shows how long each takes and what it burns") }, rows.ToArray());
             Assert.Equal("its growing found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.Grew)));
             Assert.Equal("its working found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.Finished)));
         }

@@ -233,6 +233,18 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APlantTheCharacterPlantedThatGrewWhileItWasAwayShowsItsGrowing()
+        {
+            // A plant grows as its ground loads, mostly before its planter comes near: the planter
+            // did it, so wherever it stands, its growing shows and what it became is paired.
+            var book = Told(Event(Happened.Grew, "Beech_Sapling", 400f, doers: new[] { Me }, with: "Beech1"));
+            Assert.Equal(EntryKeys.Did(Deed.Grew), book.FoundOutOf("Beech_Sapling"));
+            Assert.True(book.Witnessed("Beech_Sapling", "Beech1", Tie.Gives));
+            // A friend's plant growing far off teaches nothing.
+            Assert.False(Told(Event(Happened.Grew, "Beech_Sapling", 400f, doers: new[] { Friend }, with: "Beech1")).Changed);
+        }
+
+        [Fact]
         public void APlantSeenGrowingIsSeenTogetherWithWhatItBecame()
         {
             // A sapling grown into a beech within reach: the sapling's page names the beech it grew

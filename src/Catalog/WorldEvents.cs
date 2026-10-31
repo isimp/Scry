@@ -65,6 +65,23 @@ namespace Scry
             Tell(what, Utils.GetPrefabName(thing.gameObject), thing.transform.position, with: with);
         }
 
+        /// <summary>
+        /// The player who built or planted a piece, by the player's id the game keeps on it on every
+        /// game (<c>Piece.GetCreator</c>), among the world's players now, by the id each one's
+        /// character carries; no one where its builder is not playing.
+        /// </summary>
+        public static IReadOnlyList<long> BuiltBy(Piece piece)
+        {
+            var creator = piece != null ? piece.GetCreator() : 0L;
+            if (creator == 0L || ZNet.instance == null || ZDOMan.instance == null) return NoOne;
+            foreach (var player in ZNet.instance.GetPlayerList())
+            {
+                var character = ZDOMan.instance.GetZDO(player.m_characterID);
+                if (character != null && character.GetLong(ZDOVars.s_playerID) == creator) return new[] { player.m_characterID.UserID };
+            }
+            return NoOne;
+        }
+
         /// <summary>The player whose hit it is: the one among the world's players whose character dealt it; no one for a hit no player dealt.</summary>
         public static IReadOnlyList<long> HitBy(HitData hit)
         {

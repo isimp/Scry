@@ -114,11 +114,12 @@ namespace Scry
             Guard.Run(Feature.CompendiumTogether, "noting a producer collected from", () => CompendiumKeeper.CollectedFrom(producer.gameObject));
         }
 
-        /// <summary>A crop that grew in this call: grown, into what it became.</summary>
+        /// <summary>A crop that grew in this call: grown, into what it became, by the player who planted it, who did it wherever it stands (<see cref="WorldEvents.BuiltBy"/>).</summary>
         public static void Grown(Plant plant, GameObject grown)
         {
             if (grown == null) return;
-            Guard.Run(Feature.CompendiumTogether, "noting a crop grown", () => WorldEvents.Tell(Happened.Grew, plant, Utils.GetPrefabName(grown)));
+            Guard.Run(Feature.CompendiumTogether, "noting a crop grown", () =>
+                WorldEvents.Tell(Happened.Grew, Utils.GetPrefabName(plant.gameObject), plant.transform.position, doers: WorldEvents.BuiltBy(plant.GetComponent<Piece>()), with: Utils.GetPrefabName(grown)));
         }
 
         /// <summary>A station that handed out what it made in this call: its work finished.</summary>

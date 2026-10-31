@@ -165,6 +165,10 @@ namespace Scry
                 var grown = Utils.GetPrefabName(plant.m_grownPrefabs[0]);
                 DeedWatch.Grown(plant, plant.m_grownPrefabs[0]);
                 p.Check(book.Proved(plantKey, EntryKeys.Did(Deed.Grew)) && book.Witnessed(plantKey, grown, Tie.Gives), $"{plantKey} seen growing into {grown} shows how long that takes, the two seen together");
+                // Its planter is found among the players by the id the game keeps on it, so one the character planted grows by its hand.
+                var creator = plant.GetComponent<Piece>().OrNull()?.GetCreator() ?? 0L;
+                if (creator == player.GetPlayerID()) p.Check(WorldEvents.BuiltBy(plant.GetComponent<Piece>()).Contains(ZNet.GetUID()), $"{plantKey}, planted by the character, grows by its hand");
+                else p.Note($"{plantKey} was not planted by the character: its planter untried");
             }
         }
 
