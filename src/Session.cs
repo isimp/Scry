@@ -127,7 +127,6 @@ namespace Scry
             Timing.Add("update panel", panel);
 
             Step(Feature.Previews, "the previews", "update previews", () => Previews.Update(IsOpen ? Explorer : null));
-            Step(Feature.Details("chain"), "reading the world's chains", "update chains", ReadChains);
             Step(Feature.World, "compiling Scry's code ahead", "update warmup", Warm);
             Step(Feature.SelfTest, "the self-test", null, () =>
             {
@@ -138,6 +137,8 @@ namespace Scry
             });
 
             if (!Guard.Run(Feature.Locations, "reading the locations", Locations.Update, "update locations")) Locations.Forget();
+            // After the locations, so the altars a reading just added are read before a page drawn this frame asks.
+            Step(Feature.Details("chain"), "reading the world's chains", "update chains", ReadChains);
             Step(Feature.FloorsKept, "the floors kept", "update floors kept", FloorRecords.Update);
             Step(Feature.CompendiumCatchUp, "what the character knows", "update compendium", CompendiumKeeper.Update);
             Step(Feature.DungeonMaps, "the rooms walked in a dungeon", "update dungeon walks", DungeonWalks.Update);
@@ -236,15 +237,26 @@ namespace Scry
         /// <summary>When the world's chains were last asked for, by the unscaled clock.</summary>
         private static float _chainsAt = float.NegativeInfinity;
 
+        /// <summary>How the locations stood when the chains were last asked for.</summary>
+        private static Locations.State _chainsLocations;
+
         /// <summary>
         /// Keeps the world's chains (<see cref="Chains"/>) read, in a frame of their own, rather
         /// than in the frame of the first page showing one: reading them looks at every prefab of
         /// the world. Asked once a second, they are read again only where they changed: a new
-        /// world, or the altars the locations add, once their reading is done.
+        /// world, or the altars the locations add, once their reading is done, asked at once in
+        /// the frame it is done, before the page shown, told again, would read them in its drawing.
         /// </summary>
         private static void ReadChains()
         {
-            if (Explorer == null || Locations.Now == Locations.State.Reading || Time.unscaledTime - _chainsAt < 1f) return;
+            if (Explorer == null || Locations.Now == Locations.State.Reading)
+            {
+                _chainsLocations = Locations.Now;
+                return;
+            }
+            var done = _chainsLocations != Locations.Now;
+            _chainsLocations = Locations.Now;
+            if (!done && Time.unscaledTime - _chainsAt < 1f) return;
             _chainsAt = Time.unscaledTime;
             Chains.Of("");
         }
@@ -402,6 +414,7 @@ namespace Scry
             _job = null;
             _failedIn = null;
             _chainsAt = float.NegativeInfinity;
+            _chainsLocations = Locations.State.NotRead;
             _inWorldSince = -1f;
             Guard.Run(Feature.Leaving, "closing on leaving a world", Hide);
             Guard.Run(Feature.Leaving, "clearing the world's previews", Previews.ClearWorld);
