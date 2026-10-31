@@ -8,6 +8,9 @@ namespace Scry
     /// <summary>What the game knows of the entry, the command to spawn it, and its details.</summary>
     internal static partial class ScryPanel
     {
+        /// <summary>The facts' section heading, which its skeleton shows too while the facts are worked out.</summary>
+        private const string FactsHeading = "IN THE GAME";
+
         private static float FactsSection(Explorer explorer, Entry entry, float width, float y)
         {
             // On a page laid out over frames, the facts are worked out a few parts a frame, while
@@ -39,7 +42,7 @@ namespace Scry
             var places = PlacesShown(entry);
             if (facts.IsEmpty && !places && entry.Biomes.Length == 0 && Users(explorer, entry).Count == 0) return y;
 
-            y = SectionHeading("IN THE GAME", width, y, null, "facts");
+            y = SectionHeading(FactsHeading, width, y, null, "facts");
             if (IsFolded("facts")) return y;
             var opened = y;
 

@@ -44,7 +44,7 @@ namespace Scry
         /// </summary>
         public static string RoomPeek(string name, string where, int creatures, int chests, bool goneInto, bool layoutOnly = false,
             IReadOnlyList<string> creaturesLeft = null, IReadOnlyList<string> lootLeft = null) =>
-            name + "\n" + where + (layoutOnly ? "" : "\n" + PeekCount("Creatures", creatures, creaturesLeft) + "  ·  " + PeekCount("To loot", chests, lootLeft))
+            name + "\n" + where + (layoutOnly ? "" : "\n" + PeekCount("Creatures", creatures, creaturesLeft) + "  ·  " + PeekCount(RoomCardWords.Loot, chests, lootLeft))
             + (goneInto ? "\nEsc, the breadcrumb's level or the mouse's back button comes back out" : "\nPick it, or double-click to go into it");
 
         /// <summary>A count on a room's peek, what the rules left out after it, as its card's lines say them; with none shown, the counts alone.</summary>

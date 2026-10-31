@@ -112,7 +112,7 @@ namespace Scry
         {
             switch (role)
             {
-                case PartRole.Loot: return rooms ? "To loot in its rooms" : "To loot";
+                case PartRole.Loot: return rooms ? RoomCardWords.Loot + " in its rooms" : RoomCardWords.Loot;
                 case PartRole.Gather: return rooms ? "To gather in its rooms" : "To gather";
                 case PartRole.Built: return rooms ? "Its rooms are built of" : "Built of";
                 default: return rooms ? "Its rooms hold" : "Holds";

@@ -74,7 +74,7 @@ namespace Scry
         /// <summary>The facts' section while they are worked out: its heading, then the You box and a row of tiles as skeletons.</summary>
         private static float WaitingFacts(float width, float y)
         {
-            GUI.Label(new Rect(0f, y, width, U(20f)), "IN THE GAME", Skin.Heading);
+            GUI.Label(new Rect(0f, y, width, U(20f)), FactsHeading, Skin.Heading);
             y += U(26f);
             y = SkeletonBox(width, y - U(6f), U(52f));
             return SkeletonTiles(width, y + U(2f), 3) + U(14f);
