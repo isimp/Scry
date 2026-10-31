@@ -9,7 +9,10 @@ namespace Scry
         /// A made-up character's pages read under the loose rules as a player sees them: a known
         /// windmill names neither the grain it grinds nor the flour before either was met, says
         /// faintly how many more were not met and keeps the grain's name back in text, its numbers
-        /// whole; met, both are named. Stone's page names only the givers met. A known dungeon's
+        /// whole; its title chip counts how much of what it names was met, its You box says to
+        /// meet the rest first, is:left finds it, and its sections count what the page does; met,
+        /// both are named and the chip counts more. Stone's page names only the givers met and
+        /// counts the rest. Pages of other kinds count as their sections do. A known dungeon's
         /// example leaves the creatures not met off the stage, and the card of a room they were
         /// rolled in counts them. Each page is pictured.
         /// </summary>
@@ -41,18 +44,27 @@ namespace Scry
             yield return GoTo("does");
             yield return null;
             yield return null;
-            p.Check(X.NamesOnlyMet && X.LeavesOut(barley.Key) && X.LeavesOut(flour.Key) && !X.LeavingOut,
+            p.Check(X.NamesOnlyMet && X.LeavesOut(barley.Key) && X.LeavesOut(flour.Key) && !X.LeavingOut && X.CountingMet,
                 "under the loose rules a known windmill names neither barley nor its flour, not yet met, and keeps its numbers");
-            p.Check(ScryPanel.Drawn(PanelPart.StrictLeftOut) == left, "and counts them nowhere but where a section counts what it leaves out: a creature's loot, where it lives, a room, a raid");
+            if (grinds) p.Check(ScryPanel.Drawn(PanelPart.StrictLeftOut) > left, "and the section naming them says how many it left out, as every section does");
+            yield return Until(() => ScryPanel.FindsChipForTest != null && ScryPanel.FindsForTest.Of > 0, 3);
+            var before = ScryPanel.FindsForTest;
+            var chip = ScryPanel.FindsChipForTest;
+            p.Check(before.Found < before.Of && chip != null && chip.Contains(" of ") && !chip.Contains("found out"), "its title chip counts how much of what it names was met, and is not lit", chip ?? "no chip");
+            p.Check(ScryPanel.StillForTest.Contains("Meet first") && !ScryPanel.StillForTest.Contains("See it together"), "its You box says to meet them first, and nothing else", string.Join("; ", ScryPanel.StillForTest));
+            p.Check(view.Is(mill, "left", view.Today), "and is:left finds its page");
             var masked = ScryPanel.AsDrawn(X, $"Grinds {barley.ShownName} into flour");
             p.Check(!masked.Contains(barley.ShownName) && masked.Contains(CompendiumWords.Hidden), "a name not yet met reads as a dash in a page's text", masked);
             yield return PictureOf(p, "does", "loose windmill, barley not yet met");
+            yield return NamesCountedAsDrawn(p, mill);
 
             book.Raise(barley.Key, KnownLevel.Seen);
             book.Raise(flour.Key, KnownLevel.Seen);
             view.Tell(book, CompendiumRule.Loose);
             yield return Until(() => !X.LeavesOut(barley.Key), 3);
             p.Check(!X.LeavesOut(barley.Key) && !X.LeavesOut(flour.Key), "seen, barley and its flour are named");
+            yield return Until(() => ScryPanel.FindsForTest.Found > before.Found, 3);
+            p.Check(ScryPanel.FindsForTest.Found > before.Found, "and its title chip counts more met", $"{ScryPanel.FindsChipForTest} after {Numbers.Count(before.Found)} of {Numbers.Count(before.Of)}");
             yield return PictureOf(p, "does", "loose windmill, barley met");
 
             // Stone: only the givers met are named.
@@ -70,11 +82,14 @@ namespace Scry
                 yield return null;
                 var named = givers.Count(g => !X.LeavesOut(g));
                 p.Note($"Stone: {Numbers.Count(givers.Count)} givers in the catalog, {Numbers.Count(named)} named with one met");
-                p.Check(!X.LeavesOut(givers[0]) && X.LeavesOut(givers[1]) && ScryPanel.Drawn(PanelPart.StrictLeftOut) == stoneLeft,
-                    "Stone's page names the giver met and counts the rest nowhere", $"met named {!X.LeavesOut(givers[0])}, another left out {X.LeavesOut(givers[1])}, count lines {Numbers.Count(ScryPanel.Drawn(PanelPart.StrictLeftOut) - stoneLeft)}");
+                p.Check(!X.LeavesOut(givers[0]) && X.LeavesOut(givers[1]) && ScryPanel.Drawn(PanelPart.StrictLeftOut) > stoneLeft,
+                    "Stone's page names the giver met and counts the rest at the section's end", $"met named {!X.LeavesOut(givers[0])}, another left out {X.LeavesOut(givers[1])}, count lines {Numbers.Count(ScryPanel.Drawn(PanelPart.StrictLeftOut) - stoneLeft)}");
                 yield return PictureOf(p, "from", "loose Stone, where it comes from, one giver met");
+                yield return NamesCountedAsDrawn(p, stone);
             }
             else p.Note("no stone with two givers in the catalog");
+
+            yield return LoosePagesCounted(p, view, book);
 
             // A known dungeon: the creatures not met stand nowhere on its example, and a room's card counts them.
             var dungeon = ReferenceDungeons.Select(n => X.Catalog.FirstOrDefault(e => e.Name == n && PlaceOf(e) != null && !PlaceOf(e).IsRoom)).FirstOrDefault(e => e != null);
@@ -115,6 +130,22 @@ namespace Scry
             ScryPanel.OpenCardListsForTest(listsWere.Creatures, listsWere.Loot);
             Stage.Inside = wasInside;
             Session.ShowKnownInstead(null);
+        }
+
+        /// <summary>
+        /// Under the loose rules pages of several kinds count the names they leave out as their
+        /// sections do, and is:left finds those the chip does not light; known in a book of their
+        /// own, so the character's book (<paramref name="book"/>) is told again after, as before.
+        /// </summary>
+        private static IEnumerator LoosePagesCounted(Probe p, CompendiumView view, CompendiumBook book)
+        {
+            var pages = new[] { Kind.Creature, Kind.Item, Kind.Piece, Kind.Location, Kind.Biome }
+                .SelectMany(kind => X.Catalog.Where(e => e.Kind == kind && e.Links.Count >= 3).Take(2)).ToList();
+            var others = new CompendiumBook();
+            foreach (var page in pages) others.Raise(page.Key, KnownLevel.Known);
+            view.Tell(others, CompendiumRule.Loose);
+            foreach (var page in pages) yield return NamesCountedAsDrawn(p, page);
+            view.Tell(book, CompendiumRule.Loose);
         }
 
         /// <summary>

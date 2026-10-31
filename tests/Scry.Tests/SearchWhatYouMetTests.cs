@@ -94,6 +94,23 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void UnderLooseIsLeftFindsAKnownPageWhoseChipStillCountsANameNotYetMet()
+        {
+            // The loose title chip counts what a page names that was not yet met, as the panel
+            // hands it in (CompendiumView.LeftByPage): is:left finds those pages, never one only
+            // seen; without the panel's count nothing, as the loose rules keep no number back.
+            var world = new World();
+            world.Rule(CompendiumRule.Loose);
+            Assert.Empty(world.Found("is:left"));
+            world.View.LeftByPage = entry => entry == world.Troll || entry == world.Boar;
+            world.Found("kind:creature");
+            Assert.Equal(new[] { world.Troll }, world.Found("is:left"));
+            world.View.LeftByPage = entry => false;
+            world.Found("kind:creature");
+            Assert.Empty(world.Found("is:left"));
+        }
+
+        [Fact]
         public void DropsFindsACreatureOnlyByAnItemSeenToFallFromIt()
         {
             // The way matters to the search as it does to the row: an item met beside the creature in a chest opens no drop of it.

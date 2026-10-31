@@ -81,7 +81,8 @@ namespace Scry
                     _jobFor = explorer;
                     _jobAt = Locations.Applied;
                     _jobKnow = explorer.KnowStamp;
-                    _termsJob = System.Threading.Tasks.Task.Run(() => new TermIndex(catalog, met, guarded));
+                    var offersLeft = OffersLeft(explorer);
+                    _termsJob = System.Threading.Tasks.Task.Run(() => new TermIndex(catalog, met, guarded, offersLeft));
                 }
 
                 if (_termsJob.IsCompleted)
@@ -95,7 +96,7 @@ namespace Scry
                     {
                         // Told as a failure, then read here on the main thread instead.
                         Faults.Tell(Feature.SearchSuggestions, "reading the search terms on a worker thread", _termsJob.Exception?.GetBaseException());
-                        _terms = new TermIndex(explorer.Catalog, Met(explorer), Guarded(explorer));
+                        _terms = new TermIndex(explorer.Catalog, Met(explorer), Guarded(explorer), OffersLeft(explorer));
                     }
                     _termsFor = _jobFor;
                     _termsAt = _jobAt;
@@ -108,6 +109,9 @@ namespace Scry
                 // Terms of what the character knew before would offer what it does not know now.
                 return _terms != null && ReferenceEquals(_termsFor, explorer) && _termsKnow == explorer.KnowStamp ? _terms : NoTerms;
             }
+
+            /// <summary>Whether the search offers is:left under the loose rules, whose title chip counts what was met of what a page names.</summary>
+            private static bool OffersLeft(Explorer explorer) => explorer.CompendiumSet && explorer.Compendium.Rule == CompendiumRule.Loose;
 
             /// <summary>Under the strict rules, what is known above the milestone floor: it gives the index what it is, not what it goes with; none otherwise.</summary>
             private static HashSet<Entry> Guarded(Explorer explorer)

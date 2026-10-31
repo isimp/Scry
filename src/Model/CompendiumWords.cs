@@ -330,10 +330,22 @@ namespace Scry
             ? SourceName(by) + " shows this page whole, as the compendium's box has it show; turn it down there to see what is still to find out"
             : FloorCaption + " shows this page whole, as it shows every page of the tiers whose bosses your character has beaten; lower it in the compendium's box to see what is still to find out";
 
-        /// <summary>The chip's tip of a page with something still to find out: each thing to do and what it shows, as its You box lists them.</summary>
-        public static string FindsTip(System.Collections.Generic.IEnumerable<(string Label, string Value)> still)
+        /// <summary>The title row's chip of a page under the loose rules: how much of what it names was met, short where the row is narrow.</summary>
+        public static string MetOf(int met, int of, bool narrow) => Numbers.Count(met) + " of " + Numbers.Count(of) + (narrow ? "" : " met");
+
+        /// <summary>The chip of a page under the loose rules everything it names was met of.</summary>
+        public const string AllMet = "All met";
+
+        /// <summary>That chip's tip.</summary>
+        public const string AllMetTip = "Everything this page names was met";
+
+        /// <summary>
+        /// The chip's tip of a page with something still to find out, or under the loose rules
+        /// (<paramref name="met"/>) still to meet: each thing to do and what it shows, as its You box lists them.
+        /// </summary>
+        public static string FindsTip(System.Collections.Generic.IEnumerable<(string Label, string Value)> still, bool met = false)
         {
-            var lines = new System.Collections.Generic.List<string> { "Still to find out:" };
+            var lines = new System.Collections.Generic.List<string> { met ? "Still to meet:" : "Still to find out:" };
             var todo = false;
             foreach (var (label, value) in still)
             {

@@ -11,14 +11,20 @@ namespace Scry
         /// What a page under the strict rules still keeps back, gathered from what it draws: the
         /// facts whose numbers wait for a deed, the weak spots not found, the damage types not told,
         /// the attacks not taken, the drops or yields not counted, each cell and each line of where
-        /// an item comes from one, and the star levels and gear the stage still lacks; none
+        /// an item comes from one, and the star levels and gear the stage still lacks; under the
+        /// loose rules, which show every number, only the names it leaves out until met; none
         /// otherwise. With it, how much of all it keeps back was found out (<see cref="PageFinds"/>),
         /// each deed's proof once.
         /// </summary>
         private static (List<(string Label, string Value)> Still, PageFinds Finds) StillToFindOut(Explorer explorer, Facts facts)
         {
             var finds = new PageFinds();
-            if (!explorer.LeavingOut || facts == null) return (NothingStill, finds);
+            if (!explorer.CountingFinds || facts == null) return (NothingStill, finds);
+            if (!explorer.LeavingOut)
+            {
+                _gatheredLined = PageNames(explorer, facts, finds);
+                return (CompendiumWords.StillToFindOut(Array.Empty<string>(), Array.Empty<string>(), 0, 0, Array.Empty<Tally>(), namesApart: finds.NamesApart, namesUnmet: finds.NamesUnmet), finds);
+            }
             var deeds = new List<string>();
             var counted = new HashSet<string>(System.StringComparer.Ordinal);
             var spots = 0;
@@ -66,8 +72,8 @@ namespace Scry
         }
 
         /// <summary>
-        /// Each name the page shown could leave out until seen together with it (<see cref="Explorer.Hideable"/>),
-        /// counted as left out or shown, wherever the page draws it: its facts and notes, the
+        /// Each name the page shown could leave out until seen together with it, or under the loose
+        /// rules until met (<see cref="Explorer.Hideable"/>), counted as left out or shown, wherever the page draws it: its facts and notes, the
         /// chips, tables and chains of its rows, where it comes from, its biomes, what plays it and
         /// where it is found, the links its topics show (not Linked's), and the lists it plays in. Gathered from what the page
         /// draws, as the numbers are, without drawing it, so a search finds what the chip counts;
@@ -78,7 +84,7 @@ namespace Scry
         private static int PageNames(Explorer explorer, Facts facts, PageFinds finds)
         {
             var page = explorer.Selected;
-            if (!explorer.LeavingOut || page == null) return 0;
+            if (!explorer.CountingFinds || page == null) return 0;
             var names = new NameTally(explorer, finds);
             bool Hinged(string part) => part != null && facts.PartHinges.TryGetValue(part, out var hinge) && explorer.HidesHinged(hinge);
 
@@ -132,7 +138,7 @@ namespace Scry
         /// <summary>How many names the page gathered last leaves out where a section's last line counts them (<see cref="PageNames"/>).</summary>
         private static int _gatheredLined;
 
-        /// <summary>The names a page under the strict rules could leave out, as they are gathered (<see cref="PageNames"/>).</summary>
+        /// <summary>The names a page could leave out, as they are gathered (<see cref="PageNames"/>).</summary>
         private sealed class NameTally
         {
             private readonly Explorer _explorer;

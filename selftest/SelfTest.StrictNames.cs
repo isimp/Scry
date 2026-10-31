@@ -50,7 +50,7 @@ namespace Scry
         }
 
         /// <summary>
-        /// A page under the strict rules counts the names it leaves out where its sections count
+        /// A page under either rules counts the names it leaves out where its sections count
         /// them at their ends, gathered without drawing as the panel draws them; and is:left finds
         /// it exactly when its title chip is not lit. Shown first, so it is drawn whole.
         /// </summary>
@@ -59,7 +59,7 @@ namespace Scry
             X.Select(page);
             var repaints = ScryPanel.Repaints;
             yield return Until(() => ScryPanel.Repaints >= repaints + 3 && ScryPanel.NamesDrawnForTest.Of == page, 3);
-            if (!X.LeavingOut)
+            if (!X.CountingFinds)
             {
                 p.Note($"{page.Name}: shown whole, nothing to count");
                 yield break;

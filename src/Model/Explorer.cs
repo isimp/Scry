@@ -316,17 +316,19 @@ namespace Scry
         }
 
         /// <summary>
-        /// Whether the page shown, under the strict rules, could leave a name out (<see cref="LeavesOut(string, bool, Tie?)"/>):
-        /// one not met as anywhere, or one met that only being seen together with the page shows;
-        /// never the page's own, a mod, a skill or one the game shows, which no deed shows. A name
-        /// it could leave out is one of the page's finds, left out or shown.
+        /// Whether the page shown could leave a name out (<see cref="LeavesOut(string, bool, Tie?)"/>):
+        /// under the strict rules one not met as anywhere, or one met that only being seen together
+        /// with the page shows, never a skill or one the game shows, which no deed shows; under the
+        /// loose rules (<see cref="CountingMet"/>) any it would leave out until met, met already or
+        /// not. Never the page's own or a mod. A name it could leave out is one of the page's
+        /// finds, left out or shown.
         /// </summary>
         public bool Hideable(string key, bool gameShown = false)
         {
-            if (!LeavingOut) return false;
+            if (!CountingFinds) return false;
             var other = Find(key);
             if (other == null || other == _selected || other.Kind == Kind.Mod) return false;
-            if (_view.Of(other) < KnownLevel.Seen) return !NamesAllHeld(other);
+            if (_view.Of(other) < KnownLevel.Seen || !LeavingOut) return !NamesAllHeld(other);
             return !gameShown && other.Kind != Kind.Skill;
         }
 
@@ -491,6 +493,16 @@ namespace Scry
         public bool LeavingOut =>
             CompendiumOn && _view.Rule == CompendiumRule.Strict && _selected != null && _selected.Kind != Kind.Mod && _selected.Kind != Kind.Skill
             && _view.Of(_selected) == KnownLevel.Known && !_view.Whole(_selected);
+
+        /// <summary>
+        /// Whether the page shown counts how much of what it names was met (<see cref="Hideable"/>):
+        /// under the loose rules, a known page naming only what was met (<see cref="NamesOnlyMet"/>);
+        /// never a skill's, which names nothing to meet. Its numbers stay whole, so names are all it counts.
+        /// </summary>
+        public bool CountingMet => NamesOnlyMet && _view.Rule == CompendiumRule.Loose && _selected.Kind != Kind.Skill;
+
+        /// <summary>Whether the page shown counts anything for its title chip: what it keeps back under the strict rules, or what it names under the loose ones.</summary>
+        public bool CountingFinds => LeavingOut || CountingMet;
 
         /// <summary>
         /// Whether the page shown, known under the strict rules, shows whole by the player's choice

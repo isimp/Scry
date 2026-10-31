@@ -236,8 +236,8 @@ namespace Scry.Tests
         {
             var world = new World().Rule(CompendiumRule.Loose);
             world.Explorer.Select(world.Windmill);
-            // Only its loot and where it lives count what was left out: counts the player can act on.
-            Assert.Null(world.Explorer.LeftOutLine("making", 2));
+            // Every section counts what it left out as not yet met, a creature's places by what they are.
+            Assert.Equal("2 more not yet met", world.Explorer.LeftOutLine("making", 2));
             Assert.Equal("1 more place it lives not yet met in", world.Explorer.LeftOutLine("lives", 1));
             Assert.Null(world.Explorer.LeftOutLine("making", 0));
 
@@ -268,11 +268,12 @@ namespace Scry.Tests
             }, world.Explorer.LeftOutLines("lives", 2, 1));
             Assert.Empty(world.Explorer.LeftOutLines("fight", 0, 0));
 
-            // Loose leaves out only what was never met, in one line where the player can act on it.
+            // Loose leaves out only what was never met, in one line for every section.
             world.Rule(CompendiumRule.Loose);
             Assert.Equal(new[] { ("2 more not yet met", CompendiumWords.MeetFirstTip(strict: false)) }, world.Explorer.LeftOutLines("loot", 2, 0));
             Assert.Equal(new[] { ("3 more not yet met", CompendiumWords.MeetFirstTip(strict: false)) }, world.Explorer.LeftOutLines("loot", 2, 1));
-            Assert.Empty(world.Explorer.LeftOutLines("making", 2, 0));
+            Assert.Equal(new[] { ("2 more not yet met", CompendiumWords.MeetFirstTip(strict: false)) }, world.Explorer.LeftOutLines("making", 2, 0));
+            Assert.Empty(world.Explorer.LeftOutLines("making", 0, 0));
         }
 
         [Fact]
@@ -290,7 +291,7 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void UnderStrictEverySectionSaysHowManyItLeftOut()
+        public void UnderEitherRulesEverySectionSaysHowManyItLeftOut()
         {
             // Strict leaves out what was not seen together with the page; each section says how
             // many at its end, so the page never goes quiet on what it keeps back.
@@ -301,10 +302,67 @@ namespace Scry.Tests
             // A section with no topic of its own, as LINKED, counts too; one left with nothing else says it alone.
             Assert.Equal("11 not yet seen together", world.Explorer.LeftOutLine(null, 11, alone: true));
             Assert.Null(world.Explorer.LeftOutLine("making", 0));
-            // Loose leaves out only what was never met: still only counts the player can act on.
+            // Loose leaves out only what was never met, and says so in every section just the same.
             world.Rule(CompendiumRule.Loose);
-            Assert.Null(world.Explorer.LeftOutLine("making", 2));
-            Assert.Null(world.Explorer.LeftOutLine(null, 11, alone: true));
+            Assert.Equal("2 more not yet met", world.Explorer.LeftOutLine("making", 2));
+            Assert.Equal("1 more not yet met", world.Explorer.LeftOutLine("from", 1));
+            Assert.Equal("11 not yet met", world.Explorer.LeftOutLine(null, 11, alone: true));
+            Assert.Null(world.Explorer.LeftOutLine("making", 0));
+        }
+
+        [Fact]
+        public void UnderLooseEveryNameThePageCouldLeaveOutUnmetIsOneOfItsFinds()
+        {
+            // The loose title chip counts how much of what the page names was met: the grain never
+            // met is a find still left out, the stone met is one found, game-shown or not. The
+            // page's own, a mod's and one not in the catalog are never left out, so no finds.
+            var world = new World().Rule(CompendiumRule.Loose);
+            world.Explorer.Select(world.Windmill);
+            Assert.True(world.Explorer.Hideable(world.Barley.Key));
+            Assert.True(world.Explorer.LeavesOut(world.Barley.Key));
+            Assert.True(world.Explorer.Hideable(world.Stone.Key));
+            Assert.True(world.Explorer.Hideable(world.Stone.Key, gameShown: true));
+            Assert.False(world.Explorer.LeavesOut(world.Stone.Key));
+            Assert.True(world.Explorer.Hideable(world.Wood.Key));
+            foreach (var key in new[] { world.Windmill.Key, world.Mod.Key, "NotInTheCatalog", null })
+            {
+                Assert.False(world.Explorer.Hideable(key));
+                Assert.False(world.Explorer.LeavesOut(key));
+            }
+            // Its numbers stay whole: names are the only finds.
+            Assert.False(world.Explorer.KeepsBack(EntryKeys.Did(Deed.Killed)));
+        }
+
+        [Fact]
+        public void AKnownPageCountsWhatItNamesUnderLooseAndWhatItKeepsBackUnderStrict()
+        {
+            // Under the loose rules a known page counts the names it could leave out (met or not
+            // yet); under the strict rules everything it keeps back. Off, peeking, a page only
+            // seen and a mod's page count nothing.
+            var world = new World().Rule(CompendiumRule.Loose);
+            world.Explorer.Select(world.Windmill);
+            Assert.True(world.Explorer.CountingMet);
+            Assert.True(world.Explorer.CountingFinds);
+            Assert.False(world.Explorer.LeavingOut);
+
+            world.Rule(CompendiumRule.Strict);
+            world.Explorer.Select(world.Windmill);
+            Assert.False(world.Explorer.CountingMet);
+            Assert.True(world.Explorer.CountingFinds);
+
+            world.Rule(CompendiumRule.Off);
+            world.Explorer.Select(world.Windmill);
+            Assert.False(world.Explorer.CountingFinds);
+
+            world.Rule(CompendiumRule.Loose);
+            world.Explorer.Peeking = true;
+            Assert.False(world.Explorer.CountingFinds);
+            world.Explorer.Peeking = false;
+            world.Explorer.Select(world.Wood);
+            Assert.False(world.Explorer.CountingFinds);
+            world.Explorer.Select(world.Mod);
+            Assert.False(world.Explorer.CountingFinds);
+            Assert.False(world.Explorer.Hideable(world.Barley.Key));
         }
 
         [Fact]
@@ -325,24 +383,18 @@ namespace Scry.Tests
                 Assert.False(world.Explorer.Hideable(key, gameShown));
                 Assert.False(world.Explorer.LeavesOut(key, gameShown));
             }
-            // Loose shows a known page whole: nothing to find.
-            world.Rule(CompendiumRule.Loose);
-            world.Explorer.Select(world.Windmill);
-            Assert.False(world.Explorer.Hideable(world.Barley.Key));
         }
 
         [Fact]
         public void ARoomCardCountsWhatWasNotMetWithNoTopicOfItsOwn()
         {
             // A dungeon room's card asks for its room: the creatures and loot of the room not met
-            // are counted on it under either rule, a count the player can act on by going in. A
-            // section with no topic counts nothing.
+            // are counted on it under either rule, a count the player can act on by going in.
             var world = new World().Rule(CompendiumRule.Loose);
             world.Explorer.Select(world.Windmill);
             Assert.Equal("7 not yet met", world.Explorer.LeftOutLine("room", 7, alone: true));
             Assert.Equal("2 more not yet met", world.Explorer.LeftOutLine("room", 2));
             Assert.Null(world.Explorer.LeftOutLine("room", 0));
-            Assert.Null(world.Explorer.LeftOutLine(null, 7));
             world.Rule(CompendiumRule.Strict);
             Assert.Equal("7 not yet seen here", world.Explorer.LeftOutLine("room", 7, alone: true));
         }

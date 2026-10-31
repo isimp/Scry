@@ -60,6 +60,8 @@ namespace Scry.Tests
             public List<Suggestion> SuggestAll(string word) => SearchHelp.Suggest(word, new TermIndex(All), 20);
 
             public List<Suggestion> SuggestStrict(string word) => SearchHelp.Suggest(word, new TermIndex(All, Met, new HashSet<Entry> { Troll, Club }), 20);
+
+            public List<Suggestion> SuggestLoose(string word) => SearchHelp.Suggest(word, new TermIndex(All, Met, offersLeft: true), 20);
         }
 
         private static string[] Labels(List<Suggestion> found) => found.Select(s => s.Label).OrderBy(l => l).ToArray();
@@ -82,10 +84,12 @@ namespace Scry.Tests
         {
             // is:new, is:seen and is:walked ask the book, not a thing's details, so no entry
             // carries them: they are offered as fixed words, each with a note in place of a count,
-            // is:left under the strict rules alone, and none with the compendium off.
+            // is:left where a page's title chip counts something (under the strict rules, or the
+            // loose ones, whose chip counts what was met), and none with the compendium off.
             var world = new World();
             Assert.Equal(new[] { "New", "Seen", "Walked" }, Labels(world.Suggest("is:")));
             Assert.Equal(new[] { "Left", "New", "Seen", "Walked" }, Labels(world.SuggestStrict("is:")));
+            Assert.Equal(new[] { "Left", "New", "Seen", "Walked" }, Labels(world.SuggestLoose("is:")));
             Assert.Empty(world.SuggestAll("is:"));
             var seen = world.Suggest("is:se").Single();
             Assert.Equal("is:seen", seen.Insert);

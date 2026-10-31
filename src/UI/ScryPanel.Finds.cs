@@ -4,8 +4,9 @@ using UnityEngine;
 namespace Scry
 {
     /// <summary>
-    /// Under the strict rules, the chip on a known page's title row telling how much of what the
-    /// page keeps back was found out (<see cref="PageFinds"/>), or why it shows whole.
+    /// The chip on a known page's title row: under the strict rules how much of what the page
+    /// keeps back was found out (<see cref="PageFinds"/>), or why it shows whole; under the loose
+    /// rules how much of what it names was met.
     /// </summary>
     internal static partial class ScryPanel
     {
@@ -76,7 +77,7 @@ namespace Scry
             // A page whose facts fail is one with nothing left, told as a fault once: the search goes on.
             if (!Guard.Run(Feature.Panel, "gathering a page's finds for the search", () => explorer.AsPage(entry, () =>
             {
-                if (!explorer.LeavingOut) return false;
+                if (!explorer.CountingFinds) return false;
                 var (_, finds) = StillToFindOut(explorer, Facts.For(entry));
                 return finds.Of > finds.Found;
             }), out left)) left = false;
@@ -108,7 +109,7 @@ namespace Scry
         private static float CountingChip(Explorer explorer, float right, float y)
         {
             FindsChipForTest = null;
-            if (!explorer.ShownWhole(out _) && !explorer.LeavingOut) return right;
+            if (!explorer.ShownWhole(out _) && !explorer.CountingFinds) return right;
             var width = U(110f);
             Skin.Skeleton(new Rect(right - width, y + U(5f), width, U(14f)));
             CountDrawn(PanelPart.Waiting);
@@ -116,18 +117,21 @@ namespace Scry
         }
 
         /// <summary>
-        /// The chip on a known page's title row under the strict rules, before copy and star: how
+        /// The chip on a known page's title row, before copy and star: under the strict rules how
         /// much of what it keeps back was found out, its numbers and the names it could leave out,
-        /// with a small bar, its tip what is still to find out and a click going to that in the You
-        /// box; lit once all was; faint where the floor or a source of the world shows the page
-        /// whole, its tip saying what does and how to see what is left; none on a page that keeps
-        /// nothing back. Where the chip begins, else <paramref name="right"/>.
+        /// under the loose rules how much of what it names was met, with a small bar, its tip what
+        /// is still to find out or meet and a click going to that in the You box; lit once all
+        /// was; faint where the floor or a source of the world shows a strict page whole, its tip
+        /// saying what does and how to see what is left; none on a page that keeps nothing back.
+        /// Where the chip begins, else <paramref name="right"/>.
         /// </summary>
         private static float FindsChip(Explorer explorer, Entry entry, float right, float y)
         {
             FindsChipForTest = null;
             var whole = explorer.ShownWhole(out var source);
-            if (!whole && !explorer.LeavingOut) return right;
+            if (!whole && !explorer.CountingFinds) return right;
+            // Loose shows every number, so its chip counts only what was met of what the page names.
+            var met = !whole && !explorer.LeavingOut;
             var (still, finds) = whole ? (null, null) : FindsOf(explorer, entry);
             // A page that keeps nothing back has nothing to count: no chip.
             if (!whole && !finds.Any) return right;
@@ -151,23 +155,23 @@ namespace Scry
             }
             if (found >= of)
             {
-                var said = CompendiumWords.AllFoundOut;
+                var said = met ? CompendiumWords.AllMet : CompendiumWords.AllFoundOut;
                 var width = Skin.Width(Skin.ChipOn, said) + icon + U(22f);
                 var at = new Rect(right - width, y, width, height);
                 GUI.Label(at, GUIContent.none, Skin.ChipOn);
                 if (MarkPicture(MarkLook.Whole).OrNull()?.texture is Texture tick) GUI.DrawTexture(new Rect(at.x + U(7f), at.y + (height - icon) / 2f, icon, icon), tick);
                 Skin.LabelIn(new Rect(at.x + U(11f) + icon, at.y, width - icon - U(15f), height), said, Skin.ChipOn, Skin.OnAccent);
-                if (at.Contains(e.mousePosition)) AskTip("finds:all" + finds.Any, CompendiumWords.AllFoundOutTipFor(finds));
+                if (at.Contains(e.mousePosition)) AskTip("finds:all" + met + finds.Any, met ? CompendiumWords.AllMetTip : CompendiumWords.AllFoundOutTipFor(finds));
                 FindsChipForTest = said;
                 return at.x;
             }
             // Narrow where the name would keep less than a third of the row.
-            var text = CompendiumWords.FoundOutCount(found, of, narrow: false);
+            var text = met ? CompendiumWords.MetOf(found, of, narrow: false) : CompendiumWords.FoundOutCount(found, of, narrow: false);
             var bar = U(28f);
             var full = Skin.Width(Skin.Small, text) + bar + U(26f);
             if (right - full < right * 0.34f)
             {
-                text = CompendiumWords.FoundOutCount(found, of, narrow: true);
+                text = met ? CompendiumWords.MetOf(found, of, narrow: true) : CompendiumWords.FoundOutCount(found, of, narrow: true);
                 full = Skin.Width(Skin.Small, text) + bar + U(26f);
             }
             var chip = new Rect(right - full, y, full, height);
@@ -176,7 +180,7 @@ namespace Scry
             Skin.Fill(track, Skin.Alpha(Skin.Accent, 0.25f));
             Skin.Fill(new Rect(track.x, track.y, track.width * found / Mathf.Max(1, of), track.height), Skin.Accent);
             Skin.LabelIn(new Rect(track.xMax + U(6f), chip.y, chip.xMax - track.xMax - U(10f), height), text, Skin.Small, Skin.Accent);
-            if (chip.Contains(e.mousePosition)) AskTip("finds:" + text, CompendiumWords.FindsTip(still));
+            if (chip.Contains(e.mousePosition)) AskTip("finds:" + text, CompendiumWords.FindsTip(still, met));
             if (go && still.Count > 0) ArriveAt(NewsArrival.AtYouLine(still[0].Label));
             FindsChipForTest = text;
             return chip.x;

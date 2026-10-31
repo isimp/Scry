@@ -75,9 +75,11 @@ namespace Scry
 
         /// <summary>
         /// Reads the values of a catalog: of all of it, or, given what the character has met (the
-        /// entries seen or known, read on the main thread before), of what the search can find.
+        /// entries seen or known, read on the main thread before), of what the search can find;
+        /// is:left offered where pages are guarded, or where <paramref name="offersLeft"/> says the
+        /// loose rules' chip counts what was met.
         /// </summary>
-        public TermIndex(IEnumerable<Entry> catalog, IReadOnlyDictionary<Entry, KnownLevel> met = null, ICollection<Entry> guarded = null)
+        public TermIndex(IEnumerable<Entry> catalog, IReadOnlyDictionary<Entry, KnownLevel> met = null, ICollection<Entry> guarded = null, bool offersLeft = false)
         {
             var all = catalog as IReadOnlyList<Entry> ?? catalog.ToList();
             Catalog = met == null ? all : all.Where(met.ContainsKey).ToList();
@@ -103,12 +105,13 @@ namespace Scry
             // The kinds are a fixed set, offered whether any are listed or not.
             foreach (Kind kind in Enum.GetValues(typeof(Kind))) Intern("kind", kind.ToString(), Kinds.Label(kind));
             // The book's is: words ask what the character met, so no entry carries them: offered as
-            // fixed words with the compendium on, is:left under the strict rules alone, which guard pages.
+            // fixed words with the compendium on, is:left where a page's title chip counts something,
+            // under the strict rules, which guard pages, or the loose ones (offersLeft).
             if (met != null)
             {
                 foreach (var word in Search.MineWords)
                 {
-                    if (word == "left" && guarded == null) continue;
+                    if (word == "left" && guarded == null && !offersLeft) continue;
                     Intern("is", word, Naming.Capital(word)).Note = Search.MineNote(word);
                 }
             }

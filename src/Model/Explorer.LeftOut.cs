@@ -11,8 +11,7 @@ namespace Scry
         /// (<paramref name="unmet"/>, <see cref="CompendiumWords.NeverMet"/>) apart from what was met
         /// but not seen together (<paramref name="apart"/>, <see cref="CompendiumWords.LeftOutOf"/>),
         /// for every section; under the loose ones, which leave out only what was never met, one
-        /// line, only for a creature's loot, where it lives, a room's card and a raid, counts the
-        /// player can act on. Without "more" where the section lists nothing else (<paramref name="alone"/>).
+        /// line for every section. Without "more" where the section lists nothing else (<paramref name="alone"/>).
         /// </summary>
         public List<(string Line, string Tip)> LeftOutLines(string topic, int unmet, int apart, bool alone = false)
         {
@@ -52,13 +51,10 @@ namespace Scry
         /// </summary>
         public string LeftOutLine(string topic, int count, bool alone = false)
         {
-            // Strict leaves out what was not seen together with the page: every section says how
-            // many, so the page never goes quiet on what it keeps back.
-            if (LeavingOut) return CompendiumWords.LeftOutOf(topic, count, alone);
-            // Otherwise only a count the player can act on is said: drops not yet seen fall, places it
-            // lives not met in, what a dungeon room's card holds not yet met, and what a raid brings not yet met.
-            if (topic != "loot" && topic != "lives" && topic != "room" && topic != "raid") return null;
-            return CompendiumWords.NotYetMet(topic, count, alone);
+            // Every section says how many it left out, so the page never goes quiet on it: under
+            // the strict rules what was not seen together with the page, under the loose ones what
+            // was not yet met.
+            return LeavingOut ? CompendiumWords.LeftOutOf(topic, count, alone) : CompendiumWords.NotYetMet(topic, count, alone);
         }
     }
 }

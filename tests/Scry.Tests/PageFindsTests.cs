@@ -91,5 +91,18 @@ namespace Scry.Tests
             Assert.Equal("Shared maps shows this page whole, as the compendium's box has it show; turn it down there to see what is still to find out",
                 CompendiumWords.WholeTip(WorldSource.SharedMaps));
         }
+
+        [Fact]
+        public void UnderLooseTheChipSaysHowMuchOfWhatThePageNamesWasMet()
+        {
+            // Loose shows every number, so its chip counts names only and says met, never found out.
+            Assert.Equal("3 of 6 met", CompendiumWords.MetOf(3, 6, narrow: false));
+            Assert.Equal("3 of 6", CompendiumWords.MetOf(3, 6, narrow: true));
+            Assert.Equal("1,200 of 1,500 met", CompendiumWords.MetOf(1200, 1500, narrow: false));
+            Assert.Equal("All met", CompendiumWords.AllMet);
+            Assert.Equal("Everything this page names was met", CompendiumWords.AllMetTip);
+            Assert.Equal("Still to meet:\nMeet first · 3 things it names\nA click goes to them in its You box",
+                CompendiumWords.FindsTip(new[] { ("Meet first", "3 things it names") }, met: true));
+        }
     }
 }

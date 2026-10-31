@@ -284,9 +284,9 @@ namespace Scry
                 }
             }
             // The rows with an owner the rules keep, those left out counted at the section's end.
-            // One the rules leave nothing in keeps its heading under the strict rules, to say how many it left out.
+            // One the rules leave nothing in keeps its heading, to say how many it left out.
             var rows = PlaysInShown(explorer);
-            if (rows.Count == 0 && (_playsInRows.Count == 0 || !explorer.LeavingOut)) return y;
+            if (rows.Count == 0 && (_playsInRows.Count == 0 || !explorer.NamesOnlyMet)) return y;
 
             y = SectionHeading("PLAYS IN", width, y, null, "playsin", rows.Count > 0 ? rows.Count : -1);
             if (IsFolded("playsin")) return y;
@@ -361,7 +361,7 @@ namespace Scry
                 y += U(6f);
             }
             // Rows not shown yet count what they leave out too, so the section's last line tells all of it.
-            if (explorer.LeavingOut)
+            if (explorer.NamesOnlyMet)
             {
                 foreach (var row in rows.Skip(ShownOf("playsin", rows.Count, firstRows)))
                 {

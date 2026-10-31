@@ -225,7 +225,8 @@ namespace Scry
         /// cref="Search.MineWords"/>): new, seen or come to know on the day given; seen, seen but not
         /// known; walked, a dungeon's room the character walked, or a place one of whose rooms it
         /// walked; left, under the strict rules, a known page whose number a deed shows not yet
-        /// seen (<see cref="Entry.Deeds"/>), none shown whole by the floor.
+        /// seen (<see cref="Entry.Deeds"/>), none shown whole by the floor; under the loose rules a
+        /// known page whose chip still counts a name not yet met, which only the panel tells.
         /// </summary>
         public bool Is(Entry entry, string word, int today)
         {
@@ -239,7 +240,9 @@ namespace Scry
                 case "seen":
                     return Of(entry) == KnownLevel.Seen;
                 case "left":
-                    return _rule == CompendiumRule.Strict && Of(entry) == KnownLevel.Known && !Whole(entry) && (LeftByPage ?? Left)(entry);
+                    if (Of(entry) != KnownLevel.Known) return false;
+                    if (_rule == CompendiumRule.Loose) return LeftByPage?.Invoke(entry) ?? false;
+                    return _rule == CompendiumRule.Strict && !Whole(entry) && (LeftByPage ?? Left)(entry);
                 case "walked":
                     if (entry.Kind != Kind.Location) return false;
                     if (Walked(entry)) return true;
