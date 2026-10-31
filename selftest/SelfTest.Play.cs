@@ -53,9 +53,10 @@ namespace Scry
             }
         }
 
-        /// <summary>A hit of the character's on the nearest loaded thing that breaks tells how its damage landed, as a creature's does.</summary>
+        /// <summary>A hit of the character's on the nearest loaded thing that breaks tells how its damage landed, as a creature's does; one on a rock's pieces knows the rock (<see cref="PiecesHitKnowTheirRock"/>).</summary>
         private static void ResourceHitTells(Probe p, CompendiumBook book, Player player)
         {
+            PiecesHitKnowTheirRock(p, book, player);
             var thing = UnityEngine.Object.FindObjectsByType<Destructible>(FindObjectsSortMode.None).Where(d => d != null)
                 .OrderBy(d => (d.transform.position - player.transform.position).sqrMagnitude).FirstOrDefault();
             if (thing == null)
@@ -70,6 +71,39 @@ namespace Scry
             hit.SetAttacker(player);
             ResourceHitWatch.Hit(thing, hit, thing.m_damages, thing.m_minToolTier);
             p.Check(ResistWords.Types.Any(t => book.Proved(key, EntryKeys.Damage(t))), $"a hit on {key}, a thing that breaks, tells how its damage landed");
+        }
+
+        /// <summary>
+        /// The pieces a rock breaks into when struck whole bring the rock along once hit, where it
+        /// alone breaks into them: Yagluth's stone fingers into theirs, and a hit of the character's
+        /// on the nearest loaded pieces of one rock makes that rock known, as mining its pieces.
+        /// </summary>
+        private static void PiecesHitKnowTheirRock(Probe p, CompendiumBook book, Player player)
+        {
+            var pieces = X.Catalog.Where(e => e.Kind == Kind.Resource).Select(e => (Pieces: e.Name, From: CompendiumKeeper.BrokenFrom(e.Name))).Where(r => r.From.Count > 0).ToList();
+            var shared = pieces.Where(r => r.From.Count > 1).ToList();
+            p.Note($"{Numbers.Count(pieces.Count)} kinds of pieces a rock breaks into, {Numbers.Count(shared.Count)} of them shared by several rocks, which none of them is known by: "
+                + string.Join("; ", shared.Take(12).Select(r => r.Pieces + " from " + string.Join("/", r.From))));
+            if (X.Find("RockFinger_frac") != null)
+                p.Check(string.Join("/", CompendiumKeeper.BrokenFrom("RockFinger_frac")) == "RockFinger", "a stone finger at Yagluth's altar alone breaks into its pieces",
+                    string.Join("/", CompendiumKeeper.BrokenFrom("RockFinger_frac")));
+            var one = new HashSet<string>(pieces.Where(r => r.From.Count == 1).Select(r => r.Pieces));
+            var thing = UnityEngine.Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None).Where(m => (m is MineRock || m is MineRock5) && one.Contains(Utils.GetPrefabName(m.gameObject)))
+                .OrderBy(m => (m.transform.position - player.transform.position).sqrMagnitude).FirstOrDefault();
+            if (thing == null)
+            {
+                p.Note("no pieces of a rock are loaded to hit");
+                return;
+            }
+            var key = Utils.GetPrefabName(thing.gameObject);
+            var rock = CompendiumKeeper.BrokenFrom(key)[0];
+            var hit = new HitData { m_toolTier = 10 };
+            hit.m_damage.m_pickaxe = 10f;
+            hit.SetAttacker(player);
+            if (thing is MineRock5 vein) ResourceHitWatch.Hit(vein, hit, vein.m_damageModifiers, vein.m_minToolTier);
+            else if (thing is MineRock lump) ResourceHitWatch.Hit(lump, hit, lump.m_damageModifiers, lump.m_minToolTier);
+            p.Check(book.Level(key) == KnownLevel.Known && book.Level(rock) == KnownLevel.Known && book.Came(rock)?.Way == CameBy.MinedPieces,
+                $"a hit on {key} makes it known, and {rock}, which alone breaks into it, as mining its pieces", $"{book.Level(key)}, {book.Level(rock)} by {book.Came(rock)?.Way}");
         }
 
         /// <summary>

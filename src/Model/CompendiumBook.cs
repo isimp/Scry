@@ -60,6 +60,9 @@ namespace Scry
 
         /// <summary>Seen grow up from a young one.</summary>
         GrewUp,
+
+        /// <summary>A rock known by hitting the pieces it alone breaks into, broken whole by another hit than the character's.</summary>
+        MinedPieces,
     }
 
     /// <summary>

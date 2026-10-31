@@ -187,7 +187,7 @@ namespace Scry
             if (when != null) parts.Add(when);
             if (!string.IsNullOrEmpty(biome)) parts.Add("in the " + biome);
             var said = CameWay(way);
-            var handed = way == CameBy.Fought || way == CameBy.Killed || way == CameBy.Hit;
+            var handed = way == CameBy.Fought || way == CameBy.Killed || way == CameBy.Hit || way == CameBy.MinedPieces;
             if (handed && !string.IsNullOrEmpty(inHand)) said += " with your " + inHand;
             parts.Add(said);
             return string.Join(", ", parts.ToArray());
@@ -227,6 +227,7 @@ namespace Scry
                 case CameBy.Chosen: return "choosing it at its stone";
                 case CameBy.Born: return "seeing it born";
                 case CameBy.GrewUp: return "seeing it grow up";
+                case CameBy.MinedPieces: return "mining its pieces";
                 default: return "meeting it";
             }
         }

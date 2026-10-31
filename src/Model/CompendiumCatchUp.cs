@@ -234,6 +234,19 @@ namespace Scry
         /// <summary>Learns of an entry met in play, by its key, as news; true when that is more than was known. What the catalog has no entry for is passed over.</summary>
         public bool Met(string key, KnownLevel level, CompendiumBook book, CameBy? way = null, int stars = -1) => Lists(key) && book.Raise(key, level, way: way, stars: stars);
 
+        /// <summary>
+        /// A thing the character hit, as news: known; where it is the pieces a rock breaks into
+        /// when struck whole (<c>Destructible.m_spawnWhenDestroyed</c>), and that rock alone
+        /// breaks into them, the rock is known too, as mining its pieces, its whole broken by
+        /// whatever struck it first. True when either was learned more of.
+        /// </summary>
+        public bool Hit(string key, IReadOnlyList<string> brokenFrom, CompendiumBook book)
+        {
+            var raised = Met(key, KnownLevel.Known, book, CameBy.Hit);
+            if (brokenFrom != null && brokenFrom.Count == 1) raised |= Met(brokenFrom[0], KnownLevel.Known, book, CameBy.MinedPieces);
+            return raised;
+        }
+
         /// <summary>Whether the catalog has an entry by a key, for anything to be learned of it at all.</summary>
         public bool Lists(string key) => _catalog.Find(key) != null;
 

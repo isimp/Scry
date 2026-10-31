@@ -8,7 +8,7 @@ The stage's sea holds what lives in it: a Serpent swims at its depth with its ta
 
 Under *Strict* every section says how many things it left out, telling what you never met apart from what you have not yet seen go together with the page, and the title row counts them, so `is:left` finds the pages with more to find out. Under *Loose* the same lines count what you have not met, and the title row reads like "3 of 6 met".
 
-More is linked once you have seen it: what a boss's fall opens, a summoning chain's offering through its altar, a nest's creatures, a boss and its fight, and the weapons, attacks and blasts that put an effect on you. A boss's attacks count as seen from as far as its health bar shows.
+More is linked once you have seen it: what a boss's fall opens, a summoning chain's offering through its altar, a nest's creatures, a boss and its fight, and the weapons, attacks and blasts that put an effect on you. A boss's attacks count as seen from as far as its health bar shows. A rock broken whole before you struck it, such as the stone fingers at Yagluth's altar, comes to be known by mining its pieces.
 
 What a page links now stands in the topic it belongs to, and with the compendium on *Linked* stays folded until opened. A dungeon room says whether it is a dead end, a passage or a junction. Scry's own words no longer turn into a dash where they hold a thing's name. Smaller fixes throughout.
 

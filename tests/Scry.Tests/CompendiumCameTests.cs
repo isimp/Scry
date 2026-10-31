@@ -99,6 +99,46 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ARockIsKnownByMiningThePiecesItAloneBreaksInto()
+        {
+            // Yagluth's altar holds stone fingers, each broken whole by its first hit into pieces to mine.
+            var finger = new Entry { Kind = Kind.Resource, Name = "RockFinger" };
+            var pieces = new Entry { Kind = Kind.Resource, Name = "RockFinger_frac" };
+            var rock = new Entry { Kind = Kind.Resource, Name = "rock1" };
+            var otherRock = new Entry { Kind = Kind.Resource, Name = "rock2" };
+            var shared = new Entry { Kind = Kind.Resource, Name = "rock_frac" };
+            var catchUp = new CompendiumCatchUp(new EntryCatalog(new[] { finger, pieces, rock, otherRock, shared }));
+            var book = new CompendiumBook();
+
+            Assert.True(catchUp.Hit(pieces.Key, new[] { finger.Key }, book));
+            Assert.Equal(KnownLevel.Known, book.Level(pieces.Key));
+            Assert.Equal(CameBy.Hit, book.Came(pieces.Key)?.Way);
+            Assert.Equal(KnownLevel.Known, book.Level(finger.Key));
+            Assert.Equal(CameBy.MinedPieces, book.Came(finger.Key)?.Way);
+            Assert.Contains("mining its pieces with your Iron pickaxe", CompendiumWords.CameToKnow(CameBy.MinedPieces, 424, "Plains", inHand: "Iron pickaxe"));
+            Assert.Equal("its pieces mined", JournalWords.LearnedNote(new BookNews(NewsHow.Known, null, CameBy.MinedPieces, 424)));
+
+            // Pieces two rocks break into tell neither apart, so neither is known by them.
+            Assert.True(catchUp.Hit(shared.Key, new[] { rock.Key, otherRock.Key }, book));
+            Assert.Equal(KnownLevel.Unknown, book.Level(rock.Key));
+            Assert.Equal(KnownLevel.Unknown, book.Level(otherRock.Key));
+
+            // A rock hit whole keeps the way it came to be known; its pieces hit again tell nothing new.
+            var whole = new CompendiumBook();
+            Assert.True(catchUp.Hit(finger.Key, new string[0], whole));
+            Assert.True(catchUp.Hit(pieces.Key, new[] { finger.Key }, whole));
+            Assert.Equal(CameBy.Hit, whole.Came(finger.Key)?.Way);
+            Assert.False(catchUp.Hit(pieces.Key, new[] { finger.Key }, whole));
+            // Pieces known already, the rock learned by them is news still.
+            var piecesFirst = new CompendiumBook();
+            Assert.True(catchUp.Hit(pieces.Key, null, piecesFirst));
+            Assert.True(catchUp.Hit(pieces.Key, new[] { finger.Key }, piecesFirst));
+            // A thing not listed, or a rock not listed, is learned of not at all.
+            Assert.False(catchUp.Hit("NoSuchPieces", new[] { "NoSuchRock" }, new CompendiumBook()));
+            Assert.True(catchUp.Hit(pieces.Key, null, new CompendiumBook()));
+        }
+
+        [Fact]
         public void EveryWayOfComingToKnowHasItsWords()
         {
             foreach (CameBy way in System.Enum.GetValues(typeof(CameBy)))

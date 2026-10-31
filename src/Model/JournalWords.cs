@@ -101,6 +101,7 @@ namespace Scry
                 case CameBy.Chosen: return "chosen at its stone";
                 case CameBy.Born: return "seen born";
                 case CameBy.GrewUp: return "seen grow up";
+                case CameBy.MinedPieces: return "its pieces mined";
                 default: return "known";
             }
         }

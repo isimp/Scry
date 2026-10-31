@@ -341,17 +341,27 @@ namespace Scry
             Noted(PlayEvent.HitTaken);
         }
 
-        /// <summary>Learns of a resource the character hit, as news, what it hit it with and where it stands.</summary>
+        /// <summary>
+        /// Learns of a resource the character hit, as news, what it hit it with and where it
+        /// stands; the pieces a rock breaks into bring the rock along where it alone breaks into
+        /// them (<see cref="CompendiumCatchUp.Hit"/>).
+        /// </summary>
         public static void Hit(Component resource)
         {
             if (Into == null || _catchUp == null || resource == null) return;
             var key = Utils.GetPrefabName(resource.gameObject);
-            _catchUp.Met(key, KnownLevel.Known, Into, CameBy.Hit);
+            var brokenFrom = BrokenFrom(key);
+            _catchUp.Hit(key, brokenFrom, Into);
             ActedOnThing(key, resource.transform.position);
             var tool = Player.m_localPlayer.OrNull()?.GetCurrentWeapon()?.m_dropPrefab.OrNull();
             if (tool != null) Into.SawWith(key, tool.name, Tie.BrokenWith);
             MetIn(key, resource.transform.position);
+            if (brokenFrom.Count == 1) MetIn(brokenFrom[0], resource.transform.position);
         }
+
+        /// <summary>The rocks that break into a prefab when struck whole (<c>Destructible.m_spawnWhenDestroyed</c>), by prefab; none for anything else.</summary>
+        public static List<string> BrokenFrom(string pieces) =>
+            Knowledge.TurnedFrom(pieces).Where(p => p != null && p.GetComponent<Destructible>().OrNull()?.m_spawnWhenDestroyed.OrNull()?.name == pieces).Select(p => p.name).Distinct().ToList();
 
         /// <summary>
         /// A piece the character placed, as news: known, and paired with the tool in hand that built
