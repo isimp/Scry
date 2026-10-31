@@ -95,12 +95,16 @@ namespace Scry
             Guard.Run(Feature.CompendiumTogether, "noting a spawn seen", () => WorldEvents.Tell(Happened.Spawned, area));
         }
 
-        /// <summary>Whether a producer holds anything to collect, as the game keeps it on its object.</summary>
+        /// <summary>
+        /// Whether a producer holds anything the character may collect, as the game keeps it on its
+        /// object: one inside a ward the character has no access to refuses it, as the game's own use
+        /// does (<c>PrivateArea.CheckAccess</c>), so it gives the character nothing.
+        /// </summary>
         public static bool Holding(Component producer) =>
             Guard.Run(Feature.CompendiumTogether, "noting a producer collected from", () =>
             {
                 var zdo = producer != null ? producer.GetComponent<ZNetView>().OrNull()?.GetZDO() : null;
-                return zdo != null && zdo.GetInt(ZDOVars.s_level) > 0;
+                return zdo != null && zdo.GetInt(ZDOVars.s_level) > 0 && PrivateArea.CheckAccess(producer.transform.position, 0f, flash: false);
             }, out var holding) && holding;
 
         /// <summary>A producer that held something used by the character: collected from.</summary>
