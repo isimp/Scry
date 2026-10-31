@@ -95,6 +95,7 @@ namespace Scry
                 }
                 entry.SetTermWords("damage", SearchFight.Dealt(dealt));
                 entry.Attacks = Facts.AttacksOf(prefab);
+                entry.DeathBlast = Facts.DeathAttackOf(prefab, out var blast) != null && blast != null ? blast.name : null;
             }
 
             var shared = prefab.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;

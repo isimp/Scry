@@ -44,6 +44,9 @@ namespace Scry
         private static readonly List<(string, string, string, bool)> Sets = new List<(string, string, string, bool)>();
         private static readonly List<(string, string, bool)> Ammo = new List<(string, string, bool)>();
 
+        /// <summary>Projectiles' own damage and which an attack fires, given once every prefab is read.</summary>
+        private static readonly ProjectileDamage OwnDamage = new ProjectileDamage();
+
         /// <summary>The station upgrades read, each with the station it names and that station's name (<see cref="Upgrade"/>).</summary>
         private static readonly List<(string Upgrade, string Station, string StationName)> Upgraded = new List<(string, string, string)>();
 
@@ -135,7 +138,13 @@ namespace Scry
                 if (aoe != null) Damage(prefab, aoe.m_damage, _book, StatusEffects);
                 var damages = prefab.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
                 // An item tells what its damage causes in its own facts; the effect names the item.
-                if (damages != null) Damage(prefab, damages.m_damages, _book, null);
+                if (damages != null)
+                {
+                    Damage(prefab, damages.m_damages, _book, null);
+                    Fires(damages);
+                }
+                var projectile = prefab.GetComponent<Projectile>();
+                if (projectile != null) OwnDamage.Own(prefab.name, Elements(projectile.m_damage));
             });
             Part("links of sets and ammo", () =>
             {
@@ -180,6 +189,9 @@ namespace Scry
                 var item = ToldByItems.Contains(giver.How) && IsItem(giver.Prefab, prefabs);
                 book.Add(giver.Prefab, item ? null : StatusEffects, EntryKeys.For(Kind.StatusEffect, giver.Effect), GivenBy, giver.How);
             }
+            // A projectile spawned with no attack's hit deals its own damage, a fired one its attack's.
+            foreach (var (prefab, effect, note) in OwnDamage.Gives()) book.Add(prefab, StatusEffects, EntryKeys.For(Kind.StatusEffect, effect), GivenBy, note);
+            OwnDamage.Clear();
             Sets.Clear();
             Ammo.Clear();
             Upgraded.Clear();
@@ -198,9 +210,30 @@ namespace Scry
         {
             foreach (var (type, effect) in CombatWords.DamageEffects)
             {
-                var amount = type == "fire" ? damage.m_fire : type == "frost" ? damage.m_frost : type == "lightning" ? damage.m_lightning
-                    : type == "poison" ? damage.m_poison : damage.m_spirit;
-                if (amount > 0f) book.Add(prefab.name, group, EntryKeys.For(Kind.StatusEffect, effect), GivenBy, CombatWords.OfDamage(type));
+                if (Amount(damage, type) > 0f) book.Add(prefab.name, group, EntryKeys.For(Kind.StatusEffect, effect), GivenBy, CombatWords.OfDamage(type));
+            }
+        }
+
+        private static float Amount(HitData.DamageTypes damage, string type) =>
+            type == "fire" ? damage.m_fire : type == "frost" ? damage.m_frost : type == "lightning" ? damage.m_lightning : type == "poison" ? damage.m_poison : damage.m_spirit;
+
+        /// <summary>Each type of damage that puts an effect on what it hits, with its amount.</summary>
+        private static IEnumerable<(string, float)> Elements(HitData.DamageTypes damage)
+        {
+            foreach (var (type, _) in CombatWords.DamageEffects) yield return (type, Amount(damage, type));
+        }
+
+        /// <summary>
+        /// The projectiles an item's attacks fire, which take the attack's damage for their own
+        /// (<c>Attack.FireProjectileBurst</c>, <c>Projectile.Setup</c>): a shot's, or ammo's,
+        /// which the weapon firing it shoots whatever the ammo's own attack is.
+        /// </summary>
+        private static void Fires(ItemDrop.ItemData.SharedData shared)
+        {
+            var ammo = shared.m_itemType == ItemDrop.ItemData.ItemType.Ammo || shared.m_itemType == ItemDrop.ItemData.ItemType.AmmoNonEquipable;
+            foreach (var attack in new[] { shared.m_attack, shared.m_secondaryAttack })
+            {
+                if (attack?.m_attackProjectile != null && (ammo || attack.m_attackType == Attack.AttackType.Projectile)) OwnDamage.Fired(attack.m_attackProjectile.name);
             }
         }
 

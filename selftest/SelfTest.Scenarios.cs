@@ -196,6 +196,7 @@ namespace Scry
             yield return S("a creature's stars follow what in the world can give it a level", StarsFollowSources, 300);
             yield return S("a fish's page tells where it lives, when it comes, how it bites and fights, and keeps that back until one is caught", FishPageTells, 30);
             yield return S("a kind's list groups another way: creatures by taming, items by biome", ListsGroupOtherWays, 30);
+            yield return S("an effect is given by what deals its damage, a falling meteor by its own and a staff's shot by the staff's", GiversByDamage, 10);
             yield return S("with the compendium on, a family is one row and one page switching among its kinds met, its copies found by their prefabs", FamiliesFold, 60, StageAsItWas);
             yield return S("the server's record of a dungeon opens by the floor, showing what anyone on the server walked, peek the rest", GroupRecords, 240, () => { GroupRecordsAsTheyWere(); StageAsItWas(); }, bearsSkips: true);
             yield return S("the cave and tower dungeons open level by level with rooms on each", CaveFloors, 300, StageAsItWas, bearsSkips: true);

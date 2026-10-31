@@ -252,13 +252,32 @@ namespace Scry.Tests
             public readonly Entry Resist = E("PoisonResist", Kind.StatusEffect);
             public readonly Entry Burning = E("Burning", Kind.StatusEffect);
             public readonly Entry FireSword = E("SwordFire", Kind.Item);
+            // Yagluth's meteors: the attack spawns what drops them, and each falling meteor burns.
+            public readonly Entry Meteors = E("GoblinKing_Meteors", Kind.Item);
+            public readonly Entry Dropper = E("GoblinKing_meteor_spawner", Kind.Other);
+            public readonly Entry Meteor = E("projectile_meteor", Kind.Projectile);
+            // A Writhan's death blast, and the frost orbs a staff's shield sends out.
+            public readonly Entry Writhan = E("Writhan", Kind.Creature);
+            public readonly Entry Blast = E("writhan_explosion", Kind.Other);
+            public readonly Entry Poison = E("Poison", Kind.StatusEffect);
+            public readonly Entry Shield = E("Staff_FrostOrbs", Kind.StatusEffect);
+            public readonly Entry Orb = E("staff_FrostOrbs_projectile", Kind.Projectile);
+            public readonly Entry Frost = E("Frost", Kind.StatusEffect);
             public readonly Explorer Explorer;
             public readonly CompendiumView View;
             public readonly CompendiumBook Book = new CompendiumBook();
 
             public Struck()
             {
-                Boss.Attacks = new[] { (Beam.Name, new[] { "lightning" }), (Nova.Name, new[] { "lightning" }) };
+                Boss.Attacks = new[] { (Beam.Name, new[] { "lightning" }), (Nova.Name, new[] { "lightning" }), (Meteors.Name, new string[0]) };
+                Writhan.Attacks = new[] { (EntryKeys.DeathAttack, new[] { "poison" }) };
+                SpawnedBy(Dropper, Meteors);
+                SpawnedBy(Meteor, Dropper);
+                Writhan.DeathBlast = Blast.Name;
+                SpawnedBy(Orb, Shield);
+                Burning.Links.Add(new Link { Group = LinkWords.GivenBy, Target = Meteor.Key, Notes = { CombatWords.OfDamage("fire") }, Back = true });
+                Poison.Links.Add(new Link { Group = LinkWords.GivenBy, Target = Blast.Key, Notes = { CombatWords.OfDamage("poison") }, Back = true });
+                Frost.Links.Add(new Link { Group = LinkWords.GivenBy, Target = Orb.Key, Notes = { CombatWords.OfDamage("frost") }, Back = true });
                 // As the catalog notes them: an item's damage gives the effect it causes, a mead the effect it puts on.
                 foreach (var item in new[] { Beam, Nova, Staff })
                 {
@@ -266,13 +285,26 @@ namespace Scry.Tests
                 }
                 Burning.Links.Add(new Link { Group = LinkWords.GivenBy, Target = FireSword.Key, Notes = { CombatWords.OfDamage("fire") }, Back = true });
                 Resist.Links.Add(new Link { Group = LinkWords.GivenBy, Target = Mead.Key, Notes = { "m_consumeStatusEffect" }, Back = true });
-                var all = new[] { Boss, Beam, Nova, Staff, Mead, Lightning, Resist, Burning, FireSword };
+                var all = new[] { Boss, Beam, Nova, Staff, Mead, Lightning, Resist, Burning, FireSword, Meteors, Dropper, Meteor, Writhan, Blast, Poison, Shield, Orb, Frost };
                 Explorer = new Explorer(all.ToList(), new Favourites(Path.Combine(TempDir(), "favourites.txt")));
                 View = new CompendiumView(Explorer.Entries);
                 Book.Raise(Boss.Key, KnownLevel.Known);
                 Book.Raise(Lightning.Key, KnownLevel.Known);
                 Book.Raise(Resist.Key, KnownLevel.Known);
                 Book.Raise(Burning.Key, KnownLevel.Known);
+                Book.Raise(Writhan.Key, KnownLevel.Known);
+                Book.Raise(Poison.Key, KnownLevel.Known);
+                Book.Raise(Frost.Key, KnownLevel.Known);
+                // Seen falling, as the book holds what was seen near a place: no more than seen.
+                Book.Raise(Meteor.Key, KnownLevel.Seen);
+                Book.Raise(Blast.Key, KnownLevel.Seen);
+                Book.Raise(Orb.Key, KnownLevel.Seen);
+            }
+
+            /// <summary>Notes what spawns a thing, as the catalog links it back.</summary>
+            private static void SpawnedBy(Entry thing, Entry by)
+            {
+                thing.Links.Add(new Link { Group = LinkWords.SpawnedBy, Target = by.Key, Back = true });
             }
 
             /// <summary>The level an entry shows by under the strict rules.</summary>
@@ -333,6 +365,30 @@ namespace Scry.Tests
             // Not what gives an effect another way, as a mead drunk: that still waits to be seen together.
             world.Book.Raise(world.Mead.Key, KnownLevel.Known);
             Assert.False(world.Shows(world.Resist, world.Mead));
+        }
+
+        [Fact]
+        public void AnEffectShowsWhatAMetThingSpawnsWhoseOwnDamageGivesIt()
+        {
+            // A falling meteor or a lingering blast deals its own damage: it goes with what it
+            // gives once what spawns it is met, through what spawns that.
+            var world = new Struck();
+            Assert.False(world.Shows(world.Burning, world.Meteor));
+            world.Book.FoundOut(world.Boss.Key, EntryKeys.Attack(world.Meteors.Name));
+            Assert.True(world.Shows(world.Burning, world.Meteor));
+            Assert.True(world.Shows(world.Meteor, world.Burning));
+
+            // A death that hurts, once seen up close.
+            Assert.False(world.Shows(world.Poison, world.Blast));
+            world.Book.FoundOut(world.Writhan.Key, EntryKeys.Attack(EntryKeys.DeathAttack));
+            Assert.True(world.Shows(world.Poison, world.Blast));
+
+            // An effect had that sends it out, as a staff's shield its orbs.
+            Assert.False(world.Shows(world.Frost, world.Orb));
+            world.Book.Raise(world.Shield.Key, KnownLevel.Seen);
+            Assert.False(world.Shows(world.Frost, world.Orb));
+            world.Book.Raise(world.Shield.Key, KnownLevel.Known);
+            Assert.True(world.Shows(world.Frost, world.Orb));
         }
 
         [Fact]

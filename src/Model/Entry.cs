@@ -153,6 +153,9 @@ namespace Scry
         /// </summary>
         public (string Item, string[] Types)[] Attacks = Array.Empty<(string, string[])>();
 
+        /// <summary>The prefab a creature's death makes that hurts what stands near (<see cref="EntryKeys.DeathAttack"/>), its blast; null for a death that hurts nothing.</summary>
+        public string DeathBlast;
+
         /// <summary>
         /// The names the game's own records of a character know it by (<c>$item_wood</c>,
         /// <c>$enemy_troll</c>, <c>$piece_forge</c>, <c>$biome_meadows</c>); several prefabs can

@@ -162,9 +162,11 @@ namespace Scry
             _places.Clear();
             _rooms.Clear();
             _carriers.Clear();
+            _blasts.Clear();
             foreach (var entry in _catalog.All)
             {
                 foreach (var (item, _) in entry.Attacks) AddCarrier(item, entry.Key);
+                if (entry.DeathBlast != null) _blasts[entry.DeathBlast] = entry.Key;
                 foreach (var owner in entry.UsedBy) Add(_played, owner, entry);
                 foreach (var owner in entry.LeftBy) Add(_leftovers, owner, entry);
                 Add(_places, Places.LabelOf(entry), entry);
@@ -263,6 +265,9 @@ namespace Scry
             var level = _levels.TryGetValue(entry, out var held) ? held : KnownLevel.Unknown;
             return level < KnownLevel.Known && AttackMet(entry) ? KnownLevel.Known : level;
         }
+
+        /// <summary>The creature whose death makes each blast, by the blast's prefab (<see cref="Entry.DeathBlast"/>).</summary>
+        private readonly Dictionary<string, string> _blasts = new Dictionary<string, string>(StringComparer.Ordinal);
 
         /// <summary>The creatures carrying each attack item, by the item's key, as the catalog was last indexed (<see cref="Entry.Attacks"/>).</summary>
         private readonly Dictionary<string, List<string>> _carriers = new Dictionary<string, List<string>>(StringComparer.Ordinal);
@@ -381,18 +386,42 @@ namespace Scry
             || tie == null && (FallOpened(a, b) || FallOpened(b, a) || Fought(a, b) || Fought(b, a) || DamageGives(a, b) || DamageGives(b, a));
 
         /// <summary>
-        /// Whether an effect is what a known item's damage puts on what it hits (<see cref="CombatWords.DamageEffects"/>,
+        /// Whether an effect is what a met thing's damage puts on what it hits (<see cref="CombatWords.DamageEffects"/>,
         /// noted as the effect given by it, <see cref="LinkWords.GivenBy"/>): the game puts it on with
         /// that damage (<c>Character.AddLightningDamage</c> and the like), and shows the damage on a
-        /// weapon's tooltip and on an attack once found out, so the two go together once the item is.
+        /// weapon's tooltip and on an attack once found out, so the two go together once the giver is
+        /// met (<see cref="DamageMet"/>).
         /// </summary>
-        private bool DamageGives(Entry effect, Entry item)
+        private bool DamageGives(Entry effect, Entry giver)
         {
-            if (effect == null || item == null || effect.Kind != Kind.StatusEffect || item.Kind != Kind.Item || Of(item) != KnownLevel.Known) return false;
+            if (effect == null || giver == null || effect.Kind != Kind.StatusEffect) return false;
             foreach (var link in effect.Links)
             {
-                if (link.Group != LinkWords.GivenBy || link.Target != item.Key) continue;
-                foreach (var note in link.Notes) if (CombatWords.IsDamageNote(note)) return true;
+                if (link.Group != LinkWords.GivenBy || link.Target != giver.Key) continue;
+                foreach (var note in link.Notes) if (CombatWords.IsDamageNote(note)) return DamageMet(giver, SpawnSteps);
+            }
+            return false;
+        }
+
+        /// <summary>How many steps back what spawns a thing is followed for <see cref="DamageMet"/>: an attack, what it spawns, what that drops.</summary>
+        private const int SpawnSteps = 3;
+
+        /// <summary>
+        /// Whether what a thing's damage does is shown for it: an item known, a weapon held or an
+        /// attack met; a death's blast, its death seen up close; an effect had; and what any of them
+        /// spawns, a falling meteor or a lingering blast dealing its own damage, followed back
+        /// through what spawns it (<see cref="LinkWords.SpawnedBy"/>) a few steps.
+        /// </summary>
+        private bool DamageMet(Entry giver, int steps)
+        {
+            if (giver.Kind == Kind.Item || giver.Kind == Kind.StatusEffect) return Of(giver) == KnownLevel.Known;
+            if (_blasts.TryGetValue(giver.Name, out var dying) && _book.Proved(dying, EntryKeys.Attack(EntryKeys.DeathAttack))) return true;
+            if (steps == 0) return false;
+            foreach (var link in giver.Links)
+            {
+                if (link.Group != LinkWords.SpawnedBy) continue;
+                var by = _catalog.Find(link.Target);
+                if (by != null && by != giver && DamageMet(by, steps - 1)) return true;
             }
             return false;
         }
