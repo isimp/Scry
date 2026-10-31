@@ -257,9 +257,10 @@ namespace Scry
                     foreach (var (item, _) in told.Came) book.SawWith(told.Thing, item, Tie.Drops);
                     book.Dropped(told.Thing, told.Came, told.Level);
                     counts?.Note(PlayEvent.LootCounted);
-                    // A kill the character had a hand in shows the health of the very creature
-                    // killed, as the game's count of kills by name cannot tell which it was.
-                    if (share == EventShare.Did) book.FoundOut(told.Thing, EntryKeys.Did(Deed.Killed));
+                    // A kill the character had a hand in, or a death seen up close, where the game
+                    // names the creature, shows the health of the very creature killed, as a felled
+                    // tree seen does; the game's count of kills by name cannot tell which it was.
+                    if (share == EventShare.Did || upClose) book.FoundOut(told.Thing, EntryKeys.Did(Deed.Killed));
                     // A death up close is a sighting of the creature's stars, none included, as a look at it is.
                     if (upClose) book.Sighted(told.Thing, told.Level - 1, null);
                     // Where its death hurts what stands near, a death seen up close is that attack

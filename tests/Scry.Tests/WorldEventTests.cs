@@ -55,7 +55,9 @@ namespace Scry.Tests
             // The death names the creature as it was, so its health shows, and no other going by its name.
             var book = Told(Death(80f, doers: new[] { Friend, Me }));
             Assert.True(book.Proved("Troll", EntryKeys.Did(Deed.Killed)));
-            // A death only seen, the kill a friend's, shows its loot but not its health.
+            // A friend's kill seen up close, where the game names the creature, shows its health as
+            // a felled tree seen does; seen from farther, only its loot.
+            Assert.True(Told(Death(5f, doers: new[] { Friend })).Proved("Troll", EntryKeys.Did(Deed.Killed)));
             Assert.False(Told(Death(20f, doers: new[] { Friend })).Proved("Troll", EntryKeys.Did(Deed.Killed)));
         }
 
