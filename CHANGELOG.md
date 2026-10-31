@@ -14,6 +14,8 @@ Under *Loose* every section ends saying how many things it left out as not yet m
 
 Under *Strict* a boss's attacks count as seen begun from as far as the game shows its health bar, so a taunt that hurts no one is found out during the fight, and a boss and its fight's music and weather show on each other's pages once you lived through that fight.
 
+A creature's attack counts as met once it hit you or you saw it begun, and an effect's *How you get it* names the weapons you held and the attacks you met whose damage puts it on, such as Lightning by Yagluth's beam.
+
 With the compendium on, Scry's own words no longer read as a dash where they happen to hold the name of a thing not yet seen, such as a chest, wood or a hook. A place's row of chests and pickups is now *To loot*, and a fish bites once it swims to the float.
 
 ## 0.3.2

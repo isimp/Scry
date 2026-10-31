@@ -354,6 +354,13 @@ namespace Scry
         /// <summary>A kind of damage by its type, as a link to the status effect it puts on names it: "fire damage".</summary>
         public static string OfDamage(string damageType) => damageType + " damage";
 
+        /// <summary>Whether a note says a damage type gives an effect (<see cref="OfDamage"/>), one of <see cref="DamageEffects"/>.</summary>
+        public static bool IsDamageNote(string note)
+        {
+            foreach (var (damage, _) in DamageEffects) if (note == OfDamage(damage)) return true;
+            return false;
+        }
+
         /// <summary>The label for the status effect a kind of damage puts on what it hits (<see cref="DamageEffects"/>).</summary>
         public static string DamageCauses(string damageType) => Naming.FieldLabel(damageType) + " damage causes";
 

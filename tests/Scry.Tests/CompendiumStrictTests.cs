@@ -240,6 +240,101 @@ namespace Scry.Tests
             Assert.False(world.Shows(world.Boss, world.Spice));
         }
 
+        /// <summary>Yagluth's lightning beam, a lightning staff and a mead, each tied to the effect it gives, with the book and rules of a page.</summary>
+        private sealed class Struck
+        {
+            public readonly Entry Boss = E("GoblinKing", Kind.Creature);
+            public readonly Entry Beam = E("GoblinKing_Beam", Kind.Item);
+            public readonly Entry Nova = E("GoblinKing_Nova", Kind.Item);
+            public readonly Entry Staff = E("StaffLightning", Kind.Item);
+            public readonly Entry Mead = E("MeadPoisonResist", Kind.Item);
+            public readonly Entry Lightning = E("Lightning", Kind.StatusEffect);
+            public readonly Entry Resist = E("PoisonResist", Kind.StatusEffect);
+            public readonly Entry Burning = E("Burning", Kind.StatusEffect);
+            public readonly Entry FireSword = E("SwordFire", Kind.Item);
+            public readonly Explorer Explorer;
+            public readonly CompendiumView View;
+            public readonly CompendiumBook Book = new CompendiumBook();
+
+            public Struck()
+            {
+                Boss.Attacks = new[] { (Beam.Name, new[] { "lightning" }), (Nova.Name, new[] { "lightning" }) };
+                // As the catalog notes them: an item's damage gives the effect it causes, a mead the effect it puts on.
+                foreach (var item in new[] { Beam, Nova, Staff })
+                {
+                    Lightning.Links.Add(new Link { Group = LinkWords.GivenBy, Target = item.Key, Notes = { CombatWords.OfDamage("lightning") }, Back = true });
+                }
+                Burning.Links.Add(new Link { Group = LinkWords.GivenBy, Target = FireSword.Key, Notes = { CombatWords.OfDamage("fire") }, Back = true });
+                Resist.Links.Add(new Link { Group = LinkWords.GivenBy, Target = Mead.Key, Notes = { "m_consumeStatusEffect" }, Back = true });
+                var all = new[] { Boss, Beam, Nova, Staff, Mead, Lightning, Resist, Burning, FireSword };
+                Explorer = new Explorer(all.ToList(), new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+                View = new CompendiumView(Explorer.Entries);
+                Book.Raise(Boss.Key, KnownLevel.Known);
+                Book.Raise(Lightning.Key, KnownLevel.Known);
+                Book.Raise(Resist.Key, KnownLevel.Known);
+                Book.Raise(Burning.Key, KnownLevel.Known);
+            }
+
+            /// <summary>The level an entry shows by under the strict rules.</summary>
+            public KnownLevel Level(Entry entry)
+            {
+                View.Tell(Book, CompendiumRule.Strict);
+                return View.Of(entry);
+            }
+
+            /// <summary>Whether a page shows a name under the strict rules.</summary>
+            public bool Shows(Entry page, Entry named)
+            {
+                View.Tell(Book, CompendiumRule.Strict);
+                Explorer.Know(View);
+                Explorer.Select(page);
+                return !Explorer.LeavesOut(named.Key);
+            }
+        }
+
+        [Fact]
+        public void ACreaturesAttackTakenOrSeenBegunIsMet()
+        {
+            // An attack is no thing of its own to pick up: it is met once it hit the character, or
+            // was seen begun, from any creature carrying it.
+            var world = new Struck();
+            // Named on its creature's page, it is heard of only.
+            Assert.True(world.Level(world.Beam) < KnownLevel.Seen);
+            world.Book.FoundOut(world.Boss.Key, EntryKeys.Attack(world.Beam.Name));
+            Assert.Equal(KnownLevel.Known, world.Level(world.Beam));
+            // Not another attack of the same creature, nor one proved on a creature not carrying it.
+            Assert.True(world.Level(world.Nova) < KnownLevel.Seen);
+            world.Book.FoundOut("Troll", EntryKeys.Attack(world.Nova.Name));
+            Assert.True(world.Level(world.Nova) < KnownLevel.Seen);
+        }
+
+        [Fact]
+        public void AnEffectShowsTheKnownThingsWhoseDamageGivesIt()
+        {
+            // The game puts lightning on whatever lightning damage hits (Character.AddLightningDamage),
+            // and shows an item's damage on its tooltip and an attack's once found out: what that
+            // damage gives shows with it on both pages.
+            var world = new Struck();
+            Assert.False(world.Shows(world.Lightning, world.Beam));
+            world.Book.FoundOut(world.Boss.Key, EntryKeys.Attack(world.Beam.Name));
+            Assert.True(world.Shows(world.Lightning, world.Beam));
+            Assert.True(world.Shows(world.Beam, world.Lightning));
+            Assert.False(world.Shows(world.Lightning, world.Nova));
+
+            // A weapon once held, as the game then shows its damage.
+            Assert.False(world.Shows(world.Lightning, world.Staff));
+            world.Book.Raise(world.Staff.Key, KnownLevel.Seen);
+            Assert.False(world.Shows(world.Lightning, world.Staff));
+            world.Book.Raise(world.Staff.Key, KnownLevel.Known);
+            Assert.True(world.Shows(world.Lightning, world.Staff));
+            // Only with the effects its own damage gives.
+            Assert.False(world.Shows(world.Burning, world.Staff));
+
+            // Not what gives an effect another way, as a mead drunk: that still waits to be seen together.
+            world.Book.Raise(world.Mead.Key, KnownLevel.Known);
+            Assert.False(world.Shows(world.Resist, world.Mead));
+        }
+
         [Fact]
         public void ABossesFightLivedThroughLinksTheBossAndItsFight()
         {

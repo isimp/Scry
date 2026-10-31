@@ -161,8 +161,10 @@ namespace Scry
             _leftovers.Clear();
             _places.Clear();
             _rooms.Clear();
+            _carriers.Clear();
             foreach (var entry in _catalog.All)
             {
+                foreach (var (item, _) in entry.Attacks) AddCarrier(item, entry.Key);
                 foreach (var owner in entry.UsedBy) Add(_played, owner, entry);
                 foreach (var owner in entry.LeftBy) Add(_leftovers, owner, entry);
                 Add(_places, Places.LabelOf(entry), entry);
@@ -258,7 +260,31 @@ namespace Scry
         {
             if (entry == null) return KnownLevel.Unknown;
             if (_rule == CompendiumRule.Off) return KnownLevel.Known;
-            return _levels.TryGetValue(entry, out var level) ? level : KnownLevel.Unknown;
+            var level = _levels.TryGetValue(entry, out var held) ? held : KnownLevel.Unknown;
+            return level < KnownLevel.Known && AttackMet(entry) ? KnownLevel.Known : level;
+        }
+
+        /// <summary>The creatures carrying each attack item, by the item's key, as the catalog was last indexed (<see cref="Entry.Attacks"/>).</summary>
+        private readonly Dictionary<string, List<string>> _carriers = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+
+        private void AddCarrier(string item, string creature)
+        {
+            if (string.IsNullOrEmpty(item) || item == EntryKeys.DeathAttack) return;
+            if (!_carriers.TryGetValue(item, out var list)) _carriers[item] = list = new List<string>();
+            if (!list.Contains(creature)) list.Add(creature);
+        }
+
+        /// <summary>
+        /// Whether an attack item is met, being no thing of its own to pick up: its attack hit the
+        /// character or was seen begun (<see cref="EntryKeys.Attack"/>) on a creature carrying it.
+        /// Read from the book's proofs each time, as proving one tells the levels nothing anew.
+        /// </summary>
+        private bool AttackMet(Entry item)
+        {
+            if (item.Kind != Kind.Item || _book == null || !_carriers.TryGetValue(item.Key, out var carriers)) return false;
+            var proof = EntryKeys.Attack(item.Key);
+            foreach (var creature in carriers) if (_book.Proved(creature, proof)) return true;
+            return false;
         }
 
         /// <summary>What made an entry known or heard of along with it: the entry owning it or naming it; none for what the book holds itself.</summary>
@@ -352,7 +378,24 @@ namespace Scry
         /// <summary>Whether two entries go together for the strict rules: seen together, the way given where a row has one, one a part of the other, a room's dungeon seen together with the other, or a fall seen to open the other.</summary>
         public bool Related(Entry a, Entry b, Tie? tie = null) =>
             Witnessed(a, b, tie) || Owns(a, b) || Owns(b, a) || ThroughDungeon(a, b, tie) || ThroughDungeon(b, a, tie)
-            || tie == null && (FallOpened(a, b) || FallOpened(b, a) || Fought(a, b) || Fought(b, a));
+            || tie == null && (FallOpened(a, b) || FallOpened(b, a) || Fought(a, b) || Fought(b, a) || DamageGives(a, b) || DamageGives(b, a));
+
+        /// <summary>
+        /// Whether an effect is what a known item's damage puts on what it hits (<see cref="CombatWords.DamageEffects"/>,
+        /// noted as the effect given by it, <see cref="LinkWords.GivenBy"/>): the game puts it on with
+        /// that damage (<c>Character.AddLightningDamage</c> and the like), and shows the damage on a
+        /// weapon's tooltip and on an attack once found out, so the two go together once the item is.
+        /// </summary>
+        private bool DamageGives(Entry effect, Entry item)
+        {
+            if (effect == null || item == null || effect.Kind != Kind.StatusEffect || item.Kind != Kind.Item || Of(item) != KnownLevel.Known) return false;
+            foreach (var link in effect.Links)
+            {
+                if (link.Group != LinkWords.GivenBy || link.Target != item.Key) continue;
+                foreach (var note in link.Notes) if (CombatWords.IsDamageNote(note)) return true;
+            }
+            return false;
+        }
 
         /// <summary>
         /// Whether the character lived through a boss's own fight (<see cref="FightOf"/>), as the
