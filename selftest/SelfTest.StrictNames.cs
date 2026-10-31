@@ -12,7 +12,7 @@ namespace Scry
         /// strict rules the creature's page leaves the rest of what it names out, its title chip
         /// counts them and is not lit, its You box says to see them together, is:left finds it,
         /// and the page counts as many as its sections do at their ends; then pages of other
-        /// kinds, known for the test, the same.
+        /// kinds, known for the test, the same, and a nest whose creatures were all met.
         /// </summary>
         private static IEnumerator StrictNamesRead(Probe p)
         {
@@ -47,6 +47,16 @@ namespace Scry
             foreach (var page in pages) book.Raise(page.Key, KnownLevel.Known);
             view.Tell(book, CompendiumRule.Strict);
             foreach (var page in pages) yield return NamesCountedAsDrawn(p, page);
+
+            // A nest whose creatures were all met shows its spawn table under the strict rules,
+            // though nothing in play pairs a nest with them, and counts none of them left out.
+            var nest = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Spawner && Facts.For(e).Rows.Any(r => r.Title == SpawnWords.PoolTitle));
+            if (!p.Check(nest != null, "a nest with a spawn table")) yield break;
+            var pool = Facts.For(nest).Rows.First(r => r.Title == SpawnWords.PoolTitle);
+            book.Raise(nest.Key, KnownLevel.Known);
+            foreach (var line in pool.Lines) if (X.Find(line.Link) is Entry met) book.Raise(met.Key, KnownLevel.Seen);
+            view.Tell(book, CompendiumRule.Strict);
+            yield return NamesCountedAsDrawn(p, nest);
         }
 
         /// <summary>

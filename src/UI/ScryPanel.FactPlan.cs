@@ -318,7 +318,7 @@ namespace Scry
         private static float TableRow(Explorer explorer, Facts.Row row, float width, float y)
         {
             // A table the compendium's rules leave every line out of draws nothing, its title and headings neither.
-            if (row.Lines.Count > 0 && explorer.NamesOnlyMet && row.Lines.TrueForAll(l => !string.IsNullOrEmpty(l.Link) && explorer.LeavesOut(l.Link)))
+            if (explorer.NamesOnlyMet && AllLinesLeftOut(explorer, row))
             {
                 StrictLeft(explorer, row.Lines.Select(l => l.Link));
                 CountDrawn(PanelPart.EmptyRowLeftOut);
@@ -652,6 +652,14 @@ namespace Scry
         /// attack never seen); of a table whose lines name what was met (a nest's spawns), only one never met.
         /// </summary>
         private static bool LineLeftOut(Explorer explorer, Facts.Row row, string link) => !string.IsNullOrEmpty(link) && explorer.LeavesOut(link, LinesOnceMet(explorer, row));
+
+        /// <summary>Whether a table has lines and leaves every one out (<see cref="LineLeftOut"/>), so draws nothing; drawing and counting ask the same.</summary>
+        private static bool AllLinesLeftOut(Explorer explorer, Facts.Row row)
+        {
+            if (row.Lines.Count == 0) return false;
+            foreach (var line in row.Lines) if (!LineLeftOut(explorer, row, line.Link)) return false;
+            return true;
+        }
 
         /// <summary>Whether a table of the page shown names in its lines what was met under either rules (<see cref="FactLayout.LinesOnceMet"/>).</summary>
         private static bool LinesOnceMet(Explorer explorer, Facts.Row row) => explorer.Selected != null && FactLayout.LinesOnceMet(explorer.Selected.Kind, row.Title);

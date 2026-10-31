@@ -181,7 +181,7 @@ namespace Scry
             if (row.Columns != null)
             {
                 // A table every line of which is left out counts them all; one every line of which is kept back names nothing (TableRow).
-                if (row.Lines.Count > 0 && row.Lines.TrueForAll(l => LineLeftOut(explorer, row, l.Link)))
+                if (AllLinesLeftOut(explorer, row))
                 {
                     foreach (var line in row.Lines) names.Name(line.Link, true);
                     return;
