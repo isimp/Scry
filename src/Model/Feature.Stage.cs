@@ -23,6 +23,7 @@ namespace Scry
         public static readonly Feature TreesFalling = Listed("trees falling");
         public static readonly Feature LogsSplittingIntoHalves = Listed("logs splitting into halves");
         public static readonly Feature WhatThingsLeaveWhenBroken = Listed("what things leave when broken");
+        public static readonly Feature WhatTreasureGives = Listed("what treasure lying in the world gives when picked");
         public static readonly Feature TreesShakingWhenStruck = Listed("trees shaking when struck");
         public static readonly Feature WhereEffectsAppearOnModel = Listed("where effects appear on a model");
         public static readonly Feature SoundsAndEffectsAnimationsName = Listed("sounds and effects animations name");

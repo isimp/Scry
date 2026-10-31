@@ -10,6 +10,30 @@ namespace Scry
     {
         // ----- Resources -----
 
+        /// <summary>What a treasure lying in the world gives when picked: its own item, or one of its random items where the game draws from those (<see cref="TreasureRule"/>).</summary>
+        private void Treasure(PickableItem found)
+        {
+            var random = TreasureRule.GivesRandom(found.m_itemPrefab != null, found.m_randomItemPrefabs?.Length ?? 0);
+            var row = new Row { Title = GatherWords.Picked(oneOf: random && found.m_randomItemPrefabs.Length > 1) };
+            if (random)
+            {
+                foreach (var each in found.m_randomItemPrefabs)
+                {
+                    if (each.m_itemPrefab == null) continue;
+                    var item = each.m_itemPrefab.gameObject;
+                    row.Items.Add(new Ingredient { Icon = Icon(item), Name = ItemName(item), Amount = Numbers.CountRange(each.m_stackMin, each.m_stackMax), Prefab = item.name });
+                }
+            }
+            else if (found.m_itemPrefab != null)
+            {
+                var item = found.m_itemPrefab.gameObject;
+                row.Items.Add(new Ingredient { Icon = Icon(item), Name = ItemName(item), Amount = Numbers.Count(Math.Max(1, found.m_stack)), Prefab = item.name });
+            }
+            if (row.Items.Count == 0) return;
+            Rows.Add(row);
+            _drops = true;
+        }
+
         /// <summary>
         /// What is chopped, mined, broken, picked or grown: how much it takes and with what tool,
         /// what it resists, and what it gives, as the game's own scripts hold it. A prefab can be
@@ -114,29 +138,7 @@ namespace Scry
             }
 
             var found = prefab.GetComponent<PickableItem>();
-            if (found != null)
-            {
-                var row = new Row { Title = GatherWords.Picked(oneOf: found.m_randomItemPrefabs != null && found.m_randomItemPrefabs.Length > 1) };
-                if (found.m_randomItemPrefabs != null && found.m_randomItemPrefabs.Length > 0)
-                {
-                    foreach (var random in found.m_randomItemPrefabs)
-                    {
-                        if (random.m_itemPrefab == null) continue;
-                        var item = random.m_itemPrefab.gameObject;
-                        row.Items.Add(new Ingredient { Icon = Icon(item), Name = ItemName(item), Amount = Numbers.CountRange(random.m_stackMin, random.m_stackMax), Prefab = item.name });
-                    }
-                }
-                else if (found.m_itemPrefab != null)
-                {
-                    var item = found.m_itemPrefab.gameObject;
-                    row.Items.Add(new Ingredient { Icon = Icon(item), Name = ItemName(item), Amount = Numbers.Count(Math.Max(1, found.m_stack)), Prefab = item.name });
-                }
-                if (row.Items.Count > 0)
-                {
-                    Rows.Add(row);
-                    _drops = true;
-                }
-            }
+            if (found != null) Guard.Run(Feature.WhatTreasureGives, "what a treasure gives", Treasure, found);
 
             var plant = prefab.GetComponent<Plant>();
             if (plant != null)

@@ -381,7 +381,7 @@ namespace Scry
                 var told = depth == 0 && ItemsToldElsewhere(owner, field);
                 if (told && (owner is Plant || owner is Pickable)) continue;
                 if (!TypeFields.Read(field, owner, out var value) || value == null) continue;
-                if (owner is PickableItem && Treasure(field, value, key, book)) continue;
+                if (owner is PickableItem treasure && Treasure(treasure, field, value, key, book)) continue;
 
                 // An attack uses only what its kind uses (Attack.OnAttackTrigger): a projectile
                 // only when it throws or shoots, what it spawns only when it swings or hits an area.
@@ -462,9 +462,10 @@ namespace Scry
         /// <summary>
         /// The items a treasure lying in the world gives when picked, one or one of a few at random
         /// (<c>PickableItem.m_itemPrefab</c>, <c>m_randomItemPrefabs</c>): linked as treasure, where
-        /// the item comes from. True where the field was one of them.
+        /// the item comes from, the random ones only where the game draws from them (<see cref="TreasureRule"/>).
+        /// True where the field was one of them.
         /// </summary>
-        private static bool Treasure(FieldInfo field, object value, string key, LinkBook book)
+        private static bool Treasure(PickableItem treasure, FieldInfo field, object value, string key, LinkBook book)
         {
             if (field.Name == "m_itemPrefab")
             {
@@ -472,6 +473,7 @@ namespace Scry
                 return true;
             }
             if (field.Name != "m_randomItemPrefabs" || !(value is PickableItem.RandomItem[] random)) return false;
+            if (!TreasureRule.GivesRandom(treasure.m_itemPrefab != null, random.Length)) return true;
             foreach (var each in random) if (each.m_itemPrefab != null) book.Add(key, LinkWords.Treasure, each.m_itemPrefab.gameObject.name, LinkWords.TreasureIn);
             return true;
         }

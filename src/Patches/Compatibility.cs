@@ -398,6 +398,7 @@ namespace Scry
             ("GameCamera", "GetCameraPosition", 3, 0x25D43903, Feature.SeaHoldsOnStage),
             ("Leviathan", "FixedUpdate", 0, 0xD1B2386F, Feature.SeaHoldsOnStage),
             ("WaterVolume", "DetectWaterDepth", 0, 0x825ECE7E, Feature.SeaHoldsOnStage),
+            ("PickableItem", "SetupRandomPrefab", 0, 0x3B2FA4BA, Feature.WhatTreasureGives),
             ("HitData", "ApplyModifier", 6, 0xDC32A000, Feature.Resistances),
             ("ImpactEffect", "OnCollisionEnter", 1, 0x742C27A8, Feature.FelledLogsStrikingGround),
             ("Incinerator", "Incinerate", 1, 0x76DE92A7, Feature.WhatObliteratorMakes),
