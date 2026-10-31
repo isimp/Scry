@@ -21,6 +21,8 @@ namespace Scry
         public const string UpgradeOf = "Upgrade of";
         public const string Items = "Items";
         public const string ItemOf = "Item of";
+        public const string Treasure = "Treasure";
+        public const string TreasureIn = "Found as treasure in";
 
         /// <summary>A link that goes to a creature and plays one of its animations, or goes to it alone.</summary>
         public static string Animation(string shown, string animation) => animation.Length > 0 ? shown + " \u00B7 " + animation : shown;

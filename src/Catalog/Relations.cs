@@ -343,6 +343,7 @@ namespace Scry
                 var told = depth == 0 && ItemsToldElsewhere(owner, field);
                 if (told && (owner is Plant || owner is Pickable)) continue;
                 if (!TypeFields.Read(field, owner, out var value) || value == null) continue;
+                if (owner is PickableItem && Treasure(field, value, key, book)) continue;
 
                 // An attack uses only what its kind uses (Attack.OnAttackTrigger): a projectile
                 // only when it throws or shoots, what it spawns only when it swings or hits an area.
@@ -419,6 +420,23 @@ namespace Scry
 
         /// <summary>Only other prefabs are linked: a part of this one has a parent, and is not a thing of its own.</summary>
         private static bool Links(GameObject target, GameObject self) => target != null && target != self && target.transform.parent == null;
+
+        /// <summary>
+        /// The items a treasure lying in the world gives when picked, one or one of a few at random
+        /// (<c>PickableItem.m_itemPrefab</c>, <c>m_randomItemPrefabs</c>): linked as treasure, where
+        /// the item comes from. True where the field was one of them.
+        /// </summary>
+        private static bool Treasure(FieldInfo field, object value, string key, LinkBook book)
+        {
+            if (field.Name == "m_itemPrefab")
+            {
+                if (value is ItemDrop single && single != null) book.Add(key, LinkWords.Treasure, single.gameObject.name, LinkWords.TreasureIn);
+                return true;
+            }
+            if (field.Name != "m_randomItemPrefabs" || !(value is PickableItem.RandomItem[] random)) return false;
+            foreach (var each in random) if (each.m_itemPrefab != null) book.Add(key, LinkWords.Treasure, each.m_itemPrefab.gameObject.name, LinkWords.TreasureIn);
+            return true;
+        }
 
         /// <summary>An item a field names, such as a creature's saddle, a door's key or a fish's bait: linked as an item, not as spawned.</summary>
         private static void LinkItem(GameObject item, string key, LinkBook book, string label)

@@ -558,6 +558,78 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatAPlayerLooksUpStandsInItsTopicNotUnderLinked()
+        {
+            // What a spawn point spawns, what a bow shoots and an arrow is shot from, where an item
+            // lies as treasure or what spawns it, what a fire or bed gives you, a station's upgrades
+            // and what a potion brings each answer a question of the page's own topics.
+            string TopicOf(Kind kind, string group)
+            {
+                var plan = FactLayout.Plan(kind, new (string, string)[0], new (string, string)[0], new FactBlock[0], new[] { group });
+                return plan.SingleOrDefault(t => t.Bits.Any(b => b.LinkGroup == group))?.Heading;
+            }
+            Assert.Equal("Spawns", TopicOf(Kind.Spawner, LinkWords.Spawns));
+            Assert.Equal("Fight", TopicOf(Kind.Item, LinkBook.Shoots));
+            Assert.Equal("Fight", TopicOf(Kind.Item, LinkBook.ShotFrom));
+            Assert.Equal("Where it comes from", TopicOf(Kind.Item, LinkWords.TreasureIn));
+            Assert.Equal("Where it comes from", TopicOf(Kind.Item, LinkWords.SpawnedBy));
+            Assert.Equal("Resting", TopicOf(Kind.Piece, LinkWords.StatusEffects));
+            Assert.Equal("Building", TopicOf(Kind.Piece, LinkWords.Upgrades));
+            Assert.Equal("What it does", TopicOf(Kind.StatusEffect, LinkWords.Spawns));
+
+            // The wiring stays under Linked: a creature's sounds and ragdoll, an item's projectile and copies.
+            Assert.False(FactLayout.Places(Kind.Creature, LinkWords.AnimationSounds));
+            Assert.False(FactLayout.Places(Kind.Creature, LinkWords.Spawns));
+            Assert.False(FactLayout.Places(Kind.Item, LinkWords.Spawns));
+            Assert.False(FactLayout.Places(Kind.Item, LinkWords.CarriedBy));
+            Assert.False(FactLayout.Places(Kind.Item, LinkWords.ItemOf));
+            Assert.False(FactLayout.Places(Kind.Piece, LinkWords.Items));
+        }
+
+        [Fact]
+        public void AGroupMovedIntoATopicLeavesOutWhatThePageLinksAlready()
+        {
+            // A nest's spawn table names its creatures; its Spawns links repeat none of them, and a
+            // single spawn point, which has no table, shows its creature there.
+            var shown = new HashSet<string> { "Greydwarf", "Greydwarf_Elite" };
+            Assert.Empty(FactLayout.LeftInTopic(Kind.Spawner, LinkWords.Spawns, new[] { "Greydwarf", "Greydwarf_Elite" }, shown));
+            Assert.Equal(new[] { 0 }, FactLayout.LeftInTopic(Kind.Spawner, LinkWords.Spawns, new[] { "Bat" }, shown));
+            Assert.Equal(new[] { 1 }, FactLayout.LeftInTopic(Kind.Item, LinkWords.TreasureIn, new[] { "Greydwarf", "Pickable_DolmenTreasure" }, shown));
+            // A creature's carried gear and status effects keep their row as before.
+            Assert.Equal(new[] { 0, 1 }, FactLayout.LeftInTopic(Kind.Creature, LinkWords.StatusEffects, new[] { "Greydwarf", "se:Poison" }, shown));
+        }
+
+        [Fact]
+        public void ARowMovedIntoATopicIsTitledInThatTopicsWords()
+        {
+            Assert.Equal("Gives", FactLayout.LinkTitle(Kind.Piece, LinkWords.StatusEffects));
+            Assert.Equal("Brings", FactLayout.LinkTitle(Kind.StatusEffect, LinkWords.Spawns));
+            Assert.Equal("Found as treasure in", FactLayout.LinkTitle(Kind.Item, LinkWords.TreasureIn));
+            // A group with no words of its own in a topic keeps its name, as a creature's status effects in its fight.
+            Assert.Equal(LinkWords.StatusEffects, FactLayout.LinkTitle(Kind.Creature, LinkWords.StatusEffects));
+            Assert.Equal(LinkBook.Shoots, FactLayout.LinkTitle(Kind.Item, LinkBook.Shoots));
+        }
+
+        [Fact]
+        public void LinksNothingInPlayPairsShowOnceMetAndTheRestWaitToBeSeenTogether()
+        {
+            // No deed pairs a bow with its arrows or a spawn point with its creature, so under the
+            // strict rules they show once met, as a recipe's materials do; so does all Linked keeps,
+            // the page's parts and wiring. A fire's effects, a station's upgrades, a treasure and a
+            // creature's carried gear wait to be seen together.
+            Assert.True(FactLayout.ShownOnceMet(Kind.Item, LinkBook.Shoots));
+            Assert.True(FactLayout.ShownOnceMet(Kind.Item, LinkBook.ShotFrom));
+            Assert.True(FactLayout.ShownOnceMet(Kind.Spawner, LinkWords.Spawns));
+            Assert.True(FactLayout.ShownOnceMet(Kind.Item, LinkWords.SpawnedBy));
+            Assert.True(FactLayout.ShownOnceMet(Kind.Creature, LinkWords.AnimationSounds));
+            Assert.True(FactLayout.ShownOnceMet(Kind.Sound, LinkWords.PlayedByAnimation));
+            Assert.False(FactLayout.ShownOnceMet(Kind.Piece, LinkWords.StatusEffects));
+            Assert.False(FactLayout.ShownOnceMet(Kind.Piece, LinkWords.Upgrades));
+            Assert.False(FactLayout.ShownOnceMet(Kind.Item, LinkWords.TreasureIn));
+            Assert.False(FactLayout.ShownOnceMet(Kind.Creature, LinkWords.Carries));
+        }
+
+        [Fact]
         public void ASetPieceShowsTheSetsOtherPiecesRightUnderItsSetBonus()
         {
             // Whoever looks at one piece of a set wants the others at hand, not under Linked below.
@@ -583,7 +655,7 @@ namespace Scry.Tests
             // A group a topic places shows there, not under Linked too.
             Assert.Empty(FactLayout.LeftInLinked(Kind.StatusEffect, LinkWords.GivenBy, new[] { "Bed", "Fire" }, shown));
             // Of the rest, what In the game already links is left out; a row left with none goes.
-            Assert.Equal(new[] { 0, 2 }, FactLayout.LeftInLinked(Kind.Piece, LinkWords.Upgrades, new[] { "Chopping block", "Wood", "Tanning rack" }, shown));
+            Assert.Equal(new[] { 0, 2 }, FactLayout.LeftInLinked(Kind.Piece, LinkWords.Spawns, new[] { "Cargo crate", "Wood", "Fire" }, shown));
             Assert.Empty(FactLayout.LeftInLinked(Kind.Item, LinkWords.Items, new[] { "se:Rested", "Wood" }, shown));
             Assert.Equal(new[] { 0, 1 }, FactLayout.LeftInLinked(Kind.Item, LinkWords.Items, new[] { "Stone", "Flint" }, shown));
         }

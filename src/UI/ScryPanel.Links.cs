@@ -142,11 +142,15 @@ namespace Scry
         private static readonly Dictionary<string, Kind> KindByKey = new Dictionary<string, Kind>();
         private static Explorer _kindsFor;
 
-        /// <summary>A small heading and a wrapping row of link chips, each with its own text, tip and doing; without the heading where the topic it stands in names it already.</summary>
-        private static float LinkItems(Explorer explorer, string title, IEnumerable<(string Key, string Text, string Tip, Action Click)> items, float width, float y, bool titled = true)
+        /// <summary>
+        /// A small heading and a wrapping row of link chips, each with its own text, tip and doing;
+        /// without the heading where the topic it stands in names it already. Where its names show
+        /// once met (<paramref name="onceMet"/>), only those not met are left out under the strict rules.
+        /// </summary>
+        private static float LinkItems(Explorer explorer, string title, IEnumerable<(string Key, string Text, string Tip, Action Click)> items, float width, float y, bool titled = true, bool onceMet = false)
         {
             var given = items as IReadOnlyList<(string Key, string Text, string Tip, Action Click)> ?? items.ToList();
-            var all = ShownStrictly(explorer, given, i => i.Key);
+            var all = ShownStrictly(explorer, given, i => i.Key, onceMet);
             // A row left with nothing draws nothing, its title neither, so the next one takes its place.
             if (all.Count == 0)
             {
@@ -183,19 +187,21 @@ namespace Scry
         private static float LinksSection(Explorer explorer, Entry entry, float width, float y)
         {
             MakeLinkRowsFor(explorer, entry);
-            // A section the rules leave nothing in keeps its heading under the strict rules, to say
-            // how many it left out; under the loose ones it draws neither its heading nor its count.
+            // It holds the page's own parts and wiring, nothing of the world to find: under either
+            // rules it names what the character met, counts none of it among the page's finds and
+            // says nothing of what it leaves out, and with the compendium on it stands folded until opened.
             if (LinkRows.Count == 0) return y;
             var linked = LinkedCount(explorer);
-            if (linked == 0 && !explorer.LeavingOut) return y;
+            if (linked == 0) return y;
 
-            y = SectionHeading("LINKED", width, y, null, "links", linked > 0 ? linked : -1);
-            if (IsFolded("links")) return y;
+            var key = explorer.CompendiumOn ? FoldMarks.LinkedInBook : "links";
+            y = SectionHeading("LINKED", width, y, null, key, linked);
+            if (IsFolded(key)) return y;
 
-            // What the rules leave out of it is counted at its end, as in any section.
             StrictSectionStarts();
-            foreach (var (title, items) in LinkRows) y = LinkItems(explorer, title, items, width, y);
-            y = StrictLeftLine(explorer, null, width, y);
+            var was = PassingStarts(true);
+            foreach (var (title, items) in LinkRows) y = LinkItems(explorer, title, items, width, y, onceMet: true);
+            PassingEnds(was);
             return y + U(4f);
         }
 
@@ -206,7 +212,7 @@ namespace Scry
             _linkedStamp = explorer.KnowStamp;
             _linkedCountFor = _linksFor;
             _linkedCount = 0;
-            foreach (var (_, items) in LinkRows) foreach (var item in items) if (!explorer.LeavesOut(item.Key)) _linkedCount++;
+            foreach (var (_, items) in LinkRows) foreach (var item in items) if (!explorer.LeavesOut(item.Key, true)) _linkedCount++;
             return _linkedCount;
         }
 
@@ -241,7 +247,7 @@ namespace Scry
             if (!PlacedLinkRows.TryGetValue(group, out var items)) return y;
             CountDrawn(PanelPart.TopicLinks);
             if (group == LinkWords.Carries && explorer.NamesOnlyMet) items = CarriedBesidesAttacks(facts, items);
-            return LinkItems(explorer, group, items, width, y, titled);
+            return LinkItems(explorer, FactLayout.LinkTitle(entry.Kind, group), items, width, y, titled, FactLayout.ShownOnceMet(entry.Kind, group));
         }
 
         /// <summary>What a creature carries besides the attacks its table names, made once for its facts.</summary>
@@ -279,7 +285,8 @@ namespace Scry
         {
             if (FactLayout.Places(entry.Kind, title))
             {
-                placed[title] = items;
+                var kept = FactLayout.LeftInTopic(entry.Kind, title, items.Select(i => i.Key).ToList(), shown);
+                if (kept.Count > 0) placed[title] = kept.Count == items.Count ? items : kept.Select(i => items[i]).ToList();
                 return;
             }
             var left = FactLayout.LeftInLinked(entry.Kind, title, items.Select(i => i.Key).ToList(), shown);
@@ -572,7 +579,7 @@ namespace Scry
         private static void EndNameCount(Entry entry) => NamesDrawnForTest = (entry, _drawLeft, NamingSectionFolded());
 
         /// <summary>The sections a page's names stand in, which the strict rules leave out of.</summary>
-        private static readonly string[] NamingSections = { "facts", "links", "playsin" };
+        private static readonly string[] NamingSections = { "facts", "playsin" };
 
         /// <summary>Whether a section of the details that names things is folded, so what it would leave out goes uncounted in a draw.</summary>
         private static bool NamingSectionFolded()

@@ -66,6 +66,12 @@ namespace Scry
             public readonly HashSet<string> RowsFirst = new HashSet<string>(StringComparer.Ordinal);
             /// <summary>Groups of the entry's links shown in a topic, not under Linked, by the topic.</summary>
             public readonly Dictionary<string, string> LinkGroups = new Dictionary<string, string>(StringComparer.Ordinal);
+            /// <summary>How a group of links is titled in its topic where the topic's words differ from the group's name.</summary>
+            public readonly Dictionary<string, string> LinkTitles = new Dictionary<string, string>(StringComparer.Ordinal);
+            /// <summary>Groups a topic shows that name what the character met under either rules, nothing in play pairing them with the page.</summary>
+            public readonly HashSet<string> LinksOnceMet = new HashSet<string>(StringComparer.Ordinal);
+            /// <summary>Groups moved into a topic from Linked, which leave out what the page links already, as Linked does.</summary>
+            public readonly HashSet<string> LinksMoved = new HashSet<string>(StringComparer.Ordinal);
         }
 
         private const string More = "more";
@@ -187,6 +193,10 @@ namespace Scry
             Lead(plan, "wearing", ItemWords.ByQualityTitle, "Set bonus", LinkBook.SameSet);
             // A set's other pieces, led right under its bonus below.
             Links(plan, "wearing", LinkBook.SameSet);
+            // A bow's arrows and an arrow's bows; where it lies as treasure and what spawns it.
+            Moved(plan, "fight", LinkBook.Shoots, LinkBook.ShotFrom);
+            Moved(plan, "from", LinkWords.TreasureIn, LinkWords.SpawnedBy);
+            OnceMet(plan, LinkBook.Shoots, LinkBook.ShotFrom, LinkWords.SpawnedBy);
             plan.Blocks[FactBlock.Where] = "from";
             plan.Blocks[FactBlock.FoundIn] = "from";
             plan.Blocks[FactBlock.Biomes] = "from";
@@ -254,6 +264,10 @@ namespace Scry
             Part(plan, "does", "station", "machines", "areas", "chest");
             // What feeds being rested: comfort and sleeping.
             Label(plan, "resting", "Comfort", "Comfort group", "Sleeping in it");
+            // What a fire or bed puts on you; a station's upgrades.
+            Moved(plan, "resting", LinkWords.StatusEffects);
+            Titled(plan, LinkWords.StatusEffects, "Gives");
+            Moved(plan, "building", LinkWords.Upgrades);
             Label(plan, More, "Not shown");
             Part(plan, "building", "piece", "placement", "built with", "build cost");
             Part(plan, "standing", "support", "weather", "resistances");
@@ -379,6 +393,9 @@ namespace Scry
             };
             Tile(plan, "overview", null, "Lasts");
             Links(plan, "given", LinkWords.GivenBy);
+            // What it brings near, as pheromones a troll.
+            Moved(plan, "changes", LinkWords.Spawns);
+            Titled(plan, LinkWords.Spawns, "Brings");
             Label(plan, "others", "While it lasts, cannot take");
             Label(plan, More, "Not shown");
             Part(plan, "changes", "status effect");
@@ -456,6 +473,9 @@ namespace Scry
             Label(plan, More, "Not shown");
             Part(plan, "spawns", "spawner");
             Lead(plan, "spawns", SpawnWords.PoolTitle);
+            // A single spawn point's creature, which no deed pairs with it.
+            Moved(plan, "spawns", LinkWords.Spawns);
+            OnceMet(plan, LinkWords.Spawns);
             Part(plan, "breaking", "resource");
             plan.Blocks[FactBlock.Where] = "where";
             plan.Blocks[FactBlock.FoundIn] = "where";
@@ -499,11 +519,48 @@ namespace Scry
             foreach (var group in groups) plan.LinkGroups[group] = topic;
         }
 
+        /// <summary>Groups that stood under Linked shown in a topic, still leaving out what the page links already.</summary>
+        private static void Moved(KindPlan plan, string topic, params string[] groups)
+        {
+            Links(plan, topic, groups);
+            plan.LinksMoved.UnionWith(groups);
+        }
+
+        private static void Titled(KindPlan plan, string group, string title) => plan.LinkTitles[group] = title;
+
+        private static void OnceMet(KindPlan plan, params string[] groups) => plan.LinksOnceMet.UnionWith(groups);
+
         /// <summary>Whether a kind's page is laid out by topic yet.</summary>
         public static bool LaysOut(Kind kind) => Kinds.ContainsKey(kind);
 
         /// <summary>Whether a group of a kind's links shows in a topic of In the game, and so not under Linked.</summary>
         public static bool Places(Kind kind, string group) => Kinds.TryGetValue(kind, out var plan) && plan.LinkGroups.ContainsKey(group);
+
+        /// <summary>
+        /// Which chips of a group a topic shows stand there, by their place in it: of a group moved
+        /// there from Linked, those In the game does not link already, so each link shows once on
+        /// the page; of any other, all.
+        /// </summary>
+        public static List<int> LeftInTopic(Kind kind, string group, IReadOnlyList<string> targets, ICollection<string> shown)
+        {
+            var moved = Kinds.TryGetValue(kind, out var plan) && plan.LinksMoved.Contains(group);
+            var left = new List<int>();
+            for (var i = 0; i < targets.Count; i++) if (!moved || !shown.Contains(targets[i])) left.Add(i);
+            return left;
+        }
+
+        /// <summary>How a group of a kind's links is titled where it shows: in its topic's words where they differ, else by its name.</summary>
+        public static string LinkTitle(Kind kind, string group) =>
+            Kinds.TryGetValue(kind, out var plan) && plan.LinkTitles.TryGetValue(group, out var title) ? title : group;
+
+        /// <summary>
+        /// Whether a group of a kind's links names what the character met under either rules, as
+        /// a recipe's materials do, rather than waiting to be seen together with the page: one a
+        /// topic shows that nothing in play pairs, as a bow's arrows, and every group Linked keeps,
+        /// the page's own parts and wiring, nothing of the world to find.
+        /// </summary>
+        public static bool ShownOnceMet(Kind kind, string group) =>
+            !Places(kind, group) || Kinds.TryGetValue(kind, out var plan) && plan.LinksOnceMet.Contains(group);
 
         /// <summary>
         /// Which of a Linked row's chips still show there, by their place in it: none of a group

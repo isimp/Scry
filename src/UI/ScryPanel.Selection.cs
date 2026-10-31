@@ -67,7 +67,7 @@ namespace Scry
 
         private static bool AnyOpen()
         {
-            foreach (var key in Foldable) if (!Folded.Contains(key)) return true;
+            foreach (var key in Foldable) if (!IsFolded(key)) return true;
             return false;
         }
 

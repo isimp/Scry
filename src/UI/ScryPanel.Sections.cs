@@ -10,17 +10,16 @@ namespace Scry
     {
         // ----- Sections and rows -----
 
-        /// <summary>The sections folded shut, by key. Details start shut; the rest start open.</summary>
+        /// <summary>The marks of the sections' folds (<see cref="FoldMarks"/>). Details start shut, and LINKED with the compendium on; the rest start open.</summary>
         private static readonly HashSet<string> Folded = new HashSet<string> { "details" };
 
-        private static bool IsFolded(string key) => key != null && Folded.Contains(key);
+        private static bool IsFolded(string key) => FoldMarks.Folded(Folded, key);
 
         /// <summary>Folds a section shut or opens it, remembered with where the panel is.</summary>
         private static void SetFolded(string key, bool folded)
         {
             if (folded == IsFolded(key)) return;
-            if (folded) Folded.Add(key);
-            else Folded.Remove(key);
+            FoldMarks.Set(Folded, key, folded);
             SaveRects();
         }
 
@@ -32,12 +31,11 @@ namespace Scry
         }
 
         /// <summary>Every section that folds, by key.</summary>
-        private static readonly string[] Foldable = { "kept", "variants", "adjust", "animations", "effects", "playsin", "links", "facts", "tooltip", "runes", "command", "details" };
+        private static readonly string[] Foldable = { "kept", "variants", "adjust", "animations", "effects", "playsin", "links", FoldMarks.LinkedInBook, "facts", "tooltip", "runes", "command", "details" };
 
         private static void FoldAll(bool fold)
         {
-            if (fold) foreach (var key in Foldable) Folded.Add(key);
-            else Folded.Clear();
+            FoldMarks.All(Folded, Foldable, fold);
             SaveRects();
         }
 
@@ -64,9 +62,7 @@ namespace Scry
                 if (GUI.Button(head, GUIContent.none, GUIStyle.none))
                 {
                     if (Event.current.shift) FoldAll(!folded);
-                    else if (folded) Folded.Remove(key);
-                    else Folded.Add(key);
-                    SaveRects();
+                    else SetFolded(key, !folded);
                 }
             }
             var lineEnd = reset != null ? width - U(74f) : width;

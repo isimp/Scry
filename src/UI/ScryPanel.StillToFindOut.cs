@@ -69,7 +69,7 @@ namespace Scry
         /// Each name the page shown could leave out until seen together with it (<see cref="Explorer.Hideable"/>),
         /// counted as left out or shown, wherever the page draws it: its facts and notes, the
         /// chips, tables and chains of its rows, where it comes from, its biomes, what plays it and
-        /// where it is found, its links, and the lists it plays in. Gathered from what the page
+        /// where it is found, the links its topics show (not Linked's), and the lists it plays in. Gathered from what the page
         /// draws, as the numbers are, without drawing it, so a search finds what the chip counts;
         /// the parts of a list played last, which show only while it plays, are no part of the page.
         /// With it, how many of them the sections count at their ends (<see cref="StrictLeftLine"/>),
@@ -107,12 +107,13 @@ namespace Scry
             }
             var rows = new LinkRowList();
             var placed = new PlacedRows();
+            // Linked's own rows are none of the page's finds (LinksSection); what a topic shows of them is.
             MakeLinkRows(explorer, page, rows, placed);
-            foreach (var (_, items) in rows) foreach (var item in items) names.Named(item.Key);
             foreach (var pair in placed)
             {
                 var items = pair.Key == LinkWords.Carries ? CarriedBesidesAttacks(facts, pair.Value) : pair.Value;
-                foreach (var item in items) names.Named(item.Key);
+                var onceMet = FactLayout.ShownOnceMet(page.Kind, pair.Key);
+                foreach (var item in items) names.Named(item.Key, onceMet);
             }
             foreach (var row in PlaysInRowsOf(page))
             {
