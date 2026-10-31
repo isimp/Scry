@@ -97,7 +97,7 @@ namespace Scry
         public bool KindFromOwners;
         public Origin Origin;
 
-        /// <summary>Nothing to see or hear, such as an invisible controller object.</summary>
+        /// <summary>Nothing to see or hear, such as an invisible controller object or a spawn point: as no look or deed can meet it, a page names it plainly and counts it as nothing to find.</summary>
         public bool Empty;
 
         /// <summary>How many levels above the first have a look of their own (creature stars).</summary>

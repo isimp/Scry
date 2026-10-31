@@ -110,7 +110,7 @@ namespace Scry
             if (page == _selected) return LeavesOut(key, gameShown);
             if (!CompendiumOn || page == null || page.Kind == Kind.Mod || _view.Of(page) != KnownLevel.Known) return false;
             var other = Find(key);
-            if (other == null || other == page || other.Kind == Kind.Mod) return false;
+            if (other == null || other == page || other.Kind == Kind.Mod || other.Empty) return false;
             if (_view.Of(other) < KnownLevel.Seen) return other.Kind == Kind.Skill || !(_view.HoldsNamed(page) || _view.HeldByWalks(page, other));
             return !gameShown && other.Kind != Kind.Skill && StrictOn(page) && !_view.Related(page, other);
         }

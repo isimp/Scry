@@ -291,7 +291,7 @@ namespace Scry
         {
             if (!NamesOnlyMet || chain == null) return false;
             var other = Find(key);
-            if (other == null || other == _selected || other.Kind == Kind.Mod) return false;
+            if (other == null || other == _selected || other.Kind == Kind.Mod || other.Empty) return false;
             if (_view.Of(other) < KnownLevel.Seen) return !NamesAllHeld(other);
             if (other.Kind == Kind.Skill || !LeavingOut) return false;
             return !LinkedOf(chain).Contains(key);
@@ -309,7 +309,7 @@ namespace Scry
         {
             if (!NamesOnlyMet) return false;
             var other = Find(key);
-            if (other == null || other == _selected || other.Kind == Kind.Mod) return false;
+            if (other == null || other == _selected || other.Kind == Kind.Mod || other.Empty) return false;
             if (_view.Of(other) < KnownLevel.Seen) return !NamesAllHeld(other);
             return !gameShown && other.Kind != Kind.Skill && LeavingOut && !_view.Related(_selected, other, tie);
         }
@@ -326,7 +326,7 @@ namespace Scry
         {
             if (!CountingFinds) return false;
             var other = Find(key);
-            if (other == null || other == _selected || other.Kind == Kind.Mod) return false;
+            if (other == null || other == _selected || other.Kind == Kind.Mod || other.Empty) return false;
             if (_view.Of(other) < KnownLevel.Seen || !LeavingOut) return !NamesAllHeld(other);
             return !gameShown && other.Kind != Kind.Skill;
         }

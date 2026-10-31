@@ -127,6 +127,7 @@ namespace Scry
 
             RaidLivedThroughTells(p, at, biome, Fresh, Shows);
             VegvisirReadTells(p, Fresh, Shows);
+            NothingToSeeTells(p);
 
             CompendiumKeeper.RecordInto(null);
             p.Check(real.Version == version && real.PairsVersion == pairs, "the character's book was left alone");
@@ -167,6 +168,14 @@ namespace Scry
                 if (fish == null || !records.Picked.Contains(fish.m_name) || !told.Proved(name, EntryKeys.Did(Deed.Caught))) odd.Add(name);
             }
             p.Check(odd.Count == 0, "what its records tell of picks, takes and catches names the right things, each paired or shown", string.Join(", ", odd.Take(10)));
+        }
+
+        /// <summary>The spawn points rooms and camps hold have nothing to see or hear, so a page names them plainly and counts none of them as left to find.</summary>
+        private static void NothingToSeeTells(Probe p)
+        {
+            var points = X.Catalog.Where(e => e.Kind == Kind.Spawner && GamePrefabs.Named(e.Name).OrNull()?.GetComponent<CreatureSpawner>() != null).ToList();
+            var seen = points.Where(e => !e.Empty).Select(e => e.Name).ToList();
+            p.Check(points.Count > 0 && seen.Count == 0, $"the {Numbers.Count(points.Count)} spawn points have nothing to see, so none is left to find", string.Join(", ", seen.Take(8)));
         }
 
         /// <summary>A Vegvisir loaded in a place, read: the place it marks seen together with the place it stands in, under the strict rules.</summary>

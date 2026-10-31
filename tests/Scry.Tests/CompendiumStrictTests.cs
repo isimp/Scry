@@ -84,6 +84,37 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatHasNothingToSeeIsNeitherLeftOutNorCounted()
+        {
+            // A crypt holds spawn points, which show nothing in the world: no look or deed can ever
+            // meet one, so its page names them plainly and counts none of them as left to find.
+            var crypt = E("Crypt2", Kind.Location);
+            var point = E("Spawner_Skeleton", Kind.Spawner);
+            point.Empty = true;
+            var skeleton = E("Skeleton", Kind.Creature);
+            var all = new List<Entry> { crypt, point, skeleton };
+            var explorer = new Explorer(all, new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+            var view = new CompendiumView(explorer.Entries);
+            var book = new CompendiumBook();
+            book.Raise(crypt.Key, KnownLevel.Known);
+            book.Raise(skeleton.Key, KnownLevel.Known);
+            foreach (var rule in new[] { CompendiumRule.Strict, CompendiumRule.Loose })
+            {
+                view.Tell(book, rule);
+                explorer.Know(view);
+                explorer.Select(crypt);
+                Assert.False(explorer.LeavesOut(point.Key));
+                Assert.False(explorer.Hideable(point.Key));
+                Assert.True(explorer.LeavesOutOn(skeleton, point.Key, false) == false);
+            }
+            // A creature it holds, met but not seen there, still waits under the strict rules.
+            view.Tell(book, CompendiumRule.Strict);
+            explorer.Know(view);
+            explorer.Select(crypt);
+            Assert.True(explorer.LeavesOut(skeleton.Key));
+        }
+
+        [Fact]
         public void AChainsStepSeenTogetherWhileItsPageIsShownIsNamedAtOnce()
         {
             // The egg's page shows the breeding chain with the hen left out; the hen is then seen

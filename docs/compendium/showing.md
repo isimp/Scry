@@ -38,4 +38,4 @@ Every death with its loot, break or pick with what it gave, birth, growing up, r
 
 With other players near, one player's game runs each thing around them, the first to come near it until they move away (`ZDOMan.ReleaseNearbyZDOS`), and only that game sees it fall, break, be picked, spawn, be born, grow up or eat; so the events cross between games (`EventLink`, above).
 
-Every deed a page waits on under *Strict*, and every way two things are seen go together, is written by something in Scry outside the facts, in play or in the catch-up, so no page waits on what nothing can show; a test over Scry's own source asks it (`ProducerStandardTests`).
+What has nothing to see or hear, as the spawn points rooms and camps hold (`Entry.Empty`), is named plainly under either rules and counted as nothing to find, as no look or deed can meet it. Every deed a page waits on under *Strict*, and every way two things are seen go together, is written by something in Scry outside the facts, in play or in the catch-up, so no page waits on what nothing can show; a test over Scry's own source asks it (`ProducerStandardTests`).
