@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace Scry
@@ -27,6 +28,11 @@ namespace Scry
         private static readonly List<TailJoint> TailJoints = new List<TailJoint>();
 
         private static TailBend.Rules _tailRules;
+
+        /// <summary>How fast what is shown swims (<c>Character.m_swimSpeed</c>), and whether it lives only in water, for its tail to stream out as when it swims.</summary>
+        private static float _tailSwimSpeed;
+
+        private static bool _tailLivesInWater;
 
         /// <summary>Whether the joints were taken where the copy first stands, which the game takes as it wakes.</summary>
         private static bool _tailTaken;
@@ -60,6 +66,25 @@ namespace Scry
             }
         }
 
+        /// <summary>For the self-test: how far under the sea's surface the tail's deepest joint lies, as if at size one; NaN with no tail or no sea.</summary>
+        [ForTest]
+        public static float TailDeepest
+        {
+            get
+            {
+                if (!_tailTaken || !Finite(_seaLevels.Surface)) return float.NaN;
+                var scale = _scale > 0f ? _scale : 1f;
+                var most = float.NaN;
+                foreach (var joint in TailJoints)
+                {
+                    if (joint.Bone == null) continue;
+                    var depth = (_seaLevels.Surface - joint.Bone.position.y) / scale;
+                    if (float.IsNaN(most) || depth > most) most = depth;
+                }
+                return most;
+            }
+        }
+
         private static void ForgetTail()
         {
             TailJoints.Clear();
@@ -86,6 +111,8 @@ namespace Scry
                 Smoothness = tail.m_smoothness,
                 Radius = tail.m_tailRadius,
             };
+            _tailSwimSpeed = SwimSpeed(prefab);
+            _tailLivesInWater = LivesInWater(prefab);
             foreach (var joint in tail.m_tailJoints)
             {
                 var bone = Counterpart(prefab.transform, joint, _subject.transform);
@@ -97,6 +124,9 @@ namespace Scry
                 TailJoints.Add(new TailJoint { Bone = bone });
             }
         }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static float SwimSpeed(GameObject prefab) => prefab.GetComponent<Character>().OrNull()?.m_swimSpeed ?? 0f;
 
         /// <summary>The copy's part standing where a part stands under the prefab's root, found child by child by name; null where there is none.</summary>
         private static Transform Counterpart(Transform root, Transform part, Transform copyRoot)
@@ -146,8 +176,13 @@ namespace Scry
             var water = _seaLevels.Surface;
             var ground = Finite(_groundY) ? _groundY : float.NegativeInfinity;
             var dt = Time.unscaledDeltaTime;
+            // The game bends the tail of a creature that always swims, its tail streaming out
+            // behind; on the stage, where it stays put while told it swims, the water goes by it as fast.
+            var swim = SeaHold.InWater(_sea.Held, _seaShown, _tailLivesInWater) ? _tailSwimSpeed * scale : 0f;
+            var forward = V(_subject != null ? _subject.transform.forward : Vector3.forward);
             foreach (var joint in TailJoints)
             {
+                if (swim > 0f) joint.Position = U(TailBend.Swum(V(joint.Position), forward, swim, dt));
                 var parent = joint.Bone.parent;
                 var line = parent.up;
                 var length = joint.Length * scale;

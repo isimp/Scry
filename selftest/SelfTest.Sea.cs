@@ -182,6 +182,13 @@ namespace Scry
             var roar = clips.FirstOrDefault(c => c.name == "Rawr");
             if (!p.Check(bite != null, "its bite is among its clips")) yield break;
 
+            // Held in place on the stage, its tail streams out as when it swims rather than sinking.
+            var deepFirst = Stage.TailDeepest;
+            yield return new Wait(10f);
+            var deepLater = Stage.TailDeepest;
+            p.Check(!float.IsNaN(deepFirst) && !float.IsNaN(deepLater) && deepLater - deepFirst < 0.5f, "held on the stage ten seconds, its tail stays as deep as it was rather than sinking",
+                $"deepest joint {Numbers.Fixed(deepFirst, 2)} m under the surface, then {Numbers.Fixed(deepLater, 2)} m");
+
             // Played through once, the tail's stretch watched every frame.
             var still = Stage.TailStretch;
             Previews.PlayClip(bite);

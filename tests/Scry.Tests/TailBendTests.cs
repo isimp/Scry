@@ -97,6 +97,30 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void HeldStillATailSinksWhileSwimmingItStreamsOutBehindNearTheSurface()
+        {
+            // The game bends the tail of a creature that always swims. Held still on the stage for ten
+            // seconds, the water's slow pull sinks a joint well under its parent's line; swimming
+            // forward at the Serpent's speed (away from the joint, toward -x) keeps it on the line,
+            // streaming out behind.
+            var forward = new Vec3(-1f, 0f, 0f);
+            var still = new Vec3(2f, 0f, 0f);
+            var swimming = still;
+            for (var frame = 0; frame < 600; frame++)
+            {
+                still = Next(still, Serpent, water: 10f, ground: -100f, dt: 1f / 60f);
+                swimming = Next(TailBend.Swum(swimming, forward, 10f, 1f / 60f), Serpent, water: 10f, ground: -100f, dt: 1f / 60f);
+            }
+            Assert.True(still.Y < -0.5f, $"held still it sank to {still.Y}");
+            Assert.True(swimming.Y > -0.05f, $"swimming it sank to {swimming.Y}");
+            Assert.True(swimming.X > 2f, $"swimming it stands at {swimming.X}, not streamed out behind");
+            // A frame at 10 m/s leaves it a sixtieth of ten metres behind.
+            Assert.Equal(2f + 10f / 60f, TailBend.Swum(new Vec3(2f, 0f, 0f), forward, 10f, 1f / 60f).X, 4);
+            // Not swimming, nothing goes by: the joint stays where it was.
+            Assert.Equal(still.X, TailBend.Swum(still, forward, 0f, 1f / 60f).X, 5);
+        }
+
+        [Fact]
         public void AShareOfTheWayBeyondAllOrNoneIsTakenAsAllOrNone()
         {
             // The game moves a joint by a share it holds between none and all (Vector3.Lerp), as a mod's tail may set any.

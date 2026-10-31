@@ -51,6 +51,14 @@ namespace Scry
             return pos + (at - pos) * Math.Max(0f, Math.Min(1f, rules.Smoothness));
         }
 
+        /// <summary>
+        /// Where a joint stands once its creature swam a frame forward at a speed, the stage keeping
+        /// the creature in place: the water goes by, so the joint is left behind along the creature's
+        /// forward way. The game bends the tail of a creature that always swims, and its tail streams
+        /// out behind it so; held still, the water's slow pull would sink it.
+        /// </summary>
+        public static Vec3 Swum(Vec3 was, Vec3 forward, float speed, float dt) => was - forward * (speed * dt);
+
         /// <summary>The way <paramref name="from"/> turned toward <paramref name="to"/>, by at most an angle in radians; both of length one.</summary>
         private static Vec3 Turned(Vec3 from, Vec3 to, float most)
         {
