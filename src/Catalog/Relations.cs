@@ -315,6 +315,12 @@ namespace Scry
                 var part = CatalogBuilder.AttackName(item);
                 if (shared.m_attack != null) Named(shared.m_attack, prefab.name, prefab, book, 1, part: part);
                 if (shared.m_secondaryAttack != null) Named(shared.m_secondaryAttack, prefab.name, prefab, book, 1, part: part);
+
+                // So is what such an item's damage puts on what it hits, as Yagluth's beam gives
+                // Lightning; an item of the scene's gives its own, read with it.
+                if (Registered.Count == 0 || Registered.Contains(item.name)) continue;
+                Damage(prefab, shared.m_damages, book, null);
+                Fires(shared);
             }
         }
 
