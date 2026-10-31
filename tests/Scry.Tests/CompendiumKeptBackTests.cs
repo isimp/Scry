@@ -181,6 +181,20 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void HowAnEffectWorksOnYouWaitsForItToBeOnYou()
+        {
+            // How a burn ticks, a poison lasts or frost slows, none of which the game shows: shown
+            // once the effect was on the character.
+            Assert.Equal("shows once you have had it on you", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Felt)));
+            var rows = CompendiumWords.StillToFindOut(new[] { EntryKeys.Did(Deed.Felt) }, new string[0], attacks: 0, spots: 0, new Tally[0]);
+            Assert.Equal(new[] { ("Have it on you", "shows how it works on you") }, rows.ToArray());
+            Assert.Equal("how it works found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.Felt)));
+            Assert.Equal("how Burning works on you", JournalWords.FoundOutOf(EntryKeys.Did(Deed.Felt), "Burning"));
+            Assert.True(StrictDeeds.Fits(Deed.Felt, Kind.StatusEffect));
+            Assert.False(StrictDeeds.Fits(Deed.Felt, Kind.Creature));
+        }
+
+        [Fact]
         public void ARunestoneTextNotYetReadIsLeftToFind()
         {
             // Each text a place's runestones give is learned by reading it, under either rules, and

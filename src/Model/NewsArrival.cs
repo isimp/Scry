@@ -67,6 +67,7 @@ namespace Scry
                 case Deed.Born:
                 case Deed.GrewUp: return new[] { "taming" };
                 case Deed.Hatched: return new[] { "hatching" };
+                case Deed.Felt: return new[] { "overview" };
                 case Deed.Ridden: return new[] { "riding" };
                 case Deed.Spawned: return new[] { "spawns" };
                 case Deed.Grew:

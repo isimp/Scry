@@ -128,6 +128,7 @@ namespace Scry
             RaidLivedThroughTells(p, at, biome, Fresh, Shows);
             VegvisirReadTells(p, Fresh, Shows);
             NothingToSeeTells(p);
+            EffectOnYouTells(p);
 
             CompendiumKeeper.RecordInto(null);
             p.Check(real.Version == version && real.PairsVersion == pairs, "the character's book was left alone");
@@ -168,6 +169,23 @@ namespace Scry
                 if (fish == null || !records.Picked.Contains(fish.m_name) || !told.Proved(name, EntryKeys.Did(Deed.Caught))) odd.Add(name);
             }
             p.Check(odd.Count == 0, "what its records tell of picks, takes and catches names the right things, each paired or shown", string.Join(", ", odd.Take(10)));
+        }
+
+        /// <summary>A burn's and a poison's own numbers wait for the effect to be on the character: each told pair and table line keeps back for it.</summary>
+        private static void EffectOnYouTells(Probe p)
+        {
+            foreach (var name in new[] { "Burning", "Poison" })
+            {
+                var entry = X.Find(EntryKeys.For(Kind.StatusEffect, name));
+                if (entry == null)
+                {
+                    p.Note($"no {name} in the catalog: its numbers untried");
+                    continue;
+                }
+                var facts = Facts.For(entry);
+                var felt = EntryKeys.Did(Deed.Felt);
+                p.Check(facts.Proofs.ContainsValue(felt) && facts.Rows.SelectMany(r => r.LineProofs.Values).All(v => v == felt), $"{name}'s own numbers wait until it was on you");
+            }
         }
 
         /// <summary>The spawn points rooms and camps hold have nothing to see or hear, so a page names them plainly and counts none of them as left to find.</summary>

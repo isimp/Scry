@@ -138,17 +138,17 @@ namespace Scry
             {
                 case SE_Burning burning:
                     // The one class burns and haunts: the game adds "Spirit" for spirit damage.
-                    AddAll(DamageEffectWords.Burns(burning.NameHash() == SEMan.s_statusEffectSpirit, burning.m_ttl, burning.m_damageInterval));
+                    Felt(DamageEffectWords.Burns(burning.NameHash() == SEMan.s_statusEffectSpirit, burning.m_ttl, burning.m_damageInterval));
                     return true;
 
                 case SE_Poison poison:
-                    AddAll(DamageEffectWords.Poison(poison.m_baseTTL, poison.m_TTLPerDamagePlayer, poison.m_TTLPerDamage, poison.m_TTLPower, poison.m_damageInterval));
+                    Felt(DamageEffectWords.Poison(poison.m_baseTTL, poison.m_TTLPerDamagePlayer, poison.m_TTLPerDamage, poison.m_TTLPower, poison.m_damageInterval));
                     Table(DamageEffectWords.PoisonTitle, DamageEffectWords.PoisonColumns,
                         DamageEffectWords.PoisonLines(poison.m_baseTTL, poison.m_TTLPerDamagePlayer, poison.m_TTLPerDamage, poison.m_TTLPower, poison.m_damageInterval));
                     return true;
 
                 case SE_Frost frost:
-                    AddAll(DamageEffectWords.Frost(frost.m_freezeTimePlayer, frost.m_freezeTimeEnemy, frost.m_minSpeedFactor));
+                    Felt(DamageEffectWords.Frost(frost.m_freezeTimePlayer, frost.m_freezeTimeEnemy, frost.m_minSpeedFactor));
                     var multipliers = (frost.m_frostSlowMultipliers ?? new List<ResistanceMultiplier>()).Select(m => (DegreeOf(m.m_modifier), m.m_multiplier));
                     Table(DamageEffectWords.FrostSlowTitle, DamageEffectWords.FrostSlowColumns, DamageEffectWords.FrostSlowLines(frost.m_minSpeedFactor, multipliers));
                     Table(DamageEffectWords.FrostTimeTitle, DamageEffectWords.FrostTimeColumns, DamageEffectWords.FrostTimeLines(frost.m_freezeTimePlayer, frost.m_freezeTimeEnemy));
@@ -157,16 +157,28 @@ namespace Scry
                 default:
                     // Lightning's own effect is a plain one, read nowhere but for its icon and marks.
                     if (effect.GetType() != typeof(StatusEffect) || effect.NameHash() != SEMan.s_statusEffectLightning) return false;
-                    AddAll(DamageEffectWords.Lightning(effect.m_ttl));
+                    Felt(DamageEffectWords.Lightning(effect.m_ttl));
                     return true;
             }
         }
 
-        /// <summary>A table row of the page: its title, columns and lines, none going anywhere.</summary>
+        /// <summary>A damage effect's own numbers, which the game never shows: kept back under the strict rules until the effect was on the character.</summary>
+        private void Felt(IEnumerable<FactPair> pairs)
+        {
+            var told = pairs.ToList();
+            AddAll(told);
+            foreach (var pair in told) Proofs[pair.Label] = EntryKeys.Did(Deed.Felt);
+        }
+
+        /// <summary>A table row of a damage effect's page, its own numbers, each line kept back until the effect was on the character: its title, columns and lines, none going anywhere.</summary>
         private void Table(string title, string[] columns, IEnumerable<string[]> lines)
         {
             var row = new Row { Title = title, Columns = columns };
-            foreach (var line in lines) row.Lines.Add((line, null));
+            foreach (var line in lines)
+            {
+                row.LineProofs[row.Lines.Count] = EntryKeys.Did(Deed.Felt);
+                row.Lines.Add((line, null));
+            }
             if (row.Lines.Count > 0) Rows.Add(row);
         }
 

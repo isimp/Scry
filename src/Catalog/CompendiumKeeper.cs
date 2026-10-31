@@ -240,7 +240,11 @@ namespace Scry
             }
             foreach (var effect in player.GetSEMan().GetStatusEffects())
             {
-                if (effect != null) _catchUp.Met(EntryKeys.For(Kind.StatusEffect, Utils.GetPrefabName(effect.name)), KnownLevel.Known, _book, CameBy.OnYou);
+                if (effect == null) continue;
+                var key = EntryKeys.For(Kind.StatusEffect, Utils.GetPrefabName(effect.name));
+                _catchUp.Met(key, KnownLevel.Known, _book, CameBy.OnYou);
+                // On the character, how it works on it shows.
+                if (_catchUp.Lists(key)) _book.FoundOut(key, EntryKeys.Did(Deed.Felt));
             }
             var raid = RandEventSystem.instance.OrNull()?.GetActiveEvent();
             RaidNow = raid != null ? EntryKeys.For(Kind.Raid, raid.m_name) : null;
