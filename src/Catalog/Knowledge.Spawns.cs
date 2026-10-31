@@ -625,13 +625,15 @@ namespace Scry
                 }
                 // The trader's own prefab, where it is one, for the line to go to; a copy standing in a location is named after it.
                 var self = trader.transform.root.gameObject.name.Replace("(Clone)", "").Trim();
+                // A ware a boss's fall opens is paired in play with the trader by its own name (CompendiumKeeper), not its place's.
+                var seller = Utils.GetPrefabName(trader.gameObject);
                 // Its own list, then the items mods add to its store as it opens (TraderStore).
                 var sold = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var trade in trader.m_items.Concat(TraderStore.OnOffer(trader)))
                 {
                     if (trade?.m_prefab == null || !sold.Add(trade.m_prefab.gameObject.name)) continue;
                     From(trade.m_prefab.gameObject.name, Told(SourceFacts.Sold(self, name, trade.m_stack, trade.m_price, trade.m_requiredGlobalKey)));
-                    Unlocks.Add(trade.m_requiredGlobalKey, Unlock.Sells, trade.m_prefab.gameObject.name, self);
+                    Unlocks.Add(trade.m_requiredGlobalKey, Unlock.Sells, trade.m_prefab.gameObject.name, seller);
                 }
             });
         }
