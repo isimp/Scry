@@ -15,8 +15,8 @@ namespace Scry
         public static Entry LastFor { get; private set; }
         public static IReadOnlyList<RolledCreature> LastRoll { get; private set; } = new List<RolledCreature>();
 
-        /// <summary>How many creatures the last roll brought that stand nowhere, the character not having met them.</summary>
-        public static int LastNotMet { get; private set; }
+        /// <summary>The kinds of creature the last roll could bring that stand nowhere, left out by the rules, by their prefabs' names.</summary>
+        public static IReadOnlyList<string> LastLeftOff { get; private set; } = new List<string>();
 
         /// <summary>Whether a creature, by its prefab's name, is left out of the crowd, as of a place's copy (<see cref="Stage.CreatureLeftOff"/>); told by the session.</summary>
         public static System.Func<string, bool> LeftOff;
@@ -69,7 +69,7 @@ namespace Scry
             LastFor = entry;
             LastRoll = rolled;
             // Counted as the raid's card counts: the kinds of creature left off, not how many of each the roll brought.
-            LastNotMet = LeftOff == null ? 0 : spawns.Select(s => s.Prefab).Distinct().Count(p => LeftOff(p));
+            LastLeftOff = LeftOff == null ? new List<string>() : spawns.Select(s => s.Prefab).Distinct().Where(p => LeftOff(p)).ToList();
 
             var holder = new GameObject("Scry raid");
             holder.transform.SetParent(parent, false);

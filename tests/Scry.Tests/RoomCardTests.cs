@@ -22,12 +22,15 @@ namespace Scry.Tests
         public void AListWhoseEveryLineWasLeftOutSaysOnlyHowManyAreNotYetMet()
         {
             // Five creatures rolled, none met: the list says "5 not yet met", not also that the roll put none there.
-            Assert.Equal(new[] { "5 not yet met" }, RoomCardWords.ListLines(new string[0], CompendiumWords.NotYetMet(null, 5, alone: true)));
-            Assert.Equal(new[] { "5 not yet seen here" }, RoomCardWords.ListLines(new string[0], CompendiumWords.LeftOutOf("room", 5, alone: true)));
-            // Some listed, the rest counted as more.
-            Assert.Equal(new[] { "Draugr ×2", "3 more not yet met" }, RoomCardWords.ListLines(new[] { "Draugr ×2" }, CompendiumWords.NotYetMet(null, 3)));
+            Assert.Equal(new[] { "5 not yet met" }, RoomCardWords.ListLines(new string[0], new[] { CompendiumWords.NotYetMet(null, 5, alone: true) }));
+            Assert.Equal(new[] { "5 not yet seen here" }, RoomCardWords.ListLines(new string[0], new[] { CompendiumWords.LeftOutOf("room", 5, alone: true) }));
+            // Some listed, the rest counted as more: under the strict rules those never met apart from those met but not seen here.
+            Assert.Equal(new[] { "Draugr ×2", "3 more not yet met" }, RoomCardWords.ListLines(new[] { "Draugr ×2" }, new[] { CompendiumWords.NotYetMet(null, 3) }));
+            Assert.Equal(new[] { "Draugr ×2", "3 more not yet met", "1 more not yet seen here" },
+                RoomCardWords.ListLines(new[] { "Draugr ×2" }, new[] { CompendiumWords.NeverMet("room", 3), CompendiumWords.LeftOutOf("room", 1) }));
             // Nothing rolled at all.
             Assert.Equal(new[] { RoomCardWords.None }, RoomCardWords.ListLines(new string[0], null));
+            Assert.Equal(new[] { RoomCardWords.None }, RoomCardWords.ListLines(new string[0], new string[0]));
         }
 
         [Fact]

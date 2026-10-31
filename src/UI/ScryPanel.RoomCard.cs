@@ -24,7 +24,7 @@ namespace Scry
             public int CreaturesLeft, LootLeft;
 
             /// <summary>The faint lines saying how many creatures and how many chests and pickups were left out, in the words of the rules; none for none.</summary>
-            public string CreaturesLeftLine, LootLeftLine;
+            public List<string> CreaturesLeftLines, LootLeftLines;
 
             /// <summary>How many creatures and how many chests and pickups this copy rolled in the room, those left out with them, as its folded lists say.</summary>
             public int CreatureCount, LootCount;
@@ -103,14 +103,14 @@ namespace Scry
             var creatures = Stage.RoomCreatures(room);
             var kept = creatures.Where(c => !explorer.LeavesOut(c)).ToList();
             card.CreaturesLeft = creatures.Count - kept.Count;
-            card.CreaturesLeftLine = explorer.LeftOutLine("room", card.CreaturesLeft, alone: kept.Count == 0);
+            card.CreaturesLeftLines = explorer.LeftOutCounts("room", creatures.Where(explorer.LeavesOut), alone: kept.Count == 0);
             card.CreatureCount = kept.Count;
             card.Creatures = RoomCardWords.CountedPages(kept.Select(c => (ShownName(explorer, c, CreatureName(c)), c)));
 
             var loot = Stage.RoomLoot(room);
             var shown = loot.Where(l => !explorer.LeavesOut(l.Prefab)).ToList();
             card.LootLeft = loot.Count - shown.Count;
-            card.LootLeftLine = explorer.LeftOutLine("room", card.LootLeft, alone: shown.Count == 0);
+            card.LootLeftLines = explorer.LeftOutCounts("room", loot.Where(l => explorer.LeavesOut(l.Prefab)).Select(l => l.Prefab), alone: shown.Count == 0);
             card.LootCount = shown.Count;
             card.Loot = RoomCardWords.OddsPages(shown.Select(l => (ShownName(explorer, l.Prefab, PartName(l.Prefab)), l.Prefab, l.Chance)));
 
@@ -235,8 +235,8 @@ namespace Scry
                 var h = pad + nameH + whereH;
                 if (!card.LayoutOnly)
                 {
-                    h += headH + (CardListOpen("creatures") ? lineH * RoomCardWords.ListLines(card.CreatureRows.Select(r => r.Name), card.CreaturesLeftLine).Count : 0f);
-                    h += headH + (CardListOpen("loot") ? lineH * RoomCardWords.ListLines(card.LootRows.Select(r => r.Name), card.LootLeftLine).Count : 0f);
+                    h += headH + (CardListOpen("creatures") ? lineH * RoomCardWords.ListLines(card.CreatureRows.Select(r => r.Name), card.CreaturesLeftLines).Count : 0f);
+                    h += headH + (CardListOpen("loot") ? lineH * RoomCardWords.ListLines(card.LootRows.Select(r => r.Name), card.LootLeftLines).Count : 0f);
                 }
                 h += headH + card.WaysTall;
                 if (levels) h += headH + card.LevelsTall;
@@ -270,9 +270,9 @@ namespace Scry
             if (!card.LayoutOnly)
             {
                 pen.ListHeading("creatures", RoomCardWords.Creatures, card.CreatureCount, Skin.KindColor(Kind.Creature), RoomCardWords.CreaturesTip);
-                if (CardListOpen("creatures")) pen.Rows(card.CreatureRows, card.CreaturesLeftLine);
+                if (CardListOpen("creatures")) pen.Rows(card.CreatureRows, card.CreaturesLeftLines);
                 pen.ListHeading("loot", RoomCardWords.Loot, card.LootCount, Skin.KindColor(Kind.Item), RoomCardWords.LootTip);
-                if (CardListOpen("loot")) pen.Rows(card.LootRows, card.LootLeftLine);
+                if (CardListOpen("loot")) pen.Rows(card.LootRows, card.LootLeftLines);
             }
             var goTo = CardWays(ref pen, card, chipH);
             if (levels) CardLevels(ref pen, card, chipH);
@@ -331,15 +331,15 @@ namespace Scry
             }
 
             /// <summary>A list's rows, the line saying how many more faint and without odds; none, said so.</summary>
-            public void Rows(List<(string Name, string Odds, bool More, string Page)> rows, string left)
+            public void Rows(List<(string Name, string Odds, bool More, string Page)> rows, List<string> left)
             {
-                if (rows.Count == 0 && left == null) Line(LineH, RoomCardWords.None, Skin.FaintLabel);
+                if (rows.Count == 0 && (left == null || left.Count == 0)) Line(LineH, RoomCardWords.None, Skin.FaintLabel);
                 foreach (var (name, odds, more, page) in rows)
                 {
                     if (more) Line(LineH, name, Skin.FaintLabel);
                     else Line(LineH, name, Skin.Small, odds, page);
                 }
-                if (left != null) Line(LineH, left, Skin.FaintLabel);
+                if (left != null) foreach (var line in left) Line(LineH, line, Skin.FaintLabel);
             }
 
             /// <summary>A list's heading saying how many it holds; a click on it opens it or folds it away.</summary>

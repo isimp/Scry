@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Scry
 {
@@ -85,12 +86,23 @@ namespace Scry
             };
         }
 
-        /// <summary>What a raid's card says it brings: the creatures by name, with the compendium on those not met counted after them, or nothing.</summary>
-        public static string Brings(IReadOnlyList<string> creatures, string leftOut = null) =>
-            creatures.Count == 0 && leftOut == null ? "Brings nothing" : Brings(Naming.Commas(creatures) + LeftOutAfter(creatures.Count, leftOut));
+        /// <summary>What a raid's card says it brings: the creatures by name, with the compendium on those left out counted after them, or nothing.</summary>
+        public static string Brings(IReadOnlyList<string> creatures, IReadOnlyList<string> leftOut = null) =>
+            creatures.Count == 0 && (leftOut == null || leftOut.Count == 0) ? "Brings nothing" : Brings(Naming.Commas(creatures) + LeftOutAfter(creatures.Count, leftOut));
 
-        /// <summary>What a count line of the rules says after those named: ", and 3 more not yet met" after names, the line alone with none; nothing for no line.</summary>
-        private static string LeftOutAfter(int named, string leftOut) => leftOut == null ? "" : named > 0 ? ", and " + leftOut : leftOut;
+        /// <summary>
+        /// What the rules' counts say after those named, the last after "and": ", and 3 more not yet
+        /// met" after names, ", 2 more not yet met, and 1 more not yet seen together" with two; with
+        /// none named, the counts alone, "2 not yet met and 1 not yet seen together"; nothing for none.
+        /// </summary>
+        private static string LeftOutAfter(int named, IReadOnlyList<string> leftOut)
+        {
+            if (leftOut == null || leftOut.Count == 0) return "";
+            var last = leftOut[leftOut.Count - 1];
+            var before = string.Join(", ", leftOut.Take(leftOut.Count - 1));
+            if (named > 0) return ", " + (before.Length > 0 ? before + ", " : "") + "and " + last;
+            return before.Length > 0 ? before + " and " + last : last;
+        }
 
         /// <summary>What else a creature a raid brings is like: its groups, a time of day of its own, whether it hunts you; empty for none.</summary>
         private static string Also(int groupMin, int groupMax, bool night, bool day, bool hunts)
@@ -125,9 +137,9 @@ namespace Scry
         }
 
         /// <summary>The first roll of each of a raid's creatures (<see cref="RaidRoll"/>): each in the order it came, how many, and how many with stars.</summary>
-        public static string FirstRoll(IReadOnlyList<RolledCreature> rolled, System.Func<string, string> nameOf, string leftOut = null)
+        public static string FirstRoll(IReadOnlyList<RolledCreature> rolled, System.Func<string, string> nameOf, IReadOnlyList<string> leftOut = null)
         {
-            if (rolled.Count == 0 && leftOut == null) return "This roll brought nothing; roll again.";
+            if (rolled.Count == 0 && (leftOut == null || leftOut.Count == 0)) return "This roll brought nothing; roll again.";
             var order = new List<string>();
             var counts = new Dictionary<string, (int All, int Starred)>();
             foreach (var creature in rolled)

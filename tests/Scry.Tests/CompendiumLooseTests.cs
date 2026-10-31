@@ -276,6 +276,20 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ACardCountsWhatItLeftOutByWhetherEachWasMet()
+        {
+            // A room's or raid's card has the keys it left out: each counted as never met or as met but not seen with it.
+            var world = new World().Rule(CompendiumRule.Strict);
+            world.Explorer.Select(world.Windmill);
+            Assert.Equal(new[] { "1 more not yet met", "2 more not yet seen here" },
+                world.Explorer.LeftOutCounts("room", new[] { world.Barley.Key, world.Stone.Key, world.Neck.Key }));
+            Assert.Equal(new[] { "1 not yet met" }, world.Explorer.LeftOutCounts("raid", new[] { world.Barley.Key }, alone: true));
+            Assert.Empty(world.Explorer.LeftOutCounts("room", new string[0]));
+            world.Rule(CompendiumRule.Loose);
+            Assert.Equal(new[] { "3 more not yet met" }, world.Explorer.LeftOutCounts("room", new[] { world.Barley.Key, world.Stone.Key, world.Neck.Key }));
+        }
+
+        [Fact]
         public void UnderStrictEverySectionSaysHowManyItLeftOut()
         {
             // Strict leaves out what was not seen together with the page; each section says how

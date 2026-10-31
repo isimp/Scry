@@ -30,13 +30,13 @@ namespace Scry
         public const string None = "None in this roll";
 
         /// <summary>
-        /// The lines an open list of the card shows: its own, then how many were left out; where
+        /// The lines an open list of the card shows: its own, then how many were left out, a line for each way they wait; where
         /// nothing was rolled at all, that it holds none.
         /// </summary>
-        public static List<string> ListLines(IEnumerable<string> rows, string leftOut)
+        public static List<string> ListLines(IEnumerable<string> rows, IEnumerable<string> leftOut)
         {
             var lines = rows.ToList();
-            if (leftOut != null) lines.Add(leftOut);
+            if (leftOut != null) lines.AddRange(leftOut);
             if (lines.Count == 0) lines.Add(None);
             return lines;
         }

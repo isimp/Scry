@@ -30,8 +30,25 @@ namespace Scry
         }
 
         /// <summary>
+        /// What a card left out of a list it names, by the keys left out, in its lines' words
+        /// (<see cref="LeftOutLines"/>): each counted as never met (<see cref="NotMet"/>) or as met
+        /// but not seen together; a room's card or a raid's.
+        /// </summary>
+        public List<string> LeftOutCounts(string topic, IEnumerable<string> leftOut, bool alone = false)
+        {
+            var unmet = 0;
+            var apart = 0;
+            foreach (var key in leftOut)
+            {
+                if (NotMet(key)) unmet++;
+                else apart++;
+            }
+            return LeftOutLines(topic, unmet, apart, alone).ConvertAll(l => l.Line);
+        }
+
+        /// <summary>
         /// The faint line telling how many things a page left out, as <see cref="LeftOutLines"/>
-        /// tells them, every one in one count: for a card counting one list.
+        /// tells them, every one in one count.
         /// </summary>
         public string LeftOutLine(string topic, int count, bool alone = false)
         {
