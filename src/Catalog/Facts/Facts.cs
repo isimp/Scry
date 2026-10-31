@@ -629,10 +629,10 @@ namespace Scry
                 facts.Part("uses", () => facts.Uses(entry.Name));
                 yield return true;
             }
-            // The chains it is a step of, by its prefab or its key.
+            // The chains it is a step of, by its key alone (Chain.IsPage).
             facts.Part("chain", () =>
             {
-                foreach (var chain in Chains.Of(entry.Name).Concat(Chains.Of(entry.Key)).Distinct()) facts.Rows.Add(new Row { Title = chain.Title, Chain = chain });
+                foreach (var chain in Chains.Of(entry.Key)) facts.Rows.Add(new Row { Title = chain.Title, Chain = chain });
             });
             yield return true;
             facts.TellMissing();

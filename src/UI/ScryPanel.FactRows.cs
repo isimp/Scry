@@ -296,7 +296,7 @@ namespace Scry
                 }
                 foreach (var key in row.Chain.Steps[s])
                 {
-                    var here = shown != null && (shown.Name == key || shown.Key == key);
+                    var here = Chain.IsPage(shown, key);
                     var unmet = !here && explorer.LeavesOut(row.Chain, key);
                     drawn.Add((key, unmet));
                     if (unmet)

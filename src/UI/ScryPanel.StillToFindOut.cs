@@ -212,7 +212,7 @@ namespace Scry
                 {
                     foreach (var key in step)
                     {
-                        if (shown != null && (shown.Name == key || shown.Key == key)) continue;
+                        if (Chain.IsPage(shown, key)) continue;
                         names.Name(key, explorer.LeavesOut(row.Chain, key), lined: false);
                     }
                 }

@@ -56,13 +56,33 @@ namespace Scry
             Session.ShowKnownInstead(null);
             yield return Until(() => X.Compendium != view, 3);
 
+            // An altar's page lights its own step alone, the boss after it going to its page, though
+            // the place may go by its boss's name (Yagluth's altar and Yagluth are both "GoblinKing").
+            var altars = X.Catalog.SelectMany(e => Chains.Of(e.Key)).Distinct().Where(c => c.Altar >= 0).ToList();
+            var wrong = new List<string>();
+            var samed = 0;
+            foreach (var chain in altars)
+            {
+                foreach (var key in chain.Steps[chain.Altar])
+                {
+                    var place = X.Find(key);
+                    if (place == null) continue;
+                    if (chain.Steps[chain.Altar + 1].Contains(place.Name)) samed++;
+                    var lit = chain.Steps.SelectMany(s => s).Where(k => Chain.IsPage(place, k)).ToList();
+                    var rows = Facts.For(place).Rows.Count(r => r.Chain == chain);
+                    if (lit.Count != 1 || lit[0] != key || rows != 1) wrong.Add($"{key}: lit {string.Join("/", lit)}, {rows} rows");
+                }
+            }
+            p.Check(altars.Count > 0 && wrong.Count == 0, "each altar's page lights its own step of its summoning chain alone, shown once",
+                $"{Numbers.Count(altars.Count)} summoning chains through an altar, {Numbers.Count(samed)} named like their boss; " + string.Join("; ", wrong.Take(8)));
+
             // The character played: every chain it has a step of not met, which stood hidden whole before.
             if (!X.NamesOnlyMet)
             {
                 p.Note("the character plays with the compendium off, so every chain shows whole for it");
                 yield break;
             }
-            var chains = X.Catalog.SelectMany(e => Chains.Of(e.Name).Concat(Chains.Of(e.Key))).Distinct().ToList();
+            var chains = X.Catalog.SelectMany(e => Chains.Of(e.Key)).Distinct().ToList();
             var partly = chains.Where(c => c.Steps.SelectMany(s => s).Any(k => X.LeavesOut(c, k)) && c.Steps.SelectMany(s => s).Any(k => !X.LeavesOut(c, k))).ToList();
             p.Note($"{Numbers.Count(chains.Count)} chains, {Numbers.Count(partly.Count)} of them the character played has met partly, now shown with a smudge for the rest: "
                 + string.Join("; ", partly.Take(16).Select(c => c.Title + ": " + string.Join(" > ", c.Steps.Select(s => string.Join("/", s.Select(k => X.LeavesOut(c, k) ? CompendiumWords.Hidden : k)))))));

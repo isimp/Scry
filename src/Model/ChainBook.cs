@@ -21,6 +21,13 @@ namespace Scry
         public int StepOf(string key) => Steps.FindIndex(s => s.Contains(key));
 
         /// <summary>
+        /// Whether a step's key is the page shown, by the page's key alone: a place keeps its
+        /// prefab's name, which may be its boss's too (Yagluth's altar and Yagluth are both
+        /// "GoblinKing"), so the name would light the boss on the altar's page.
+        /// </summary>
+        public static bool IsPage(Entry page, string key) => page != null && page.Key == key;
+
+        /// <summary>
         /// The keys the chain names under the strict rules: each seen together with a step next to it,
         /// the way the chain goes, wherever it stands in the chain, so the chain reads the same on
         /// every page of it.

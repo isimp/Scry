@@ -66,6 +66,20 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AnAltarNamedLikeItsBossIsItsOwnStepAndTheBossStaysAnotherPage()
+        {
+            // Yagluth's altar is the place "GoblinKing", Yagluth the creature "GoblinKing".
+            var altar = new Entry { Kind = Kind.Location, Name = "GoblinKing" };
+            var boss = new Entry { Kind = Kind.Creature, Name = "GoblinKing" };
+            var book = new ChainBook();
+            book.Add(ChainWords.Summoning, new List<string[]> { new[] { "GoblinTotem" }, new[] { altar.Key }, new[] { "GoblinKing" }, new[] { "TrophyGoblinKing" } }, 1);
+            var chain = Assert.Single(book.Of(altar.Key));
+            Assert.Equal(new[] { altar.Key }, chain.Steps.SelectMany(s => s).Where(k => Chain.IsPage(altar, k)).ToArray());
+            Assert.Equal(new[] { "GoblinKing" }, chain.Steps.SelectMany(s => s).Where(k => Chain.IsPage(boss, k)).ToArray());
+            Assert.False(Chain.IsPage(null, "GoblinKing"));
+        }
+
+        [Fact]
         public void EachChainIsTitledByWhatItFollows()
         {
             Assert.Equal("From parents to grown", ChainWords.Breeding);
