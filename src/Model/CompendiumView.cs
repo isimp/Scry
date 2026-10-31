@@ -408,13 +408,14 @@ namespace Scry
 
         /// <summary>
         /// Whether what a thing's damage does is shown for it: an item known, a weapon held or an
-        /// attack met; a death's blast, its death seen up close; an effect had; and what any of them
-        /// spawns, a falling meteor or a lingering blast dealing its own damage, followed back
-        /// through what spawns it (<see cref="LinkWords.SpawnedBy"/>) a few steps.
+        /// attack met; a piece or creature known whose own flames or cold hurt what is near; a
+        /// death's blast, its death seen up close; an effect had; and what any of them spawns, a
+        /// falling meteor or a lingering blast dealing its own damage, followed back through what
+        /// spawns it (<see cref="LinkWords.SpawnedBy"/>) a few steps.
         /// </summary>
         private bool DamageMet(Entry giver, int steps)
         {
-            if (giver.Kind == Kind.Item || giver.Kind == Kind.StatusEffect) return Of(giver) == KnownLevel.Known;
+            if (Kinds.ForPlayers(giver.Kind)) return Of(giver) == KnownLevel.Known;
             if (_blasts.TryGetValue(giver.Name, out var dying) && _book.Proved(dying, EntryKeys.Attack(EntryKeys.DeathAttack))) return true;
             if (steps == 0) return false;
             foreach (var link in giver.Links)

@@ -134,8 +134,13 @@ namespace Scry
             Part("links of station upgrades", () => Upgrade(prefab));
             Part("links of status effects damage causes", () =>
             {
-                var aoe = prefab.GetComponent<Aoe>();
-                if (aoe != null) Damage(prefab, aoe.m_damage, _book, StatusEffects);
+                // Every area the prefab holds, a fire pit's flames below it too. Only the prefab's own
+                // is given an attack's hit when fired, and takes its damage only using the attack's
+                // settings (Aoe.Setup).
+                foreach (var component in components)
+                {
+                    if (component is Aoe aoe) OwnDamage.Own(prefab.name, Elements(aoe.m_damage), keepsOwn: aoe.gameObject != prefab || !aoe.m_useAttackSettings);
+                }
                 var damages = prefab.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
                 // An item tells what its damage causes in its own facts; the effect names the item.
                 if (damages != null)
@@ -189,7 +194,7 @@ namespace Scry
                 var item = ToldByItems.Contains(giver.How) && IsItem(giver.Prefab, prefabs);
                 book.Add(giver.Prefab, item ? null : StatusEffects, EntryKeys.For(Kind.StatusEffect, giver.Effect), GivenBy, giver.How);
             }
-            // A projectile spawned with no attack's hit deals its own damage, a fired one its attack's.
+            // A projectile or area spawned with no attack's hit deals its own damage, a fired one its attack's.
             foreach (var (prefab, effect, note) in OwnDamage.Gives()) book.Add(prefab, StatusEffects, EntryKeys.For(Kind.StatusEffect, effect), GivenBy, note);
             OwnDamage.Clear();
             Sets.Clear();

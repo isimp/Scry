@@ -263,6 +263,9 @@ namespace Scry.Tests
             public readonly Entry Shield = E("Staff_FrostOrbs", Kind.StatusEffect);
             public readonly Entry Orb = E("staff_FrostOrbs_projectile", Kind.Projectile);
             public readonly Entry Frost = E("Frost", Kind.StatusEffect);
+            // A fire pit burning what stands in it, and a creature freezing what is near.
+            public readonly Entry FirePit = E("fire_pit", Kind.Piece);
+            public readonly Entry Wisp = E("FrostWisp", Kind.Creature);
             public readonly Explorer Explorer;
             public readonly CompendiumView View;
             public readonly CompendiumBook Book = new CompendiumBook();
@@ -278,6 +281,8 @@ namespace Scry.Tests
                 Burning.Links.Add(new Link { Group = LinkWords.GivenBy, Target = Meteor.Key, Notes = { CombatWords.OfDamage("fire") }, Back = true });
                 Poison.Links.Add(new Link { Group = LinkWords.GivenBy, Target = Blast.Key, Notes = { CombatWords.OfDamage("poison") }, Back = true });
                 Frost.Links.Add(new Link { Group = LinkWords.GivenBy, Target = Orb.Key, Notes = { CombatWords.OfDamage("frost") }, Back = true });
+                Burning.Links.Add(new Link { Group = LinkWords.GivenBy, Target = FirePit.Key, Notes = { CombatWords.OfDamage("fire") }, Back = true });
+                Frost.Links.Add(new Link { Group = LinkWords.GivenBy, Target = Wisp.Key, Notes = { CombatWords.OfDamage("frost") }, Back = true });
                 // As the catalog notes them: an item's damage gives the effect it causes, a mead the effect it puts on.
                 foreach (var item in new[] { Beam, Nova, Staff })
                 {
@@ -285,7 +290,7 @@ namespace Scry.Tests
                 }
                 Burning.Links.Add(new Link { Group = LinkWords.GivenBy, Target = FireSword.Key, Notes = { CombatWords.OfDamage("fire") }, Back = true });
                 Resist.Links.Add(new Link { Group = LinkWords.GivenBy, Target = Mead.Key, Notes = { "m_consumeStatusEffect" }, Back = true });
-                var all = new[] { Boss, Beam, Nova, Staff, Mead, Lightning, Resist, Burning, FireSword, Meteors, Dropper, Meteor, Writhan, Blast, Poison, Shield, Orb, Frost };
+                var all = new[] { Boss, Beam, Nova, Staff, Mead, Lightning, Resist, Burning, FireSword, Meteors, Dropper, Meteor, Writhan, Blast, Poison, Shield, Orb, Frost, FirePit, Wisp };
                 Explorer = new Explorer(all.ToList(), new Favourites(Path.Combine(TempDir(), "favourites.txt")));
                 View = new CompendiumView(Explorer.Entries);
                 Book.Raise(Boss.Key, KnownLevel.Known);
@@ -389,6 +394,34 @@ namespace Scry.Tests
             Assert.False(world.Shows(world.Frost, world.Orb));
             world.Book.Raise(world.Shield.Key, KnownLevel.Known);
             Assert.True(world.Shows(world.Frost, world.Orb));
+        }
+
+        [Fact]
+        public void AnEffectShowsAKnownPieceOrCreatureWhoseOwnAreaGivesIt()
+        {
+            // A fire pit burns what stands in its flames, a creature's cold hurts what comes near:
+            // each goes with what it gives once known, as an item does.
+            var world = new Struck();
+            Assert.False(world.Shows(world.Burning, world.FirePit));
+            world.Book.Raise(world.FirePit.Key, KnownLevel.Seen);
+            Assert.False(world.Shows(world.Burning, world.FirePit));
+            world.Book.Raise(world.FirePit.Key, KnownLevel.Known);
+            Assert.True(world.Shows(world.Burning, world.FirePit));
+            Assert.True(world.Shows(world.FirePit, world.Burning));
+            Assert.False(world.Shows(world.Frost, world.FirePit));
+
+            // Not a part of the game's own known by itself, as the meteors' dropper: only through
+            // what spawns it.
+            world.Book.Raise(world.Dropper.Key, KnownLevel.Known);
+            Assert.False(world.Shows(world.Burning, world.Meteor));
+
+            // Nor one seen only, though a met attack spawns it, as a creature summoned: it waits to be known itself.
+            world.Wisp.Links.Add(new Link { Group = LinkWords.SpawnedBy, Target = world.Meteors.Key, Back = true });
+            world.Book.FoundOut(world.Boss.Key, EntryKeys.Attack(world.Meteors.Name));
+            world.Book.Raise(world.Wisp.Key, KnownLevel.Seen);
+            Assert.False(world.Shows(world.Frost, world.Wisp));
+            world.Book.Raise(world.Wisp.Key, KnownLevel.Known);
+            Assert.True(world.Shows(world.Frost, world.Wisp));
         }
 
         [Fact]

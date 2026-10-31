@@ -12,7 +12,9 @@ namespace Scry
         /// meteor his meteors attack drops for Burning (its own damage, as nothing gives it an
         /// attack's), not Ahri's orb (the staff's shot, dealing the staff's damage); the meteor
         /// leads back to the attack within the steps the compendium follows; a Writhan's death
-        /// blast is its own.
+        /// blast is its own; a fire pit by the flames lying below it, the thunderblood staff's
+        /// blast by the area below its top, and a Dverger's frost nova by its own damage though a
+        /// staff fires it, as it keeps its own settings.
         /// </summary>
         private static IEnumerator GiversByDamage(Probe p)
         {
@@ -51,6 +53,13 @@ namespace Scry
 
             var writhan = Pick(Kind.Creature, "Writhan");
             if (writhan != null) p.Check(writhan.DeathBlast == "writhan_explosion", "a Writhan's death blast is its own", writhan.DeathBlast ?? "none");
+
+            p.Check(burns.Contains("fire_pit"), "Burning is given by a fire pit, by the flames below it");
+            p.Check(shocks.Contains("staff_thunderblood_aoe"), "Lightning is given by the thunderblood staff's blast, by the area below its top");
+            var frost = Pick(Kind.StatusEffect, "Frost");
+            if (frost != null) p.Check(GivenBy(frost).Contains("DvergerStaffNova_aoe"), "Frost is given by a Dverger's frost nova, its own damage kept though a staff fires it");
+            var pieces = burns.Count(b => X.Catalog.FirstOrDefault(e => e.Key == b)?.Kind == Kind.Piece);
+            p.Note($"Burning given by {Numbers.Count(pieces)} pieces");
             p.Note($"Lightning given by {Numbers.Count(shocks.Count)} by damage, Burning by {Numbers.Count(burns.Count)}");
         }
     }

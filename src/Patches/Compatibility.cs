@@ -66,6 +66,7 @@ namespace Scry
             ("Character", "AddLightningDamage", 2, 0x068B93DE, Feature.StatusEffectsDamageCauses),
             ("Character", "AddPoisonDamage", 2, 0x77AE9523, Feature.StatusEffectsDamageCauses),
             ("Character", "AddSpiritDamage", 2, 0xA441CEBC, Feature.StatusEffectsDamageCauses),
+            ("Aoe", "Setup", 6, 0x0D6AF5C1, Feature.StatusEffectsDamageCauses),
             ("Door", "SetState", 1, 0xFD8700BC, Feature.DoorLooks),
             ("Container", "UpdateUseVisual", 0, 0x53F25066, Feature.ChestLooks),
             ("Smelter", "UpdateState", 0, 0x74799120, Feature.SmelterLooks),
