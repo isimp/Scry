@@ -124,8 +124,10 @@ namespace Scry
                     // Its level less one is its stars, as the game shows them over it, up close alone.
                     catchUp.Met(key, KnownLevel.Seen, book, stars: upClose ? creature.GetLevel() - 1 : -1);
                     CompendiumKeeper.MetIn(key, creature.transform.position);
-                    // A creature seen while a raid runs that brings it was seen in the raid.
-                    if (CompendiumKeeper.RaidBrings(key)) CompendiumKeeper.Saw(CompendiumKeeper.RaidNow, key);
+                    // A creature the running raid brought, as the game marks the raid's own on every
+                    // game (MonsterAI.IsEventCreature), was seen in the raid; one of its kind the
+                    // world spawned meanwhile was not.
+                    if (CompendiumKeeper.RaidBrings(key) && creature.GetBaseAI() is MonsterAI raider && raider.IsEventCreature()) CompendiumKeeper.Saw(CompendiumKeeper.RaidNow, key);
                     // Near enough for the game to name it and mark its stars, it is seen up close: its stars and what it carries are kept.
                     if (upClose && catchUp.Lists(key)) CompendiumKeeper.Sighted(key, creature.GetLevel() - 1, Carried(creature));
                 }
