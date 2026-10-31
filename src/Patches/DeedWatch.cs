@@ -124,6 +124,41 @@ namespace Scry
             Guard.Run(Feature.CompendiumTogether, "noting a station's work finished", () => WorldEvents.Tell(Happened.Finished, station));
         }
 
+        private static readonly CookingSlots<ZDOID> Slots = new CookingSlots<ZDOID>();
+
+        /// <summary>
+        /// A cooking station's slots as every game draws them, looked at once a second
+        /// (<c>CookingStation.UpdateCooking</c>): one near by in sight whose food turned done or
+        /// burnt since the last look is seen doing so (<see cref="SlotTurned"/>), whoever's game
+        /// runs it; one out of reach or out of sight is forgotten, so what it holds once back was
+        /// not seen turning.
+        /// </summary>
+        public static void SlotsLooked(CookingStation station)
+        {
+            var view = station != null ? station.GetComponent<ZNetView>().OrNull() : null;
+            var zdo = view != null && view.IsValid() ? view.GetZDO() : null;
+            var player = Player.m_localPlayer;
+            if (zdo == null || player == null || station.m_slots == null) return;
+            var at = station.transform.position;
+            if (Vector3.Distance(at, player.transform.position) > Sighting.PersonReach || !CompendiumSight.SeesDeed(at.x, at.y, at.z))
+            {
+                Slots.Forget(zdo.m_uid, station.m_slots.Length);
+                return;
+            }
+            for (var i = 0; i < station.m_slots.Length; i++)
+            {
+                if (Slots.Turned(zdo.m_uid, i, (CookedState)zdo.GetInt(CookingSlots<ZDOID>.StateKey(i))) != null) SlotTurned(station, zdo.GetString(CookingSlots<ZDOID>.ItemKey(i)));
+            }
+        }
+
+        /// <summary>Food seen turning done or burnt on a cooking station: how long cooking takes found out, and the station seen giving what the slot holds now, cooked or burnt.</summary>
+        public static void SlotTurned(CookingStation station, string item)
+        {
+            var key = Utils.GetPrefabName(station.gameObject);
+            CompendiumKeeper.FoundOut(key, EntryKeys.Did(Deed.Finished));
+            if (!string.IsNullOrEmpty(item)) CompendiumKeeper.Saw(key, item, Tie.Gives);
+        }
+
         /// <summary>A picked pickable set back to not picked: grown back.</summary>
         public static void SetPicked(Pickable pickable, bool wasPicked, bool picked)
         {
@@ -211,6 +246,13 @@ namespace Scry
     internal static class SmeltingFinished
     {
         private static void Postfix(Smelter __instance) => DeedWatch.Finished(__instance);
+    }
+
+    /// <summary>A cooking station's food seen turning done or burnt, as every game draws its slots (<c>CookingStation.UpdateCooking</c>).</summary>
+    [HarmonyPatch(typeof(CookingStation), "UpdateCooking")]
+    internal static class CookingSlotsWatched
+    {
+        private static void Postfix(CookingStation __instance) => Guard.Run(Feature.CompendiumTogether, "watching food cook", () => DeedWatch.SlotsLooked(__instance));
     }
 
     /// <summary>A fermenter tapped within sight shows how long it ferments (<c>Fermenter.DelayedTap</c>).</summary>

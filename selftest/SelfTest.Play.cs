@@ -59,6 +59,25 @@ namespace Scry
             PlantGrowthTells(p, book, player);
             TreasurePickTells(p, book, player);
             BreakingOpenTells(p, book, player);
+            CookingSeenTells(p, book, player);
+        }
+
+        /// <summary>Food seen turning done, then burnt, on the nearest loaded cooking station: how long cooking takes shown, the station seen giving each.</summary>
+        private static void CookingSeenTells(Probe p, CompendiumBook book, Player player)
+        {
+            var station = Nearest<CookingStation>(player);
+            var cooked = station.OrNull()?.m_conversion?.FirstOrDefault(c => c?.m_to != null)?.m_to;
+            if (station == null || cooked == null)
+            {
+                p.Note("no cooking station is loaded to watch food cook on");
+                return;
+            }
+            var key = Utils.GetPrefabName(station.gameObject);
+            DeedWatch.SlotTurned(station, cooked.name);
+            var burnt = station.m_overCookedItem != null ? station.m_overCookedItem.name : null;
+            if (burnt != null) DeedWatch.SlotTurned(station, burnt);
+            p.Check(book.Proved(key, EntryKeys.Did(Deed.Finished)) && book.Witnessed(key, cooked.name, Tie.Gives) && (burnt == null || book.Witnessed(key, burnt, Tie.Gives)),
+                $"food seen cooking on {key} shows how long it takes, and the station giving {cooked.name}" + (burnt != null ? $" and, left too long, {burnt}" : ""));
         }
 
         /// <summary>A thing that breaks, near by, destroyed by the character's hit: its health shown, whatever it gave, as a deposit's shell giving way to its vein shows its own.</summary>
