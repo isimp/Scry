@@ -194,6 +194,16 @@ namespace Scry
             }
             p.Note($"swimming, its tail's joints stand at most {Numbers.Fixed(still, 2)} times as far from their parents as when shown; through its bite {Numbers.Fixed(most, 2)} times");
 
+            // Made twice as big while shown, the tail keeps its joints as far apart for its size.
+            var size = X.Modifiers.Scale;
+            X.Modifiers.Scale = size * 2f;
+            yield return new Wait(1f);
+            var grown = Stage.TailStretch;
+            X.Modifiers.Scale = size;
+            yield return new Wait(0.5f);
+            p.Check(Mathf.Abs(grown - still) < 0.25f, "made twice as big while shown, its tail keeps its joints as far apart for its size",
+                $"at most {Numbers.Fixed(grown, 2)} times as far as when shown, swimming at its size {Numbers.Fixed(still, 2)}");
+
             foreach (var share in new[] { 0.25f, 0.5f, 0.75f }) yield return HeldAt(p, bite, share, "bent");
             if (roar != null) yield return HeldAt(p, roar, 0.5f, "bent");
             // Last, as the tail stays let go of until the Serpent is shown again.

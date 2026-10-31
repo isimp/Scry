@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace Scry
@@ -71,8 +72,10 @@ namespace Scry
             Tell(MotionAnimators);
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private static bool Flies(GameObject prefab) => prefab != null && prefab.GetComponent<Character>().OrNull()?.m_flying == true;
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private static bool LivesInWater(GameObject prefab) => prefab != null && prefab.GetComponent<MonsterAI>().OrNull()?.m_avoidLand == true;
 
         /// <summary>The person beside what is shown, its in-water switch told while the sea holds what is shown, at once as for what is shown.</summary>
@@ -86,9 +89,22 @@ namespace Scry
         /// <summary>A place's creature, held in its first pose, told how it moves before it is held, as the game would tell it there.</summary>
         private static void TellOnce(GameObject copy, GameObject prefab)
         {
-            GatherSwitches(copy, prefab, shown: false, Gathered);
-            Tell(Gathered);
-            Gathered.Clear();
+            // A fault here lets the copy stand untold rather than unmade, and is told as this part's.
+            Guard.Run(Feature.MotionToldOnStage, MotionPart, TellMade, (copy, prefab));
+        }
+
+        /// <summary>Tells a place's creature just made how it moves (<see cref="TellOnce"/>).</summary>
+        private static void TellMade((GameObject Copy, GameObject Prefab) made)
+        {
+            try
+            {
+                GatherSwitches(made.Copy, made.Prefab, shown: false, Gathered);
+                Tell(Gathered);
+            }
+            finally
+            {
+                Gathered.Clear();
+            }
         }
 
         /// <summary>Lets go of how what is shown moves, after a fault.</summary>

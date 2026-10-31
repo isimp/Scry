@@ -42,18 +42,19 @@ namespace Scry
         [ForTest]
         public static void LetTailGoForTest() => ForgetTail();
 
-        /// <summary>For the self-test: how far the tail's joints stand from their parents at the most, as a share of how far they hung when taken; 0 with no tail.</summary>
+        /// <summary>For the self-test: how far the tail's joints stand from their parents at the most, as a share of how far they hung when taken, at the stage's size now; 0 with no tail.</summary>
         [ForTest]
         public static float TailStretch
         {
             get
             {
                 if (!_tailTaken) return 0f;
+                var scale = _scale > 0f ? _scale : 1f;
                 var most = 0f;
                 foreach (var joint in TailJoints)
                 {
                     if (joint.Bone == null || joint.Length <= 0f) continue;
-                    most = Mathf.Max(most, Vector3.Distance(joint.Bone.parent.position, joint.Bone.position) / joint.Length);
+                    most = Mathf.Max(most, Vector3.Distance(joint.Bone.parent.position, joint.Bone.position) / (joint.Length * scale));
                 }
                 return most;
             }
@@ -114,8 +115,9 @@ namespace Scry
 
         /// <summary>
         /// Each frame, after the animator and the framing: bends each joint as the game does
-        /// (<c>Tail.CustomLateUpdate</c>), its settings in metres taken at the stage's size, the
-        /// sea's surface where the sea's ground lies and the ground under the model.
+        /// (<c>Tail.CustomLateUpdate</c>), its joints' lengths and settings in metres taken at the
+        /// stage's size, so a size changed while it is shown keeps the tail's shape; the sea's
+        /// surface where the sea's ground lies and the ground under the model.
         /// </summary>
         private static void KeepTail()
         {
@@ -125,20 +127,22 @@ namespace Scry
                 ForgetTail();
                 return;
             }
+            var scale = _scale > 0f ? _scale : 1f;
             if (!_tailTaken)
             {
+                // Lengths are kept as if at size one, as the settings are.
                 foreach (var joint in TailJoints)
                 {
                     joint.Position = joint.Bone.position;
                     joint.Rotation = joint.Bone.rotation;
-                    joint.Length = Vector3.Distance(joint.Bone.parent.position, joint.Bone.position);
+                    joint.Length = Vector3.Distance(joint.Bone.parent.position, joint.Bone.position) / scale;
                 }
                 _tailTaken = true;
             }
             var rules = _tailRules;
-            rules.Gravity *= _scale;
-            rules.GravityInWater *= _scale;
-            rules.Radius *= _scale;
+            rules.Gravity *= scale;
+            rules.GravityInWater *= scale;
+            rules.Radius *= scale;
             var water = _seaLevels.Surface;
             var ground = Finite(_groundY) ? _groundY : float.NegativeInfinity;
             var dt = Time.unscaledDeltaTime;
@@ -146,8 +150,9 @@ namespace Scry
             {
                 var parent = joint.Bone.parent;
                 var line = parent.up;
-                var middle = parent.position + line * (joint.Length * 0.5f);
-                var next = U(TailBend.Next(V(joint.Position), V(parent.position), V(line), joint.Length, water, ground, rules, dt));
+                var length = joint.Length * scale;
+                var middle = parent.position + line * (length * 0.5f);
+                var next = U(TailBend.Next(V(joint.Position), V(parent.position), V(line), length, water, ground, rules, dt));
                 // Where a joint has come to its parent's middle, the game bends no more of the tail this frame.
                 if (middle == next) break;
                 var toward = (middle - next).normalized;
