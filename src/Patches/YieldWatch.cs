@@ -92,6 +92,17 @@ namespace Scry
             if (Destroyers.Count > 0 && Destroyers[Destroyers.Count - 1].Frame == Time.frameCount) Destroyers.RemoveAt(Destroyers.Count - 1);
         }
 
+        /// <summary>
+        /// A thing that breaks destroyed by a hit, on the game running it: told as broken, whatever
+        /// it gave, so a deposit's shell giving way to its vein shows its health; what it gave is
+        /// told by its loot as it comes out (<see cref="End"/>), so this break adds none.
+        /// </summary>
+        public static void BrokenByHit(Destructible thing, HitData hit)
+        {
+            if (thing == null || hit == null) return;
+            WorldEvents.Tell(Happened.Broke, Utils.GetPrefabName(thing.gameObject), thing.transform.position, doers: WorldEvents.HitBy(hit));
+        }
+
         /// <summary>The players whose hit is destroying a thing now; no one where nothing is.</summary>
         public static IReadOnlyList<long> DestroyedBy() =>
             Destroyers.Count > 0 && Destroyers[Destroyers.Count - 1].Frame == Time.frameCount ? Destroyers[Destroyers.Count - 1].Doers : null;
@@ -195,13 +206,17 @@ namespace Scry
         private static void Postfix() => Guard.Run(Feature.CompendiumTogether, "watching what breaks give", YieldWatch.End);
     }
 
-    /// <summary>The hit a destructible thing is destroyed by, for what it holds as it goes.</summary>
+    /// <summary>The hit a destructible thing is destroyed by, for what it holds as it goes, and its break.</summary>
     [HarmonyPatch(typeof(Destructible), nameof(Destructible.Destroy))]
     internal static class DestroyingWatched
     {
         private static void Prefix(HitData hit) => Guard.Run(Feature.CompendiumTogether, "watching what breaks give", () => YieldWatch.Destroying(hit));
 
-        private static void Postfix() => Guard.Run(Feature.CompendiumTogether, "watching what breaks give", YieldWatch.Destroyed);
+        private static void Postfix(Destructible __instance, HitData hit) => Guard.Run(Feature.CompendiumTogether, "watching what breaks give", () =>
+        {
+            YieldWatch.Destroyed();
+            YieldWatch.BrokenByHit(__instance, hit);
+        });
     }
 
     /// <summary>The hit a building piece is destroyed by, for what it holds as it goes.</summary>

@@ -53,11 +53,29 @@ namespace Scry
             }
         }
 
-        /// <summary>What grows and what is picked up teaches as play would (<see cref="PlantGrowthTells"/>, <see cref="TreasurePickTells"/>).</summary>
-        private static void GrowingAndPickingTell(Probe p, CompendiumBook book, Player player)
+        /// <summary>What grows, what is picked up and what breaks open teaches as play would (<see cref="PlantGrowthTells"/>, <see cref="TreasurePickTells"/>, <see cref="BreakingOpenTells"/>).</summary>
+        private static void ThingsInTheWorldTell(Probe p, CompendiumBook book, Player player)
         {
             PlantGrowthTells(p, book, player);
             TreasurePickTells(p, book, player);
+            BreakingOpenTells(p, book, player);
+        }
+
+        /// <summary>A thing that breaks, near by, destroyed by the character's hit: its health shown, whatever it gave, as a deposit's shell giving way to its vein shows its own.</summary>
+        private static void BreakingOpenTells(Probe p, CompendiumBook book, Player player)
+        {
+            var thing = UnityEngine.Object.FindObjectsByType<Destructible>(FindObjectsSortMode.None)
+                .FirstOrDefault(d => d != null && Vector3.Distance(d.transform.position, player.transform.position) <= Sighting.PersonReach && InSight(d));
+            if (thing == null)
+            {
+                p.Note("no thing that breaks is near to break open");
+                return;
+            }
+            var hit = new HitData();
+            hit.SetAttacker(player);
+            YieldWatch.BrokenByHit(thing, hit);
+            var key = Utils.GetPrefabName(thing.gameObject);
+            p.Check(book.Proved(key, EntryKeys.Did(Deed.Broke)) && book.Tallied(Tally.Gave).Kills(key) == 0, $"{key} destroyed by the character's hit shows its health, counting no yield of its own");
         }
 
         /// <summary>A treasure lying in the world picked up by the character: seen together with the item it gives.</summary>
@@ -276,7 +294,7 @@ namespace Scry
                 CompendiumKeeper.Tamings(player, c => c == tame || c.IsTamed());
                 p.Check(book.Proved(Utils.GetPrefabName(tame.gameObject), EntryKeys.Did(Deed.Tamed)), "a creature near by seen wild, then tame, shows how long taming takes");
             }
-            GrowingAndPickingTell(p, book, player);
+            ThingsInTheWorldTell(p, book, player);
 
             // A tree breaking by the character's hit with an item come to be meanwhile: counted as what it gave, however far.
             var tree = Nearest<TreeBase>(player);

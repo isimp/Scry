@@ -151,13 +151,6 @@ namespace Scry.Tests
             Assert.False(book.Proved("RaspberryBush", EntryKeys.Did(Deed.Broke)));
         }
 
-        [Fact]
-        public void ABreakOrAPickThatGaveNothingRecordsNothing()
-        {
-            var book = Told(Event(Happened.Broke, "Beech1", 2f, 1, doers: new[] { Me }), Event(Happened.Picked, "RaspberryBush", 2f, 2, doers: new[] { Me }));
-            Assert.False(book.Changed);
-        }
-
         [Theory]
         [InlineData(Happened.Born, Deed.Born)]
         [InlineData(Happened.GrewUp, Deed.GrewUp)]
@@ -212,6 +205,19 @@ namespace Scry.Tests
             Assert.Equal(KnownLevel.Unknown, Told(Event((Happened)what, thing, 40f, with: young)).Level(young));
             // Told with no young (a birth whose young could not be told), only the deed shows.
             Assert.Equal(EntryKeys.Did(EventRule.DeedOf((Happened)what)), Told(Event((Happened)what, thing, 10f)).FoundOutOf(thing));
+        }
+
+        [Fact]
+        public void ABreakThatGaveNothingStillShowsHowMuchItTook()
+        {
+            // A deposit's shell broken open gives nothing itself, its vein does: the break shows the
+            // shell's health all the same, but counts no yield and pairs nothing; a pick that gave
+            // nothing shows nothing.
+            var book = Told(Event(Happened.Broke, "rock4_copper", 10f));
+            Assert.Equal(EntryKeys.Did(Deed.Broke), book.FoundOutOf("rock4_copper"));
+            Assert.Equal(0, book.Tallied(Tally.Gave).Kills("rock4_copper"));
+            Assert.False(Told(Event(Happened.Picked, "Pickable_Mushroom", 10f)).Changed);
+            Assert.False(Told(Event(Happened.Broke, "rock4_copper", 40f)).Changed);
         }
 
         [Fact]

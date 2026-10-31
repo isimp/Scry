@@ -243,7 +243,7 @@ namespace Scry
         /// <summary>
         /// An event recorded in the book: a death's loot counted as one kill, each item seen to fall
         /// from it, a starred one showing what its stars change; what a break or a pick gave counted,
-        /// each seen to come from it, a break showing its health, none of it where it gave nothing;
+        /// each seen to come from it, a break showing its health even where it gave nothing;
         /// what a creature ate paired with it; a birth, a growing up and the rest each showing the
         /// number it tells (<see cref="Deed"/>); the young a birth or a hatching brought, or the one
         /// a young one grew into, known, as a creature seen tamed is, and seen together with what
@@ -273,7 +273,13 @@ namespace Scry
                     return;
                 case Happened.Broke:
                 case Happened.Picked:
-                    if (told.Came.Count == 0) return;
+                    // A break that gave nothing, as a deposit's shell giving way to its vein, still
+                    // shows how much it took; a pick that gave nothing shows nothing.
+                    if (told.Came.Count == 0)
+                    {
+                        if (told.What == Happened.Broke) book.FoundOut(told.Thing, EntryKeys.Did(Deed.Broke));
+                        return;
+                    }
                     book.Yielded(told.Thing, told.Came);
                     foreach (var (item, _) in told.Came) book.SawWith(told.Thing, item, Tie.Gives);
                     if (told.What == Happened.Picked)
