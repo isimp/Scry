@@ -16,6 +16,23 @@ namespace Scry
         /// <summary>Whether the line shows, for a page of so many sections: on every page with one, so every page has the same rows.</summary>
         public static bool Shows(int sections) => sections >= 1;
 
+        /// <summary>The most rows the line's skeleton stands in.</summary>
+        public const int MostSkeletonRows = 3;
+
+        /// <summary>
+        /// How many rows the line's skeleton stands in while a page is laid out, its names not yet
+        /// known: as many as the last line drawn across the same width took, at most
+        /// <see cref="MostSkeletonRows"/>, so a line that wraps moves nothing below it once whole; one elsewhere.
+        /// </summary>
+        public static int SkeletonRows(int lastRows, float lastWidth, float width) =>
+            lastRows > 1 && Math.Abs(lastWidth - width) < 0.5f ? Math.Min(lastRows, MostSkeletonRows) : 1;
+
+        /// <summary>How many rows a line of a height took, its rows a height and a gap apart; one at the least.</summary>
+        public static int RowsOf(float height, float rowHeight, float rowGap) => Math.Max(1, (int)Math.Round((height + rowGap) / (rowHeight + rowGap)));
+
+        /// <summary>How tall so many rows stand, a gap between each two.</summary>
+        public static float RowsHeight(int rows, float rowHeight, float rowGap) => rows * rowHeight + (rows - 1) * rowGap;
+
         /// <summary>Where the details scroll to for a section whose heading stands at a height: a gap over the heading, within the scroll's range.</summary>
         public static float JumpTo(float heading, float gap, float maxScroll) => Math.Min(Math.Max(heading - gap, 0f), Math.Max(maxScroll, 0f));
 

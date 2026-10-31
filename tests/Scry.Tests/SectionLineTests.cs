@@ -72,5 +72,36 @@ namespace Scry.Tests
             Assert.Equal(0, SectionLine.InView(new[] { 0f, 60f, 900f }, 0f, 600f, 1200f, -1, 0f));
             Assert.Equal(-1, SectionLine.InView(new float[0], 0f, 600f, 0f, -1, 0f));
         }
+
+        [Fact]
+        public void APageLaidOutOverFramesHoldsAsManyRowsForItsLineAsTheLastLineAtItsWidthTook()
+        {
+            // The names come only once the page is whole: the skeleton stands in as many rows as the
+            // last line drawn across the same width, so a wrapping line moves nothing below it.
+            Assert.Equal(2, SectionLine.SkeletonRows(lastRows: 2, lastWidth: 300f, width: 300f));
+            Assert.Equal(2, SectionLine.SkeletonRows(2, 300.2f, 300f));
+            // Another width wraps otherwise: one row, as before any line was drawn.
+            Assert.Equal(1, SectionLine.SkeletonRows(2, 300f, 420f));
+            Assert.Equal(1, SectionLine.SkeletonRows(0, 0f, 300f));
+            Assert.Equal(1, SectionLine.SkeletonRows(0, 300f, 300f));
+            Assert.Equal(1, SectionLine.SkeletonRows(1, 300f, 300f));
+            // Never more than a few rows, however narrow the last panel was.
+            Assert.Equal(SectionLine.MostSkeletonRows, SectionLine.SkeletonRows(9, 120f, 120f));
+        }
+
+        [Fact]
+        public void HowManyRowsALineTookIsToldByItsHeight()
+        {
+            // Rows 20 tall, 2 apart: one row is 20, two 42, three 64.
+            Assert.Equal(1, SectionLine.RowsOf(20f, 20f, 2f));
+            Assert.Equal(2, SectionLine.RowsOf(42f, 20f, 2f));
+            Assert.Equal(3, SectionLine.RowsOf(64f, 20f, 2f));
+            Assert.Equal(1, SectionLine.RowsOf(0f, 20f, 2f));
+            // Rows wider apart than they are tall: two rows 10 tall, 20 apart, stand 40.
+            Assert.Equal(2, SectionLine.RowsOf(40f, 10f, 20f));
+            // And the height of so many rows is told back the same way.
+            Assert.Equal(42f, SectionLine.RowsHeight(2, 20f, 2f), 3);
+            Assert.Equal(20f, SectionLine.RowsHeight(1, 20f, 2f), 3);
+        }
     }
 }

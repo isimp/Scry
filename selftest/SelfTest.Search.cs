@@ -272,6 +272,7 @@ namespace Scry
             ScryPanel.LeaveBoxes();
             for (var settle = 0; settle < 3; settle++) yield return null;
             ScryPanel.StagePagesForTest(true);
+            var rowsBefore = ScryPanel.LineRowsForTest;
             var from = Frames.Frames;
             var waiting = ScryPanel.Drawn(PanelPart.Waiting);
             Timing.ForgetBytesByPart();
@@ -285,6 +286,7 @@ namespace Scry
             ScryPanel.LeaveBoxes();
             yield return null;
             yield return Shot(p, "a page laid out over frames, part way");
+            var skeletonRows = ScryPanel.SkeletonRowsForTest;
             ScryPanel.HoldLayingForTest(false);
             var frames = 0;
             var captions = ScryPanel.Drawn(PanelPart.GrassCaption);
@@ -317,6 +319,10 @@ namespace Scry
             p.Check(Timing.MostMs("panel") < LayingPanelMs, "no frame of drawing the page while it is laid out takes long", $"{Numbers.Amount(Timing.MostMs("panel"), 1)} ms at the most");
             p.Check(laid.Max < LayingFrameMs, "no frame of laying it out takes long, the stage's copy and film included", $"{Numbers.Amount(laid.Max, 1)} ms at the most{Slowest(laid, 1)}");
             p.Check(ScryPanel.Drawn(PanelPart.SectionLine) > lines, "the section line stands once the page is whole, in its skeleton's place");
+            var rowsWhole = ScryPanel.LineRowsForTest;
+            if (rowsWhole == rowsBefore) p.Check(skeletonRows == rowsWhole, "the section line's skeleton stood in as many rows as the line takes once whole, as the line before it did",
+                $"skeleton {Numbers.Count(skeletonRows)}, line {Numbers.Count(rowsWhole)}");
+            else p.Note($"the line before took {Numbers.Count(rowsBefore)} rows and this one {Numbers.Count(rowsWhole)}, so its skeleton of {Numbers.Count(skeletonRows)} could not know");
             ScryPanel.StagePagesForTest(false);
             yield return Picture(p, "a page laid out over frames, whole");
         }

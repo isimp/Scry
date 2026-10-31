@@ -143,7 +143,25 @@ namespace Scry
         public static bool StandsAt(string key) => key != null && _wentTo == key && Mathf.Abs(_sideScroll.y - _wentToScroll) < 1f;
 
         /// <summary>The names flow across the line short of the room the fold all icon takes at its end.</summary>
-        private static ChipFlow LineFlow(float width, float y) => new ChipFlow(0f, width - FoldRoom, y, U(20f), U(14f), U(2f));
+        private static ChipFlow LineFlow(float width, float y) => new ChipFlow(0f, width - FoldRoom, y, U(20f), U(14f), LineRowGap);
+
+        private static float LineRowGap => U(2f);
+
+        /// <summary>How many rows the line last drawn took, and across what width, for its skeleton to stand in as many (<see cref="SectionLine.SkeletonRows"/>).</summary>
+        private static int _lineRows;
+
+        private static float _lineWidth;
+
+        /// <summary>For the self-test: how many rows the line last drawn took.</summary>
+        [ForTest]
+        public static int LineRowsForTest => _lineRows;
+
+        /// <summary>How many rows the line's skeleton last stood in.</summary>
+        private static int _skeletonRows;
+
+        /// <summary>For the self-test: how many rows the line's skeleton last stood in.</summary>
+        [ForTest]
+        public static int SkeletonRowsForTest => _skeletonRows;
 
         /// <summary>The room at the line's end for the icon that folds every section, and the gap before it.</summary>
         private static float FoldRoom => U(30f);
@@ -153,6 +171,8 @@ namespace Scry
         /// <summary>How tall the line is across a width: nothing where it does not show.</summary>
         private static float SectionLineHeight(float width)
         {
+            // While the page is laid out its skeleton stands in the line's place, as tall.
+            if (Staging.Active) return SkeletonHeight(width);
             if (!SectionLine.Shows(Marks.Count)) return 0f;
             var flow = LineFlow(width, 0f);
             foreach (var mark in Marks) flow.Place(LinkWidth(mark));
@@ -204,7 +224,12 @@ namespace Scry
                 if (GUI.Button(rect, GUIContent.none, GUIStyle.none)) GoToSection(mark.Key);
             }
             CountDrawn(PanelPart.SectionLine);
-            if (Event.current.type == EventType.Repaint) ToolbarPartsForTest.Add(("line", new Rect(0f, lineStart, width - FoldRoom, flow.Below - lineStart)));
+            if (Event.current.type == EventType.Repaint)
+            {
+                ToolbarPartsForTest.Add(("line", new Rect(0f, lineStart, width - FoldRoom, flow.Below - lineStart)));
+                _lineRows = SectionLine.RowsOf(flow.Below - lineStart, flow.RowHeight, LineRowGap);
+                _lineWidth = width;
+            }
             FadeIn(new Rect(0f, lineStart, width, flow.Below - lineStart), Skin.Backdrop, Staging.WholeShown(FadeMs));
             return flow.Below + U(6f);
         }
@@ -212,20 +237,30 @@ namespace Scry
         /// <summary>The widths of the section line's skeleton pills, as names of sections run.</summary>
         private static readonly float[] SkeletonLinks = { 50f, 70f, 90f, 60f, 56f };
 
-        /// <summary>The section line's skeleton while the page is laid out: a row of pills where the sections' names will stand.</summary>
+        /// <summary>
+        /// The section line's skeleton while the page is laid out: pills where the sections' names
+        /// will stand, flowing as they will over as many rows as the last line across this width
+        /// took, so the page below stays put once the names come.
+        /// </summary>
         private static float SkeletonLine(float width, float y)
         {
             var flow = LineFlow(width, y);
-            var x = 0f;
+            var rows = SectionLine.SkeletonRows(_lineRows, _lineWidth, width);
+            if (Event.current.type == EventType.Repaint) _skeletonRows = rows;
+            var lastRow = y + (rows - 1) * (flow.RowHeight + LineRowGap);
             foreach (var each in SkeletonLinks)
             {
                 var w = U(each);
-                if (x + w > width - FoldRoom) break;
-                Skin.Skeleton(new Rect(x, y + (flow.RowHeight - U(12f)) / 2f, w, U(12f)));
-                x += w + U(14f);
+                var at = flow.Place(w);
+                if (at.Y > lastRow + 0.5f) break;
+                Skin.Skeleton(new Rect(at.X, at.Y + (flow.RowHeight - U(12f)) / 2f, w, U(12f)));
             }
             CountDrawn(PanelPart.Waiting);
-            return y + flow.RowHeight + U(6f);
+            return y + SkeletonHeight(width);
         }
+
+        /// <summary>How tall the line's skeleton stands across a width, with the gap under it.</summary>
+        private static float SkeletonHeight(float width) =>
+            SectionLine.RowsHeight(SectionLine.SkeletonRows(_lineRows, _lineWidth, width), U(20f), LineRowGap) + U(6f);
     }
 }
