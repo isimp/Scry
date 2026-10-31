@@ -26,6 +26,7 @@ namespace Scry
         private readonly EntryCatalog _catalog;
         private readonly Func<string, IReadOnlyList<string>> _toolsOf;
         private readonly Func<string, bool> _soldByTrader;
+        private readonly Func<string, string, bool> _bitesOn;
         private readonly IReadOnlyDictionary<string, string> _biomesShown;
         private Func<IReadOnlyDictionary<string, IReadOnlyList<string>>> _readEveryLanguage;
         private IReadOnlyDictionary<string, IReadOnlyList<string>> _everyLanguage;
@@ -35,12 +36,15 @@ namespace Scry
         /// <param name="catalog">The entries the records are told in.</param>
         /// <param name="toolsOf">The tools that build a piece, by its prefab; none where not told.</param>
         /// <param name="soldByTrader">Whether a trader sells an item, by its prefab; where not told, any might be.</param>
+        /// <param name="bitesOn">Whether a fish bites on an item as its bait, by their prefabs; where not told, no pairing counts as a catch.</param>
         /// <param name="biomesShown">Each biome's name as the game shows it in the player's language, by the biome's entry name.</param>
         /// <param name="biomesInEveryLanguage">Each biome's names in every language the game ships, by the biome's entry name; asked for once, only when an area names no biome in the player's language.</param>
         public CompendiumCatchUp(EntryCatalog catalog, Func<string, IReadOnlyList<string>> toolsOf = null, Func<string, bool> soldByTrader = null,
-            IReadOnlyDictionary<string, string> biomesShown = null, Func<IReadOnlyDictionary<string, IReadOnlyList<string>>> biomesInEveryLanguage = null)
+            IReadOnlyDictionary<string, string> biomesShown = null, Func<IReadOnlyDictionary<string, IReadOnlyList<string>>> biomesInEveryLanguage = null,
+            Func<string, string, bool> bitesOn = null)
         {
             _catalog = catalog;
+            _bitesOn = bitesOn;
             _toolsOf = toolsOf;
             _soldByTrader = soldByTrader;
             _biomesShown = biomesShown;
@@ -171,6 +175,8 @@ namespace Scry
                 if (firstLoad) book.Prove(thing.Key, proof);
                 else book.FoundOut(thing.Key, proof);
             }
+            // A book kept before catches were noted holds them as fish paired with their bait.
+            if (firstLoad) book.ProveCaughtByBaits(_bitesOn);
             // A stray kill is told by every kill the records hold, not only those read now.
             var told = ReferenceEquals(all, records) ? known.Select(k => k.Entry) : known.Select(k => k.Entry).Concat(Killed(all, entered));
             foreach (var stray in Unkilled(all, book, told)) book.TakeBack(stray.Key, EntryKeys.Did(Deed.Killed));

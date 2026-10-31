@@ -53,32 +53,31 @@ namespace Scry
         {
             if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(proof)) return false;
             if (_proofs.Contains((key, proof))) return true;
-            // A catch has always paired the fish with the bait it took: a fish so paired was caught.
-            if (proof == CaughtProof && Eaten(key)) return true;
             return _attacksAsPairs && EntryKeys.IsAttack(proof, out var item) && _pairs.ContainsKey(Pair(key, item));
         }
 
         private static readonly string CaughtProof = EntryKeys.Did(Deed.Caught);
 
-        /// <summary>Whether a thing was seen paired with what it eats or bites on (<see cref="Tie.Eats"/>), the keys so paired kept until the pairs change.</summary>
-        private bool Eaten(string key)
+        /// <summary>
+        /// A catch has always paired the fish with the bait it took (<see cref="Tie.Eats"/>), so a
+        /// book kept before catches were noted as such holds them only so: each fish paired that way
+        /// with a bait it bites, by their keys, was caught. A tame creature eating a fish pairs them
+        /// the same way, which is no catch. How many catches it proved anew.
+        /// </summary>
+        public int ProveCaughtByBaits(Func<string, string, bool> bitesOn)
         {
-            if (_eatenAt != PairsVersion)
+            if (bitesOn == null) return 0;
+            var caught = new List<string>();
+            foreach (var pair in _pairs)
             {
-                _eatenAt = PairsVersion;
-                _eaten.Clear();
-                foreach (var pair in _pairs)
-                {
-                    if (pair.Value == AnyWay || (pair.Value & Bit(Tie.Eats)) == 0) continue;
-                    _eaten.Add(pair.Key.Item1);
-                    _eaten.Add(pair.Key.Item2);
-                }
+                if (pair.Value == AnyWay || (pair.Value & Bit(Tie.Eats)) == 0) continue;
+                if (bitesOn(pair.Key.Item1, pair.Key.Item2)) caught.Add(pair.Key.Item1);
+                if (bitesOn(pair.Key.Item2, pair.Key.Item1)) caught.Add(pair.Key.Item2);
             }
-            return _eaten.Contains(key);
+            var proved = 0;
+            foreach (var fish in caught) if (Prove(fish, CaughtProof)) proved++;
+            return proved;
         }
-
-        private readonly HashSet<string> _eaten = new HashSet<string>(StringComparer.Ordinal);
-        private int _eatenAt = -1;
 
         /// <summary>How many proofs the character holds.</summary>
         [ForTest]

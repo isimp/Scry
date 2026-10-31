@@ -200,7 +200,8 @@ namespace Scry
                 foreach (var biome in catalog.All) if (biome.Kind == Kind.Biome) shown[biome.Name] = Localization.instance.Localize(BiomeWords.Token(biome.Name));
             }
             return new CompendiumCatchUp(catalog, piece => Knowledge.Tools.ToolsOf(piece).Select(u => u.Tool).Distinct().ToList(),
-                item => Knowledge.SourceLines(item).Any(line => line.Record?.Way == SourceWay.Sold), shown, () => BiomesInEveryLanguage(catalog));
+                item => Knowledge.SourceLines(item).Any(line => line.Record?.Way == SourceWay.Sold), shown, () => BiomesInEveryLanguage(catalog),
+                (fish, bait) => Knowledge.Catches(bait).Any(c => c.Fish == fish));
         }
 
         /// <summary>
