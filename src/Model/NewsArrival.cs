@@ -73,6 +73,7 @@ namespace Scry
                 case Deed.Grew:
                 case Deed.GrewBack: return new[] { "growing", "gathering" };
                 case Deed.Collected:
+                case Deed.Sprang:
                 case Deed.Finished: return new[] { "does", "works", "making" };
                 default: return Nowhere;
             }

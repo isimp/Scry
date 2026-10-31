@@ -33,7 +33,8 @@ namespace Scry
                     Add("Heavy snow", BuildWords.Snow(wear.m_snowDamageImmune));
                 });
                 yield return true;
-                Part("resistances", () => Resists(wear.m_damages));
+                // Its grid follows the character's own hits, as a rock's does; what it takes none of, no hit shows.
+                Part("resistances", () => Rows.Add(new Row { Title = "Damage it takes", HitReveals = true, Cells = ResistWords.ForBuilt(Cells(wear.m_damages)) }));
                 yield return true;
                 Hooked(HookedRule.Wear);
             }

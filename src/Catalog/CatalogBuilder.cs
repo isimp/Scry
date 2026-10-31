@@ -480,6 +480,7 @@ namespace Scry
                 case Character creature:
                     if (!BornTame.FightsForPlayers(creature.gameObject)) deeds.Add(Deed.Killed);
                     break;
+                case Trap _: deeds.Add(Deed.Sprang); break;
                 // How it senses, chases and flees waits for a fight, but for a summon, fought only by slaughtering one's own.
                 case BaseAI ai:
                     if (!BornTame.FightsForPlayers(ai.gameObject)) deeds.Add(Deed.Fought);

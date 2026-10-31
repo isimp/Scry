@@ -25,6 +25,31 @@ namespace Scry
         }
     }
 
+    /// <summary>
+    /// A building piece the character hits tells how it took the hit, as the popup shows it, by its
+    /// own modifiers, where the tool was strong enough (<c>HitData.CheckToolTier</c>, a piece always
+    /// letting the lowest tier through, as the game checks a hit on one); <c>WearNTear.Damage</c>
+    /// is called on the client dealing the hit, before it is sent to the piece's owner.
+    /// </summary>
+    internal static class PieceHitWatch
+    {
+        public static void Hit(WearNTear piece, HitData hit)
+        {
+            if (piece == null || hit == null || Player.m_localPlayer == null) return;
+            Guard.Run(Feature.CompendiumHit, "noting a piece hit", () =>
+            {
+                if (hit.GetAttacker() != Player.m_localPlayer) return;
+                if (hit.CheckToolTier(piece.m_minToolTier, alwaysAllowTierZero: true) && TogetherWatch.PopupSeen(piece)) TogetherWatch.Told(Utils.GetPrefabName(piece.gameObject), hit, piece.m_damages);
+            });
+        }
+    }
+
+    [HarmonyPatch(typeof(WearNTear), nameof(WearNTear.Damage))]
+    internal static class PieceHitWatched
+    {
+        private static void Prefix(WearNTear __instance, HitData hit) => PieceHitWatch.Hit(__instance, hit);
+    }
+
     [HarmonyPatch(typeof(Destructible), nameof(Destructible.Damage))]
     internal static class DestructibleHitWatched
     {

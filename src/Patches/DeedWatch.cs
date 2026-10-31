@@ -176,6 +176,21 @@ namespace Scry
             CompendiumKeeper.FoundOut(Utils.GetPrefabName(pickable.gameObject), EntryKeys.Did(Deed.GrewBack));
         }
 
+        /// <summary>
+        /// A trap set off (<c>Trap.RPC_OnStateChanged</c> to its sprung state, sent to every game):
+        /// one near by in sight shows how it hurts, staggers and rearms, whoever set it off.
+        /// </summary>
+        public static void Sprang(Trap trap, int state)
+        {
+            if (trap == null || state != SprungState || Player.m_localPlayer == null) return;
+            var at = trap.transform.position;
+            if (Vector3.Distance(at, Player.m_localPlayer.transform.position) > Sighting.PersonReach || !CompendiumSight.SeesDeed(at.x, at.y, at.z)) return;
+            Guard.Run(Feature.CompendiumTogether, "noting a trap sprung", () => CompendiumKeeper.FoundOut(Utils.GetPrefabName(trap.gameObject), EntryKeys.Did(Deed.Sprang)));
+        }
+
+        /// <summary>The state a trap is in once set off, as the game numbers its states (<c>Trap.TrapState.Active</c>).</summary>
+        private const int SprungState = 2;
+
         /// <summary>A picked pickable set back to not picked: grown back.</summary>
         public static void SetPicked(Pickable pickable, bool wasPicked, bool picked)
         {
@@ -270,6 +285,13 @@ namespace Scry
     internal static class CookingSlotsWatched
     {
         private static void Postfix(CookingStation __instance) => Guard.Run(Feature.CompendiumTogether, "watching food cook", () => DeedWatch.SlotsLooked(__instance));
+    }
+
+    /// <summary>A trap seen springing shows how it hurts and rearms (<c>Trap.RPC_OnStateChanged</c>).</summary>
+    [HarmonyPatch(typeof(Trap), "RPC_OnStateChanged")]
+    internal static class TrapSprang
+    {
+        private static void Postfix(Trap __instance, int value) => DeedWatch.Sprang(__instance, value);
     }
 
     /// <summary>A fermenter tapped within sight shows how long it ferments (<c>Fermenter.DelayedTap</c>).</summary>

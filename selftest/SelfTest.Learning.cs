@@ -129,6 +129,7 @@ namespace Scry
             VegvisirReadTells(p, Fresh, Shows);
             NothingToSeeTells(p);
             EffectOnYouTells(p);
+            BuiltThingsTell(p, Fresh);
 
             CompendiumKeeper.RecordInto(null);
             p.Check(real.Version == version && real.PairsVersion == pairs, "the character's book was left alone");
@@ -169,6 +170,30 @@ namespace Scry
                 if (fish == null || !records.Picked.Contains(fish.m_name) || !told.Proved(name, EntryKeys.Did(Deed.Caught))) odd.Add(name);
             }
             p.Check(odd.Count == 0, "what its records tell of picks, takes and catches names the right things, each paired or shown", string.Join(", ", odd.Take(10)));
+        }
+
+        /// <summary>A trap's numbers wait for one seen springing; a hit of the character's on a piece near by tells how its damage landed, the piece's grid following its own hits.</summary>
+        private static void BuiltThingsTell(Probe p, System.Func<CompendiumBook> fresh)
+        {
+            var trap = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Piece && GamePrefabs.Named(e.Name).OrNull()?.GetComponent<Trap>() != null);
+            if (trap == null) p.Note("no trap in the catalog: its numbers untried");
+            else p.Check(Facts.For(trap).Proofs.TryGetValue("Damage", out var proof) && proof == EntryKeys.Did(Deed.Sprang), $"{trap.Name}'s damage waits for one seen springing");
+            var player = Player.m_localPlayer;
+            var piece = Object.FindObjectsByType<WearNTear>(FindObjectsSortMode.None)
+                .Where(w => w != null && TogetherWatch.PopupSeen(w)).OrderBy(w => (w.transform.position - player.transform.position).sqrMagnitude).FirstOrDefault();
+            if (piece == null)
+            {
+                p.Note("no piece is near enough for a hit's popup: its grid untried");
+                return;
+            }
+            var book = fresh();
+            var hit = new HitData();
+            hit.m_damage.m_blunt = 10f;
+            hit.SetAttacker(player);
+            PieceHitWatch.Hit(piece, hit);
+            var key = Utils.GetPrefabName(piece.gameObject);
+            if (piece.m_minToolTier > 0) p.Note($"{key} needs a stronger tool than a bare hit: its grid untried");
+            else p.Check(ResistWords.Types.Any(t => book.Proved(key, EntryKeys.Damage(t))), $"a hit on {key} tells how its damage landed");
         }
 
         /// <summary>A burn's and a poison's own numbers wait for the effect to be on the character: each told pair and table line keeps back for it.</summary>

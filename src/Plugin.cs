@@ -109,6 +109,8 @@ namespace Scry
             { typeof(FermentingFinished), Feature.CompendiumTogether },
             { typeof(CookingFinished), Feature.CompendiumTogether },
             { typeof(CookingSlotsWatched), Feature.CompendiumTogether },
+            { typeof(TrapSprang), Feature.CompendiumTogether },
+            { typeof(PieceHitWatched), Feature.CompendiumHit },
             { typeof(TreeYield), Feature.CompendiumTogether },
             { typeof(LogYield), Feature.CompendiumTogether },
             { typeof(RockYield), Feature.CompendiumTogether },

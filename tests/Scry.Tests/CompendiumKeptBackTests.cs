@@ -195,6 +195,18 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void HowATrapHurtsWaitsForOneSeenSpringing()
+        {
+            Assert.Equal("shows once you have seen one spring", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Sprang)));
+            var rows = CompendiumWords.StillToFindOut(new[] { EntryKeys.Did(Deed.Sprang) }, new string[0], attacks: 0, spots: 0, new Tally[0]);
+            Assert.Equal(new[] { ("See one spring", "shows how it hurts and rearms") }, rows.ToArray());
+            Assert.Equal("its springing found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.Sprang)));
+            Assert.Equal("how Spike trap springs", JournalWords.FoundOutOf(EntryKeys.Did(Deed.Sprang), "Spike trap"));
+            Assert.True(StrictDeeds.Fits(Deed.Sprang, Kind.Piece));
+            Assert.False(StrictDeeds.Fits(Deed.Sprang, Kind.Creature));
+        }
+
+        [Fact]
         public void ARunestoneTextNotYetReadIsLeftToFind()
         {
             // Each text a place's runestones give is learned by reading it, under either rules, and

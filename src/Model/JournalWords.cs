@@ -156,6 +156,7 @@ namespace Scry
                     case Deed.Fed: return $"how {name} eats";
                     case Deed.Fought: return $"how {name} senses and chases";
                     case Deed.Felt: return $"how {name} works on you";
+                    case Deed.Sprang: return $"how {name} springs";
                     case Deed.Born: return $"how {name} breeds";
                     case Deed.Hatched: return $"how {name} hatches";
                     case Deed.Ridden: return $"how {name} rides";

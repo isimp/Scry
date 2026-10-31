@@ -171,6 +171,7 @@ namespace Scry
                 case Deed.Broke: return kind == Kind.Resource;
                 case Deed.Caught: return kind == Kind.Item;
                 case Deed.Felt: return kind == Kind.StatusEffect;
+                case Deed.Sprang: return kind == Kind.Piece;
                 case Deed.Fed:
                 case Deed.Fought: return kind == Kind.Creature;
                 default: return true;

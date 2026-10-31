@@ -56,6 +56,9 @@ namespace Scry
 
         /// <summary>Had a status effect on the character: how it works on it, a burn's ticks, a poison's time, frost's slowing.</summary>
         Felt,
+
+        /// <summary>Saw a trap spring: how it hurts, staggers and rearms.</summary>
+        Sprang,
     }
 
     /// <summary>How two things were seen go together in play, the second shown on the first's page under the strict rules (<see cref="CompendiumBook.SawWith"/>).</summary>

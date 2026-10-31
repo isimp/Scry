@@ -40,6 +40,11 @@ namespace Scry
                     OnlyHeld = catapult.m_onlyUseIncludedProjectiles, MaxLoad = catapult.m_maxLoadStack, ThrowsWhoStandsThere = catapult.m_launchCollectArea != null,
                 },
             }));
+            // How a trap hurts, staggers and rearms, which the game never shows, waits for one seen springing.
+            if (trap != null)
+            {
+                foreach (var label in new[] { "Rearms after", "Damage", "Staggers" }) Proofs[label] = EntryKeys.Did(Deed.Sprang);
+            }
 
             // Rows of what they take, each item going to its page.
             if (turret != null)
