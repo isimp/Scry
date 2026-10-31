@@ -14,7 +14,7 @@ namespace Scry
         /// A fish by its own figures (<c>Fish</c>), its size and weight by quality, the rod's float
         /// (<see cref="SkillReading"/>), the prep table's recipe for it and the world spawns placing
         /// it (<see cref="Knowledge.FishSpawns"/>); its fight as a table by stars. Under the strict
-        /// rules how it finds a float, rests and fights wait for one caught.
+        /// rules how it finds a float and rests wait for one caught, and its fight at each level of stars for one landed with them.
         /// </summary>
         private void Fish(GameObject prefab, Fish fish)
         {
@@ -45,7 +45,8 @@ namespace Scry
             var table = new Row { Title = FishWords.FightTitle, Columns = columns };
             foreach (var cells in lines)
             {
-                table.LineProofs[table.Lines.Count] = caught;
+                // Each column, a level of stars, waits for one landed with those stars.
+                for (var column = 1; column < cells.Length && column - 1 < page.FightStars.Count; column++) table.CellProofs[(table.Lines.Count, column)] = EntryKeys.Landed(page.FightStars[column - 1]);
                 table.Lines.Add((cells, null));
             }
             Rows.Add(table);

@@ -69,6 +69,8 @@ namespace Scry.Tests
         {
             var table = FishPage.Of(Perch(), new[] { PerchSpawn() }).Fight;
             Assert.Equal(new[] { "", "no star", "1", "2", "3", "4" }, table.Columns);
+            // Each column's stars, for its cells to wait for one landed with so many.
+            Assert.Equal(new[] { 0, 1, 2, 3, 4 }, FishPage.Of(Perch(), new[] { PerchSpawn() }).FightStars);
             string[] Row(string label) => table.Lines.Single(l => l[0] == label).Skip(1).ToArray();
             Assert.Equal(new[] { "80%", "16%", "3.2%", "0.6%", "0.2%" }, Row(FishWords.ComesWith));
             Assert.Equal(new[] { "4.5 s", "6 s", "7.5 s", "9 s", "10.5 s" }, Row(FishWords.PullsFor));

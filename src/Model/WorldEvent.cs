@@ -310,6 +310,8 @@ namespace Scry
                     return;
                 default:
                     book.FoundOut(told.Thing, EntryKeys.Did(DeedOf(told.What)));
+                    // A fish landed shows how it fights with the stars it was landed with, a level less one.
+                    if (told.What == Happened.Caught) book.FoundOut(told.Thing, EntryKeys.Landed(Math.Max(0, told.Level - 1)));
                     YoungKnown(told, book);
                     GrownInto(told, book);
                     var noted = NotedAs(told.What);

@@ -200,6 +200,10 @@ namespace Scry.Tests
             var book = Told(Event(Happened.Caught, "Fish1", 10f, doers: new[] { Friend }));
             Assert.True(book.Proved("Fish1", EntryKeys.Did(Deed.Caught)));
             Assert.False(Told(Event(Happened.Caught, "Fish1", 40f, doers: new[] { Friend })).Changed);
+            // How it fights at its stars, those it was landed with, a level more than its stars.
+            var starred = Told(Event(Happened.Caught, "Fish1", 10f, level: 3, doers: new[] { Friend }));
+            Assert.True(starred.Proved("Fish1", EntryKeys.Landed(2)));
+            Assert.False(starred.Proved("Fish1", EntryKeys.Landed(0)));
         }
 
         [Fact]

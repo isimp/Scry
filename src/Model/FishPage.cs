@@ -70,6 +70,9 @@ namespace Scry
         /// <summary>The fight by stars: its columns, then each line's cells, the label first.</summary>
         public (string[] Columns, List<string[]> Lines) Fight;
 
+        /// <summary>The stars of each of the fight's columns after the label's, in order.</summary>
+        public List<int> FightStars = new List<int>();
+
         public static FishPage Of(FishTraits fish, IReadOnlyList<FishSpawnRule> spawns)
         {
             var page = new FishPage();
@@ -101,6 +104,7 @@ namespace Scry
             var least = any ? spawns.Min(s => s.MinLevel) : 1;
             var chance = any ? spawns.Max(s => s.LevelUpChance) / 100f : 0f;
             page.Fight = FightTable(fish, Math.Max(1, least), Math.Max(least, most), chance);
+            page.FightStars = Enumerable.Range(Math.Max(1, least), Math.Max(least, most) - Math.Max(1, least) + 1).Select(level => level - 1).ToList();
             return page;
         }
 

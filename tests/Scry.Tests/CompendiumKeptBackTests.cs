@@ -236,6 +236,20 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AFishsFightAtEachStarsWaitsForOneLandedWithThem()
+        {
+            var two = EntryKeys.Landed(2);
+            Assert.True(EntryKeys.IsLanded(two, out var stars) && stars == 2);
+            Assert.False(EntryKeys.IsLanded(EntryKeys.StarsFell(2), out _));
+            Assert.Equal("shows once you have landed one with 2 stars", CompendiumWords.ShowsOnce(two));
+            Assert.Equal("shows once you have landed one with no stars", CompendiumWords.ShowsOnce(EntryKeys.Landed(0)));
+            var rows = CompendiumWords.StillToFindOut(new[] { EntryKeys.Landed(0), two }, new string[0], attacks: 0, spots: 0, new Tally[0]);
+            Assert.Equal(new[] { ("Land one with no stars", "shows how it fights so"), ("Land one with 2 stars", "shows how it fights so") }, rows.ToArray());
+            Assert.Equal("how it fights with 2 stars found out", CompendiumWords.FoundOutNote(two));
+            Assert.Equal("how Perch fights with 2 stars", JournalWords.FoundOutOf(two, "Perch"));
+        }
+
+        [Fact]
         public void ARunestoneTextNotYetReadIsLeftToFind()
         {
             // Each text a place's runestones give is learned by reading it, under either rules, and

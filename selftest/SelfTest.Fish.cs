@@ -30,6 +30,7 @@ namespace Scry
             if (rod != null) p.Check(Facts.For(rod).Pairs.Any(x => x.Key == "With a fish on"), "the rod tells what a fish on its float drains, read from the float its cast makes");
             var fight = facts.Rows.FirstOrDefault(r => r.Title == FishWords.FightTitle);
             p.Check(fight != null && fight.Columns.Length == 6, "its fight stands by stars, no star to four", fight == null ? "none" : string.Join(", ", fight.Columns));
+            p.Check(fight != null && Enumerable.Range(1, 5).All(c => fight.CellProofs.TryGetValue((0, c), out var proof) && proof == EntryKeys.Landed(c - 1)), "each column of its fight waits for one landed with those stars");
             var raw = fight?.Lines.FirstOrDefault(l => l.Cells[0] == FishWords.RawFish).Cells;
             p.Check(raw != null && string.Join(",", raw.Skip(1)) == "1,4,7,10,13", "the prep table makes 1, 4, 7, 10 or 13 raw fish of one", raw == null ? "none" : string.Join(",", raw));
             p.Check(facts.Rows.Any(r => r.Part == "fish catch" && r.Items.Count > 0), "what a catch brings besides is told");
@@ -47,11 +48,12 @@ namespace Scry
             var caught = EntryKeys.Did(Deed.Caught);
             p.Check(X.KeepsBack(caught), "under the strict rules how it finds a float waits for one caught");
             book.Prove(perch.Key, caught);
+            book.Prove(perch.Key, EntryKeys.Landed(0));
             view.Tell(book, CompendiumRule.Strict);
             X.Know(view);
-            p.Check(!X.KeepsBack(caught), "once caught it shows");
+            p.Check(!X.KeepsBack(caught) && !X.KeepsBack(EntryKeys.Landed(0)) && X.KeepsBack(EntryKeys.Landed(1)), "once caught with no stars that shows, its fight with stars still waiting");
             yield return PictureOf(p, "lives", "a Perch's page under the strict rules, one caught, where it lives");
-            yield return PictureOf(p, "fishfight", "a Perch's page under the strict rules, one caught, its fight");
+            yield return PictureOf(p, "fishfight", "a Perch's page under the strict rules, one caught with no stars, its fight: that column shown, the starred ones waiting");
             Session.ShowKnownInstead(null);
             yield return Until(() => X.Compendium != view, 3);
 

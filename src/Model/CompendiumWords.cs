@@ -468,11 +468,13 @@ namespace Scry
             var pending = new HashSet<Deed>();
             var starsPending = new SortedSet<int>();
             var raiders = 0;
+            var landedPending = new SortedSet<int>();
             foreach (var proof in deeds)
             {
                 if (EntryKeys.IsDeed(proof, out var deed)) pending.Add(deed);
                 else if (EntryKeys.IsStarsFell(proof, out var fell)) starsPending.Add(fell);
                 else if (EntryKeys.IsRaider(proof, out _)) raiders++;
+                else if (EntryKeys.IsLanded(proof, out var landed)) landedPending.Add(landed);
             }
             foreach (var fell in starsPending) rows.Add(($"See {Naming.Count(fell, "star", "stars")} fall", $"shows what {StarsChange(fell)}"));
             void Pending(Deed what, string label, string value)
@@ -485,6 +487,7 @@ namespace Scry
             Pending(Deed.Sprang, "See one spring", "shows how it hurts and rearms");
             Pending(Deed.Raided, "See its raiders up close", "shows how it is rolled");
             Pending(Deed.Guarded, "See its creatures up close", "shows the stars its spawn points give");
+            foreach (var landed in landedPending) rows.Add(($"Land one with {StarsWords(landed)}", "shows how it fights so"));
             if (raiders > 0) rows.Add(("See them up close", Naming.Count(raiders, "kind of raider", "kinds of raider") + ": how many come, how often, how strong"));
             Pending(Deed.Tamed, "Tame one", "shows how long taming and a meal take");
             Pending(Deed.Fed, "See one eat", "shows how long a meal lasts");
@@ -517,6 +520,9 @@ namespace Scry
             return rows;
         }
 
+        /// <summary>So many stars in words: "no stars", "1 star", "2 stars".</summary>
+        public static string StarsWords(int stars) => stars <= 0 ? "no stars" : Naming.Count(stars, "star", "stars");
+
         /// <summary>What was found out of an entry (<see cref="CompendiumBook.FoundOut"/>), in a few words beside its name in the learned list; none for nothing.</summary>
         public static string FoundOutNote(string proof)
         {
@@ -524,6 +530,7 @@ namespace Scry
             if (proof == EntryKeys.OnMap) return "seen on your explored map";
             if (EntryKeys.IsStarsFell(proof, out var fell)) return $"what {StarsChange(fell)} found out";
             if (EntryKeys.IsRaider(proof, out _)) return "a raider's numbers found out";
+            if (EntryKeys.IsLanded(proof, out var landed)) return $"how it fights with {StarsWords(landed)} found out";
             if (EntryKeys.IsDeed(proof, out var deed))
             {
                 switch (deed)
@@ -609,6 +616,7 @@ namespace Scry
         {
             if (EntryKeys.IsStarsFell(proof, out var fell)) return $"seen one with {Naming.Count(fell, "star", "stars")} fall";
             if (EntryKeys.IsRaider(proof, out _)) return "seen one of these raiders up close";
+            if (EntryKeys.IsLanded(proof, out var landed)) return $"landed one with {StarsWords(landed)}";
             EntryKeys.IsDeed(proof, out var deed);
             switch (deed)
             {

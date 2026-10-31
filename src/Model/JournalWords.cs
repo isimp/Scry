@@ -149,6 +149,7 @@ namespace Scry
         {
             if (EntryKeys.IsStarsFell(proof, out var fell)) return $"what {CompendiumWords.StarsChange(fell)} on {name}";
             if (EntryKeys.IsRaider(proof, out _)) return $"what {name} brings";
+            if (EntryKeys.IsLanded(proof, out var landed)) return $"how {name} fights with {CompendiumWords.StarsWords(landed)}";
             if (EntryKeys.IsDeed(proof, out var deed))
             {
                 switch (deed)

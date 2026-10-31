@@ -143,6 +143,19 @@ namespace Scry
             return key != null && key.StartsWith(Fell, StringComparison.Ordinal) && Stored.TryCount(key.Substring(Fell.Length), out stars);
         }
 
+        /// <summary>A fish landed with so many stars, kept only as a proof on the fish (<see cref="Landed"/>); no entry goes by it.</summary>
+        private const string LandedWith = "landed:";
+
+        /// <summary>The key a fish landed with so many stars, by the character or seen near by, is proved under: how it fights with them shows once one was.</summary>
+        public static string Landed(int stars) => LandedWith + Stored.Count(stars);
+
+        /// <summary>Whether a key is a fish landed's (<see cref="Landed"/>), and with how many stars.</summary>
+        public static bool IsLanded(string key, out int stars)
+        {
+            stars = 0;
+            return key != null && key.StartsWith(LandedWith, StringComparison.Ordinal) && Stored.TryCount(key.Substring(LandedWith.Length), out stars);
+        }
+
         /// <summary>A raider of one kind seen up close, kept only as a proof on the raid (<see cref="Raider"/>); no entry goes by it.</summary>
         private const string Raiders = "raider:";
 
