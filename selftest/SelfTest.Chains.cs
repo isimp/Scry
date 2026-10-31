@@ -70,7 +70,7 @@ namespace Scry
                     if (chain.Steps[chain.Altar + 1].Contains(place.Name)) samed++;
                     var lit = chain.Steps.SelectMany(s => s).Where(k => Chain.IsPage(place, k)).ToList();
                     var rows = Facts.For(place).Rows.Count(r => r.Chain == chain);
-                    if (lit.Count != 1 || lit[0] != key || rows != 1) wrong.Add($"{key}: lit {string.Join("/", lit)}, {rows} rows");
+                    if (lit.Count != 1 || lit[0] != key || rows != 1) wrong.Add($"{key}: lit {string.Join("/", lit)}, {Numbers.Count(rows)} rows");
                 }
             }
             p.Check(altars.Count > 0 && wrong.Count == 0, "each altar's page lights its own step of its summoning chain alone, shown once",
