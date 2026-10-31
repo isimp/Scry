@@ -116,6 +116,17 @@ namespace Scry
             }
             WorldEvents.Tell(picked ? Happened.Picked : Happened.Broke, thing, at, loot, doers: doers, mark: mark);
         }
+
+        /// <summary>
+        /// A treasure lying in the world the character picked up (<c>PickableItem.Interact</c>):
+        /// seen together with the item it gives, which every game reads from the treasure's own
+        /// data, so no other game needs to tell it.
+        /// </summary>
+        public static void TreasurePicked(PickableItem treasure, Humanoid who, bool picked)
+        {
+            if (!picked || treasure == null || who == null || who != Player.m_localPlayer || treasure.m_itemPrefab == null) return;
+            CompendiumKeeper.Saw(Utils.GetPrefabName(treasure.gameObject), Utils.GetPrefabName(treasure.m_itemPrefab.gameObject), Tie.Gives);
+        }
     }
 
     [HarmonyPatch(typeof(TreeBase), "RPC_Damage")]
@@ -156,6 +167,14 @@ namespace Scry
         private static void Prefix(DropOnDestroyed __instance) => Guard.Run(Feature.CompendiumTogether, "watching what breaks give", () => YieldWatch.Begin(__instance, YieldWatch.DestroyedBy()));
 
         private static void Postfix() => Guard.Run(Feature.CompendiumTogether, "watching what breaks give", YieldWatch.End);
+    }
+
+    /// <summary>The character picking up a treasure lying in the world, on its own game (<c>PickableItem.Interact</c>).</summary>
+    [HarmonyPatch(typeof(PickableItem), nameof(PickableItem.Interact))]
+    internal static class TreasurePickedWatched
+    {
+        private static void Postfix(PickableItem __instance, Humanoid character, bool __result) =>
+            Guard.Run(Feature.CompendiumTogether, "noting a treasure picked up", () => YieldWatch.TreasurePicked(__instance, character, __result));
     }
 
     /// <summary>The character picking a thing, on its own game (<c>Pickable.Interact</c>): told from here where another game runs the thing.</summary>

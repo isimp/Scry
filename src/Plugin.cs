@@ -116,6 +116,7 @@ namespace Scry
             { typeof(YieldItemMade), Feature.CompendiumTogether },
             { typeof(PickYield), Feature.CompendiumTogether },
             { typeof(PickedHereWatched), Feature.CompendiumTogether },
+            { typeof(TreasurePickedWatched), Feature.CompendiumTogether },
             { typeof(DestroyingWatched), Feature.CompendiumTogether },
             { typeof(RuneStoneWatched), Feature.CompendiumUse },
             { typeof(MapTableRead), Feature.CompendiumMap },

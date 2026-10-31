@@ -53,6 +53,29 @@ namespace Scry
             }
         }
 
+        /// <summary>What grows and what is picked up teaches as play would (<see cref="PlantGrowthTells"/>, <see cref="TreasurePickTells"/>).</summary>
+        private static void GrowingAndPickingTell(Probe p, CompendiumBook book, Player player)
+        {
+            PlantGrowthTells(p, book, player);
+            TreasurePickTells(p, book, player);
+        }
+
+        /// <summary>A treasure lying in the world picked up by the character: seen together with the item it gives.</summary>
+        private static void TreasurePickTells(Probe p, CompendiumBook book, Player player)
+        {
+            var treasure = UnityEngine.Object.FindObjectsByType<PickableItem>(FindObjectsSortMode.None)
+                .Where(t => t != null && t.m_itemPrefab != null).OrderBy(t => (t.transform.position - player.transform.position).sqrMagnitude).FirstOrDefault();
+            if (treasure == null)
+            {
+                p.Note("no treasure is loaded to pick up");
+                return;
+            }
+            var key = Utils.GetPrefabName(treasure.gameObject);
+            var item = Utils.GetPrefabName(treasure.m_itemPrefab.gameObject);
+            YieldWatch.TreasurePicked(treasure, player, picked: true);
+            p.Check(book.Witnessed(key, item, Tie.Gives), $"{key} picked up is seen together with the {item} it gives");
+        }
+
         /// <summary>A crop or sapling near by seen growing into what it becomes: its growing found out, the two seen together; a young creature growing up is left to play.</summary>
         private static void PlantGrowthTells(Probe p, CompendiumBook book, Player player)
         {
@@ -253,7 +276,7 @@ namespace Scry
                 CompendiumKeeper.Tamings(player, c => c == tame || c.IsTamed());
                 p.Check(book.Proved(Utils.GetPrefabName(tame.gameObject), EntryKeys.Did(Deed.Tamed)), "a creature near by seen wild, then tame, shows how long taming takes");
             }
-            PlantGrowthTells(p, book, player);
+            GrowingAndPickingTell(p, book, player);
 
             // A tree breaking by the character's hit with an item come to be meanwhile: counted as what it gave, however far.
             var tree = Nearest<TreeBase>(player);
