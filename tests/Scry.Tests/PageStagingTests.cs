@@ -135,7 +135,6 @@ namespace Scry.Tests
             staging.StartPass(true);
             Assert.True(staging.Lay());
             Assert.True(staging.NotYet());
-            Assert.True(staging.HeldFirst);
             Assert.False(staging.Lay());
             staging.EndPass();
             Assert.True(staging.Active);
@@ -297,25 +296,10 @@ namespace Scry.Tests
             Pass(staging, clock, true, 20, 0);
 
             Assert.Equal(new[] { true, true, true, false, false }, Pass(staging, clock, true, 0, 2, 4, 3, 3));
-            Assert.Equal(0.6, staging.Share, 3);
         }
 
         [Fact]
-        public void HowFarItHasGotIsToldAsAShareOfThePartsLastSeen()
-        {
-            var clock = new Clock();
-            var staging = new PageStaging(clock.Now, budgetMs: 6);
-            staging.Begin();
-            Assert.Equal(0, staging.Share, 3);
-            Pass(staging, clock, true, 10, 1, 1, 1);
-            Assert.Equal(0.25, staging.Share, 3);
-            staging.Stop();
-            Assert.Equal(1, staging.Share, 3);
-            Assert.False(staging.Active);
-        }
-
-        [Fact]
-        public void WhichPartIsLaidNextIsKnownToSayWhatTheWaitIsFor()
+        public void WhetherADrawingHeldAnyPartBackIsKnownForTheWaitAtThePagesEnd()
         {
             var clock = new Clock();
             var staging = new PageStaging(clock.Now, budgetMs: 6);
@@ -326,10 +310,7 @@ namespace Scry.Tests
 
             Assert.False(staging.HeldAny);
             Assert.False(staging.Lay());
-            Assert.True(staging.HeldFirst);
             Assert.True(staging.HeldAny);
-            Assert.False(staging.Lay());
-            Assert.False(staging.HeldFirst);
             // A new drawing starts with nothing held.
             staging.StartPass(true);
             Assert.False(staging.HeldAny);

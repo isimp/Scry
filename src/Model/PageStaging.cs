@@ -16,7 +16,6 @@ namespace Scry
         private readonly double _budgetMs;
         private int _laid;
         private int _unit;
-        private int _seen;
         private bool _repaint;
         private double _passStart;
         private int _laidThisPass;
@@ -43,21 +42,14 @@ namespace Scry
         /// <summary>Whether parts of the page are still to be laid.</summary>
         public bool Active { get; private set; }
 
-        /// <summary>Whether the part last asked about is the first held back in this drawing: the one being worked on next.</summary>
-        public bool HeldFirst { get; private set; }
-
         /// <summary>Whether this drawing held back any part so far.</summary>
         public bool HeldAny => _held;
-
-        /// <summary>How far it has got: the parts laid of those the last drawing went through; all once done.</summary>
-        public double Share => !Active ? 1.0 : _seen == 0 ? 0.0 : Math.Min(1.0, (double)_laid / _seen);
 
         /// <summary>A page opened anew: nothing of it is laid yet.</summary>
         public void Begin()
         {
             Active = true;
             _laid = 0;
-            _seen = 0;
             _laidLastRepaint = true;
             _laidAt.Clear();
             _wholeAt = null;
@@ -110,7 +102,6 @@ namespace Scry
             _passStart = _clock();
             _laidThisPass = 0;
             _held = false;
-            HeldFirst = false;
             _lastLaidNew = false;
         }
 
@@ -134,7 +125,6 @@ namespace Scry
                 _laidAt.Add(_clock());
                 return true;
             }
-            HeldFirst = !_held;
             _held = true;
             return false;
         }
@@ -153,7 +143,6 @@ namespace Scry
             _lastLaidNew = false;
             _laid--;
             _laidAt.RemoveAt(_laidAt.Count - 1);
-            HeldFirst = !_held;
             _held = true;
             return true;
         }
@@ -162,7 +151,6 @@ namespace Scry
         public void EndPass()
         {
             if (!Active) return;
-            if (_repaint) _seen = _unit;
             if (_repaint) _laidLastRepaint = _laidThisPass > 0;
             if (_repaint && !_held)
             {

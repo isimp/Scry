@@ -14,9 +14,6 @@ namespace Scry
     /// </summary>
     internal static partial class Stage
     {
-        /// <summary>Whether what is shown flies (<c>Character.m_flying</c>, as the game starts it), read as it is shown.</summary>
-        private static bool _flies;
-
         /// <summary>An animator with the game's in-water or flying switch, which of them it has, and how the creature it belongs to moves.</summary>
         private struct Switches
         {
@@ -44,9 +41,16 @@ namespace Scry
         /// <summary>A fault in telling how what is shown moves is told once and lets go of it, its animators left as they are.</summary>
         private const string MotionPart = "telling what is shown how it moves";
 
-        /// <summary>For the self-test: whether what is shown is told it flies.</summary>
+        /// <summary>For the self-test: whether what is shown is told it flies (<c>Character.m_flying</c>, as the game starts it).</summary>
         [ForTest]
-        public static bool ShownFlies => _flies;
+        public static bool ShownFlies
+        {
+            get
+            {
+                foreach (var each in MotionAnimators) if (each.Shown && each.Flies && each.Flying) return true;
+                return false;
+            }
+        }
 
         /// <summary>
         /// Reads whether a copy newly shown flies, a person wearing what is shown never, and
@@ -57,7 +61,6 @@ namespace Scry
         /// </summary>
         private static void ReadMotion(Entry entry)
         {
-            _flies = false;
             MotionAnimators.Clear();
             if (_subject == null || _subjectIsPerson) return;
             if (entry?.Source is RandomEvent)
@@ -66,7 +69,6 @@ namespace Scry
             }
             else if (entry?.Source is GameObject prefab)
             {
-                _flies = Flies(prefab);
                 GatherSwitches(_subject, prefab, shown: true, MotionAnimators);
             }
             Tell(MotionAnimators);
@@ -108,11 +110,7 @@ namespace Scry
         }
 
         /// <summary>Lets go of how what is shown moves, after a fault.</summary>
-        private static void ForgetMotion()
-        {
-            _flies = false;
-            MotionAnimators.Clear();
-        }
+        private static void ForgetMotion() => MotionAnimators.Clear();
 
         /// <summary>The animators of a copy of a prefab that have the game's in-water or flying switch, and which, added to a list.</summary>
         private static void GatherSwitches(GameObject copy, GameObject prefab, bool shown, List<Switches> into)
