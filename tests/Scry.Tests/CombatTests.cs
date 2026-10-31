@@ -99,6 +99,15 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AnAttackKeepsBackAllItsNumbersUntilItHitYouOrWasSeenBegun()
+        {
+            // Its damage, what it puts on you, how far it reaches and how often it comes: none the
+            // game shows, all shown by the attack itself; only its name and how it is made show.
+            Assert.Equal(new[] { 1, 3, 4 }, CombatWords.AttackKeptCells(CombatWords.AttackColumnsFor(onHit: false)));
+            Assert.Equal(new[] { 1, 3, 4, 5 }, CombatWords.AttackKeptCells(CombatWords.AttackColumnsFor(onHit: true)));
+        }
+
+        [Fact]
         public void AnAttackNamesWhatItFiresAndWhatItPutsOnYou()
         {
             // An attack that fires a projectile names it, whatever kind of attack it is.

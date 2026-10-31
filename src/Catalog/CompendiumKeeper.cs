@@ -323,6 +323,8 @@ namespace Scry
             var key = Utils.GetPrefabName(creature.gameObject);
             _catchUp.Met(key, KnownLevel.Known, Into, CameBy.Fought);
             MetIn(key, creature.transform.position);
+            // A fight shows how it senses, chases and flees.
+            Into.FoundOut(key, EntryKeys.Did(Deed.Fought));
         }
 
         /// <summary>A creature killed the character: counted against it, with the day (<see cref="CompendiumBook.Died"/>); nothing for a player or no attacker.</summary>

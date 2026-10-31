@@ -50,6 +50,9 @@ namespace Scry
 
         /// <summary>Saw a creature eat: how long its meal lasts, for one born tame, never tamed.</summary>
         Fed,
+
+        /// <summary>Fought a creature, it hit the character or the character it: how it senses, chases and flees.</summary>
+        Fought,
     }
 
     /// <summary>How two things were seen go together in play, the second shown on the first's page under the strict rules (<see cref="CompendiumBook.SawWith"/>).</summary>

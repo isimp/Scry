@@ -170,7 +170,8 @@ namespace Scry
                 case Deed.Killed: return kind == Kind.Creature;
                 case Deed.Broke: return kind == Kind.Resource;
                 case Deed.Caught: return kind == Kind.Item;
-                case Deed.Fed: return kind == Kind.Creature;
+                case Deed.Fed:
+                case Deed.Fought: return kind == Kind.Creature;
                 default: return true;
             }
         }

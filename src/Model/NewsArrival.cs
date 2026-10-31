@@ -58,7 +58,8 @@ namespace Scry
         {
             switch (deed)
             {
-                case Deed.Killed: return new[] { "overview", "fight" };
+                case Deed.Killed:
+                case Deed.Fought: return new[] { "overview", "fight" };
                 case Deed.Broke: return new[] { "overview", "breaking" };
                 case Deed.StarredFell: return new[] { "fight", "loot" };
                 case Deed.Tamed:

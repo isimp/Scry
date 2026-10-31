@@ -167,6 +167,20 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void HowACreatureSensesChasesAndFleesWaitsForAFight()
+        {
+            // How far it sees and hears, when it turns on you, gives up chasing or flees: shown by
+            // fighting one, it hitting you or you it.
+            Assert.Equal("shows once you have fought one", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Fought)));
+            var rows = CompendiumWords.StillToFindOut(new[] { EntryKeys.Did(Deed.Fought) }, new string[0], attacks: 0, spots: 0, new Tally[0]);
+            Assert.Equal(new[] { ("Fight one", "shows how it senses, chases and flees") }, rows.ToArray());
+            Assert.Equal("its ways found out", CompendiumWords.FoundOutNote(EntryKeys.Did(Deed.Fought)));
+            Assert.Equal("how Troll senses and chases", JournalWords.FoundOutOf(EntryKeys.Did(Deed.Fought), "Troll"));
+            Assert.True(StrictDeeds.Fits(Deed.Fought, Kind.Creature));
+            Assert.False(StrictDeeds.Fits(Deed.Fought, Kind.Resource));
+        }
+
+        [Fact]
         public void ARunestoneTextNotYetReadIsLeftToFind()
         {
             // Each text a place's runestones give is learned by reading it, under either rules, and

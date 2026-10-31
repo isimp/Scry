@@ -40,6 +40,8 @@ namespace Scry.Tests
             first.Fill(records, firstBook, firstLoad: true);
             Assert.True(firstBook.Proved(skeleton.Key, EntryKeys.Did(Deed.Killed)));
             Assert.True(firstBook.Proved(noArcher.Key, EntryKeys.Did(Deed.Killed)));
+            // A kill from before was a fight: how it senses and chases shows as well.
+            Assert.True(firstBook.Proved(skeleton.Key, EntryKeys.Did(Deed.Fought)));
             Assert.Null(firstBook.FoundOutOf(skeleton.Key));
             Assert.Contains(skeleton.Key, firstBook.Lately);
         }

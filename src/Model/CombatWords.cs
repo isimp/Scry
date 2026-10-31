@@ -178,6 +178,17 @@ namespace Scry
         /// <summary>The columns of a creature's attacks table, with what each puts on you where one does.</summary>
         public static string[] AttackColumnsFor(bool onHit) => onHit ? AttackColumnsOnHit : AttackColumns;
 
+        /// <summary>The columns of an attacks table an attack keeps back until it hit the character or was seen begun: its damage, what it puts on you, its reach and how often it comes, none of which the game shows.</summary>
+        public static int[] AttackKeptCells(string[] columns)
+        {
+            var kept = new List<int>();
+            for (var i = 0; i < columns.Length; i++)
+            {
+                if (columns[i] == "Damage" || columns[i] == "On hit" || columns[i] == "Reach" || columns[i] == "Every") kept.Add(i);
+            }
+            return kept.ToArray();
+        }
+
         private static readonly string[] AttackColumnsOnHit = { "Attack", "Damage", "How", "On hit", "Reach", "Every" };
 
         /// <summary>An attack's line with what it puts on you after how it is made; a dash for nothing.</summary>

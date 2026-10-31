@@ -32,8 +32,8 @@ namespace Scry
             p.Check(starred != null && starred.CellProofs.Any(c => c.Key.Cell > 1) && starred.CellProofs.Where(c => c.Key.Cell > 1).All(c => EntryKeys.IsStarsFell(c.Value, out var fell) && fell == c.Key.Cell - 1),
                 "what stars change waits by the cell until one with that many stars was seen to fall");
             var attacks = told.Rows.FirstOrDefault(r => r.Title == CombatWords.AttacksTitle);
-            p.Check(attacks?.AttackCells != null && attacks.AttackCells.All(c => c < attacks.Columns.Length && (attacks.Columns[c] == "Damage" || attacks.Columns[c] == "On hit")),
-                "its attacks keep back their damage and what they put on you until each hit the character", attacks == null ? "no attacks" : string.Join(", ", attacks.AttackCells?.Select(c => attacks.Columns[c]) ?? Enumerable.Empty<string>()));
+            p.Check(attacks?.AttackCells != null && attacks.AttackCells.All(c => c < attacks.Columns.Length && attacks.Columns[c] != "Attack" && attacks.Columns[c] != "How"),
+                "its attacks keep back their damage, what they put on you, their reach and pace until each hit the character", attacks == null ? "no attacks" : string.Join(", ", attacks.AttackCells?.Select(c => attacks.Columns[c]) ?? Enumerable.Empty<string>()));
             var drops = told.Rows.FirstOrDefault(r => r.Title == "Drops");
             p.Check(drops != null && drops.Tally == Tally.Fell && drops.TallyOf == troll.Name, "its drops are counted from what the character saw fall", drops == null ? "no drops" : drops.Tally + " of " + drops.TallyOf);
             var bring = told.Rows.FirstOrDefault(r => r.Title == SearchFight.BringTitle);
@@ -47,7 +47,7 @@ namespace Scry
             foreach (var (kind, name, fact, deed) in new[]
             {
                 (Kind.Creature, "Boar", "Tames in", Deed.Tamed), (Kind.Creature, "Boar", "Pregnant for", Deed.Born),
-                (Kind.Creature, "Boar_piggy", "Grows up in", Deed.GrewUp), (Kind.Resource, "RaspberryBush", "Regrows in", Deed.GrewBack), (Kind.Resource, "RaspberryBush", "Gives", Deed.GrewBack), (Kind.Creature, "Hen", "Fed for", Deed.Fed),
+                (Kind.Creature, "Boar_piggy", "Grows up in", Deed.GrewUp), (Kind.Resource, "RaspberryBush", "Regrows in", Deed.GrewBack), (Kind.Resource, "RaspberryBush", "Gives", Deed.GrewBack), (Kind.Creature, "Hen", "Fed for", Deed.Fed), (Kind.Creature, "Troll", "Sees", Deed.Fought),
             })
             {
                 var entry = Pick(kind, name);

@@ -480,6 +480,10 @@ namespace Scry
                 case Character creature:
                     if (!BornTame.FightsForPlayers(creature.gameObject)) deeds.Add(Deed.Killed);
                     break;
+                // How it senses, chases and flees waits for a fight, but for a summon, fought only by slaughtering one's own.
+                case BaseAI ai:
+                    if (!BornTame.FightsForPlayers(ai.gameObject)) deeds.Add(Deed.Fought);
+                    break;
                 // One born tame is never tamed: how long its meal lasts waits for one seen eating, where it eats.
                 case Tameable tame:
                     if (!tame.m_startsTamed) deeds.Add(Deed.Tamed);

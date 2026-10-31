@@ -231,7 +231,8 @@ namespace Scry
                 attacks.Add((cells, EntryKeys.DeathAttack, null, effect, death.Damage));
             }
             var onHit = attacks.Any(a => a.OnHit != null);
-            var table = new Row { Title = CombatWords.AttacksTitle, Columns = CombatWords.AttackColumnsFor(onHit), AttackCells = onHit ? new[] { 1, 3 } : new[] { 1 } };
+            var columns = CombatWords.AttackColumnsFor(onHit);
+            var table = new Row { Title = CombatWords.AttacksTitle, Columns = columns, AttackCells = CombatWords.AttackKeptCells(columns) };
             // A summon hits harder by its summoner's skill (SpawnAbility.Spawn), rolled as anything
             // but a player rolls a hit (Character.GetRandomSkillFactor): faint, as summoned at the character's level.
             var summoned = SkillReading.SummonedBy(prefab.name);
@@ -358,6 +359,12 @@ namespace Scry
                     Add("Gives up chasing", CombatWords.Chase(monster.m_maxChaseDistance));
                     Add("Flees", CombatWords.Flees(monster.m_fleeIfLowHealth));
                     if (!monster.m_attackPlayerObjects) Add("Leaves alone", "what players build");
+                }
+                // How it senses, chases and flees, which the game never shows, waits for a fight; a
+                // summon, fought only by slaughtering one's own, keeps none of it back.
+                if (!BornTame.FightsForPlayers(prefab))
+                {
+                    foreach (var sense in new[] { "Sees", "Hears", "Turns on you", "Gives up chasing", "Flees", "Fire" }) Proofs[sense] = EntryKeys.Did(Deed.Fought);
                 }
             }
 

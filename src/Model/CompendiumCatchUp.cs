@@ -170,10 +170,21 @@ namespace Scry
             // name, unless one of them was seen killed already, which tells which it was.
             var killedProof = EntryKeys.Did(Deed.Killed);
             var shown = killed.Where(c => firstLoad ? !Siblings(c, killed, records).Any(s => book.Proved(s.Key, killedProof)) : !Siblings(c, killed, records).Any()).ToList();
+            // A kill was a fight, which shows how the creature senses, chases and flees.
+            var foughtProof = EntryKeys.Did(Deed.Fought);
             foreach (var creature in shown)
             {
-                if (firstLoad) book.Prove(creature.Key, killedProof);
-                else book.FoundOut(creature.Key, killedProof);
+                if (firstLoad)
+                {
+                    book.Prove(creature.Key, killedProof);
+                    book.Prove(creature.Key, foughtProof);
+                }
+                else
+                {
+                    // The fight first, so the news of the kill names its health.
+                    book.FoundOut(creature.Key, foughtProof);
+                    book.FoundOut(creature.Key, killedProof);
+                }
             }
             // Honey or sap taken, a fish caught: what each shows found out, as news after the first reading.
             foreach (var (thing, proof) in Prefabs(records.Collected, Kind.Piece).Select(e => (e, EntryKeys.Did(Deed.Collected)))
