@@ -395,6 +395,7 @@ namespace Scry
             ("Character", "UpdateSwimming", 1, 0x0FCF0647, Feature.SeaHoldsOnStage),
             ("Character", "UpdateFlying", 1, 0x501E9C50, Feature.MotionToldOnStage),
             ("Tail", "CustomLateUpdate", 1, 0x1925DEC4, Feature.TailBentOnStage),
+            ("BaseAI", "MoveTo", 4, 0x3D65CBA8, Feature.FlyersHighOnStage),
             ("GameCamera", "GetCameraPosition", 3, 0x25D43903, Feature.SeaHoldsOnStage),
             ("Leviathan", "FixedUpdate", 0, 0xD1B2386F, Feature.SeaHoldsOnStage),
             ("WaterVolume", "DetectWaterDepth", 0, 0x825ECE7E, Feature.SeaHoldsOnStage),

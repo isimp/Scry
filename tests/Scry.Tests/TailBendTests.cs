@@ -95,5 +95,19 @@ namespace Scry.Tests
             Assert.Equal((-0.5f + whole.Y) / 2f, half.Y, 3);
             Assert.Equal((2f + whole.X) / 2f, half.X, 3);
         }
+
+        [Fact]
+        public void AShareOfTheWayBeyondAllOrNoneIsTakenAsAllOrNone()
+        {
+            // The game moves a joint by a share it holds between none and all (Vector3.Lerp), as a mod's tail may set any.
+            var whole = Next(new Vec3(2f, 0f, 0f), Whole(Serpent), water: float.NaN, ground: -100f);
+            var over = Serpent;
+            over.Smoothness = 3f;
+            var under = Serpent;
+            under.Smoothness = -1f;
+            var sank = new Vec3(2f, -0.5f, 0f);
+            Assert.Equal(whole.Y, Next(new Vec3(2f, 0f, 0f), over, water: float.NaN, ground: -100f).Y, 3);
+            Assert.Equal(sank.Y, Next(new Vec3(2f, 0f, 0f), under, water: float.NaN, ground: -100f).Y, 3);
+        }
     }
 }

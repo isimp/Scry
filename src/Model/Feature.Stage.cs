@@ -80,6 +80,7 @@ namespace Scry
         public static readonly Feature SeaHoldsOnStage = Listed("the sea holding what swims in it on the stage");
         public static readonly Feature MotionToldOnStage = Listed("creatures on the stage told they fly or swim");
         public static readonly Feature TailBentOnStage = Listed("a Serpent's or a Leech's tail bent on the stage");
+        public static readonly Feature FlyersHighOnStage = Listed("flyers on the stage as high as the game keeps them");
         public static readonly Feature FelledLogsStrikingGround = Listed("felled logs striking the ground");
         public static readonly Feature WorldLightsKeptOffStage = Listed("the world's lights kept off the stage");
         public static readonly Feature WhereCreaturesSpawn = Listed("where creatures spawn");

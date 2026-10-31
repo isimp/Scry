@@ -47,7 +47,8 @@ namespace Scry
             var toward = Turned(parentLine * -1f, Unit(middle - pos), rules.MaxAngle * (float)Math.PI / 180f);
             var at = middle - toward * half;
             if (rules.GroundCheck && at.Y - rules.Radius < ground) at.Y = ground + rules.Radius;
-            return pos + (at - pos) * rules.Smoothness;
+            // The share of the way is held between none and all, as the game's Vector3.Lerp holds it.
+            return pos + (at - pos) * Math.Max(0f, Math.Min(1f, rules.Smoothness));
         }
 
         /// <summary>The way <paramref name="from"/> turned toward <paramref name="to"/>, by at most an angle in radians; both of length one.</summary>
