@@ -201,6 +201,7 @@ namespace Scry
         /// </summary>
         private static IEnumerator CompactHeader(Probe p)
         {
+            if (!Session.IsOpen) Session.Show(null);
             KeepView();
             var was = (X.KindFilter, X.Origin, X.LearnedOnly);
             ScryPanel.Compact = true;

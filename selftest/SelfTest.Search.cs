@@ -67,6 +67,7 @@ namespace Scry
             X.SearchEverything("");
 
             // Picking a kind leaves every tab where it stood, so nothing under them moves.
+            if (!Session.IsOpen) Session.Show(null);
             var was = X.KindFilter;
             X.KindFilter = null;
             yield return null;
