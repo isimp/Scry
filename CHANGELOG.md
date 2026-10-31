@@ -2,27 +2,15 @@
 
 ## 0.3.3
 
-The first page opened after the game starts has less to do: in the frames after a world loads, Scry also compiles the game's and Unity's code its pages call, with the hooks mods put on it, and readies the way the stage's picture is drawn.
+Pages open faster. The first page after the game starts has less to prepare, and a page opened for the first time answers the click at once and fills in over the next frames, each part fading in from a faint outline.
 
-A page opened for the first time answers the click at once and fills in over the next frames instead of holding the game for a moment: each part stands in its place as a faint shimmering outline and fades in as it is ready. The stage says while it still lays its ground's grass.
+The stage's sea holds what lives in it: a Serpent swims at its depth with its tail bending as in the game, a Leviathan rides the surface, and the camera stays above the water. Drakes, Moder and a raid's flyers show in flight.
 
-On the ocean's ground the sea holds what lives in it: a Serpent swims at its depth under the surface instead of lying stranded on the sea floor, a Leviathan rides the surface with most of its body under water, and the sea under them is as deep as the world places them, so the camera looks down onto open water. Anything else stands on the sea floor in the shallows, with the water no higher than its middle. A Drake and Moder show in flight instead of landed, as high over the ground as the game keeps them, and so do a raid's flyers. A Serpent's or a Leech's body bends behind it as in the game, and the camera stays over the sea's surface as the game's does instead of looking up into empty air from under it. The stage's caption says it lays a ground's vegetation, and only where some grows.
+Under *Strict* every section says how many things it left out, telling what you never met apart from what you have not yet seen go together with the page, and the title row counts them, so `is:left` finds the pages with more to find out. Under *Loose* the same lines count what you have not met, and the title row reads like "3 of 6 met".
 
-Under *Strict* a page says what it keeps back. Each section ends saying how many things it left out, and a section left with nothing keeps its heading to say so. The title row counts the names not yet seen together along with the numbers, so it reads *All found out* only once nothing is kept back, the *You* box says how many wait to be seen together, and `is:left` finds the same pages.
+More is linked once you have seen it: what a boss's fall opens, a summoning chain's offering through its altar, a nest's creatures, a boss and its fight, and the weapons, attacks and blasts that put an effect on you. A boss's attacks count as seen from as far as its health bar shows.
 
-Under *Strict* what a page leaves out is told in two parts: what you never met, to meet first, and what you met but have not yet seen go together with it, on a page, a room's card and a raid's card alike. A boss's page links what its fall was seen to open, such as the wares a trader then sells, a summoning chain links its offering through the altar's place, and a nest's spawn table names the creatures you met.
-
-What a page links now stands in the topic it belongs to: what a bow shoots under its fight, where an item lies as treasure under *Where it comes from*, what a fire or a bed gives under *Resting* and a station's upgrades under *Building*. With the compendium on, *Linked* holds only a page's own parts and wiring, stands folded until opened and counts nothing toward a page's finds.
-
-A dungeon room's page says whether it is a dead end, a passage or a junction, and its peek says how many creatures and things to loot it left out.
-
-Under *Loose* every section ends saying how many things it left out as not yet met, not only a creature's loot, where it lives and a room's or raid's card. The title row counts how much of what a page names was met, such as "3 of 6 met", and reads *All met* once nothing is left out; its hover and the *You* box say how many are still to meet first, and `is:left` finds those pages under *Loose* too.
-
-Under *Strict* a boss's attacks count as seen begun from as far as the game shows its health bar, so a taunt that hurts no one is found out during the fight, and a boss and its fight's music and weather show on each other's pages once you lived through that fight.
-
-A creature's attack counts as met once it hit you or you saw it begun, and an effect's *How you get it* names the weapons you held and the attacks you met whose damage puts it on, such as Lightning by Yagluth's beam. It also names what those things spawn that deals its own damage, a falling meteor, a lingering blast or a creature's death blast once you saw that death up close, and a projectile's own damage now counts where it falls without an attack's, as Yagluth's meteors burn. A fire pit, a brazier or a creature whose own flames or cold hurt what is near names its effect once you know it, and the areas lying inside a prefab count too, as the thunderblood staff's lightning.
-
-With the compendium on, Scry's own words no longer read as a dash where they happen to hold the name of a thing not yet seen, such as a chest, wood or a hook. A place's row of chests and pickups is now *To loot*, and a fish bites once it swims to the float.
+What a page links now stands in the topic it belongs to, and with the compendium on *Linked* stays folded until opened. A dungeon room says whether it is a dead end, a passage or a junction. Scry's own words no longer turn into a dash where they hold a thing's name. Smaller fixes throughout.
 
 ## 0.3.2
 
