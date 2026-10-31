@@ -1,10 +1,11 @@
 namespace Scry
 {
     /// <summary>
-    /// How much of a page under the strict rules was found out: each number it keeps back for a
+    /// How much of a page was found out: under the strict rules each number it keeps back for a
     /// deed, each weak spot, damage type and attack's damage, each counted cell of a table and
     /// each line of where an item comes from, and each name it could leave out until seen
-    /// together with it, found or still kept back; one rule for all, a cell or a name a find.
+    /// together with it, found or still kept back; under the loose rules each name it leaves out
+    /// until met; one rule for all, a cell or a name a find.
     /// </summary>
     internal sealed class PageFinds
     {
@@ -19,6 +20,9 @@ namespace Scry
 
         /// <summary>How many of the names left out were met but not yet seen together with the page.</summary>
         public int NamesApart => NamesLeft - NamesUnmet;
+
+        /// <summary>How many names the page leaves out where a section's last line counts them, as they were gathered; none for a page not counted.</summary>
+        public int Lined { get; set; }
 
         /// <summary>Whether the page keeps anything back at all, found or not.</summary>
         public bool Any => Of > 0;

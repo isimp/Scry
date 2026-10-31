@@ -581,7 +581,7 @@ namespace Scry
 
         /// <summary>How many names the page last gathered leaves out where a section's last line counts them, for the self-test.</summary>
         [Diagnostic]
-        public static int NamesLinedForTest => _findsLined;
+        public static int NamesLinedForTest => _finds.Lined;
 
         /// <summary>A draw of an entry's details begins: nothing left out yet.</summary>
         private static void StartNameCount() => _drawLeft = 0;

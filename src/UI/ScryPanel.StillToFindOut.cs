@@ -22,7 +22,7 @@ namespace Scry
             if (!explorer.CountingFinds || facts == null) return (NothingStill, finds);
             if (!explorer.LeavingOut)
             {
-                _gatheredLined = PageNames(explorer, facts, finds);
+                finds.Lined = PageNames(explorer, facts, finds);
                 return (CompendiumWords.StillToFindOut(Array.Empty<string>(), Array.Empty<string>(), 0, 0, Array.Empty<Tally>(), namesApart: finds.NamesApart, namesUnmet: finds.NamesUnmet), finds);
             }
             var deeds = new List<string>();
@@ -67,7 +67,7 @@ namespace Scry
             }
             Sourced(explorer, facts, deeds, uncounted, finds);
             var (starsUnseen, gearUnseen) = SightLacks(explorer, facts, finds);
-            _gatheredLined = PageNames(explorer, facts, finds);
+            finds.Lined = PageNames(explorer, facts, finds);
             return (CompendiumWords.StillToFindOut(deeds, types, attacks, spots, uncounted, starsUnseen, gearUnseen, explorer.Selected?.Kind == Kind.Item, finds.NamesApart, finds.NamesUnmet), finds);
         }
 
@@ -134,9 +134,6 @@ namespace Scry
             }
             return names.Lined;
         }
-
-        /// <summary>How many names the page gathered last leaves out where a section's last line counts them (<see cref="PageNames"/>).</summary>
-        private static int _gatheredLined;
 
         /// <summary>The names a page could leave out, as they are gathered (<see cref="PageNames"/>).</summary>
         private sealed class NameTally

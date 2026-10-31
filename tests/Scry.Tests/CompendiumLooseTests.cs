@@ -8,6 +8,10 @@ namespace Scry.Tests
 {
     public class CompendiumLooseTests
     {
+        /// <summary>The one line a section ends in that left so many out, all never met under the loose rules and all met under the strict ones.</summary>
+        private static string Line(Explorer explorer, string topic, int count, bool alone = false) =>
+            explorer.LeftOutLines(topic, explorer.LeavingOut ? 0 : count, explorer.LeavingOut ? count : 0, alone).Select(l => l.Line).FirstOrDefault();
+
         // Under the loose rules a known page shows whole, but of what it names only what the
         // character has met, seen or come to know: the rest is left out and counted, and no
         // search finds the page by it. A known windmill does not tell what it grinds before the
@@ -237,12 +241,12 @@ namespace Scry.Tests
             var world = new World().Rule(CompendiumRule.Loose);
             world.Explorer.Select(world.Windmill);
             // Every section counts what it left out as not yet met, a creature's places by what they are.
-            Assert.Equal("2 more not yet met", world.Explorer.LeftOutLine("making", 2));
-            Assert.Equal("1 more place it lives not yet found", world.Explorer.LeftOutLine("lives", 1));
-            Assert.Null(world.Explorer.LeftOutLine("making", 0));
+            Assert.Equal("2 more not yet met", Line(world.Explorer, "making", 2));
+            Assert.Equal("1 more place it lives not yet found", Line(world.Explorer, "lives", 1));
+            Assert.Null(Line(world.Explorer, "making", 0));
 
             world.Rule(CompendiumRule.Strict);
-            Assert.Equal("2 more not yet seen fall", world.Explorer.LeftOutLine("loot", 2));
+            Assert.Equal("2 more not yet seen fall", Line(world.Explorer, "loot", 2));
         }
 
         [Fact]
@@ -297,17 +301,17 @@ namespace Scry.Tests
             // many at its end, so the page never goes quiet on what it keeps back.
             var world = new World().Rule(CompendiumRule.Strict);
             world.Explorer.Select(world.Windmill);
-            Assert.Equal("2 more not yet seen together", world.Explorer.LeftOutLine("making", 2));
-            Assert.Equal("1 more not yet seen give it", world.Explorer.LeftOutLine("from", 1));
+            Assert.Equal("2 more not yet seen together", Line(world.Explorer, "making", 2));
+            Assert.Equal("1 more not yet seen give it", Line(world.Explorer, "from", 1));
             // A section with no topic of its own, as LINKED, counts too; one left with nothing else says it alone.
-            Assert.Equal("11 not yet seen together", world.Explorer.LeftOutLine(null, 11, alone: true));
-            Assert.Null(world.Explorer.LeftOutLine("making", 0));
+            Assert.Equal("11 not yet seen together", Line(world.Explorer, null, 11, alone: true));
+            Assert.Null(Line(world.Explorer, "making", 0));
             // Loose leaves out only what was never met, and says so in every section just the same.
             world.Rule(CompendiumRule.Loose);
-            Assert.Equal("2 more not yet met", world.Explorer.LeftOutLine("making", 2));
-            Assert.Equal("1 more not yet met", world.Explorer.LeftOutLine("from", 1));
-            Assert.Equal("11 not yet met", world.Explorer.LeftOutLine(null, 11, alone: true));
-            Assert.Null(world.Explorer.LeftOutLine("making", 0));
+            Assert.Equal("2 more not yet met", Line(world.Explorer, "making", 2));
+            Assert.Equal("1 more not yet met", Line(world.Explorer, "from", 1));
+            Assert.Equal("11 not yet met", Line(world.Explorer, null, 11, alone: true));
+            Assert.Null(Line(world.Explorer, "making", 0));
         }
 
         [Fact]
@@ -392,11 +396,11 @@ namespace Scry.Tests
             // are counted on it under either rule, a count the player can act on by going in.
             var world = new World().Rule(CompendiumRule.Loose);
             world.Explorer.Select(world.Windmill);
-            Assert.Equal("7 not yet met", world.Explorer.LeftOutLine("room", 7, alone: true));
-            Assert.Equal("2 more not yet met", world.Explorer.LeftOutLine("room", 2));
-            Assert.Null(world.Explorer.LeftOutLine("room", 0));
+            Assert.Equal("7 not yet met", Line(world.Explorer, "room", 7, alone: true));
+            Assert.Equal("2 more not yet met", Line(world.Explorer, "room", 2));
+            Assert.Null(Line(world.Explorer, "room", 0));
             world.Rule(CompendiumRule.Strict);
-            Assert.Equal("7 not yet seen here", world.Explorer.LeftOutLine("room", 7, alone: true));
+            Assert.Equal("7 not yet seen here", Line(world.Explorer, "room", 7, alone: true));
         }
 
         [Fact]

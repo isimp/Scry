@@ -30,7 +30,7 @@ namespace Scry
         public static (int Found, int Of) FindsForTest => (_finds.Found, _finds.Of);
 
         /// <summary>
-        /// What the page shown keeps back under the strict rules: what is still to find out, and how
+        /// What the page shown keeps back, under either rules: what is still to find out, and how
         /// much of all it keeps back was found out; gathered again for another page, as what the
         /// character knows changes, and at most once a second.
         /// </summary>
@@ -42,13 +42,9 @@ namespace Scry
                 _findsStamp = explorer.KnowStamp;
                 _findsAt = Time.unscaledTime;
                 (_findsStill, _finds) = StillToFindOut(explorer, Facts.For(entry));
-                _findsLined = _gatheredLined;
             }
             return (_findsStill, _finds);
         }
-
-        /// <summary>How many names the page the finds were gathered for leaves out where a section's last line counts them.</summary>
-        private static int _findsLined;
 
         /// <summary>Whether a page still has something to find out, by entry, as last gathered; told anew as what the character knows changes.</summary>
         private static readonly Dictionary<Entry, bool> LeftByPages = new Dictionary<Entry, bool>();

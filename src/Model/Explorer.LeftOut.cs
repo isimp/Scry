@@ -18,7 +18,7 @@ namespace Scry
             var lines = new List<(string, string)>();
             if (!LeavingOut)
             {
-                var line = LeftOutLine(topic, unmet + apart, alone);
+                var line = CompendiumWords.NotYetMet(topic, unmet + apart, alone);
                 if (line != null) lines.Add((line, CompendiumWords.MeetFirstTip(strict: false)));
                 return lines;
             }
@@ -43,18 +43,6 @@ namespace Scry
                 else apart++;
             }
             return LeftOutLines(topic, unmet, apart, alone).ConvertAll(l => l.Line);
-        }
-
-        /// <summary>
-        /// The faint line telling how many things a page left out, as <see cref="LeftOutLines"/>
-        /// tells them, every one in one count.
-        /// </summary>
-        public string LeftOutLine(string topic, int count, bool alone = false)
-        {
-            // Every section says how many it left out, so the page never goes quiet on it: under
-            // the strict rules what was not seen together with the page, under the loose ones what
-            // was not yet met.
-            return LeavingOut ? CompendiumWords.LeftOutOf(topic, count, alone) : CompendiumWords.NotYetMet(topic, count, alone);
         }
 
         /// <summary>
