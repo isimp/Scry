@@ -193,6 +193,16 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AFishSeenLandedNearByShowsHowItFights()
+        {
+            // A friend lands a fish beside the character: seen, it shows how it fights, as a kill
+            // seen shows its loot; the bait stays the fisher's to see. Too far, nothing.
+            var book = Told(Event(Happened.Caught, "Fish1", 10f, doers: new[] { Friend }));
+            Assert.True(book.Proved("Fish1", EntryKeys.Did(Deed.Caught)));
+            Assert.False(Told(Event(Happened.Caught, "Fish1", 40f, doers: new[] { Friend })).Changed);
+        }
+
+        [Fact]
         public void ACreatureSeenEatingIsPairedWithWhatItAte()
         {
             Assert.True(Told(Event(Happened.Ate, "Boar", 10f, with: "Raspberry")).Witnessed("Boar", "Raspberry"));

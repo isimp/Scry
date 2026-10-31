@@ -39,6 +39,9 @@ namespace Scry
 
         /// <summary>An egg hatched.</summary>
         Hatched,
+
+        /// <summary>A fish landed, its level the stars it was caught with.</summary>
+        Caught,
     }
 
     /// <summary>
@@ -346,6 +349,7 @@ namespace Scry
             {
                 case Happened.Born: return Deed.Born;
                 case Happened.Hatched: return Deed.Hatched;
+                case Happened.Caught: return Deed.Caught;
                 case Happened.GrewUp: return Deed.GrewUp;
                 case Happened.GrewBack: return Deed.GrewBack;
                 case Happened.Grew: return Deed.Grew;
