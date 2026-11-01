@@ -34,7 +34,7 @@ namespace Scry
                 });
                 yield return true;
                 // Its grid follows the character's own hits, as a rock's does; what it takes none of, no hit shows.
-                Part("resistances", () => Rows.Add(new Row { Title = "Damage it takes", HitReveals = true, Cells = ResistWords.ForBuilt(Cells(wear.m_damages)) }));
+                Part("resistances", () => Rows.Add(new Row { Title = "Damage it takes", HitReveals = true, Cells = ResistWords.ForBroken(Cells(wear.m_damages)) }));
                 yield return true;
                 Hooked(HookedRule.Wear);
             }

@@ -46,10 +46,10 @@ namespace Scry.Tests
         [Fact]
         public void APiecesGridShowsWhatItTakesNoneOfQuietly()
         {
-            // A wall's grid waits for the character's own hits, type by type; what it takes none of
-            // no hit can show, so it is drawn quietly and counted as nothing to find.
+            // A wall's or a tree's grid waits for the character's own hits, type by type; what it
+            // takes none of no hit can show, so it is drawn quietly and counted as nothing to find.
             var cells = new[] { ResistWords.Cell("Blunt", Degree.Normal), ResistWords.Cell("Poison", Degree.Immune), ResistWords.Cell("Spirit", Degree.Ignore), ResistWords.Cell("Fire", Degree.Weak) };
-            var piece = ResistWords.ForBuilt(cells);
+            var piece = ResistWords.ForBroken(cells);
             Assert.Equal(new[] { "Blunt", "Poison", "Spirit", "Fire" }, piece.Select(c => c.Type));
             Assert.Equal(new[] { Tone.Plain, Tone.Quiet, Tone.Quiet, Tone.Weak }, piece.Select(c => c.Tone));
             Assert.Contains("takes none", piece[1].Tip);

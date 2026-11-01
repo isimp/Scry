@@ -191,8 +191,8 @@ namespace Scry
             if (health > 0f) Add("Health", GatherWords.Health(health, perPiece));
             Proofs["Health"] = EntryKeys.Did(Deed.Broke);
             Add("Needs tool tier", GatherWords.ToolTier(toolTier));
-            // A hit's popup tells how it takes each type, as a creature's does.
-            Resists(resists, hitReveals: true);
+            // A hit's popup tells how it takes each type, as a creature's does; what it takes none of no hit shows.
+            Rows.Add(new Row { Title = "Damage it takes", HitReveals = true, Cells = ResistWords.ForBroken(Cells(resists)) });
 
             // What breaks it, told once, by its outer part where it has an inside.
             if (Rows.Any(r => r.Title == GatherWords.BrokenWithTitle)) return;

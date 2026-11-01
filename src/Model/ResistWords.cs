@@ -111,11 +111,11 @@ namespace Scry
                 : c).ToList();
 
         /// <summary>
-        /// A piece's grid, which follows the character's own hits type by type as a rock's does:
-        /// what it takes none of no hit can show, so it is drawn quietly, keeping its place so the
-        /// grid's rows stay the same, and counted as nothing to find.
+        /// The grid of a thing that breaks, a tree, a rock or a piece, which follows the character's
+        /// own hits type by type: what it takes none of no hit can show, so it is drawn quietly,
+        /// keeping its place so the grid's rows stay the same, and counted as nothing to find.
         /// </summary>
-        public static List<ResistCell> ForBuilt(IEnumerable<ResistCell> cells) =>
+        public static List<ResistCell> ForBroken(IEnumerable<ResistCell> cells) =>
             cells.Select(c => c.Tone == Tone.Immune ? new ResistCell { Type = c.Type, Value = c.Value, Tip = c.Type + ": takes none; only what it takes is told by a hit", Tone = Tone.Quiet } : c).ToList();
 
         public static ResistCell Cell(string type, Degree degree)
