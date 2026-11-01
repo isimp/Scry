@@ -838,8 +838,9 @@ namespace Scry.Tests
         [Fact]
         public void TheStatusEffectsWhatTheRecordsMakeKnownGivesAreKnownAndPairedWithIt()
         {
-            // A character played before rested by its bed and got wet in its biomes long before
-            // the compendium watched; the game keeps no record of status effects themselves.
+            // A character played before rested by its bed long before the compendium watched; the
+            // game keeps no record of status effects themselves. Entering a biome says nothing of its
+            // weather, so the wet it can bring waits for the character to have it there.
             var bed = E(Kind.Piece, "bed", "$piece_bed");
             var meadows = E(Kind.Biome, "Meadows", "$biome_meadows");
             var throne = E(Kind.Piece, "piece_throne", "$piece_throne");
@@ -862,16 +863,15 @@ namespace Scry.Tests
             catchUp.Fill(records, book, firstLoad: true);
 
             Assert.Equal(KnownLevel.Known, book.Level(rested.Key));
-            Assert.Equal(KnownLevel.Known, book.Level(wet.Key));
+            Assert.Equal(KnownLevel.Unknown, book.Level(wet.Key));
             // Only what gives it counts, and only what the records show.
             Assert.Equal(KnownLevel.Unknown, book.Level(royal.Key));
             Assert.Equal(KnownLevel.Unknown, book.Level(smoked.Key));
             // News as the character loads, as everything the first reading brings.
             Assert.Contains(rested.Key, book.Lately);
-            Assert.Contains(wet.Key, book.Lately);
             Assert.True(book.Witnessed(rested.Key, bed.Key));
             Assert.False(book.Witnessed(rested.Key, throne.Key));
-            Assert.True(book.Witnessed(wet.Key, meadows.Key));
+            Assert.False(book.Witnessed(wet.Key, meadows.Key));
         }
 
         [Fact]

@@ -245,6 +245,7 @@ namespace Scry
                 _catchUp.Met(key, KnownLevel.Known, _book, CameBy.OnYou);
                 // On the character, how it works on it shows.
                 if (_catchUp.Lists(key)) _book.FoundOut(key, EntryKeys.Did(Deed.Felt));
+                WeatherOnYou(effect, key, player.transform.position);
             }
             var raid = RandEventSystem.instance.OrNull()?.GetActiveEvent();
             RaidNow = raid != null ? EntryKeys.For(Kind.Raid, raid.m_name) : null;
@@ -890,6 +891,28 @@ namespace Scry
 
         /// <summary>The weather last seen and the biome it was seen in, so each change of weather is counted once.</summary>
         private static (Heightmap.Biome Biome, string Weather) _weatherSeen;
+
+        /// <summary>
+        /// A weather's effect on the character (Wet, Cold, Freezing) while the weather now gives it
+        /// (<c>EnvMan.IsWet</c>, <c>IsCold</c>, <c>IsFreezing</c>): seen together with the biome the
+        /// character stands in where the weather is that biome's own, else with the raid putting its
+        /// weather in the biome's place. Got another way, as wet from swimming, it pairs with neither.
+        /// </summary>
+        private static void WeatherOnYou(StatusEffect effect, string key, Vector3 at)
+        {
+            var env = EnvMan.instance;
+            if (env == null) return;
+            var hash = effect.NameHash();
+            var given = (hash == SEMan.s_statusEffectWet && EnvMan.IsWet()) || (hash == SEMan.s_statusEffectCold && EnvMan.IsCold())
+                || (hash == SEMan.s_statusEffectFreezing && EnvMan.IsFreezing());
+            if (!given) return;
+            if (BiomesOwnWeather(env))
+            {
+                var biome = BiomeKeyAt(at);
+                if (biome != null) _book.Witness(key, biome);
+            }
+            else if (RaidNow != null) _book.Witness(key, RaidNow);
+        }
 
         private static AccessTools.FieldRef<EnvMan, string> _forcedWeather;
         private static Func<EnvMan, string> _weatherInPlace;

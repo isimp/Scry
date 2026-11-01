@@ -211,9 +211,11 @@ namespace Scry
         }
 
         /// <summary>
-        /// The status effects something known gives (a bed's Rested, a fire's Resting, a biome's
-        /// weather), with the givers among the known: the game keeps no record of status effects,
-        /// only of what gives them.
+        /// The status effects something known gives (a bed's Rested, a fire's Resting), with the
+        /// givers among the known: the game keeps no record of status effects, only of what gives
+        /// them. A biome's or a raid's weather is none of them, as entering a biome or living
+        /// through a raid says nothing of the weather it brought; such an effect is learned and
+        /// paired as it is on the character.
         /// </summary>
         private Dictionary<Entry, List<string>> Givers(IEnumerable<Entry> known)
         {
@@ -225,6 +227,7 @@ namespace Scry
                 foreach (var link in effect.Links)
                 {
                     if (link.Group != LinkWords.GivenBy || !keys.Contains(link.Target)) continue;
+                    if (_catalog.Find(link.Target)?.Kind is Kind giver && (giver == Kind.Biome || giver == Kind.Raid)) continue;
                     if (!givers.TryGetValue(effect, out var list)) givers[effect] = list = new List<string>();
                     list.Add(link.Target);
                 }
