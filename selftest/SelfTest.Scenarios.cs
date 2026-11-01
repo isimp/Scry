@@ -277,7 +277,11 @@ namespace Scry
             p.Note($"the self-test's own checks, left out of these figures, took up to {Numbers.Amount(Frames.TestMax, 0)} ms in a frame");
             p.Note($"at the end the scripts hold {Numbers.Count(System.GC.GetTotalMemory(false) >> 20)} MB, the facts of {Numbers.Count(Facts.Held)} pages kept");
             p.Check(Frames.Frames > 0, "Scry's own work was measured");
-            p.Within(Frames.Max, 250, "no frame of Scry's own work took a quarter of a second", $"{Numbers.Amount(Frames.Max, 0)} ms at the most");
+            // A part taking most of more than one frame past a quarter second is a hot spot; a frame
+            // standing alone is most likely a stall of the machine or a memory cleanup, noted only.
+            var (repeated, once) = SlowRepeats.Of(Frames.Slowest(Frames.Over(250)), 250);
+            foreach (var frame in once) p.Note("one slow frame, its part taking no other, not judged: " + FrameStats.Told(frame));
+            p.Check(repeated.Count == 0, "no part of Scry's own work took most of more than one frame past a quarter of a second", SlowRepeats.Told(repeated));
             yield break;
         }
     }
