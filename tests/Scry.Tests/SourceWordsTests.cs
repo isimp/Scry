@@ -68,7 +68,7 @@ namespace Scry.Tests
             rolls.Drops.Add(new DropInfo("Amber", 1, 1, 1f));
             var amber = SourceFacts.FromTable("TreasureChest_meadows", "Chest", TableOf.Container, rolls, rolls.Drops[1]);
 
-            Assert.Equal("Found in Chest, 1 (50% a roll, 2 rolls)", SourceWords.Line(amber, NoBoss));
+            Assert.Equal("Found in Chest, 1 (50% a pick, 2 picks)", SourceWords.Line(amber, NoBoss));
             Assert.Equal(0.75, SourceWords.Sureness(amber), 6);
         }
 

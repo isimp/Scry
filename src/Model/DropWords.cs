@@ -96,7 +96,7 @@ namespace Scry
             return title;
         }
 
-        /// <summary>How many of an item a roll gives, and its share of a roll where there is a choice.</summary>
+        /// <summary>How many of an item a pick gives, and its share of a pick where there is a choice.</summary>
         public static string Amount(DropTableInfo table, DropInfo drop)
         {
             var amount = Numbers.CountRange(drop.StackMin, drop.StackMax);
@@ -109,7 +109,7 @@ namespace Scry
 
         /// <summary>
         /// One item's odds in a table, as the item's details tell where it comes from: how many a
-        /// roll gives, its share of a roll where there is a choice, how many rolls there are, and
+        /// pick gives, its share of a pick where there is a choice, how many picks there are, and
         /// how often the table gives anything. From a table that gives each item at most once, how
         /// many of its items are picked instead.
         /// </summary>
@@ -125,8 +125,8 @@ namespace Scry
             {
                 var total = 0f;
                 foreach (var each in table.Drops) total += each.Weight;
-                if (table.Drops.Count > 1 && total > 0f) odds.Add(Share(drop.Weight / total) + " a roll");
-                if (table.Max > 1) odds.Add($"{Numbers.CountRange(table.Min, table.Max)} rolls");
+                if (table.Drops.Count > 1 && total > 0f) odds.Add(Share(drop.Weight / total) + " a pick");
+                if (table.Max > 1) odds.Add($"{Numbers.CountRange(table.Min, table.Max)} picks");
             }
             if (table.Chance < 1f) odds.Add(Share(table.Chance) + " of the time");
             return odds.Count > 0 ? $"{amount} ({string.Join(", ", odds.ToArray())})" : amount;

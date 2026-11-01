@@ -830,14 +830,14 @@ namespace Scry
         private static IEnumerator LootOdds(Probe p)
         {
             var items = X.Catalog.Where(e => e.Kind == Kind.Item && e.Origin == Origin.Vanilla).ToList();
-            var withOdds = items.Where(e => Knowledge.SourceLines(e.Name).Any(s => s.Text.Contains("% a roll"))).ToList();
-            p.Note($"{Numbers.Count(withOdds.Count)} of {Numbers.Count(items.Count)} of the game's items tell their share of a roll somewhere");
-            p.Check(withOdds.Count > 0, "items tell their share of a roll in the tables that give them");
+            var withOdds = items.Where(e => Knowledge.SourceLines(e.Name).Any(s => s.Text.Contains("% a pick"))).ToList();
+            p.Note($"{Numbers.Count(withOdds.Count)} of {Numbers.Count(items.Count)} of the game's items tell their share of a pick somewhere");
+            p.Check(withOdds.Count > 0, "items tell their share of a pick in the tables that give them");
             var amber = items.FirstOrDefault(e => e.Name == "Amber");
             if (amber != null)
             {
                 var lines = Knowledge.SourceLines("Amber").Select(s => s.Text).ToList();
-                p.Check(lines.Any(t => t.Contains("% a roll")), "amber tells its odds in the chests that hold it", string.Join(" | ", lines.Take(3)));
+                p.Check(lines.Any(t => t.Contains("% a pick")), "amber tells its odds in the chests that hold it", string.Join(" | ", lines.Take(3)));
             }
             yield break;
         }
