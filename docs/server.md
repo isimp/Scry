@@ -11,7 +11,7 @@ See also: [messages](network.md), [the world's sources](compendium/sources.md), 
 | Setting | What runs | Notes |
 |---|---|---|
 | Alone (a world of one's own) | everything, the server's part in the player's own game | answers come from the game itself, at once |
-| Hosting (a player's game runs the world for others) | everything; the host's game is the world's server for those joining | the host's `[4 - World]` settings bind everyone who joins; traces are read on `/scry read traces`, not at each start; the server's records live in the host's cache folder |
+| Hosting (a player's game runs the world for others) | everything; the host's game is the world's server for those joining | the host's `[4 - World]` settings bind everyone who joins; traces are read at each start, as on a dedicated server, unless `ReadTracesOnStart` is off; the server's records live in the host's cache folder |
 | Dedicated server with Scry | on the server: the world's settings sent to every player, answers on explored and shared ground, the census and dungeons in a ground, the records of dungeons walked, the traces read at each start; no patches, no panel | finds no graphics device (`GraphicsDeviceType.Null`) and runs only its messages |
 | Dedicated server without Scry | each player's own Scry alone | events between players still pass through; no census, no answers on explored or shared ground, no server records or traces; the compendium's box names what is left out |
 
