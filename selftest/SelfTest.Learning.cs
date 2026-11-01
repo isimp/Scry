@@ -134,6 +134,7 @@ namespace Scry
             AltarTells(p, Fresh);
             FedThenHeldTells(p, Fresh);
             TwinsTell(p);
+            DroplessDeathsTell(p, Fresh);
 
             CompendiumKeeper.RecordInto(null);
             p.Check(real.Version == version && real.PairsVersion == pairs, "the character's book was left alone");
@@ -178,6 +179,19 @@ namespace Scry
                 if (fish == null || !records.Picked.Contains(fish.m_name) || !told.Proved(name, EntryKeys.Did(Deed.Caught))) odd.Add(name);
             }
             p.Check(odd.Count == 0, "what its records tell of picks, takes and catches names the right things, each paired or shown", string.Join(", ", odd.Take(10)));
+        }
+
+        /// <summary>Creatures with no drop list, as starred young are, named; one dying starred beside the character, told with no loot, shows its health and what its stars change.</summary>
+        private static void DroplessDeathsTell(Probe p, System.Func<CompendiumBook> fresh)
+        {
+            var dropless = X.Catalog.Where(e => e.Kind == Kind.Creature && GamePrefabs.Named(e.Name) is GameObject prefab
+                && prefab.GetComponent<Character>() != null && prefab.GetComponent<CharacterDrop>() == null && !BornTame.Is(prefab)).Select(e => e.Name).ToList();
+            p.Note($"{Numbers.Count(dropless.Count)} creatures leave no loot: " + string.Join(", ", dropless.Take(12)));
+            var player = Player.m_localPlayer;
+            if (dropless.Count == 0 || player == null) return;
+            var book = fresh();
+            CompendiumKeeper.Tell(WorldEvents.Make(Happened.Died, dropless[0], player.transform.position, level: 2, doers: new[] { ZNet.GetUID() }));
+            p.Check(book.Proved(dropless[0], EntryKeys.Did(Deed.Killed)) && book.Proved(dropless[0], EntryKeys.Did(Deed.StarredFell)), $"{dropless[0]} dying with one star beside you, no loot told, shows its health and what stars change");
         }
 
         /// <summary>The catalog's resource twins share their health as their pages tell it, so what was found out of one may hold for each.</summary>

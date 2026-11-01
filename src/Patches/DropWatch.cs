@@ -83,19 +83,58 @@ namespace Scry
             Begin(name, creature != null ? creature.GetLevel() : 1, doers, drops.transform.position);
         }
 
-        /// <summary>A ragdoll given a creature's loot to drop when it goes.</summary>
+        /// <summary>A ragdoll given a creature's loot to drop when it goes, or made for a creature with none (<see cref="Dropless"/>) that tells its death as it goes.</summary>
         public static void RagdollSetUp(Ragdoll ragdoll, CharacterDrop drops, int level)
         {
-            if (ragdoll == null || drops == null || !ragdoll.m_dropItems) return;
+            if (ragdoll == null) return;
+            if (drops == null)
+            {
+                var dropless = Dropless.TakenByRemains(ragdoll.m_dropItems);
+                if (dropless != null) RagdollTells(ragdoll, dropless.Value.Creature, level, dropless.Value.Doers);
+                return;
+            }
+            if (!ragdoll.m_dropItems) return;
+            RagdollTells(ragdoll, Utils.GetPrefabName(drops.gameObject), level, WorldEvents.Attackers(drops.GetComponent<Character>()));
+        }
+
+        /// <summary>A ragdoll that tells a creature's death as it goes, with the loot it drops.</summary>
+        private static void RagdollTells(Ragdoll ragdoll, string name, int level, IReadOnlyList<long> doers)
+        {
             if (Ragdolls.Count > 256) Prune();
-            var doers = WorldEvents.Attackers(drops.GetComponent<Character>());
-            var name = Utils.GetPrefabName(drops.gameObject);
             CompendiumKeeper.KillToldByThisGame(name, doers);
             // Judged as at the death, as a death seen by its remains is, though the loot comes out later.
             var player = Player.m_localPlayer;
             var stood = player != null ? player.transform.position : ragdoll.transform.position;
             var at = ragdoll.transform.position;
             Ragdolls[ragdoll] = (name, level, doers, stood, CompendiumSight.SeesDeed(at.x, at.y, at.z));
+        }
+
+        /// <summary>Creatures with no drop list dying on this game, whose deaths no loot tells.</summary>
+        private static readonly DroplessDeaths Dropless = new DroplessDeaths();
+
+        /// <summary>Where the creature with no drop list dying now stood.</summary>
+        private static Vector3 _droplessAt;
+
+        /// <summary>A creature beginning to die: noted where it has no drop list and this game runs it (<see cref="DroplessDeaths"/>).</summary>
+        public static void Dying(Character creature)
+        {
+            if (creature == null) return;
+            var view = creature.GetComponent<ZNetView>().OrNull();
+            var runsHere = view != null && view.IsValid() && view.IsOwner();
+            var player = creature.IsPlayer();
+            var hasDrops = creature.GetComponent<CharacterDrop>() != null;
+            Dropless.Dying(Utils.GetPrefabName(creature.gameObject), creature.GetLevel(), player || !runsHere || hasDrops ? null : WorldEvents.Attackers(creature), player, runsHere, hasDrops);
+            _droplessAt = creature.transform.position;
+        }
+
+        /// <summary>The death is over: one with no drop list that no remains tell is told now, with no loot.</summary>
+        public static void Died()
+        {
+            var dropless = Dropless.Died();
+            if (dropless == null) return;
+            CompendiumKeeper.KillToldByThisGame(dropless.Value.Creature, dropless.Value.Doers);
+            Begin(dropless.Value.Creature, dropless.Value.Level, dropless.Value.Doers, _droplessAt);
+            End();
         }
 
         public static void BeginRagdoll(Ragdoll ragdoll)
@@ -206,6 +245,23 @@ namespace Scry
         private static void Postfix()
         {
             Guard.Run(Feature.DropsSeenInPlay, "watching what creatures drop", () => DropWatch.End());
+        }
+    }
+
+    /// <summary>A creature dying on the game running it (<c>Character.OnDeath</c>; a player's own is <c>Player.OnDeath</c>): one with no drop list told by itself as it ends.</summary>
+    [HarmonyPatch(typeof(Character), "OnDeath")]
+    internal static class DroplessDeathWatched
+    {
+        [HarmonyPriority(Priority.First)]
+        private static void Prefix(Character __instance)
+        {
+            Guard.Run(Feature.DropsSeenInPlay, "watching a death no loot tells", () => DropWatch.Dying(__instance));
+        }
+
+        [HarmonyPriority(Priority.Last)]
+        private static void Postfix()
+        {
+            Guard.Run(Feature.DropsSeenInPlay, "watching a death no loot tells", () => DropWatch.Died());
         }
     }
 

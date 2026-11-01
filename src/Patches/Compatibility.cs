@@ -234,6 +234,7 @@ namespace Scry
             // A server passes a routed message on to the player it is for, knowing it or not, which events between games rely on.
             ("ZRoutedRpc", "RouteRPC", 1, 0x01B23498, Feature.CompendiumTogether),
             ("Character", "OnDeath", 0, 0xE8638E7F, Feature.CompendiumTogether),
+            ("Character", "OnDeath", 0, 0xE8638E7F, Feature.DropsSeenInPlay),
             ("Ragdoll", "Setup", 7, 0x7D29C725, Feature.DropsSeenInPlay),
             ("Ragdoll", "SpawnLoot", 1, 0x515425F4, Feature.DropsSeenInPlay),
             ("Ragdoll", "Awake", 0, 0x5D6AC5F3, Feature.DropsSeenInPlay),
