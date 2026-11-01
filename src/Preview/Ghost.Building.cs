@@ -325,7 +325,7 @@ namespace Scry
                         // Posed and woken where it stands, all but the parts that wake later.
                         var woken = Timing.Start();
                         Place(_copy, _parent, _position, _rotation, _local);
-                        Timing.Add("copy woken", woken);
+                        Timing.Add("copy placed", woken);
                         _step = Step.Wake;
                         return;
                     }
@@ -335,12 +335,16 @@ namespace Scry
                         while (_woken < _asleep.Count)
                         {
                             var part = _asleep[_woken++];
+                            var before = watch.Elapsed.TotalMilliseconds;
                             if (part != null) part.SetActive(true);
+                            var took = watch.Elapsed.TotalMilliseconds - before;
+                            if (took > _slowestPart.Ms) _slowestPart = (part, took);
                             if (watch.Elapsed.TotalMilliseconds >= budgetMs) break;
                         }
                         Timing.Add("copy woken", woken);
                         if (_woken < _asleep.Count) return;
 
+                        TellSlowestPart();
                         Awake(_prefab, _copy);
                         Result = _copy;
                         _copy = null;
@@ -349,6 +353,25 @@ namespace Scry
                         return;
                     }
                 }
+            }
+
+            /// <summary>The part of the copy that took longest to wake, and how long, for a slow one to be told.</summary>
+            private (GameObject Part, double Ms) _slowestPart;
+
+            /// <summary>How long one part may take to wake before it is told in the log, in ms.</summary>
+            private const double SlowPartMs = 50;
+
+            /// <summary>
+            /// Tells in the log a part that took long to wake, with how many mesh colliders it
+            /// holds, which Unity shapes for its physics as they wake: waking one part cannot be
+            /// split, so what made it long is what to look at.
+            /// </summary>
+            private void TellSlowestPart()
+            {
+                var (part, ms) = _slowestPart;
+                if (part == null || ms < SlowPartMs) return;
+                var colliders = part.GetComponentsInChildren<MeshCollider>(true).Length;
+                Log.Note($"Scry woke {_prefab.OrNull()?.name}: its part {part.name} took {Numbers.Amount(ms, 0)} ms, {Numbers.Count(part.GetComponentsInChildren<Transform>(true).Length)} parts, {Numbers.Count(colliders)} mesh colliders.");
             }
 
             /// <summary>Switches off the parts to wake one after another, while the copy still sleeps, where nothing notices.</summary>

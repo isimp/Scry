@@ -139,6 +139,7 @@ namespace Scry
                 LastFilmMs = (System.Diagnostics.Stopwatch.GetTimestamp() - filming) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
                 LastFilms = (films?.Count ?? 1, LastFilmMs);
                 Timing.Add(films != null ? "render films" : "render film", step);
+                TellSlowFilm();
                 Filmed++;
 
                 // A floor's cut is the near plane laid along it, which cut the creatures with all
@@ -220,6 +221,26 @@ namespace Scry
         /// <summary>The stage's own parts left out of a film, its ground and floor, to be let back after.</summary>
         private static readonly List<Renderer> StagePartsOff = new List<Renderer>();
         private static readonly List<Renderer> StageParts = new List<Renderer>();
+
+        /// <summary>The things already told in the log for a slow film, each told once.</summary>
+        private static readonly HashSet<string> SlowFilmsTold = new HashSet<string>(System.StringComparer.Ordinal);
+
+        /// <summary>How long a film may take before it is told in the log, in ms.</summary>
+        private const double SlowFilmMs = 150;
+
+        /// <summary>
+        /// Tells in the log, once a thing, a film that took long: what stood on the stage, how
+        /// many films the frame took, its size, and how many films the stage made before it, as
+        /// early films draw materials the stage had not drawn before.
+        /// </summary>
+        private static void TellSlowFilm()
+        {
+            if (LastFilmMs < SlowFilmMs || _subject == null) return;
+            var name = _subject.name;
+            if (!SlowFilmsTold.Add(name)) return;
+            var size = _texture != null ? $"{Numbers.Count(_texture.width)} by {Numbers.Count(_texture.height)}" : "no picture";
+            Log.Note($"Scry filmed {name} in {Numbers.Amount(LastFilmMs, 0)} ms, {Numbers.Count(LastFilms.Films)} films, {size}, after {Numbers.Count(Filmed)} films since the stage began.");
+        }
 
         /// <summary>Leaves the stage's own parts on its layer, everything under its root but the copy shown, out of the films that follow.</summary>
         private static void FilmWithoutStageParts()
