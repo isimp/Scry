@@ -317,7 +317,7 @@ namespace Scry
             yield return null;
             var laid = Frames.Since(from);
             p.Note($"laying it out took {Numbers.Count(frames + 2)} frames; the longest each part took in one: {string.Join(", ", FirstPageParts.Select(part => $"{part} {Numbers.Amount(Timing.MostMs(part), 1)} ms"))}");
-            foreach (var slow in laid.PartsOfSlowest(3)) p.Note("a slow frame of it: " + slow);
+            foreach (var slow in laid.PartsOfSlowest(3)) if (slow != null) p.Note("a slow frame of it: " + slow);
             p.Within(Timing.MostMs("panel"), LayingPanelMs, "no frame of drawing the page while it is laid out takes long", $"{Numbers.Amount(Timing.MostMs("panel"), 1)} ms at the most");
             p.Within(laid.Max, LayingFrameMs, "no frame of laying it out takes long, the stage's copy and film included", $"{Numbers.Amount(laid.Max, 1)} ms at the most{Slowest(laid, 1)}");
             p.Check(ScryPanel.Drawn(PanelPart.SectionLine) > lines, "the section line stands once the page is whole, in its skeleton's place");

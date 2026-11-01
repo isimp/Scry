@@ -194,6 +194,9 @@ namespace Scry
 
         private static (List<(string Switch, int Stance)> Holds, Dictionary<string, int> HoldStances, Dictionary<string, int> AttackStances) _gear;
 
+        /// <summary>Whether the game's gear is read and kept (<see cref="GameGear"/>).</summary>
+        private static bool GearKept => _gear.Holds != null;
+
         /// <summary>The clips of the stage copy it plays only with other gear in hand, each with the stance that gear is held in; null while not worked out, or for a copy without.</summary>
         public static IReadOnlyDictionary<string, int> ClipsOtherGear() => StagePlays(out _)?.OtherGear;
 
