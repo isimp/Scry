@@ -19,7 +19,7 @@ namespace Scry
     {
         private static SelfTestOutcome _outcome;
         private static Vector2 _liveScroll;
-        private static (ScenarioRunner Runner, int Done) _outcomeKey;
+        private static (object Source, int Done) _outcomeKey;
         private static bool _drawing;
         private static float _failedAt, _untriedAt;
         private static readonly List<float> TopicHeights = new List<float>();
@@ -32,14 +32,17 @@ namespace Scry
             _topic = 0;
         }
 
+        /// <summary>The reports the card tells of: the run going on, else the kept run picked or the newest.</summary>
+        private static IReadOnlyList<ScenarioReport> ShownReports => SelfTest.Running ? SelfTest.LiveRunner?.Reports : ShownRun?.Reports;
+
         private static SelfTestOutcome Outcome()
         {
-            var runner = SelfTest.LiveRunner;
-            if (runner == null) return null;
-            var key = (runner, runner.Done);
+            var reports = ShownReports;
+            if (reports == null) return null;
+            var key = (SelfTest.Running ? SelfTest.LiveRunner : (object)ShownRun, reports.Count);
             if (_outcome == null || key != _outcomeKey)
             {
-                _outcome = SelfTestOutcome.Of(runner.Reports);
+                _outcome = SelfTestOutcome.Of(reports);
                 _outcomeKey = key;
             }
             return _outcome;
@@ -65,7 +68,8 @@ namespace Scry
 
         private static float Body(SelfTestOutcome outcome, float x, float y, float width)
         {
-            if (_drawing) GUI.Label(new Rect(x, y - U(34f), width, U(26f)), SelfTest.RunTold, Skin.DimRight);
+            if (_drawing) GUI.Label(new Rect(x, y - U(34f), width, U(26f)), ShownTold(), Skin.DimRight);
+            y = RunsRow(x, y, width);
             if (SelfTest.Running)
             {
                 var held = SelfTest.Progress ?? "";
@@ -73,6 +77,7 @@ namespace Scry
                 if (_drawing) GUI.Label(new Rect(x, y, width, h), held, Skin.Wrap);
                 y += h + U(8f);
             }
+            else y = DiffLine(x, y, width);
             y = Stats(outcome, x, y, width);
             y = Actions(outcome, x, y, width);
             y = Topic(x, y, width, "Every part", "a click opens a part below", null, () => { }, (ty) => TilesIn(outcome, x + U(10f), ty, width - U(20f)));
@@ -82,7 +87,7 @@ namespace Scry
                 _failedAt = y;
                 y = Topic(x, y, width, "Failed", Parts(outcome.FailedParts.Count), done ? $"Run these {Numbers.Count(outcome.FailedParts.Count)}" : null,
                     () => SayStarted(SelfTest.StartParts(outcome.FailedParts.Select(f => f.Part))),
-                    ty => outcome.FailedParts.Aggregate(ty, (py, f) => PartBox(x + U(10f), py, width - U(20f), f.Part, f.Seconds, f.Checks, true)));
+                    ty => outcome.FailedParts.Aggregate(ty, (py, f) => PartBox(x + U(10f), py, width - U(20f), f.Part, f.Seconds, f.Checks, true, TrailOf(f.Part))));
             }
             if (outcome.UntriedByWhere.Count > 0)
             {
@@ -125,6 +130,8 @@ namespace Scry
                 (outcome.Skipped, "skipped", Skin.Faint),
                 (outcome.NotJudged, "not judged", Skin.Faint),
             };
+            var before = BeforeOutcome();
+            var was = before == null ? null : new[] { before.Passed, before.Failed, before.UntriedRows, before.Skipped, before.NotJudged };
             var gap = U(8f);
             var each = (width - gap * (stats.Length - 1)) / stats.Length;
             var height = U(52f);
@@ -133,7 +140,14 @@ namespace Scry
                 var box = new Rect(x + i * (each + gap), y, each, height);
                 Skin.Box(box, Skin.TopicFill);
                 Skin.Fill(new Rect(box.x, box.y, U(3f), box.height), stats[i].Item3);
-                Skin.LabelIn(new Rect(box.x + U(12f), box.y + U(4f), each - U(16f), U(28f)), Numbers.Count(stats[i].Item1), Skin.Title, stats[i].Item3);
+                var number = Numbers.Count(stats[i].Item1);
+                Skin.LabelIn(new Rect(box.x + U(12f), box.y + U(4f), each - U(16f), U(28f)), number, Skin.Title, stats[i].Item3);
+                // Its change since the last run of the same kind, where there was one and it changed.
+                if (was != null && was[i] != stats[i].Item1)
+                {
+                    var at = box.x + U(16f) + Skin.Width(Skin.Title, number);
+                    GUI.Label(new Rect(at, box.y + U(10f), box.xMax - at - U(4f), U(20f)), Delta(stats[i].Item1 - was[i]), Skin.FaintLabel);
+                }
                 GUI.Label(new Rect(box.x + U(12f), box.y + U(30f), each - U(16f), U(18f)), stats[i].Item2, Skin.FaintLabel);
             }
             return y + height + U(10f);

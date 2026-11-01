@@ -16,13 +16,16 @@ namespace Scry
     {
         private static string _picked;
 
+        /// <summary>No part picked, as another run is shown.</summary>
+        private static void Unpick() => _picked = null;
+
         private const float TileSize = 11f;
         private const float TileGap = 3f;
 
         /// <summary>Every part as a tile by area, the areas' names in a column wide enough for the longest, then the legend and the part picked.</summary>
         private static float TilesIn(SelfTestOutcome outcome, float x, float y, float width)
         {
-            var live = Live();
+            var live = ShownLive();
             if (live == null) return y;
             var labelW = U(12f) + live.Areas.Max(a => Skin.Width(Skin.DimLabel, a.Area));
             var step = U(TileSize + TileGap);
@@ -72,7 +75,7 @@ namespace Scry
         /// <summary>The part picked from a tile, its box as the failed ones have, or a line asking for a pick.</summary>
         private static float Picked(SelfTestOutcome outcome, float x, float y, float width)
         {
-            var report = _picked == null ? null : SelfTest.LiveRunner?.Reports.FirstOrDefault(r => r.Name == _picked);
+            var report = _picked == null ? null : ShownReports?.FirstOrDefault(r => r.Name == _picked);
             if (report == null)
             {
                 var hint = _picked == null ? "Pick a tile to open its part here." : _picked + ": still to come.";
@@ -109,7 +112,7 @@ namespace Scry
         }
 
         /// <summary>A part's box: its name, its time and Run again once the run is done, then each check, what was checked against what was found.</summary>
-        private static float PartBox(float x, float y, float width, string part, double? seconds, List<(string What, string Found)> checks, bool failed)
+        private static float PartBox(float x, float y, float width, string part, double? seconds, List<(string What, string Found)> checks, bool failed, (string Badge, string Before) trail = default)
         {
             var top = y;
             var inner = width - U(20f);
@@ -118,9 +121,11 @@ namespace Scry
             var timeW = Skin.Width(Skin.FaintLabel, time);
             var nameW = inner - chipW - timeW - U(16f);
             var nameH = Skin.Height(Skin.Wrap, part, nameW);
-            var height = U(8f) + nameH + U(4f);
+            var badgeH = trail.Badge == null ? 0f : U(20f);
+            var beforeH = trail.Before == null ? 0f : Skin.Height(Skin.SmallWrap, trail.Before, inner - U(12f)) + U(2f);
+            var height = U(8f) + nameH + badgeH + U(4f);
             foreach (var (what, found) in checks) height += RowHeight(inner - U(12f), what, found);
-            height += U(6f);
+            height += beforeH + U(6f);
             if (_drawing)
             {
                 Skin.Box(new Rect(x, top, width, height), Skin.Sunken);
@@ -132,8 +137,16 @@ namespace Scry
                     if (GUI.Button(chip, "Run again", Skin.Fitted(Skin.Chip, chip))) SayStarted(SelfTest.StartParts(new[] { part }));
                 }
             }
-            y = top + U(8f) + nameH + U(4f);
+            y = top + U(8f) + nameH;
+            if (trail.Badge != null)
+            {
+                // How it went in the runs before, in the accent where it fails new, else in the warning's colour.
+                if (_drawing) Skin.LabelIn(new Rect(x + U(10f), y, inner, U(20f)), trail.Badge, Skin.Small, trail.Badge == "new" ? Skin.Accent : Skin.Warn);
+                y += badgeH;
+            }
+            y += U(4f);
             foreach (var (what, found) in checks) y = TwoColumns(x + U(22f), y, inner - U(12f), what, found, Skin.DimWrap, failed ? WarnWrap : Skin.DimWrap);
+            if (trail.Before != null && _drawing) GUI.Label(new Rect(x + U(22f), y + U(2f), inner - U(12f), beforeH), trail.Before, Skin.SmallWrap);
             return top + height + U(6f);
         }
 

@@ -49,6 +49,7 @@ namespace Scry
             _details = false;
             _recommendedCard = false;
             _pauseCardHidden = false;
+            ShowNewest();
         }
 
         /// <summary>Whether the strip shows: while a run goes on, once one has ended until it is put away, and while something is recommended until put away.</summary>

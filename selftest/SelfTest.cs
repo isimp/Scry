@@ -74,6 +74,7 @@ namespace Scry
         /// <summary>Which run the last one was and when it ended, for its card.</summary>
         private static RunScope _runScope;
         private static DateTime _runEnded;
+        private static DateTime _runStarted;
         private static Before _before;
 
         /// <summary>
@@ -160,6 +161,7 @@ namespace Scry
             var times = SelfTestTimes.Load(Kept(TimesFile));
             _runTimes = times;
             _runScope = asked.Scope;
+            _runStarted = DateTime.Now;
 
             LogAside();
             Write("");
@@ -311,6 +313,7 @@ namespace Scry
             KeepTimes(reports);
             KeepPace();
             KeepOutcomes(reports);
+            KeepRun(runner);
 
             var readHere = _before != null && _before.LocationsWere != Locations.State.Read && Locations.Now == Locations.State.Read;
             StageDice.Fix(false);

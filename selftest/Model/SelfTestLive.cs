@@ -44,11 +44,31 @@ namespace Scry
 
         public static SelfTestLive Of(ScenarioRunner runner)
         {
-            var live = new SelfTestLive();
-            var reports = runner.Reports.ToDictionary(r => r.Name, StringComparer.Ordinal);
-            foreach (var part in runner.Parts)
+            var live = Of(runner.Parts.Select(p => (p.Name, p.Area)), runner.Reports, runner.Current);
+            for (var i = runner.Marked.Count - 1; i >= 0; i--)
             {
-                var state = reports.TryGetValue(part.Name, out var report) ? StateOf(report) : part.Name == runner.Current ? TileState.Running : TileState.ToCome;
+                var (part, line, at) = runner.Marked[i];
+                var entry = EntryOf(part, line, at);
+                if (entry != null) live.Feed.Add(entry);
+            }
+            return live;
+        }
+
+        /// <summary>A run kept, its tiles by the areas the parts belong to now; a part no longer listed stands under <see cref="Elsewhere"/>.</summary>
+        public static SelfTestLive Of(KeptRun run, Func<string, string> areaOf) =>
+            Of(run.Reports.Select(r => (r.Name, areaOf(r.Name) ?? Elsewhere)), run.Reports, null);
+
+        /// <summary>The area of a part a run kept that the list no longer holds.</summary>
+        public const string Elsewhere = "No longer listed";
+
+        private static SelfTestLive Of(IEnumerable<(string Name, string Area)> parts, IEnumerable<ScenarioReport> done, string current)
+        {
+            var live = new SelfTestLive();
+            var reports = new Dictionary<string, ScenarioReport>(StringComparer.Ordinal);
+            foreach (var report in done) reports[report.Name] = report;
+            foreach (var part in parts)
+            {
+                var state = reports.TryGetValue(part.Name, out var report) ? StateOf(report) : part.Name == current ? TileState.Running : TileState.ToCome;
                 live.InRunOrder.Add((part.Name, state));
                 var area = part.Area ?? "";
                 var row = live.Areas.FindIndex(a => a.Area == area);
@@ -58,12 +78,6 @@ namespace Scry
                     row = live.Areas.Count - 1;
                 }
                 live.Areas[row].Tiles.Add((part.Name, state));
-            }
-            for (var i = runner.Marked.Count - 1; i >= 0; i--)
-            {
-                var (part, line, at) = runner.Marked[i];
-                var entry = EntryOf(part, line, at);
-                if (entry != null) live.Feed.Add(entry);
             }
             return live;
         }
