@@ -35,14 +35,18 @@ namespace Scry
             return slowdown >= BusyAt && value <= limit * slowdown * Leeway ? Verdict.Busy : Verdict.Over;
         }
 
-        public string Save() => "best\t" + Stored.Number(Best, 4);
+        /// <summary>How many rounds the reference work goes over its numbers (<c>SelfTest.SamplePace</c>), kept with its quickest time: a time of other work is no measure of this.</summary>
+        public const int Work = 64;
 
-        /// <summary>The pace kept, or none for text it cannot read.</summary>
+        public string Save() => "best\t" + Stored.Number(Best, 4) + "\t" + Stored.Count(Work);
+
+        /// <summary>The pace kept, or none for text it cannot read or kept for other reference work.</summary>
         public static MachinePace Load(string text)
         {
             var pace = new MachinePace();
             var parts = (text ?? "").Trim().Split('\t');
-            if (parts.Length == 2 && parts[0] == "best" && Stored.TryNumber(parts[1], out var best) && best > 0) pace.Best = best;
+            if (parts.Length == 3 && parts[0] == "best" && Stored.TryNumber(parts[1], out var best) && best > 0
+                && Stored.TryCount(parts[2], out var work) && work == Work) pace.Best = best;
             return pace;
         }
     }

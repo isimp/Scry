@@ -23,7 +23,7 @@ namespace Scry
         private static double _partSlowdown = 1.0;
         private static float _pacedAt = -10f;
 
-        /// <summary>The reference work's numbers: enough that one pass takes about a millisecond.</summary>
+        /// <summary>The reference work's numbers, gone over <see cref="MachinePace.Work"/> times: about a millisecond on a quick machine.</summary>
         private static readonly int[] PaceWork = Enumerable.Range(0, 1 << 14).ToArray();
         private static int _paceSink;
 
@@ -57,7 +57,7 @@ namespace Scry
             {
                 watch.Restart();
                 var hash = 17;
-                for (var round = 0; round < 8; round++)
+                for (var round = 0; round < MachinePace.Work; round++)
                 {
                     foreach (var value in PaceWork) hash = unchecked(hash * 31 + (value ^ round));
                 }

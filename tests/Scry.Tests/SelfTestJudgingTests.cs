@@ -43,6 +43,15 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APaceKeptForOtherReferenceWorkIsNotTaken()
+        {
+            // The quickest time of a shorter piece of work would make every sample of a longer one look slow.
+            Assert.Equal(0.0, MachinePace.Load("best\t0.1517").Best);
+            Assert.Equal(0.0, MachinePace.Load("best\t0.1517\t8").Best);
+            Assert.Equal(1.2, MachinePace.Load("best\t1.2\t" + MachinePace.Work).Best, 3);
+        }
+
+        [Fact]
         public void ABudgetMissedOnABusyMachineIsNotJudgedButAGrossMissStillFails()
         {
             Assert.Equal(Verdict.Within, MachinePace.Judge(40, 50, 3.0));
@@ -150,9 +159,17 @@ namespace Scry.Tests
         [Fact]
         public void EveryRegisteredPatchSitsOnAGameMethodSaveThoseOfAFeatureTheGameTurnedOff()
         {
-            var registered = new[] { ("DeathLoot", false), ("AltarCalled", false), ("BrokenOne", true) };
+            var registered = new[] { ("DeathLoot", false, false), ("AltarCalled", false, false), ("BrokenOne", true, false) };
             Assert.Equal(new[] { "AltarCalled" }, PatchesInPlace.Missing(registered, new HashSet<string> { "DeathLoot" }));
             Assert.Empty(PatchesInPlace.Missing(registered, new HashSet<string> { "DeathLoot", "AltarCalled" }));
+        }
+
+        [Fact]
+        public void AClassThatOnlyCopiesAGameMethodsBodySitsOnNothingAndIsNotLookedFor()
+        {
+            // A reverse patch (UnmoddedTooltip) borrows the game's method as it was; it hooks nothing.
+            var registered = new[] { ("DeathLoot", false, false), ("UnmoddedTooltip", false, true) };
+            Assert.Empty(PatchesInPlace.Missing(registered, new HashSet<string> { "DeathLoot" }));
         }
     }
 }
