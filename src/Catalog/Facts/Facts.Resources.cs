@@ -38,7 +38,8 @@ namespace Scry
         private void Picks(Pickable pickable, GameObject prefab, bool givesNothing)
         {
             if (pickable == null || pickable.m_itemPrefab == null) return;
-            var picked = new Row { Title = GatherWords.Picked(oneOf: false) };
+            // What a pick gives is counted as seen, as a tree's yield is: the pickup tells only what one pick gave.
+            var picked = new Row { Title = GatherWords.Picked(oneOf: false), Tally = Tally.Gave, TallyOf = prefab.name };
             picked.Items.Add(new Ingredient
             {
                 Icon = Icon(pickable.m_itemPrefab), Name = ItemName(pickable.m_itemPrefab),
