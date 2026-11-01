@@ -43,6 +43,9 @@ namespace Scry
         Pickable,
         Broken,
 
+        /// <summary>What a fish brings besides itself as it is caught (<c>Fish.m_extraDrops</c>).</summary>
+        Catch,
+
         /// <summary>A mod's own part, or anything else holding a drop table.</summary>
         Other,
     }
@@ -161,9 +164,9 @@ namespace Scry
 
         /// <summary>
         /// What a way of coming by a thing is counted from under the strict rules, in place of the
-        /// game's chance: what a creature was seen to drop, what a tree, log, rock or anything
-        /// broken was seen to give; none (<see cref="Tally.None"/>) for a drop table nothing counts,
-        /// as a chest's, held back all the same; null for a way with no chance in it, told as the game tells it.
+        /// game's chance: what a creature was seen to drop, what a tree, log, rock, bush, anything
+        /// broken or a catch was seen to give, what a chest held; null for a way with no chance in
+        /// it, or a drop table nothing in play counts, as a mod's own part's, told as the game tells it.
         /// </summary>
         public static Tally? CountedBy(SourceFacts source)
         {
@@ -177,11 +180,13 @@ namespace Scry
                 case TableOf.Rock:
                 case TableOf.Broken:
                 case TableOf.Pickable:
+                case TableOf.Catch:
                     return Tally.Gave;
                 case TableOf.Container:
                     return Tally.Held;
                 default:
-                    return Tally.None;
+                    // A table nothing in play counts, as a mod's own part's: told as the game tells it.
+                    return null;
             }
         }
 
@@ -193,7 +198,7 @@ namespace Scry
         {
             if (ShownBy(source) != null) return "Its pace shows once you have collected from one";
             var by = CountedBy(source);
-            return by == null ? null : by == Tally.None ? TallyWords.NeverCounted : TallyWords.NotYetCounted(by.Value);
+            return by == null ? null : TallyWords.NotYetCounted(by.Value);
         }
 
         /// <summary>A line of a way counted (<see cref="CountedBy"/>), its amount the character's count or a smudge, in the game's form.</summary>
@@ -224,6 +229,7 @@ namespace Scry
                 case TableOf.Container: return "Found in";
                 case TableOf.Pickable: return "Also picked from";
                 case TableOf.Broken: return "Broken out of";
+                case TableOf.Catch: return "Caught with";
                 default: return "Comes out of";
             }
         }

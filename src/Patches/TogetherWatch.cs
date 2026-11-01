@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using HarmonyLib;
 using UnityEngine;
 
@@ -148,6 +149,34 @@ namespace Scry
             return Vector3.Distance(Player.m_localPlayer.transform.position, target.transform.position) <= reach;
         }
 
+        /// <summary>What the character holds, by prefab and how many, before a catch puts what it brings into the inventory.</summary>
+        public static Dictionary<string, int> Held()
+        {
+            var held = new Dictionary<string, int>(System.StringComparer.Ordinal);
+            var inventory = Player.m_localPlayer.OrNull()?.GetInventory();
+            if (inventory == null) return held;
+            foreach (var item in inventory.GetAllItems())
+            {
+                var name = item?.m_dropPrefab.OrNull()?.name;
+                if (name != null) held[name] = (held.TryGetValue(name, out var so) ? so : 0) + item.m_stack;
+            }
+            return held;
+        }
+
+        /// <summary>What a catch brought besides the fish: each of its extra drops (<c>Fish.m_extraDrops</c>) the inventory holds more of than before.</summary>
+        private static List<(string, int)> Gained(Dictionary<string, int> before, Fish fish)
+        {
+            var now = Held();
+            var extras = new HashSet<string>((fish.m_extraDrops?.m_drops ?? new List<DropTable.DropData>()).Where(d => d.m_item != null).Select(d => d.m_item.name), System.StringComparer.Ordinal);
+            var gained = new List<(string, int)>();
+            foreach (var pair in now)
+            {
+                before.TryGetValue(pair.Key, out var then);
+                if (pair.Value > then && extras.Contains(pair.Key)) gained.Add((pair.Key, pair.Value - then));
+            }
+            return gained;
+        }
+
         /// <summary>The bait on the line a fish is caught with, before the catch takes the float away.</summary>
         public static string Bait(Fish fish) => fish != null ? FishingFloat.FindFloat(fish).OrNull()?.GetBait() : null;
 
@@ -156,12 +185,14 @@ namespace Scry
         /// told as landed by the character, with the stars it was caught with, so players near by
         /// see it landed as they see a kill (the bait is the fisher's alone to see).
         /// </summary>
-        public static void Caught(Fish fish, Character owner, string bait)
+        public static void Caught(Fish fish, Character owner, string bait, Dictionary<string, int> held = null)
         {
             if (fish == null || owner == null || owner != Player.m_localPlayer) return;
             Guard.Run(Feature.CompendiumTogether, "noting a fish caught", () =>
             {
                 var key = Utils.GetPrefabName(fish.gameObject);
+                // What the catch brought besides the fish, put straight into the inventory: paired with it and counted with the catch.
+                if (held != null) CompendiumKeeper.CatchBrought(key, Gained(held, fish));
                 if (!string.IsNullOrEmpty(bait)) CompendiumKeeper.Saw(key, bait, Tie.Eats);
                 CompendiumKeeper.FoundOut(key, EntryKeys.Did(Deed.Caught));
                 CompendiumKeeper.MetIn(key, fish.transform.position);
@@ -239,9 +270,9 @@ namespace Scry
     [HarmonyPatch(typeof(FishingFloat), nameof(FishingFloat.Catch))]
     internal static class FishCaught
     {
-        private static void Prefix(Fish fish, out string __state) => __state = TogetherWatch.Bait(fish);
+        private static void Prefix(Fish fish, out (string Bait, Dictionary<string, int> Held) __state) => __state = (TogetherWatch.Bait(fish), TogetherWatch.Held());
 
-        private static void Postfix(Fish fish, Character owner, string __state) => TogetherWatch.Caught(fish, owner, __state);
+        private static void Postfix(Fish fish, Character owner, (string Bait, Dictionary<string, int> Held) __state) => TogetherWatch.Caught(fish, owner, __state.Bait, __state.Held);
     }
 
     [HarmonyPatch(typeof(Player), nameof(Player.PlacePiece))]

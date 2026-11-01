@@ -601,6 +601,7 @@ namespace Scry
                 case Container _: return TableOf.Container;
                 case Pickable _: return TableOf.Pickable;
                 case DropOnDestroyed _: return TableOf.Broken;
+                case Fish _: return TableOf.Catch;
                 default: return TableOf.Other;
             }
         }

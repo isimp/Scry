@@ -614,7 +614,7 @@ namespace Scry.Tests
             world.Book.Prove("piece_beehive", EntryKeys.Did(Deed.Collected));
             world.Rule(CompendiumRule.Strict);
             Assert.Null(world.Explorer.StrictSourceLine(hive));
-            Assert.Equal(TallyWords.NeverCounted, SourceWords.HeldTip(SourceFacts.FromTable("x", "x", TableOf.Other, roll, roll.Drops[0])));
+            Assert.Null(SourceWords.HeldTip(SourceFacts.FromTable("x", "x", TableOf.Other, roll, roll.Drops[0])));
             Assert.Equal(TallyWords.NotYetCounted(Tally.Fell), SourceWords.HeldTip(SourceFacts.Dropped("Troll", "Troll", 1, 2, false, 1f)));
             Assert.Null(SourceWords.HeldTip(SourceFacts.Of(SourceWay.Picked, "x", "x")));
         }
@@ -720,8 +720,10 @@ namespace Scry.Tests
             {
                 Assert.Equal(Tally.Gave, SourceWords.CountedBy(SourceFacts.FromTable("x", "x", table, new DropTableInfo(), new DropInfo("y", 1, 1, 1f))));
             }
-            // Counted nowhere: a mod's own part.
-            Assert.Equal(Tally.None, SourceWords.CountedBy(SourceFacts.FromTable("x", "x", TableOf.Other, new DropTableInfo(), new DropInfo("y", 1, 1, 1f))));
+            // What a catch brings besides the fish is counted as seen with each catch.
+            Assert.Equal(Tally.Gave, SourceWords.CountedBy(SourceFacts.FromTable("Fish1", "Perch", TableOf.Catch, new DropTableInfo(), new DropInfo("y", 1, 1, 1f))));
+            // Nothing counts a mod's own part: told as the game tells it, never left to find.
+            Assert.Null(SourceWords.CountedBy(SourceFacts.FromTable("x", "x", TableOf.Other, new DropTableInfo(), new DropInfo("y", 1, 1, 1f))));
             // No chance to hold back: as the game tells it.
             Assert.Null(SourceWords.CountedBy(SourceFacts.Of(SourceWay.Picked, "x", "x")));
             Assert.Null(SourceWords.CountedBy(SourceFacts.Made("x", "x", 60f, 4, "")));

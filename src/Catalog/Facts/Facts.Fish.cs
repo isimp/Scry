@@ -56,7 +56,7 @@ namespace Scry
         private void Catch(Fish fish)
         {
             var rows = Rows.Count;
-            Drops(fish.m_extraDrops, GatherWords.AlsoDrops);
+            Drops(fish.m_extraDrops, GatherWords.AlsoDrops, tallied: Utils.GetPrefabName(fish.gameObject));
             var caught = new[] { EntryKeys.Did(Deed.Caught) };
             for (var r = rows; r < Rows.Count; r++)
             {
