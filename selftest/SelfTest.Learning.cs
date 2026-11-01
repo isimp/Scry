@@ -133,6 +133,7 @@ namespace Scry
             RaidsAndPlacesTell(p, Fresh);
             AltarTells(p, Fresh);
             FedThenHeldTells(p, Fresh);
+            TwinsTell(p);
 
             CompendiumKeeper.RecordInto(null);
             p.Check(real.Version == version && real.PairsVersion == pairs, "the character's book was left alone");
@@ -177,6 +178,17 @@ namespace Scry
                 if (fish == null || !records.Picked.Contains(fish.m_name) || !told.Proved(name, EntryKeys.Did(Deed.Caught))) odd.Add(name);
             }
             p.Check(odd.Count == 0, "what its records tell of picks, takes and catches names the right things, each paired or shown", string.Join(", ", odd.Take(10)));
+        }
+
+        /// <summary>The catalog's resource twins share their health as their pages tell it, so what was found out of one may hold for each.</summary>
+        private static void TwinsTell(Probe p)
+        {
+            var twins = ResourceTwins.For(X.Entries);
+            var grouped = X.Catalog.Where(e => e.Kind == Kind.Resource && twins(e.Key).Count > 0).ToList();
+            p.Note($"{Numbers.Count(grouped.Count)} resources have twins: {string.Join(", ", grouped.Take(12).Select(e => e.Name))}");
+            string Health(Entry e) => Facts.For(e).Pairs.Where(x => x.Key == "Health").Select(x => x.Value).FirstOrDefault();
+            var odd = grouped.Take(40).Where(e => twins(e.Key).Any(t => Health(X.Find(t)) != Health(e))).Select(e => e.Name).ToList();
+            p.Check(odd.Count == 0, "twins share their health", string.Join(", ", odd.Take(8)));
         }
 
         private static readonly string[] CopperOre = { "CopperOre" };

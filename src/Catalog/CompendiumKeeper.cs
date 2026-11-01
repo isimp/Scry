@@ -124,6 +124,8 @@ namespace Scry
 
             var catalog = WorldCatalog.Current;
             if (catalog == null) return;
+            // Variants of one name and the same values share what was found out of each.
+            _book.TwinsOf = ResourceTwins.For(catalog);
             if (!ReferenceEquals(catalog, _catchUpOf))
             {
                 _catchUp = CatchUpFor(catalog);

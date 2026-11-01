@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Scry
 {
@@ -53,6 +54,10 @@ namespace Scry
         {
             if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(proof)) return false;
             if (_proofs.Contains((key, proof))) return true;
+            if (TwinsOf != null)
+            {
+                foreach (var twin in TwinsOf(key)) if (_proofs.Contains((twin, proof))) return true;
+            }
             return _attacksAsPairs && EntryKeys.IsAttack(proof, out var item) && _pairs.ContainsKey(Pair(key, item));
         }
 
@@ -182,11 +187,28 @@ namespace Scry
         }
 
         /// <summary>Whether the character saw two entries go together, either way round, any way.</summary>
-        public bool Witnessed(string a, string b) => !string.IsNullOrEmpty(a) && !string.IsNullOrEmpty(b) && _pairs.ContainsKey(Pair(a, b));
+        public bool Witnessed(string a, string b) => !string.IsNullOrEmpty(a) && !string.IsNullOrEmpty(b) && (_pairs.ContainsKey(Pair(a, b)) || TwinPairs(a, b).Any(p => _pairs.ContainsKey(p)));
 
         /// <summary>Whether the character saw two entries go together one way, or with no way named.</summary>
         public bool Witnessed(string a, string b, Tie tie) =>
-            !string.IsNullOrEmpty(a) && !string.IsNullOrEmpty(b) && _pairs.TryGetValue(Pair(a, b), out var ways) && (ways & Bit(tie)) != 0;
+            !string.IsNullOrEmpty(a) && !string.IsNullOrEmpty(b) && (HasWay(Pair(a, b), tie) || TwinPairs(a, b).Any(p => HasWay(p, tie)));
+
+        private bool HasWay((string, string) pair, Tie tie) => _pairs.TryGetValue(pair, out var ways) && (ways & Bit(tie)) != 0;
+
+        /// <summary>
+        /// Each thing's twins, by key (<see cref="Twins"/>): what was found out or seen together of
+        /// one holds for each, read whenever a page asks, so finds from before count too. Not kept; none where
+        /// not told.
+        /// </summary>
+        public Func<string, IReadOnlyList<string>> TwinsOf { get; set; }
+
+        /// <summary>The pairs a pair of two things stands for through either's twins.</summary>
+        private IEnumerable<(string, string)> TwinPairs(string a, string b)
+        {
+            if (TwinsOf == null) yield break;
+            foreach (var twin in TwinsOf(a)) yield return Pair(twin, b);
+            foreach (var twin in TwinsOf(b)) yield return Pair(a, twin);
+        }
 
         /// <summary>The ways a pair was seen together as a line keeps them, "drops,gives"; none for any way.</summary>
         private static string WaysKept(int ways)
