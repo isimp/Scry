@@ -233,10 +233,14 @@ namespace Scry
         /// </summary>
         private static void Look(Player player)
         {
+            var held = new HashSet<string>(System.StringComparer.Ordinal);
             foreach (var item in player.GetInventory().GetAllItems())
             {
-                if (item?.m_dropPrefab != null) _catchUp.Met(item.m_dropPrefab.name, KnownLevel.Known, _book, CameBy.Held);
+                if (item?.m_dropPrefab == null) continue;
+                _catchUp.Met(item.m_dropPrefab.name, KnownLevel.Known, _book, CameBy.Held);
+                held.Add(item.m_dropPrefab.name);
             }
+            HeldProducts(held);
             foreach (var effect in player.GetSEMan().GetStatusEffects())
             {
                 if (effect == null) continue;
@@ -613,6 +617,8 @@ namespace Scry
                 return;
             }
             foreach (var item in items) if (Takes(thing, item)) Into.Witness(thing, item);
+            // Fed, what is held may now be what it makes of it.
+            FedAStation();
         }
 
         /// <summary>What the character put into things used before the catalog was read, to pair once it is (<see cref="PutInto"/>).</summary>

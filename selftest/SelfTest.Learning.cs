@@ -132,6 +132,7 @@ namespace Scry
             BuiltThingsTell(p, Fresh);
             RaidsAndPlacesTell(p, Fresh);
             AltarTells(p, Fresh);
+            FedThenHeldTells(p, Fresh);
 
             CompendiumKeeper.RecordInto(null);
             p.Check(real.Version == version && real.PairsVersion == pairs, "the character's book was left alone");
@@ -176,6 +177,24 @@ namespace Scry
                 if (fish == null || !records.Picked.Contains(fish.m_name) || !told.Proved(name, EntryKeys.Did(Deed.Caught))) odd.Add(name);
             }
             p.Check(odd.Count == 0, "what its records tell of picks, takes and catches names the right things, each paired or shown", string.Join(", ", odd.Take(10)));
+        }
+
+        private static readonly string[] CopperOre = { "CopperOre" };
+        private static readonly string[] Copper = { "Copper" };
+
+        /// <summary>Copper ore fed into a smelter, then copper held, wherever it came from: the smelter, the ore and the copper seen together.</summary>
+        private static void FedThenHeldTells(Probe p, System.Func<CompendiumBook> fresh)
+        {
+            var use = Knowledge.UsesOf("CopperOre").FirstOrDefault(g => g.Kind == UseKind.TurnsInto && g.Place != null && g.Targets.Any(t => t.Target == "Copper"));
+            if (use == null)
+            {
+                p.Note("nothing turns copper ore into copper here: feeding a station untried");
+                return;
+            }
+            var book = fresh();
+            CompendiumKeeper.PutInto(use.Place, CopperOre);
+            CompendiumKeeper.Holding(Copper);
+            p.Check(book.Witnessed(use.Place, "Copper", Tie.Gives) && book.Witnessed("CopperOre", "Copper"), $"copper ore fed into {use.Place}, then copper held, shows what {use.Place} makes of it");
         }
 
         /// <summary>A boss seen at its altar, loaded near by: seen together with the altar's place, whoever called it.</summary>

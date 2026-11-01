@@ -28,8 +28,62 @@ namespace Scry
         /// <summary>The game counting an item as made by the character, for another player's taking it off a station this game runs: noted apart (<see cref="CompendiumBook.CreditedApart"/>).</summary>
         public static void CreditedApart(string token) => Into?.CreditedApart(token);
 
+        /// <summary>What it held at the last look, to tell what came into its hands since.</summary>
+        private static readonly HashSet<string> HeldBefore = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>Whether the character fed a station since the last look, so all it holds is looked at again.</summary>
+        private static bool _fedSince;
+
+        /// <summary>The character fed a station: at the next look all it holds may be what that station makes.</summary>
+        private static void FedAStation() => _fedSince = true;
+
+        /// <summary>
+        /// What the character holds, at each look: each thing come into its hands since the last
+        /// look, or all of it once it fed a station, is looked at as a product of the stations it
+        /// fed (<see cref="FedThenHeld"/>), however long ago and wherever it came by it.
+        /// </summary>
+        private static void HeldProducts(HashSet<string> held)
+        {
+            if (Into == null || WorldCatalog.Current == null) return;
+            foreach (var product in held)
+            {
+                if (!_fedSince && HeldBefore.Contains(product)) continue;
+                foreach (var (a, b, given) in FedThenHeld.Pairs(product, MakersOf(product), Into.Witnessed))
+                {
+                    if (given) Into.SawWith(a, b, Tie.Gives);
+                    else Into.Witness(a, b);
+                }
+            }
+            _fedSince = false;
+            HeldBefore.Clear();
+            HeldBefore.UnionWith(held);
+        }
+
+        /// <summary>The character holding these things at a look, as play's own look tells it (<see cref="HeldProducts"/>); for the self-test.</summary>
+        [ForTest]
+        public static void Holding(IEnumerable<string> held) => HeldProducts(new HashSet<string>(held, StringComparer.Ordinal));
+
+        /// <summary>The stations that make a product and the input each turns into it, as the catalog tells it (<see cref="UseKind.TurnsInto"/>).</summary>
+        private static IEnumerable<(string Station, string Input)> MakersOf(string product)
+        {
+            var made = WorldCatalog.Current?.Find(product);
+            if (made == null) yield break;
+            foreach (var input in made.TermLinks("needs"))
+            {
+                foreach (var use in Knowledge.UsesOf(input.Name))
+                {
+                    if (use.Kind == UseKind.TurnsInto && use.Place != null && use.Targets.Any(t => t.Target == product)) yield return (use.Place, input.Name);
+                }
+            }
+        }
+
         /// <summary>What the deeds of this world left to remember, forgotten as it is left.</summary>
-        private static void ForgetDeeds() => BossesAtAltars.Clear();
+        private static void ForgetDeeds()
+        {
+            BossesAtAltars.Clear();
+            HeldBefore.Clear();
+            _fedSince = false;
+        }
 
         /// <summary>
         /// A boss seen, standing within reach of an altar that calls its kind (<c>OfferingBowl.m_bossPrefab</c>,
