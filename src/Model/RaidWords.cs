@@ -56,6 +56,14 @@ namespace Scry
         public static string OnTheTable(bool byEachPlayer, IEnumerable<string> keys, IEnumerable<string> endingKeys, System.Func<string, string> bossOf) =>
             byEachPlayer ? ForEachPlayer : Starts(keys, endingKeys, bossOf);
 
+        /// <summary>
+        /// The boss that line goes to: the first whose fall brings the raid, as only such a fall and
+        /// the raid can be seen together (<see cref="UnlockWays.SeenTogether"/>); none for a fall
+        /// that only ends it, nor where each player's own progress picks it.
+        /// </summary>
+        public static string WaitsFor(bool byEachPlayer, IEnumerable<string> keys, System.Func<string, string> bossPrefabOf) =>
+            byEachPlayer || keys == null ? null : keys.Select(bossPrefabOf).FirstOrDefault(b => b != null);
+
         /// <summary>For whom a raid the world picks by each player's own progress comes.</summary>
         public const string ForEachPlayer = "for a player whose own progress calls for it";
 

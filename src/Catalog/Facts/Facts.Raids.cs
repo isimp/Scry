@@ -52,9 +52,8 @@ namespace Scry
 
             // A world set to pick raids by each player's own progress checks other keys for them.
             var perPlayer = Knowledge.ByEachPlayer(raid);
-            // The first boss it waits for, or else stops at, goes to its page.
-            var waitsFor = perPlayer ? null : (raid.m_requiredGlobalKeys ?? new List<string>()).Concat(raid.m_notRequiredGlobalKeys ?? new List<string>()).Select(Knowledge.BossPrefabOf).FirstOrDefault(b => b != null);
-            Add("On the table", RaidWords.OnTheTable(perPlayer, raid.m_requiredGlobalKeys, raid.m_notRequiredGlobalKeys, Knowledge.BossOf), waitsFor);
+            Add("On the table", RaidWords.OnTheTable(perPlayer, raid.m_requiredGlobalKeys, raid.m_notRequiredGlobalKeys, Knowledge.BossOf),
+                RaidWords.WaitsFor(perPlayer, raid.m_requiredGlobalKeys, Knowledge.BossPrefabOf));
 
             var system = RandEventSystem.instance;
             if (raid.m_random && system != null) Add("Rolled", RaidWords.Roll(system.m_eventIntervalMin, system.m_eventChance));

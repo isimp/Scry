@@ -135,6 +135,7 @@ namespace Scry
             FedThenHeldTells(p, Fresh);
             TwinsTell(p);
             DroplessDeathsTell(p, Fresh);
+            RaidBossesTell(p);
 
             CompendiumKeeper.RecordInto(null);
             p.Check(real.Version == version && real.PairsVersion == pairs, "the character's book was left alone");
@@ -192,6 +193,31 @@ namespace Scry
             var book = fresh();
             CompendiumKeeper.Tell(WorldEvents.Make(Happened.Died, dropless[0], player.transform.position, level: 2, doers: new[] { ZNet.GetUID() }));
             p.Check(book.Proved(dropless[0], EntryKeys.Did(Deed.Killed)) && book.Proved(dropless[0], EntryKeys.Did(Deed.StarredFell)), $"{dropless[0]} dying with one star beside you, no loot told, shows its health and what stars change");
+        }
+
+        /// <summary>A raid's *On the table* goes to a boss whose fall brings it, the only fall seen together with it; raids a fall only ends are named.</summary>
+        private static void RaidBossesTell(Probe p)
+        {
+            var events = RandEventSystem.instance != null ? RandEventSystem.instance.m_events : null;
+            if (events == null)
+            {
+                p.Note("no raid list is read: raid bosses untried");
+                return;
+            }
+            var linked = 0;
+            var endedOnly = new List<string>();
+            foreach (var raid in events.Where(r => r != null && !string.IsNullOrEmpty(r.m_name)))
+            {
+                var entry = X.Find(EntryKeys.For(Kind.Raid, raid.m_name));
+                if (entry == null) continue;
+                if (Facts.For(entry).Links.TryGetValue("On the table", out var boss))
+                {
+                    linked++;
+                    p.Check(raid.m_requiredGlobalKeys != null && raid.m_requiredGlobalKeys.Contains(Knowledge.FallKeyOf(boss)), $"{raid.m_name}'s On the table goes to {boss}, whose fall brings it");
+                }
+                else if ((raid.m_notRequiredGlobalKeys ?? new List<string>()).Any(k => Knowledge.BossPrefabOf(k) != null)) endedOnly.Add(raid.m_name);
+            }
+            p.Note($"{Numbers.Count(linked)} raids go to the boss whose fall brings them; ended by a boss's fall alone: " + (endedOnly.Count == 0 ? "none" : string.Join(", ", endedOnly)));
         }
 
         /// <summary>The catalog's resource twins share their health as their pages tell it, so what was found out of one may hold for each.</summary>

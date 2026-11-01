@@ -15,6 +15,17 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ItsLineGoesToTheFirstBossWhoseFallBringsItNotToOneWhoseFallOnlyEndsIt()
+        {
+            // Only a fall that brings a raid can be seen together with it (UnlockWays.SeenTogether): a raid lived through after the key.
+            string Boss(string key) => key == "defeated_eikthyr" ? "Eikthyr" : key == "defeated_gdking" ? "gd_king" : null;
+            Assert.Equal("Eikthyr", RaidWords.WaitsFor(false, new[] { "KilledTroll", "defeated_eikthyr" }, Boss));
+            Assert.Null(RaidWords.WaitsFor(false, new string[0], Boss));
+            Assert.Null(RaidWords.WaitsFor(false, null, Boss));
+            Assert.Null(RaidWords.WaitsFor(true, new[] { "defeated_eikthyr" }, Boss));
+        }
+
+        [Fact]
         public void ARaidOnlySomethingElseStartsIsNeverRolled()
         {
             Assert.Equal("never by the raid roll; only something else starts it", RaidWords.NeverRolled);
