@@ -186,7 +186,8 @@ namespace Scry
         private static void DroplessDeathsTell(Probe p, System.Func<CompendiumBook> fresh)
         {
             var dropless = X.Catalog.Where(e => e.Kind == Kind.Creature && GamePrefabs.Named(e.Name) is GameObject prefab
-                && prefab.GetComponent<Character>() != null && prefab.GetComponent<CharacterDrop>() == null && !BornTame.Is(prefab)).Select(e => e.Name).ToList();
+                && prefab.GetComponent<Character>() is Character character && !(character is Player) && prefab.GetComponent<Trader>() == null
+                && prefab.GetComponent<CharacterDrop>() == null && !BornTame.Is(prefab)).Select(e => e.Name).ToList();
             p.Note($"{Numbers.Count(dropless.Count)} creatures leave no loot: " + string.Join(", ", dropless.Take(12)));
             var player = Player.m_localPlayer;
             if (dropless.Count == 0 || player == null) return;
