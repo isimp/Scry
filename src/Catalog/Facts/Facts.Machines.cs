@@ -49,13 +49,14 @@ namespace Scry
             // Rows of what they take, each item going to its page.
             if (turret != null)
             {
-                PrefabChips("Fires", turret.m_allowedAmmo?.Where(a => a.m_ammo != null).Select(a => a.m_ammo.gameObject.name));
-                PrefabChips(MachineWords.TrophiesTitle(turret.m_maxConfigTargets), turret.m_configTargets?.Where(t => t.m_item != null).Select(t => t.m_item.gameObject.name));
+                // What it takes are rules of the game's loading and targeting, each shown once met.
+                PrefabChips("Fires", turret.m_allowedAmmo?.Where(a => a.m_ammo != null).Select(a => a.m_ammo.gameObject.name), gameShown: true);
+                PrefabChips(MachineWords.TrophiesTitle(turret.m_maxConfigTargets), turret.m_configTargets?.Where(t => t.m_item != null).Select(t => t.m_item.gameObject.name), gameShown: true);
             }
             if (catapult != null)
             {
-                PrefabChips("Loads these whatever their type", catapult.m_includeItemsOverride?.Where(i => i != null).Select(i => i.gameObject.name));
-                // A rule of the game's loading, met only as a refusal that names none of them, so each shows once met.
+                // Rules of the game's loading, each shown once met; what it never loads is met only as a refusal that names none of them.
+                PrefabChips("Loads these whatever their type", catapult.m_includeItemsOverride?.Where(i => i != null).Select(i => i.gameObject.name), gameShown: true);
                 PrefabChips("Never loads these", catapult.m_excludeItemsOverride?.Where(i => i != null).Select(i => i.gameObject.name), gameShown: true);
             }
         }

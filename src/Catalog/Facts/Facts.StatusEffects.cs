@@ -32,7 +32,8 @@ namespace Scry
                     .GroupBy(EffectName).OrderBy(g => g.Key, StringComparer.Ordinal).ToList();
                 if (kin.Count > 0)
                 {
-                    var row = new Row { Title = "While it lasts, cannot take" };
+                    // A rule of the game, met only as a refused drink that names neither, so each shows once met.
+                    var row = new Row { Title = "While it lasts, cannot take", GameShown = true };
                     foreach (var named in kin)
                     {
                         var page = EntryOf(EntryKeys.For(Kind.StatusEffect, named.First().name));
