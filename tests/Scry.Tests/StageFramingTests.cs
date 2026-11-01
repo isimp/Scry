@@ -176,6 +176,38 @@ namespace Scry.Tests
             Assert.False(StageFraming.OpensSideOn(new Vec3(2.1f, 2f, 6f), creature: true));
         }
 
+        // The half angle across a picture of a shape (width over height), seen through a field of view in degrees up.
+        private static double HalfAcross(float fieldOfView, float aspect) =>
+            Math.Atan(aspect * Math.Tan(fieldOfView * 0.5 * Math.PI / 180.0));
+
+        [Fact]
+        public void ALongCreatureOnAWideStageFillsItsWidth()
+        {
+            // Half a Serpent's length, framed on a stage three times as wide as it is tall: its
+            // length reaches the picture's sides, nearer than filling the height alone would stand.
+            var distance = StageFraming.LongFramedDistance(18f, 30f, 3f);
+            Assert.Equal(18.0, distance * Math.Sin(HalfAcross(30f, 3f)), 3);
+            Assert.True(distance < StageFraming.FramedDistance(18f, 30f));
+        }
+
+        [Fact]
+        public void ALongCreatureOnANarrowStageStaysInsideItsWidth()
+        {
+            // Taller than wide, filling the height would let its length run off the sides: it stands back until it fits across.
+            var distance = StageFraming.LongFramedDistance(18f, 30f, 0.6f);
+            Assert.Equal(18.0, distance * Math.Sin(HalfAcross(30f, 0.6f)), 3);
+            Assert.True(distance > StageFraming.FramedDistance(18f, 30f));
+        }
+
+        [Fact]
+        public void ALongCreatureOnAVeryWideStageKeepsItsHeightInThePicture()
+        {
+            // However wide the stage, never so near that a body a third of its length tall leaves the picture's height.
+            var distance = StageFraming.LongFramedDistance(18f, 30f, 20f);
+            Assert.Equal(StageFraming.FramedDistance(18f / StageFraming.LongShare, 30f), distance, 3);
+            Assert.Equal(0f, StageFraming.LongFramedDistance(0f, 30f, 3f));
+        }
+
         [Fact]
         public void ARoundOrTallCreatureAndAnythingButACreatureOpenFromTheFront()
         {

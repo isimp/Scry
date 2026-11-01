@@ -80,7 +80,7 @@ namespace Scry
         {
             var before = Zoom;
             // No nearer than keeps it over a floor's cut.
-            Zoom = StageCamera.Zoomed(Zoom, wheel, StageFraming.FramedDistance(_frameRadius, FieldOfView), OverCutDistance());
+            Zoom = StageCamera.Zoomed(Zoom, wheel, FramedDistanceNow(_frameRadius), OverCutDistance());
             if (point == null || _camera == null || before <= 0f || Mathf.Approximately(Zoom, before)) return;
             if (!(PointUnder(point.Value) is Vector3 toward)) return;
 

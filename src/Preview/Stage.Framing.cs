@@ -118,6 +118,15 @@ namespace Scry
         [Diagnostic, ForTest]
         public static bool LevelFrameKept => _keptLevelFrame != null;
 
+        /// <summary>
+        /// How far off what is framed stands at a zoom of one: a long creature shown from its side
+        /// across the picture's width (<see cref="StageFraming.LongFramedDistance"/>), anything else
+        /// filling the picture's height.
+        /// </summary>
+        private static float FramedDistanceNow(float radius) => _long && _width > 0 && _height > 0
+            ? StageFraming.LongFramedDistance(radius, FieldOfView, (float)_width / _height)
+            : StageFraming.FramedDistance(radius, FieldOfView);
+
         /// <summary>For the self-test: whether what is shown is a long creature, opened showing its side.</summary>
         [ForTest]
         public static bool ShownSideOn => _long;
@@ -274,7 +283,7 @@ namespace Scry
             _lookedFloor = floor?.y;
             _lookAt = _frameCenter + (floor != null ? new Vector3(_pan.x, 0f, _pan.z) : _pan);
             var radius = _frameRadius;
-            var distance = StageFraming.Distance(radius, FieldOfView, Zoom, OverCutDistance());
+            var distance = StageFraming.Distance(FramedDistanceNow(radius), Zoom, OverCutDistance());
 
             var rotation = Quaternion.Euler(Pitch, Yaw, 0f);
             // Beside a grown plan box, what is framed stands that far right of the picture's middle.

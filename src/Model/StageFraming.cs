@@ -53,8 +53,24 @@ namespace Scry
             radius > 0f ? radius / (float)Math.Sin(fieldOfView * 0.5 * Math.PI / 180.0) : 0f;
 
         /// <summary>How far off the camera stands: the framed distance zoomed, and never nearer than keeps it over a floor's cut.</summary>
-        public static float Distance(float radius, float fieldOfView, float zoom, float overCut) =>
-            Math.Max(FramedDistance(radius, fieldOfView) * zoom, overCut);
+        public static float Distance(float radius, float fieldOfView, float zoom, float overCut) => Distance(FramedDistance(radius, fieldOfView), zoom, overCut);
+
+        /// <summary>How far off the camera stands from a framed distance: zoomed, and never nearer than keeps it over a floor's cut.</summary>
+        public static float Distance(float framed, float zoom, float overCut) => Math.Max(framed * zoom, overCut);
+
+        /// <summary>
+        /// How far off a long creature shown from its side (<see cref="OpensSideOn"/>) is framed:
+        /// its sphere fills the picture's width, of a shape (width over height) seen through a field
+        /// of view in degrees up, so its length reaches across a wide stage and stays inside a
+        /// narrow one; never so near that a body <see cref="LongShare"/> times shorter than it is
+        /// long leaves the picture's height. 0 while nothing is framed.
+        /// </summary>
+        public static float LongFramedDistance(float radius, float fieldOfView, float aspect)
+        {
+            if (radius <= 0f || aspect <= 0f) return FramedDistance(radius, fieldOfView);
+            var halfAcross = Math.Atan(aspect * Math.Tan(fieldOfView * 0.5 * Math.PI / 180.0));
+            return Math.Max(radius / (float)Math.Sin(halfAcross), FramedDistance(radius / LongShare, fieldOfView));
+        }
 
         /// <summary>How near and how far the picture draws: from a hundredth of the way (a centimetre at least) to well past what is framed.</summary>
         public static (float Near, float Far) Clipping(float distance, float radius) =>
