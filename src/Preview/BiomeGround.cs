@@ -291,7 +291,8 @@ namespace Scry
             var size = StageGround.MaskSize(paints.Count, _across);
             _painter = new MaskPainter(size, _at.x, _at.z, _across, paints, (ground.r, ground.g, ground.b, ground.a));
             _paintedRows = 0;
-            if (_paintingPoints.Length != size * size) _paintingPoints = new (float, float, float, float)[size * size];
+            // Only ever grown, so a smaller place's mask after a larger makes no new one.
+            if (_paintingPoints.Length < size * size) _paintingPoints = new (float, float, float, float)[size * size];
         }
 
         /// <summary>Paints the mask begun a few milliseconds a frame; once every row is painted, the texture takes them.</summary>
@@ -315,17 +316,19 @@ namespace Scry
             Timing.Add("render frame ground paint", step);
         }
 
-        /// <summary>The mask's texture takes the points painted.</summary>
+        /// <summary>
+        /// The mask's texture takes the first <paramref name="size"/> squared points painted,
+        /// written straight into its own pixels, as many as it holds, so taking them makes no copy.
+        /// </summary>
         private void Applied(int size, (float R, float G, float B, float A)[] points)
         {
             if (_mask.width != size) _mask.Reinitialize(size, size);
-            if (_maskPixels.Length != size * size) _maskPixels = new Color[size * size];
-            for (var p = 0; p < points.Length && p < _maskPixels.Length; p++)
+            var pixels = _mask.GetPixelData<Color32>(0);
+            for (var p = 0; p < pixels.Length && p < points.Length; p++)
             {
                 var (r, g, b, a) = points[p];
-                _maskPixels[p] = new Color(r, g, b, a);
+                pixels[p] = new Color(r, g, b, a);
             }
-            _mask.SetPixels(_maskPixels);
             _mask.Apply(false);
         }
 
@@ -600,14 +603,13 @@ namespace Scry
             var paints = PaintsNow();
             var size = StageGround.MaskSize(paints.Count, _across);
             // Kept from one painting to the next, so laying the ground anew makes no new ones.
-            if (_maskPoints.Length != size * size) _maskPoints = new (float, float, float, float)[size * size];
+            if (_maskPoints.Length < size * size) _maskPoints = new (float, float, float, float)[size * size];
             StageGround.PaintMask(size, _at.x, _at.z, _across, paints, (ground.r, ground.g, ground.b, ground.a), _maskPoints);
             Applied(size, _maskPoints);
         }
 
-        /// <summary>The mask's points as painted, and as colours for its texture.</summary>
+        /// <summary>The mask's points as painted, only ever grown.</summary>
         private (float R, float G, float B, float A)[] _maskPoints = Array.Empty<(float, float, float, float)>();
-        private Color[] _maskPixels = Array.Empty<Color>();
 
         /// <summary>The paints as they stand now, in the order the game applies them.</summary>
         private List<GroundPaint> PaintsNow()
