@@ -61,8 +61,12 @@ namespace Scry
                 float GroundUnder(Vector3 at) => middle.y + settle.Shape.HeightAt(at.x - middle.x, at.z - middle.z);
                 var offGround = falls.Count(s => Mathf.Abs(s.At.position.y - GroundUnder(s.At.position)) > 0.06f);
                 p.Check(falls.Count >= 3 && offGround == 0, "its big tar rests on the pit's floor", $"{Numbers.Count(falls.Count)} falling, {Numbers.Count(offGround)} off the ground");
-                var offTar = floats.Count(s => float.IsNaN(level) || Mathf.Abs(s.At.position.y - level - 0.1f) > 0.06f);
-                p.Check(floats.Count >= 6 && offTar == 0, "its small tar floats on the tar", $"{Numbers.Count(floats.Count)} floating, {Numbers.Count(offTar)} off the tar");
+                // As the game floats a body: its centre of mass at the tar's level and its offset, the pivot under it by the centre's height.
+                float CentreHeight(SettlingAt s) => s.At.position.y + s.At.TransformVector(s.Centre).y;
+                var offTar = floats.Count(s => float.IsNaN(level) || Mathf.Abs(CentreHeight(s) - level - s.FloatOffset * s.At.lossyScale.y) > 0.06f);
+                var sunk = floats.Count(s => s.At.TransformVector(s.Centre).y > 0.01f);
+                p.Check(floats.Count >= 6 && offTar == 0, "its small tar floats in the tar, each by its centre of mass, as the game floats it",
+                    $"{Numbers.Count(floats.Count)} floating, {Numbers.Count(offTar)} off the tar, {Numbers.Count(sunk)} with their centre above their pivot");
                 yield return Picture(p, "dug ground " + pit.Name);
             }
 

@@ -247,7 +247,7 @@ namespace Scry
             foreach (var floats in copy.GetComponentsInChildren<Floating>(true))
             {
                 if (floats == null || !floats.enabled || !Animators.SwitchedOn(floats.transform, root)) continue;
-                into.Settling.Add(new SettlingAt { At = floats.transform, How = PartRest.Floats, FloatOffset = floats.m_waterLevelOffset, Made = floats.transform.localPosition });
+                into.Settling.Add(new SettlingAt { At = floats.transform, How = PartRest.Floats, FloatOffset = floats.m_waterLevelOffset, Made = floats.transform.localPosition, Centre = CentreOfMass(floats) });
             }
             foreach (var liquid in copy.GetComponentsInChildren<LiquidVolume>(true))
             {
@@ -258,6 +258,57 @@ namespace Scry
                 {
                     At = liquid.transform, Filter = filter, Width = liquid.m_width, Scale = liquid.m_scale, Area = liquid.m_initialArea, Volume = liquid.m_initialVolume, MaxDepth = liquid.m_maxDepth,
                 });
+            }
+        }
+
+        /// <summary>
+        /// Where a floating part's body has its centre of mass, in the part's own space: the one
+        /// its body is given where it is given one, else as Unity works it out from the body's
+        /// solid colliders, each by its volume, a mesh's by its bounds; its pivot where it has none.
+        /// The game floats the body by that centre (<c>Floating.GetFloatDepth</c>), not its pivot.
+        /// </summary>
+        private static Vector3 CentreOfMass(Floating floats)
+        {
+            var part = floats.transform;
+            var body = floats.GetComponent<Rigidbody>();
+            if (body != null && !body.automaticCenterOfMass) return body.centerOfMass;
+            var sum = Vector3.zero;
+            var weight = 0f;
+            foreach (var collider in floats.GetComponentsInChildren<Collider>(true))
+            {
+                if (collider == null || collider.isTrigger || !ColliderShape(collider, out var centre, out var size)) continue;
+                var world = collider.transform;
+                var at = part.InverseTransformPoint(world.TransformPoint(centre));
+                var scaled = Vector3.Scale(size, world.lossyScale);
+                var volume = Mathf.Max(1e-6f, Mathf.Abs(scaled.x * scaled.y * scaled.z));
+                sum += at * volume;
+                weight += volume;
+            }
+            return weight > 0f ? sum / weight : Vector3.zero;
+        }
+
+        /// <summary>A collider's centre and the size of its box, in its own space: a box's, a sphere's and a capsule's as given, a mesh's by its bounds.</summary>
+        private static bool ColliderShape(Collider collider, out Vector3 centre, out Vector3 size)
+        {
+            switch (collider)
+            {
+                case BoxCollider box:
+                    (centre, size) = (box.center, box.size);
+                    return true;
+                case SphereCollider sphere:
+                    (centre, size) = (sphere.center, Vector3.one * sphere.radius * 2f);
+                    return true;
+                case CapsuleCollider capsule:
+                    var across = capsule.radius * 2f;
+                    var along = Mathf.Max(across, capsule.height);
+                    (centre, size) = (capsule.center, capsule.direction == 0 ? new Vector3(along, across, across) : capsule.direction == 1 ? new Vector3(across, along, across) : new Vector3(across, across, along));
+                    return true;
+                case MeshCollider mesh when mesh.sharedMesh != null:
+                    (centre, size) = (mesh.sharedMesh.bounds.center, mesh.sharedMesh.bounds.size);
+                    return true;
+                default:
+                    (centre, size) = (Vector3.zero, Vector3.zero);
+                    return false;
             }
         }
     }

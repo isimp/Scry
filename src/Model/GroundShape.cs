@@ -284,10 +284,14 @@ namespace Scry
         /// <summary>How far past the ground a part may stand before the game moves it.</summary>
         private const float Slack = 0.05f;
 
-        /// <summary>The height a part rests at, from its own, the ground's under it and the liquid's there if any.</summary>
-        public static float Settled(float y, float ground, float? liquid, int how, float floatOffset = 0f)
+        /// <summary>
+        /// The height a part rests at, from its own, the ground's under it and the liquid's there if
+        /// any; a floating one's centre of mass, <paramref name="centreAbove"/> over its pivot, rests
+        /// at the liquid's level and its offset, as the game floats the body (<c>Floating.GetFloatDepth</c>).
+        /// </summary>
+        public static float Settled(float y, float ground, float? liquid, int how, float floatOffset = 0f, float centreAbove = 0f)
         {
-            if ((how & Floats) != 0) return liquid is float level && level > ground ? level + floatOffset : y;
+            if ((how & Floats) != 0) return liquid is float level && level > ground ? level + floatOffset - centreAbove : y;
             if ((how & Fall) != 0)
             {
                 var fallTo = (how & Solids) != 0 ? y : ground;

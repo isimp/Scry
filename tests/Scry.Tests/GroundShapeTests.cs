@@ -239,6 +239,14 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AFloatingPartRidesWithItsCentreOfMassAtTheLevelSoItsPivotSinksByItsCentresHeight()
+        {
+            // Floating.GetFloatDepth: the body's centre of mass, not its pivot, rests at the level and its offset.
+            Assert.Equal(-1.16f, PartRest.Settled(0f, -3.5f, -0.96f, PartRest.Floats, 0.1f, centreAbove: 0.3f), 3);
+            Assert.Equal(0f, PartRest.Settled(0f, 0.2f, -0.96f, PartRest.Floats, 0.1f, centreAbove: 0.3f), 3);
+        }
+
+        [Fact]
         public void APartWithNoSettlingStaysPut()
         {
             Assert.Equal(-4f, PartRest.Settled(-4f, 0f, null, 0), 3);

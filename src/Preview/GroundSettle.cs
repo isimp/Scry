@@ -34,6 +34,9 @@ namespace Scry
         public int How;
         public float FloatOffset;
         public Vector3 Made;
+
+        /// <summary>Where a floating part's body has its centre of mass, in the part's own space (<c>Floating.GetFloatDepth</c> floats it by that).</summary>
+        public Vector3 Centre;
         public GameObject Room;
     }
 
@@ -91,12 +94,13 @@ namespace Scry
             }
         }
 
+        /// <summary>The parts let settle that still stand, each with how it settles, for the self-test.</summary>
         [ForTest]
-        public IEnumerable<(Transform At, int How)> Settled
+        public IEnumerable<SettlingAt> Settled
         {
             get
             {
-                foreach (var part in _settling) if (part.At != null) yield return (part.At, part.How);
+                foreach (var part in _settling) if (part.At != null) yield return part;
             }
         }
 
@@ -254,7 +258,9 @@ namespace Scry
             var parent = part.At.parent;
             var made = parent != null ? parent.TransformPoint(part.Made) : part.Made;
             var ground = GroundAt(made);
-            var settled = PartRest.Settled(made.y, ground, LiquidOver(made), part.How, part.FloatOffset * part.At.lossyScale.y);
+            // The centre's height over the pivot as the part stands, scaled and turned.
+            var centreAbove = part.At.TransformVector(part.Centre).y;
+            var settled = PartRest.Settled(made.y, ground, LiquidOver(made), part.How, part.FloatOffset * part.At.lossyScale.y, centreAbove);
             part.At.position = new Vector3(made.x, settled, made.z);
         }
 
