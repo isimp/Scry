@@ -52,7 +52,7 @@ namespace Scry
                 CompendiumKeeper.StoodIn(place.Key, hasInside: false, inside: false, at);
                 p.Check(book.Level(place.Key) == KnownLevel.Known && Shows(book, place, biome), $"standing in {place.Name} makes it known, its biome shown under the strict rules", $"{book.Level(place.Key)}, paired {book.Witnessed(place.Key, biome.Key)}");
             }
-            else p.Note("no place or no biome where the character stands: standing in a place untried");
+            else p.Untried("standing in a place", "stand inside a camp, a village or a dungeon's entrance");
 
             // A dungeon seen at its entrance, known once inside, paired with the biome either way.
             var crypt = Crypt();
@@ -87,7 +87,7 @@ namespace Scry
                 }
                 else p.Note($"the place {stone.name} stands in has no page with its texts told here: the page's side untried");
             }
-            else p.Note("no rune stone loaded or among the prefabs: reading one untried");
+            else p.Untried("reading a rune stone", "stand near a rune stone");
 
             // A station and its upgrades: in use, an upgrade built near it, it built near them.
             // Each station loaded with its own upgrades, the nearest with any taken.
@@ -123,7 +123,7 @@ namespace Scry
                     p.Check(stationPiece != null && placed.Witnessed(stationEntry.Key, upgradeEntry.Key), $"{stationEntry.Name} built near its upgrades is paired with them");
                 }
             }
-            else p.Note("no crafting station with upgrades loaded near by: its rows untried");
+            else p.Untried("a station built near its upgrades", "stand by a workbench or forge with an upgrade beside it");
 
             RaidLivedThroughTells(p, at, biome, Fresh, Shows);
             VegvisirReadTells(p, Fresh, Shows);
@@ -256,7 +256,7 @@ namespace Scry
             var altar = Object.FindObjectsByType<OfferingBowl>(FindObjectsSortMode.None).FirstOrDefault(a => a != null && a.m_bossPrefab != null && Location.GetLocation(a.transform.position) != null);
             if (altar == null)
             {
-                p.Note("no altar is loaded in a place: a boss seen at it untried");
+                p.Untried("a boss seen at its altar", "stand near a boss's altar");
                 return;
             }
             var book = fresh();
@@ -292,7 +292,7 @@ namespace Scry
                 p.Check(book.Proved(entry.Key, EntryKeys.Did(Deed.Guarded)), $"{key} up close in {entry.Name} shows the stars its spawn points give");
                 return;
             }
-            p.Note("no creature loaded stands in a place whose spawn points place it");
+            p.Untried("a place's spawn stars", "stand in a camp or village with its creatures about");
         }
 
         /// <summary>A trap's numbers wait for one seen springing; a hit of the character's on a piece near by tells how its damage landed, the piece's grid following its own hits.</summary>
@@ -306,7 +306,7 @@ namespace Scry
                 .Where(w => w != null && TogetherWatch.PopupSeen(w)).OrderBy(w => (w.transform.position - player.transform.position).sqrMagnitude).FirstOrDefault();
             if (piece == null)
             {
-                p.Note("no piece is near enough for a hit's popup: its grid untried");
+                p.Untried("a piece's damage grid", "stand next to a piece you built");
                 return;
             }
             var book = fresh();
@@ -354,7 +354,7 @@ namespace Scry
             var marked = name != null ? X.Find(EntryKeys.For(Kind.Location, name)) : null;
             if (holder == null || marked == null || holder == marked)
             {
-                p.Note("no Vegvisir is loaded in a place to read: its place untried");
+                p.Untried("a Vegvisir's place", "stand near a Vegvisir");
                 return;
             }
             var book = fresh();

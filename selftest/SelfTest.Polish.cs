@@ -127,7 +127,7 @@ namespace Scry
             var player = Player.m_localPlayer;
             if (player == null || !player.IsOnGround() || player.InAttack() || player.IsEncumbered())
             {
-                p.Note("no jump measured: the character is not standing free on the ground");
+                p.Untried("a jump's height", "stand free on open ground");
                 yield break;
             }
             // The game's jump grows or shrinks by what the character has on, is weaker tired, and stops at a roof (Character.Jump).

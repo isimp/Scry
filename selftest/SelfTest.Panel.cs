@@ -464,6 +464,9 @@ namespace Scry
             p.Check(true, "the panel stood open on each and was measured");
         }
 
+        /// <summary>How much other threads may allocate in the idle part's waits, where quiet runs see a few dozen KB, before Scry's own share cannot be told from theirs.</summary>
+        private const long OthersTooBusy = 256 * 1024;
+
         /// <summary>
         /// What Scry costs idling with the panel closed, as between looks: its own work each frame
         /// and what it allocates over five seconds, and what it keeps, the textures, render
@@ -472,7 +475,8 @@ namespace Scry
         /// Scry allocates is told by the memory in use, which grows by what other threads allocate
         /// while Scry works too; as long a wait each frame as Scry's work took the frame before,
         /// doing nothing, tells how much of that is theirs (<see cref="OtherThreads"/>), and it is
-        /// left out of what is checked.
+        /// left out of what is checked. Where they allocated past <see cref="OthersTooBusy"/> in the
+        /// waits alone, Scry's share is not judged.
         /// </summary>
         private static IEnumerator IdleCost(Probe p)
         {
@@ -513,8 +517,11 @@ namespace Scry
             // A frame above a millisecond while idling is one to account for: every part of it.
             if (idle != null && idle.Max >= 1.0 && idle.PartsOfSlowest(1)[0] is string slowest) p.Note("its slowest idle frame: " + slowest);
             p.Note("it keeps: " + KeptTold());
-            if (idle != null) p.Check(idle.Mean < 0.25, "idling, Scry's own work is a quarter of a millisecond a frame at the most on average", $"{Numbers.Fixed(idle.Mean, 3)} ms");
-            p.Check(own / count < 1024, "idling, Scry allocates under a kilobyte a frame", Timing.CountsPerThread ? $"{Numbers.Count(own / count)} bytes" : $"{Numbers.Count(own / count)} bytes, other threads' share left out");
+            if (idle != null) p.Within(idle.Mean, 0.25, "idling, Scry's own work is a quarter of a millisecond a frame at the most on average", $"{Numbers.Fixed(idle.Mean, 3)} ms");
+            // Told by every thread's memory, Scry's share cannot be told from other threads allocating much meanwhile.
+            if (!Timing.CountsPerThread && others.Bytes > OthersTooBusy)
+                p.NotJudged("idling, Scry allocates under a kilobyte a frame", $"other threads allocated {Numbers.Count(others.Bytes / 1024)} KB in the waits alone, past what Scry's share can be told from");
+            else p.Check(own / count < 1024, "idling, Scry allocates under a kilobyte a frame", Timing.CountsPerThread ? $"{Numbers.Count(own / count)} bytes" : $"{Numbers.Count(own / count)} bytes, other threads' share left out");
             if (wasOpen) Session.Show(null);
         }
 

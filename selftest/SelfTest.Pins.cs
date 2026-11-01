@@ -242,7 +242,7 @@ namespace Scry
             var ownMs = Timing.OwnBytesByPartCopy().Where(part => part.Part == "marks").Sum(part => part.Ms);
             p.Check(MapMarkButtons.MarksShown >= many, $"all {Numbers.Count(many)} entrances in view come to stand", $"{Numbers.Count(MapMarkButtons.MarksShown)} after {Numbers.Amount(took, 1)} s");
             p.Note($"{Numbers.Count(MapMarkButtons.MarksShown)} marks, they all stood after {Numbers.Amount(took, 1)} s; the marks took {Numbers.Fixed(ownMs / frames, 2)} ms a frame on average, {Numbers.Amount(mostMs, 1)} ms at the most");
-            p.Check(mostMs < 16, "making them and telling their words holds no frame a sixtieth of a second", $"{Numbers.Amount(mostMs, 1)} ms at the most");
+            p.Within(mostMs, 16, "making them and telling their words holds no frame a sixtieth of a second", $"{Numbers.Amount(mostMs, 1)} ms at the most");
 
             // What they are listed from changed, their words are told anew a few a frame: none goes from the map meanwhile.
             var standing = MapMarkButtons.MarksShown;

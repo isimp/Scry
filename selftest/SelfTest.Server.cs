@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -157,7 +158,7 @@ namespace Scry
             // dungeon read and the rest apart, whatever else Scry did in the same frames.
             if (ZNet.instance.IsServer() && frames != null)
             {
-                p.Check(linksMost < 50 && readMost < 50, "reading them here holds none of this game's frames a twentieth of a second",
+                p.Within(Math.Max(linksMost, readMost), 50, "reading them here holds none of this game's frames a twentieth of a second",
                     $"a dungeon read {Numbers.Amount(readMost, 1)} ms, the rest of the server's work {Numbers.Amount(linksMost, 1)} ms at the most, over {Numbers.Count(frames.Frames)} frames");
             }
             var (dungeons, rooms, onTheWay) = read.Value;

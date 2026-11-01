@@ -181,7 +181,7 @@ namespace Scry
             _sampled = asked.Sampled;
             if (asked.Scope == RunScope.Quick || asked.Scope == RunScope.Deep || asked.Scope == RunScope.Full) PicturesAside();
             ReadmeFor(asked.Scope);
-            _runner = new ScenarioRunner(parts, Write, Finish, PartBegins);
+            _runner = new ScenarioRunner(parts, Write, Finish, PartBegins, Slowdown);
             SelfTestPanel.ShowResult();
             return SelfTestWords.Started(_runner.Total, asked.Scope, times.Estimate(parts.Select(s => s.Name), asked.Sampled));
         }
@@ -293,6 +293,7 @@ namespace Scry
             LastAdvice = SelfTestWords.Advice(reports, "BepInEx/Scry-selftest.log");
             LastFailed = reports.Any(r => r.Result == Result.Fail);
             KeepTimes(reports);
+            KeepPace();
 
             var readHere = _before != null && _before.LocationsWere != Locations.State.Read && Locations.Now == Locations.State.Read;
             StageDice.Fix(false);
@@ -364,6 +365,7 @@ namespace Scry
         /// <summary>As each part begins: the book as every part expects it, and the compendium's box let go, whichever part held it open.</summary>
         private static void PartBegins()
         {
+            PaceForPart();
             AllKnown();
             ScryPanel.HoldCompendiumBox(false);
         }

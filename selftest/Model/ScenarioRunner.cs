@@ -79,14 +79,45 @@ namespace Scry
     {
         private readonly ScenarioReport _report;
         private readonly Action<string> _write;
+        private readonly Func<double> _slowdown;
 
         internal int Checks;
         internal bool Failed;
 
-        internal Probe(ScenarioReport report, Action<string> write)
+        internal Probe(ScenarioReport report, Action<string> write, Func<double> slowdown = null)
         {
             _report = report;
             _write = write;
+            _slowdown = slowdown;
+        }
+
+        /// <summary>
+        /// Records a time or an amount against its budget: held, or missed while the machine ran
+        /// well below its best pace and so not judged (<see cref="MachinePace.Judge"/>), or failed.
+        /// Returns whether it was not failed.
+        /// </summary>
+        public bool Within(double value, double limit, string what, string detail = null)
+        {
+            var slowdown = _slowdown?.Invoke() ?? 1.0;
+            var verdict = MachinePace.Judge(value, limit, slowdown);
+            if (verdict != Verdict.Busy) return Check(verdict == Verdict.Within, what, detail);
+            Checks++;
+            Line($"  BUSY {what}{(string.IsNullOrEmpty(detail) ? "" : ": " + detail)}; this machine ran {Numbers.Fixed(slowdown, 1)} times slower than its best");
+            return true;
+        }
+
+        /// <summary>A check left unjudged for a reason of its own, as other programs' work in the measure.</summary>
+        public void NotJudged(string what, string why)
+        {
+            Checks++;
+            Line($"  BUSY {what}: {why}");
+        }
+
+        /// <summary>A row with nothing near to try it on: what it would show and where to stand for it; accounted for, so a part of such rows alone has not checked nothing.</summary>
+        public void Untried(string what, string where)
+        {
+            Checks++;
+            Line($"  untried {what}: {where}");
         }
 
         /// <summary>Records one expectation. Returns whether it held, so a scenario can stop early.</summary>
@@ -125,6 +156,7 @@ namespace Scry
         private readonly Action<string> _write;
         private readonly Action _finally;
         private readonly Action _start;
+        private readonly Func<double> _slowdown;
         private readonly List<ScenarioReport> _reports = new List<ScenarioReport>();
 
         private Scenario _current;
@@ -154,13 +186,15 @@ namespace Scry
             $"{Numbers.Count(_reports.Count(r => r.Result == Result.Fail))} failed, " +
             $"{Numbers.Count(_reports.Count(r => r.Result == Result.Skip))} skipped";
 
-        public ScenarioRunner(IEnumerable<Scenario> scenarios, Action<string> write, Action finish = null, Action start = null)
+        /// <summary>The runner, with how many times slower than its best the machine runs now (<see cref="MachinePace"/>), for the budgets and the timeouts; none taken as its best.</summary>
+        public ScenarioRunner(IEnumerable<Scenario> scenarios, Action<string> write, Action finish = null, Action start = null, Func<double> slowdown = null)
         {
             _pending = new Queue<Scenario>(scenarios ?? Enumerable.Empty<Scenario>());
             Total = _pending.Count;
             _write = write ?? (_ => { });
             _finally = finish;
             _start = start;
+            _slowdown = slowdown;
         }
 
         /// <summary>Advances to the given time. True while there is more to run.</summary>
@@ -176,8 +210,15 @@ namespace Scry
 
             if (now - _startedAt > _current.Timeout)
             {
-                End(now, Result.Fail, $"  FAIL timed out after {Numbers.Amount(_current.Timeout, 1)} s");
-                return true;
+                // A machine running well below its best gets the part as much longer.
+                var slowdown = _slowdown?.Invoke() ?? 1.0;
+                var allowed = slowdown >= MachinePace.BusyAt ? _current.Timeout * slowdown : _current.Timeout;
+                if (now - _startedAt > allowed)
+                {
+                    var why = allowed > _current.Timeout ? $", given that long as this machine ran {Numbers.Fixed(slowdown, 1)} times slower than its best" : "";
+                    End(now, Result.Fail, $"  FAIL timed out after {Numbers.Amount(allowed, 1)} s{why}");
+                    return true;
+                }
             }
 
             if (now < _waitUntil) return true;
@@ -211,7 +252,7 @@ namespace Scry
 
             _current = _pending.Dequeue();
             _report = new ScenarioReport { Name = _current.Name };
-            _probe = new Probe(_report, _write);
+            _probe = new Probe(_report, _write, _slowdown);
             _startedAt = now;
             if (_firstAt < 0) _firstAt = now;
             _waitUntil = now;

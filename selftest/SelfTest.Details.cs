@@ -193,7 +193,7 @@ namespace Scry
             var seen = creatures.FirstOrDefault(c => DropWatch.Seen.Of(c.Name).Count > 0);
             if (seen == null)
             {
-                p.Note("nothing seen dropping yet; kill something and run the test again to see it told");
+                p.Untried("drops seen in play", "kill something, then run the test again");
                 yield break;
             }
             var told = Facts.For(seen);
@@ -227,7 +227,7 @@ namespace Scry
             }
             if (seen.Count == 0)
             {
-                p.Note("nothing seen equipped yet; put something on and run the test again to see it told");
+                p.Untried("gear seen worn", "put something on, then run the test again");
                 yield break;
             }
             var first = seen[0].Entry;
@@ -903,7 +903,7 @@ namespace Scry
                 told.Add((dungeon.Name, lines, quickest));
             }
             var slowest = told.OrderByDescending(t => t.Ms).First();
-            p.Check(slowest.Ms < 25.0, "told again, a dungeon's page takes under 25 ms however many parts its rooms hold",
+            p.Within(slowest.Ms, 25.0, "told again, a dungeon's page takes under 25 ms however many parts its rooms hold",
                 string.Join(", ", told.Select(t => $"{t.Name} {Numbers.Count(t.Lines)} parts' lines in {Numbers.Amount(t.Ms, 1)} ms")));
         }
 

@@ -104,7 +104,7 @@ namespace Scry
                 yield return Until(() => CompendiumKeeper.Book.Level(standingEntry.Key) >= want, 3);
                 p.Check(CompendiumKeeper.Book.Level(standingEntry.Key) >= want, $"the place stood in, {standingEntry.Name}, is {(want == KnownLevel.Known ? "known" : "seen at least, as a dungeon not entered")}");
             }
-            else p.Note("no place of the catalog is stood in now");
+            else p.Untried("standing in a place", "stand inside a camp, a village or a dungeon's entrance");
 
             // What it carries is known within a moment.
             var carried = player.GetInventory().GetAllItems().Where(i => i?.m_dropPrefab != null).Select(i => i.m_dropPrefab.name).Where(n => X.Find(n) != null).Distinct().ToList();
@@ -515,23 +515,37 @@ namespace Scry
         private static readonly string[] BigAndSmall = { "Greydwarf", "Troll", "Serpent", "Dragon", "GoblinKing", "SeekerQueen", "Fader" };
 
         /// <summary>
+        /// Every patch class Scry registers sits on a game method (<see cref="PatchesInPlace"/>):
+        /// read from what Harmony holds as Scry's, so a hook moved or renamed is checked where it
+        /// is now. One whose feature the game turned off is named, not looked for.
+        /// </summary>
+        private static void WatchersInPlace(Probe p)
+        {
+            var sitting = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var method in Harmony.GetAllPatchedMethods())
+            {
+                var info = Harmony.GetPatchInfo(method);
+                if (info == null) continue;
+                foreach (var patch in info.Prefixes.Concat(info.Postfixes).Concat(info.Transpilers).Concat(info.Finalizers))
+                {
+                    if (patch.owner == About.Guid && patch.PatchMethod?.DeclaringType != null) sitting.Add(patch.PatchMethod.DeclaringType.FullName);
+                }
+            }
+            var off = new HashSet<Feature>(Faults.ChangedFeatures);
+            var registered = About.OwnTypes().Where(t => t.GetCustomAttributes(typeof(HarmonyPatch), false).Length > 0)
+                .Select(t => (t.FullName, off.Contains(Compatibility.FeatureOfPatch(t)))).ToList();
+            var missing = PatchesInPlace.Missing(registered, sitting);
+            p.Check(missing.Count == 0, $"each of the {Numbers.Count(registered.Count)} patches Scry registers sits on its game method", string.Join(", ", missing));
+            foreach (var (patch, isOff) in registered) if (isOff) p.Note($"{patch}: its feature went off for a game change, so it is not looked for");
+        }
+
+        /// <summary>
         /// The watchers sit on the game's methods they rely on, and looking around the character
         /// finds no fault; what is in sight now is told, learned into a book of the test's own.
         /// </summary>
         private static IEnumerator CompendiumWatched(Probe p)
         {
-            foreach (var (type, name) in new[] { (typeof(Character), "Damage"), (typeof(Character), "RPC_Damage"), (typeof(Destructible), "Damage"), (typeof(TreeBase), "Damage"), (typeof(TreeLog), "Damage"), (typeof(MineRock), "Damage"), (typeof(MineRock5), "Damage"),
-                (typeof(Humanoid), "Pickup"), (typeof(Player), "PlacePiece"), (typeof(Tameable), "Interact"), (typeof(Tameable), "OnConsumedItem"),
-                (typeof(Humanoid), "DoInteractAnimation"), (typeof(UITooltip), "OnHoverStart"), (typeof(Vegvisir), "Interact"),
-                (typeof(Player), "Interact"), (typeof(Humanoid), "UseItem"), (typeof(OfferingBowl), "RPC_BossSpawnInitiated"), (typeof(FishingFloat), "Catch"), (typeof(ItemDrop), "Awake"), (typeof(ZNetView), "Awake"),
-                (typeof(Procreation), "Procreate"), (typeof(Growup), "GrowUpdate"), (typeof(Pickable), "SetPicked"), (typeof(TreeBase), "RPC_Damage"), (typeof(TreeLog), "Destroy"),
-                (typeof(MineRock), "RPC_Hit"), (typeof(MineRock5), "DamageArea"), (typeof(DropOnDestroyed), "OnDestroyed"),
-                (typeof(Pickable), "RPC_Pick"), (typeof(SpawnArea), "SpawnOne"), (typeof(Beehive), "Interact"), (typeof(SapCollector), "Interact"), (typeof(InventoryGui), "Show"),
-                (typeof(Destructible), "Destroy"), (typeof(WearNTear), "Destroy"), (typeof(Character), "OnDeath") })
-            {
-                var method = AccessTools.DeclaredMethod(type, name);
-                p.Check(method != null && Harmony.GetPatchInfo(method)?.Owners.Contains(About.Guid) == true, $"{type.Name}.{name} is watched");
-            }
+            WatchersInPlace(p);
 
             p.Check(AccessTools.Field(typeof(StoreGui), "m_trader") != null, "a trader's open store tells whose it is");
 
@@ -555,7 +569,7 @@ namespace Scry
             var marks = UnityEngine.Object.FindObjectsByType<Vegvisir>(FindObjectsSortMode.None)
                 .SelectMany(v => v.m_locations.Select(l => l.m_locationName)).Where(n => !string.IsNullOrEmpty(n)).Distinct().ToList();
             var unmarked = marks.Where(name => X.Find(EntryKeys.For(Kind.Location, name)) == null).ToList();
-            if (marks.Count == 0) p.Note("no Vegvisir is loaded near the character, to check the places it marks");
+            if (marks.Count == 0) p.Untried("the places a Vegvisir marks", "stand near a Vegvisir");
             else p.Check(unmarked.Count == 0, $"the {Numbers.Count(marks.Count)} places the Vegvisirs near mark are all in the catalog", string.Join(", ", unmarked.Take(5)));
             var player = Player.m_localPlayer;
             if (!p.Check(player != null, "a character is played")) yield break;

@@ -26,6 +26,36 @@ namespace Scry
     {
         private const string FailMark = "  FAIL ";
         private const string SkipMark = "  SKIP ";
+        private const string BusyMark = "  BUSY ";
+        private const string UntriedMark = "  untried ";
+
+        /// <summary>How many checks of the run went unjudged as the machine was busy, and how many rows had nothing near to try them on.</summary>
+        private static (int Busy, int Untried) Unsettled(IReadOnlyList<ScenarioReport> reports) =>
+            (reports.Sum(r => r.Lines.Count(l => l.StartsWith(BusyMark, StringComparison.Ordinal))),
+             reports.Sum(r => r.Lines.Count(l => l.StartsWith(UntriedMark, StringComparison.Ordinal))));
+
+        /// <summary>What a headline adds for checks not judged and rows untried; nothing for none.</summary>
+        private static string UnsettledWords(IReadOnlyList<ScenarioReport> reports)
+        {
+            var (busy, untried) = Unsettled(reports);
+            var parts = new List<string>();
+            if (busy > 0) parts.Add($"{Numbers.Count(busy)} {(busy == 1 ? "check" : "checks")} not judged as the machine was busy");
+            if (untried > 0) parts.Add($"{Numbers.Count(untried)} {(untried == 1 ? "row" : "rows")} untried");
+            return parts.Count == 0 ? "" : "; " + string.Join(", ", parts);
+        }
+
+        /// <summary>A summary's block of the parts with lines of one mark, each part with those lines, under a title; none where no part has any.</summary>
+        private static void Marked(List<string> lines, IReadOnlyList<ScenarioReport> reports, string mark, string title)
+        {
+            var count = reports.Sum(r => r.Lines.Count(l => l.StartsWith(mark, StringComparison.Ordinal)));
+            if (count == 0) return;
+            lines.Add(Naming.Counted(title, count) + ":");
+            foreach (var report in reports.Where(r => r.Lines.Any(l => l.StartsWith(mark, StringComparison.Ordinal))))
+            {
+                lines.Add("  " + report.Name);
+                foreach (var line in report.Lines.Where(l => l.StartsWith(mark, StringComparison.Ordinal))) lines.Add("    " + line.Substring(mark.Length));
+            }
+        }
 
         /// <summary>That a run started: which, how many parts, about how long by the parts' last times, how to stop it, and after a quick run what else there is.</summary>
         public static string Started(int parts, RunScope scope, double seconds)
@@ -97,11 +127,11 @@ namespace Scry
             var failed = reports.Count(r => r.Result == Result.Fail);
             var skipped = reports.Count(r => r.Result == Result.Skip);
             var done = seconds.HasValue ? $"Self-test done in {Duration(seconds.Value)}" : "Self-test done";
-            if (passed == reports.Count) return $"{done}: all {Numbers.Count(reports.Count)} parts passed.";
+            if (passed == reports.Count) return $"{done}: all {Numbers.Count(reports.Count)} parts passed{UnsettledWords(reports)}.";
             var told = $"{done}: {Numbers.Count(passed)} of {Numbers.Count(reports.Count)} parts passed";
             if (failed > 0) told += $", {Numbers.Count(failed)} failed";
             if (skipped > 0) told += $", {Numbers.Count(skipped)} skipped";
-            return told + ".";
+            return told + UnsettledWords(reports) + ".";
         }
 
         /// <summary>Each failed part with the checks that failed in it, each skipped part with why, then how many passed.</summary>
@@ -128,6 +158,8 @@ namespace Scry
                     lines.Add("  " + report.Name + (why != null ? ": " + why.Substring(SkipMark.Length) : ""));
                 }
             }
+            Marked(lines, reports, BusyMark, "Not judged, the machine busy");
+            Marked(lines, reports, UntriedMark, "Untried, nothing near to try them on");
             lines.Add($"Passed: {Numbers.Count(reports.Count(r => r.Result == Result.Pass))}.");
             return lines;
         }

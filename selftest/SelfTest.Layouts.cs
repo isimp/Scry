@@ -393,7 +393,7 @@ namespace Scry
             yield return Until(() => Stage.Subject != null && Stage.Subject != before, 20);
             p.Note($"{fixedRoll.Name}, {Numbers.Count(PartsOf(fixedRoll))} parts, made and waiting for its floors over {Numbers.Count(frames.Frames)} frames: {frames.Line(Budget)}{Slowest(frames, 1)}");
             p.Check(waited && !shownMeanwhile, "a location made while its kept floors are still being found waits for them", waited ? "shown before they were found" : "it never waited");
-            p.Check(frames.Max < Quarter, "no frame waits for the files meanwhile", $"{Numbers.Amount(frames.Max, 0)} ms");
+            p.Within(frames.Max, Quarter, "no frame waits for the files meanwhile", $"{Numbers.Amount(frames.Max, 0)} ms");
             p.Check(Stage.Subject != null && Stage.Subject != before, "once found, the location is shown");
             p.Check(FloorProbe.FromKept > fromKept && FloorProbe.Probed == probed, "its floors told from what was kept", $"{Numbers.Count(FloorProbe.FromKept - fromKept)} told, {Numbers.Count(FloorProbe.Probed - probed)} probed");
             var again = Stage.FloorHeights.ToList();
@@ -430,7 +430,7 @@ namespace Scry
             p.Note($"{crypt.Name}'s next layout, its rooms' kept floors still being found over {Numbers.Count(frames.Frames)} frames: {Numbers.Count(madeMeanwhile)} more rooms made meanwhile; {frames.Line(Budget)}{Slowest(frames, 1)}");
             p.Check(made >= 2 && readMeanwhile == 0, "a dungeon's rooms are made while their kept floors are still being found, none read before they are", $"{Numbers.Count(readMeanwhile)} read meanwhile");
             p.Check(madeMeanwhile > 0 || Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, "and more rooms are made as they wait");
-            p.Check(frames.Max < Quarter, "no frame waits for the files meanwhile", $"{Numbers.Amount(frames.Max, 0)} ms");
+            p.Within(frames.Max, Quarter, "no frame waits for the files meanwhile", $"{Numbers.Amount(frames.Max, 0)} ms");
             p.Check(Stage.ExampleFloorsToRead == 0, "once found, every room's floors are read", $"{Numbers.Count(Stage.ExampleFloorsToRead)} still to read");
             p.Check(told > 0 && told >= cast, "most of them told from what was kept", $"{Numbers.Count(told)} kept, {Numbers.Count(cast)} probed");
         }

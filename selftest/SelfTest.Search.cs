@@ -212,7 +212,8 @@ namespace Scry
             // The first page drawn this session finds Scry's code compiled ahead, with what it
             // calls (CodeWarmup), and the stage's way of drawing its picture readied (ScryPanel.WarmStagePicture).
             var waited = Time.unscaledTime;
-            yield return Until(() => Session.Warmup?.Done == true, 50);
+            // A machine running below its best compiles as much slower, and is given as much longer.
+            yield return Until(() => Session.Warmup?.Done == true, 50 * Math.Max(1.0, Slowdown()));
             var warmed = Session.Warmup;
             if (p.Check(warmed?.Done == true, "Scry's code is compiled ahead of the first page", warmed == null ? "not begun" : $"{Numbers.Count(warmed.Compiled)} methods so far"))
             {
@@ -236,7 +237,7 @@ namespace Scry
             {
                 var pages = Frames.Since(from);
                 p.Note("the first pages after the start, the longest each part took in a frame: " + string.Join(", ", FirstPageParts.Select(part => $"{part} {Numbers.Amount(Timing.MostMs(part), 1)} ms")));
-                p.Check(pages.Max < FirstPagesMs, "the first pages after the start draw within a tenth of a second each", $"{Numbers.Amount(pages.Max, 1)} ms at the most{Slowest(pages, 1)}");
+                p.Within(pages.Max, FirstPagesMs, "the first pages after the start draw within a tenth of a second each", $"{Numbers.Amount(pages.Max, 1)} ms at the most{Slowest(pages, 1)}");
             }
             else p.Note("a page was drawn before this part, so these are not the first pages after the start and were not timed as such");
             p.Check(X.RecentKeys.Count >= 3 && X.RecentKeys[0] == c.Key && X.RecentKeys[1] == b.Key, "what was looked at comes back newest first", string.Join(", ", X.RecentKeys.Take(3)));
@@ -317,8 +318,8 @@ namespace Scry
             var laid = Frames.Since(from);
             p.Note($"laying it out took {Numbers.Count(frames + 2)} frames; the longest each part took in one: {string.Join(", ", FirstPageParts.Select(part => $"{part} {Numbers.Amount(Timing.MostMs(part), 1)} ms"))}");
             foreach (var slow in laid.PartsOfSlowest(3)) p.Note("a slow frame of it: " + slow);
-            p.Check(Timing.MostMs("panel") < LayingPanelMs, "no frame of drawing the page while it is laid out takes long", $"{Numbers.Amount(Timing.MostMs("panel"), 1)} ms at the most");
-            p.Check(laid.Max < LayingFrameMs, "no frame of laying it out takes long, the stage's copy and film included", $"{Numbers.Amount(laid.Max, 1)} ms at the most{Slowest(laid, 1)}");
+            p.Within(Timing.MostMs("panel"), LayingPanelMs, "no frame of drawing the page while it is laid out takes long", $"{Numbers.Amount(Timing.MostMs("panel"), 1)} ms at the most");
+            p.Within(laid.Max, LayingFrameMs, "no frame of laying it out takes long, the stage's copy and film included", $"{Numbers.Amount(laid.Max, 1)} ms at the most{Slowest(laid, 1)}");
             p.Check(ScryPanel.Drawn(PanelPart.SectionLine) > lines, "the section line stands once the page is whole, in its skeleton's place");
             var rowsWhole = ScryPanel.LineRowsForTest;
             if (rowsWhole == rowsBefore) p.Check(skeletonRows == rowsWhole, "the section line's skeleton stood in as many rows as the line takes once whole, as the line before it did",
@@ -399,7 +400,7 @@ namespace Scry
             }
             X.SearchEverything("");
             p.Note($"the slowest search took {Numbers.Fixed(slowest, 1)} ms (\"{slowestText}\")");
-            p.Check(slowest < 50, "every search takes under 50 ms", $"{Numbers.Fixed(slowest, 1)} ms for \"{slowestText}\"");
+            p.Within(slowest, 50, "every search takes under 50 ms", $"{Numbers.Fixed(slowest, 1)} ms for \"{slowestText}\"");
         }
 
         // ----- The list -----

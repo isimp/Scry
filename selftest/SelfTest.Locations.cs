@@ -697,6 +697,8 @@ namespace Scry
             if (largest.Count == 0) p.Skip("no location's parts are read");
 
             var wrong = new List<string>();
+            var most = 0.0;
+            var mostAt = "";
             foreach (var entry in largest)
             {
                 var place = PlaceOf(entry);
@@ -717,9 +719,10 @@ namespace Scry
                 }
                 var frames = Frames.Since(from);
                 p.Note($"{entry.Name}, {Numbers.Count(PartsOf(entry))} pieces, {Numbers.Count(Stage.LastBuildParts)} parts, made over {Numbers.Count(Stage.LastBuildFrames)} frames, the slowest whole frame {Numbers.Amount(whole, 0)} ms: {frames.Line(Budget)}{Slowest(frames, 1)}");
-                if (frames.Max >= 250) wrong.Add($"{entry.Name} took {Numbers.Amount(frames.Max, 0)} ms in a frame");
+                if (frames.Max > most) (most, mostAt) = (frames.Max, entry.Name);
             }
-            p.Check(wrong.Count == 0, "each is made over several frames, none of them a quarter of a second", string.Join("; ", wrong));
+            p.Check(wrong.Count == 0, "each stands on the stage once made", string.Join("; ", wrong));
+            p.Within(most, 250, "each is made over several frames, none of them a quarter of a second", $"{mostAt} took {Numbers.Amount(most, 0)} ms in a frame");
         }
 
         /// <summary>A spread of rooms stands on the stage on its lowest doorway, opened on its top floor.</summary>

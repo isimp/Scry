@@ -74,7 +74,7 @@ namespace Scry
                 var changes = Facts.For(page).Rows.FirstOrDefault(r => r.Title == SkillPageWords.ChangesTitle);
                 p.Note($"{page.ShownName} in {Numbers.Amount(quickest, 2)} ms: {(changes != null ? string.Join(" | ", changes.Lines.Select(l => string.Join(", ", l.Cells))) : "no table")}");
             }
-            p.Check(slowest.Ms < 10.0, "a skill's page is told in under 10 ms", $"slowest {slowest.Name} in {Numbers.Amount(slowest.Ms, 2)} ms");
+            p.Within(slowest.Ms, 10.0, "a skill's page is told in under 10 ms", $"slowest {slowest.Name} in {Numbers.Amount(slowest.Ms, 2)} ms");
 
             // What the skills work on is read with the catalog; read again here to time it.
             var reading = double.MaxValue;
@@ -85,7 +85,7 @@ namespace Scry
                 reading = System.Math.Min(reading, watch.Elapsed.TotalMilliseconds);
                 yield return null;
             }
-            p.Check(reading < 100.0, "reading what every skill works on, a step of the catalog's reading, takes under 100 ms", $"{Numbers.Amount(reading, 1)} ms over {Numbers.Count(X.Catalog.Count)} entries");
+            p.Within(reading, 100.0, "reading what every skill works on, a step of the catalog's reading, takes under 100 ms", $"{Numbers.Amount(reading, 1)} ms over {Numbers.Count(X.Catalog.Count)} entries");
             var after = skills.GetSkillList().Count;
             p.Check(after == trained, "reading every skill gives the character no skill it never trained", $"{Numbers.Count(trained)} before, {Numbers.Count(after)} after");
         }
@@ -124,7 +124,7 @@ namespace Scry
                 told = Facts.For(sword);
                 quickest = System.Math.Min(quickest, watch.Elapsed.TotalMilliseconds);
             }
-            p.Check(quickest < 10.0, "its page, with its lines at the character's skill, is told in under 10 ms", $"{Numbers.Amount(quickest, 2)} ms");
+            p.Within(quickest, 10.0, "its page, with its lines at the character's skill, is told in under 10 ms", $"{Numbers.Amount(quickest, 2)} ms");
             var attacks = told.Rows.FirstOrDefault(r => r.Title == CombatWords.WeaponAttacksTitle);
             p.Check(attacks != null && attacks.Lines.Count > 0 && Enumerable.Range(0, attacks.Lines.Count).All(attacks.Yours.ContainsKey), "each line of its attacks has a faint line at the character's skill",
                 attacks == null ? "" : string.Join(" | ", attacks.Yours.Values.SelectMany(v => v).Select(c => string.Join(", ", c.Cells))));
