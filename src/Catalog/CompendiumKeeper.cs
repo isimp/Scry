@@ -343,10 +343,32 @@ namespace Scry
         public static void HitBy(Character creature)
         {
             if (Into == null || creature == null || creature.IsPlayer()) return;
-            var weapon = (creature as Humanoid).OrNull()?.GetCurrentWeapon()?.m_dropPrefab.OrNull();
+            var weapon = WeaponOf((creature as Humanoid).OrNull());
             if (weapon == null) return;
             Into.FoundOut(Utils.GetPrefabName(creature.gameObject), EntryKeys.Attack(weapon.name));
             Noted(PlayEvent.HitTaken);
+        }
+
+        /// <summary>
+        /// The weapon a creature holds: only the game running it equips it, so on any other game it
+        /// is read from what that game keeps in the creature's data for every game to dress it by
+        /// (its right hand's item, else its left's but a torch); on the game running it, from its hands.
+        /// </summary>
+        private static GameObject WeaponOf(Humanoid creature)
+        {
+            if (creature == null) return null;
+            var view = creature.GetComponent<ZNetView>().OrNull();
+            var zdo = view != null && view.IsValid() && !view.IsOwner() ? view.GetZDO() : null;
+            if (zdo != null && ObjectDB.instance != null)
+            {
+                foreach (var slot in new[] { ZDOVars.s_rightItem, ZDOVars.s_leftItem })
+                {
+                    var item = ObjectDB.instance.GetItemPrefab(zdo.GetInt(slot));
+                    var shared = item != null ? item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared : null;
+                    if (shared != null && shared.m_itemType != ItemDrop.ItemData.ItemType.Torch) return item;
+                }
+            }
+            return creature.GetCurrentWeapon()?.m_dropPrefab.OrNull();
         }
 
         /// <summary>
