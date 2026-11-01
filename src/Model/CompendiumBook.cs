@@ -732,6 +732,7 @@ namespace Scry
             public readonly SaveCopy<KeyValuePair<string, string>> MetWorld = new SaveCopy<KeyValuePair<string, string>>();
             public readonly SaveCopy<string> Mapped = new SaveCopy<string>();
             public readonly SaveCopy<string> Read = new SaveCopy<string>();
+            public readonly SaveCopy<KeyValuePair<string, int>> Apart = new SaveCopy<KeyValuePair<string, int>>();
             public readonly SaveCopy<(string World, WorldSource Source, string Kind)> FoundIn = new SaveCopy<(string, WorldSource, string)>();
             public readonly SaveCopy<KeyValuePair<WorldSource, SourceLevel>> Shows = new SaveCopy<KeyValuePair<WorldSource, SourceLevel>>();
             public readonly SaveCopy<string> KeptLines = new SaveCopy<string>();
@@ -771,6 +772,7 @@ namespace Scry
             var metWorldKept = c.MetWorld.Of(_metWorld, mayReuse);
             var mapped = c.Mapped.Of(_mapped, mayReuse);
             var read = c.Read.Of(_read, mayReuse);
+            var apart = c.Apart.Of(_apart, mayReuse);
             var foundIn = c.FoundIn.Of(_foundIn.SelectMany(p => p.Value.Select(kind => (p.Key.World, p.Key.Source, Kind: kind))), mayReuse);
             var shows = c.Shows.Of(_shows.Where(p => p.Value != WorldSources.Starts(p.Key)), mayReuse);
             var mapApart = _mapApart;
@@ -812,6 +814,7 @@ namespace Scry
                 NewsLines(text, "met", metLately, metDayKept, metWorldKept);
                 foreach (var world in mapped.OrderBy(w => w, StringComparer.Ordinal)) text.Append("mapped\t").Append(Stored.Escaped(world)).Append('\n');
                 foreach (var said in read.OrderBy(t => t, StringComparer.Ordinal)) text.Append("read\t").Append(Stored.Escaped(said)).Append('\n');
+                foreach (var pair in apart.OrderBy(p => p.Key, StringComparer.Ordinal)) text.Append("apart\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(Stored.Count(pair.Value)).Append('\n');
                 foreach (var (world, source, kind) in foundIn.OrderBy(f => f.World, StringComparer.Ordinal).ThenBy(f => f.Source).ThenBy(f => f.Kind, StringComparer.Ordinal))
                 {
                     text.Append("place\t").Append(Stored.Escaped(world)).Append('\t').Append(source).Append('\t').Append(Stored.Escaped(kind)).Append('\n');

@@ -148,7 +148,7 @@ namespace Scry
                     _recordsSize = size;
                     _recordsPower = power;
                     var read = Timing.Start();
-                    CharacterRecords.Read(player, profile, Records);
+                    CharacterRecords.Read(player, profile, Records, _book.CreditedApartOf);
                     Timing.Add("compendium records read", read);
                     var filled = Timing.Start();
                     // Grown since the last reading into the same book with the same catalog, only

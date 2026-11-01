@@ -56,6 +56,9 @@ namespace Scry
         /// <summary>Producers the character took from, by prefab: the one kind of beehive where honey was taken, the one kind of sap collector where sap was, as the game counts those by what was taken alone.</summary>
         public readonly HashSet<string> Collected = Names();
 
+        /// <summary>Items crafted (<see cref="Crafted"/>) whose whole count the game made for another player's taking food off a station this game ran (<see cref="CompendiumBook.CreditedApart"/>): none of the character's own making.</summary>
+        public readonly HashSet<string> CraftedApart = Names();
+
         /// <summary>Cooking stations the character took food off, done or burnt, by prefab, as the game counts that by the kind of station.</summary>
         public readonly HashSet<string> Cooked = Names();
 
@@ -72,7 +75,7 @@ namespace Scry
         public readonly HashSet<string> Powers = Names();
 
         /// <summary>Every kind of record, in a fixed order, so two records' sets are walked side by side.</summary>
-        private HashSet<string>[] Sets() => new[] { Materials, Recipes, Stations, Biomes, Trophies, Killed, PickedUp, Crafted, Eaten, Picked, PickedFrom, Collected, Cooked, Caught, Placed, Uniques, Powers };
+        private HashSet<string>[] Sets() => new[] { Materials, Recipes, Stations, Biomes, Trophies, Killed, PickedUp, Crafted, Eaten, Picked, PickedFrom, Collected, Cooked, Caught, CraftedApart, Placed, Uniques, Powers };
 
         /// <summary>Takes every record of another in place of its own.</summary>
         public void CopyFrom(CompendiumRecords other)

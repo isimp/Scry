@@ -25,6 +25,9 @@ namespace Scry
         /// <summary>The bosses seen with their altars in this world, by their place in the world's data, each looked for once.</summary>
         private static readonly HashSet<ZDOID> BossesAtAltars = new HashSet<ZDOID>();
 
+        /// <summary>The game counting an item as made by the character, for another player's taking it off a station this game runs: noted apart (<see cref="CompendiumBook.CreditedApart"/>).</summary>
+        public static void CreditedApart(string token) => Into?.CreditedApart(token);
+
         /// <summary>What the deeds of this world left to remember, forgotten as it is left.</summary>
         private static void ForgetDeeds() => BossesAtAltars.Clear();
 

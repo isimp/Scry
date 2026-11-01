@@ -80,6 +80,10 @@ namespace Scry
             {
                 if (parts.Length == 2) book._read.Add(name);
             },
+            ["apart"] = (book, parts, name) =>
+            {
+                if (parts.Length == 3 && Stored.TryCount(parts[2], out var count) && count > 0) book._apart[name] = count;
+            },
             ["place"] = (book, parts, name) =>
             {
                 if (parts.Length != 4 || !Enum.TryParse(parts[2], out WorldSource source) || !Enum.IsDefined(typeof(WorldSource), source)

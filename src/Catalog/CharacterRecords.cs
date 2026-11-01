@@ -45,7 +45,11 @@ namespace Scry
         }
 
         /// <summary>Puts every record into <paramref name="into"/>, in place of what it held.</summary>
-        public static void Read(Player player, PlayerProfile profile, CompendiumRecords into)
+        /// <param name="player">The character played.</param>
+        /// <param name="profile">Its profile, whose statistics are read.</param>
+        /// <param name="into">The records filled.</param>
+        /// <param name="creditedApart">How often the game counted an item, by its name token, as made by the character for another player's taking it off a station (<see cref="CompendiumBook.CreditedApart"/>); none where not told.</param>
+        public static void Read(Player player, PlayerProfile profile, CompendiumRecords into, Func<string, int> creditedApart = null)
         {
             Bind();
             var stats = profile.m_playerStats[0];
@@ -58,6 +62,8 @@ namespace Scry
             Copy(stats.m_enemyStats[0].Keys, into.Killed);
             Copy(stats.m_itemPickupStats.Keys, into.PickedUp);
             Copy(stats.m_itemCraftStats.Keys, into.Crafted);
+            // What the game counted as made only for other players' taking is none of the character's making.
+            Copy(creditedApart == null ? Enumerable.Empty<string>() : stats.m_itemCraftStats.Where(p => creditedApart(p.Key) > 0 && p.Value <= creditedApart(p.Key)).Select(p => p.Key), into.CraftedApart);
             Copy(stats.m_foodEatenStats.Keys, into.Eaten);
             Copy(stats.m_pickableStats.Keys, into.Picked);
             // Before the game's prefabs are read, nothing is told of what was picked from, taken from or caught.

@@ -287,6 +287,32 @@ namespace Scry
         private static void Postfix(CookingStation __instance) => Guard.Run(Feature.CompendiumTogether, "watching food cook", () => DeedWatch.SlotsLooked(__instance));
     }
 
+    /// <summary>
+    /// Food another player takes off a cooking station this game runs: the game counts it as made
+    /// by this game's character (<c>CookingStation.RPC_RemoveDoneItem</c>, then
+    /// <c>PlayerProfile.IncrementStatItemCraft</c>), which the book notes apart, as none of its making.
+    /// </summary>
+    [HarmonyPatch(typeof(CookingStation), "RPC_RemoveDoneItem")]
+    internal static class CookedForAnother
+    {
+        /// <summary>Whether food taken off a station now is another player's taking.</summary>
+        public static bool Now { get; private set; }
+
+        private static void Prefix(long sender) => Now = sender != ZNet.GetUID();
+
+        private static void Postfix() => Now = false;
+    }
+
+    /// <summary>The game counting an item as made by the character, noted apart while it is for another player's taking (<see cref="CookedForAnother"/>).</summary>
+    [HarmonyPatch(typeof(PlayerProfile), nameof(PlayerProfile.IncrementStatItemCraft))]
+    internal static class CreditedForAnother
+    {
+        private static void Postfix(string name)
+        {
+            if (CookedForAnother.Now) Guard.Run(Feature.CompendiumCatchUp, "noting food made for another player", () => CompendiumKeeper.CreditedApart(name));
+        }
+    }
+
     /// <summary>A trap seen springing shows how it hurts and rearms (<c>Trap.RPC_OnStateChanged</c>).</summary>
     [HarmonyPatch(typeof(Trap), "RPC_OnStateChanged")]
     internal static class TrapSprang

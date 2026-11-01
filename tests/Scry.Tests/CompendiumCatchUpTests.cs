@@ -120,6 +120,25 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void FoodTheGameCreditedForAnotherPlayersTakingIsNotMadeByTheCharacter()
+        {
+            // The game counts food taken off a cooking station as made by whoever's game runs the
+            // station; what it so counted for another player's taking is none of the character's.
+            var meat = E(Kind.Item, "CookedMeat", "$item_cookedmeat");
+            var raw = E(Kind.Item, "RawMeat", "$item_rawmeat");
+            meat.AddTermLink("needs", raw);
+            var (catchUp, book) = Fresh(meat, raw);
+            var records = new CompendiumRecords();
+            records.Crafted.Add("$item_cookedmeat");
+            records.CraftedApart.Add("$item_cookedmeat");
+
+            catchUp.Fill(records, book, firstLoad: true);
+
+            Assert.Equal(KnownLevel.Unknown, book.Level(meat.Key));
+            Assert.False(book.Witnessed(meat.Key, raw.Key));
+        }
+
+        [Fact]
         public void FoodCookedBeforeShowsHowLongCookingTakes()
         {
             // The game counts food taken off a cooking station, done or burnt, by the kind of station;

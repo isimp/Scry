@@ -275,6 +275,17 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void FoodCreditedForAnotherPlayersTakingIsKeptAcrossASave()
+        {
+            var book = new CompendiumBook();
+            book.CreditedApart("$item_cookedmeat");
+            book.CreditedApart("$item_cookedmeat");
+            var read = CompendiumBook.Load(book.Save());
+            Assert.Equal(2, read.CreditedApartOf("$item_cookedmeat"));
+            Assert.Equal(0, read.CreditedApartOf("$item_bread"));
+        }
+
+        [Fact]
         public void AWorldsMapIsCaughtUpOnce()
         {
             var book = new CompendiumBook();

@@ -118,7 +118,9 @@ namespace Scry
         private int FillFrom(CompendiumRecords records, CompendiumRecords all, CompendiumBook book, bool firstLoad)
         {
             // An unlocked recipe's item is known: the crafting menu shows it whole, its look, stats and what it takes.
-            var items = Named(records.PickedUp, Kind.Item).Concat(Named(records.Crafted, Kind.Item)).Concat(Named(records.Eaten, Kind.Item)).Concat(Named(records.Recipes, Kind.Item)).ToList();
+            // What the game counted as made only for another player's taking is none of the character's making.
+            var crafted = records.Crafted.Where(t => !records.CraftedApart.Contains(t)).ToList();
+            var items = Named(records.PickedUp, Kind.Item).Concat(Named(crafted, Kind.Item)).Concat(Named(records.Eaten, Kind.Item)).Concat(Named(records.Recipes, Kind.Item)).ToList();
             items.AddRange(Prefabs(records.Trophies.Concat(records.Picked), Kind.Item));
 
             // Each record raises what it tells by its own way, the first way to tell a thing kept with it.
@@ -127,7 +129,7 @@ namespace Scry
             var entered = Entered(all);
             var killed = Killed(records, entered).ToList();
             Add(killed, CameBy.Killed);
-            Add(Named(records.Crafted, Kind.Item), CameBy.Made);
+            Add(Named(crafted, Kind.Item), CameBy.Made);
             Add(Named(records.Eaten, Kind.Item), CameBy.Eaten);
             Add(Named(records.Recipes, Kind.Item), CameBy.Recipe);
             Add(Named(records.PickedUp, Kind.Item), CameBy.Held);
@@ -239,7 +241,7 @@ namespace Scry
         /// <summary>Pairs in the book what the records show went together, for the strict rules.</summary>
         private void Pair(CompendiumRecords records, CompendiumBook book, HashSet<string> entered)
         {
-            var made = Named(records.Recipes.Concat(records.Crafted).Concat(records.Placed), Kind.Item)
+            var made = Named(records.Recipes.Concat(records.Crafted.Where(t => !records.CraftedApart.Contains(t))).Concat(records.Placed), Kind.Item)
                 .Concat(Named(records.Recipes.Concat(records.Placed), Kind.Piece));
             foreach (var thing in made)
             {
