@@ -210,15 +210,19 @@ namespace Scry
             }
             p.Note($"swimming, its tail's joints stand at most {Numbers.Fixed(still, 2)} times as far from their parents as when shown; through its bite {Numbers.Fixed(most, 2)} times");
 
-            // Made twice as big while shown, the tail keeps its joints as far apart for its size.
+            // Made twice as big while shown, the tail keeps its joints as far apart for its size: the
+            // most of a second at each size, so a swing caught at one moment decides nothing.
+            var swimming = 0f;
+            yield return MostTailStretch(s => swimming = s);
             var size = X.Modifiers.Scale;
             X.Modifiers.Scale = size * 2f;
-            yield return new Wait(1f);
-            var grown = Stage.TailStretch;
+            yield return new Wait(0.5f);
+            var grown = 0f;
+            yield return MostTailStretch(s => grown = s);
             X.Modifiers.Scale = size;
             yield return new Wait(0.5f);
-            p.Check(Mathf.Abs(grown - still) < 0.25f, "made twice as big while shown, its tail keeps its joints as far apart for its size",
-                $"at most {Numbers.Fixed(grown, 2)} times as far as when shown, swimming at its size {Numbers.Fixed(still, 2)}");
+            p.Check(Mathf.Abs(grown - swimming) < 0.25f, "made twice as big while shown, its tail keeps its joints as far apart for its size",
+                $"at most {Numbers.Fixed(grown, 2)} times as far as when shown, swimming at its size {Numbers.Fixed(swimming, 2)}");
 
             foreach (var share in new[] { 0.25f, 0.5f, 0.75f }) yield return HeldAt(p, bite, share, "bent");
             if (roar != null) yield return HeldAt(p, roar, 0.5f, "bent");
@@ -238,6 +242,19 @@ namespace Scry
                     $"{(Stage.ShownSideOn ? "side on" : "from the front")}, turned {Numbers.Fixed(Stage.Yaw, 0)} degrees");
             }
             SerpentAttacksAsItWas();
+        }
+
+        /// <summary>The most the shown tail's joints stand from their parents over a second, against when it was shown (<see cref="Stage.TailStretch"/>).</summary>
+        private static IEnumerator MostTailStretch(System.Action<float> most)
+        {
+            var found = 0f;
+            var until = Time.unscaledTime + 1f;
+            while (Time.unscaledTime < until)
+            {
+                found = Mathf.Max(found, Stage.TailStretch);
+                yield return null;
+            }
+            most(found);
         }
 
         /// <summary>A clip played, paused at a share of its length and held a moment, then pictured with its tail's stretch noted.</summary>
