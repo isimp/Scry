@@ -396,18 +396,7 @@ namespace Scry
                 p.Check(book.Tallied(Tally.Gave).Kills(treeKey) == 1 && book.Witnessed(treeKey, Utils.GetPrefabName(item.gameObject)), $"{treeKey} breaking is counted with what came of it");
             }
 
-            // A pick of the character's with an item come to be: counted as what it gave, no break.
-            var picked = Nearest<Pickable>(player);
-            if (picked == null || item == null) p.Untried("a pick counted", "stand near a pickable", "pickable");
-            else
-            {
-                YieldWatch.Begin(picked, me);
-                YieldWatch.ItemMade(item);
-                YieldWatch.End();
-                var pickKey = Utils.GetPrefabName(picked.gameObject);
-                p.Check(book.Tallied(Tally.Gave).Kills(pickKey) == 1 && !book.Proved(pickKey, EntryKeys.Did(Deed.Broke)), $"picking {pickKey} is counted as what it gave, and is no break");
-
-            }
+            PickCounted(p, book, Nearest<Pickable>(player), item, me);
 
             // A chest the world fills, opened: counted the first time only.
             var chest = UnityEngine.Object.FindObjectsByType<Container>(FindObjectsSortMode.None)
@@ -451,6 +440,28 @@ namespace Scry
             p.Check(real.Version == version && real.PairsVersion == pairs && real.Learned == learned, "the character's book was left alone");
             p.Check(CompendiumKeeper.Play.Told() == counted, "and so were the play counts");
             yield return null;
+        }
+
+        /// <summary>
+        /// A pick of the character's with an item come to be: counted as what it gave, and no
+        /// break. Judged by what the pick adds, as the nearest pickable may be the thing broken
+        /// just before it.
+        /// </summary>
+        private static void PickCounted(Probe p, CompendiumBook book, Pickable picked, ItemDrop item, long[] me)
+        {
+            if (picked == null || item == null)
+            {
+                p.Untried("a pick counted", "stand near a pickable", "pickable");
+                return;
+            }
+            var pickKey = Utils.GetPrefabName(picked.gameObject);
+            var gaveBefore = book.Tallied(Tally.Gave).Kills(pickKey);
+            var brokeBefore = book.Proved(pickKey, EntryKeys.Did(Deed.Broke));
+            YieldWatch.Begin(picked, me);
+            YieldWatch.ItemMade(item);
+            YieldWatch.End();
+            p.Check(book.Tallied(Tally.Gave).Kills(pickKey) == gaveBefore + 1 && book.Proved(pickKey, EntryKeys.Did(Deed.Broke)) == brokeBefore,
+                $"picking {pickKey} is counted as what it gave, and is no break");
         }
 
         /// <summary>The hide's page counts the troll's line of where it comes from, after the kill, and draws the troll as a chip with that count.</summary>

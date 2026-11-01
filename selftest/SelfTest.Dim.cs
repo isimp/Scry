@@ -124,7 +124,8 @@ namespace Scry
             Stage.ExampleHoldLook(look);
             yield return Until(() => Stage.ExampleRoomsKept, 5);
             var filmed = Stage.Filmed;
-            yield return Until(() => Stage.Filmed >= filmed + 2, 3);
+            // A look moves the cut, and a film made while the camera moves is a smaller one: read a still, whole film, so every reading is the same size.
+            yield return Until(() => Stage.Filmed >= filmed + 2 && !Stage.FilmedInMotion, 3);
             read(StageBrightness());
         }
 

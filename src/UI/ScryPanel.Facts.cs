@@ -160,7 +160,7 @@ namespace Scry
             var valueW = inner - labelW - U(10f);
             foreach (var (label, value) in _you)
             {
-                var height = Mathf.Max(U(20f), Skin.Height(Skin.Wrap, value, valueW));
+                var height = YouRowHeight(label, value, labelW, valueW);
                 if (Spotting)
                 {
                     var spot = NewsArrival.You(label);
@@ -176,7 +176,7 @@ namespace Scry
             // What is still to find out: what to do on the left, what it shows faint on the right.
             foreach (var (label, value) in _still)
             {
-                var height = Mathf.Max(U(20f), Skin.Height(Skin.Wrap, value, valueW));
+                var height = YouRowHeight(label, value, labelW, valueW);
                 if (Spotting)
                 {
                     var spot = NewsArrival.You(label);
@@ -195,6 +195,10 @@ namespace Scry
             CountDrawn(PanelPart.YouBox);
             return y + U(10f);
         }
+
+        /// <summary>A row of the You box as tall as its label or its value wraps to, whichever is taller, and a line at least.</summary>
+        private static float YouRowHeight(string label, string value, float labelW, float valueW) =>
+            Mathf.Max(U(20f), Mathf.Max(Skin.Height(Skin.DimWrap, label, labelW), Skin.Height(Skin.Wrap, value, valueW)));
 
         /// <summary>A biome kept in a moment by its name, as its page names it; none for none.</summary>
         private static string BiomeShown(Explorer explorer, string biome) =>

@@ -89,7 +89,7 @@ namespace Scry.Tests
         public void TheBoxsHintSaysTheMarkItDrawsIsWhatASourceShows()
         {
             // Drawn with the source's own mark, a folded map, rather than the hint's compass.
-            Assert.Equal("Things these show are marked with this sign on their row and page. Your book keeps only what your character met, so turning a source down takes back all it showed.", CompendiumWords.SourcesHint);
+            Assert.Equal("Things these show are marked like this on their row and page. Your book keeps only what your character met, so turning a source down takes back all it showed.", CompendiumWords.SourcesHint);
         }
 
         [Fact]

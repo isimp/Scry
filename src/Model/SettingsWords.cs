@@ -34,7 +34,7 @@ namespace Scry
         public const string Stage = "Stage";
         public const string Full = "Full";
         public const string Fast = "Fast";
-        public const string StageTip = "Fast draws the stage at half size, without grass or the lights below a dungeon's cut. It suits a big dungeon on a weaker machine";
+        public const string StageTip = "Fast draws the stage at half size, without the ground's vegetation or the lights below a dungeon's cut. It suits a big dungeon on a weaker machine";
         public const string News = "News of what you learn";
         public const string Notice = "Notice";
         public const string LearnedOnly = "Learned tab only";

@@ -172,11 +172,11 @@ namespace Scry
 
             // A click on the entrance whose area never loaded shows an example standing in, tagged as one.
             p.Check(MapMarkButtons.ClickAtForTest(entranceAt.Value), "a click on the map at the entrance goes to its mark");
-            yield return Until(() => Session.IsOpen && X.Selected == entry && ExampleLayouts.Example != null && ScryPanel.ExampleTaggedForTest && (ScryPanel.DungeonNoteForTest ?? "").Contains("stands in for this one"), 30);
+            yield return Until(() => Session.IsOpen && X.Selected == entry && ExampleLayouts.Example != null && ScryPanel.ExampleTaggedForTest && (ScryPanel.DungeonNoteForTest ?? "").Contains("stands in for the one"), 30);
             p.Check(Minimap.instance.m_mode != Minimap.MapMode.Large && X.Selected == entry && ExampleLayouts.ShownMap == null && !MapMarkButtons.OpenedForTest.Rooms,
                 "a click on the entrance whose area never loaded opens its page with an example", $"map {Minimap.instance.m_mode}, selected {X.Selected?.Name}, shown {ExampleLayouts.ShownMap ?? "an example"}");
             p.Check(ScryPanel.ExampleTaggedForTest, "the example is tagged as one");
-            p.Check((ScryPanel.DungeonNoteForTest ?? "").Contains("An example stands in for this one of your world: its area never loaded"), "its note says it stands in, and why", ScryPanel.DungeonNoteForTest);
+            p.Check((ScryPanel.DungeonNoteForTest ?? "").Contains("This example stands in for the one in your world, whose area has not loaded yet"), "its note says it stands in, and why", ScryPanel.DungeonNoteForTest);
             yield return Picture(p, $"an example standing in for a {entry.Name} whose area never loaded");
 
             // A click on the hollow one shows its rooms on the stage.
