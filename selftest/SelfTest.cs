@@ -70,6 +70,10 @@ namespace Scry
         /// <summary>The last run this session, for its card once it is done, and its parts' last times, for how long is left.</summary>
         private static ScenarioRunner _lastRunner;
         private static SelfTestTimes _runTimes;
+
+        /// <summary>Which run the last one was and when it ended, for its card.</summary>
+        private static RunScope _runScope;
+        private static DateTime _runEnded;
         private static Before _before;
 
         /// <summary>
@@ -155,6 +159,7 @@ namespace Scry
             if (parts.Count == 0) return SelfTestWords.NothingToRun(asked);
             var times = SelfTestTimes.Load(Kept(TimesFile));
             _runTimes = times;
+            _runScope = asked.Scope;
 
             LogAside();
             Write("");
@@ -297,6 +302,7 @@ namespace Scry
         {
             SelfTestPanel.HiddenForPicture = false;
             _lastRunner = runner;
+            _runEnded = DateTime.Now;
             var reports = runner?.Reports ?? new List<ScenarioReport>();
             LastHeadline = stopped == null ? SelfTestWords.Finished(reports, runner?.Seconds) : $"Self-test stopped after {Numbers.Count(reports.Count)} of {Numbers.Count(runner?.Total ?? 0)} parts, as {stopped}.";
             LastSummary = SelfTestWords.Summary(reports);

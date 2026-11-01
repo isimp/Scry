@@ -94,10 +94,18 @@ namespace Scry.Tests
         [Fact]
         public void TheStripSaysHowFarItHasGotHowLongIsLeftAndWhatJustNeededALook()
         {
-            Assert.Equal("Part 96 of 202, about 11 min left: idling costs nothing · failed: the compendium watches fights", SelfTestWords.Running(95, 202, 660, "idling costs nothing", "failed: the compendium watches fights", 2.1, paused: false));
-            Assert.Equal("Part 96 of 202, about 11 min left: idling costs nothing · machine 2.1× slower than its best", SelfTestWords.Running(95, 202, 660, "idling costs nothing", null, 2.1, paused: false));
-            Assert.Equal("Part 3 of 5, less than a minute left: idling costs nothing", SelfTestWords.Running(2, 5, 20, "idling costs nothing", null, 1.0, paused: false));
+            Assert.Equal("96 / 202 · about 11 min left · idling costs nothing · failed: the compendium watches fights", SelfTestWords.Running(95, 202, 660, "idling costs nothing", "failed: the compendium watches fights", 2.1, paused: false));
+            Assert.Equal("96 / 202 · about 11 min left · idling costs nothing · machine 2.1× slower than its best", SelfTestWords.Running(95, 202, 660, "idling costs nothing", null, 2.1, paused: false));
+            Assert.Equal("3 / 5 · less than a minute left · idling costs nothing", SelfTestWords.Running(2, 5, 20, "idling costs nothing", null, 1.0, paused: false));
             Assert.Equal("Paused after part 96 of 202, about 11 min left: move as you like, then Go on.", SelfTestWords.Running(96, 202, 660, null, null, 1.0, paused: true));
+        }
+
+        [Fact]
+        public void ThePartRunningHasAClockOfItsOwnAgainstItsLastTime()
+        {
+            Assert.Equal("3 of ~5 s", SelfTestWords.PartClock(3.2, 5.1));
+            Assert.Equal("12 s", SelfTestWords.PartClock(12.4, null));
+            Assert.Equal("1 min 5 s of ~2 min", SelfTestWords.PartClock(65, 118));
         }
 
         [Fact]

@@ -35,45 +35,48 @@ namespace Scry
         /// <summary>A group's rows, at most this many before the rest are counted.</summary>
         private const int RowsShown = 6;
 
+        /// <summary>What is recommended, a topic box a group as the run's card has them, each with the chip that runs it; measured, then drawn.</summary>
         private static void RecommendedCard(Rect rect)
         {
-            var recommended = SelfTest.Recommended;
+            var groups = Groups(SelfTest.Recommended);
             var width = CardWidth(rect);
-            var groups = Groups(recommended);
-            var height = U(44f) + U(12f);
-            foreach (var group in groups) height += U(34f) + Mathf.Min(group.Rows.Count, RowsShown + 1) * U(22f) + U(10f);
+            Pass(false);
+            var height = RecommendedBody(groups, U(14f), U(44f), width) - U(44f) + U(60f);
             var card = BeginCard(rect, ref _recommendedScroll, height, "Self-test · Recommended");
-            var x = card.X;
-            var y = card.Y;
-            if (groups.Count == 0) GUI.Label(new Rect(x, y, width, U(22f)), "Nothing to recommend now.", Skin.DimLabel);
+            Pass(true);
+            RecommendedBody(groups, card.X, card.Y, width);
+            if (EndCard(rect, out _)) ShowRecommended(false);
+        }
+
+        private static float RecommendedBody(List<Group> groups, float x, float y, float width)
+        {
+            if (groups.Count == 0)
+            {
+                if (_drawing) GUI.Label(new Rect(x, y, width, U(22f)), "Nothing to recommend now.", Skin.DimLabel);
+                return y + U(22f);
+            }
             foreach (var group in groups)
             {
-                GUI.Label(new Rect(x, y + U(4f), width - U(140f), U(24f)), group.Title, Skin.Label);
-                var chipW = Skin.Width(Skin.Chip, group.Button) + U(12f);
-                var chip = new Rect(x + width - chipW, y + U(2f), chipW, U(24f));
-                if (group.Scope.HasValue)
-                {
-                    if (GUI.Button(chip, group.Button, Skin.Fitted(Skin.ChipOn, chip)))
+                var scope = group.Scope;
+                y = Topic(x, y, width, group.Title, scope.HasValue ? null : group.Button, scope.HasValue ? group.Button : null,
+                    () =>
                     {
                         ShowRecommended(false);
-                        Say("Scry: " + SelfTest.StartRecommended(group.Scope.Value));
-                    }
-                }
-                else GUI.Label(chip, group.Button, Skin.FaintLabel);
-                y += U(34f);
-                foreach (var row in group.Rows.Take(RowsShown))
-                {
-                    GUI.Label(new Rect(x + U(14f), y, width - U(14f), U(22f)), row, Skin.DimLabel);
-                    y += U(22f);
-                }
-                if (group.Rows.Count > RowsShown)
-                {
-                    GUI.Label(new Rect(x + U(14f), y, width - U(14f), U(22f)), $"and {Numbers.Count(group.Rows.Count - RowsShown)} more", Skin.FaintLabel);
-                    y += U(22f);
-                }
-                y += U(10f);
+                        Say("Scry: " + SelfTest.StartRecommended(scope.Value));
+                    },
+                    ty => GroupRows(group.Rows, x + U(10f), ty, width - U(20f)));
             }
-            if (EndCard(rect, out _)) ShowRecommended(false);
+            return y;
+        }
+
+        /// <summary>A group's rows, wrapped, at most <see cref="RowsShown"/> before the rest are counted.</summary>
+        private static float GroupRows(List<string> rows, float x, float y, float width)
+        {
+            foreach (var row in rows.Take(RowsShown)) y = TwoColumns(x, y, width, row, "", Skin.DimWrap, Skin.DimWrap);
+            if (rows.Count <= RowsShown) return y;
+            var more = $"and {Numbers.Count(rows.Count - RowsShown)} more";
+            if (_drawing) GUI.Label(new Rect(x, y, width, U(20f)), more, Skin.FaintLabel);
+            return y + U(22f);
         }
 
         /// <summary>One group of the card: its title, its button's words and the run it starts (none for one that waits), and its rows.</summary>

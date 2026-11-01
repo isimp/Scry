@@ -62,6 +62,9 @@ namespace Scry
                 case RunScope.Busy:
                     var named = listed?.Invoke(asked.Scope);
                     return named == null ? new List<Scenario>() : all.Where(s => named.Contains(s.Name)).ToList();
+                case RunScope.Parts:
+                    var picked = new HashSet<string>(asked.Words, StringComparer.Ordinal);
+                    return all.Where(s => picked.Contains(s.Name)).ToList();
                 case RunScope.Full:
                     return all.ToList();
                 case RunScope.Failed:
@@ -207,6 +210,9 @@ namespace Scry
 
         /// <summary>How long the run has taken, from the first part's start to the last one's end so far, its pauses left out.</summary>
         public double Seconds => _firstAt < 0 || _lastEnd < 0 ? 0 : _lastEnd - _firstAt - _pausedFor;
+
+        /// <summary>When the part running began, on the run's clock.</summary>
+        public double StartedAt => _startedAt;
 
         /// <summary>Every part the run takes, in its order.</summary>
         public IReadOnlyList<Scenario> Parts => _parts;

@@ -4,17 +4,16 @@ using static Scry.ScryPanel;
 namespace Scry
 {
     /// <summary>
-    /// The run live: the strip with its line, Pause (or Go on) and Stop, and a segment a part
-    /// along its foot; the card, held or done, with a tile a part by area, the part picked or
-    /// under the mouse, and the feed of what needs a look, newest first. What is drawn is worked
-    /// out again only as the run moves on, so drawing allocates nothing a frame.
+    /// The run live on the strip: how far and how long, the part running with a clock of its own
+    /// against its last time, the newest line needing a look while it is new, counts of what failed
+    /// and what was untried so far that pause the run and open the card at their section, Pause
+    /// (or Go on) and Stop, and a segment a part along its foot. What is drawn is worked out again
+    /// only as the run moves on.
     /// </summary>
     internal static partial class SelfTestPanel
     {
         private static SelfTestLive _live;
         private static (ScenarioRunner Runner, int Done, string Current, int Marked) _liveKey;
-        private static string _picked;
-        private static Vector2 _liveScroll;
 
         /// <summary>The run's live view, worked out again only once a part ends or begins or a line needing a look comes.</summary>
         private static SelfTestLive Live()
@@ -45,26 +44,78 @@ namespace Scry
             }
         }
 
+        /// <summary>How many lines of a kind the feed holds so far.</summary>
+        private static int CountOf(SelfTestLive live, FeedKind kind)
+        {
+            var count = 0;
+            if (live == null) return 0;
+            foreach (var entry in live.Feed) if (entry.Kind == kind) count++;
+            return count;
+        }
+
+        /// <summary>A chip at the strip's right, left of those before it: true when clicked; its words coloured where a colour is given.</summary>
+        private static bool StripChip(ref float right, Rect rect, string text, bool on, Color? colour = null)
+        {
+            var chipH = U(24f);
+            var width = Skin.Width(Skin.Chip, text) + U(14f);
+            var chip = new Rect(right - width, rect.y + (rect.height - chipH) / 2f - U(1f), width, chipH);
+            right = chip.x - U(6f);
+            if (!colour.HasValue) return GUI.Button(chip, text, Skin.Fitted(on ? Skin.ChipOn : Skin.Chip, chip));
+            var clicked = GUI.Button(chip, GUIContent.none, Skin.Fitted(Skin.Chip, chip));
+            Skin.LabelIn(chip, text, Skin.SmallCenter, colour.Value);
+            return clicked;
+        }
+
         private static void LiveStrip(Rect rect)
         {
             var tone = Skin.Accent;
-            var stopW = Skin.Width(Skin.Chip, "Stop") + U(12f);
-            var stopArea = new Rect(rect.xMax - stopW - U(8f), rect.y, stopW + U(8f), rect.height);
-            var lineArea = new Rect(rect.x, rect.y, rect.width - stopArea.width, rect.height);
+            if (Event.current.type == EventType.Repaint)
+            {
+                Skin.Fill(rect, Skin.Alpha(tone, 0.13f));
+                Skin.Fill(new Rect(rect.x, rect.y, U(3f), rect.height), tone);
+            }
+            var right = rect.xMax - U(6f);
+            if (StripChip(ref right, rect, "Stop", false)) Say("Scry: " + SelfTest.Stop());
             var pause = SelfTest.Paused ? "Go on" : SelfTest.PauseAsked ? "Pausing" : "Pause";
-            var pauseTip = SelfTest.Paused ? "Carry the self-test on from the next part" : "Hold the self-test once the part running is done, to look at it or move";
-            if (NoticeStrip(lineArea, tone, SelfTest.Progress, Skin.Label, false, pause, SelfTest.PauseAsked, false, chipTip: pauseTip, lineTip: SelfTest.ProgressTip) == StripClick.Chip)
+            if (StripChip(ref right, rect, pause, SelfTest.PauseAsked))
             {
                 SelfTest.TogglePause();
                 HidePauseCard(false);
             }
-            Skin.Fill(stopArea, Skin.Alpha(tone, 0.13f));
-            var chipH = U(24f);
-            var stop = new Rect(stopArea.x, stopArea.y + (stopArea.height - chipH) / 2f, stopW, chipH);
-            if (GUI.Button(stop, "Stop", Skin.Fitted(Skin.Chip, stop))) Say("Scry: " + SelfTest.Stop());
-
-            // A segment a part along the foot, in the run's order.
             var live = Live();
+            var untried = CountOf(live, FeedKind.Untried);
+            var failed = CountOf(live, FeedKind.Failed);
+            if (untried > 0 && StripChip(ref right, rect, $"● {Numbers.Count(untried)} untried", false, Skin.Immune)) OpenAt(Section.Untried);
+            if (failed > 0 && StripChip(ref right, rect, $"● {Numbers.Count(failed)} failed", false, Skin.Warn)) OpenAt(Section.Failed);
+            right = PartClock(rect, right, tone);
+            var left = rect.x + U(14f);
+            var line = SelfTest.Progress ?? "";
+            GUI.Label(new Rect(left, rect.y, Mathf.Max(0f, right - left), rect.height - U(4f)), Skin.Fit(Skin.Label, line, right - left), Skin.Label);
+            Segments(rect, live);
+        }
+
+        /// <summary>The part running's own clock left of the chips: a small bar of its time against its last, and the time in words. Where it stops.</summary>
+        private static float PartClock(Rect rect, float right, Color tone)
+        {
+            var runner = SelfTest.LiveRunner;
+            if (SelfTest.Paused || runner?.Current == null) return right;
+            var last = SelfTest.LastTimeOf(runner.Current);
+            var clock = SelfTestWords.PartClock(SelfTest.PartSeconds, last);
+            var width = Skin.Width(Skin.FaintLabel, clock);
+            GUI.Label(new Rect(right - U(4f) - width, rect.y, width + U(4f), rect.height - U(4f)), clock, Skin.FaintLabel);
+            var bar = new Rect(right - U(10f) - width - U(56f), rect.y + rect.height / 2f - U(4f), U(56f), U(4f));
+            if (Event.current.type == EventType.Repaint)
+            {
+                Skin.Fill(bar, Skin.Alpha(Skin.Text, 0.12f));
+                var share = last.HasValue && last.Value > 0 ? Mathf.Clamp01((float)(SelfTest.PartSeconds / last.Value)) : 0f;
+                Skin.Fill(new Rect(bar.x, bar.y, bar.width * share, bar.height), tone);
+            }
+            return bar.x - U(10f);
+        }
+
+        /// <summary>A segment a part along the strip's foot, in the run's order.</summary>
+        private static void Segments(Rect rect, SelfTestLive live)
+        {
             if (live == null || live.InRunOrder.Count == 0 || Event.current.type != EventType.Repaint) return;
             var each = rect.width / live.InRunOrder.Count;
             for (var i = 0; i < live.InRunOrder.Count; i++)
@@ -73,145 +124,26 @@ namespace Scry
             }
         }
 
-        private const float LabelWidth = 120f;
-        private const float TileSize = 11f;
-        private const float TileGap = 3f;
+        /// <summary>A section of the card a count on the strip opens it at.</summary>
+        private enum Section { None, Failed, Untried }
 
-        /// <summary>How many tiles stand on a row in a width.</summary>
-        private static int PerRow(float width) => Mathf.Max(1, Mathf.FloorToInt((width - U(LabelWidth) + U(TileGap)) / U(TileSize + TileGap)));
+        private static Section _openSection;
 
-        /// <summary>How tall an area's tiles stand.</summary>
-        private static float RowsHeight(int tiles, float width) => Mathf.Max(U(20f), Mathf.CeilToInt(tiles / (float)PerRow(width)) * U(TileSize + TileGap) + U(6f));
-
-        /// <summary>The lines of the part picked: its checks needing a look, or that it went well.</summary>
-        private static string PickedText(SelfTestLive live)
+        /// <summary>A count on the strip clicked: the run holds once the part running is done, and the card opens at that count's section.</summary>
+        private static void OpenAt(Section section)
         {
-            if (_picked == null) return "Pick a tile to read its part here.";
-            var lines = new System.Collections.Generic.List<string> { _picked };
-            foreach (var entry in live.Feed) if (entry.Part == _picked) lines.Add("  " + SelfTestLive.Word(entry.Kind) + ": " + entry.Text);
-            if (lines.Count == 1) lines.Add(live.InRunOrder.Find(t => t.Name == _picked).State == TileState.ToCome ? "  still to come" : "  nothing needed a look");
-            return string.Join("\n", lines);
+            SelfTest.PauseSoon();
+            HidePauseCard(false);
+            _openSection = section;
         }
 
-        private static void LiveCard(Rect rect)
+        /// <summary>The section the card is to open at, once: none after it is taken.</summary>
+        private static Section TakeOpenSection()
         {
-            var live = Live();
-            var width = CardWidth(rect);
-            var done = !SelfTest.Running;
-            var headline = done ? SelfTest.LastHeadline ?? "" : SelfTest.Progress ?? "";
-            var headlineH = Skin.Height(Skin.Wrap, headline, width);
-            var picked = live != null ? PickedText(live) : "";
-            var pickedH = Skin.Height(Skin.DimWrap, picked, width);
-            var height = U(44f) + headlineH + U(10f) + pickedH + U(12f);
-            if (live != null)
-            {
-                foreach (var area in live.Areas) height += RowsHeight(area.Tiles.Count, width);
-                height += U(28f);
-                foreach (var entry in live.Feed) height += Skin.Height(FeedStyle(entry), FeedText(entry), width);
-            }
-            var lines = done ? SelfTest.LastSummary : new System.Collections.Generic.List<string>();
-            var advice = done ? SelfTest.LastAdvice ?? "" : "";
-            var adviceH = done ? Skin.Height(Skin.DimWrap, advice, width) : 0f;
-            height += lines.Count * U(22f) + U(10f) + adviceH + U(12f);
-
-            var card = BeginCard(rect, ref _liveScroll, height, "Self-test");
-            var x = card.X;
-            var y = card.Y;
-            GUI.Label(new Rect(x, y, width, headlineH), headline, Skin.Wrap);
-            y += headlineH + U(10f);
-            if (live != null) y = Tiles(live, x, y, width);
-            GUI.Label(new Rect(x, y, width, pickedH), picked, Skin.DimWrap);
-            y += pickedH + U(12f);
-            if (live != null) y = Feed(live, x, y, width);
-            var inFailed = false;
-            foreach (var line in lines)
-            {
-                if (!line.StartsWith(" ", System.StringComparison.Ordinal)) inFailed = line.StartsWith("Failed", System.StringComparison.Ordinal);
-                GUI.Label(new Rect(x, y, width, U(22f)), line, inFailed ? Skin.WarnLabel : Skin.Label);
-                y += U(22f);
-            }
-            y += U(10f);
-            if (done) GUI.Label(new Rect(x, y, width, adviceH), advice, Skin.DimWrap);
-            if (EndCard(rect, out var close))
-            {
-                if (SelfTest.Running) HidePauseCard(true);
-                else DetailsAway();
-            }
-            if (SelfTest.Running)
-            {
-                if (CardButton(rect, close, "Go on", out _))
-                {
-                    SelfTest.TogglePause();
-                    HidePauseCard(false);
-                }
-            }
-            else if (CardButton(rect, close, "Copy summary", out _))
-            {
-                GUIUtility.systemCopyBuffer = SelfTest.LastText;
-                Say("Copied the self-test's summary.");
-            }
-        }
-
-        /// <summary>A row of tiles a part for each area, its name before them; a click picks a tile's part.</summary>
-        private static float Tiles(SelfTestLive live, float x, float y, float width)
-        {
-            var perRow = PerRow(width);
-            var step = U(TileSize + TileGap);
-            foreach (var area in live.Areas)
-            {
-                GUI.Label(new Rect(x, y - U(4f), U(LabelWidth) - U(6f), U(20f)), area.Area, Skin.DimLabel);
-                for (var i = 0; i < area.Tiles.Count; i++)
-                {
-                    var (name, state) = area.Tiles[i];
-                    var tile = new Rect(x + U(LabelWidth) + i % perRow * step, y + i / perRow * step, U(TileSize), U(TileSize));
-                    if (Event.current.type == EventType.Repaint)
-                    {
-                        if (name == _picked) Skin.Fill(new Rect(tile.x - U(2f), tile.y - U(2f), tile.width + U(4f), tile.height + U(4f)), Skin.Text);
-                        Skin.Fill(tile, ColourOf(state));
-                    }
-                    if (GUI.Button(tile, GUIContent.none, GUIStyle.none)) _picked = name == _picked ? null : name;
-                }
-                y += RowsHeight(area.Tiles.Count, width);
-            }
-            return y + U(4f);
-        }
-
-        /// <summary>The dim wrapped text in the warning's colour, for a failure in the feed; made once.</summary>
-        private static GUIStyle WarnWrap
-        {
-            get
-            {
-                // Made again whenever the panel makes its styles again, at another size.
-                if (_warnWrap == null || _warnWrapOf != Skin.DimWrap)
-                {
-                    _warnWrapOf = Skin.DimWrap;
-                    _warnWrap = new GUIStyle(Skin.DimWrap) { normal = { textColor = Skin.Warn } };
-                }
-                return _warnWrap;
-            }
-        }
-
-        private static GUIStyle _warnWrap;
-        private static GUIStyle _warnWrapOf;
-
-        /// <summary>The style a feed line is drawn and measured in.</summary>
-        private static GUIStyle FeedStyle(FeedEntry entry) => entry.Kind == FeedKind.Failed ? WarnWrap : Skin.DimWrap;
-
-        private static string FeedText(FeedEntry entry) => $"{SelfTestLive.Word(entry.Kind)} · {entry.Part}: {entry.Text}";
-
-        /// <summary>Every line that needs a look, newest first, a failure in the warning's colour.</summary>
-        private static float Feed(SelfTestLive live, float x, float y, float width)
-        {
-            GUI.Label(new Rect(x, y, width, U(22f)), live.Feed.Count == 0 ? "Nothing needed a look so far." : Naming.Counted("Needs a look", live.Feed.Count), Skin.Label);
-            y += U(28f);
-            foreach (var entry in live.Feed)
-            {
-                var text = FeedText(entry);
-                var h = Skin.Height(FeedStyle(entry), text, width);
-                GUI.Label(new Rect(x, y, width, h), text, FeedStyle(entry));
-                y += h;
-            }
-            return y;
+            if (!SelfTest.Paused) return Section.None;
+            var section = _openSection;
+            _openSection = Section.None;
+            return section;
         }
     }
 }

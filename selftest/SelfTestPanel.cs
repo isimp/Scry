@@ -101,7 +101,7 @@ namespace Scry
         public static void Card(Rect rect)
         {
             if (_recommendedCard && !SelfTest.Running) RecommendedCard(rect);
-            else LiveCard(rect);
+            else OutcomeCard(rect);
         }
     }
 }

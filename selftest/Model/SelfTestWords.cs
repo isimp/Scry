@@ -68,6 +68,7 @@ namespace Scry
                 : scope == RunScope.Near ? "self-test of the untried rows near you"
                 : scope == RunScope.Untried ? "self-test of every part with untried rows"
                 : scope == RunScope.Busy ? "self-test of the checks not judged as the machine was busy"
+                : scope == RunScope.Parts ? "self-test of the parts picked"
                 : "quick self-test, the long parts through a few of their places";
             var more = scope == RunScope.Quick ? " /scry selftest deep goes through every place, /scry selftest failed runs again what failed, and other words run the parts whose names hold them." : "";
             return $"{which} started: {Numbers.Count(parts)} {(parts == 1 ? "part" : "parts")}, {About(seconds)}. Stand still and leave the panel be; it shows how far the test has got. /scry selftest stop stops it.{more}";
@@ -81,9 +82,20 @@ namespace Scry
         public static string Running(int done, int total, double secondsLeft, string current, string latest, double slowdown, bool paused)
         {
             if (paused) return $"Paused after part {Numbers.Count(done)} of {Numbers.Count(total)}, {About(secondsLeft)} left: move as you like, then Go on.";
-            var line = $"Part {Numbers.Count(done + 1)} of {Numbers.Count(total)}, {About(secondsLeft)} left" + (current != null ? ": " + current : "");
+            var line = $"{Numbers.Count(done + 1)} / {Numbers.Count(total)} · {About(secondsLeft)} left" + (current != null ? " · " + current : "");
             if (latest != null) return line + " · " + latest;
             return slowdown >= MachinePace.BusyAt ? line + $" · machine {Numbers.Fixed(slowdown, 1)}× slower than its best" : line;
+        }
+
+        /// <summary>How long the part running has taken, against about how long it took last: "3 of ~5 s"; its own time alone where it never ran.</summary>
+        public static string PartClock(double seconds, double? last)
+        {
+            var whole = (int)Math.Round(seconds, MidpointRounding.AwayFromZero);
+            if (!last.HasValue) return Duration(seconds);
+            var lastWhole = (int)Math.Round(last.Value, MidpointRounding.AwayFromZero);
+            if (whole < 60 && lastWhole < 60) return $"{Numbers.Count(whole)} of ~{Numbers.Count(lastWhole)} s";
+            var then = lastWhole < 60 ? $"~{Numbers.Count(lastWhole)} s" : $"~{Numbers.Count((int)Math.Round(last.Value / 60, MidpointRounding.AwayFromZero))} min";
+            return $"{Duration(seconds)} of {then}";
         }
 
         /// <summary>The chat's line, once a session, that something near lets untried rows be tried.</summary>
@@ -107,6 +119,7 @@ namespace Scry
                 case RunScope.Near: return "nothing near you lets an untried row be tried; the last run's summary says where to stand for each.";
                 case RunScope.Untried: return "no row was untried in the last runs.";
                 case RunScope.Busy: return "every check was judged in the last runs.";
+                case RunScope.Parts: return "none of the parts picked is in the list of parts.";
                 default: return $"no part's name holds {Naming.Joined(asked.Words.Select(w => "\"" + w + "\"").ToList())}; /scry selftest list writes every part's name to the log.";
             }
         }

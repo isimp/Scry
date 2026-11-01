@@ -121,5 +121,29 @@ namespace Scry
         /// <summary>Starts a recommended run from the card, as the words after /scry would.</summary>
         public static string StartRecommended(RunScope scope) =>
             Start("it was asked for from the recommended runs", new SelfTestRequest { Ask = SelfTestAsk.Start, Scope = scope });
+
+        /// <summary>Starts a run of the parts named, as the card's Run again and Try ask.</summary>
+        public static string StartParts(IEnumerable<string> parts) =>
+            Start("it was asked for from the card", new SelfTestRequest { Ask = SelfTestAsk.Start, Scope = RunScope.Parts, Words = parts.ToArray() });
+
+        /// <summary>Asks the run to hold once the part running is done, as a count on the strip asks.</summary>
+        public static void PauseSoon()
+        {
+            if (_runner != null && !_runner.PauseAsked) _runner.Pause();
+        }
+
+        /// <summary>Whether something a key names was found near the character between runs (<see cref="LookNear"/>).</summary>
+        public static bool IsNear(string need) => need != null && NearNow.Contains(need);
+
+        /// <summary>How long a part took last; none where it never ran.</summary>
+        public static double? LastTimeOf(string part) => _runTimes?.Of(part, _sampled);
+
+        /// <summary>How long the part running has taken so far.</summary>
+        public static double PartSeconds => _runner == null ? 0 : Time.unscaledTime - _runner.StartedAt;
+
+        /// <summary>Which run the card tells of, how long it took and the hour and minute it ended; while one runs, which run it is.</summary>
+        public static string RunTold =>
+            _runner != null ? _runScope.ToString().ToLowerInvariant() + " run" :
+            _lastRunner == null ? "" : $"{_runScope.ToString().ToLowerInvariant()} run · {SelfTestWords.Duration(_lastRunner.Seconds)} · {_runEnded:HH:mm}";
     }
 }

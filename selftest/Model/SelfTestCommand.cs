@@ -50,6 +50,9 @@ namespace Scry
 
         /// <summary>Every part with checks not judged last time as the machine was busy.</summary>
         Busy,
+
+        /// <summary>The parts named whole in the request (<see cref="SelfTestRequest.Words"/>), as the card's Run again and Try ask for them.</summary>
+        Parts,
     }
 
     /// <summary>What a /scry command or the marker file asks of the self-test: start, stop or list, which parts and how far.</summary>
