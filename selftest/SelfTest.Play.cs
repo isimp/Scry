@@ -190,6 +190,17 @@ namespace Scry
             hit.SetAttacker(player);
             ResourceHitWatch.Hit(thing, hit, thing.m_damages, thing.m_minToolTier);
             p.Check(ResistWords.Types.Any(t => book.Proved(key, EntryKeys.Damage(t))), $"a hit on {key}, a thing that breaks, tells how its damage landed");
+            // What is in hand is paired as what broke it only where the hit was its own swing.
+            var weapon = player.GetCurrentWeapon();
+            var tool = weapon?.m_dropPrefab.OrNull();
+            if (tool == null || weapon.m_shared.m_skillType == Skills.SkillType.None) p.Note("no tool in hand: what breaks it untried");
+            else
+            {
+                p.Check(!book.Witnessed(key, tool.name, Tie.BrokenWith), $"a hit not swung with {tool.name} does not pair it as what broke {key}");
+                hit.m_skill = weapon.m_shared.m_skillType;
+                ResourceHitWatch.Hit(thing, hit, thing.m_damages, thing.m_minToolTier);
+                p.Check(book.Witnessed(key, tool.name, Tie.BrokenWith), $"a swing of {tool.name} strong enough pairs it as what broke {key}");
+            }
         }
 
         /// <summary>

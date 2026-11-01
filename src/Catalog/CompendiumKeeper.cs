@@ -350,11 +350,12 @@ namespace Scry
         }
 
         /// <summary>
-        /// Learns of a resource the character hit, as news, what it hit it with and where it
-        /// stands; the pieces a rock breaks into bring the rock along where it alone breaks into
+        /// Learns of a resource the character hit, as news, what it hit it with where the hit was
+        /// the tool's own swing strong enough to break it (<paramref name="breaksWith"/>), and where
+        /// it stands; the pieces a rock breaks into bring the rock along where it alone breaks into
         /// them (<see cref="CompendiumCatchUp.Hit"/>).
         /// </summary>
-        public static void Hit(Component resource)
+        public static void Hit(Component resource, bool breaksWith = true)
         {
             if (Into == null || _catchUp == null || resource == null) return;
             var key = Utils.GetPrefabName(resource.gameObject);
@@ -362,7 +363,7 @@ namespace Scry
             _catchUp.Hit(key, brokenFrom, Into);
             ActedOnThing(key, resource.transform.position);
             var tool = Player.m_localPlayer.OrNull()?.GetCurrentWeapon()?.m_dropPrefab.OrNull();
-            if (tool != null) Into.SawWith(key, tool.name, Tie.BrokenWith);
+            if (tool != null && breaksWith) Into.SawWith(key, tool.name, Tie.BrokenWith);
             MetIn(key, resource.transform.position);
             if (brokenFrom.Count == 1) MetIn(brokenFrom[0], resource.transform.position);
         }

@@ -18,7 +18,9 @@ namespace Scry
             Guard.Run(Feature.CompendiumHit, "noting a resource hit", () =>
             {
                 if (hit.GetAttacker() != Player.m_localPlayer) return;
-                CompendiumKeeper.Hit(resource);
+                // The tool in hand broke it only where the hit was its own swing, by its skill, and strong enough.
+                var weapon = Player.m_localPlayer.GetCurrentWeapon();
+                CompendiumKeeper.Hit(resource, weapon != null && hit.m_skill == weapon.m_shared.m_skillType && hit.CheckToolTier(minToolTier));
                 // How a type lands is told by the popup, which shows no farther on a tree than on a creature.
                 if (hit.CheckToolTier(minToolTier) && TogetherWatch.PopupSeen(resource)) TogetherWatch.Told(Utils.GetPrefabName(resource.gameObject), hit, mods);
             });
