@@ -82,7 +82,7 @@ namespace Scry.Tests
         [Fact]
         public void EachChainIsTitledByWhatItFollows()
         {
-            Assert.Equal("From parents to grown", ChainWords.Breeding);
+            Assert.Equal("From parents to adult", ChainWords.Breeding);
             Assert.Equal("From seed to harvest", ChainWords.Planting);
             Assert.Equal("From offering to power", ChainWords.Summoning);
         }

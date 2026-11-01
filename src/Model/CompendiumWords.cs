@@ -81,7 +81,7 @@ namespace Scry
         public static string PeekTip(bool peeking, bool pageShown) => peeking
             ? "Show only what your character has met again"
             : pageShown
-                ? "Show this page whole for now, its links leading anywhere, until you go to another page; its notice can show every page whole until the panel closes"
+                ? "Show this page whole for now, its links leading anywhere, until you go to another page. Every page, on the strip that then shows, does the same for all pages until the panel closes"
                 : "Show each page whole for now, its links leading anywhere and a whole name in quotes finding what your character has not met; the list stays as it knows it, and it stops when the panel closes";
 
         /// <summary>The warning strip while peeking at the page shown alone: in the compact view its name alone, the rest in its tip.</summary>
@@ -137,7 +137,7 @@ namespace Scry
         public static string MapNoServerScry => "the server did not answer on the explored map (it has no Scry, or one too old): places count as the character meets them";
 
         /// <summary>The line above the Locations tab's list with the compendium on, beside the button reading the explored map again.</summary>
-        public const string MapBar = "Places in the ground your character explored show as Ground you explored says, read again each session";
+        public const string MapBar = "Places in the ground your character explored show as the Ground you explored setting says. Scry reads the map again each session";
 
         /// <summary>The button reading the explored map again, in the Locations tab's bar.</summary>
         public const string ReadMap = "Look at the map again";
@@ -154,15 +154,15 @@ namespace Scry
         /// <summary>The milestone floor as stepped: the last tier it shows, by its biome, or none.</summary>
         public static string FloorName(int floor) => floor > 0 ? BiomeWords.Shown(Tiers.BiomeOf(floor)) : "No tier";
 
-        /// <summary>The tip of the mark on a row, and the line under a page's title, of what shows as known only by the floor, named by its control: "Shown as known up to Black forest".</summary>
-        public static string ByFloor(int floor) => $"Shown as {FloorCaption.ToLowerInvariant()} the {FloorName(floor)} tier, not yet come to know by your character";
+        /// <summary>The tip of the mark on a row, and the line under a page's title, of what shows as known only by the floor, named by its control: "Shown as known because Known up to reaches the Black forest tier".</summary>
+        public static string ByFloor(int floor) => $"Shown as known because {FloorCaption} reaches the {FloorName(floor)} tier; your character does not know it yet";
 
         /// <summary>The tip of a link or chip on a page going to what shows as known only by the floor: that, above its own tip.</summary>
         public static string FloorTip(int floor, string tip) => Naming.Lines(ByFloor(floor), tip);
 
         /// <summary>The tip of raising the floor to a tier, with the boss that fell for it where known.</summary>
         public static string RaiseFloor(int to, string boss) =>
-            $"Show everything of the {BiomeWords.Shown(Tiers.BiomeOf(to))} as known" + (string.IsNullOrEmpty(boss) ? "" : $": {boss} fell for your character");
+            $"Show everything of the {BiomeWords.Shown(Tiers.BiomeOf(to))} as known" + (string.IsNullOrEmpty(boss) ? "" : $": your character defeated {boss}");
 
         /// <summary>The tip of lowering the floor to a tier, or off.</summary>
         public static string LowerFloor(int to) => to > 0
@@ -170,7 +170,7 @@ namespace Scry
             : "Show only what your character has met again";
 
         /// <summary>The floor's tip while the next boss has not fallen.</summary>
-        public static string FloorWaits(string boss) => $"The next tier opens once {boss} falls for your character";
+        public static string FloorWaits(string boss) => $"The next tier opens once your character defeats {boss}";
 
         /// <summary>
         /// How the character came to know a thing, on its page: the game's day, the time of day
@@ -223,8 +223,8 @@ namespace Scry
                 case CameBy.LivedThrough: return "living through it";
                 case CameBy.Traded: return "trading with it";
                 case CameBy.OnYou: return "having it on you";
-                case CameBy.Given: return "from what gives it";
-                case CameBy.Gives: return "taking what it gives";
+                case CameBy.Given: return "from something that gives it";
+                case CameBy.Gives: return "taking the things it gives";
                 case CameBy.Chosen: return "choosing it at its stone";
                 case CameBy.Born: return "seeing it born";
                 case CameBy.GrewUp: return "seeing it grow up";
@@ -296,7 +296,7 @@ namespace Scry
         public const string SourcesCaption = "What this world shows as known";
 
         /// <summary>The faint line under the sources, saying what turning one down does.</summary>
-        public const string SourcesHint = "What these show is marked with this on its row and page; your book keeps only what you met, so turning one down takes it all back.";
+        public const string SourcesHint = "Things these show are marked with this sign on their row and page. Your book keeps only what your character met, so turning a source down takes back all it showed.";
 
         /// <summary>A source's name in the box.</summary>
         public static string SourceName(WorldSource source)
@@ -318,7 +318,7 @@ namespace Scry
         public const string AllFoundOut = "All found out";
 
         /// <summary>The chip's tip of a page found out whole.</summary>
-        public const string AllFoundOutTip = "Everything this page keeps back under Strict was found out";
+        public const string AllFoundOutTip = "Your character found out everything this page keeps back under Strict";
 
         /// <summary>That chip's tip: what was found out, or that the page keeps nothing back.</summary>
         public static string AllFoundOutTipFor(PageFinds finds) => finds.Any ? AllFoundOutTip : "Nothing of this page is kept back under Strict";
@@ -338,7 +338,7 @@ namespace Scry
         public const string AllMet = "All met";
 
         /// <summary>That chip's tip.</summary>
-        public const string AllMetTip = "Everything this page names was met";
+        public const string AllMetTip = "Your character has met everything this page names";
 
         /// <summary>
         /// The chip's tip of a page with something still to find out, or under the loose rules
@@ -353,7 +353,7 @@ namespace Scry
                 lines.Add(label + " \u00b7 " + value);
                 todo = true;
             }
-            if (todo) lines.Add("A click goes to them in its You box");
+            if (todo) lines.Add("Click to see them in this page's You box");
             return string.Join("\n", lines);
         }
 
@@ -375,9 +375,9 @@ namespace Scry
         {
             switch (source)
             {
-                case WorldSource.Explored: return "The places lying in ground you explored yourself, and the biomes under it, by your map, which reaches 100 m around you whatever you saw. Seen as you explore; the places known, with their insides, or all off, as you choose.";
+                case WorldSource.Explored: return "The places in ground you explored yourself, and the biomes there, as your map shows it: it reveals 100 m around you whether or not you looked. Seen as you explore; set this row to Known, With insides or Off as you like.";
                 case WorldSource.SharedMaps: return "The places lying in ground from maps you read at a cartography table.";
-                case WorldSource.Marked: return "The places a Vegvisir or a rune stone marked on your map, though you never looked at them. Seen as they are marked; known, with their insides, or off, as you choose.";
+                case WorldSource.Marked: return "The places a Vegvisir or a rune stone marked on your map, though you never looked at them. Seen as they are marked; set this row to Known, With insides or Off as you like.";
                 case WorldSource.OnEveryMap: return "The places the game shows on every map: traders, the start, and the places Hildir sends you to.";
                 default: return "Every kind of place this world holds, by the server's census of it: how many of each there are, never where.";
             }
@@ -387,7 +387,7 @@ namespace Scry
         public const string PinName = "Mark dungeons on the big map";
 
         /// <summary>What the pin does.</summary>
-        private const string PinDoes = "Marks every dungeon entrance in this ground on Valheim's big map. With insides, each one walked on this server shows what was walked. A click opens it in Scry. Dungeons you walked are marked anyway.";
+        private const string PinDoes = "Marks every dungeon entrance in this ground on Valheim's big map. Under With insides, a dungeon walked on this server shows the rooms walked. Clicking a mark opens that dungeon in Scry. Dungeons you walked are marked anyway.";
 
         /// <summary>The pin's tip: what it does, then whether it is on.</summary>
         public static string PinTip(bool on) => Naming.Lines(PinDoes, on ? "On." : "Off.");
@@ -405,9 +405,9 @@ namespace Scry
         {
             switch (source)
             {
-                case WorldSource.Marked: return "None of the places marked for you in this world has insides yet. The Queen's lair and Hildir's crypt, cave and tower would.";
-                case WorldSource.OnEveryMap: return "None of the places every map shows in this world has insides yet. Hildir's crypt, cave and tower show once she sends you to them.";
-                default: return "None of the places in this ground has insides yet.";
+                case WorldSource.Marked: return "None of the places marked for you in this world has rooms to show yet. The Queen's lair and Hildir's crypt, cave and tower would, once marked.";
+                case WorldSource.OnEveryMap: return "None of the places every map shows in this world has rooms to show yet. Hildir's crypt, cave and tower will, once she sends you to them.";
+                default: return "None of the places in this ground has rooms to show yet.";
             }
         }
 
@@ -430,9 +430,9 @@ namespace Scry
             switch (level)
             {
                 case SourceLevel.Off: return "Shows nothing of them";
-                case SourceLevel.Counted: return "Every kind of place this world holds is heard of, with how many there are; none is seen until you find it.";
-                case SourceLevel.Seen: return "Listed, their pages closed";
-                case SourceLevel.Known: return "Their pages open, with what a known place brings along";
+                case SourceLevel.Counted: return "Counts how many places of each kind this world holds; none shows as seen until you find it.";
+                case SourceLevel.Seen: return "Lists them, their pages closed";
+                case SourceLevel.Known: return "Opens their pages, with what a known place brings along";
                 default: return "Known, with what anyone on this server walked inside: those rooms and what they hold. A dungeon nobody walked shows only its entrance.";
             }
         }
@@ -452,7 +452,7 @@ namespace Scry
         public const string KnownBefore = "known before Scry kept track of your character";
 
         /// <summary>The tip of an attack's damage kept back.</summary>
-        public const string NotYetTakenTip = "Its damage shows once this attack hit you";
+        public const string NotYetTakenTip = "Its damage shows once this attack has hit you";
 
         /// <summary>
         /// What a known page under the strict rules still keeps back, for the You box at its top,
@@ -477,7 +477,7 @@ namespace Scry
                 else if (EntryKeys.IsRaider(proof, out _)) raiders++;
                 else if (EntryKeys.IsLanded(proof, out var landed)) landedPending.Add(landed);
             }
-            foreach (var fell in starsPending) rows.Add(($"See {Naming.Count(fell, "star", "stars")} fall", $"shows what {StarsChange(fell)}"));
+            foreach (var fell in starsPending) rows.Add(($"See one with {Naming.Count(fell, "star", "stars")} fall", $"shows what {StarsChange(fell)}"));
             void Pending(Deed what, string label, string value)
             {
                 if (pending.Contains(what)) rows.Add((label, value));
@@ -488,7 +488,7 @@ namespace Scry
             Pending(Deed.Sprang, "See one spring", "shows how it hurts and rearms");
             Pending(Deed.Raided, "See its raiders up close", "shows how it is rolled");
             Pending(Deed.Guarded, "See its creatures up close", "shows the stars its spawn points give");
-            foreach (var landed in landedPending) rows.Add(($"Land one with {StarsWords(landed)}", "shows how it fights so"));
+            foreach (var landed in landedPending) rows.Add(($"Catch one with {StarsWords(landed)}", $"shows how one with {StarsWords(landed)} fights"));
             if (raiders > 0) rows.Add(("See them up close", Naming.Count(raiders, "kind of raider", "kinds of raider") + ": how many come, how often, how strong"));
             Pending(Deed.Tamed, "Tame one", "shows how long taming and a meal take");
             Pending(Deed.Fed, "See one eat", "shows how long a meal lasts");
@@ -509,15 +509,15 @@ namespace Scry
             if (spots > 0) rows.Add((spots == 1 ? "Hit its weak spot" : "Hit its weak spots", Numbers.Count(spots) + " not yet found"));
             var tallies = new HashSet<Tally>(uncounted);
             // On an item's page the counts are its givers': the rows name them, not the item.
-            if (tallies.Contains(Tally.Fell)) rows.Add(ofItem ? ("See it fall", "from what drops it: how many") : ("See it drop", "how many of each"));
-            if (tallies.Contains(Tally.Gave)) rows.Add(ofItem ? ("See it given", "by what gives it: how many") : ("See it give", "how many of each"));
+            if (tallies.Contains(Tally.Fell)) rows.Add(ofItem ? ("See something drop it", "shows how many it drops") : ("See it drop", "how many of each"));
+            if (tallies.Contains(Tally.Gave)) rows.Add(ofItem ? ("See something give it", "shows how many it gives") : ("See it give", "how many of each"));
             if (tallies.Contains(Tally.Held)) rows.Add(ofItem ? ("Find it in a chest", "how many it holds") : ("Open one", "how many of each it holds"));
             if (tallies.Contains(Tally.Weather)) rows.Add(("Spend time in it", "how often each weather comes"));
             foreach (var stars in starsUnseen ?? Array.Empty<int>()) rows.Add(($"See {Naming.Count(stars, "star", "stars")} up close", "shows it so on the stage"));
-            foreach (var gear in gearUnseen ?? Array.Empty<string>()) rows.Add(("See it carry", $"{gear} up close: dresses it so on the stage"));
-            if (namesUnmet > 0) rows.Add(("Meet first", Naming.Count(namesUnmet, "thing it names", "things it names")));
-            if (namesApart > 0) rows.Add(("See it together", Naming.Count(namesApart, "thing it names", "things it names")));
-            if (unread > 0) rows.Add(("Read its runestones", Naming.Count(unread, "text", "texts") + " not yet read"));
+            foreach (var gear in gearUnseen ?? Array.Empty<string>()) rows.Add(("See it carry", $"{gear} up close: shows it carrying that on the stage"));
+            if (namesUnmet > 0) rows.Add(("Meet first", Naming.Count(namesUnmet, "thing this page names", "things this page names")));
+            if (namesApart > 0) rows.Add(("See it together", Naming.Count(namesApart, "thing", "things") + " you've met, with this page"));
+            if (unread > 0) rows.Add(("Read its runestones", Naming.Count(unread, "text", "texts") + " you have not read"));
             return rows;
         }
 
@@ -592,22 +592,24 @@ namespace Scry
         {
             switch (topic)
             {
-                case "loot": return "Met, not yet seen to fall from this: named here once you see one drop as this dies";
-                case "from": return "Met, not yet seen to give this: named here once you see this come of it, picked, broken, mined, made or dropped";
-                case "lives": return "Met, but not in this place: named here once you meet this there";
-                case "room": return "Met, not yet seen in this room's dungeon: named here once you see it inside one";
+                case "loot": return "You've met these but not yet seen them drop from this. Each is named here once you see it drop as this dies";
+                case "from": return "You've met these but not yet seen them give this. Each is named here once you see this come of it: picked, broken, mined, made or dropped";
+                case "lives": return "You've found these places but not yet met this in them. Each is named here once you meet this there";
+                case "room": return "You've met these but not yet seen them in a dungeon with this room. Each is named here once you see it inside one";
                 default:
-                    return "Met, not yet seen together with this page: named here once you see the two go together in play, "
+                    return "You've met these but not yet seen them go together with this page. Each is named here once you see the two go together in play, "
                         + "as a drop falls, a ware stands in a store, an item goes into or comes out of a station, a tool breaks it or a creature eats it";
             }
         }
 
         /// <summary>
         /// What the rules left out of a card's list or a raid's sentence as never met, read after
-        /// the names it lists: "2 more not yet met"; without "more" where it lists none
+        /// the names it lists, naming the one kind they are of (<paramref name="holds"/>), else
+        /// "things": "2 more creatures you have not met"; without "more" where it lists none
         /// (<paramref name="alone"/>); null for none.
         /// </summary>
-        public static string NeverMet(int count, bool alone = false) => count > 0 ? Numbers.Count(count) + (alone ? "" : " more") + " not yet met" : null;
+        public static string NeverMet(int count, bool alone = false, Kind? holds = null) =>
+            count > 0 ? Numbers.Count(count) + (alone ? " " : " more ") + Held(count, holds) + " you have not met" : null;
 
         /// <summary>
         /// A section's line of what the rules left out as never met, said as what to do and what it
@@ -712,23 +714,25 @@ namespace Scry
 
         /// <summary>
         /// What the strict rules left out of a card's list or a raid's sentence though met, read
-        /// after the names it lists (<see cref="NeverMet"/>): a room's "1 more not yet seen here",
-        /// a raid's "1 more not yet seen together"; null for none.
+        /// after the names it lists (<see cref="NeverMet"/>), naming their one kind as it does: a
+        /// room's "1 more creature you have met but not seen in this room", a raid's "1 more
+        /// creature you have met but not seen with this raid"; null for none.
         /// </summary>
-        public static string LeftOutOf(string topic, int count, bool alone = false)
+        public static string LeftOutOf(string topic, int count, bool alone = false, Kind? holds = null)
         {
             if (count <= 0) return null;
-            return Numbers.Count(count) + (alone ? "" : " more") + (topic == "room" ? " not yet seen here" : " not yet seen together");
+            var with = topic == "room" ? "in this room" : topic == "raid" ? "with this raid" : "with this";
+            return Numbers.Count(count) + (alone ? " " : " more ") + Held(count, holds) + " you have met but not seen " + with;
         }
 
-        /// <summary>The line at the end of a place's runestone texts with the compendium on, counting those the character has not read: "2 more not yet read"; null for none.</summary>
-        public static string NotYetRead(int count) => count > 0 ? $"{Numbers.Count(count)} more not yet read" : null;
+        /// <summary>The line at the end of a place's runestone texts with the compendium on, asking to read those the character has not: "Read 2 more texts", without "more" where none is shown (<paramref name="alone"/>); null for none.</summary>
+        public static string NotYetRead(int count, bool alone = false) => count > 0 ? $"Read {Numbers.Count(count)}{(alone ? "" : " more")} {Naming.Noun(count, "text", "texts")}" : null;
 
         /// <summary>A headline tile's count with the compendium on: how many of the row's the page names, "3 met".</summary>
         public static string MetCount(int count) => $"{Numbers.Count(count)} met";
 
-        /// <summary>The faint line under a row's title whose wares wait for a boss not yet fallen, under the loose rules: "2 more to unlock"; null for none.</summary>
-        public static string ToUnlock(int count) => count > 0 ? $"{Numbers.Count(count)} more to unlock" : null;
+        /// <summary>The faint line under a row's title whose wares wait for a boss not yet fallen, under the loose rules: "2 wares still to unlock"; null for none.</summary>
+        public static string ToUnlock(int count) => count > 0 ? $"{Numbers.Count(count)} {Naming.Noun(count, "ware", "wares")} still to unlock" : null;
 
         /// <summary>A title without the count it ends with, for a row some of whose items were left out: nothing tells how many.</summary>
         public static string Uncounted(string title)
@@ -754,9 +758,9 @@ namespace Scry
         {
             switch (kind)
             {
-                case SetAsideKind.Compendium: return $"This character's compendium could not be read. It was set aside as {file} and a new one started.";
-                case SetAsideKind.Walks: return $"The maps of the dungeons your character walked could not be read. They were set aside as {file} and new ones started.";
-                default: return $"This world's dungeon records could not be read. They were set aside as {file} and new ones started.";
+                case SetAsideKind.Compendium: return $"Scry could not read this character's compendium, so it set the old file aside as {file} and started a new one.";
+                case SetAsideKind.Walks: return $"Scry could not read the maps of the dungeons your character walked, so it set the old file aside as {file} and started new ones.";
+                default: return $"Scry could not read this world's dungeon records, so it set the old file aside as {file} and started new ones.";
             }
         }
 
@@ -832,7 +836,7 @@ namespace Scry
             switch (level)
             {
                 case KnownLevel.HeardOf: return "Heard of, not met yet";
-                case KnownLevel.Seen: return "Seen, not yet come to know";
+                case KnownLevel.Seen: return "Seen, not yet known";
                 default: return "Not met yet";
             }
         }

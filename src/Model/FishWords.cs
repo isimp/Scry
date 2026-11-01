@@ -10,9 +10,9 @@ namespace Scry
         public const string GroupsOf = "Groups of";
         public const string Stars = "Stars";
         public const string Water = "Water";
-        public const string Never = "Never";
+        public const string Never = "Never spawns";
         public const string HowMany = "How many";
-        public const string Comes = "Comes";
+        public const string Comes = "Spawns";
         public const string Leaps = "Leaps";
         public const string FindsFloat = "Finds a float";
         public const string SwimsOff = "Swims off";
@@ -24,7 +24,7 @@ namespace Scry
         /// <summary>The title of the fight's table by stars.</summary>
         public const string FightTitle = "By stars";
 
-        public const string ComesWith = "Comes with it";
+        public const string ComesWith = "Chance";
         public const string PullsFor = "Pulls for up to";
         public const string Drains = "Reeling drains";
         public const string Size = "Size";
@@ -43,10 +43,10 @@ namespace Scry
         public const string CatchesOn = "Catches, once one swims to the float";
 
         /// <summary>What drives a fish off (<c>Fish.CustomFixedUpdate</c> through <c>Player.GetPlayerNoiseRange</c>): the noise a player makes, by <c>Character.AddNoise</c>'s ranges, effects changing it (<c>SEMan.ModifyNoise</c>).</summary>
-        public const string SwimsOffLine = "from your noise: walking or swimming 15 m, running or jumping 30 m, building 50 m; some effects change it";
+        public const string SwimsOffLine = "when it hears you: walking or swimming within 15 m, running or jumping within 30 m, building within 50 m; some effects change these ranges";
 
         /// <summary>A float a fish found with the wrong bait on it (<c>FishingFloat.RPC_Nibble</c> marks it the fish's failed bait).</summary>
-        public const string WrongBaitLine = "it tries it once and never comes back to that float";
+        public const string WrongBaitLine = "it nibbles once and never returns to that float";
 
         /// <summary>A fish out of the water (<c>Fish.Interact</c>, only while out of it).</summary>
         public const string OnLandLine = "out of the water it can be picked up by hand";
@@ -62,7 +62,7 @@ namespace Scry
 
         /// <summary>Where it swims, by its own figures: "it swims 1.5 to 3 m down, within 10 m of where it came".</summary>
         public static string SwimsLine(FishTraits fish) =>
-            $"it swims {Numbers.Amount(fish.MinDepth, 1)} to {Numbers.Amount(fish.MaxDepth, 1)} m down" + (fish.SwimRange > 0f ? $", within {Numbers.Metres(fish.SwimRange, 0)} of where it came" : "");
+            $"it swims {Numbers.Amount(fish.MinDepth, 1)} to {Numbers.Amount(fish.MaxDepth, 1)} m down" + (fish.SwimRange > 0f ? $", within {Numbers.Metres(fish.SwimRange, 0)} of where it spawned" : "");
 
         /// <summary>
         /// The water a world spawn puts it in (<c>SpawnSystem.IsSpawnPointGood</c>): how far below
@@ -132,7 +132,7 @@ namespace Scry
 
         public static string RestsLine(float least, float most) => $"{Numbers.Amount(least, 1)} to {Numbers.Amount(most, 1)} s between pulls";
 
-        public static string LineLine(float past, float most) => $"breaks once the float is {Numbers.Metres(past, 0)} past the line, or {Numbers.Metres(most, 0)} out";
+        public static string LineLine(float past, float most) => $"breaks when the float is {Numbers.Metres(past, 0)} beyond the line's length, or more than {Numbers.Metres(most, 0)} from you";
 
         /// <summary>A column of the fight's table by its stars.</summary>
         public static string StarColumn(int stars) => stars <= 0 ? "no star" : Numbers.Count(stars);

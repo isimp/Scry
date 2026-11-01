@@ -70,7 +70,7 @@ namespace Scry
         public static string In(string part) => "In " + part + ":";
 
         /// <summary>The chip that shows the rest of a long list.</summary>
-        public static string More(int hidden) => $"{Numbers.Count(hidden)} more";
+        public static string More(int hidden) => $"Show {Numbers.Count(hidden)} more";
 
         /// <summary>How long something lasts.</summary>
         public static string Lasts(double seconds) => "Lasts " + Numbers.Duration(seconds);

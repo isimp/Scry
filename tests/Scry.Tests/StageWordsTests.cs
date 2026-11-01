@@ -70,13 +70,13 @@ namespace Scry.Tests
         public void ARoomPeeksWithWhatTheRulesLeftOutOfIt()
         {
             // As its card's lines say them: what to meet and what to see here, after what shows.
-            Assert.Equal("Burial chamber\nEntrance\nCreatures 2, 1 more not yet met, 1 more not yet seen here  ·  To loot 5\nPick it, or double-click to go into it",
+            Assert.Equal("Burial chamber\nEntrance\nCreatures 2, 1 more creature you have not met, 1 more creature you have met but not seen in this room  ·  To loot 5\nPick it, or double-click to go into it",
                 StageWords.RoomPeek("Burial chamber", "Entrance", creatures: 2, chests: 5, goneInto: false,
-                    creaturesLeft: new[] { "1 more not yet met", "1 more not yet seen here" }));
+                    creaturesLeft: new[] { "1 more creature you have not met", "1 more creature you have met but not seen in this room" }));
             // With none shown, the counts alone.
-            Assert.Equal("Burial chamber\nEntrance\nCreatures: 3 not yet met  ·  To loot: 2 not yet seen here\nPick it, or double-click to go into it",
+            Assert.Equal("Burial chamber\nEntrance\nCreatures: 3 creatures you have not met  ·  To loot: 2 things you have met but not seen in this room\nPick it, or double-click to go into it",
                 StageWords.RoomPeek("Burial chamber", "Entrance", creatures: 0, chests: 0, goneInto: false,
-                    creaturesLeft: new[] { "3 not yet met" }, lootLeft: new[] { "2 not yet seen here" }));
+                    creaturesLeft: new[] { "3 creatures you have not met" }, lootLeft: new[] { "2 things you have met but not seen in this room" }));
         }
 
         [Fact]
@@ -91,7 +91,7 @@ namespace Scry.Tests
         public void TheRoomGoneIntoPeeksWithHowToComeBackOut()
         {
             // As the key sheet says: Esc, the breadcrumb's level or the mouse's back button.
-            Assert.EndsWith("\nEsc, the breadcrumb's level or the mouse's back button comes back out", StageWords.RoomPeek("Burial chamber", "Entrance", creatures: 0, chests: 0, goneInto: true));
+            Assert.EndsWith("\nPress Esc, click the breadcrumb's level or use the mouse's back button to come back out", StageWords.RoomPeek("Burial chamber", "Entrance", creatures: 0, chests: 0, goneInto: true));
             Assert.Contains("Esc, the breadcrumb's level or the mouse's back button", StageWords.KeySheet(cut: true, inRoom: true));
         }
 
@@ -150,7 +150,7 @@ namespace Scry.Tests
         {
             Assert.Equal("1 room, 8 m up", StageWords.RoomsAboveMark(1, 8.2f));
             Assert.Equal("3 rooms, 20 m up", StageWords.RoomsAboveMark(3, 19.6f));
-            Assert.Equal("3 rooms, 20 m up: cut over them, bringing them back", StageWords.RoomsAboveTip("3 rooms, 20 m up"));
+            Assert.Equal("3 rooms, 20 m up: click to bring them back, cut just above them", StageWords.RoomsAboveTip("3 rooms, 20 m up"));
         }
 
         [Fact]

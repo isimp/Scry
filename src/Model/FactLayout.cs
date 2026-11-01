@@ -133,7 +133,7 @@ namespace Scry
             Label(plan, "fight", "Attacks", CombatWords.StarsTitle, "Boss fight", "Fights", "Damage it takes", "Trains");
             Label(plan, "senses", "Gives up chasing", "Flees", "Leaves alone", "When enemies are passive");
             Label(plan, "loot", "Drops");
-            Label(plan, "taming", "Tames in", "Fed for", "Eats");
+            Label(plan, "taming", "Tames in", "Stays fed for", "Eats");
             Label(plan, "after", "Forsaken power", "On its boss stone");
             Label(plan, More, "Not shown");
             plan.Starts.Add((l => l.StartsWith("Seen dropping", StringComparison.Ordinal), "loot"));
@@ -174,13 +174,13 @@ namespace Scry
             Tile(plan, "overview", null, "Type", "Weight", "Stacks to", "Worth");
             // The table by quality goes with what it is about, by the part that told it: a weapon's fight, armour's wearing.
             Label(plan, "fight", "Damage", CombatWords.WeaponAttacksTitle, "Secondary attack", "Block", "Block force", "Parry bonus", "Backstab", "Knockback", "Each attack costs", "Drawing costs",
-                CombatWords.FullDraw, CombatWords.Reloads, "Summons at once", "Summons hit",
+                CombatWords.FullDraw, CombatWords.Reloads, "Summons at once", "Summons' damage",
                 "At full adrenaline", "On hit", ItemWords.DamageTaken(false), ItemWords.ResistsNothing(false));
             Label(plan, "wearing", "Armour", "Movement", "When worn", "Set bonus", "Other changes while worn", ItemWords.DamageTaken(true), ItemWords.ResistsNothing(true));
             Label(plan, "food", "Food", "Heals", "Lasts", "When used");
             Label(plan, "hatching", "Hatches into", "Hatches in", "Hatches when");
             // What a trophy, a key, a fish, a bait or a building tool is for.
-            Label(plan, "does", "On its boss stone", "Opens", "Each use costs", "Each use wears", "Harvests within", "With a fish on", "Reeling in");
+            Label(plan, "does", "On its boss stone", "Opens", "Each use costs", "Each use wears", "Harvests within", "Stamina with a fish on", "Reeling in");
             Part(plan, "does", "builds", "fishing", "bait");
             Label(plan, "making", "Type", "Weight", "Quality", "Durability", "Repaired at", "Upgrades need", "Skill", "Tool tier", "Stacks to", "Worth", "Portals");
             Label(plan, More, "Not shown");
@@ -309,7 +309,7 @@ namespace Scry
                 Topics = new[] { ("overview", (string)null), ("from", "Where it comes from"), ("hit", "Hit"), ("flight", "Flight"), (More, "More"), ("hooks", null) },
             };
             Tile(plan, "overview", null, "Own damage", "Flies for");
-            Label(plan, "flight", "Falls", "Slows", "Bounces", "Leaves");
+            Label(plan, "flight", "Falls", "Slowed by air", "Bounces", "Leaves");
             Label(plan, More, "Not shown");
             Part(plan, "hit", "projectile");
             plan.Blocks[FactBlock.Where] = "from";
@@ -376,7 +376,7 @@ namespace Scry
             {
                 Topics = new[] { ("overview", (string)null), ("there", "What is there"), ("weather", "Weather"), ("music", "Music"), (More, "More"), ("hooks", null) },
             };
-            Tile(plan, "overview", null, "Puts on you", "Creatures", "Places");
+            Tile(plan, "overview", null, "Weather puts on you", "Creatures", "Places");
             Label(plan, "weather", BiomeWords.WeathersTitle);
             Links(plan, "weather", LinkWords.StatusEffects);
             Label(plan, "music", BiomeWords.MusicTitle);

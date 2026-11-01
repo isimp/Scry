@@ -176,7 +176,7 @@ namespace Scry
             string.IsNullOrEmpty(lead) || string.IsNullOrEmpty(title) ? title : lead + char.ToLowerInvariant(title[0]) + title.Substring(1);
 
         /// <summary>The mark of loot nothing else in the world gives.</summary>
-        public const string OnlyHereMark = "only here";
+        public const string OnlyHereMark = "only source";
 
         /// <summary>That mark's tip.</summary>
         public const string OnlyHereTip = "Nothing else in the world gives it, and nothing makes it";

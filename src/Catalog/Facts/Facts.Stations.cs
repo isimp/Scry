@@ -85,7 +85,7 @@ namespace Scry
                 Add("Blocked by", StationWords.WindBlockedBy);
                 var blades = StationWords.BladesHurt(windmill.m_minAOEPropellerSpeed, windmill.m_propellerRotationSpeed);
                 if (blades != null && windmill.m_propellerAOE != null) Add("Its blades", blades);
-                Add("While away", StationWords.CatchesUp(StationWords.SmelterCatchUp));
+                Add("While you are away", StationWords.CatchesUp(StationWords.SmelterCatchUp));
             }
             else Add("Each takes", Numbers.Duration(smelter.m_secPerProduct));
             // The game shows neither how long each takes nor what it burns: under the strict rules they wait for one seen finished.

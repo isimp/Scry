@@ -16,7 +16,7 @@ namespace Scry.Tests
             ("Attack: Club", "attacks"), ("Hit on the head", "weak spots"), ("Moves", "behaviour"), ("Sees", "behaviour"),
             ("Gives up chasing", "behaviour"), ("Tames in", "behaviour"), ("Tameable", ""), ("Forsaken power", ""),
             ("Drops with stars", ""), ("In this world", "world settings"), ("Something new", "a mod's part"),
-            ("Love", "breeding"), ("Ridden with", "riding"), ("Keeps its distance", "behaviour"),
+            ("Chance to breed", "breeding"), ("Ridden with", "riding"), ("Keeps its distance", "behaviour"),
         };
 
         private static readonly (string Title, string Part)[] TrollRows = { ("With stars", ""), ("Damage it takes", "resistances"), ("Eats", ""), ("Drops", ""), ("Seen dropping in all your play (3 kills)", "") };
@@ -45,7 +45,7 @@ namespace Scry.Tests
 
             // Its headline numbers as tiles, the boss and moves among them where told.
             Assert.Equal(new[] { "Health", "Faction", "Moves", "Tameable" }, plan[0].Tiles.Select(Pair));
-            Assert.Equal(new[] { "Tames in", "Love", "row Eats" }, plan[1].Bits.Select(Bit));
+            Assert.Equal(new[] { "Tames in", "Chance to breed", "row Eats" }, plan[1].Bits.Select(Bit));
             Assert.Equal(new[] { "Ridden with" }, plan[2].Bits.Select(Bit));
             Assert.Equal(new[] { "row With stars", "Attack: Club", "Hit on the head", "row Damage it takes" }, plan[3].Bits.Select(Bit));
             Assert.Equal(new[] { "block Where", "block Biomes" }, plan[5].Bits.Select(Bit));
@@ -453,13 +453,13 @@ namespace Scry.Tests
         [Fact]
         public void ABiomeShowsWhatItPutsOnYouAndHowManyLiveThereThenWhatIsThereItsWeathersAndMusic()
         {
-            var pairs = new[] { ("Creatures", "biome"), ("Puts on you", "biome"), ("Places", "biome") };
+            var pairs = new[] { ("Creatures", "biome"), ("Weather puts on you", "biome"), ("Places", "biome") };
             var rows = new[] { ("Weathers", "biome"), ("Music", "biome"), ("Lives here (12)", "biome"), ("Grows here (8)", "biome") };
             var plan = FactLayout.Plan(Kind.Biome, pairs, rows, new[] { FactBlock.Hooks });
             string Name(FactBit b) => b.Pair >= 0 ? pairs[b.Pair].Item1 : b.Row >= 0 ? "row " + rows[b.Row].Item1 : "block " + b.Block;
             // How dangerous it is and what is there first; its weathers' shares and music are flavour.
             Assert.Equal(new[] { null, "What is there", "Weather", "Music", null }, plan.Select(t => t.Heading));
-            Assert.Equal(new[] { "Puts on you", "Creatures", "Places" }, plan[0].Tiles.Select(i => pairs[i].Item1));
+            Assert.Equal(new[] { "Weather puts on you", "Creatures", "Places" }, plan[0].Tiles.Select(i => pairs[i].Item1));
             Assert.Equal(new[] { "row Lives here (12)", "row Grows here (8)" }, plan[1].Bits.Select(Name));
             Assert.Equal(new[] { "row Weathers" }, plan[2].Bits.Select(Name));
             Assert.Equal(new[] { "row Music" }, plan[3].Bits.Select(Name));
@@ -514,7 +514,7 @@ namespace Scry.Tests
         {
             var pairs = new[]
             {
-                ("Spawns Greydwarf", "spawner"), ("Spawns Greydwarf brute", "spawner"), ("Star chance", "spawner"), ("Wakes", "spawner"), ("Pace", "spawner"),
+                ("Spawns Greydwarf", "spawner"), ("Spawns Greydwarf brute", "spawner"), ("Star chance", "spawner"), ("Active", "spawner"), ("Pace", "spawner"),
                 ("Keeps alive", "spawner"), ("Spawns them", "spawner"), ("Health", "resource"), ("Needs tool tier", "resource"),
             };
             var rows = new[] { ("Drops", "resource"), ("Damage it takes", "resource") };
@@ -522,7 +522,7 @@ namespace Scry.Tests
             string Name(FactBit b) => b.Pair >= 0 ? pairs[b.Pair].Item1 : b.Row >= 0 ? "row " + rows[b.Row].Item1 : "block " + b.Block;
             Assert.Equal(new[] { null, "Spawns", "Breaking it", "Where it is", null }, plan.Select(t => t.Heading));
             Assert.Equal(new[] { "Pace", "Keeps alive", "Health" }, plan[0].Tiles.Select(i => pairs[i].Item1));
-            Assert.Equal(new[] { "Spawns Greydwarf", "Spawns Greydwarf brute", "Star chance", "Wakes", "Spawns them" }, plan[1].Bits.Select(Name));
+            Assert.Equal(new[] { "Spawns Greydwarf", "Spawns Greydwarf brute", "Star chance", "Active", "Spawns them" }, plan[1].Bits.Select(Name));
             Assert.Equal(new[] { "Needs tool tier", "row Drops", "row Damage it takes" }, plan[2].Bits.Select(Name));
             Assert.Equal(new[] { "block Where", "block Biomes" }, plan[3].Bits.Select(Name));
         }

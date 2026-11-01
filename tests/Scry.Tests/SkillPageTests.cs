@@ -49,7 +49,7 @@ namespace Scry.Tests
             Assert.Equal(new[] { "Full draw", "2.5 s", "1.8 s", "0.5 s" }, Line(bows, 34f, "Full draw"));
             Assert.Equal(new[] { "Drain while drawing", "100%", "89%", "67%" }, Line(bows, 34f, "Drain while drawing"));
             bows.DrawTimes.Add(3f);
-            Assert.Equal(new[] { "Full draw, of the bow's time", "100%", "73%", "20%" }, Line(bows, 34f, "Full draw, of the bow's time"));
+            Assert.Equal(new[] { "Full draw (share of the bow's time)", "100%", "73%", "20%" }, Line(bows, 34f, "Full draw (share of the bow's time)"));
             // Bows that drain nothing while drawn tell no drain.
             Assert.Null(Line(new SkillInputs { Name = "Bows", Hits = true }, 34f, "Drain while drawing"));
         }
@@ -61,7 +61,7 @@ namespace Scry.Tests
             crossbows.ReloadTimes.Add(3.5f);
             Assert.Equal(new[] { "Reloading", "3.5 s", "2.9 s", "1.8 s" }, Line(crossbows, 34f, "Reloading"));
             crossbows.ReloadTimes.Add(1.9f);
-            Assert.Equal(new[] { "Reloading, of the weapon's time", "100%", "83%", "50%" }, Line(crossbows, 34f, "Reloading, of the weapon's time"));
+            Assert.Equal(new[] { "Reloading (share of the weapon's time)", "100%", "83%", "50%" }, Line(crossbows, 34f, "Reloading (share of the weapon's time)"));
         }
 
         [Fact]
@@ -117,18 +117,18 @@ namespace Scry.Tests
         {
             var crafting = new SkillInputs { Name = "Crafting", Crafts = true, CraftMostSaved = 0.6f, CraftBonus = 0.25f, BuildStamina = true, WearSaved = 0.5f };
             Assert.Equal(new[] { "Making time", "100%", "70%", "40%" }, Line(crafting, 50f, "Making time"));
-            Assert.Equal(new[] { "Bonus: when making", "0%", "12.5%", "25%" }, Line(crafting, 50f, "Bonus: when making"));
+            Assert.Equal(new[] { "Chance of extra: making", "0%", "12.5%", "25%" }, Line(crafting, 50f, "Chance of extra: making"));
             Assert.Equal(new[] { "Building stamina", "100%", "75%", "50%" }, Line(crafting, 50f, "Building stamina"));
-            Assert.Equal(new[] { "Tool wear placing", "100%", "75%", "50%" }, Line(crafting, 50f, "Tool wear placing"));
-            Assert.Null(Line(crafting, 50f, "Bonus: taking food off"));
+            Assert.Equal(new[] { "Tool wear when placing", "100%", "75%", "50%" }, Line(crafting, 50f, "Tool wear when placing"));
+            Assert.Null(Line(crafting, 50f, "Chance of extra: cooking station"));
 
             // Cooking's serving tray wears less, though no build table trains it.
             var cooking = new SkillInputs { Name = "Cooking", CookBonus = 0.25f, WearSaved = 0.5f };
-            Assert.Equal(new[] { "Bonus: taking food off", "0%", "7.5%", "25%" }, Line(cooking, 30f, "Bonus: taking food off"));
-            Assert.Equal(new[] { "Tool wear placing", "100%", "85%", "50%" }, Line(cooking, 30f, "Tool wear placing"));
+            Assert.Equal(new[] { "Chance of extra: cooking station", "0%", "7.5%", "25%" }, Line(cooking, 30f, "Chance of extra: cooking station"));
+            Assert.Equal(new[] { "Tool wear when placing", "100%", "85%", "50%" }, Line(cooking, 30f, "Tool wear when placing"));
             Assert.Null(Line(cooking, 30f, "Building stamina"));
             var farming = new SkillInputs { Name = "Farming", PickBonus = 0.25f, ScytheAtNone = 1.5f, ScytheAtTop = 2.5f };
-            Assert.Equal(new[] { "Bonus: picking", "0%", "7.5%", "25%" }, Line(farming, 30f, "Bonus: picking"));
+            Assert.Equal(new[] { "Chance of extra: picking", "0%", "7.5%", "25%" }, Line(farming, 30f, "Chance of extra: picking"));
             Assert.Equal(new[] { "Scythe reach", "1.5 m", "1.8 m", "2.5 m" }, Line(farming, 30f, "Scythe reach"));
         }
 
@@ -139,7 +139,7 @@ namespace Scry.Tests
             blood.Summons.Add(("Dead Raiser", new[] { 0, 20, 40, 60, 80 }, new[] { 1, 2, 3, 4, 5 }));
             Assert.Equal(new[] { "Shield absorbs", "200", "350", "700" }, Line(blood, 30f, "Shield absorbs"));
             Assert.Equal(new[] { "Dead Raiser, at once", "1", "2", "5" }, Line(blood, 30f, "Dead Raiser, at once"));
-            Assert.Equal(new[] { "Summons' hits", "×1", "×1.6", "×3" }, Line(blood, 30f, "Summons' hits"));
+            Assert.Equal(new[] { "Summons' damage", "×1", "×1.6", "×3" }, Line(blood, 30f, "Summons' damage"));
             // Past the top they still grow, by the whole level.
             Assert.Equal(new[] { "Shield absorbs", "200", "800", "700" }, Line(blood, 120f, "Shield absorbs"));
             // A staff whose first step keeps more than one tells its own count from the start.
@@ -178,12 +178,12 @@ namespace Scry.Tests
         public void TheWayToTheNextLevelIsToldInWhatRaisesIt()
         {
             // 62% of 104.03 kept at level 34; a melee hit on a creature gives 1.5, rested half as much again.
-            Assert.Equal("62% there, about 27 hits on creatures, 18 rested", SkillPageWords.ToNext("Swords", 34f, 64.5f, 1f, 1.5f));
+            Assert.Equal("62% of the way, about 27 hits on creatures, or 18 while rested", SkillPageWords.ToNext("Swords", 34f, 64.5f, 1f, 1.5f));
             // Running rises 0.2 a second with stamina left.
-            Assert.Equal("38% there, about 7.1 min of running, 4.7 min rested", SkillPageWords.ToNext("Run", 41f, 51.7f, 0.2f, 1.5f));
+            Assert.Equal("38% of the way, about 7.1 min of running, or 4.7 min while rested", SkillPageWords.ToNext("Run", 41f, 51.7f, 0.2f, 1.5f));
             Assert.Null(SkillPageWords.ToNext("Swords", 100f, 0f, 1f, 1.5f));
             // A skill a mod adds rises however its mod says.
-            Assert.Equal("62% there", SkillPageWords.ToNext("1795429391", 34f, 64.5f, 1f, 1.5f));
+            Assert.Equal("62% of the way", SkillPageWords.ToNext("1795429391", 34f, 64.5f, 1f, 1.5f));
         }
 
         [Fact]
@@ -191,10 +191,10 @@ namespace Scry.Tests
         {
             // A Staff of Frost's bolt rises a fifth of a usual hit (its attack's m_raiseSkillAmount 0.2):
             // 39.53 left of 104.03 at level 34, 0.2 a hit, 0.3 rested.
-            Assert.Equal("62% there, about 198 hits on creatures with Staff of Frost, 132 rested",
+            Assert.Equal("62% of the way, about 198 hits on creatures with Staff of Frost, or 132 while rested",
                 SkillPageWords.ToNext("ElementalMagic", 34f, 64.5f, 1f, 1.5f, ("Staff of Frost", 0.2f)));
             // Without one in hand, the skill's usual hit.
-            Assert.Equal("62% there, about 40 hits on creatures, 27 rested", SkillPageWords.ToNext("ElementalMagic", 34f, 64.5f, 1f, 1.5f));
+            Assert.Equal("62% of the way, about 40 hits on creatures, or 27 while rested", SkillPageWords.ToNext("ElementalMagic", 34f, 64.5f, 1f, 1.5f));
         }
 
         [Fact]
@@ -222,7 +222,7 @@ namespace Scry.Tests
         {
             Assert.Equal("Hitting creatures with what trains it, once a swing however many it hits", SkillPageWords.RisesBy("Swords"));
             // Anything that breaks but a tree or a creature trains a pickaxe (m_skillHitType Default): rocks, ore, building pieces.
-            Assert.Equal("Hitting rocks, ore and other things that break, a tree or a creature aside, with a pickaxe", SkillPageWords.RisesBy("Pickaxes"));
+            Assert.Equal("Hitting rocks, ore and other breakable things with a pickaxe, but not trees or creatures", SkillPageWords.RisesBy("Pickaxes"));
             Assert.Equal("Hitting creatures with what trains it; your summons' hits, half as much, for the one they follow; a shield it cast breaking, for the one it shielded", SkillPageWords.RisesBy("BloodMagic"));
             Assert.Equal("Hitting creatures with what trains it, or an archery target, up to a third as much at its middle", SkillPageWords.RisesBy("Bows"));
             Assert.Equal("Each jump with the stamina for it", SkillPageWords.RisesBy("Jump"));
@@ -239,7 +239,7 @@ namespace Scry.Tests
         public void ADeathTakesAShareUnlessYouDiedJustBefore()
         {
             // Skills.OnDeath with the Player prefab's share; Player.OnDeath only after the hard death's wait.
-            Assert.Equal("Loses 5% of its level and the way to the next, unless your last death was less than 10 min before", SkillPageWords.OnDeath(0.05f, 600f));
+            Assert.Equal("Loses 5% of its level and all progress toward the next level, unless your last death was less than 10 min ago", SkillPageWords.OnDeath(0.05f, 600f));
         }
 
         [Fact]

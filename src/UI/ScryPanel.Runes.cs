@@ -34,6 +34,7 @@ namespace Scry
 
             // With the compendium on, the texts the character has read, the rest counted.
             var notRead = 0;
+            var anyShown = false;
             foreach (var stone in place.Contents.Runestones)
             {
                 var anyRead = false;
@@ -43,6 +44,7 @@ namespace Scry
                     else notRead++;
                 }
                 if (!anyRead) continue;
+                anyShown = true;
                 var caption = RuneWords.Caption(stone);
                 if (caption != null)
                 {
@@ -62,7 +64,7 @@ namespace Scry
                     y += bodyH + U(10f);
                 }
             }
-            y = HintLine(CompendiumWords.NotYetRead(notRead), "runes-not-read", "", PanelPart.Runes, width, y);
+            y = HintLine(CompendiumWords.NotYetRead(notRead, alone: !anyShown),"runes-not-read", "", PanelPart.Runes, width, y);
             return y + U(4f);
         }
     }

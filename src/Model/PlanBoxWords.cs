@@ -33,8 +33,8 @@ namespace Scry
 
         /// <summary>The tip of the switch for the rooms' names on the grown plan, in every view.</summary>
         public static string NamesTip(bool shown) => shown
-            ? "Leave the rooms' names off the grown plan"
-            : "Name the rooms on the grown plan";
+            ? "Hide the rooms' names on the enlarged plan"
+            : "Name the rooms on the enlarged plan";
 
         /// <summary>The tip of the switch for the rooms below the room gone into or the floor opened, in the plan from above.</summary>
         public static string BelowTip(bool shown) => shown
@@ -42,7 +42,7 @@ namespace Scry
             : "Show the rooms below this level on the plan from above, where only their ways down are marked now";
 
         /// <summary>The tip of the button that grows the plan, or shrinks it back; growing names no room by itself, the names switch on the grown plan does.</summary>
-        public static string GrowTip(bool big) => big ? "Shrink the plan back" : "Grow the plan";
+        public static string GrowTip(bool big) => big ? "Shrink the plan back" : "Enlarge the plan";
 
         /// <summary>The tip of the button that puts the plan away.</summary>
         public const string FoldTip = "Put the plan away";

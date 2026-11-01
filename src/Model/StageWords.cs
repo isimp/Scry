@@ -45,7 +45,7 @@ namespace Scry
         public static string RoomPeek(string name, string where, int creatures, int chests, bool goneInto, bool layoutOnly = false,
             IReadOnlyList<string> creaturesLeft = null, IReadOnlyList<string> lootLeft = null) =>
             name + "\n" + where + (layoutOnly ? "" : "\n" + PeekCount("Creatures", creatures, creaturesLeft) + "  ·  " + PeekCount(RoomCardWords.Loot, chests, lootLeft))
-            + (goneInto ? "\nEsc, the breadcrumb's level or the mouse's back button comes back out" : "\nPick it, or double-click to go into it");
+            + (goneInto ? "\nPress Esc, click the breadcrumb's level or use the mouse's back button to come back out" : "\nPick it, or double-click to go into it");
 
         /// <summary>A count on a room's peek, what the rules left out after it, as its card's lines say them; with none shown, the counts alone.</summary>
         private static string PeekCount(string what, int shown, IReadOnlyList<string> left)
@@ -104,7 +104,7 @@ namespace Scry
             $"{Numbers.Count(rooms)} {(rooms == 1 ? "room" : "rooms")}, {Numbers.Count((int)System.Math.Round(rise))} m up";
 
         /// <summary>The tip of a mark of the rooms above on the room's ruler.</summary>
-        public static string RoomsAboveTip(string mark) => mark + ": cut over them, bringing them back";
+        public static string RoomsAboveTip(string mark) => mark + ": click to bring them back, cut just above them";
 
         /// <summary>What the room's ruler says beside its bar with the room's roof on.</summary>
         public const string RoomRoofOn = "Roof on";

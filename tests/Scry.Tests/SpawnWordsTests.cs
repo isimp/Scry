@@ -52,13 +52,13 @@ namespace Scry.Tests
         [Fact]
         public void ASpawnerWakesWhileSomeoneIsNear()
         {
-            Assert.Equal("while someone is within 60 m", SpawnWords.SpawnerWakes(60f));
+            Assert.Equal("while a player is within 60 m", SpawnWords.SpawnerWakes(60f));
         }
 
         [Fact]
         public void ASpawnerStopsAtItsCapsNearAndFar()
         {
-            Assert.Equal("3 within 20 m, 100 within 1,000 m", SpawnWords.SpawnerCaps(3, 20f, 100, 1000f));
+            Assert.Equal("at most 3 within 20 m, at most 100 within 1,000 m", SpawnWords.SpawnerCaps(3, 20f, 100, 1000f));
         }
 
         [Fact]
@@ -95,9 +95,9 @@ namespace Scry.Tests
         [InlineData(2, -1, -1f, false, "at least 1 star")]
         [InlineData(-1, 1, -1f, false, "no stars")]
         [InlineData(-1, 3, -1f, false, "up to 2 stars")]
-        [InlineData(-1, -1, 50f, false, "50% for each star")]
-        [InlineData(-1, -1, 0f, false, "never a star above the least")]
-        [InlineData(1, 3, 20f, true, "up to 2 stars, 20% for each star, except at some of them")]
+        [InlineData(-1, -1, 50f, false, "50% for each extra star, until one misses")]
+        [InlineData(-1, -1, 0f, false, "never more stars than the fewest")]
+        [InlineData(1, 3, 20f, true, "up to 2 stars, 20% for each extra star, until one misses, except at some spawn points")]
         public void ALocationsLevelsTellEachOverrideItSets(int min, int max, float chance, bool someExcluded, string words)
         {
             Assert.Equal(words, SpawnWords.LocationLevels(min, max, chance, someExcluded));
@@ -114,7 +114,7 @@ namespace Scry.Tests
         public void EachFurtherStarNeedsItsOwnRoll()
         {
             // SpawnArea.SpawnOne rolls once for each level above the least, stopping at the first miss.
-            Assert.Equal("15% for each star", SpawnWords.StarChance(15f));
+            Assert.Equal("15% for each extra star, until one misses", SpawnWords.StarChance(15f));
             Assert.Null(SpawnWords.StarChance(0f));
         }
 
@@ -196,20 +196,20 @@ namespace Scry.Tests
         [Fact]
         public void WhatGrowsBetweenTwoHeightsSaysThem()
         {
-            Assert.Equal("Grows in Mountain, 70–900 m up", SpawnWords.Grows("Mountain", 70.2f, 900f, false, false, 1, 1));
+            Assert.Equal("Grows in Mountain, 70–900 m above sea level", SpawnWords.Grows("Mountain", 70.2f, 900f, false, false, 1, 1));
         }
 
         [Fact]
         public void WhatGrowsAboveAHeightSaysFromWhere()
         {
-            Assert.Equal("Grows in Meadows, from 2 m up", SpawnWords.Grows("Meadows", 1.6f, 1000f, false, false, 1, 1));
-            Assert.Equal("Grows in Meadows, from -999 m up", SpawnWords.Grows("Meadows", -999f, 1000f, false, false, 1, 1));
+            Assert.Equal("Grows in Meadows, from 2 m above sea level", SpawnWords.Grows("Meadows", 1.6f, 1000f, false, false, 1, 1));
+            Assert.Equal("Grows in Meadows, from -999 m above sea level", SpawnWords.Grows("Meadows", -999f, 1000f, false, false, 1, 1));
         }
 
         [Fact]
         public void WhatGrowsBelowAHeightSaysTheRange()
         {
-            Assert.Equal("Grows in Ocean, -1,000–-5 m up",SpawnWords.Grows("Ocean", -1000f, -5f, false, false, 1, 1));
+            Assert.Equal("Grows in Ocean, -1,000–-5 m above sea level",SpawnWords.Grows("Ocean", -1000f, -5f, false, false, 1, 1));
         }
 
         [Fact]

@@ -24,7 +24,7 @@ namespace Scry
         /// propeller's hub): 17 rays of 30 m from it, one up, eight level and eight halfway up,
         /// none down, each that hits something solid taking its share.
         /// </summary>
-        public const string WindBlockedBy = "anything solid within 30 m of its hub, level with it or above; each of 17 directions blocked takes 6%";
+        public const string WindBlockedBy = "anything solid within 30 m of its hub, level with it or above; each of 17 directions blocked costs 6% of its power";
 
         /// <summary>From what share of power a windmill's blades hurt (<c>Windmill.Update</c>: the propeller's harm is on above its least speed); none where they never turn.</summary>
         public static string BladesHurt(float leastSpeed, float turnSpeed) =>
@@ -34,7 +34,7 @@ namespace Scry
         public const float SmelterCatchUp = 3600f;
 
         /// <summary>How much time away a windmill makes up for when its ground loads again (<c>Smelter.UpdateSmelter</c>), at the wind of that moment.</summary>
-        public static string CatchesUp(float seconds) => (seconds == 3600f ? "an hour" : Numbers.Duration(seconds)) + " at most, at the wind blowing on return";
+        public static string CatchesUp(float seconds) => "up to " + (seconds == 3600f ? "an hour" : Numbers.Duration(seconds)) + " of work, at the wind blowing when you return";
 
         public const string Roof = "a roof";
         public const string FireUnder = "a fire under it";
@@ -43,10 +43,10 @@ namespace Scry
         public const string Sheltered = "a roof, and cover on most sides";
 
         /// <summary>What an upgrader takes: what is past its top quality, with the kits its recipe names.</summary>
-        public const string Upgrader = "takes items past their top quality, with the upgrade kits their recipes name";
+        public const string Upgrader = "takes items past their top quality, using the upgrade kits listed in their recipes";
 
         /// <summary>The fuel a smelter burns, and how much of it goes into each product.</summary>
-        public static string BurnsForEach(string fuel, int perProduct) => $"{fuel}, {Numbers.Count(perProduct)} for each";
+        public static string BurnsForEach(string fuel, int perProduct) => $"{fuel}, {Numbers.Count(perProduct)} for each one made";
 
         /// <summary>The fuel a fire or oven burns, one at a time.</summary>
         public static string BurnsOneEvery(string fuel, float seconds) => $"{fuel}, one every {Numbers.Duration(seconds)}";
@@ -76,7 +76,7 @@ namespace Scry
         }
 
         /// <summary>What an incinerator turns anything without a conversion into, and how many it takes for one.</summary>
-        public static string Incinerates(string result, int cost) => $"becomes {result}, one for every {Numbers.Count(cost)}";
+        public static string Incinerates(string result, int cost) => $"becomes {result}, one for every {Naming.Count(cost, "item", "items")}";
 
         /// <summary>The title of what a shield burns, any one of several where it takes more than one.</summary>
         public static string BurnsAnyOf(bool several) => several ? "Burns any one of these" : "Burns";

@@ -71,7 +71,7 @@ namespace Scry.Tests
         [Fact]
         public void AMarkSaysWhyAndItsTipSaysMore()
         {
-            Assert.Equal("only here", DropWords.OnlyHereMark);
+            Assert.Equal("only source", DropWords.OnlyHereMark);
             Assert.Equal("Nothing else in the world gives it, and nothing makes it", DropWords.OnlyHereTip);
             Assert.Equal("20 coins", DropWords.WorthMark(20));
             Assert.Equal("A trader pays 20 coins for one", DropWords.WorthTip(20));

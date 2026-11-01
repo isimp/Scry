@@ -95,10 +95,10 @@ namespace Scry
         public static string Sneaking(float dark, float lit) => $"sneaking, {Numbers.Metres(dark, 1)} in the dark to {Numbers.Metres(lit, 1)} in full light";
 
         /// <summary>A bonus the skill makes likelier, from never at no skill to its most at the top.</summary>
-        public static string BonusSpan(int amount, float atTop) => $"{Numbers.Count(amount)} more at times: never at no skill, {Numbers.Percent(atTop, 1)} at the top";
+        public static string BonusSpan(int amount, float atTop) => $"{Numbers.Count(amount)} extra, from no chance at level 0 to {Numbers.Percent(atTop, 1)} at the top";
 
         /// <summary>How likely a bonus is at the character's skill: "7.5% for 1 more".</summary>
-        public static string Bonus(int amount, float chance) => $"{Numbers.Percent(chance, 1)} for {Numbers.Count(amount)} more";
+        public static string Bonus(int amount, float chance) => $"{Numbers.Percent(chance, 1)} chance of {Numbers.Count(amount)} extra";
 
         /// <summary>
         /// How many summons a staff keeps at once by the skill's level (<c>SpawnAbility.Spawn</c>):
@@ -124,7 +124,7 @@ namespace Scry
         }
 
         /// <summary>What a staff's summons' hits are times by the skill's level (<c>SpawnAbility.Spawn</c>).</summary>
-        public static string SummonsHit(float perLevel) => $"×1, and {Numbers.Times(perLevel)} more for each level";
+        public static string SummonsHit(float perLevel) => $"×1 at level 0, {Numbers.Times(perLevel)} more for each level";
 
         /// <summary>
         /// The faint line under the table by quality's damage (<see cref="ItemWords.DamageByQuality"/>):
@@ -155,7 +155,7 @@ namespace Scry
             $"{Numbers.Amount(steady, 1)} stamina a second, {Numbers.Amount(fighting, 1)} while it pulls away" + (timesLevel ? ", each times its level" : "");
 
         /// <summary>Whose skill a tamed creature's hits train, and by how much of a rise (<c>Character.RaiseSkill</c>).</summary>
-        public static string TrainsOwner(string skill, float share) => $"its owner's {skill}, {Numbers.Percent(share)} of a rise each";
+        public static string TrainsOwner(string skill, float share) => $"the {skill} of the player it follows, {Numbers.Percent(share)} of the usual gain per hit";
 
         /// <summary>The faint label of a summon's figures when summoned at the character's level.</summary>
         public static string SummonedAt(string at) => "summoned " + at;
@@ -170,7 +170,7 @@ namespace Scry
 
         /// <summary>What an archery target trains (<c>ArcheryTarget</c>): the skill of what hits it, more the nearer its middle.</summary>
         public static string TargetTrains(float multiplier) =>
-            "the skill of what hits it, more the nearer its middle" + (Math.Abs(multiplier - 1f) > 0.001f ? $", {Numbers.Times(multiplier)} as much" : "");
+            "the skill you shoot it with, more the closer to the bullseye" + (Math.Abs(multiplier - 1f) > 0.001f ? $", {Numbers.Times(multiplier)} as much" : "");
 
         /// <summary>How fast the character runs at its Run.</summary>
         public static string Runs(float speed) => "runs " + Speed(speed);

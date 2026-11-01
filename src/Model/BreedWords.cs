@@ -33,7 +33,7 @@ namespace Scry
         public static string Crowd(int max, float range) => $"once {Numbers.Count(max)} of its kind and its young are within {Numbers.Amount(range)} m";
 
         /// <summary>Its young's stars: its parent's, and at least so many (the young's level less one).</summary>
-        public static string Stars(int minLevel) => minLevel > 1 ? $"with its parent's stars, at least {Numbers.Count(minLevel - 1)}" : "with its parent's stars";
+        public static string Stars(int minLevel) => minLevel > 1 ? $"with its parent's stars, at least {Naming.Count(minLevel - 1, "star", "stars")}" : "with its parent's stars";
 
         /// <summary>The title over its young, with the stars they have.</summary>
         public static string Young(int minLevel) => "Has young, " + Stars(minLevel);
@@ -47,9 +47,9 @@ namespace Scry
         /// <summary>Where an egg hatches (<c>EggGrow.CanGrow</c>): on its own, and by a fire and under a roof with enough cover as it asks.</summary>
         public static string Hatches(bool fire, bool roof, float cover)
         {
-            var line = "lying on its own";
+            var line = "lying on its own, not in a stack";
             if (fire) line += ", by a fire";
-            if (roof) line += cover > 0f ? $", under a roof with at least {Numbers.Count((int)Math.Round(cover * 100f, MidpointRounding.AwayFromZero))}% cover" : ", under a roof";
+            if (roof) line += cover > 0f ? $", under a roof and at least {Numbers.Count((int)Math.Round(cover * 100f, MidpointRounding.AwayFromZero))}% enclosed" : ", under a roof";
             return line;
         }
 

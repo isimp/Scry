@@ -529,15 +529,15 @@ namespace Scry.Tests
         {
             Assert.Equal("Aa", PlanBoxWords.NamesMark);
             // A tip says what a click does, as an order.
-            Assert.Equal("Leave the rooms' names off the grown plan", PlanBoxWords.NamesTip(true));
-            Assert.Equal("Name the rooms on the grown plan", PlanBoxWords.NamesTip(false));
+            Assert.Equal("Hide the rooms' names on the enlarged plan", PlanBoxWords.NamesTip(true));
+            Assert.Equal("Name the rooms on the enlarged plan", PlanBoxWords.NamesTip(false));
         }
 
         [Fact]
         public void GrowFoldAndTheFoldedTabSayWhatAClickDoesWhicheverDungeonIsShown()
         {
-            // Growing names no room by itself: the Aa switch, shown on the grown plan, does.
-            Assert.Equal("Grow the plan", PlanBoxWords.GrowTip(false));
+            // Enlarging names no room by itself: the Aa switch, shown on the enlarged plan, does.
+            Assert.Equal("Enlarge the plan", PlanBoxWords.GrowTip(false));
             Assert.Equal("Shrink the plan back", PlanBoxWords.GrowTip(true));
             Assert.Equal("Put the plan away", PlanBoxWords.FoldTip);
             // Folded to its tab, the plan of an example or of the world's own dungeon alike.

@@ -66,8 +66,8 @@ namespace Scry
             if (minAltitude > -1000f || maxAltitude < 1000f)
             {
                 line += maxAltitude < 1000f
-                    ? $", {Numbers.CountRange((int)Math.Round(minAltitude), (int)Math.Round(maxAltitude))} m up"
-                    : $", from {Numbers.Count((int)Math.Round(minAltitude))} m up";
+                    ? $", {Numbers.CountRange((int)Math.Round(minAltitude), (int)Math.Round(maxAltitude))} m above sea level"
+                    : $", from {Numbers.Count((int)Math.Round(minAltitude))} m above sea level";
             }
             if (inSea) line += ", in the sea";
             if (inForest) line += ", in forests";
@@ -117,12 +117,12 @@ namespace Scry
         }
 
         /// <summary>A spawner works only while a player is within its trigger distance.</summary>
-        public static string SpawnerWakes(float triggerDistance) => $"while someone is within {Metres(triggerDistance)}";
+        public static string SpawnerWakes(float triggerDistance) => $"while a player is within {Metres(triggerDistance)}";
 
         /// <summary>The most of its own creatures, untamed, it lets be alive near it and farther out (<c>SpawnArea.GetInstances</c>).</summary>
         public static string SpawnerCaps(int maxNear, float nearRadius, int maxTotal, float farRadius)
         {
-            return $"{Numbers.Count(maxNear)} within {Metres(nearRadius)}, {Numbers.Count(maxTotal)} within {Metres(farRadius)}";
+            return $"at most {Numbers.Count(maxNear)} within {Metres(nearRadius)}, at most {Numbers.Count(maxTotal)} within {Metres(farRadius)}";
         }
 
         /// <summary>How far from itself it puts what it spawns, and whether only where nothing is built (<c>SpawnArea.FindSpawnPoint</c>).</summary>
@@ -163,14 +163,14 @@ namespace Scry
             if (maxLevel >= 0) parts.Add(Stars(Math.Max(1, minLevel), maxLevel));
             else if (minLevel > 1) parts.Add("at least " + Naming.Count(minLevel - 1, "star", "stars"));
             if (levelUpChance > 0f) parts.Add(StarChance(levelUpChance));
-            else if (levelUpChance == 0f) parts.Add("never a star above the least");
+            else if (levelUpChance == 0f) parts.Add("never more stars than the fewest");
             if (parts.Count == 0) return null;
-            if (someExcluded) parts.Add("except at some of them");
+            if (someExcluded) parts.Add("except at some spawn points");
             return string.Join(", ", parts);
         }
 
         /// <summary>The chance of each star beyond the least, each rolled on its own until one misses (<c>SpawnArea.SpawnOne</c>).</summary>
-        public static string StarChance(float levelUpChance) => levelUpChance > 0f ? $"{Numbers.Amount(levelUpChance)}% for each star" : null;
+        public static string StarChance(float levelUpChance) => levelUpChance > 0f ? $"{Numbers.Amount(levelUpChance)}% for each extra star, until one misses" : null;
 
         /// <summary>A creature's line for a raid it comes in: the raid's name, its biomes and limits, and for whom it comes where the world picks it by each player's progress.</summary>
         public static string Raid(string raid, SpawnFacts spawn, bool perPlayer, Func<string, string> bossOf)

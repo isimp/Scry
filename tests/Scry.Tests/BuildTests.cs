@@ -10,8 +10,8 @@ namespace Scry.Tests
         [Fact]
         public void SupportSaysWhatAPieceGivesOnTheGroundAndWhenItFalls()
         {
-            Assert.Equal("100 on the ground, falls below 10", BuildWords.Support(100f, 10f, needsSupport: true));
-            Assert.Equal("1,500 on the ground, falls below 20", BuildWords.Support(1500f, 20f, needsSupport: true));
+            Assert.Equal("100 on the ground, collapses below 10", BuildWords.Support(100f, 10f, needsSupport: true));
+            Assert.Equal("1,500 on the ground, collapses below 20", BuildWords.Support(1500f, 20f, needsSupport: true));
         }
 
         [Fact]
@@ -48,7 +48,7 @@ namespace Scry.Tests
         public void AshAndSnowAreToldOnlyForPiecesThatStandUpToThem()
         {
             Assert.Equal("unharmed by ash and lava", BuildWords.Ash(immune: true, resists: false));
-            Assert.Equal("ash wears it only down to a tenth, lava a third as hard", BuildWords.Ash(immune: false, resists: true));
+            Assert.Equal("ash wears it down to a tenth of its health, no lower; lava does a third of the damage", BuildWords.Ash(immune: false, resists: true));
             Assert.Null(BuildWords.Ash(immune: false, resists: false));
             Assert.Equal("does not harm it", BuildWords.Snow(immune: true));
             Assert.Null(BuildWords.Snow(immune: false));

@@ -71,7 +71,7 @@ namespace Scry
         /// <summary>The title and columns of a biome's weathers table: each weather, its share of the time and what it does.</summary>
         public const string WeathersTitle = "Weathers";
 
-        public static readonly string[] WeatherColumns = { "Weather", "Of the time", "What it does" };
+        public static readonly string[] WeatherColumns = { "Weather", "Share of the time", "What it does" };
 
         /// <summary>The title and columns of a biome's music table: each music and when it plays.</summary>
         public const string MusicTitle = "Music";

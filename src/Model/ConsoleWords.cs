@@ -14,7 +14,7 @@ namespace Scry
 
         /// <summary>The reply to /scry forget chests: how many kinds of chest the character's book forgot, or that no character is played.</summary>
         public static string ChestsForgotten(int? kinds) => kinds is int forgotten
-            ? $"forgot what {Numbers.Count(forgotten)} {(forgotten == 1 ? "kind" : "kinds")} of chest held for this character; chests not opened before count afresh."
+            ? $"forgot what {Numbers.Count(forgotten)} {(forgotten == 1 ? "kind" : "kinds")} of chest held for this character; from now on, chests you open for the first time count from scratch."
             : "no character is played, so there is no compendium to forget chests in.";
 
         /// <summary>Whether /scry's words ask to forget the server's records of the world's dungeons: "forget server maps", or "forget group maps" as they were first called.</summary>

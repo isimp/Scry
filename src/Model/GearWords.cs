@@ -47,7 +47,7 @@ namespace Scry
         /// <summary>A field's label: "Run stamina".</summary>
         public static string Label(string field)
         {
-            if (field == Adrenaline) return "Most adrenaline";
+            if (field == Adrenaline) return "Maximum adrenaline";
             foreach (var (each, label) in Order) if (each == field) return label;
             return Naming.FieldLabel(field);
         }

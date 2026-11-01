@@ -654,7 +654,7 @@ namespace Scry
             }
             y += U(36f);
 
-            const string note = "Runs in the console with devcommands on, which the game only allows the host or a single-player world.";
+            const string note = "Runs in the console with devcommands on. The game allows that only for the host or in a single-player world.";
             var height = Skin.Height(Skin.DimWrap, note, width);
             GUI.Label(new Rect(0f, y, width, height), note, Skin.DimWrap);
             return y + height + U(14f);
@@ -808,13 +808,13 @@ namespace Scry
         private const string LocationsButtonText = "Find where things are";
         private const string LocationsButtonTip = "Read every location and dungeon room over a few minutes, so things tell where they are found";
 
-        private const string ReadAgainText = "Look again";
-        private const string ReadAgainTip = "Forget what was read of every location and room and read them afresh, for when one seems wrong";
+        private const string ReadAgainText = "Read locations again";
+        private const string ReadAgainTip = "Forget what Scry read of every location and dungeon room and read them again. Use this if a place looks wrong";
 
         /// <summary>
         /// Above the Locations tab's list: until the places are known, Find where things are (Stop
         /// reading while it reads), and Every world beside it; once known, that they are kept, or
-        /// how far reading them again has got, Every world, and Look again.
+        /// how far reading them again has got, Every world, and Read locations again.
         /// </summary>
         private static Rect PlacesBar(Rect inner)
         {
@@ -873,7 +873,7 @@ namespace Scry
             return new Rect(inner.x, inner.y + barH, inner.width, inner.height - barH);
         }
 
-        /// <summary>Forgets what was kept of the places and reads them afresh, as Look again does, and says so.</summary>
+        /// <summary>Forgets what was kept of the places and reads them afresh, as Read locations again does, and says so.</summary>
         internal static void ReadPlacesAgain()
         {
             var said = Locations.ForgetKept();

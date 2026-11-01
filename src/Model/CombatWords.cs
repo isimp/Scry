@@ -31,7 +31,7 @@ namespace Scry
         public const string StarsTitle = "With stars";
 
         /// <summary>A creature nothing in the world gives a level above one.</summary>
-        public const string NeverStars = "never: nothing in the world gives it any";
+        public const string NeverStars = "never: nothing in the world gives it stars";
 
         /// <summary>That table's columns: a blank over the lines' names, then none and each star up to the highest.</summary>
         public static string[] StarColumns(int maxStars) => new[] { "", StarChoice(0) }.Concat(Enumerable.Range(1, maxStars).Select(Stars)).ToArray();
@@ -115,7 +115,7 @@ namespace Scry
         /// over, and only the first step turns to where the character looks.
         /// </summary>
         public static string Combo(int steps, bool swings) =>
-            (swings ? $"{Numbers.Count(steps)} swings" : $"{Numbers.Count(steps)} attacks in turn") + ", the next pressed in time; a pause of 0.2 s starts over; follow-ups keep the first one's facing";
+            (swings ? $"{Numbers.Count(steps)} swings" : $"{Numbers.Count(steps)} attacks in turn") + ", each next one pressed in time; a pause of 0.2 s starts the combo over; the later ones keep the first one's facing";
 
         /// <summary>The fact telling how a weapon's combo goes, its first attack's or its second's.</summary>
         public static string ComboTitle(bool second) => second ? "Second combo" : "Combo";
@@ -125,7 +125,7 @@ namespace Scry
         {
             var lines = new List<(string, string)>();
             const string over = "starts the combo over";
-            if ((flags & 1) != 0) lines.Add(("On a rock or piece", over));
+            if ((flags & 1) != 0) lines.Add(("On a rock or build piece", over));
             if ((flags & 2) != 0) lines.Add(("On a tree", over));
             if ((flags & 4) != 0) lines.Add(("On a creature", over));
             return lines;
@@ -167,10 +167,10 @@ namespace Scry
         public const string AttacksTitle = "Attacks";
 
         /// <summary>One faint line under the attacks table counting the attacks not yet seen begun or taken under the strict rules, and what shows them.</summary>
-        public static string AttacksWait(int attacks) => Naming.Count(attacks, "attack waits", "attacks wait") + "  \u00B7  see it attack, up close or taken";
+        public static string AttacksWait(int attacks) => Naming.Count(attacks, "attack not shown yet", "attacks not shown yet") + "  \u00B7  " + ClipWords.SeeItAttack;
 
         /// <summary>That line's tip.</summary>
-        public const string AttacksWaitTip = "Each shows once it hit you, or you saw it begun up close";
+        public const string AttacksWaitTip = "Each shows once it" + ClipWords.HitOrSeen;
 
         /// <summary>The columns of a creature's attacks table.</summary>
         public static readonly string[] AttackColumns = { "Attack", "Damage", "How", "Reach", "Every" };
@@ -301,7 +301,7 @@ namespace Scry
         {
             if (alertRange >= 9000f) return null;
             if (alertRange <= 0f) return "never on sight alone";
-            return $"on seeing you within {Numbers.Amount(alertRange)} m, nearer while you sneak";
+            return $"on seeing you within {Numbers.Amount(alertRange)} m, a shorter range while you sneak";
         }
 
         /// <summary>

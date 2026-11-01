@@ -29,7 +29,7 @@ namespace Scry.Tests
                 ("Building tools' stamina", "-25%"),
                 ("Heat resistance", "+50%"),
                 ("Run stamina", "-15%"),
-                ("Most adrenaline", "+10"),
+                ("Maximum adrenaline", "+10"),
             }, lines);
         }
 

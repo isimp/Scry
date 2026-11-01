@@ -63,7 +63,7 @@ namespace Scry.Tests
             Assert.Equal("Show each page whole for now, its links leading anywhere and a whole name in quotes finding what your character has not met; the list stays as it knows it, and it stops when the panel closes", CompendiumWords.PeekTip(false, pageShown: false));
             Assert.Equal("Show only what your character has met again", CompendiumWords.PeekTip(true, pageShown: true));
             // With a page shown, the eye peeks at that page alone; its strip can widen it.
-            Assert.Equal("Show this page whole for now, its links leading anywhere, until you go to another page; its notice can show every page whole until the panel closes", CompendiumWords.PeekTip(false, pageShown: true));
+            Assert.Equal("Show this page whole for now, its links leading anywhere, until you go to another page. Every page, on the strip that then shows, does the same for all pages until the panel closes", CompendiumWords.PeekTip(false, pageShown: true));
             Assert.Equal("Peeking at Troll: this page shows whole until you go to another", CompendiumWords.PeekingPageLine("Troll", compact: false));
             Assert.Equal("Peeking at Troll", CompendiumWords.PeekingPageLine("Troll", compact: true));
             Assert.Equal("Until you go to another page, this one shows whole and its links lead anywhere; the list stays as your character knows it", CompendiumWords.PeekingPageTip);
@@ -98,7 +98,7 @@ namespace Scry.Tests
             Assert.Equal("answered a player's explored map: 12 kinds of place lie in it", CompendiumWords.MapAnswered(12));
             Assert.Equal("the server did not answer on the explored map (it has no Scry, or one too old): places count as the character meets them", CompendiumWords.MapNoServerScry);
             Assert.Equal("Look at the map again", CompendiumWords.ReadMap);
-            Assert.Equal("Places in the ground your character explored show as Ground you explored says, read again each session", CompendiumWords.MapBar);
+            Assert.Equal("Places in the ground your character explored show as the Ground you explored setting says. Scry reads the map again each session", CompendiumWords.MapBar);
             Assert.Equal("Read again which kinds of place lie in the ground your character explored in this world, as on its first visit with Scry", CompendiumWords.ReadMapTip);
             Assert.Equal("on a dedicated server Scry only answers players' explored maps, the world's census and their Scry's hello, sends the world's settings for the compendium, keeps how far and on which days they walk its dungeons, reads what was left inside them, and runs the self-test's made-up events for the player asking", CompendiumWords.ServerPart);
         }
@@ -110,14 +110,14 @@ namespace Scry.Tests
             // Its lowest value is a label like the others, capitalised as every value in the box is.
             Assert.Equal(("Known up to", "No tier", "Black Forest"), (CompendiumWords.FloorCaption, CompendiumWords.FloorName(0), CompendiumWords.FloorName(2)));
             // What it shows that the character never came to know is marked, on its row and page, named as the control is.
-            Assert.Equal("Shown as known up to the Black Forest tier, not yet come to know by your character", CompendiumWords.ByFloor(2));
+            Assert.Equal("Shown as known because Known up to reaches the Black Forest tier; your character does not know it yet", CompendiumWords.ByFloor(2));
             // A link to such a thing says so above where it goes.
-            Assert.Equal("Shown as known up to the Black Forest tier, not yet come to know by your character\nGo to Troll", CompendiumWords.FloorTip(2, "Go to Troll"));
-            Assert.Equal("Show everything of the Swamp as known: Bonemass fell for your character", CompendiumWords.RaiseFloor(3, "Bonemass"));
+            Assert.Equal("Shown as known because Known up to reaches the Black Forest tier; your character does not know it yet\nGo to Troll", CompendiumWords.FloorTip(2, "Go to Troll"));
+            Assert.Equal("Show everything of the Swamp as known: your character defeated Bonemass", CompendiumWords.RaiseFloor(3, "Bonemass"));
             Assert.Equal("Show everything of the Swamp as known", CompendiumWords.RaiseFloor(3, null));
             Assert.Equal("Show the Meadows and what came before as known, not the Black Forest", CompendiumWords.LowerFloor(1));
             Assert.Equal("Show only what your character has met again", CompendiumWords.LowerFloor(0));
-            Assert.Equal("The next tier opens once The Elder falls for your character", CompendiumWords.FloorWaits("The Elder"));
+            Assert.Equal("The next tier opens once your character defeats The Elder", CompendiumWords.FloorWaits("The Elder"));
         }
 
         [Fact]
@@ -195,11 +195,11 @@ namespace Scry.Tests
         [Fact]
         public void ACardsListOrARaidsSentenceCountsWhatWasLeftOutAfterItsNames()
         {
-            // Read after names in a sentence ("Brings Troll, and 2 more not yet met"), not as a line of its own.
-            Assert.Equal("2 more not yet met", CompendiumWords.NeverMet(2));
-            Assert.Equal("2 not yet met", CompendiumWords.NeverMet(2, alone: true));
-            Assert.Equal("1 more not yet seen here", CompendiumWords.LeftOutOf("room", 1));
-            Assert.Equal("3 not yet seen together", CompendiumWords.LeftOutOf("raid", 3, alone: true));
+            // Read after names in a sentence ("Brings Troll, and 2 more creatures you have not met"), not as a line of its own.
+            Assert.Equal("2 more creatures you have not met", CompendiumWords.NeverMet(2, holds: Kind.Creature));
+            Assert.Equal("2 things you have not met", CompendiumWords.NeverMet(2, alone: true));
+            Assert.Equal("1 more creature you have met but not seen in this room", CompendiumWords.LeftOutOf("room", 1, holds: Kind.Creature));
+            Assert.Equal("3 creatures you have met but not seen with this raid", CompendiumWords.LeftOutOf("raid", 3, alone: true, holds: Kind.Creature));
         }
 
         [Fact]
@@ -215,7 +215,7 @@ namespace Scry.Tests
         {
             Assert.Equal("Not met yet", CompendiumWords.Closed(KnownLevel.Unknown));
             Assert.Equal("Heard of, not met yet", CompendiumWords.Closed(KnownLevel.HeardOf));
-            Assert.Equal("Seen, not yet come to know", CompendiumWords.Closed(KnownLevel.Seen));
+            Assert.Equal("Seen, not yet known", CompendiumWords.Closed(KnownLevel.Seen));
             // Every way that makes it known, by one verb for a page: come to know.
             Assert.Equal("Fight it, see it tamed, pet it or hold its trophy to come to know it.", CompendiumWords.HowToKnow(Kind.Creature));
             Assert.Equal("Hold it, make it, eat it, unlock its recipe or read its card to come to know it.", CompendiumWords.HowToKnow(Kind.Item));

@@ -32,7 +32,7 @@ namespace Scry.Tests
             Assert.Equal("1.5–3 m down", Line(page, FishWords.Swims));
             Assert.Equal("2–6", Line(page, FishWords.GroupsOf));
             Assert.Equal("up to 4", Line(page, FishWords.Stars));
-            Assert.Equal("where the bottom lies 1.5 to 3 m below the surface; it swims 1.5 to 3 m down, within 10 m of where it came", Line(page, FishWords.Water));
+            Assert.Equal("where the bottom lies 1.5 to 3 m below the surface; it swims 1.5 to 3 m down, within 10 m of where it spawned", Line(page, FishWords.Water));
             Assert.Equal("within 40 m of a player, inside a base, or where another of its kind swims within 20 m", Line(page, FishWords.Never));
             Assert.Equal("up to 5 near you", Line(page, FishWords.HowMany));
             Assert.Equal("one try every 2 min, half of them bring a group", Line(page, FishWords.Comes));
@@ -61,7 +61,7 @@ namespace Scry.Tests
             Assert.Equal("within 50 m, one time in ten each time it swims somewhere new, every 5 to 15 s: about once in 100 s for each one near", Line(page, FishWords.FindsFloat));
             Assert.Equal(FishWords.SwimsOffLine, Line(page, FishWords.SwimsOff));
             Assert.Equal(FishWords.WrongBaitLine, Line(page, FishWords.WrongBait));
-            Assert.Equal("breaks once the float is 10 m past the line, or 30 m out", Line(page, FishWords.Line));
+            Assert.Equal("breaks when the float is 10 m beyond the line's length, or more than 30 m from you", Line(page, FishWords.Line));
         }
 
         [Fact]
@@ -89,7 +89,7 @@ namespace Scry.Tests
             Assert.Null(Line(page, FishWords.Comes));
             Assert.Null(Line(page, FishWords.GroupsOf));
             // Its own water alone: how it swims.
-            Assert.Equal("it swims 1.5 to 3 m down, within 10 m of where it came", Line(page, FishWords.Water));
+            Assert.Equal("it swims 1.5 to 3 m down, within 10 m of where it spawned", Line(page, FishWords.Water));
             // One star column alone: the fight with no star, no odds to tell.
             Assert.Equal(new[] { "", "no star" }, page.Fight.Columns);
             Assert.DoesNotContain(page.Fight.Lines, l => l[0] == FishWords.ComesWith);

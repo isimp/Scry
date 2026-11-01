@@ -4,7 +4,7 @@ namespace Scry
     internal static class ChainWords
     {
         /// <summary>A creature's parents, its egg or young, and what it grows into.</summary>
-        public const string Breeding = "From parents to grown";
+        public const string Breeding = "From parents to adult";
 
         /// <summary>A seed, what it is planted as, what that grows into, and what is picked from it.</summary>
         public const string Planting = "From seed to harvest";

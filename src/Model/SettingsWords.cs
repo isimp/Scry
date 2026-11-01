@@ -17,7 +17,7 @@ namespace Scry
         public const string Size = "Panel size";
         public const string Key = "Open key";
         public const string PressAKey = "Press a key";
-        public const string PressTip = "Press the key that is to open Scry; Escape keeps the one there is";
+        public const string PressTip = "Press the key you want to open Scry with; Escape keeps the current one";
         public const string Waiting = "Press the key...";
         public const string WhileOpen = "While open";
         public const string Walk = "Walk";
@@ -102,7 +102,7 @@ namespace Scry
         {
             ("Off, Loose and Strict", "Off shows everything the game holds. Loose shows a thing your character knows with its whole page, naming only what it has met; what the game's own menus show, a recipe's materials, a piece's cost and tool, a store's wares, comes with the thing. Each section says how many it left out, and a page's title row counts how much of what it names was met. What it only saw stands on the stage with its page closed, telling what sight gave. Strict also keeps back what the game never shows of how things connect until your character saw them go together, and the numbers the game never shows until it found them out, each saying what shows it, and each section says how many it left out; a page's title row counts how much of all that was found out, and the stage shows a creature only with the stars and gear it was seen with up close."),
             ("Known up to", "Shows everything of the biomes whose bosses your character has beaten as known, tier by tier, marked with stairs where it shows something; it can be lowered again."),
-            ("Peeking", "The eye beside the compendium's button shows the page you are on whole until you go to another; Every page in its notice shows every page whole until the panel closes."),
+            ("Peeking", "The eye beside the compendium's button shows the page you are on whole until you go to another; Every page, on the strip that then shows, does the same for all pages until the panel closes."),
             ("Learned and You", "Learned lists what your character learned, day by day; under Strict also the numbers it found out, which Loose shows from the start. A row there opens its page at what changed, lit a moment. A page's You box tells when it first saw the thing and came to know it, and how its fights went."),
             ("What this world shows as known", "Each source can show more of the world as known: the ground you explored, maps shared at a cartography table, places a Vegvisir or rune stone marked, the places every map shows, and the whole world counted. What shows so is marked with a folded map; your book keeps only what you met, so turning a source down takes it all back."),
             ("Pins", "The pin at the end of a ground's row marks its dungeon entrances on the large map: solid where you walked it, ticked where every room was walked, by you or with others on this server, hollow where only others did, faint for an entrance alone until pointed at. Each mark carries a glyph for the dungeon's kind. A click on a mark shows the dungeon in Scry."),

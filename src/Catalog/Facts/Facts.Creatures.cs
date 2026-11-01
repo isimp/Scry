@@ -379,9 +379,9 @@ namespace Scry
                     var page = EntryKeys.For(Kind.Skill, tame.m_levelUpOwnerSkill.ToString());
                     Add("Trains", SkillWords.TrainsOwner(SkillName(tame.m_levelUpOwnerSkill), tame.m_levelUpFactor), EntryOf(page) != null ? page : null);
                 }
-                Add("Fed for", Numbers.Duration(tame.m_fedDuration));
-                if (!tame.m_startsTamed) Proofs["Tames in"] = Proofs["Fed for"] = EntryKeys.Did(Deed.Tamed);
-                else if (BornTame.Eats(prefab)) Proofs["Fed for"] = EntryKeys.Did(Deed.Fed);
+                Add("Stays fed for", Numbers.Duration(tame.m_fedDuration));
+                if (!tame.m_startsTamed) Proofs["Tames in"] = Proofs["Stays fed for"] = EntryKeys.Did(Deed.Tamed);
+                else if (BornTame.Eats(prefab)) Proofs["Stays fed for"] = EntryKeys.Did(Deed.Fed);
                 // Riding hinges on the saddle, breeding on the young it brings: neither is told
                 // before the character met it.
                 Part("riding", () => Riding(tame, character), tame.m_saddleItem != null ? tame.m_saddleItem.gameObject.name : null);
@@ -437,9 +437,9 @@ namespace Scry
             YoursAt("Riding drains", Skills.SkillType.Ride, level => RideWords.Drains(saddle.m_runStaminaDrain * SkillMath.MountDrainShare(level), saddle.m_swimStaminaDrain * SkillMath.MountDrainShare(level)));
             if (character.m_runSpeed > 0f)
             {
-                Add("Runs ridden", SkillWords.Span(SkillWords.Speed(character.m_runSpeed), SkillWords.Speed(character.m_runSpeed * SkillMath.MountSpeedShare(SkillMath.Top))));
-                Proofs["Runs ridden"] = EntryKeys.Did(Deed.Ridden);
-                YoursAt("Runs ridden", Skills.SkillType.Ride, level => SkillWords.Speed(character.m_runSpeed * SkillMath.MountSpeedShare(level)));
+                Add("Run speed when ridden", SkillWords.Span(SkillWords.Speed(character.m_runSpeed), SkillWords.Speed(character.m_runSpeed * SkillMath.MountSpeedShare(SkillMath.Top))));
+                Proofs["Run speed when ridden"] = EntryKeys.Did(Deed.Ridden);
+                YoursAt("Run speed when ridden", Skills.SkillType.Ride, level => SkillWords.Speed(character.m_runSpeed * SkillMath.MountSpeedShare(level)));
             }
         }
 
@@ -448,11 +448,11 @@ namespace Scry
         {
             var partner = breed.m_seperatePartner != null ? AnyName(breed.m_seperatePartner, breed.m_seperatePartner.name) : null;
             Add("Breeds when", BreedWords.Needs(breed.m_partnerCheckRange, partner, breed.m_noPartnerOffspring != null));
-            Add("Love", BreedWords.Love(breed.m_updateInterval, breed.m_pregnancyChance, breed.m_requiredLovePoints));
+            Add("Chance to breed", BreedWords.Love(breed.m_updateInterval, breed.m_pregnancyChance, breed.m_requiredLovePoints));
             Add("Pregnant for", Numbers.Duration(breed.m_pregnancyDuration));
             Add("Stops breeding", BreedWords.Crowd(breed.m_maxCreatures, breed.m_totalCheckRange));
             // The game shows none of these numbers: under the strict rules they wait for a birth seen.
-            Proofs["Breeds when"] = Proofs["Love"] = Proofs["Pregnant for"] = Proofs["Stops breeding"] = EntryKeys.Did(Deed.Born);
+            Proofs["Breeds when"] = Proofs["Chance to breed"] = Proofs["Pregnant for"] = Proofs["Stops breeding"] = EntryKeys.Did(Deed.Born);
             if (breed.m_offspring != null) Rows.Add(new Row { Title = BreedWords.Young(breed.m_minOffspringLevel), Items = { Chip(breed.m_offspring.name, "") } });
             if (breed.m_noPartnerOffspring != null) Rows.Add(new Row { Title = "With no partner near, has", Items = { Chip(breed.m_noPartnerOffspring.name, "") } });
         }

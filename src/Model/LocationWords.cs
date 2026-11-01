@@ -195,7 +195,7 @@ namespace Scry
             }
             var range = low && high ? $"{Numbers.Amount(rules.MinVegetation)}–{Numbers.Amount(rules.MaxVegetation)}"
                 : low ? "over " + Numbers.Amount(rules.MinVegetation) : "under " + Numbers.Amount(rules.MaxVegetation);
-            if (Only(rules, "Mistlands")) return ("Growth", "only where the Mistlands' growth value, which their plants grow by, is " + range, "");
+            if (Only(rules, "Mistlands")) return ("Growth", "only where the Mistlands' plant growth value is " + range, "");
             return ("Lava or growth", range, " (lava in the Ashlands, growth in the Mistlands, none elsewhere)");
         }
 
@@ -352,21 +352,21 @@ namespace Scry
         }
 
         /// <summary>Reading the locations, asked for again while it reads, and how far it has got.</summary>
-        public static string AlreadyReading(int done, int total) => $"already reading the locations and dungeons, {Numbers.Count(done)} of {Numbers.Count(total)} so far.";
+        public static string AlreadyReading(int done, int total) => $"already reading locations and dungeons: {Numbers.Count(done)} of {Numbers.Count(total)} done.";
 
         public static string ReadingInBackground(int queued) => $"reading {Numbers.Count(queued)} locations and dungeon rooms in the background.";
 
         /// <summary>Reading places again that are known already, kept from before or read: what is known stays shown meanwhile.</summary>
         public static string ReadingAgain(int queued) => $"reading {Numbers.Count(queued)} locations and dungeon rooms again in the background; what is known of them stays shown until then.";
 
-        /// <summary>What was kept of the places forgotten (<c>/scry forget</c>, <i>Look again</i>): every one read afresh, shown as never read until then.</summary>
+        /// <summary>What was kept of the places forgotten (<c>/scry forget</c>, <i>Read locations again</i>): every one read afresh, shown as never read until then.</summary>
         public static string ReadingAfresh(int queued) => queued > 0
-            ? $"forgot what was kept of the locations, dungeon rooms and their floors; reading {Numbers.Count(queued)} of them afresh in the background."
-            : "forgot what was kept of the locations, dungeon rooms and their floors; this world has none to read.";
+            ? $"forgot what it kept of locations, dungeon rooms and their floors; reading {Numbers.Count(queued)} of them again in the background."
+            : "forgot what it kept of locations, dungeon rooms and their floors; this world has none to read.";
 
         /// <summary>Above the Locations tab's list once the places are known: that they are kept, or how far reading them again has got.</summary>
         public static string PlacesBar(bool readingAgain, int done, int total) => readingAgain
-            ? $"Reading them again, {Numbers.Count(done)} of {Numbers.Count(total)}; what was known shows until then."
+            ? $"Reading locations and dungeon rooms again, {Numbers.Count(done)} of {Numbers.Count(total)}; what was known stays shown until then."
             : "What every location and dungeon room holds is known, and kept for next time.";
 
         /// <summary>The Locations tab's switch reading where things are by itself in every world.</summary>
@@ -406,7 +406,7 @@ namespace Scry
         public static string Placed(bool first) => first ? "Placed" : "Also placed";
 
         /// <summary>How near a place nothing can be built.</summary>
-        public static string NoBuild(float radius) => $"not within {Numbers.Metres(radius)}";
+        public static string NoBuild(float radius) => $"not allowed within {Numbers.Metres(radius)}";
     }
 
     /// <summary>How far the model of the location or room shown has got.</summary>

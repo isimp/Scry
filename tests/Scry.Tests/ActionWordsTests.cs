@@ -14,8 +14,8 @@ namespace Scry.Tests
             Assert.Equal("Put it on a person on the stage", ActionWords.Wear(worn: false));
             Assert.Contains("while you look at other things", ActionWords.Keep(kept: false));
             Assert.Contains("when you look at something else", ActionWords.Keep(kept: true));
-            Assert.Equal("Put it back", ActionWords.Ragdoll(falling: true));
-            Assert.Equal("Put it back", ActionWords.LetFall(falling: true));
+            Assert.Equal("Stand it up again", ActionWords.Ragdoll(falling: true));
+            Assert.Equal("Put it back where it was", ActionWords.LetFall(falling: true));
             Assert.Equal("Take the preview out of the world", ActionWords.InWorld(shown: true));
             Assert.Contains("only you see", ActionWords.InWorld(shown: false));
             Assert.Equal("Stop it", ActionWords.PlayThere(playing: true));

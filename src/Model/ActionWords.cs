@@ -51,10 +51,10 @@ namespace Scry
         public static string Keep(bool kept) => kept ? "Take it off when you look at something else" : "Keep it on the person while you look at other things";
 
         /// <summary>A creature's ragdoll.</summary>
-        public static string Ragdoll(bool falling) => falling ? "Put it back" : "Let it fall as its ragdoll, on the stage and in the world";
+        public static string Ragdoll(bool falling) => falling ? "Stand it up again" : "Let it fall as its ragdoll, on the stage and in the world";
 
         /// <summary>A log or an item let fall.</summary>
-        public static string LetFall(bool falling) => falling ? "Put it back" : "Let it fall and roll, on the stage and in the world";
+        public static string LetFall(bool falling) => falling ? "Put it back where it was" : "Let it fall and roll, on the stage and in the world";
 
         /// <summary>The selection shown in the world.</summary>
         public static string InWorld(bool shown) => shown ? "Take the preview out of the world" : "Put a preview in the world where you look, which only you see";

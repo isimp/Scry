@@ -145,7 +145,7 @@ namespace Scry
         private static int _steppedFrame = -1;
 
         private const string BackTip = "Back out of the room you went into, or to the page shown before (Alt+\u2190 or the mouse's back button)";
-        private const string ForwardTip = "Forward again, into a room come out of or to an entry (Alt+\u2192 or the mouse's forward button)";
+        private const string ForwardTip = "Forward again: back into the room you came out of, or to the page you went back from (Alt+\u2192 or the mouse's forward button)";
 
         /// <summary>Back to the entry shown before, and forward again, as in a browser.</summary>
         private static void BackAndForward(Explorer explorer, Rect back, Rect forward)

@@ -134,13 +134,13 @@ namespace Scry.Tests
         public void WithTheCompendiumOnTheRollNamesOnlyWhatWasMetAndCountsTheRest()
         {
             var wave = new List<RolledCreature> { new RolledCreature { Prefab = "Greydwarf", Level = 1 } };
-            // The count line comes from the rules (Explorer.LeftOutLine), the same as any section's: under the strict rules "not yet seen together".
-            Assert.Equal("The first roll of each, as the game rolls it: Greydwarf, and 3 more not yet met.", RaidWords.FirstRoll(wave, p => "Greydwarf", new[] { CompendiumWords.NeverMet(3) }));
-            Assert.Equal("The first roll of each, as the game rolls it: 2 not yet met.", RaidWords.FirstRoll(new List<RolledCreature>(), p => p, new[] { CompendiumWords.NeverMet(2, alone: true) }));
-            Assert.Equal("The first roll of each, as the game rolls it: Greydwarf, and 3 more not yet seen together.", RaidWords.FirstRoll(wave, p => "Greydwarf", new[] { CompendiumWords.LeftOutOf("raid", 3) }));
+            // The count line comes from the rules (Explorer.LeftOutLine), the same as any section's: naming the creatures it counts.
+            Assert.Equal("The first roll of each, as the game rolls it: Greydwarf, and 3 more creatures you have not met.", RaidWords.FirstRoll(wave, p => "Greydwarf", new[] { CompendiumWords.NeverMet(3, holds: Kind.Creature) }));
+            Assert.Equal("The first roll of each, as the game rolls it: 2 creatures you have not met.", RaidWords.FirstRoll(new List<RolledCreature>(), p => p, new[] { CompendiumWords.NeverMet(2, alone: true, holds: Kind.Creature) }));
+            Assert.Equal("The first roll of each, as the game rolls it: Greydwarf, and 3 more creatures you have met but not seen with this raid.", RaidWords.FirstRoll(wave, p => "Greydwarf", new[] { CompendiumWords.LeftOutOf("raid", 3, holds: Kind.Creature) }));
             // The card's line the same way.
-            Assert.Equal("Brings Troll, and 2 more not yet met", RaidWords.Brings(new[] { "Troll" }, new[] { CompendiumWords.NeverMet(2) }));
-            Assert.Equal("Brings 2 not yet met", RaidWords.Brings(new string[0], new[] { CompendiumWords.NeverMet(2, alone: true) }));
+            Assert.Equal("Brings Troll, and 2 more creatures you have not met", RaidWords.Brings(new[] { "Troll" }, new[] { CompendiumWords.NeverMet(2, holds: Kind.Creature) }));
+            Assert.Equal("Brings 2 creatures you have not met", RaidWords.Brings(new string[0], new[] { CompendiumWords.NeverMet(2, alone: true, holds: Kind.Creature) }));
             Assert.Equal("Brings nothing", RaidWords.Brings(new string[0]));
         }
 
@@ -149,11 +149,11 @@ namespace Scry.Tests
         {
             // Never met and met but not seen in the raid wait for different things, so the card and the roll say each.
             var wave = new List<RolledCreature> { new RolledCreature { Prefab = "Greydwarf", Level = 1 } };
-            var both = new[] { CompendiumWords.NeverMet(2), CompendiumWords.LeftOutOf("raid", 1) };
-            Assert.Equal("Brings Troll, 2 more not yet met, and 1 more not yet seen together", RaidWords.Brings(new[] { "Troll" }, both));
-            Assert.Equal("Brings 2 not yet met and 1 not yet seen together",
-                RaidWords.Brings(new string[0], new[] { CompendiumWords.NeverMet(2, alone: true), CompendiumWords.LeftOutOf("raid", 1, alone: true) }));
-            Assert.Equal("The first roll of each, as the game rolls it: Greydwarf, 2 more not yet met, and 1 more not yet seen together.", RaidWords.FirstRoll(wave, p => "Greydwarf", both));
+            var both = new[] { CompendiumWords.NeverMet(2, holds: Kind.Creature), CompendiumWords.LeftOutOf("raid", 1, holds: Kind.Creature) };
+            Assert.Equal("Brings Troll, 2 more creatures you have not met, and 1 more creature you have met but not seen with this raid", RaidWords.Brings(new[] { "Troll" }, both));
+            Assert.Equal("Brings 2 creatures you have not met and 1 creature you have met but not seen with this raid",
+                RaidWords.Brings(new string[0], new[] { CompendiumWords.NeverMet(2, alone: true, holds: Kind.Creature), CompendiumWords.LeftOutOf("raid", 1, alone: true, holds: Kind.Creature) }));
+            Assert.Equal("The first roll of each, as the game rolls it: Greydwarf, 2 more creatures you have not met, and 1 more creature you have met but not seen with this raid.", RaidWords.FirstRoll(wave, p => "Greydwarf", both));
         }
     }
 }

@@ -10,7 +10,7 @@ Every command is typed in the chat as shown, or in the game's console (F5) witho
 
 `/scry locations` reads where things are found in the world's locations and dungeons, in the background, taking a few minutes; `/scry locations stop` stops it. The same reading starts from *Find where things are* in the Locations list, and by itself in every world while *Every world* is on.
 
-`/scry forget` forgets what Scry kept of the locations and their floors, and reads them afresh, as *Look again* does.
+`/scry forget` forgets what Scry kept of the locations and their floors, and reads them afresh, as *Read locations again* does.
 
 `/scry map` looks at your explored map again for the compendium, as *Look at the map again* in the compendium's box does.
 

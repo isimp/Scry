@@ -121,7 +121,7 @@ namespace Scry
         {
             // A prefab a mod gave a switched-off piece but no build menu holds is told buildable nowhere.
             var unbuilt = X.Catalog.FirstOrDefault(e => e.Source is GameObject g && g.GetComponent<Piece>() is Piece off && !off.enabled && Knowledge.Tools.ToolsOf(g.name).Count == 0);
-            if (unbuilt != null) p.Check(!Tells(Facts.For(unbuilt), "Buildable"), $"{unbuilt.Name}, in no build menu, is told buildable nowhere", Pairs(Facts.For(unbuilt)));
+            if (unbuilt != null) p.Check(!Tells(Facts.For(unbuilt), "Made buildable by"), $"{unbuilt.Name}, in no build menu, is told buildable nowhere", Pairs(Facts.For(unbuilt)));
             var loaded = BepInEx.Bootstrap.Chainloader.PluginInfos.Values.Select(i => i?.Metadata?.Name).Where(n => !string.IsNullOrEmpty(n)).Distinct().ToList();
             var pages = X.Catalog.Where(e => e.Kind == Kind.Mod).ToList();
             var missing = loaded.Where(n => !pages.Any(e => e.Name == n)).ToList();

@@ -54,13 +54,19 @@ namespace Scry
             : playing ? "Stop this attack" : "Play this attack";
 
         /// <summary>The tip of an attack's name in an attacks table kept back under the strict rules.</summary>
-        public const string KeptAttackTip = "Plays once this attack hit you, or you saw it begun up close";
+        public const string KeptAttackTip = "Plays once this attack" + HitOrSeen;
+
+        /// <summary>What frees an attack kept back under the strict rules, ending each tip that tells it.</summary>
+        public const string HitOrSeen = " has hit you, or you have seen it start up close";
+
+        /// <summary>What to do to free attacks kept back under the strict rules, ending each line that counts them.</summary>
+        public const string SeeItAttack = "see it attack up close, or let it hit you";
 
         /// <summary>One chip counting the attack clips kept back under the strict rules, and what frees them.</summary>
-        public static string ClipsWait(int clips) => Naming.Count(clips, "clip waits", "clips wait") + "  \u00B7  see it attack, up close or taken";
+        public static string ClipsWait(int clips) => Naming.Count(clips, "clip not shown yet", "clips not shown yet") + "  \u00B7  " + SeeItAttack;
 
         /// <summary>The tip of that chip.</summary>
-        public const string KeptClipsTip = "They play once each attack hit you, or you saw it begun up close";
+        public const string KeptClipsTip = "They play once each attack" + HitOrSeen;
 
         /// <summary>What each group of clips is called (<see cref="ClipGroups"/>), in the order of <see cref="ClipGroup"/>.</summary>
         private static readonly string[] GroupNames =

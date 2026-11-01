@@ -64,10 +64,10 @@ namespace Scry
 
             if (f.FliesFor > 0f) Add("Flies for", Numbers.Duration(f.FliesFor));
             Add("Falls", f.Gravity != 0f ? $"{Numbers.Amount(f.Gravity)} m/s²" : "no, it flies straight");
-            if (f.Drag > 0f) Add("Slows", $"drag {Numbers.Amount(f.Drag)}");
+            if (f.Drag > 0f) Add("Slowed by air", $"drag {Numbers.Amount(f.Drag)}");
             if (f.Bounces) Add("Bounces", f.MaxBounces < EndlessBounces ? $"up to {Numbers.Count(f.MaxBounces)} times" : "yes");
             if (f.StaysAfterHit) Add("After a hit", $"stays where it struck for {Numbers.Duration(f.StaysFor)}");
-            if (f.LeavesTheWeapon) Add("Leaves", "the weapon that threw it, where it lands");
+            if (f.LeavesTheWeapon) Add("Leaves", "the thrown weapon, where it hits");
             if (f.SpawnsOnHit && f.SpawnOnHitChance < 1f) Add("Spawns on hit", DropWords.Share(f.SpawnOnHitChance) + " of the time");
             return pairs;
         }

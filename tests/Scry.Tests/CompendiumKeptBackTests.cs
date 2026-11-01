@@ -65,7 +65,7 @@ namespace Scry.Tests
             Assert.True(world.Explorer.HidesAttack(EntryKeys.PlayAttack("Troll_log")));
             Assert.False(world.Explorer.HidesAttack(world.Hide.Key));
             // Its –– says on hover what shows it; the You box lists what is still to find out.
-            Assert.Equal("Its damage shows once this attack hit you", CompendiumWords.NotYetTakenTip);
+            Assert.Equal("Its damage shows once this attack has hit you", CompendiumWords.NotYetTakenTip);
 
             // Not under the loose rules, and not on a page that is no creature's.
             world.Rule(CompendiumRule.Loose);
@@ -244,7 +244,7 @@ namespace Scry.Tests
             Assert.Equal("shows once you have landed one with 2 stars", CompendiumWords.ShowsOnce(two));
             Assert.Equal("shows once you have landed one with no stars", CompendiumWords.ShowsOnce(EntryKeys.Landed(0)));
             var rows = CompendiumWords.StillToFindOut(new[] { EntryKeys.Landed(0), two }, new string[0], attacks: 0, spots: 0, new Tally[0]);
-            Assert.Equal(new[] { ("Land one with no stars", "shows how it fights so"), ("Land one with 2 stars", "shows how it fights so") }, rows.ToArray());
+            Assert.Equal(new[] { ("Catch one with no stars", "shows how one with no stars fights"), ("Catch one with 2 stars", "shows how one with 2 stars fights") }, rows.ToArray());
             Assert.Equal("how it fights with 2 stars found out", CompendiumWords.FoundOutNote(two));
             Assert.Equal("how Perch fights with 2 stars", JournalWords.FoundOutOf(two, "Perch"));
         }
@@ -255,7 +255,7 @@ namespace Scry.Tests
             // Each text a place's runestones give is learned by reading it, under either rules, and
             // the page's You box says how many are left.
             var rows = CompendiumWords.StillToFindOut(new string[0], new string[0], attacks: 0, spots: 0, new Tally[0], unread: 2);
-            Assert.Equal(new[] { ("Read its runestones", "2 texts not yet read") }, rows.ToArray());
+            Assert.Equal(new[] { ("Read its runestones", "2 texts you have not read") }, rows.ToArray());
             Assert.Empty(CompendiumWords.StillToFindOut(new string[0], new string[0], attacks: 0, spots: 0, new Tally[0], unread: 0));
         }
 
@@ -327,7 +327,7 @@ namespace Scry.Tests
                 ("Ride one", "shows its stamina and speed when ridden"),
                 ("See 1 star up close", "shows it so on the stage"),
                 ("See 2 stars up close", "shows it so on the stage"),
-                ("See it carry", "Draugr axe up close: dresses it so on the stage"),
+                ("See it carry", "Draugr axe up close: shows it carrying that on the stage"),
             }, ride);
         }
 

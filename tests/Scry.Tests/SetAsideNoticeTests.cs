@@ -27,11 +27,11 @@ namespace Scry.Tests
         [Fact]
         public void TheNoticeSaysWhatCouldNotBeReadAndWhereItWent()
         {
-            Assert.Equal("This character's compendium could not be read. It was set aside as Hilde-Cloud-1.dat.unreadable-20261024-141205 and a new one started.",
+            Assert.Equal("Scry could not read this character's compendium, so it set the old file aside as Hilde-Cloud-1.dat.unreadable-20261024-141205 and started a new one.",
                 CompendiumWords.SetAsideNotice(SetAsideKind.Compendium, "Hilde-Cloud-1.dat.unreadable-20261024-141205"));
-            Assert.Equal("The maps of the dungeons your character walked could not be read. They were set aside as x.unreadable-1 and new ones started.",
+            Assert.Equal("Scry could not read the maps of the dungeons your character walked, so it set the old file aside as x.unreadable-1 and started new ones.",
                 CompendiumWords.SetAsideNotice(SetAsideKind.Walks, "x.unreadable-1"));
-            Assert.Equal("This world's dungeon records could not be read. They were set aside as y.unreadable-2 and new ones started.",
+            Assert.Equal("Scry could not read this world's dungeon records, so it set the old file aside as y.unreadable-2 and started new ones.",
                 CompendiumWords.SetAsideNotice(SetAsideKind.Records, "y.unreadable-2"));
             Assert.Equal("Copy path", CompendiumWords.CopyPath);
         }

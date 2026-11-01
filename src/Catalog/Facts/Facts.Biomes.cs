@@ -25,7 +25,7 @@ namespace Scry
                 weathers.LineItems.Add(weather);
             }
             if (weathers.Lines.Count > 0) Rows.Add(weathers);
-            if (known.Count > 0) Add("Puts on you", WeatherWords.PutsOnYou(known));
+            if (known.Count > 0) Add("Weather puts on you", WeatherWords.PutsOnYou(known));
             if (biome.Weathers.Count > 0) Hooked(HookedRule.Weather);
 
             // Each music plays where it is named, as a fact naming music does.

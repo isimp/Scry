@@ -24,7 +24,7 @@ namespace Scry.Tests
         [Fact]
         public void GivenTrophiesABallistaShootsOnlyTheirCreatures()
         {
-            Assert.Equal("Given these trophies, up to 3 at once, it shoots only their creatures", MachineWords.TrophiesTitle(3));
+            Assert.Equal("Given up to 3 of these trophies, it shoots only the creatures they come from", MachineWords.TrophiesTitle(3));
         }
 
         [Fact]
@@ -66,9 +66,9 @@ namespace Scry.Tests
         public void ACatapultTellsWhatItLoadsHowManyAtATimeAndWhomElse()
         {
             var facts = new MachineFacts { Catapult = new CatapultFacts { ListExcludes = true, Types = new[] { "trophies" }, MaxLoad = 3, ThrowsWhoStandsThere = true } };
-            Assert.Equal(new[] { "Loads", "At a time", "Also throws" }, Labels(facts));
+            Assert.Equal(new[] { "Loads", "Per shot", "Also throws" }, Labels(facts));
             Assert.Equal(MachineWords.Loads(true, new[] { "trophies" }, false), Value(facts, "Loads"));
-            Assert.Equal("up to 3", Value(facts, "At a time"));
+            Assert.Equal("up to 3 items", Value(facts, "Per shot"));
             Assert.Equal("whoever stands where it is loaded", Value(facts, "Also throws"));
         }
 

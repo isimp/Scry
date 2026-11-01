@@ -57,11 +57,12 @@ namespace Scry
                 else apart++;
                 kinds.Add(Find(key)?.Kind);
             }
-            if (lines) return LeftOutLines(topic, unmet, apart, alone, holds: kinds.Count == 1 ? kinds.First() : null).ConvertAll(l => l.Line);
+            var holds = kinds.Count == 1 ? kinds.First() : null;
+            if (lines) return LeftOutLines(topic, unmet, apart, alone, holds: holds).ConvertAll(l => l.Line);
             var said = new List<string>();
             if (!LeavingOut) unmet += apart;
-            if (unmet > 0) said.Add(CompendiumWords.NeverMet(unmet, alone));
-            if (LeavingOut && apart > 0) said.Add(CompendiumWords.LeftOutOf(topic, apart, alone));
+            if (unmet > 0) said.Add(CompendiumWords.NeverMet(unmet, alone, holds));
+            if (LeavingOut && apart > 0) said.Add(CompendiumWords.LeftOutOf(topic, apart, alone, holds));
             return said;
         }
 

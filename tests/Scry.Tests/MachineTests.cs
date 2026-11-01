@@ -30,7 +30,7 @@ namespace Scry.Tests
         public void AShipBurnsInTheAshlandsSeasUnlessBuiltForThem()
         {
             Assert.Equal("sails them unharmed", MachineWords.Ashlands(true));
-            Assert.Equal("their boiling water burns it", MachineWords.Ashlands(false));
+            Assert.Equal("their boiling water damages it", MachineWords.Ashlands(false));
             Assert.Equal("takes 20 damage every 5 s", MachineWords.Capsized(20f, 5f));
             Assert.Null(MachineWords.Capsized(0f, 5f));
         }

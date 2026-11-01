@@ -375,10 +375,10 @@ namespace Scry
                     YoursAt("Harvests within", Skills.SkillType.Farming, level => Numbers.Metres(SkillMath.Between(least, most, level), 1));
                 }
                 var fishing = SkillReading.FloatOf(attack);
-                if (fishing != null && told.Add("With a fish on"))
+                if (fishing != null && told.Add("Stamina with a fish on"))
                 {
-                    Add("With a fish on", SkillWords.Span(SkillWords.PerSecond(fishing.m_hookedStaminaPerSec), SkillWords.PerSecond(fishing.m_hookedStaminaPerSecMaxSkill)));
-                    YoursAt("With a fish on", Skills.SkillType.Fishing, level => SkillWords.PerSecond(SkillMath.Between(fishing.m_hookedStaminaPerSec, fishing.m_hookedStaminaPerSecMaxSkill, level)));
+                    Add("Stamina with a fish on", SkillWords.Span(SkillWords.PerSecond(fishing.m_hookedStaminaPerSec), SkillWords.PerSecond(fishing.m_hookedStaminaPerSecMaxSkill)));
+                    YoursAt("Stamina with a fish on", Skills.SkillType.Fishing, level => SkillWords.PerSecond(SkillMath.Between(fishing.m_hookedStaminaPerSec, fishing.m_hookedStaminaPerSecMaxSkill, level)));
                     Add("Reeling in", SkillWords.Span(SkillWords.Speed(fishing.m_pullLineSpeed), SkillWords.Speed(fishing.m_pullLineSpeedMaxSkill)));
                     YoursAt("Reeling in", Skills.SkillType.Fishing, level => SkillWords.Speed(SkillMath.Between(fishing.m_pullLineSpeed, fishing.m_pullLineSpeedMaxSkill, level)));
                 }
@@ -393,8 +393,8 @@ namespace Scry
                     if (spawn.m_copySkill != Skills.SkillType.None && spawn.m_copySkillToRandomFactor > 0f)
                     {
                         var perLevel = spawn.m_copySkillToRandomFactor;
-                        Add("Summons hit", SkillWords.SummonsHit(perLevel));
-                        YoursAt("Summons hit", spawn.m_copySkill, level => Numbers.Times(SkillMath.SummonStrength(level, perLevel)));
+                        Add("Summons' damage", SkillWords.SummonsHit(perLevel));
+                        YoursAt("Summons' damage", spawn.m_copySkill, level => Numbers.Times(SkillMath.SummonStrength(level, perLevel)));
                     }
                 }
             }

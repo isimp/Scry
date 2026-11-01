@@ -20,7 +20,7 @@ namespace Scry.Tests
         [Fact]
         public void ReadingTheLocationsSaysHowFarItHasGot()
         {
-            Assert.Equal("already reading the locations and dungeons, 12 of 1,400 so far.", LocationWords.AlreadyReading(12, 1400));
+            Assert.Equal("already reading locations and dungeons: 12 of 1,400 done.", LocationWords.AlreadyReading(12, 1400));
             Assert.Equal("reading 1,400 locations and dungeon rooms in the background.", LocationWords.ReadingInBackground(1400));
             Assert.Equal("reading 3 locations and dungeon rooms again in the background; what is known of them stays shown until then.", LocationWords.ReadingAgain(3));
             Assert.Equal("Reading locations and dungeons: 12 of 1,400", LocationWords.ReadingProgress(12, 1400));
@@ -30,15 +30,15 @@ namespace Scry.Tests
         [Fact]
         public void ForgettingWhatWasKeptSaysItReadsEveryPlaceAfresh()
         {
-            Assert.Equal("forgot what was kept of the locations, dungeon rooms and their floors; reading 1,400 of them afresh in the background.", LocationWords.ReadingAfresh(1400));
-            Assert.Equal("forgot what was kept of the locations, dungeon rooms and their floors; this world has none to read.", LocationWords.ReadingAfresh(0));
+            Assert.Equal("forgot what it kept of locations, dungeon rooms and their floors; reading 1,400 of them again in the background.", LocationWords.ReadingAfresh(1400));
+            Assert.Equal("forgot what it kept of locations, dungeon rooms and their floors; this world has none to read.", LocationWords.ReadingAfresh(0));
         }
 
         [Fact]
         public void TheLocationsTabSaysWhatIsKnownOfThePlacesAndHowFarReadingThemAgainHasGot()
         {
             Assert.Equal("What every location and dungeon room holds is known, and kept for next time.", LocationWords.PlacesBar(false, 0, 0));
-            Assert.Equal("Reading them again, 12 of 1,400; what was known shows until then.", LocationWords.PlacesBar(true, 12, 1400));
+            Assert.Equal("Reading locations and dungeon rooms again, 12 of 1,400; what was known stays shown until then.", LocationWords.PlacesBar(true, 12, 1400));
         }
 
         [Fact]
@@ -46,7 +46,7 @@ namespace Scry.Tests
         {
             var facts = new SpawnFacts { Biomes = "Meadows" };
             Assert.Equal("Comes in the raid \"The forest is moving\", in Meadows", SpawnWords.Raid("The forest is moving", facts, perPlayer: false, k => k));
-            Assert.Equal("Comes in the raid \"Bats\", for a player whose own progress calls for it", SpawnWords.Raid("Bats", new SpawnFacts { Biomes = "" }, perPlayer: true, k => k));
+            Assert.Equal("Comes in the raid \"Bats\", for one player at a time, whose own progress allows it", SpawnWords.Raid("Bats", new SpawnFacts { Biomes = "" }, perPlayer: true, k => k));
         }
 
         [Fact]

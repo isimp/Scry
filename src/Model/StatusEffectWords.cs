@@ -62,7 +62,7 @@ namespace Scry
             ["m_healthOverTimeDuration"] = "Heals over",
             ["m_staminaOverTimeDuration"] = "Gives stamina over",
             ["m_modifyAttackSkill"] = "Stronger attacks with",
-            ["m_damageModifier"] = "Their damage",
+            ["m_damageModifier"] = "Damage dealt",
             ["m_raiseSkill"] = "Trains faster",
             ["m_raiseSkillModifier"] = "Trains faster by",
             ["m_attributes"] = "Also",
@@ -121,7 +121,7 @@ namespace Scry
                 case "m_staminaDrainPerSec":
                     return value is float drain ? Numbers.Amount(drain) + " a second" : shown;
                 case "m_staminaOverTimeIsFraction":
-                    return value is bool fraction && fraction ? "a share of your most stamina" : shown;
+                    return value is bool fraction && fraction ? "a share of your maximum stamina" : shown;
                 case "m_ttlPerItemLevel":
                     return value is float lasts ? Numbers.Duration(lasts) : value is int whole ? Numbers.Duration(whole) : shown;
                 case "m_windMovementModifier":

@@ -29,9 +29,6 @@ namespace Scry
         /// <summary>The key a door is opened with, and that opening it uses the key up where it does.</summary>
         public static string OpenedWith(string key, bool usedUp) => usedUp ? key + ", used up" : key;
 
-        /// <summary>The mod one of the game's own prefabs is made buildable through.</summary>
-        public static string Through(string mod) => "through " + mod;
-
         /// <summary>The title of what building it through a mod costs, with the station it is built near where it needs one.</summary>
         public static string CostThrough(string mod, string station) =>
             string.IsNullOrEmpty(station) ? $"Built through {mod} with" : $"Built through {mod} near {station}";
@@ -46,7 +43,7 @@ namespace Scry
         public static string Support(float max, float min, bool needsSupport)
         {
             if (max <= 0f) return null;
-            return $"{Numbers.Amount(max)} on the ground, " + (needsSupport ? $"falls below {Numbers.Amount(min)}" : "stands without it");
+            return $"{Numbers.Amount(max)} on the ground, " + (needsSupport ? $"collapses below {Numbers.Amount(min)}" : "stands without it");
         }
 
         /// <summary>The share of support lost for each metre sideways and up; null when none is lost.</summary>
@@ -74,7 +71,7 @@ namespace Scry
         public static string Ash(bool immune, bool resists)
         {
             if (immune) return "unharmed by ash and lava";
-            return resists ? "ash wears it only down to a tenth, lava a third as hard" : null;
+            return resists ? "ash wears it down to a tenth of its health, no lower; lava does a third of the damage" : null;
         }
 
         /// <summary>Heavy snow in the Deep North, told only for a piece it does not harm.</summary>
@@ -110,17 +107,17 @@ namespace Scry
 
         /// <summary>The label over the piece one must stand near (<c>Piece.m_mustConnectTo</c>), or on top of.</summary>
         public static string Near(float radius, bool above) =>
-            above ? $"On top of, within {Numbers.Amount(radius)} m" : $"Within {Numbers.Amount(radius)} m of";
+            above ? $"Must stand on top of, within {Numbers.Amount(radius)} m" : $"Must stand within {Numbers.Amount(radius)} m of";
 
         /// <summary>How far from a station its pieces may be built (<c>CraftingStation.m_rangeBuild</c>), more with each upgrade.</summary>
         public static string Range(float range, float perUpgrade) =>
             perUpgrade > 0f ? $"{Numbers.Amount(range)} m, {Numbers.Amount(perUpgrade)} m more for each upgrade" : $"{Numbers.Amount(range)} m";
 
         /// <summary>What claiming a bed does and needs (<c>Bed.Interact</c>, <c>CheckExposure</c>).</summary>
-        public static string BedClaim(float cover) => $"where you come back to after dying; it needs a roof and at least {Numbers.Percent(cover)} cover";
+        public static string BedClaim(float cover) => $"where you come back to after dying; it needs a roof and to be at least {Numbers.Percent(cover)} enclosed";
 
         /// <summary>What sleeping in one's own bed needs (<c>Bed.Interact</c>: night, <c>CheckEnemies</c>, <c>CheckExposure</c>, <c>CheckFire</c>, <c>CheckWet</c>).</summary>
-        public static string BedSleep(float cover) => $"at night, with no enemy sensing you, under a roof with at least {Numbers.Percent(cover)} cover, by a fire, and dry";
+        public static string BedSleep(float cover) => $"at night, with no enemy sensing you, under a roof and at least {Numbers.Percent(cover)} enclosed, by a fire, and dry";
     }
 }
 
@@ -150,11 +147,11 @@ namespace Scry
             var r = Numbers.Amount(radius);
             var within = known ? $"within {r} m" : "near it";
             if ((type & 0x01) != 0) lines.Add(("Warmth", $"{within} you are by a fire, which resting and sleeping need"));
-            if ((type & 0x02) != 0) lines.Add(("Fire", known ? $"creatures afraid of fire keep away from within {r} m" : "creatures afraid of fire keep away from it"));
-            if ((type & 0x04) != 0) lines.Add(("A base", $"{within} the world's spawning and creature spawners place nothing, unless set to; three such near you let raids that come for bases come"));
+            if ((type & 0x02) != 0) lines.Add(("Fire", known ? $"creatures afraid of fire keep about {Numbers.Amount(radius + 3f)} m away" : "creatures afraid of fire keep away from it"));
+            if ((type & 0x04) != 0) lines.Add(("A base", $"{within} no creatures spawn from the world or creature spawners, except those set to spawn in bases; with three of these near you, raids that target bases can come"));
             if ((type & 0x08) != 0) lines.Add(("Flames", "a cooking station needing a fire cooks over it"));
             if ((type & 0x10) != 0) lines.Add(("Teleport area", known ? $"pieces built only in one can be built within {r} m" : "pieces built only in one can be built near it"));
-            if ((type & 0x20) != 0) lines.Add(("No monsters", known ? $"untamed creatures turn away from 15 m out and will not chase you into its {r} m" : "untamed creatures turn away from 15 m out and will not chase you into it"));
+            if ((type & 0x20) != 0) lines.Add(("No monsters", known ? $"untamed creatures turn back about 7.5 m outside its {r} m and will not follow you into it" : "untamed creatures turn back about 7.5 m outside it and will not follow you into it"));
             if ((type & 0x40) != 0) lines.Add(("Warm and cozy", $"{within} cold and freezing do not reach you, and you rest even wet"));
             return lines;
         }

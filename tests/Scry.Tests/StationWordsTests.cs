@@ -10,7 +10,7 @@ namespace Scry.Tests
         [Fact]
         public void ASmelterTellsItsFuelForEachAndWhatItHolds()
         {
-            Assert.Equal("Coal, 2 for each", StationWords.BurnsForEach("Coal", 2));
+            Assert.Equal("Coal, 2 for each one made", StationWords.BurnsForEach("Coal", 2));
             Assert.Equal("10 to process, 20 fuel", StationWords.Holds(10, 20));
             Assert.Equal("10 to process", StationWords.Holds(10, null));
         }
@@ -45,7 +45,7 @@ namespace Scry.Tests
 
 
         [Fact]
-        public void AnIncineratorTellsWhatAnythingElseBecomes() => Assert.Equal("becomes Coal, one for every 3", StationWords.Incinerates("Coal", 3));
+        public void AnIncineratorTellsWhatAnythingElseBecomes() => Assert.Equal("becomes Coal, one for every 3 items", StationWords.Incinerates("Coal", 3));
 
         [Fact]
         public void AShieldTellsWhetherItBurnsAnyOfSeveral()
@@ -55,7 +55,7 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void AnUpgraderTellsWhatItTakes() => Assert.Equal("takes items past their top quality, with the upgrade kits their recipes name", StationWords.Upgrader);
+        public void AnUpgraderTellsWhatItTakes() => Assert.Equal("takes items past their top quality, using the upgrade kits listed in their recipes", StationWords.Upgrader);
 
         [Fact]
         public void ATraderTellsWhenItsWaresAreSold()
@@ -81,11 +81,11 @@ namespace Scry.Tests
             // to full; Cover.GetCoverForPoint: 17 rays of 30 m from the propeller's hub, none down.
             Assert.Equal("10 s in full wind, longer as the wind weakens or is blocked", StationWords.InFullWind(10f));
             Assert.Equal("wind: none below 10% strength, full at 100%, whichever way it faces", StationWords.RunsOnWind(0.1f));
-            Assert.Equal("anything solid within 30 m of its hub, level with it or above; each of 17 directions blocked takes 6%", StationWords.WindBlockedBy);
+            Assert.Equal("anything solid within 30 m of its hub, level with it or above; each of 17 directions blocked costs 6% of its power", StationWords.WindBlockedBy);
             Assert.Equal("hurt what they touch above 30% power", StationWords.BladesHurt(180f, -600f));
             Assert.Null(StationWords.BladesHurt(180f, 0f));
-            Assert.Equal("an hour at most, at the wind blowing on return", StationWords.CatchesUp(3600f));
-            Assert.Equal("10 min at most, at the wind blowing on return", StationWords.CatchesUp(600f));
+            Assert.Equal("up to an hour of work, at the wind blowing when you return", StationWords.CatchesUp(3600f));
+            Assert.Equal("up to 10 min of work, at the wind blowing when you return", StationWords.CatchesUp(600f));
         }
     }
 }

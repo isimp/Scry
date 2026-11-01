@@ -38,8 +38,8 @@ namespace Scry.Tests
         public void YoungHaveTheirParentsStars()
         {
             Assert.Equal("with its parent's stars", BreedWords.Stars(1));
-            Assert.Equal("with its parent's stars, at least 1", BreedWords.Stars(2));
-            Assert.Equal("with its parent's stars, at least 2", BreedWords.Stars(3));
+            Assert.Equal("with its parent's stars, at least 1 star", BreedWords.Stars(2));
+            Assert.Equal("with its parent's stars, at least 2 stars", BreedWords.Stars(3));
         }
 
         [Fact]
@@ -51,14 +51,14 @@ namespace Scry.Tests
             Assert.Equal(new[] { "over 99.9%", "under 0.1%" }, BreedWords.Shares(new[] { 9999f, 0.1f }));
         }
 
-        // An egg hatches (EggGrow.CanGrow) only lying on its own, and as it asks, by a fire and
-        // under a roof with enough cover.
+        // An egg hatches (EggGrow.CanGrow) only lying on its own, not in a stack, and as it asks, by
+        // a fire and under a roof, enclosed enough.
         [Fact]
         public void AnEggHatchesWhereItIsKeptRight()
         {
-            Assert.Equal("lying on its own, by a fire, under a roof with at least 70% cover", BreedWords.Hatches(true, true, 0.7f));
-            Assert.Equal("lying on its own, under a roof", BreedWords.Hatches(false, true, 0f));
-            Assert.Equal("lying on its own", BreedWords.Hatches(false, false, 0.7f));
+            Assert.Equal("lying on its own, not in a stack, by a fire, under a roof and at least 70% enclosed", BreedWords.Hatches(true, true, 0.7f));
+            Assert.Equal("lying on its own, not in a stack, under a roof", BreedWords.Hatches(false, true, 0f));
+            Assert.Equal("lying on its own, not in a stack", BreedWords.Hatches(false, false, 0.7f));
         }
 
         [Fact]
@@ -81,7 +81,7 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void ItsYoungAreTitledWithTheStarsTheyHave() => Assert.Equal("Has young, with its parent's stars, at least 1", BreedWords.Young(2));
+        public void ItsYoungAreTitledWithTheStarsTheyHave() => Assert.Equal("Has young, with its parent's stars, at least 1 star", BreedWords.Young(2));
 
         [Fact]
         public void AYoungOneSaysWhatItGrowsIntoAndWhetherItStaysTame()

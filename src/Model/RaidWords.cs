@@ -65,7 +65,7 @@ namespace Scry
             byEachPlayer || keys == null ? null : keys.Select(bossPrefabOf).FirstOrDefault(b => b != null);
 
         /// <summary>For whom a raid the world picks by each player's own progress comes.</summary>
-        public const string ForEachPlayer = "for a player whose own progress calls for it";
+        public const string ForEachPlayer = "for one player at a time, whose own progress allows it";
 
         /// <summary>How a raid only something else starts is rolled.</summary>
         public const string NeverRolled = "never by the raid roll; only something else starts it";
@@ -99,9 +99,10 @@ namespace Scry
             creatures.Count == 0 && (leftOut == null || leftOut.Count == 0) ? "Brings nothing" : Brings(Naming.Commas(creatures) + LeftOutAfter(creatures.Count, leftOut));
 
         /// <summary>
-        /// What the rules' counts say after those named, the last after "and": ", and 3 more not yet
-        /// met" after names, ", 2 more not yet met, and 1 more not yet seen together" with two; with
-        /// none named, the counts alone, "2 not yet met and 1 not yet seen together"; nothing for none.
+        /// What the rules' counts say after those named, the last after "and": ", and 3 more creatures
+        /// you have not met" after names, ", 2 more creatures you have not met, and 1 more creature you
+        /// have met but not seen with this raid" with two; with none named, the counts alone joined by
+        /// "and"; nothing for none.
         /// </summary>
         private static string LeftOutAfter(int named, IReadOnlyList<string> leftOut)
         {
@@ -139,9 +140,9 @@ namespace Scry
         {
             if (all <= 0) return null;
             const string again = "throughout the raid, each creature is rolled again at its pace";
-            if (capped >= all) return again + " and topped up to its most near you, so the fallen are replaced";
+            if (capped >= all) return again + " and kept topped up to its maximum near you, so the fallen are replaced";
             if (capped <= 0) return again + ", one more each time";
-            return again + ", those with a most topped up to it near you, so the fallen are replaced";
+            return again + ", those with a maximum kept topped up to it near you, so the fallen are replaced";
         }
 
         /// <summary>The first roll of each of a raid's creatures (<see cref="RaidRoll"/>): each in the order it came, how many, and how many with stars.</summary>

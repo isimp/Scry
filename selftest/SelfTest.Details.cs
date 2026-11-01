@@ -47,7 +47,7 @@ namespace Scry
             foreach (var (kind, name, fact, deed) in new[]
             {
                 (Kind.Creature, "Boar", "Tames in", Deed.Tamed), (Kind.Creature, "Boar", "Pregnant for", Deed.Born),
-                (Kind.Creature, "Boar_piggy", "Grows up in", Deed.GrewUp), (Kind.Resource, "RaspberryBush", "Regrows in", Deed.GrewBack), (Kind.Resource, "RaspberryBush", "Gives", Deed.GrewBack), (Kind.Creature, "Hen", "Fed for", Deed.Fed), (Kind.Creature, "Troll", "Sees", Deed.Fought),
+                (Kind.Creature, "Boar_piggy", "Grows up in", Deed.GrewUp), (Kind.Resource, "RaspberryBush", "Regrows in", Deed.GrewBack), (Kind.Resource, "RaspberryBush", "Gives", Deed.GrewBack), (Kind.Creature, "Hen", "Stays fed for", Deed.Fed), (Kind.Creature, "Troll", "Sees", Deed.Fought),
             })
             {
                 var entry = Pick(kind, name);
@@ -133,7 +133,7 @@ namespace Scry
             if (mill != null)
             {
                 var wind = Facts.For(mill);
-                foreach (var row in new[] { "Runs on", "Blocked by", "Its blades", "While away" }) p.Check(Tells(wind, row), $"the windmill tells {row.ToLowerInvariant()}", Pairs(wind));
+                foreach (var row in new[] { "Runs on", "Blocked by", "Its blades", "While you are away" }) p.Check(Tells(wind, row), $"the windmill tells {row.ToLowerInvariant()}", Pairs(wind));
                 p.Check(Value(wind, "Each takes")?.Contains("in full wind") == true, "and how long each takes in full wind", Value(wind, "Each takes"));
                 p.Note($"windmill: {Value(wind, "Runs on")}; blades {Value(wind, "Its blades")}");
             }
@@ -253,7 +253,7 @@ namespace Scry
                 ("gear against heat", s => Math.Abs(s.m_heatResistanceModifier) >= 0.005f, "Heat resistance"),
                 ("gear changing run stamina", s => Math.Abs(s.m_runStaminaModifier) >= 0.005f, "Run stamina"),
                 ("gear changing eitr regeneration", s => Math.Abs(s.m_eitrRegenModifier) >= 0.005f, "Eitr regeneration"),
-                ("gear adding adrenaline", s => s.m_maxAdrenaline >= 0.5f, "Most adrenaline"),
+                ("gear adding adrenaline", s => s.m_maxAdrenaline >= 0.5f, "Maximum adrenaline"),
                 ("gear giving something at full adrenaline", s => s.m_fullAdrenalineSE != null, "At full adrenaline"),
                 ("a weapon with a second attack", s => s.m_secondaryAttack != null && !string.IsNullOrEmpty(s.m_secondaryAttack.m_attackAnimation) && s.m_attack != null
                     && (s.m_itemType == ItemDrop.ItemData.ItemType.OneHandedWeapon || s.m_itemType == ItemDrop.ItemData.ItemType.TwoHandedWeapon), CombatWords.WeaponAttacksTitle),
@@ -294,7 +294,7 @@ namespace Scry
             foreach (var breeder in breeders)
             {
                 var told = Facts.For(breeder);
-                if (Value(told, "Breeds when") == null || Value(told, "Love") == null || !told.Rows.Any(r => r.Title.StartsWith("Has young", StringComparison.Ordinal))) untold.Add(breeder.Name);
+                if (Value(told, "Breeds when") == null || Value(told, "Chance to breed") == null || !told.Rows.Any(r => r.Title.StartsWith("Has young", StringComparison.Ordinal))) untold.Add(breeder.Name);
                 var young = Of(breeder).GetComponent<Procreation>().m_offspring;
                 if (young == null) continue;
                 var lines = Knowledge.WhereLines(young.name).Concat(Knowledge.SourceLines(young.name));
@@ -463,9 +463,9 @@ namespace Scry
             p.Note($"{Numbers.Count(biomes.Count)} biomes: {string.Join(", ", biomes.Select(b => b.DisplayName))}");
             var bare = biomes.Where(b => !Facts.For(b).Rows.Any(r => r.Title == BiomeWords.WeathersTitle && r.Lines.Count > 0)).Select(b => b.Name).ToList();
             p.Check(biomes.Count > 0 && bare.Count == 0, "each tells its weathers", string.Join(", ", bare));
-            var untold = biomes.Where(b => !Tells(Facts.For(b), "Puts on you") || !Tells(Facts.For(b), "Creatures")).Select(b => b.Name).ToList();
+            var untold = biomes.Where(b => !Tells(Facts.For(b), "Weather puts on you") || !Tells(Facts.For(b), "Creatures")).Select(b => b.Name).ToList();
             p.Check(untold.Count == 0, "each tells what its weather puts on you and how many creatures live there", string.Join(", ", untold));
-            p.Note("puts on you: " + string.Join("; ", biomes.Select(b => $"{b.Name} {Facts.For(b).Pairs.FirstOrDefault(x => x.Key == "Puts on you").Value}")));
+            p.Note("puts on you: " + string.Join("; ", biomes.Select(b => $"{b.Name} {Facts.For(b).Pairs.FirstOrDefault(x => x.Key == "Weather puts on you").Value}")));
             var empty = biomes.Where(b => b.Name != "Ocean" && !Facts.For(b).Rows.Any(r => r.Title.StartsWith("Lives here", StringComparison.Ordinal))).Select(b => b.Name).ToList();
             p.Note(empty.Count == 0 ? "each but the ocean tells what lives there" : $"no creature told living in {string.Join(", ", empty)}");
             // What spans most biomes, and what of other kinds claims a biome at all, kind by kind, for a look at what is mixed in.
@@ -814,7 +814,7 @@ namespace Scry
             var points = X.Catalog.Count(e => e.Kind == Kind.Spawner && e.Group == "Spawn points");
             p.Note($"{Numbers.Count(X.Catalog.Count(e => e.Kind == Kind.Spawner))} spawners, {Numbers.Count(points)} of them spawn points");
             var told = Facts.For(nest);
-            foreach (var row in new[] { "Wakes", "Pace", "Keeps alive", "Spawns them" }) p.Check(Tells(told, row), $"it tells {row.ToLowerInvariant()}", Pairs(told));
+            foreach (var row in new[] { "Active", "Pace", "Keeps alive", "Spawns them" }) p.Check(Tells(told, row), $"it tells {row.ToLowerInvariant()}", Pairs(told));
             var pool = told.Rows.FirstOrDefault(r => r.Title == SpawnWords.PoolTitle);
             p.Check(pool != null && pool.Lines.Count > 0, "it tells what it spawns and how often, a creature a line", Pairs(told));
             if (pool != null) p.Note("its creatures: " + string.Join(" | ", pool.Lines.Select(l => string.Join(", ", l.Cells))));

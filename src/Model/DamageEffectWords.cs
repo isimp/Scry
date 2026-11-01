@@ -41,7 +41,7 @@ namespace Scry
             {
                 new FactPair(Naming.Capital(damage) + " damage", $"Dealt over {Numbers.Duration(lasts)} in {Numbers.Count(hits)} even hits, {Each(every)}, not at once: what a hit leaves after resistances and armour"),
                 new FactPair("More " + damage, $"Adds to what is left, over {Numbers.Duration(lasts)} again"),
-                new FactPair("Too little", $"A hit leaving under {Numbers.Amount(LeastHit * hits, 1)} {damage} damage deals none of it"),
+                new FactPair("A small hit", $"One leaving under {Numbers.Amount(LeastHit * hits, 1)} {damage} damage deals none of it, unless some is still being dealt"),
             };
         }
 
@@ -56,15 +56,15 @@ namespace Scry
         /// <summary>What burning does besides: Wet puts it out sooner, and it keeps one from resting and dries one off (<c>Player.UpdateEnvStatusEffects</c>).</summary>
         public static List<FactPair> Fire() => new List<FactPair>
         {
-            new FactPair("Wet", $"Puts it out {Numbers.Count(BurnsOutWet)} times as fast, the rest of its damage lost"),
-            new FactPair("While it burns", $"No resting, and Wet wears off {Numbers.Count(DriesBurning)} times as fast"),
+            new FactPair("Wet", $"Burning ends {Numbers.Count(BurnsOutWet)} times as fast, the rest of its damage lost"),
+            new FactPair("While burning", $"No resting, and Wet wears off {Numbers.Count(DriesBurning)} times as fast"),
         };
 
         /// <summary>What a poison's own time is: none, each hit sets it.</summary>
-        public const string PoisonLasts = "By the poison a hit leaves";
+        public const string PoisonLasts = "Depends on the poison a hit leaves";
 
         /// <summary>What frost's own time is: none, each hit sets it.</summary>
-        public const string FrostLasts = "By the share of health a hit takes";
+        public const string FrostLasts = "Depends on the share of health a hit takes";
 
         /// <summary>How long poison lasts in words: a base time and the damage, times so much, to a power ("the square root of" for a half).</summary>
         private static string PoisonTime(float baseLasts, float perDamage, float power)
@@ -85,7 +85,7 @@ namespace Scry
         /// <summary>The poison table's title and columns: how much, then how long and how much each hit on you and on a creature.</summary>
         public const string PoisonTitle = "How long poison lasts";
 
-        public static readonly string[] PoisonColumns = { "Poison", "On you", "Each second", "On a creature", "Each second" };
+        public static readonly string[] PoisonColumns = { "Poison", "Lasts on you", "Damage a second", "Lasts on a creature", "Damage a second" };
 
         /// <summary>The poison a hit may leave that the table tells.</summary>
         private static readonly float[] PoisonShown = { 10f, 25f, 50f, 100f };
@@ -110,16 +110,16 @@ namespace Scry
         /// <summary>Frost dealt at once, then slowing from <paramref name="leastSpeed"/> back to full by its end, for a time that grows with the share of health the hit took (<c>SE_Frost.AddDamage</c>, <c>ModifySpeed</c>).</summary>
         public static List<FactPair> Frost(float freezePlayer, float freezeCreature, float leastSpeed) => new List<FactPair>
         {
-            new FactPair("Frost damage", "Dealt at once, then it slows"),
-            new FactPair("Slows", $"To {Numbers.Percent(leastSpeed, 1)} of the speed at first, coming back by its end"),
+            new FactPair("Frost damage", "Dealt at once, then slows the target"),
+            new FactPair("Slows", $"To {Numbers.Percent(leastSpeed, 1)} of its speed at first, back to full by the end"),
             new FactPair("How long", $"{Numbers.Duration(freezePlayer)} on you, {Numbers.Duration(freezeCreature)} on a creature, times the share of health the hit took"),
-            new FactPair("A stronger hit", "Starts it over where it would last longer than is left"),
+            new FactPair("A stronger hit", "Starts the slow over if it would last longer than what is left"),
         };
 
         /// <summary>The frost slowing table's title and columns: how frost is taken, and the speed it slows to at first.</summary>
         public const string FrostSlowTitle = "How far frost slows";
 
-        public static readonly string[] FrostSlowColumns = { "Its frost", "Slowed at first to" };
+        public static readonly string[] FrostSlowColumns = { "Against frost", "Slowed at first to" };
 
         /// <summary>
         /// The speed frost slows to at first by how it is taken: <paramref name="leastSpeed"/> as
@@ -154,7 +154,7 @@ namespace Scry
         /// <summary>The frost time table's title and columns: the share of health a hit takes, and how long it slows you and a creature.</summary>
         public const string FrostTimeTitle = "How long frost slows";
 
-        public static readonly string[] FrostTimeColumns = { "The hit takes of its health", "On you", "On a creature" };
+        public static readonly string[] FrostTimeColumns = { "Share of health the hit takes", "On you", "On a creature" };
 
         /// <summary>The shares of health a hit may take that the table tells.</summary>
         private static readonly float[] SharesShown = { 0.1f, 0.25f, 0.5f, 1f };
@@ -167,7 +167,7 @@ namespace Scry
         public static List<FactPair> Lightning(float lasts) => new List<FactPair>
         {
             new FactPair("Lightning damage", "Dealt at once"),
-            new FactPair("This effect", $"Changes nothing itself: it marks the hit for {Numbers.Duration(lasts)}"),
+            new FactPair("This effect", $"Shows on the target for {Numbers.Duration(lasts)} and changes nothing itself"),
         };
     }
 }

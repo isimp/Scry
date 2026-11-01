@@ -228,11 +228,11 @@ namespace Scry.Tests
         {
             var rules = In("Mistlands");
             rules.MaxVegetation = 0.3f;
-            Assert.Equal("only where the Mistlands' growth value, which their plants grow by, is under 0.3", Row(rules, "Growth"));
+            Assert.Equal("only where the Mistlands' plant growth value is under 0.3", Row(rules, "Growth"));
             rules.MinVegetation = 0.1f;
-            Assert.Equal("only where the Mistlands' growth value, which their plants grow by, is 0.1–0.3", Row(rules, "Growth"));
+            Assert.Equal("only where the Mistlands' plant growth value is 0.1–0.3", Row(rules, "Growth"));
             rules.MaxVegetation = 1f;
-            Assert.Equal("only where the Mistlands' growth value, which their plants grow by, is over 0.1", Row(rules, "Growth"));
+            Assert.Equal("only where the Mistlands' plant growth value is over 0.1", Row(rules, "Growth"));
         }
 
         [Fact]
@@ -400,6 +400,6 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void NothingIsBuiltNearAPlaceThatForbidsIt() => Assert.Equal("not within 1,500 m", LocationWords.NoBuild(1500f));
+        public void NothingIsBuiltNearAPlaceThatForbidsIt() => Assert.Equal("not allowed within 1,500 m", LocationWords.NoBuild(1500f));
     }
 }

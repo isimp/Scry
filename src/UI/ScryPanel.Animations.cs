@@ -154,7 +154,7 @@ namespace Scry
                 if (named.Length > 0)
                 {
                     y += U(members.Length > 0 ? 2f : 10f);
-                    y = Members(explorer, "Found by name:", last, named, null, width, y);
+                    y = Members(explorer, "Matched by name only:", last, named, null, width, y);
                 }
 
                 // What the game does not play with the clip but plays around it: next, or now and then.
@@ -162,7 +162,7 @@ namespace Scry
                 if (around.Length > 0)
                 {
                     y += U(members.Length > 0 || named.Length > 0 ? 2f : 10f);
-                    y = Members(explorer, "Heard around it:", last, around, null, width, y);
+                    y = Members(explorer, "Played around it:", last, around, null, width, y);
                 }
             }
 

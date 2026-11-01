@@ -23,7 +23,7 @@ namespace Scry.Tests
             // A page that keeps nothing back has all of it found out too, so every known page under the strict rules carries the chip.
             Assert.True(new PageFinds().AllFound);
             Assert.Equal("Nothing of this page is kept back under Strict", CompendiumWords.AllFoundOutTipFor(new PageFinds()));
-            Assert.Equal("Everything this page keeps back under Strict was found out", CompendiumWords.AllFoundOutTipFor(all));
+            Assert.Equal("Your character found out everything this page keeps back under Strict", CompendiumWords.AllFoundOutTipFor(all));
         }
 
         [Fact]
@@ -63,15 +63,15 @@ namespace Scry.Tests
         public void TheYouBoxSaysApartWhatToMeetFirstAndWhatToSeeTogether()
         {
             // Each is a different thing to do, so each is its own row of the You box and the chip's tip.
-            Assert.Equal(new[] { ("Meet first", "3 things it names"), ("See it together", "12 things it names") },
+            Assert.Equal(new[] { ("Meet first", "3 things this page names"), ("See it together", "12 things you've met, with this page") },
                 CompendiumWords.StillToFindOut(new string[0], new string[0], 0, 0, new Tally[0], namesApart: 12, namesUnmet: 3));
-            Assert.Contains(("See it together", "12 things it names"), CompendiumWords.StillToFindOut(new string[0], new string[0], 0, 0, new Tally[0], namesApart: 12));
-            Assert.Contains(("See it together", "1 thing it names"), CompendiumWords.StillToFindOut(new string[0], new string[0], 0, 0, new Tally[0], namesApart: 1));
-            Assert.Equal(new[] { ("Meet first", "1 thing it names") }, CompendiumWords.StillToFindOut(new string[0], new string[0], 0, 0, new Tally[0], namesUnmet: 1));
+            Assert.Contains(("See it together", "12 things you've met, with this page"), CompendiumWords.StillToFindOut(new string[0], new string[0], 0, 0, new Tally[0], namesApart: 12));
+            Assert.Contains(("See it together", "1 thing you've met, with this page"), CompendiumWords.StillToFindOut(new string[0], new string[0], 0, 0, new Tally[0], namesApart: 1));
+            Assert.Equal(new[] { ("Meet first", "1 thing this page names") }, CompendiumWords.StillToFindOut(new string[0], new string[0], 0, 0, new Tally[0], namesUnmet: 1));
             Assert.Empty(CompendiumWords.StillToFindOut(new string[0], new string[0], 0, 0, new Tally[0], namesApart: 0));
             // The chip's tip lists it with the rest, so a click goes to it.
-            Assert.Equal("Still to find out:\nSee it together · 12 things it names\nA click goes to them in its You box",
-                CompendiumWords.FindsTip(new[] { ("See it together", "12 things it names") }));
+            Assert.Equal("Still to find out:\nSee it together · 12 things you've met, with this page\nClick to see them in this page's You box",
+                CompendiumWords.FindsTip(new[] { ("See it together", "12 things you've met, with this page") }));
         }
 
         [Fact]
@@ -82,7 +82,7 @@ namespace Scry.Tests
             Assert.Equal("All found out", CompendiumWords.AllFoundOut);
             Assert.Equal("Shown whole by Known up to", CompendiumWords.WholeBy(null));
             Assert.Equal("Shown whole from shared maps", CompendiumWords.WholeBy(WorldSource.SharedMaps));
-            Assert.Equal("Still to find out:\nKill one · shows its health\nSee it attack · 2 attacks' damage, up close or taken\nA click goes to them in its You box",
+            Assert.Equal("Still to find out:\nKill one · shows its health\nSee it attack · 2 attacks' damage, up close or taken\nClick to see them in this page's You box",
                 CompendiumWords.FindsTip(new[] { ("Kill one", "shows its health"), ("See it attack", "2 attacks' damage, up close or taken") }));
             // Nothing still to do: nothing in the You box to go to.
             Assert.Equal("Still to find out:", CompendiumWords.FindsTip(new (string, string)[0]));
@@ -100,9 +100,9 @@ namespace Scry.Tests
             Assert.Equal("3 of 6", CompendiumWords.MetOf(3, 6, narrow: true));
             Assert.Equal("1,200 of 1,500 met", CompendiumWords.MetOf(1200, 1500, narrow: false));
             Assert.Equal("All met", CompendiumWords.AllMet);
-            Assert.Equal("Everything this page names was met", CompendiumWords.AllMetTip);
-            Assert.Equal("Still to meet:\nMeet first · 3 things it names\nA click goes to them in its You box",
-                CompendiumWords.FindsTip(new[] { ("Meet first", "3 things it names") }, met: true));
+            Assert.Equal("Your character has met everything this page names", CompendiumWords.AllMetTip);
+            Assert.Equal("Still to meet:\nMeet first · 3 things this page names\nClick to see them in this page's You box",
+                CompendiumWords.FindsTip(new[] { ("Meet first", "3 things this page names") }, met: true));
         }
     }
 }

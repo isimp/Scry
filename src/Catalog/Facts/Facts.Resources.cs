@@ -92,7 +92,7 @@ namespace Scry
                 Hits(tree.m_health, false, tree.m_minToolTier, tree.m_damageModifiers);
                 Drops(tree.m_dropWhenDestroyed, GatherWords.WhenFelled, tallied: prefab.name);
                 Leads("Felled, falls as", new[] { (tree.m_logPrefab, 1) });
-                Leads("Leaves", new[] { (tree.m_stubPrefab, 1) });
+                Leads("Leaves behind", new[] { (tree.m_stubPrefab, 1) });
             }
 
             var log = prefab.GetComponent<TreeLog>();

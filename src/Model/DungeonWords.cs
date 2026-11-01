@@ -93,8 +93,8 @@ namespace Scry
                 var share = DropWords.Share((float)(sum / prefabs.Count));
                 var typed = type.Length > 0 ? type + " " : "";
                 var title = doors.Count == 1
-                    ? $"Door in {share} of {typed}doorways that allow one"
-                    : $"Doors in {share} of {typed}doorways that allow one, one of these alike";
+                    ? $"A door stands in {share} of {typed}doorways that can hold one"
+                    : $"A door stands in {share} of {typed}doorways that can hold one, any one of these";
                 rows.Add((title, doors));
             }
             return rows;
@@ -193,7 +193,7 @@ namespace Scry
         /// </summary>
         public static string ExampleNote(string holds, string name, bool hasRooms, bool standsIn) =>
             holds + (!hasRooms ? "."
-                : standsIn ? ". An example stands in for this one of your world: its area never loaded, so its rooms are laid out nowhere yet."
+                : standsIn ? ". This example stands in for the one in your world, whose area has not loaded yet, so its rooms are not known yet."
                 : $". An example: one way {name} can come out. Each one in your world lays out its own.");
 
         /// <summary>How far a dungeon of your world was walked, as its note says it: "6 of 20 rooms walked", or none and that peeking shows them.</summary>

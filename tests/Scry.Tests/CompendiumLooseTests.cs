@@ -303,12 +303,12 @@ namespace Scry.Tests
             // A room's or raid's card has the keys it left out: each counted as never met or as met but not seen with it.
             var world = new World().Rule(CompendiumRule.Strict);
             world.Explorer.Select(world.Windmill);
-            Assert.Equal(new[] { "1 more not yet met", "2 more not yet seen here" },
+            Assert.Equal(new[] { "1 more thing you have not met", "2 more things you have met but not seen in this room" },
                 world.Explorer.LeftOutCounts("room", new[] { world.Barley.Key, world.Stone.Key, world.Neck.Key }));
-            Assert.Equal(new[] { "1 not yet met" }, world.Explorer.LeftOutCounts("raid", new[] { world.Barley.Key }, alone: true));
+            Assert.Equal(new[] { "1 item you have not met" }, world.Explorer.LeftOutCounts("raid", new[] { world.Barley.Key }, alone: true));
             Assert.Empty(world.Explorer.LeftOutCounts("room", new string[0]));
             world.Rule(CompendiumRule.Loose);
-            Assert.Equal(new[] { "3 more not yet met" }, world.Explorer.LeftOutCounts("room", new[] { world.Barley.Key, world.Stone.Key, world.Neck.Key }));
+            Assert.Equal(new[] { "3 more things you have not met" }, world.Explorer.LeftOutCounts("room", new[] { world.Barley.Key, world.Stone.Key, world.Neck.Key }));
         }
 
         [Fact]

@@ -32,7 +32,6 @@ namespace Scry.Tests
         [Fact]
         public void APieceAModMadeBuildableSaysWhichModAndNearWhat()
         {
-            Assert.Equal("through MoreVanillaBuildPrefabs", BuildWords.Through("MoreVanillaBuildPrefabs"));
             Assert.Equal("Built through MVBP near Workbench", BuildWords.CostThrough("MVBP", "Workbench"));
             Assert.Equal("Built through MVBP with", BuildWords.CostThrough("MVBP", ""));
         }
@@ -47,7 +46,7 @@ namespace Scry.Tests
         [Theory]
         [InlineData(UseKind.Crafts, "Forge", "Used to make at Forge")]
         [InlineData(UseKind.Crafts, null, "Used to make by hand")]
-        [InlineData(UseKind.UpgradesPastTop, null, "Takes these past their top quality, at Black forge")]
+        [InlineData(UseKind.UpgradesPastTop, null, "Upgrades these past their top quality, at Black forge")]
         [InlineData(UseKind.Builds, "Workbench", "Used to build near Workbench")]
         [InlineData(UseKind.Builds, null, "Used to build")]
         [InlineData(UseKind.TurnsInto, "Smelter", "Smelter turns it into")]
@@ -59,7 +58,7 @@ namespace Scry.Tests
 
         [Fact]
         public void TheUpgradeStationIsSaidPlainlyWhenNoneIsKnown() =>
-            Assert.Equal("Takes these past their top quality, at an upgrade station", UseWords.Title(UseKind.UpgradesPastTop, null, null));
+            Assert.Equal("Upgrades these past their top quality, at an upgrade station", UseWords.Title(UseKind.UpgradesPastTop, null, null));
 
         [Fact]
         public void ARecipeTakingNoneAtFirstNeedsItOnlyForUpgrades()

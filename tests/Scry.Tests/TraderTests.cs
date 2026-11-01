@@ -93,8 +93,8 @@ namespace Scry.Tests
         [Fact]
         public void HowManyAreStillToUnlockIsSaidInWords()
         {
-            Assert.Equal("2 more to unlock", CompendiumWords.ToUnlock(2));
-            Assert.Equal("1 more to unlock", CompendiumWords.ToUnlock(1));
+            Assert.Equal("2 wares still to unlock", CompendiumWords.ToUnlock(2));
+            Assert.Equal("1 ware still to unlock", CompendiumWords.ToUnlock(1));
             Assert.Null(CompendiumWords.ToUnlock(0));
         }
     }

@@ -77,14 +77,14 @@ namespace Scry.Tests
             facts.Drag = 0.5f;
             Assert.Equal("5 s", Value(facts, "Flies for"));
             Assert.Equal(Numbers.Amount(9.81f) + " m/s²", Value(facts, "Falls"));
-            Assert.Equal("drag 0.5", Value(facts, "Slows"));
+            Assert.Equal("drag 0.5", Value(facts, "Slowed by air"));
         }
 
         [Fact]
         public void OneWithoutGravityFliesStraightAndOneWithoutDragDoesNotSlow()
         {
             Assert.Equal("no, it flies straight", Value(Plain(), "Falls"));
-            Assert.Null(Value(Plain(), "Slows"));
+            Assert.Null(Value(Plain(), "Slowed by air"));
             Assert.Null(Value(Plain(), "Flies for"));
         }
 
@@ -110,7 +110,7 @@ namespace Scry.Tests
             facts.SpawnsOnHit = true;
             facts.SpawnOnHitChance = 0.25f;
             Assert.Equal("stays where it struck for 30 s", Value(facts, "After a hit"));
-            Assert.Equal("the weapon that threw it, where it lands", Value(facts, "Leaves"));
+            Assert.Equal("the thrown weapon, where it hits", Value(facts, "Leaves"));
             Assert.Equal("25% of the time", Value(facts, "Spawns on hit"));
 
             // Spawning every time is no odds to tell.
@@ -142,7 +142,7 @@ namespace Scry.Tests
                 FliesFor = 4f, Gravity = 5f, Drag = 1f, Bounces = true, MaxBounces = 2, StaysAfterHit = true, StaysFor = 10f,
                 LeavesTheWeapon = true, SpawnsOnHit = true, SpawnOnHitChance = 0.5f,
             };
-            Assert.Equal(new[] { "Own damage", "Hits", "Knockback", "Can be", "On hit", "Flies for", "Falls", "Slows", "Bounces", "After a hit", "Leaves", "Spawns on hit" },
+            Assert.Equal(new[] { "Own damage", "Hits", "Knockback", "Can be", "On hit", "Flies for", "Falls", "Slowed by air", "Bounces", "After a hit", "Leaves", "Spawns on hit" },
                 ProjectileWords.Pairs(facts).Select(p => p.Label));
         }
     }

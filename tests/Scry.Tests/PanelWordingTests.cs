@@ -73,7 +73,7 @@ namespace Scry.Tests
         {
             Assert.Equal("Copied \"Troll\".", PanelWords.Copied("Troll"));
             Assert.Equal("In club:", PanelWords.In("club"));
-            Assert.Equal("12 more", PanelWords.More(12));
+            Assert.Equal("Show 12 more", PanelWords.More(12));
             Assert.Equal("Lasts 40 s", PanelWords.Lasts(40));
             Assert.Equal("Play hit", PanelWords.PlayList("Hit"));
             Assert.Equal("12.3 ms", MonitorWords.Milliseconds(12.34));
@@ -156,7 +156,7 @@ namespace Scry.Tests
         [Fact]
         public void TheTitleSaysWhereAThingComesFrom()
         {
-            Assert.Equal("a mod loaded", DetailWords.From(new Entry { Name = "Bamboo", Kind = Kind.Mod }));
+            Assert.Equal("a loaded mod", DetailWords.From(new Entry { Name = "Bamboo", Kind = Kind.Mod }));
             Assert.Equal("from the game", DetailWords.From(new Entry { Name = "Troll", Kind = Kind.Creature, Origin = Origin.Vanilla }));
             Assert.Equal("", DetailWords.From(new Entry { Name = "Troll", Kind = Kind.Creature, Origin = Origin.Unknown }));
             Assert.Equal("added by a mod", DetailWords.From(new Entry { Name = "Bamboo_stick", Kind = Kind.Item, Origin = Origin.Mod }));
@@ -180,7 +180,7 @@ namespace Scry.Tests
             Assert.Equal("Origin: Bamboozled", DetailWords.OriginLine(new Entry { Name = "Bamboo_stick", Origin = Origin.Mod, ModName = "Bamboozled" }));
             Assert.Equal("Origin: a mod, not named", DetailWords.OriginLine(new Entry { Name = "Bamboo_stick", Origin = Origin.Mod }));
             Assert.Equal("Origin: unknown", DetailWords.OriginLine(new Entry { Name = "Troll", Origin = Origin.Unknown }));
-            Assert.Equal("Star looks: 2", DetailWords.StarLooks(2));
+            Assert.Equal("Looks by star level: 2", DetailWords.StarLooks(2));
             Assert.Equal("Made of: Animator, Collider ×3", DetailWords.MadeOf("Animator, Collider ×3"));
             Assert.Equal("3  Wood", DetailWords.Amounted("3", "Wood"));
             Assert.Equal("Wood", DetailWords.Amounted("", "Wood"));
@@ -306,7 +306,7 @@ namespace Scry.Tests
         {
             // An example says it is one, and of what; one standing in for a dungeon of your world says why.
             Assert.Equal("12 rooms. An example: one way Burial Chambers can come out. Each one in your world lays out its own.", DungeonWords.ExampleNote("12 rooms", "Burial Chambers", hasRooms: true, standsIn: false));
-            Assert.Equal("12 rooms. An example stands in for this one of your world: its area never loaded, so its rooms are laid out nowhere yet.", DungeonWords.ExampleNote("12 rooms", "Burial Chambers", hasRooms: true, standsIn: true));
+            Assert.Equal("12 rooms. This example stands in for the one in your world, whose area has not loaded yet, so its rooms are not known yet.", DungeonWords.ExampleNote("12 rooms", "Burial Chambers", hasRooms: true, standsIn: true));
             Assert.Equal("No rooms.", DungeonWords.ExampleNote("No rooms", "Burial Chambers", hasRooms: false, standsIn: false));
         }
 

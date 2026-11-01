@@ -168,7 +168,7 @@ namespace Scry
         {
             var by = BepInEx.Bootstrap.Chainloader.PluginInfos.TryGetValue(BuildPrefabsGuid, out var mod) && mod?.Metadata != null ? mod.Metadata.Name : "a mod";
             // The mod goes to its page where it has one.
-            Add("Buildable", BuildWords.Through(by), EntryOf(EntryKeys.For(Kind.Mod, by)) != null ? EntryKeys.For(Kind.Mod, by) : null);
+            Add("Made buildable by", by, EntryOf(EntryKeys.For(Kind.Mod, by)) != null ? EntryKeys.For(Kind.Mod, by) : null);
             if (piece.m_resources == null || piece.m_resources.Length == 0) return;
             var station = piece.m_craftingStation != null ? CatalogBuilder.Localize(piece.m_craftingStation.m_name) : "";
             var row = Requirements(BuildWords.CostThrough(by, station), piece.m_resources, false);

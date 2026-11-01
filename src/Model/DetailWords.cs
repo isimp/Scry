@@ -6,7 +6,7 @@ namespace Scry
         /// <summary>Where a thing comes from, under its name: the game, a mod by name, or a mod Scry matched it to by clues (marked unsure).</summary>
         public static string From(Entry entry)
         {
-            if (entry.Kind == Kind.Mod) return "a mod loaded";
+            if (entry.Kind == Kind.Mod) return "a loaded mod";
             if (entry.Origin == Origin.Vanilla) return "from the game";
             if (entry.Origin != Origin.Mod) return "";
             if (entry.ModName.Length == 0) return "added by a mod";
@@ -37,7 +37,7 @@ namespace Scry
             "Origin: " + (entry.Origin == Origin.Vanilla ? "the game" : entry.Origin == Origin.Mod ? (entry.ModName.Length > 0 ? entry.ModName : "a mod, not named") : "unknown");
 
         /// <summary>The details card's line for how many looks its stars give it.</summary>
-        public static string StarLooks(int looks) => $"Star looks: {Numbers.Count(looks)}";
+        public static string StarLooks(int looks) => $"Looks by star level: {Numbers.Count(looks)}";
 
         /// <summary>The details card's line for its components.</summary>
         public static string MadeOf(string components) => "Made of: " + components;

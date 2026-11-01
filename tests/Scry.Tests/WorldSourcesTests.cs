@@ -89,7 +89,7 @@ namespace Scry.Tests
         public void TheBoxsHintSaysTheMarkItDrawsIsWhatASourceShows()
         {
             // Drawn with the source's own mark, a folded map, rather than the hint's compass.
-            Assert.Equal("What these show is marked with this on its row and page; your book keeps only what you met, so turning one down takes it all back.", CompendiumWords.SourcesHint);
+            Assert.Equal("Things these show are marked with this sign on their row and page. Your book keeps only what your character met, so turning a source down takes back all it showed.", CompendiumWords.SourcesHint);
         }
 
         [Fact]
@@ -125,7 +125,7 @@ namespace Scry.Tests
         public void APlaceMarkedForTheCharacterShowsThroughItsRowAlone()
         {
             // The row's tip offers off with the rest, as every source does.
-            Assert.Contains("or off, as you choose", CompendiumWords.SourceTip(WorldSource.Marked));
+            Assert.Contains("set this row to Known, With insides or Off as you like", CompendiumWords.SourceTip(WorldSource.Marked));
             // A Vegvisir read: the place it marks is kept as found, shown seen while the row is,
             // never in the book, and gone with the row off.
             var s = new Setup().Found(WorldSource.Marked, "Crypt2").Shows(WorldSource.Marked, SourceLevel.Seen);
@@ -476,7 +476,7 @@ namespace Scry.Tests
             var read = CompendiumBook.Load("shows\tSharedMaps\tCounted\nshows\tWholeWorld\tWithInsides\n");
             Assert.Equal(SourceLevel.Off, read.Shows(WorldSource.SharedMaps));
             Assert.Equal(SourceLevel.Off, read.Shows(WorldSource.WholeWorld));
-            Assert.Equal("Every kind of place this world holds is heard of, with how many there are; none is seen until you find it.", CompendiumWords.LevelTip(SourceLevel.Counted));
+            Assert.Equal("Counts how many places of each kind this world holds; none shows as seen until you find it.", CompendiumWords.LevelTip(SourceLevel.Counted));
             Assert.Equal("Every kind of place this world holds, by the server's census of it: how many of each there are, never where.", CompendiumWords.SourceTip(WorldSource.WholeWorld));
         }
 
@@ -674,9 +674,9 @@ namespace Scry.Tests
             Assert.False(WorldSources.HasInsides(new[] { "Vendor_BlackForest", "StartTemple" }, dungeons.Contains));
             Assert.True(WorldSources.HasInsides(new[] { "StartTemple", "Hildir_cave" }, dungeons.Contains));
             Assert.False(WorldSources.HasInsides(new string[0], dungeons.Contains));
-            Assert.Equal("None of the places in this ground has insides yet.", CompendiumWords.NoInsides(WorldSource.Explored));
-            Assert.Equal("None of the places marked for you in this world has insides yet. The Queen's lair and Hildir's crypt, cave and tower would.", CompendiumWords.NoInsides(WorldSource.Marked));
-            Assert.Equal("None of the places every map shows in this world has insides yet. Hildir's crypt, cave and tower show once she sends you to them.", CompendiumWords.NoInsides(WorldSource.OnEveryMap));
+            Assert.Equal("None of the places in this ground has rooms to show yet.", CompendiumWords.NoInsides(WorldSource.Explored));
+            Assert.Equal("None of the places marked for you in this world has rooms to show yet. The Queen's lair and Hildir's crypt, cave and tower would, once marked.", CompendiumWords.NoInsides(WorldSource.Marked));
+            Assert.Equal("None of the places every map shows in this world has rooms to show yet. Hildir's crypt, cave and tower will, once she sends you to them.", CompendiumWords.NoInsides(WorldSource.OnEveryMap));
         }
 
         private static List<string> Sorted(IEnumerable<string> kinds)

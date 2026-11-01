@@ -99,14 +99,14 @@ namespace Scry
             if (f.Catapult != null)
             {
                 Add("Loads", Loads(f.Catapult.ListExcludes, f.Catapult.Types, f.Catapult.OnlyHeld));
-                if (f.Catapult.MaxLoad > 1) Add("At a time", $"up to {Numbers.Count(f.Catapult.MaxLoad)}");
+                if (f.Catapult.MaxLoad > 1) Add("Per shot", $"up to {Numbers.Count(f.Catapult.MaxLoad)} items");
                 if (f.Catapult.ThrowsWhoStandsThere) Add("Also throws", "whoever stands where it is loaded");
             }
             return pairs;
         }
 
         /// <summary>The title of a ballista's row of trophies (<c>Turret.UseItem</c>, <c>UpdateTarget</c>).</summary>
-        public static string TrophiesTitle(int most) => $"Given these trophies, up to {Numbers.Count(most)} at once, it shoots only their creatures";
+        public static string TrophiesTitle(int most) => $"Given up to {Numbers.Count(most)} of these trophies, it shoots only the creatures they come from";
 
         public static string Shoots(bool enemies, bool players, bool tamed, float range)
         {
@@ -125,7 +125,7 @@ namespace Scry
             return who.Count == 0 ? "nothing" : And(who);
         }
 
-        public static string Ashlands(bool ready) => ready ? "sails them unharmed" : "their boiling water burns it";
+        public static string Ashlands(bool ready) => ready ? "sails them unharmed" : "their boiling water damages it";
 
         /// <summary>What it takes while upside down, or null when nothing.</summary>
         public static string Capsized(float damage, float interval) =>

@@ -107,7 +107,7 @@ namespace Scry
         /// </summary>
         public static List<ResistCell> ForCreature(IEnumerable<ResistCell> cells) =>
             cells.Select(c => c.Tone == Tone.Immune && Array.IndexOf(ToolTypes, c.Type) >= 0
-                ? new ResistCell { Type = c.Type, Value = c.Value, Tip = c.Type + ": takes none; tools are for trees and rocks", Tone = Tone.Quiet }
+                ? new ResistCell { Type = c.Type, Value = c.Value, Tip = c.Type + ": takes none; chop and pickaxe damage is for trees and rocks", Tone = Tone.Quiet }
                 : c).ToList();
 
         /// <summary>
@@ -116,7 +116,7 @@ namespace Scry
         /// keeping its place so the grid's rows stay the same, and counted as nothing to find.
         /// </summary>
         public static List<ResistCell> ForBroken(IEnumerable<ResistCell> cells) =>
-            cells.Select(c => c.Tone == Tone.Immune ? new ResistCell { Type = c.Type, Value = c.Value, Tip = c.Type + ": takes none; only what it takes is told by a hit", Tone = Tone.Quiet } : c).ToList();
+            cells.Select(c => c.Tone == Tone.Immune ? new ResistCell { Type = c.Type, Value = c.Value, Tip = c.Type + ": takes none; your hits show only the damage it does take", Tone = Tone.Quiet } : c).ToList();
 
         public static ResistCell Cell(string type, Degree degree)
         {

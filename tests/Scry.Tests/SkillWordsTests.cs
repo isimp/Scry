@@ -122,8 +122,8 @@ namespace Scry.Tests
         [Fact]
         public void ABonusSaysHowMuchAndHowLikely()
         {
-            Assert.Equal("1 more at times: never at no skill, 25% at the top", SkillWords.BonusSpan(1, 0.25f));
-            Assert.Equal("7.5% for 1 more", SkillWords.Bonus(1, 0.075f));
+            Assert.Equal("1 extra, from no chance at level 0 to 25% at the top", SkillWords.BonusSpan(1, 0.25f));
+            Assert.Equal("7.5% chance of 1 extra", SkillWords.Bonus(1, 0.075f));
         }
 
         [Fact]
@@ -134,7 +134,7 @@ namespace Scry.Tests
             Assert.Equal("1, then 3 at level 80", SkillWords.SummonSteps(new[] { 0, 80 }, new[] { 1, 3 }));
             Assert.Equal("3", SkillWords.SummonSteps(new[] { 0 }, new[] { 3 }));
             Assert.Equal("none, then 2 at level 10", SkillWords.SummonSteps(new[] { 10 }, new[] { 2 }));
-            Assert.Equal("×1, and ×0.02 more for each level", SkillWords.SummonsHit(0.02f));
+            Assert.Equal("×1 at level 0, ×0.02 more for each level", SkillWords.SummonsHit(0.02f));
             Assert.Equal("2", SkillWords.SummonsAt(new[] { 0, 20, 40 }, new[] { 1, 2, 3 }, 34f));
             Assert.Equal("none", SkillWords.SummonsAt(new[] { 10 }, new[] { 2 }, 5f));
             Assert.Equal("1", SkillWords.SummonsAt(new[] { 0, 20, 40 }, new[] { 1, 2, 3 }, 5f));
@@ -170,7 +170,7 @@ namespace Scry.Tests
         public void ASummonTellsWhoseSkillItTrainsAndHowHardItHitsForYou()
         {
             // Character.RaiseSkill: a tamed creature's hits raise its owner's skill by its share.
-            Assert.Equal("its owner's Blood Magic, 50% of a rise each", SkillWords.TrainsOwner("Blood Magic", 0.5f));
+            Assert.Equal("the Blood Magic of the player it follows, 50% of the usual gain per hit", SkillWords.TrainsOwner("Blood Magic", 0.5f));
             Assert.Equal("summoned at Blood Magic 30", SkillWords.SummonedAt("at Blood Magic 30"));
             // Character.GetRandomSkillFactor for anything but a player: the square root of an even roll from 0.75 to 1, times its strength.
             Assert.Equal(new[] { "summoned at Blood Magic 30", "28–32 slash", "", "", "" },
@@ -180,9 +180,9 @@ namespace Scry.Tests
         [Fact]
         public void AnArcheryTargetTellsWhatItTrains()
         {
-            // ArcheryTarget: a hit raises the skill of what was shot, more the nearer its middle.
-            Assert.Equal("the skill of what hits it, more the nearer its middle", SkillWords.TargetTrains(1f));
-            Assert.Equal("the skill of what hits it, more the nearer its middle, ×2 as much", SkillWords.TargetTrains(2f));
+            // ArcheryTarget: a hit raises the skill of what was shot, more the closer to the bullseye.
+            Assert.Equal("the skill you shoot it with, more the closer to the bullseye", SkillWords.TargetTrains(1f));
+            Assert.Equal("the skill you shoot it with, more the closer to the bullseye, ×2 as much", SkillWords.TargetTrains(2f));
         }
 
         [Fact]

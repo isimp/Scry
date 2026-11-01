@@ -38,8 +38,8 @@ namespace Scry.Tests
             Assert.Equal("Not within 5 m of", BuildWords.KeptApart(5f));
             // The game keeps pieces apart only with a radius to keep them by.
             Assert.Null(BuildWords.KeptApart(0f));
-            Assert.Equal("Within 1.5 m of", BuildWords.Near(1.5f, above: false));
-            Assert.Equal("On top of, within 2 m", BuildWords.Near(2f, above: true));
+            Assert.Equal("Must stand within 1.5 m of", BuildWords.Near(1.5f, above: false));
+            Assert.Equal("Must stand on top of, within 2 m", BuildWords.Near(2f, above: true));
         }
 
         // A station's own reach (CraftingStation.m_rangeBuild, more with each upgrade).
@@ -59,11 +59,11 @@ namespace Scry.Tests
             Assert.Equal(new List<(string, string)>
             {
                 ("Warmth", "within 10 m you are by a fire, which resting and sleeping need"),
-                ("Fire", "creatures afraid of fire keep away from within 10 m"),
-                ("A base", "within 10 m the world's spawning and creature spawners place nothing, unless set to; three such near you let raids that come for bases come"),
+                ("Fire", "creatures afraid of fire keep about 13 m away"),
+                ("A base", "within 10 m no creatures spawn from the world or creature spawners, except those set to spawn in bases; with three of these near you, raids that target bases can come"),
                 ("Flames", "a cooking station needing a fire cooks over it"),
                 ("Teleport area", "pieces built only in one can be built within 10 m"),
-                ("No monsters", "untamed creatures turn away from 15 m out and will not chase you into its 10 m"),
+                ("No monsters", "untamed creatures turn back about 7.5 m outside its 10 m and will not follow you into it"),
                 ("Warm and cozy", "within 10 m cold and freezing do not reach you, and you rest even wet"),
             }, lines);
         }
@@ -87,13 +87,13 @@ namespace Scry.Tests
         }
 
         // A bed (Bed.Interact): claiming it makes it where you come back to, and needs a roof
-        // and most of it covered; sleeping in it needs night, no enemy sensing you, the same
-        // cover, a fire near and being dry.
+        // and most of it enclosed; sleeping in it needs night, no enemy sensing you, the same
+        // enclosure, a fire near and being dry.
         [Fact]
         public void ABedSaysWhatClaimingAndSleepingNeed()
         {
-            Assert.Equal("where you come back to after dying; it needs a roof and at least 80% cover", BuildWords.BedClaim(0.8f));
-            Assert.Equal("at night, with no enemy sensing you, under a roof with at least 80% cover, by a fire, and dry", BuildWords.BedSleep(0.8f));
+            Assert.Equal("where you come back to after dying; it needs a roof and to be at least 80% enclosed", BuildWords.BedClaim(0.8f));
+            Assert.Equal("at night, with no enemy sensing you, under a roof and at least 80% enclosed, by a fire, and dry", BuildWords.BedSleep(0.8f));
         }
     }
 }

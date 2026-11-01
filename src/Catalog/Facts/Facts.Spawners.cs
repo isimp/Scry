@@ -29,7 +29,7 @@ namespace Scry
             if (table.Lines.Count > 0) Rows.Add(table);
             if (pool.Any(p => p.m_maxLevel > p.m_minLevel)) Add("Star chance", SpawnWords.StarChance(area.m_levelupChance));
             Proofs["Star chance"] = Proofs["Pace"] = EntryKeys.Did(Deed.Spawned);
-            Add("Wakes", SpawnWords.SpawnerWakes(area.m_triggerDistance));
+            Add("Active", SpawnWords.SpawnerWakes(area.m_triggerDistance));
             Add("Pace", SpawnWords.SpawnerPace(area.m_spawnIntervalSec));
             Add("Keeps alive", SpawnWords.SpawnerCaps(area.m_maxNear, area.m_nearRadius, area.m_maxTotal, area.m_farRadius));
             Add("Spawns them", SpawnWords.SpawnerPlaces(area.m_spawnRadius, area.m_onGroundOnly));

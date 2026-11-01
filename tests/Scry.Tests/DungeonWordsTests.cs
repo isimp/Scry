@@ -60,9 +60,9 @@ namespace Scry.Tests
             var rows = DungeonWords.DoorRows(plan);
 
             Assert.Equal(2, rows.Count);
-            Assert.Equal("Door in 30% of doorways that allow one", rows[0].Title);
+            Assert.Equal("A door stands in 30% of doorways that can hold one", rows[0].Title);
             Assert.Equal(new[] { ("wood_door", "") }, rows[0].Doors);
-            Assert.Equal("Door in 50% of iron doorways that allow one", rows[1].Title);
+            Assert.Equal("A door stands in 50% of iron doorways that can hold one", rows[1].Title);
             Assert.Equal(new[] { ("iron_gate", "") }, rows[1].Doors);
         }
 
@@ -75,7 +75,7 @@ namespace Scry.Tests
 
             var row = Assert.Single(DungeonWords.DoorRows(plan));
 
-            Assert.Equal("Doors in 100% of doorways that allow one, one of these alike", row.Title);
+            Assert.Equal("A door stands in 100% of doorways that can hold one, any one of these", row.Title);
             Assert.Equal(new[] { "a", "b", "c", "d", "e" }, row.Doors.Select(d => d.Prefab));
             Assert.All(row.Doors, d => Assert.Equal("", d.Chance));
         }
@@ -91,7 +91,7 @@ namespace Scry.Tests
             var row = Assert.Single(DungeonWords.DoorRows(plan));
 
             // Listed twice, a is picked twice as often: (1 + 0.5 + 1) / 3 of doorways.
-            Assert.Equal("Doors in 83% of doorways that allow one, one of these alike", row.Title);
+            Assert.Equal("A door stands in 83% of doorways that can hold one, any one of these", row.Title);
             Assert.Equal(new[] { ("a", "100%"), ("b", "50%") }, row.Doors);
         }
 
@@ -103,7 +103,7 @@ namespace Scry.Tests
             plan.Doors.Add(("", 0f, "wood_door"));
 
             var row = Assert.Single(DungeonWords.DoorRows(plan));
-            Assert.Equal("Door in 30% of doorways that allow one", row.Title);
+            Assert.Equal("A door stands in 30% of doorways that can hold one", row.Title);
             Assert.Single(row.Doors);
         }
 

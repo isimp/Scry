@@ -79,7 +79,7 @@ namespace Scry.Tests
         [InlineData("m_healthOverTimeDuration", "Heals over")]
         [InlineData("m_staminaOverTimeDuration", "Gives stamina over")]
         [InlineData("m_modifyAttackSkill", "Stronger attacks with")]
-        [InlineData("m_damageModifier", "Their damage")]
+        [InlineData("m_damageModifier", "Damage dealt")]
         [InlineData("m_raiseSkill", "Trains faster")]
         [InlineData("m_raiseSkillModifier", "Trains faster by")]
         [InlineData("m_attributes", "Also")]
@@ -118,7 +118,7 @@ namespace Scry.Tests
             Assert.Equal("12", StatusEffectWords.Shown("m_health", 12f, "12"));
             Assert.Equal("players only", StatusEffectWords.Shown("m_effectsOnlyOnPlayer", true, "Yes"));
             Assert.Equal("2.5 a second", StatusEffectWords.Shown("m_staminaDrainPerSec", 2.5f, "2.5"));
-            Assert.Equal("a share of your most stamina", StatusEffectWords.Shown("m_staminaOverTimeIsFraction", true, "Yes"));
+            Assert.Equal("a share of your maximum stamina", StatusEffectWords.Shown("m_staminaOverTimeIsFraction", true, "Yes"));
             Assert.Equal("60 s", StatusEffectWords.Shown("m_ttlPerItemLevel", 60f, "60"));
             Assert.Equal("60 s", StatusEffectWords.Shown("m_ttlPerItemLevel", 60, "60"));
             // Full at a wind of full strength straight behind, none against it (SE_Stats.ModifySpeed, ModifyRunStaminaDrain).

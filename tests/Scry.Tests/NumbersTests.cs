@@ -172,7 +172,7 @@ namespace Scry.Tests
                 Assert.Equal("-12.5%", Numbers.Percent(-0.125, 1, signed: true));
                 Assert.Equal("2.5 h", Numbers.Duration(9000f));
                 Assert.Equal("0.4%", DropWords.Share(0.004f));
-                Assert.Equal("1,200 within 10 m, 3 within 40 m", SpawnWords.SpawnerCaps(1200, 10f, 3, 40f));
+                Assert.Equal("at most 1,200 within 10 m, at most 3 within 40 m", SpawnWords.SpawnerCaps(1200, 10f, 3, 40f));
                 CultureInfo.CurrentCulture = new CultureInfo("sv-SE");
                 Assert.Equal("-5,000", Numbers.Count(-5000));
             }

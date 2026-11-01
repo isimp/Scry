@@ -94,11 +94,11 @@ namespace Scry.Tests
             // Each line's hover says the way to what it counts: meet it first, then the way this topic pairs it.
             Assert.Equal("Named here once you meet each", CompendiumWords.MeetFirstTip(strict: false));
             Assert.Equal("Met nowhere yet: meet each first", CompendiumWords.MeetFirstTip(strict: true));
-            Assert.Equal("Met, not yet seen to fall from this: named here once you see one drop as this dies", CompendiumWords.TogetherTip("loot"));
-            Assert.Equal("Met, not yet seen to give this: named here once you see this come of it, picked, broken, mined, made or dropped", CompendiumWords.TogetherTip("from"));
-            Assert.Equal("Met, but not in this place: named here once you meet this there", CompendiumWords.TogetherTip("lives"));
-            Assert.Equal("Met, not yet seen in this room's dungeon: named here once you see it inside one", CompendiumWords.TogetherTip("room"));
-            Assert.Equal("Met, not yet seen together with this page: named here once you see the two go together in play, "
+            Assert.Equal("You've met these but not yet seen them drop from this. Each is named here once you see it drop as this dies", CompendiumWords.TogetherTip("loot"));
+            Assert.Equal("You've met these but not yet seen them give this. Each is named here once you see this come of it: picked, broken, mined, made or dropped", CompendiumWords.TogetherTip("from"));
+            Assert.Equal("You've found these places but not yet met this in them. Each is named here once you meet this there", CompendiumWords.TogetherTip("lives"));
+            Assert.Equal("You've met these but not yet seen them in a dungeon with this room. Each is named here once you see it inside one", CompendiumWords.TogetherTip("room"));
+            Assert.Equal("You've met these but not yet seen them go together with this page. Each is named here once you see the two go together in play, "
                 + "as a drop falls, a ware stands in a store, an item goes into or comes out of a station, a tool breaks it or a creature eats it", CompendiumWords.TogetherTip("fight"));
             Assert.Equal(CompendiumWords.TogetherTip("fight"), CompendiumWords.TogetherTip(null));
             Assert.Equal("1 recipe row waits for the game to list it", CompendiumWords.RecipeRowsWait(1));

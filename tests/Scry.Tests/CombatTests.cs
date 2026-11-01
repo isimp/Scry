@@ -143,8 +143,8 @@ namespace Scry.Tests
         {
             // MonsterAI turns alerted on seeing its target within m_alertRange times the target's
             // stealth factor, which is below one only while the target sneaks.
-            Assert.Equal("on seeing you within 90 m, nearer while you sneak", CombatWords.Alerted(90f));
-            Assert.Equal("on seeing you within 12.5 m, nearer while you sneak", CombatWords.Alerted(12.5f));
+            Assert.Equal("on seeing you within 90 m, a shorter range while you sneak", CombatWords.Alerted(90f));
+            Assert.Equal("on seeing you within 12.5 m, a shorter range while you sneak", CombatWords.Alerted(12.5f));
         }
 
         [Fact]
@@ -306,10 +306,10 @@ namespace Scry.Tests
         [Fact]
         public void HowAComboIsKeptGoingIsSaid()
         {
-            Assert.Equal("3 swings, the next pressed in time; a pause of 0.2 s starts over; follow-ups keep the first one's facing", CombatWords.Combo(3, swings: true));
+            Assert.Equal("3 swings, each next one pressed in time; a pause of 0.2 s starts the combo over; the later ones keep the first one's facing", CombatWords.Combo(3, swings: true));
             Assert.Equal("Combo", CombatWords.ComboTitle(second: false));
             Assert.Equal("Second combo", CombatWords.ComboTitle(second: true));
-            Assert.Equal("2 attacks in turn, the next pressed in time; a pause of 0.2 s starts over; follow-ups keep the first one's facing", CombatWords.Combo(2, swings: false));
+            Assert.Equal("2 attacks in turn, each next one pressed in time; a pause of 0.2 s starts the combo over; the later ones keep the first one's facing", CombatWords.Combo(2, swings: false));
         }
 
         [Fact]
@@ -318,7 +318,7 @@ namespace Scry.Tests
             // Attack.m_resetChainIfHit, by DestructibleType: Default 1, Tree 2, Character 4.
             Assert.Equal(new[] { ("On a tree", "starts the combo over") }, CombatWords.ComboResets(2));
             Assert.Empty(CombatWords.ComboResets(0));
-            Assert.Equal(new[] { ("On a rock or piece", "starts the combo over"), ("On a creature", "starts the combo over") }, CombatWords.ComboResets(5));
+            Assert.Equal(new[] { ("On a rock or build piece", "starts the combo over"), ("On a creature", "starts the combo over") }, CombatWords.ComboResets(5));
         }
 
         [Fact]

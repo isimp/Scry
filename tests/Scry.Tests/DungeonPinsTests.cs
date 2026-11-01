@@ -195,7 +195,7 @@ namespace Scry.Tests
         public void ThePinsTipSaysItMarksEveryEntranceAndWhatWithInsidesAdds()
         {
             Assert.Equal("Mark dungeons on the big map", CompendiumWords.PinName);
-            Assert.Equal("Marks every dungeon entrance in this ground on Valheim's big map. With insides, each one walked on this server shows what was walked. A click opens it in Scry. Dungeons you walked are marked anyway.\nOff.",
+            Assert.Equal("Marks every dungeon entrance in this ground on Valheim's big map. Under With insides, a dungeon walked on this server shows the rooms walked. Clicking a mark opens that dungeon in Scry. Dungeons you walked are marked anyway.\nOff.",
                 CompendiumWords.PinTip(on: false));
             Assert.EndsWith("\nOn.", CompendiumWords.PinTip(on: true));
         }

@@ -10,7 +10,7 @@ namespace Scry.Tests
         [Fact]
         public void AWorldPickingRaidsByEachPlayersProgressSaysSoInPlaceOfTheKeys()
         {
-            Assert.Equal("for a player whose own progress calls for it", RaidWords.OnTheTable(true, new[] { "defeated_bonemass" }, null, k => "Bonemass"));
+            Assert.Equal("for one player at a time, whose own progress allows it", RaidWords.OnTheTable(true, new[] { "defeated_bonemass" }, null, k => "Bonemass"));
             Assert.Equal(RaidWords.Starts(new[] { "defeated_bonemass" }, null, k => "Bonemass"), RaidWords.OnTheTable(false, new[] { "defeated_bonemass" }, null, k => "Bonemass"));
         }
 

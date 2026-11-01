@@ -49,7 +49,7 @@ namespace Scry
             if (weather.Wet) parts.Add("wet outside without a roof");
             AddTemperature(parts, weather);
             if (weather.AlwaysDark) parts.Add("always dark");
-            parts.Add(weather.WindMax <= 0f ? "no wind" : $"wind {Numbers.Amount(weather.WindMin * 100.0, 0)}–{Numbers.Percent(weather.WindMax)}");
+            parts.Add(weather.WindMax <= 0f ? "no wind" : $"wind strength {Numbers.Amount(weather.WindMin * 100.0, 0)}–{Numbers.Percent(weather.WindMax)}");
             return string.Join(", ", parts);
         }
 

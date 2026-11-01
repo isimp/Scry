@@ -27,7 +27,7 @@ namespace Scry
             p.Check(Pair(FishWords.Water)?.StartsWith("where the bottom lies 1.5 to 3 m below the surface", System.StringComparison.Ordinal) == true, "where the bottom lies 1.5 to 3 m down", Pair(FishWords.Water));
             p.Check(Pair(FishWords.Comes) != null && Pair(FishWords.FindsFloat) != null && Pair(FishWords.Line) != null, "it tells when it comes, how it finds a float and when the line breaks", Pair(FishWords.Comes) + " / " + Pair(FishWords.FindsFloat) + " / " + Pair(FishWords.Line));
             var rod = Pick(Kind.Item, "FishingRod");
-            if (rod != null) p.Check(Facts.For(rod).Pairs.Any(x => x.Key == "With a fish on"), "the rod tells what a fish on its float drains, read from the float its cast makes");
+            if (rod != null) p.Check(Facts.For(rod).Pairs.Any(x => x.Key == "Stamina with a fish on"), "the rod tells what a fish on its float drains, read from the float its cast makes");
             var fight = facts.Rows.FirstOrDefault(r => r.Title == FishWords.FightTitle);
             p.Check(fight != null && fight.Columns.Length == 6, "its fight stands by stars, no star to four", fight == null ? "none" : string.Join(", ", fight.Columns));
             p.Check(fight != null && Enumerable.Range(1, 5).All(c => fight.CellProofs.TryGetValue((0, c), out var proof) && proof == EntryKeys.Landed(c - 1)), "each column of its fight waits for one landed with those stars");

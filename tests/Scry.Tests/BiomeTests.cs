@@ -56,7 +56,7 @@ namespace Scry.Tests
         public void ItsWeathersAreATableOfEachWeatherItsShareAndWhatItDoes()
         {
             Assert.Equal("Weathers", BiomeWords.WeathersTitle);
-            Assert.Equal(new[] { "Weather", "Of the time", "What it does" }, BiomeWords.WeatherColumns);
+            Assert.Equal(new[] { "Weather", "Share of the time", "What it does" }, BiomeWords.WeatherColumns);
         }
 
         [Fact]

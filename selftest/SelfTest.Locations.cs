@@ -313,7 +313,7 @@ namespace Scry
         }
 
         /// <summary>
-        /// Forgetting what was kept, as Look again above the Locations tab's list does: its files
+        /// Forgetting what was kept, as Read locations again above the Locations tab's list does: its files
         /// go, every place is told as never read meanwhile, and once read afresh every entry tells
         /// of the places what it told before, and what was read is kept again.
         /// </summary>
@@ -326,7 +326,7 @@ namespace Scry
             X.KindFilter = Kind.Location;
             var drawn = ScryPanel.Drawn(PanelPart.LookAgain);
             yield return Until(() => ScryPanel.Drawn(PanelPart.LookAgain) > drawn, 5);
-            p.Check(ScryPanel.Drawn(PanelPart.LookAgain) > drawn, "the Locations tab offers Look again above its list once the places are known",
+            p.Check(ScryPanel.Drawn(PanelPart.LookAgain) > drawn, "the Locations tab offers Read locations again above its list once the places are known",
                 $"panel {(Session.IsOpen ? "open" : "closed")}, tab {X.KindFilter?.ToString() ?? "every kind"}, {Numbers.Count(X.Results.Count)} listed, locations {Locations.Now}");
 
             var before = ToldOfPlaces();
@@ -346,7 +346,7 @@ namespace Scry
             drawn = ScryPanel.Drawn(PanelPart.LookAgain);
             yield return null;
             yield return null;
-            p.Check(ScryPanel.Drawn(PanelPart.LookAgain) == drawn, "Look again is not offered while they are read afresh");
+            p.Check(ScryPanel.Drawn(PanelPart.LookAgain) == drawn, "Read locations again is not offered while they are read afresh");
 
             var asked = Time.unscaledTime;
             yield return Until(() => !Locations.Busy && Locations.Now == Locations.State.Read, 400);

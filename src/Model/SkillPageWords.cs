@@ -69,11 +69,11 @@ namespace Scry
             if (inputs.Costs) Line("Cost of an attack", l => Share(SkillMath.CostShare(l)));
             var draws = inputs.DrawTimes.Distinct().ToList();
             if (draws.Count == 1) Line("Full draw", l => Seconds(SkillMath.DrawTime(draws[0], l)));
-            else if (draws.Count > 1) Line("Full draw, of the bow's time", l => Share(SkillMath.DrawTime(1f, l)));
+            else if (draws.Count > 1) Line("Full draw (share of the bow's time)", l => Share(SkillMath.DrawTime(1f, l)));
             if (inputs.DrawDrains) Line("Drain while drawing", l => Share(SkillMath.CostShare(l)));
             var reloads = inputs.ReloadTimes.Distinct().ToList();
             if (reloads.Count == 1) Line("Reloading", l => Seconds(SkillMath.ReloadTime(reloads[0], l)));
-            else if (reloads.Count > 1) Line("Reloading, of the weapon's time", l => Share(SkillMath.ReloadTime(1f, l)));
+            else if (reloads.Count > 1) Line("Reloading (share of the weapon's time)", l => Share(SkillMath.ReloadTime(1f, l)));
 
             switch (inputs.Name)
             {
@@ -113,12 +113,12 @@ namespace Scry
             if (inputs.Crafts)
             {
                 Line("Making time", l => Share(SkillMath.CraftTimeShare(l, inputs.CraftMostSaved)));
-                if (inputs.CraftBonus > 0f) Line("Bonus: when making", l => Chance(SkillMath.BonusChance(l, inputs.CraftBonus)));
+                if (inputs.CraftBonus > 0f) Line("Chance of extra: making", l => Chance(SkillMath.BonusChance(l, inputs.CraftBonus)));
             }
-            if (inputs.CookBonus > 0f) Line("Bonus: taking food off", l => Chance(SkillMath.BonusChance(l, inputs.CookBonus)));
-            if (inputs.PickBonus > 0f) Line("Bonus: picking", l => Chance(SkillMath.BonusChance(l, inputs.PickBonus)));
+            if (inputs.CookBonus > 0f) Line("Chance of extra: cooking station", l => Chance(SkillMath.BonusChance(l, inputs.CookBonus)));
+            if (inputs.PickBonus > 0f) Line("Chance of extra: picking", l => Chance(SkillMath.BonusChance(l, inputs.PickBonus)));
             if (inputs.BuildStamina) Line("Building stamina", l => Share(SkillMath.BuildStaminaShare(l)));
-            if (inputs.WearSaved > 0f) Line("Tool wear placing", l => Share(SkillMath.WearShare(l, inputs.WearSaved)));
+            if (inputs.WearSaved > 0f) Line("Tool wear when placing", l => Share(SkillMath.WearShare(l, inputs.WearSaved)));
             if (inputs.ScytheAtTop > 0f) Line("Scythe reach", l => Numbers.Metres(SkillMath.Between(inputs.ScytheAtNone, inputs.ScytheAtTop, l), 1));
             if (inputs.ShieldListed > 0f) Line("Shield absorbs", l => Numbers.Amount(SkillMath.ShieldAbsorb(inputs.ShieldListed, inputs.ShieldPerLevel, l), 0));
             foreach (var (staff, levels, counts) in inputs.Summons)
@@ -129,7 +129,7 @@ namespace Scry
                     return step >= 0 && step < counts.Length ? Numbers.Count(counts[step]) : "1";
                 });
             }
-            if (inputs.Summons.Count > 0 && inputs.SummonPerLevel > 0f) Line("Summons' hits", l => Numbers.Times(SkillMath.SummonStrength(l, inputs.SummonPerLevel), 1));
+            if (inputs.Summons.Count > 0 && inputs.SummonPerLevel > 0f) Line("Summons' damage", l => Numbers.Times(SkillMath.SummonStrength(l, inputs.SummonPerLevel), 1));
             return lines;
         }
 
@@ -173,7 +173,7 @@ namespace Scry
         public static string ToNext(string skill, float level, float progress, float step, float rested, (string Weapon, float PerHit)? held = null)
         {
             if (level >= SkillMath.Top) return null;
-            var there = $"{Numbers.Percent(Math.Min(1f, progress / SkillMath.NextLevelNeeds(level)))} there";
+            var there = $"{Numbers.Percent(Math.Min(1f, progress / SkillMath.NextLevelNeeds(level)))} of the way";
             var unit = RiseUnit(skill);
             if (unit.Words == null || step <= 0f) return there;
             if (held != null && held.Value.PerHit > 0f && UsualHitRise(skill) != null) unit = (unit.Words + " with " + held.Value.Weapon, held.Value.PerHit, false);
@@ -181,8 +181,8 @@ namespace Scry
             var left = SkillMath.RisesToNext(level, progress, each);
             var leftRested = SkillMath.RisesToNext(level, progress, each * rested);
             return unit.Seconds
-                ? $"{there}, about {Numbers.Duration(left)} of {unit.Words}, {Numbers.Duration(leftRested)} rested"
-                : $"{there}, about {Numbers.Count(left)} {unit.Words}, {Numbers.Count(leftRested)} rested";
+                ? $"{there}, about {Numbers.Duration(left)} of {unit.Words}, or {Numbers.Duration(leftRested)} while rested"
+                : $"{there}, about {Numbers.Count(left)} {unit.Words}, or {Numbers.Count(leftRested)} while rested";
         }
 
         /// <summary>A weapon skill's usual rise a hit on a creature before its step: a swing's half again for those mostly swung, a shot's for the rest; none for any other skill.</summary>
@@ -243,7 +243,7 @@ namespace Scry
                 case "Bows":
                 case "Crossbows":
                     return "Hitting creatures with what trains it, or an archery target, up to a third as much at its middle";
-                case "Pickaxes": return "Hitting rocks, ore and other things that break, a tree or a creature aside, with a pickaxe";
+                case "Pickaxes": return "Hitting rocks, ore and other breakable things with a pickaxe, but not trees or creatures";
                 case "WoodCutting": return "Hitting trees with an axe";
                 case "Blocking": return "Each hit blocked, twice as much for a parry";
                 case "Jump": return "Each jump with the stamina for it";
@@ -263,7 +263,7 @@ namespace Scry
 
         /// <summary>What a death takes of a skill (<c>Skills.OnDeath</c>), and when it takes nothing (<c>Player.OnDeath</c>: not within the wait after a death).</summary>
         public static string OnDeath(float share, float wait) =>
-            $"Loses {Numbers.Percent(share, 1)} of its level and the way to the next, unless your last death was less than {Numbers.Duration(wait)} before";
+            $"Loses {Numbers.Percent(share, 1)} of its level and all progress toward the next level, unless your last death was less than {Numbers.Duration(wait)} ago";
 
         /// <summary>What a skill leaves alone where players expect it to change something: a pickaxe's digging.</summary>
         public static (string Label, string Text)? NotChanged(string skill) =>

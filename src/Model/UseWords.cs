@@ -9,7 +9,7 @@ namespace Scry
             switch (kind)
             {
                 case UseKind.Crafts: return place != null ? $"Used to make at {place}" : "Used to make by hand";
-                case UseKind.UpgradesPastTop: return "Takes these past their top quality, at " + ItemWords.UpgradeStation(upgradeStation);
+                case UseKind.UpgradesPastTop: return "Upgrades these past their top quality, at " + ItemWords.UpgradeStation(upgradeStation);
                 case UseKind.Builds: return place != null ? $"Used to build near {place}" : "Used to build";
                 case UseKind.TurnsInto: return place != null ? $"{place} turns it into" : "Turned into";
                 case UseKind.Fuels: return "Burnt as fuel by";
