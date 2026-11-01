@@ -28,16 +28,32 @@ namespace Scry
         private readonly Dictionary<string, Dictionary<string, Dictionary<long, List<(int X, int Z)>>>> _spots =
             new Dictionary<string, Dictionary<string, Dictionary<long, List<(int X, int Z)>>>>(StringComparer.Ordinal);
 
+        /// <summary>How many spots a world keeps at most, so a record never grows without end.</summary>
+        public const int MostAWorld = 20000;
+
+        /// <summary>How many spots each world keeps now.</summary>
+        private readonly Dictionary<string, int> _counts = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        private readonly int _most;
+
+        /// <summary>Spots kept, a world keeping at most <paramref name="most"/>.</summary>
+        public SeenSpots(int most = MostAWorld) => _most = most;
+
         /// <summary>Whether anything differs from what was last saved or loaded.</summary>
         public bool Changed { get; private set; }
 
         /// <summary>How many spots are kept, in every world.</summary>
-        public int Count => _spots.Values.Sum(kinds => kinds.Values.Sum(buckets => buckets.Values.Sum(list => list.Count)));
+        public int Count => _counts.Values.Sum();
 
-        /// <summary>A thing of a kind seen standing at x and z in a world: kept as a spot unless one of its kind is kept there already; whether it was new.</summary>
+        /// <summary>
+        /// A thing of a kind seen standing at x and z in a world: kept as a spot unless one of its
+        /// kind is kept there already or the world keeps its most already; whether it was new.
+        /// </summary>
         public bool Saw(string world, string kind, float x, float z)
         {
-            if (Find(world, kind, x, z, out _, out _) || world == null || kind == null) return false;
+            if (world == null || kind == null || Find(world, kind, x, z, out _, out _)) return false;
+            if (_counts.TryGetValue(world, out var count) && count >= _most) return false;
+            _counts[world] = count + 1;
             var at = (X: (int)Math.Round(x), Z: (int)Math.Round(z));
             if (!_spots.TryGetValue(world, out var kinds)) _spots[world] = kinds = new Dictionary<string, Dictionary<long, List<(int, int)>>>(StringComparer.Ordinal);
             if (!kinds.TryGetValue(kind, out var buckets)) kinds[kind] = buckets = new Dictionary<long, List<(int, int)>>();
@@ -53,6 +69,7 @@ namespace Scry
         {
             if (!Find(world, kind, x, z, out var list, out var index)) return false;
             list.RemoveAt(index);
+            _counts[world]--;
             Changed = true;
             return true;
         }
@@ -87,28 +104,45 @@ namespace Scry
         /// <summary>Takes away a world's spots, or every spot where no world is named.</summary>
         public void Forget(string world = null)
         {
-            if (world == null) _spots.Clear();
-            else _spots.Remove(world);
+            if (world == null)
+            {
+                _spots.Clear();
+                _counts.Clear();
+            }
+            else
+            {
+                _spots.Remove(world);
+                _counts.Remove(world);
+            }
             Changed = true;
         }
 
         /// <summary>The spots as text, worlds, kinds and spots in a fixed order; what is saved is no longer changed.</summary>
-        public string Save()
+        public string Save() => ToSave()();
+
+        /// <summary>
+        /// The spots copied as they are now, and what makes their text from that copy (<see cref="Save"/>),
+        /// to run off the game's frame while play goes on; what is copied is no longer changed.
+        /// </summary>
+        public Func<string> ToSave()
         {
-            var text = new StringBuilder().AppendLine(Header);
-            foreach (var world in _spots.Keys.OrderBy(w => w, StringComparer.Ordinal))
+            var copy = new List<(string World, string Kind, (int X, int Z)[] Spots)>();
+            foreach (var world in _spots)
+                foreach (var kind in world.Value) copy.Add((world.Key, kind.Key, kind.Value.Values.SelectMany(list => list).ToArray()));
+            Changed = false;
+            return () =>
             {
-                foreach (var kind in _spots[world].OrderBy(k => k.Key, StringComparer.Ordinal))
+                var text = new StringBuilder().Append(Header).Append('\n');
+                foreach (var (world, kind, spots) in copy.OrderBy(c => c.World, StringComparer.Ordinal).ThenBy(c => c.Kind, StringComparer.Ordinal))
                 {
-                    foreach (var spot in Ordered(kind.Value))
+                    foreach (var spot in spots.OrderBy(s => s.X).ThenBy(s => s.Z))
                     {
-                        text.Append(Stored.Escaped(world)).Append('\t').Append(Stored.Escaped(kind.Key)).Append('\t')
+                        text.Append(Stored.Escaped(world)).Append('\t').Append(Stored.Escaped(kind)).Append('\t')
                             .Append(Stored.Count(spot.X)).Append('\t').Append(Stored.Count(spot.Z)).Append('\n');
                     }
                 }
-            }
-            Changed = false;
-            return text.ToString();
+                return text.ToString();
+            };
         }
 
         /// <summary>Spots read back from their text; none from text of another make; a line that does not read is passed over.</summary>
@@ -181,5 +215,25 @@ namespace Scry
 
         /// <summary>Whether a thing seen is recorded: nothing a Wishbone finds, as a buried vein or chest, until it is opened and carries no beacon.</summary>
         public static bool Records(bool foundByWishbone) => !foundByWishbone;
+
+        /// <summary>What lies everywhere: what a thing gives that makes it no find of its own.</summary>
+        private static readonly HashSet<string> Everywhere = new HashSet<string>(StringComparer.Ordinal) { "Wood", "Stone" };
+
+        /// <summary>
+        /// Whether a kind of thing is worth finding again on the map: a place; a thing picked or
+        /// mined (<paramref name="gatheredBy"/>) that gives something besides wood and stone, as a
+        /// berry bush, flint, a mushroom or an ore deposit. Not a branch, a stone, a plain rock, a
+        /// tree, a shrub or a log, which stand everywhere.
+        /// </summary>
+        public static bool Findable(bool location, Gathered gatheredBy, IEnumerable<string> gives) =>
+            location || (gatheredBy != Gathered.None && gives.Any(item => !Everywhere.Contains(item)));
+    }
+
+    /// <summary>How a thing is gathered, as far as finding it again goes: picked, mined (a deposit or its broken form), or neither.</summary>
+    internal enum Gathered
+    {
+        None,
+        Picked,
+        Mined,
     }
 }

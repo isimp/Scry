@@ -143,6 +143,51 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AWorldKeepsAtMostSoManySpotsAndOthersStillTheirOwn()
+        {
+            // So a record can never grow without end: past the most a world keeps, a new spot is not kept.
+            var spots = new SeenSpots(most: 3);
+            for (var i = 0; i < 5; i++) spots.Saw(World, "Tin", i * 10f, 0f);
+            Assert.Equal(3, spots.Of(World, "Tin").Count);
+            Assert.True(spots.Saw(Other, "Tin", 0f, 0f));
+            // A spot gone makes room again.
+            spots.Gone(World, "Tin", 0f, 0f);
+            Assert.True(spots.Saw(World, "Tin", 90f, 0f));
+            Assert.Equal(20000, SeenSpots.MostAWorld);
+        }
+
+        [Fact]
+        public void TheTextIsMadeFromAMomentsCopySoPlayCanGoOnWhileItIsWritten()
+        {
+            // The spots are copied at once, the text made later off the game's frame: what is seen meanwhile is not in it.
+            var spots = new SeenSpots();
+            spots.Saw(World, "Tin", 1f, 2f);
+            var later = spots.ToSave();
+            Assert.False(spots.Changed);
+            spots.Saw(World, "Tin", 30f, 2f);
+            var text = later();
+            Assert.Equal(new[] { (1, 2) }, SeenSpots.Load(text).Of(World, "Tin"));
+            Assert.True(spots.Changed);
+        }
+
+        [Fact]
+        public void OnlyWhatIsWorthFindingAgainIsRecorded()
+        {
+            // A place, a pickable and a deposit giving something besides what lies everywhere.
+            Assert.True(SeenOnMap.Findable(location: true, gatheredBy: Gathered.None, gives: new string[0]));
+            Assert.True(SeenOnMap.Findable(false, Gathered.Picked, new[] { "Raspberry" }));
+            Assert.True(SeenOnMap.Findable(false, Gathered.Picked, new[] { "Flint" }));
+            Assert.True(SeenOnMap.Findable(false, Gathered.Mined, new[] { "TinOre", "Stone" }));
+            Assert.True(SeenOnMap.Findable(false, Gathered.Mined, new[] { "CopperOre" }));
+            // Branches, stones and plain rocks give only what lies everywhere; trees, shrubs and logs are not gathered so.
+            Assert.False(SeenOnMap.Findable(false, Gathered.Picked, new[] { "Wood" }));
+            Assert.False(SeenOnMap.Findable(false, Gathered.Picked, new[] { "Stone" }));
+            Assert.False(SeenOnMap.Findable(false, Gathered.Mined, new[] { "Stone" }));
+            Assert.False(SeenOnMap.Findable(false, Gathered.None, new[] { "Wood", "Resin" }));
+            Assert.False(SeenOnMap.Findable(false, Gathered.Mined, new string[0]));
+        }
+
+        [Fact]
         public void NothingAWishboneFindsIsRecordedUntilOpened()
         {
             // A buried vein or chest carries the beacon a Wishbone finds; opened, it carries none.
