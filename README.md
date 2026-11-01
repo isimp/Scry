@@ -28,7 +28,7 @@ Where your friends have Scry, what their game runs near you, a kill, a drop or a
 
 ## Looking things up
 
-Anything can also be looked at on the stage inside the panel: creatures at every star level, in any animation, with their gear and their attacks' sounds and effects; trees felled, pieces worn or broken, projectiles fired; locations and example dungeons as a new zone would roll them, cut open level by level. Every figure tells the game's rules behind it, what your skills make of it, which mods add or change it, and almost everything named can be clicked to go to it. The search takes terms such as `kind:creature`, `biome:swamp` and `station:forge`, and the ? beside it explains them all. With the compendium off, Scry is a lookup of everything the game and its mods hold.
+Anything can also be looked at on the stage inside the panel: creatures at every star level, in any animation, with their gear and their attacks' sounds and effects; trees felled, pieces worn or broken, projectiles fired; locations and example dungeons as a new zone would lay them out, cut open level by level. Every figure tells the game's rules behind it, what your skills make of it, which mods add or change it, and almost everything named can be clicked to go to it. The search takes terms such as `kind:creature`, `biome:swamp` and `station:forge`, and the ? beside it explains them all. With the compendium off, Scry is a lookup of everything the game and its mods hold.
 
 ## Installing
 
