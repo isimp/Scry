@@ -129,8 +129,8 @@ namespace Scry
     {
         private readonly HashSet<(long Game, int Number)> _told = new HashSet<(long, int)>();
 
-        /// <summary>The marks of the events recorded (<see cref="WorldEvent.Mark"/>), for the same event told from another side, each with when it was.</summary>
-        private readonly Dictionary<string, double> _marked = new Dictionary<string, double>(StringComparer.Ordinal);
+        /// <summary>The marks of the events recorded (<see cref="WorldEvent.Mark"/>), for the same event told from another side, each with when it was and what came of it then.</summary>
+        private readonly Dictionary<string, (double At, IReadOnlyList<(string Item, int Amount)> Came)> _marked = new Dictionary<string, (double, IReadOnlyList<(string, int)>)>(StringComparer.Ordinal);
 
         /// <summary>
         /// How long a mark stands, in seconds: longer than the two tellings of one event lie apart
@@ -143,12 +143,16 @@ namespace Scry
         public bool First(WorldEvent told) => _told.Add((told.Game, told.Number));
 
         /// <summary>Whether an event of this mark was recorded within a mark's life, from whichever side.</summary>
-        public bool Marked(WorldEvent told, double now) => told.Mark != null && _marked.TryGetValue(told.Mark, out var at) && now - at <= MarkLife;
+        public bool Marked(WorldEvent told, double now) => told.Mark != null && _marked.TryGetValue(told.Mark, out var was) && now - was.At <= MarkLife;
 
-        /// <summary>An event recorded, its mark kept from now.</summary>
+        /// <summary>What came of an event of this mark as it was recorded; none where none was.</summary>
+        public IReadOnlyList<(string Item, int Amount)> CameBefore(WorldEvent told) =>
+            told.Mark != null && _marked.TryGetValue(told.Mark, out var was) ? was.Came : Array.Empty<(string, int)>();
+
+        /// <summary>An event recorded, its mark kept from now with what came of it.</summary>
         public void Recorded(WorldEvent told, double now)
         {
-            if (told.Mark != null) _marked[told.Mark] = now;
+            if (told.Mark != null) _marked[told.Mark] = (now, told.Came);
         }
 
         /// <summary>On leaving a world.</summary>
@@ -209,7 +213,7 @@ namespace Scry
             var reach = book.World.SeenReach;
             var upClose = seen && reach > 0f && ax * ax + ay * ay + az * az <= reach * reach;
             if (share == EventShare.None) return share;
-            if (ledger.Marked(told, now)) Paired(told, book);
+            if (ledger.Marked(told, now)) Paired(told, book, ledger.CameBefore(told));
             else
             {
                 Record(told, book, counts, share, upClose, deathAttack);
@@ -218,8 +222,12 @@ namespace Scry
             return share;
         }
 
-        /// <summary>An event recorded already from its other side: only what it names seen together is added, nothing counted again.</summary>
-        private static void Paired(WorldEvent told, CompendiumBook book)
+        /// <summary>
+        /// An event recorded already from its other side: only what it names seen together is added,
+        /// nothing counted again; a pick told first here, with what the thing gives by itself, has
+        /// what the game running it rolled besides added to the same pick (<paramref name="before"/>).
+        /// </summary>
+        private static void Paired(WorldEvent told, CompendiumBook book, IReadOnlyList<(string Item, int Amount)> before)
         {
             switch (told.What)
             {
@@ -229,6 +237,7 @@ namespace Scry
                 case Happened.Broke:
                 case Happened.Picked:
                     foreach (var (item, _) in told.Came) book.SawWith(told.Thing, item, Tie.Gives);
+                    if (told.What == Happened.Picked) book.YieldedMore(told.Thing, before, told.Came);
                     return;
                 case Happened.Grew:
                     GrownInto(told, book);

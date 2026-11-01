@@ -487,6 +487,16 @@ namespace Scry
             Counted();
         }
 
+        /// <summary>
+        /// One yield counted already, told again with more: what the second telling adds beyond
+        /// the first is counted in that same yield, no yield counted anew.
+        /// </summary>
+        public void YieldedMore(string resource, IEnumerable<(string Item, int Amount)> before, IEnumerable<(string Item, int Amount)> after)
+        {
+            if (string.IsNullOrEmpty(resource) || after == null) return;
+            if (_gave.Amend(resource, before ?? Enumerable.Empty<(string, int)>(), after)) Counted();
+        }
+
         /// <summary>The keys raised, oldest first: the one at i raised to <see cref="Version"/> <c>_raisedFrom + i + 1</c>. Not kept.</summary>
         private readonly List<string> _raised = new List<string>();
         private int _raisedFrom;

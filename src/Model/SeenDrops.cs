@@ -78,6 +78,39 @@ namespace Scry
             Changed = true;
         }
 
+        /// <summary>
+        /// One kill or yield counted already with some of its loot, told again with more: each
+        /// item's rise beyond what was counted then is added to that same one, an item not counted
+        /// then counted in it as come once, no kill counted anew. A lower count before stays the
+        /// least seen, as the first telling's amount is not taken back. True when anything was added.
+        /// </summary>
+        public bool Amend(string creature, IEnumerable<(string Item, int Amount)> before, IEnumerable<(string Item, int Amount)> after)
+        {
+            if (string.IsNullOrEmpty(creature) || !_kills.ContainsKey(creature)) return false;
+            var was = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var (item, amount) in before) if (!string.IsNullOrEmpty(item) && amount > 0) was[item] = (was.TryGetValue(item, out var so) ? so : 0) + amount;
+            var now = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var (item, amount) in after) if (!string.IsNullOrEmpty(item) && amount > 0) now[item] = (now.TryGetValue(item, out var so) ? so : 0) + amount;
+            var added = false;
+            if (!_drops.TryGetValue(creature, out var items)) _drops[creature] = items = new Dictionary<string, SeenDrop>(StringComparer.Ordinal);
+            foreach (var pair in now)
+            {
+                was.TryGetValue(pair.Key, out var then);
+                if (pair.Value <= then) continue;
+                if (!items.TryGetValue(pair.Key, out var drop)) items[pair.Key] = drop = new SeenDrop { Item = pair.Key, Least = pair.Value, Most = pair.Value };
+                if (then == 0)
+                {
+                    drop.Times++;
+                    drop.Least = Math.Min(drop.Least, pair.Value);
+                }
+                drop.Total += pair.Value - then;
+                drop.Most = Math.Max(drop.Most, pair.Value);
+                added = true;
+            }
+            if (added) Changed = true;
+            return added;
+        }
+
         public int Kills(string creature) => creature != null && _kills.TryGetValue(creature, out var kills) ? kills : 0;
 
         /// <summary>What a creature was seen to drop, the most often first.</summary>

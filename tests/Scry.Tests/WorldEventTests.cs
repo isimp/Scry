@@ -1,3 +1,4 @@
+using System.Linq;
 using Xunit;
 
 namespace Scry.Tests
@@ -294,6 +295,20 @@ namespace Scry.Tests
             Assert.Equal(1, book.Tallied(Tally.Fell).Kills("Troll"));
             Assert.True(book.Witnessed("TrollHide", "Troll"));
             Assert.True(book.Witnessed("Coins", "Troll"));
+        }
+
+        [Fact]
+        public void APickOnABushAFriendsGameRunsCountsWhatItsGameAdds()
+        {
+            // Picked here, told at once with what the bush gives by itself; the game running it then
+            // tells the same pick with what it rolled besides: one pick, counted with all it gave.
+            var book = Told(Event(Happened.Picked, "RaspberryBush", 2f, 1, new[] { ("Raspberry", 1) }, doers: new[] { Me }, mark: "9:1"),
+                Event(Happened.Picked, "RaspberryBush", 2f, 2, new[] { ("Raspberry", 2), ("Blueberries", 1) }, doers: new[] { Me }, game: OtherGame, mark: "9:1"));
+            var gave = book.Tallied(Tally.Gave);
+            Assert.Equal(1, gave.Kills("RaspberryBush"));
+            Assert.Equal(2, gave.Sources("Raspberry").Single().Drop.Total);
+            Assert.Equal(1, gave.Sources("Blueberries").Single().Drop.Times);
+            Assert.True(book.Witnessed("RaspberryBush", "Blueberries", Tie.Gives));
         }
 
         [Fact]
