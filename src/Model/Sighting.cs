@@ -16,7 +16,7 @@ namespace Scry
         public const float MostReach = 150f;
 
         /// <summary>A person's size, as the game's player is tall.</summary>
-        private const float PersonSize = 1.8f;
+        public const float PersonSize = 1.8f;
 
         /// <summary>How far a thing of a size, its height or width whichever is larger (a creature's <c>Character.GetHeight</c>), is seen.</summary>
         public static float Reach(float size) => Math.Min(MostReach, PersonReach * Math.Max(1f, size / PersonSize));
