@@ -90,7 +90,7 @@ namespace Scry
                     NoteTopic(topic.Id, y);
                     var from = y;
                     y = TopicBody(explorer, entry, facts, topic, places, width, Mathf.Min(U(130f), width * 0.36f), y);
-                    y = StrictLeftLine(explorer, topic.Id, width, y);
+                    y = StrictLeftLine(explorer, topic.Id, width, y, entry.ShownName);
                     FadeIn(new Rect(0f, from, width, y - from), Skin.Backdrop, Staging.Shown(unit, FadeMs));
                     continue;
                 }
@@ -103,7 +103,7 @@ namespace Scry
                 try
                 {
                     y = TopicBody(explorer, entry, facts, topic, places, inner, labelW, y);
-                    y = StrictLeftLine(explorer, topic.Id, inner, y);
+                    y = StrictLeftLine(explorer, topic.Id, inner, y, entry.ShownName);
                 }
                 finally
                 {

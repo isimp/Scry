@@ -799,8 +799,8 @@ namespace Scry
             p.Check(ScryPanel.Drawn(PanelPart.ClosedPage) == closed, $"{fought.Name}, fought, shows its whole page");
             p.Check(drop != null && !X.Reaches(drop.Key), $"what it drops, not seen, is no link: {drop?.Name}");
             p.Check(drop != null && X.LeavesOut(drop.Key) && !X.LeavingOut, $"under the loose rules its page leaves out {drop?.Name}, not yet met");
-            p.Check(ScryPanel.Drawn(PanelPart.StrictLeftOut) > notMetLines && X.LeftOutLines("loot", 1, 0).FirstOrDefault().Line == CompendiumWords.NotYetMet("loot", 1),
-                "and says faintly how many more were not yet met", X.LeftOutLines("loot", 1, 0).FirstOrDefault().Line);
+            p.Check(ScryPanel.Drawn(PanelPart.StrictLeftOut) > notMetLines && X.LeftOutLines("loot", 1, 0).FirstOrDefault().Line == CompendiumWords.MeetLine("loot", 1),
+                "and asks faintly to meet how many more it drops", X.LeftOutLines("loot", 1, 0).FirstOrDefault().Line);
             p.Check(ScryPanel.Drawn(PanelPart.YouBox) > 0, "and opens with a box of what the character did with it and how it came to know it");
 
             // Strict: the fought creature's page keeps the drop seen fall, leaves out one that was not, and draws without fault.
@@ -818,7 +818,7 @@ namespace Scry
                 repaints = ScryPanel.Repaints;
                 yield return Until(() => ScryPanel.Repaints >= repaints + 3, 3);
                 p.Check(X.LeavingOut && !X.LeavesOut(drops[0].Key) && X.LeavesOut(drops[1].Key), $"under the strict rules its page keeps {drops[0].Name}, seen fall, and leaves out {drops[1].Name}");
-                p.Check(ScryPanel.Drawn(PanelPart.StrictLeftOut) > leftLines, "and says faintly at the end of its loot how many more were not yet seen fall");
+                p.Check(ScryPanel.Drawn(PanelPart.StrictLeftOut) > leftLines, "and asks faintly at the end of its loot to see it drop how many more met");
                 // Its biomes, none seen with it, leave their row with nothing: it draws nothing, its title neither.
                 p.Check(ScryPanel.Drawn(PanelPart.EmptyRowLeftOut) > emptyRows, "a row the strict rules leave with nothing draws nothing, not even its title");
                 p.Check(Faults.Count == strictFaults, "and draws without fault", Faults.Latest);
@@ -845,8 +845,8 @@ namespace Scry
                 yield return Until(() => ScryPanel.Repaints >= repaints + 3, 3);
                 p.Check(!X.LeavesOut(drops[0].Key) && X.LeavesOut(drops[1].Key) == (X.LevelOf(drops[1]) < KnownLevel.Seen),
                     $"under the loose rules its page names {drops[0].Name}, seen, and leaves out only what was not met");
-                p.Check(ScryPanel.Drawn(PanelPart.StrictLeftOut) > looseLines && X.LeftOutLines("loot", 1, 0).FirstOrDefault().Line == CompendiumWords.NotYetMet("loot", 1),
-                    "and its sections count what was not yet met, not what was not seen together", X.LeftOutLines("loot", 1, 0).FirstOrDefault().Line);
+                p.Check(ScryPanel.Drawn(PanelPart.StrictLeftOut) > looseLines && X.LeftOutLines("loot", 1, 0).FirstOrDefault().Line == CompendiumWords.MeetLine("loot", 1),
+                    "and its sections ask to meet what was not met, not to see what was met together", X.LeftOutLines("loot", 1, 0).FirstOrDefault().Line);
                 p.Check(!X.HidesDamage("Blunt"), "nor keeps back how a damage type lands");
             }
 

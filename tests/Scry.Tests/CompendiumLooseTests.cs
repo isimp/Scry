@@ -240,13 +240,13 @@ namespace Scry.Tests
         {
             var world = new World().Rule(CompendiumRule.Loose);
             world.Explorer.Select(world.Windmill);
-            // Every section counts what it left out as not yet met, a creature's places by what they are.
-            Assert.Equal("2 more not yet met", Line(world.Explorer, "making", 2));
-            Assert.Equal("1 more place it lives not yet found", Line(world.Explorer, "lives", 1));
+            // Every section asks to meet what it left out, a creature's places to be found.
+            Assert.Equal("Meet 2 more things it goes with", Line(world.Explorer, "making", 2));
+            Assert.Equal("Find 1 more place it lives", Line(world.Explorer, "lives", 1));
             Assert.Null(Line(world.Explorer, "making", 0));
 
             world.Rule(CompendiumRule.Strict);
-            Assert.Equal("2 more not yet seen fall", Line(world.Explorer, "loot", 2));
+            Assert.Equal("See it drop 2 items you've met", Line(world.Explorer, "loot", 2));
         }
 
         [Fact]
@@ -258,26 +258,43 @@ namespace Scry.Tests
             world.Explorer.Select(world.Windmill);
             Assert.Equal(new[]
             {
-                ("9 more not yet met", CompendiumWords.MeetFirstTip(strict: true)),
-                ("3 more not yet seen together", CompendiumWords.TogetherTip("fight")),
+                ("Meet 9 more things it goes with", CompendiumWords.MeetFirstTip(strict: true)),
+                ("See 3 things you've met with this", CompendiumWords.TogetherTip("fight")),
             }, world.Explorer.LeftOutLines("fight", unmet: 9, apart: 3));
             // Alone, where the section names nothing else; only one line where only one kind was left out.
-            Assert.Equal(new[] { ("2 not yet seen fall", CompendiumWords.TogetherTip("loot")) }, world.Explorer.LeftOutLines("loot", 0, 2, alone: true));
-            Assert.Equal(new[] { ("1 more not yet met", CompendiumWords.MeetFirstTip(strict: true)) }, world.Explorer.LeftOutLines("from", 1, 0));
+            Assert.Equal(new[] { ("See it drop 2 items you've met", CompendiumWords.TogetherTip("loot")) }, world.Explorer.LeftOutLines("loot", 0, 2, alone: true));
+            Assert.Equal(new[] { ("Meet 1 more source of Copper", CompendiumWords.MeetFirstTip(strict: true)) }, world.Explorer.LeftOutLines("from", 1, 0, name: "Copper"));
             // Where it lives: a place never found apart from a place found but where it was not met.
             Assert.Equal(new[]
             {
-                ("2 more places it lives not yet found", CompendiumWords.MeetFirstTip(strict: true)),
-                ("1 more place it lives not yet met in", CompendiumWords.TogetherTip("lives")),
+                ("Find 2 more places it lives", CompendiumWords.MeetFirstTip(strict: true)),
+                ("Meet it in 1 place you've found", CompendiumWords.TogetherTip("lives")),
             }, world.Explorer.LeftOutLines("lives", 2, 1));
             Assert.Empty(world.Explorer.LeftOutLines("fight", 0, 0));
 
             // Loose leaves out only what was never met, in one line for every section.
             world.Rule(CompendiumRule.Loose);
-            Assert.Equal(new[] { ("2 more not yet met", CompendiumWords.MeetFirstTip(strict: false)) }, world.Explorer.LeftOutLines("loot", 2, 0));
-            Assert.Equal(new[] { ("3 more not yet met", CompendiumWords.MeetFirstTip(strict: false)) }, world.Explorer.LeftOutLines("loot", 2, 1));
-            Assert.Equal(new[] { ("2 more not yet met", CompendiumWords.MeetFirstTip(strict: false)) }, world.Explorer.LeftOutLines("making", 2, 0));
+            Assert.Equal(new[] { ("Meet 2 more items it drops", CompendiumWords.MeetFirstTip(strict: false)) }, world.Explorer.LeftOutLines("loot", 2, 0));
+            Assert.Equal(new[] { ("Meet 3 more items it drops", CompendiumWords.MeetFirstTip(strict: false)) }, world.Explorer.LeftOutLines("loot", 2, 1));
+            Assert.Equal(new[] { ("Meet 2 more things it goes with", CompendiumWords.MeetFirstTip(strict: false)) }, world.Explorer.LeftOutLines("making", 2, 0));
             Assert.Empty(world.Explorer.LeftOutLines("making", 0, 0));
+        }
+
+        [Fact]
+        public void ASectionsLineCountsWhatItLeftOutByKindInItsHoverWhereEveryKindIsKnown()
+        {
+            var world = new World().Rule(CompendiumRule.Strict);
+            world.Explorer.Select(world.Windmill);
+            var lines = world.Explorer.LeftOutLines("from", 3, 2, name: "Copper",
+                unmetKinds: new[] { Kind.Creature, Kind.Resource, Kind.Creature }, apartKinds: new[] { Kind.Creature, Kind.Creature });
+            Assert.Equal(CompendiumWords.MeetFirstTip(strict: true) + "\n2 creatures, 1 resource", lines[0].Tip);
+            // All of one kind, the line's own noun says it; a kind not known for every one says nothing rather than a wrong count.
+            Assert.Equal(CompendiumWords.TogetherTip("from"), lines[1].Tip);
+            Assert.Equal(CompendiumWords.MeetFirstTip(strict: true), world.Explorer.LeftOutLines("from", 3, 0, unmetKinds: new[] { Kind.Creature, Kind.Resource })[0].Tip);
+            // Loose counts both together, as its one line does.
+            world.Rule(CompendiumRule.Loose);
+            Assert.Equal(CompendiumWords.MeetFirstTip(strict: false) + "\n4 creatures, 1 resource",
+                world.Explorer.LeftOutLines("from", 3, 2, unmetKinds: new[] { Kind.Creature, Kind.Resource, Kind.Creature }, apartKinds: new[] { Kind.Creature, Kind.Creature })[0].Tip);
         }
 
         [Fact]
@@ -295,22 +312,34 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ARoomCardsListSaysWhatItLeftOutAsLinesOfWhatToDoNamingTheKindItHolds()
+        {
+            // Under a room card's list, lines of their own as a section's: the list's one kind named, "things" for a mix.
+            var world = new World().Rule(CompendiumRule.Strict);
+            world.Explorer.Select(world.Windmill);
+            Assert.Equal(new[] { "Meet 1 more thing this room holds", "See 2 things you've met in this room" },
+                world.Explorer.LeftOutCounts("room", new[] { world.Barley.Key, world.Stone.Key, world.Neck.Key }, lines: true));
+            Assert.Equal(new[] { "See 1 creature you've met in this room" }, world.Explorer.LeftOutCounts("room", new[] { world.Neck.Key }, lines: true));
+            Assert.Equal(new[] { "Meet 1 item this room holds" }, world.Explorer.LeftOutCounts("room", new[] { world.Barley.Key }, alone: true, lines: true));
+        }
+
+        [Fact]
         public void UnderEitherRulesEverySectionSaysHowManyItLeftOut()
         {
             // Strict leaves out what was not seen together with the page; each section says how
             // many at its end, so the page never goes quiet on what it keeps back.
             var world = new World().Rule(CompendiumRule.Strict);
             world.Explorer.Select(world.Windmill);
-            Assert.Equal("2 more not yet seen together", Line(world.Explorer, "making", 2));
-            Assert.Equal("1 more not yet seen give it", Line(world.Explorer, "from", 1));
-            // A section with no topic of its own, as LINKED, counts too; one left with nothing else says it alone.
-            Assert.Equal("11 not yet seen together", Line(world.Explorer, null, 11, alone: true));
+            Assert.Equal("See 2 things you've met with this", Line(world.Explorer, "making", 2));
+            Assert.Equal("See 1 source you've met give it", Line(world.Explorer, "from", 1));
+            // A section with no topic of its own, as LINKED, counts too; seeing together takes no "more".
+            Assert.Equal("See 11 things you've met with this", Line(world.Explorer, null, 11, alone: true));
             Assert.Null(Line(world.Explorer, "making", 0));
-            // Loose leaves out only what was never met, and says so in every section just the same.
+            // Loose leaves out only what was never met, and says so in every section just the same; one left with nothing else says it alone.
             world.Rule(CompendiumRule.Loose);
-            Assert.Equal("2 more not yet met", Line(world.Explorer, "making", 2));
-            Assert.Equal("1 more not yet met", Line(world.Explorer, "from", 1));
-            Assert.Equal("11 not yet met", Line(world.Explorer, null, 11, alone: true));
+            Assert.Equal("Meet 2 more things it goes with", Line(world.Explorer, "making", 2));
+            Assert.Equal("Meet 1 more source of it", Line(world.Explorer, "from", 1));
+            Assert.Equal("Meet 11 things it goes with", Line(world.Explorer, null, 11, alone: true));
             Assert.Null(Line(world.Explorer, "making", 0));
         }
 
@@ -396,11 +425,11 @@ namespace Scry.Tests
             // are counted on it under either rule, a count the player can act on by going in.
             var world = new World().Rule(CompendiumRule.Loose);
             world.Explorer.Select(world.Windmill);
-            Assert.Equal("7 not yet met", Line(world.Explorer, "room", 7, alone: true));
-            Assert.Equal("2 more not yet met", Line(world.Explorer, "room", 2));
+            Assert.Equal("Meet 7 things this room holds", Line(world.Explorer, "room", 7, alone: true));
+            Assert.Equal("Meet 2 more things this room holds", Line(world.Explorer, "room", 2));
             Assert.Null(Line(world.Explorer, "room", 0));
             world.Rule(CompendiumRule.Strict);
-            Assert.Equal("7 not yet seen here", Line(world.Explorer, "room", 7, alone: true));
+            Assert.Equal("See 7 things you've met in this room", Line(world.Explorer, "room", 7, alone: true));
         }
 
         [Fact]

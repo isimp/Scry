@@ -19,15 +19,18 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void AListWhoseEveryLineWasLeftOutSaysOnlyHowManyAreNotYetMet()
+        public void AListWhoseEveryLineWasLeftOutSaysOnlyWhatToDoAboutThem()
         {
-            // Five creatures rolled, none met: the list says "5 not yet met", not also that the roll put none there.
-            Assert.Equal(new[] { "5 not yet met" }, RoomCardWords.ListLines(new string[0], new[] { CompendiumWords.NotYetMet(null, 5, alone: true) }));
-            Assert.Equal(new[] { "5 not yet seen here" }, RoomCardWords.ListLines(new string[0], new[] { CompendiumWords.LeftOutOf("room", 5, alone: true) }));
+            // Five creatures rolled, none met: the list says "Meet 5 creatures this room holds", not also that the roll put none there.
+            Assert.Equal(new[] { "Meet 5 creatures this room holds" },
+                RoomCardWords.ListLines(new string[0], new[] { CompendiumWords.MeetLine("room", 5, alone: true, holds: Kind.Creature) }));
+            Assert.Equal(new[] { "See 5 creatures you've met in this room" },
+                RoomCardWords.ListLines(new string[0], new[] { CompendiumWords.SeeLine("room", 5, holds: Kind.Creature) }));
             // Some listed, the rest counted as more: under the strict rules those never met apart from those met but not seen here.
-            Assert.Equal(new[] { "Draugr ×2", "3 more not yet met" }, RoomCardWords.ListLines(new[] { "Draugr ×2" }, new[] { CompendiumWords.NotYetMet(null, 3) }));
-            Assert.Equal(new[] { "Draugr ×2", "3 more not yet met", "1 more not yet seen here" },
-                RoomCardWords.ListLines(new[] { "Draugr ×2" }, new[] { CompendiumWords.NeverMet("room", 3), CompendiumWords.LeftOutOf("room", 1) }));
+            Assert.Equal(new[] { "Draugr ×2", "Meet 3 more creatures this room holds" },
+                RoomCardWords.ListLines(new[] { "Draugr ×2" }, new[] { CompendiumWords.MeetLine("room", 3, holds: Kind.Creature) }));
+            Assert.Equal(new[] { "Draugr ×2", "Meet 3 more creatures this room holds", "See 1 creature you've met in this room" },
+                RoomCardWords.ListLines(new[] { "Draugr ×2" }, new[] { CompendiumWords.MeetLine("room", 3, holds: Kind.Creature), CompendiumWords.SeeLine("room", 1, holds: Kind.Creature) }));
             // Nothing rolled at all.
             Assert.Equal(new[] { RoomCardWords.None }, RoomCardWords.ListLines(new string[0], null));
             Assert.Equal(new[] { RoomCardWords.None }, RoomCardWords.ListLines(new string[0], new string[0]));

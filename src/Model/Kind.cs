@@ -222,6 +222,14 @@ namespace Scry
             return $"Only one kind: {Naming.Commas(words)}.";
         }
 
+        /// <summary>The word a count of a kind goes by in a line, as many as it counts: "creature", "places", "status effects".</summary>
+        public static string Noun(Kind kind, int count)
+        {
+            if (kind == Kind.Location) return Naming.Noun(count, "place", "places");
+            var many = Label(kind).ToLowerInvariant();
+            return count == 1 && many.EndsWith("s", StringComparison.Ordinal) ? many.Substring(0, many.Length - 1) : many;
+        }
+
         /// <summary>The name a kind goes by in the panel, in the plural.</summary>
         public static string Label(Kind kind)
         {

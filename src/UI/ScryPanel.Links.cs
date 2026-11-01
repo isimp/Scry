@@ -518,11 +518,16 @@ namespace Scry
         /// <summary>How many things the rules left out of the section being drawn as never met, and as met but not seen together, for its last lines (<see cref="StrictLeftLine"/>).</summary>
         private static int _strictUnmet, _strictApart;
 
+        /// <summary>The kinds of the things counted as never met, and as met but not seen together, where known, for the lines' hovers to count them by kind.</summary>
+        private static readonly List<Kind> StrictUnmetKinds = new List<Kind>(), StrictApartKinds = new List<Kind>();
+
         /// <summary>A section begins: what the strict rules leave out is counted afresh.</summary>
         private static void StrictSectionStarts()
         {
             _strictUnmet = 0;
             _strictApart = 0;
+            StrictUnmetKinds.Clear();
+            StrictApartKinds.Clear();
             _recipesWait = 0;
             _strictNamed = 0;
         }
@@ -556,14 +561,22 @@ namespace Scry
             var apart = 0;
             foreach (var key in keys)
             {
-                if (explorer.NotMet(key)) unmet++;
+                var notMet = explorer.NotMet(key);
+                if (notMet) unmet++;
                 else apart++;
+                StrictKind(explorer, key, notMet);
             }
             StrictLeft(unmet, apart);
         }
 
         /// <summary>Counts one name the rules left out of the section being drawn (<see cref="StrictLeft(Explorer, IEnumerable{string})"/>).</summary>
         private static void StrictLeft(Explorer explorer, string key) => StrictLeft(explorer, new[] { key });
+
+        /// <summary>Keeps the kind of a name left out of the section being drawn, never met or met, where it is known, for its line's hover.</summary>
+        private static void StrictKind(Explorer explorer, string key, bool notMet)
+        {
+            if (explorer.Find(key) is Entry entry) (notMet ? StrictUnmetKinds : StrictApartKinds).Add(entry.Kind);
+        }
 
         /// <summary>Whether what is drawn shows only while a list plays, the parts of the effect list or clip played last: no part of the page's own count.</summary>
         private static bool _passing;
@@ -616,18 +629,21 @@ namespace Scry
         /// hover saying the way to it (<see cref="Explorer.LeftOutLines"/>); nothing where nothing
         /// was. Starts the count afresh for the next section.
         /// </summary>
-        private static float StrictLeftLine(Explorer explorer, string topic, float width, float y)
+        private static float StrictLeftLine(Explorer explorer, string topic, float width, float y, string name = null)
         {
             var (unmet, apart) = (_strictUnmet, _strictApart);
+            var (unmetKinds, apartKinds) = (StrictUnmetKinds.ToArray(), StrictApartKinds.ToArray());
             var waiting = _recipesWait;
             _strictUnmet = 0;
             _strictApart = 0;
+            StrictUnmetKinds.Clear();
+            StrictApartKinds.Clear();
             _recipesWait = 0;
             if (!explorer.NamesOnlyMet) return y;
             // Names left out alone are said here, as they are gone from the page; a weak spot not
             // found, as every number held back, is in the You box's list. A recipe row waiting for
             // the game to list it is said the same way, so the page does not go silent on it.
-            var lines = explorer.LeftOutLines(topic, unmet, apart, alone: _strictNamed == 0);
+            var lines = explorer.LeftOutLines(topic, unmet, apart, alone: _strictNamed == 0, name: name, unmetKinds: unmetKinds, apartKinds: apartKinds);
             for (var i = 0; i < lines.Count; i++) y = HintLine(lines[i].Line, "strict-left:", lines[i].Line, PanelPart.StrictLeftOut, width, y, lines[i].Tip);
             return HintLine(waiting > 0 ? CompendiumWords.RecipeRowsWait(waiting) : null, "recipe-wait:", topic, PanelPart.RecipeWaits, width, y);
         }
@@ -687,21 +703,31 @@ namespace Scry
             }
             if (StrictLists.TryGetValue(items, out var had))
             {
-                var (kept, unmet) = ((IReadOnlyList<T>, int))had;
+                var (kept, unmet, unmetKinds, apartKinds) = ((IReadOnlyList<T>, int, Kind[], Kind[]))had;
                 StrictLeft(unmet, items.Count - kept.Count - unmet);
+                StrictUnmetKinds.AddRange(unmetKinds);
+                StrictApartKinds.AddRange(apartKinds);
                 _strictNamed += kept.Count;
                 return kept;
             }
             var keeping = new List<T>();
             var neverMet = 0;
+            var unmetCount = StrictUnmetKinds.Count;
+            var apartCount = StrictApartKinds.Count;
             foreach (var item in items)
             {
-                if (!leftOut(item)) keeping.Add(item);
-                else if (explorer.NotMet(key(item))) neverMet++;
+                if (!leftOut(item))
+                {
+                    keeping.Add(item);
+                    continue;
+                }
+                var notMet = explorer.NotMet(key(item));
+                if (notMet) neverMet++;
+                StrictKind(explorer, key(item), notMet);
             }
             IReadOnlyList<T> shown = keeping.Count == items.Count ? items : keeping;
             _strictNamed += shown.Count;
-            StrictLists[items] = (shown, neverMet);
+            StrictLists[items] = (shown, neverMet, StrictUnmetKinds.Skip(unmetCount).ToArray(), StrictApartKinds.Skip(apartCount).ToArray());
             StrictLeft(neverMet, items.Count - shown.Count - neverMet);
             return shown;
         }

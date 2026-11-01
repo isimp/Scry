@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Scry
 {
@@ -601,12 +602,75 @@ namespace Scry
             }
         }
 
-        /// <summary>What the strict rules left out of a section as never met, said apart from what was met but not seen together: a creature's places not yet found, anything else not yet met.</summary>
-        public static string NeverMet(string topic, int count, bool alone = false)
+        /// <summary>
+        /// What the rules left out of a card's list or a raid's sentence as never met, read after
+        /// the names it lists: "2 more not yet met"; without "more" where it lists none
+        /// (<paramref name="alone"/>); null for none.
+        /// </summary>
+        public static string NeverMet(int count, bool alone = false) => count > 0 ? Numbers.Count(count) + (alone ? "" : " more") + " not yet met" : null;
+
+        /// <summary>
+        /// A section's line of what the rules left out as never met, said as what to do and what it
+        /// counts by what the section is about: "Meet 55 more sources of Copper", "Meet 6 more items
+        /// it drops", "Find 3 more places it lives", "Meet 4 more creatures this room holds", "Meet
+        /// 5 more things it goes with". The page's <paramref name="name"/> is said where the section
+        /// is of where it comes from, "it" for none or one too long to read in a line; a room's
+        /// things by the one kind they are of (<paramref name="holds"/>). Without "more" where the
+        /// section names nothing else (<paramref name="alone"/>); null for none.
+        /// </summary>
+        public static string MeetLine(string topic, int count, bool alone = false, string name = null, Kind? holds = null)
         {
             if (count <= 0) return null;
-            var more = Numbers.Count(count) + (alone ? "" : " more");
-            return topic == "lives" ? more + (count == 1 ? " place" : " places") + " it lives not yet found" : more + " not yet met";
+            var counted = Numbers.Count(count) + (alone ? " " : " more ");
+            switch (topic)
+            {
+                case "from": return "Meet " + counted + Naming.Noun(count, "source", "sources") + " of " + Named(name);
+                case "loot": return "Meet " + counted + Naming.Noun(count, "item", "items") + " it drops";
+                case "lives": return "Find " + counted + Naming.Noun(count, "place", "places") + " it lives";
+                case "room": return "Meet " + counted + Held(count, holds) + " this room holds";
+                default: return "Meet " + counted + Naming.Noun(count, "thing", "things") + " it goes with";
+            }
+        }
+
+        /// <summary>
+        /// A section's line of what the strict rules left out though met, said as what to watch for:
+        /// "See 14 sources you've met give Copper", "See it drop 6 items you've met", "Meet it in 2
+        /// places you've found", "See 4 things you've met in this room", "See 5 things you've met
+        /// with this"; the page's name and a room's kind as in <see cref="MeetLine"/>; null for none.
+        /// </summary>
+        public static string SeeLine(string topic, int count, string name = null, Kind? holds = null)
+        {
+            if (count <= 0) return null;
+            var counted = Numbers.Count(count) + " ";
+            switch (topic)
+            {
+                case "from": return "See " + counted + Naming.Noun(count, "source", "sources") + " you've met give " + Named(name);
+                case "loot": return "See it drop " + counted + Naming.Noun(count, "item", "items") + " you've met";
+                case "lives": return "Meet it in " + counted + Naming.Noun(count, "place", "places") + " you've found";
+                case "room": return "See " + counted + Held(count, holds) + " you've met in this room";
+                default: return "See " + counted + Naming.Noun(count, "thing", "things") + " you've met with this";
+            }
+        }
+
+        /// <summary>The longest page name a section's line says, past which it says "it".</summary>
+        private const int LineNameLength = 24;
+
+        private static string Named(string name) => string.IsNullOrEmpty(name) || name.Length > LineNameLength ? "it" : name;
+
+        private static string Held(int count, Kind? holds) => holds is Kind kind ? Kinds.Noun(kind, count) : Naming.Noun(count, "thing", "things");
+
+        /// <summary>
+        /// A line's hover count of what it left out by kind, the most first: "9 creatures, 5
+        /// resources"; null where all are of one kind, which the line says already.
+        /// </summary>
+        public static string ByKind(IEnumerable<Kind> kinds)
+        {
+            var counts = new Dictionary<Kind, int>();
+            foreach (var kind in kinds) counts[kind] = counts.TryGetValue(kind, out var had) ? had + 1 : 1;
+            if (counts.Count < 2) return null;
+            var order = counts.Keys.ToList();
+            order.Sort((a, b) => counts[a] != counts[b] ? counts[b].CompareTo(counts[a]) : a.CompareTo(b));
+            return Naming.Commas(order.Select(k => Numbers.Count(counts[k]) + " " + Kinds.Noun(k, counts[k])));
         }
 
         /// <summary>The faint line under a section whose recipe rows wait for the game to list them for the character.</summary>
@@ -647,24 +711,14 @@ namespace Scry
         public static string NotYetHitWithTip(string type) => $"{type}: how it lands shows once you hit it with {type.ToLowerInvariant()}";
 
         /// <summary>
-        /// What the strict rules left out of a section of a known page, told in a faint line at
-        /// its end by what the section is about (its topic in the page's plan): drops not seen
-        /// fall, places a creature lives not met in, givers not seen give it,
-        /// anything else not seen together; without "more" where nothing else is listed
-        /// (<paramref name="alone"/>). None where nothing was left out.
+        /// What the strict rules left out of a card's list or a raid's sentence though met, read
+        /// after the names it lists (<see cref="NeverMet"/>): a room's "1 more not yet seen here",
+        /// a raid's "1 more not yet seen together"; null for none.
         /// </summary>
         public static string LeftOutOf(string topic, int count, bool alone = false)
         {
             if (count <= 0) return null;
-            var more = Numbers.Count(count) + (alone ? "" : " more");
-            switch (topic)
-            {
-                case "loot": return more + " not yet seen fall";
-                case "lives": return more + (count == 1 ? " place" : " places") + " it lives not yet met in";
-                case "from": return more + " not yet seen give it";
-                case "room": return more + " not yet seen here";
-                default: return more + " not yet seen together";
-            }
+            return Numbers.Count(count) + (alone ? "" : " more") + (topic == "room" ? " not yet seen here" : " not yet seen together");
         }
 
         /// <summary>The line at the end of a place's runestone texts with the compendium on, counting those the character has not read: "2 more not yet read"; null for none.</summary>
@@ -675,19 +729,6 @@ namespace Scry
 
         /// <summary>The faint line under a row's title whose wares wait for a boss not yet fallen, under the loose rules: "2 more to unlock"; null for none.</summary>
         public static string ToUnlock(int count) => count > 0 ? $"{Numbers.Count(count)} more to unlock" : null;
-
-        /// <summary>
-        /// What the loose rules left out of a section, said at its end: how many more things the
-        /// character has not met, a creature's places by what they are, in the strict rules' words
-        /// for what was never met (<see cref="NeverMet"/>); without "more" where nothing else is
-        /// listed (<paramref name="alone"/>); null for none.
-        /// </summary>
-        public static string NotYetMet(string topic, int count, bool alone = false)
-        {
-            if (count <= 0) return null;
-            if (topic == "lives") return NeverMet(topic, count, alone);
-            return Numbers.Count(count) + (alone ? "" : " more") + " not yet met";
-        }
 
         /// <summary>A title without the count it ends with, for a row some of whose items were left out: nothing tells how many.</summary>
         public static string Uncounted(string title)

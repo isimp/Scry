@@ -132,40 +132,74 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void WhatTheStrictRulesLeaveOutOfASectionIsToldAtItsEndByWhatTheSectionIsAbout()
+        public void ASectionsLineOfWhatWasNeverMetSaysWhatToDoAndWhatItCounts()
         {
-            // Drops not seen fall, attacks not seen hit, places a creature lives not met in, givers not seen give it.
-            Assert.Equal("2 more not yet seen fall", CompendiumWords.LeftOutOf("loot", 2));
-            // What a fight section leaves out is no attack (an attack's damage reads –– instead): seen together, as anything else.
-            Assert.Equal("1 more not yet seen together", CompendiumWords.LeftOutOf("fight", 1));
-            Assert.Equal("1 more place it lives not yet met in", CompendiumWords.LeftOutOf("lives", 1));
-            Assert.Equal("3 more places it lives not yet met in", CompendiumWords.LeftOutOf("lives", 3));
-            Assert.Equal("2 more not yet seen give it", CompendiumWords.LeftOutOf("from", 2));
-            // Any other section, or one with no name of its own, says it of being seen together.
-            Assert.Equal("4 more not yet seen together", CompendiumWords.LeftOutOf("making", 4));
-            Assert.Equal("1,200 more not yet seen together", CompendiumWords.LeftOutOf(null, 1200));
-            Assert.Equal("3 not yet seen here", CompendiumWords.LeftOutOf("room", 3, alone: true));
+            // Each line starts with the deed that names them here, then says what the count is of, by the section.
+            Assert.Equal("Meet 55 more sources of Copper", CompendiumWords.MeetLine("from", 55, name: "Copper"));
+            Assert.Equal("Meet 1 more source of Copper", CompendiumWords.MeetLine("from", 1, name: "Copper"));
+            Assert.Equal("Meet 6 more items it drops", CompendiumWords.MeetLine("loot", 6));
+            Assert.Equal("Meet 1 more item it drops", CompendiumWords.MeetLine("loot", 1));
+            Assert.Equal("Find 3 more places it lives", CompendiumWords.MeetLine("lives", 3));
+            Assert.Equal("Find 1 more place it lives", CompendiumWords.MeetLine("lives", 1));
+            Assert.Equal("Meet 4 more things this room holds", CompendiumWords.MeetLine("room", 4));
+            Assert.Equal("Meet 3 more creatures this room holds", CompendiumWords.MeetLine("room", 3, holds: Kind.Creature));
+            // Any other section, or one with no name of its own, counts the things it goes with.
+            Assert.Equal("Meet 5 more things it goes with", CompendiumWords.MeetLine("making", 5));
+            Assert.Equal("Meet 1,200 more things it goes with", CompendiumWords.MeetLine(null, 1200));
         }
 
         [Fact]
-        public void ASectionTheStrictRulesLeftNothingOutOfTellsNothing()
+        public void ASectionsLineOfWhatWasMetButNotSeenTogetherSaysWhatToWatchFor()
         {
-            Assert.Null(CompendiumWords.LeftOutOf("loot", 0));
-            Assert.Null(CompendiumWords.LeftOutOf("lives", -1));
+            Assert.Equal("See 14 sources you've met give Copper", CompendiumWords.SeeLine("from", 14, name: "Copper"));
+            Assert.Equal("See 1 source you've met give Copper", CompendiumWords.SeeLine("from", 1, name: "Copper"));
+            Assert.Equal("See it drop 6 items you've met", CompendiumWords.SeeLine("loot", 6));
+            Assert.Equal("Meet it in 2 places you've found", CompendiumWords.SeeLine("lives", 2));
+            Assert.Equal("Meet it in 1 place you've found", CompendiumWords.SeeLine("lives", 1));
+            Assert.Equal("See 4 things you've met in this room", CompendiumWords.SeeLine("room", 4));
+            Assert.Equal("See 1 creature you've met in this room", CompendiumWords.SeeLine("room", 1, holds: Kind.Creature));
+            Assert.Equal("See 5 things you've met with this", CompendiumWords.SeeLine("fight", 5));
         }
 
         [Fact]
-        public void WhatTheLooseRulesLeaveOutOfASectionIsToldAsNotYetMet()
+        public void ASectionsLineDropsMoreWhereItNamesNothingAndSaysItWhereThePagesNameIsMissingOrLong()
         {
-            // The loose rules leave out only what the character has not met, whatever the section.
-            Assert.Equal("2 more not yet met", CompendiumWords.NotYetMet("loot", 2));
-            Assert.Equal("1 more not yet met", CompendiumWords.NotYetMet("making", 1));
-            Assert.Equal("1,200 more not yet met", CompendiumWords.NotYetMet(null, 1200));
-            // A place it lives says what it is, as the strict rules say a place never found.
-            Assert.Equal("1 more place it lives not yet found", CompendiumWords.NotYetMet("lives", 1));
-            Assert.Equal("3 more places it lives not yet found", CompendiumWords.NotYetMet("lives", 3));
-            Assert.Equal("2 places it lives not yet found", CompendiumWords.NotYetMet("lives", 2, alone: true));
-            Assert.Null(CompendiumWords.NotYetMet("loot", 0));
+            Assert.Equal("Meet 55 sources of Copper", CompendiumWords.MeetLine("from", 55, alone: true, name: "Copper"));
+            Assert.Equal("Find 2 places it lives", CompendiumWords.MeetLine("lives", 2, alone: true));
+            Assert.Equal("Meet 2 sources of it", CompendiumWords.MeetLine("from", 2, alone: true));
+            Assert.Equal("See 2 sources you've met give it", CompendiumWords.SeeLine("from", 2, name: "Ancient Bark Spear of the Long Night"));
+        }
+
+        [Fact]
+        public void ASectionTheRulesLeftNothingOutOfTellsNothing()
+        {
+            Assert.Null(CompendiumWords.MeetLine("loot", 0));
+            Assert.Null(CompendiumWords.SeeLine("lives", -1));
+            Assert.Null(CompendiumWords.NeverMet(0));
+            Assert.Null(CompendiumWords.LeftOutOf("room", 0));
+        }
+
+        [Fact]
+        public void ALineOfWhatWasLeftOutCountsItByKindInItsHoverWhereItIsOfMoreThanOne()
+        {
+            // The most first, as many as are left out of each.
+            var kinds = Enumerable.Repeat(Kind.Resource, 5).Concat(new[] { Kind.StatusEffect }).Concat(Enumerable.Repeat(Kind.Creature, 9));
+            Assert.Equal("9 creatures, 5 resources, 1 status effect", CompendiumWords.ByKind(kinds));
+            // A place is a place, as the line counts it.
+            Assert.Equal("2 places, 1 biome", CompendiumWords.ByKind(new[] { Kind.Location, Kind.Biome, Kind.Location }));
+            // One kind only says nothing the line does not.
+            Assert.Null(CompendiumWords.ByKind(new[] { Kind.Item, Kind.Item }));
+            Assert.Null(CompendiumWords.ByKind(new Kind[0]));
+        }
+
+        [Fact]
+        public void ACardsListOrARaidsSentenceCountsWhatWasLeftOutAfterItsNames()
+        {
+            // Read after names in a sentence ("Brings Troll, and 2 more not yet met"), not as a line of its own.
+            Assert.Equal("2 more not yet met", CompendiumWords.NeverMet(2));
+            Assert.Equal("2 not yet met", CompendiumWords.NeverMet(2, alone: true));
+            Assert.Equal("1 more not yet seen here", CompendiumWords.LeftOutOf("room", 1));
+            Assert.Equal("3 not yet seen together", CompendiumWords.LeftOutOf("raid", 3, alone: true));
         }
 
         [Fact]

@@ -103,14 +103,14 @@ namespace Scry
             var creatures = Stage.RoomCreatures(room);
             var kept = creatures.Where(c => !explorer.LeavesOut(c)).ToList();
             card.CreaturesLeft = creatures.Count - kept.Count;
-            card.CreaturesLeftLines = explorer.LeftOutCounts("room", creatures.Where(explorer.LeavesOut), alone: kept.Count == 0);
+            card.CreaturesLeftLines = explorer.LeftOutCounts("room", creatures.Where(explorer.LeavesOut), alone: kept.Count == 0, lines: true);
             card.CreatureCount = kept.Count;
             card.Creatures = RoomCardWords.CountedPages(kept.Select(c => (ShownName(explorer, c, CreatureName(c)), c)));
 
             var loot = Stage.RoomLoot(room);
             var shown = loot.Where(l => !explorer.LeavesOut(l.Prefab)).ToList();
             card.LootLeft = loot.Count - shown.Count;
-            card.LootLeftLines = explorer.LeftOutCounts("room", loot.Where(l => explorer.LeavesOut(l.Prefab)).Select(l => l.Prefab), alone: shown.Count == 0);
+            card.LootLeftLines = explorer.LeftOutCounts("room", loot.Where(l => explorer.LeavesOut(l.Prefab)).Select(l => l.Prefab), alone: shown.Count == 0, lines: true);
             card.LootCount = shown.Count;
             card.Loot = RoomCardWords.OddsPages(shown.Select(l => (ShownName(explorer, l.Prefab, PartName(l.Prefab)), l.Prefab, l.Chance)));
 
