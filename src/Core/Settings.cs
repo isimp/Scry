@@ -77,7 +77,7 @@ namespace Scry
         // What the settings box and the boxes beside what they change set; each kept in the config file.
         public static bool PlayOnSelect { get => _playOnSelect?.Value ?? true; set => Set(_playOnSelect, value); }
         public static float UiScale { get => _uiScale?.Value ?? 1f; set => Set(_uiScale, Mathf.Clamp(value, 0.6f, 2f)); }
-        public static bool FocusSearchOnOpen { get => _focusSearch?.Value ?? true; set => Set(_focusSearch, value); }
+        public static bool FocusSearchOnOpen { get => _focusSearch?.Value ?? false; set => Set(_focusSearch, value); }
         public static float CatalogDelay => Mathf.Clamp(_catalogDelay?.Value ?? 10f, 0f, 120f);
         public static bool WalkWhileOpen { get => _walkWhileOpen?.Value ?? true; set => Set(_walkWhileOpen, value); }
         public static bool LookWithRightMouse { get => _lookWithRightMouse?.Value ?? true; set => Set(_lookWithRightMouse, value); }
@@ -185,7 +185,7 @@ namespace Scry
             _uiScale = config.Bind("1 - General", "PanelScale", 1f,
                 new ConfigDescription("Size of the panel and its text, on top of the automatic scaling by screen height.",
                     new AcceptableValueRange<float>(0.6f, 2f)));
-            _focusSearch = config.Bind("1 - General", "FocusSearchOnOpen", true,
+            _focusSearch = config.Bind("1 - General", "FocusSearchOnOpen", false,
                 "Puts the keyboard in the search box when the panel opens, so you can type straight away. The compact view never does, so that the keys walk there until the search is clicked.");
             _walkWhileOpen = config.Bind("1 - General", "WalkWhileOpen", true,
                 "Lets you walk with your keys while the panel is open and you are not typing in it. Off, your character stands still while the panel is open.");

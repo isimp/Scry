@@ -18,6 +18,8 @@ Pages count more of what you really do. A tree's or rock's damage types it takes
 
 What a page links now stands in the topic it belongs to, and with the compendium on *Linked* stays folded until opened. A dungeon room says whether it is a dead end, a passage or a junction. Scry's own words no longer turn into a dash where they hold a thing's name. The stage's grass no longer hides an item or a low piece lying in it. Smaller fixes throughout.
 
+A new setup opens the panel with the keys still walking your character. *Search ready* under *On opening* in the settings puts the keyboard in the search box on opening, as before; a setup that already has the setting keeps its choice.
+
 ## 0.3.2
 
 A place on the stage stands on the ground it digs for itself, so a tar pit sits in its bowl and a Burial Chambers' entrance in its stair pit.
