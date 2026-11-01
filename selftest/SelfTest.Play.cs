@@ -61,6 +61,22 @@ namespace Scry
             BreakingOpenTells(p, book, player);
             CookingSeenTells(p, book, player);
             BearingAgainTells(p, book);
+            TameToldTells(p, book, player);
+        }
+
+        /// <summary>The game telling the character a tame creature near by is tame now: its taming found out.</summary>
+        private static void TameToldTells(Probe p, CompendiumBook book, Player player)
+        {
+            var tame = UnityEngine.Object.FindObjectsByType<Tameable>(FindObjectsSortMode.None)
+                .Select(t => t != null ? t.GetComponent<Character>() : null)
+                .FirstOrDefault(c => c != null && c.IsTamed() && !c.IsPlayer() && Vector3.Distance(c.transform.position, player.transform.position) <= 30f);
+            if (tame == null)
+            {
+                p.Note("no tame creature is near to be told tame");
+                return;
+            }
+            CompendiumKeeper.ToldTamed(tame.m_name + " $hud_tamedone");
+            p.Check(book.Proved(Utils.GetPrefabName(tame.gameObject), EntryKeys.Did(Deed.Tamed)), $"told {Utils.GetPrefabName(tame.gameObject)} is tame now, its taming shows");
         }
 
         /// <summary>A loaded pickable picked before and bearing again, looked at: its growing back found out; one never picked shows nothing. Fed into a book of its own, as the regrowth seen earlier in the run is in the run's.</summary>

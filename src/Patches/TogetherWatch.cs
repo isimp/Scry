@@ -250,6 +250,13 @@ namespace Scry
         private static void Postfix(Player __instance, Piece piece, Vector3 pos) => TogetherWatch.Placed(__instance, piece, pos);
     }
 
+    /// <summary>The game telling the character a creature it tamed is tame now (<c>MessageHud.ShowMessage</c>).</summary>
+    [HarmonyPatch(typeof(MessageHud), nameof(MessageHud.ShowMessage))]
+    internal static class TameMessageWatched
+    {
+        private static void Postfix(string text) => Guard.Run(Feature.CompendiumTogether, "noting a taming told", () => CompendiumKeeper.ToldTamed(text));
+    }
+
     [HarmonyPatch(typeof(Tameable), nameof(Tameable.Interact))]
     internal static class PettingWatched
     {

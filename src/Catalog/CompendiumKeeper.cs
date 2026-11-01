@@ -384,6 +384,19 @@ namespace Scry
             var key = Utils.GetPrefabName(piece.gameObject);
             _catchUp.Met(key, KnownLevel.Known, Into, CameBy.Built);
             if (!string.IsNullOrEmpty(tool)) Into.Witness(key, tool);
+            // A piece the game lets stand only on or by another (Piece.m_mustConnectTo, a sap
+            // collector on a root) was placed by one: paired with the one in its reach, found as the
+            // game's placing finds it, by the name it goes by.
+            if (piece.m_mustConnectTo != null)
+            {
+                foreach (var near in Physics.OverlapSphere(at, piece.m_connectRadius))
+                {
+                    var view = near != null ? near.GetComponentInParent<ZNetView>() : null;
+                    if (view == null || !view.name.Contains(piece.m_mustConnectTo.name)) continue;
+                    Into.Witness(key, Utils.GetPrefabName(view.gameObject));
+                    break;
+                }
+            }
             var upgrade = piece.GetComponent<StationExtension>();
             var upgrades = upgrade != null && upgrade.m_craftingStation != null ? CraftingStation.FindClosestStationInRange(upgrade.m_craftingStation.m_name, at, upgrade.m_maxStationDistance) : null;
             if (upgrades != null) _catchUp.Upgrades(Utils.GetPrefabName(upgrades.gameObject), new[] { key }, Into);
@@ -452,6 +465,25 @@ namespace Scry
             Into.FoundOut(key, EntryKeys.Did(Deed.Tamed));
             Noted(PlayEvent.Tamed);
         }
+
+        /// <summary>
+        /// The game told the character a creature it tamed is tame now (<see cref="TameMessage"/>),
+        /// as it tells the closest player within 30 m: the tame one of that name nearest the
+        /// character, within that reach, seen tamed, however long the taming took.
+        /// </summary>
+        public static void ToldTamed(string text)
+        {
+            var token = TameMessage.Tamed(text);
+            var player = Player.m_localPlayer;
+            if (token == null || player == null) return;
+            var tamed = Character.GetAllCharacters()
+                .Where(c => c != null && !c.IsPlayer() && c.m_name == token && c.IsTamed() && Vector3.Distance(c.transform.position, player.transform.position) <= TameReach)
+                .OrderBy(c => (c.transform.position - player.transform.position).sqrMagnitude).FirstOrDefault();
+            if (tamed != null) Tamed(tamed, tamedNow: true);
+        }
+
+        /// <summary>How far from a creature tamed the game looks for the closest player to tell so.</summary>
+        private const float TameReach = 30f;
 
         /// <summary>The events told to the character's game in this world (<see cref="EventRule"/>).</summary>
         private static readonly EventLedger Told = new EventLedger();
