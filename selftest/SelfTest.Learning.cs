@@ -131,6 +131,7 @@ namespace Scry
             EffectOnYouTells(p);
             BuiltThingsTell(p, Fresh);
             RaidsAndPlacesTell(p, Fresh);
+            AltarTells(p, Fresh);
 
             CompendiumKeeper.RecordInto(null);
             p.Check(real.Version == version && real.PairsVersion == pairs, "the character's book was left alone");
@@ -175,6 +176,21 @@ namespace Scry
                 if (fish == null || !records.Picked.Contains(fish.m_name) || !told.Proved(name, EntryKeys.Did(Deed.Caught))) odd.Add(name);
             }
             p.Check(odd.Count == 0, "what its records tell of picks, takes and catches names the right things, each paired or shown", string.Join(", ", odd.Take(10)));
+        }
+
+        /// <summary>A boss seen at its altar, loaded near by: seen together with the altar's place, whoever called it.</summary>
+        private static void AltarTells(Probe p, System.Func<CompendiumBook> fresh)
+        {
+            var altar = Object.FindObjectsByType<OfferingBowl>(FindObjectsSortMode.None).FirstOrDefault(a => a != null && a.m_bossPrefab != null && Location.GetLocation(a.transform.position) != null);
+            if (altar == null)
+            {
+                p.Note("no altar is loaded in a place: a boss seen at it untried");
+                return;
+            }
+            var book = fresh();
+            TogetherWatch.AltarSeen(altar, withOffering: false);
+            var place = EntryKeys.For(Kind.Location, Utils.GetPrefabName(Location.GetLocation(altar.transform.position).gameObject));
+            p.Check(book.Witnessed(altar.m_bossPrefab.name, place), $"{altar.m_bossPrefab.name} seen at its altar goes with {place}, whoever called it");
         }
 
         /// <summary>What a raid brings waits line by line for its raiders seen up close, how it is rolled for any of them; a place's spawn stars wait for one of its creatures seen up close there, as a loaded one standing in its place shows.</summary>

@@ -876,6 +876,7 @@ namespace Scry
         private static void LetGo()
         {
             _weatherSeen = default;
+            ForgetDeeds();
             WildNear.Forget();
             Credits.Forget();
             Told.Forget();

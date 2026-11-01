@@ -70,7 +70,11 @@ namespace Scry
             });
         }
 
-        /// <summary>A boss called at its altar: with the altar, the offering and the place it stands in.</summary>
+        /// <summary>
+        /// A boss called at its altar by the character, once the game running the altar answered that
+        /// it calls it (<c>OfferingBowl.RPC_BossSpawnInitiated</c>, sent to the caller alone): with
+        /// the altar, the offering and the place it stands in.
+        /// </summary>
         public static void Called(OfferingBowl altar)
         {
             var player = Player.m_localPlayer;
@@ -78,16 +82,23 @@ namespace Scry
             // Seen as a deed is: with a line from the eye to the altar.
             var at = altar.transform.position;
             if (!CompendiumSight.SeesDeed(at.x, at.y, at.z)) return;
-            Guard.Run(Feature.CompendiumTogether, "noting a boss called at its altar", () =>
-            {
-                var boss = altar.m_bossPrefab.name;
-                var stone = altar.GetComponentInParent<ZNetView>();
-                var at = stone != null ? Utils.GetPrefabName(stone.gameObject) : null;
-                var offering = altar.m_bossItem.OrNull()?.gameObject.name;
-                var place = Location.GetLocation(altar.transform.position);
-                var placeKey = place != null ? EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject)) : null;
-                foreach (var (a, b) in BossCall.Pairs(at, offering, boss, placeKey)) CompendiumKeeper.Saw(a, b);
-            });
+            Guard.Run(Feature.CompendiumTogether, "noting a boss called at its altar", () => AltarSeen(altar, withOffering: true));
+        }
+
+        /// <summary>
+        /// A boss seen with its altar: the boss, the altar, the place it stands in and, where the
+        /// offering was there to see (<paramref name="withOffering"/>), the offering, each seen
+        /// together with the others (<see cref="BossCall.Pairs"/>).
+        /// </summary>
+        public static void AltarSeen(OfferingBowl altar, bool withOffering)
+        {
+            var boss = altar.m_bossPrefab.name;
+            var stone = altar.GetComponentInParent<ZNetView>();
+            var at = stone != null ? Utils.GetPrefabName(stone.gameObject) : null;
+            var offering = withOffering ? altar.m_bossItem.OrNull()?.gameObject.name : null;
+            var place = Location.GetLocation(altar.transform.position);
+            var placeKey = place != null ? EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject)) : null;
+            foreach (var (a, b) in BossCall.Pairs(at, offering, boss, placeKey)) CompendiumKeeper.Saw(a, b);
         }
 
         /// <summary>
@@ -261,7 +272,8 @@ namespace Scry
         private static void Postfix(Character __instance, HitData hit) => TogetherWatch.Hit(__instance, hit);
     }
 
-    [HarmonyPatch(typeof(OfferingBowl), "InitiateSpawnBoss")]
+    /// <summary>A boss the character called, once the game running the altar answered that it calls it.</summary>
+    [HarmonyPatch(typeof(OfferingBowl), "RPC_BossSpawnInitiated")]
     internal static class BossCalled
     {
         private static void Postfix(OfferingBowl __instance) => TogetherWatch.Called(__instance);

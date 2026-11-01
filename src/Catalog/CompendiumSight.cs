@@ -133,6 +133,8 @@ namespace Scry
                         // One of its raiders up close shows what the raid brings of its kind, and how the raid is rolled.
                         if (upClose) CompendiumKeeper.RaiderSeen(key);
                     }
+                    // A boss seen beside its altar goes with it, whoever called it.
+                    if (creature.IsBoss()) CompendiumKeeper.BossSeen(creature);
                     // Up close in a place, one its spawn points place shows the stars they give.
                     if (upClose) CompendiumKeeper.SeenInPlace(key, creature.transform.position);
                     // Near enough for the game to name it and mark its stars, it is seen up close: its stars and what it carries are kept.

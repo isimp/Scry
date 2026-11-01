@@ -22,6 +22,30 @@ namespace Scry
             if (raid.m_biome == Heightmap.Biome.None || raid.InEventBiome()) MetInBiome(key, at);
         }
 
+        /// <summary>The bosses seen with their altars in this world, by their place in the world's data, each looked for once.</summary>
+        private static readonly HashSet<ZDOID> BossesAtAltars = new HashSet<ZDOID>();
+
+        /// <summary>What the deeds of this world left to remember, forgotten as it is left.</summary>
+        private static void ForgetDeeds() => BossesAtAltars.Clear();
+
+        /// <summary>
+        /// A boss seen, standing within reach of an altar that calls its kind (<c>OfferingBowl.m_bossPrefab</c>,
+        /// within <c>m_spawnBossMaxDistance</c> of it): seen together with the altar and its place by
+        /// whoever stands by, whoever made the offering; with the offering too where it stood on the
+        /// altar's item stands for all to see (<c>OfferingBowl.m_useItemStands</c>).
+        /// </summary>
+        public static void BossSeen(Character boss)
+        {
+            var view = boss != null ? boss.GetComponent<ZNetView>().OrNull() : null;
+            var zdo = view != null && view.IsValid() ? view.GetZDO() : null;
+            if (zdo == null || Into == null || !BossesAtAltars.Add(zdo.m_uid)) return;
+            var key = Utils.GetPrefabName(boss.gameObject);
+            var altar = UnityEngine.Object.FindObjectsByType<OfferingBowl>(FindObjectsSortMode.None)
+                .Where(a => a != null && a.m_bossPrefab != null && a.m_bossPrefab.name == key && Vector3.Distance(a.transform.position, boss.transform.position) <= a.m_spawnBossMaxDistance)
+                .OrderBy(a => (a.transform.position - boss.transform.position).sqrMagnitude).FirstOrDefault();
+            if (altar != null) TogetherWatch.AltarSeen(altar, withOffering: altar.m_useItemStands);
+        }
+
         /// <summary>One of the running raid's own raiders seen up close: what the raid brings of its kind found out, and how the raid is rolled.</summary>
         public static void RaiderSeen(string creature)
         {
