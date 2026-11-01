@@ -42,6 +42,9 @@ namespace Scry
         /// <summary>Whether only a full run takes it: a part of minutes, such as reading every place again.</summary>
         public bool Full;
 
+        /// <summary>What part of Scry it tests, for the live view's rows of tiles; parts of one area need not stand together.</summary>
+        public string Area;
+
         /// <summary>
         /// The scenarios a run takes, in their order: every one in a full run; a quick or a deep
         /// one leaving out those only a full run takes; those that failed last (<paramref name="failed"/>);
@@ -170,8 +173,14 @@ namespace Scry
     /// </summary>
     internal sealed class ScenarioRunner
     {
+        private readonly List<Scenario> _parts;
         private readonly Queue<Scenario> _pending;
         private readonly Action<string> _write;
+        private readonly List<(string Part, string Line, double At)> _marked = new List<(string, string, double)>();
+        private bool _pauseAsked;
+        private double _pausedFor;
+        private double _lastTick = -1;
+        private double _now;
         private readonly Action _finally;
         private readonly Action _start;
         private readonly Func<double> _slowdown;
@@ -196,8 +205,25 @@ namespace Scry
         public string Current => _current?.Name;
         public int FailedSoFar => _reports.Count(r => r.Result == Result.Fail);
 
-        /// <summary>How long the run has taken, from the first part's start to the last one's end so far.</summary>
-        public double Seconds => _firstAt < 0 || _lastEnd < 0 ? 0 : _lastEnd - _firstAt;
+        /// <summary>How long the run has taken, from the first part's start to the last one's end so far, its pauses left out.</summary>
+        public double Seconds => _firstAt < 0 || _lastEnd < 0 ? 0 : _lastEnd - _firstAt - _pausedFor;
+
+        /// <summary>Every part the run takes, in its order.</summary>
+        public IReadOnlyList<Scenario> Parts => _parts;
+
+        /// <summary>Each line that needs a look as it was written: a check failed, not judged or a row untried, with its part and when.</summary>
+        public IReadOnlyList<(string Part, string Line, double At)> Marked => _marked;
+
+        /// <summary>Whether the run is held between parts, a pause asked for and the part then running done.</summary>
+        public bool Paused => _pauseAsked && _current == null && !_finished && _pending.Count > 0;
+
+        /// <summary>Whether a pause is asked for, held once the part running is done.</summary>
+        public bool PauseAsked => _pauseAsked;
+
+        /// <summary>Holds the run once the part running is done, until it goes on.</summary>
+        public void Pause() => _pauseAsked = true;
+
+        public void GoOn() => _pauseAsked = false;
 
         public string Summary =>
             $"{Numbers.Count(_reports.Count(r => r.Result == Result.Pass))} passed, " +
@@ -207,7 +233,8 @@ namespace Scry
         /// <summary>The runner, with how many times slower than its best the machine runs now (<see cref="MachinePace"/>), for the budgets and the timeouts; none taken as its best.</summary>
         public ScenarioRunner(IEnumerable<Scenario> scenarios, Action<string> write, Action finish = null, Action start = null, Func<double> slowdown = null)
         {
-            _pending = new Queue<Scenario>(scenarios ?? Enumerable.Empty<Scenario>());
+            _parts = (scenarios ?? Enumerable.Empty<Scenario>()).ToList();
+            _pending = new Queue<Scenario>(_parts);
             Total = _pending.Count;
             _write = write ?? (_ => { });
             _finally = finish;
@@ -219,6 +246,15 @@ namespace Scry
         public bool Tick(double now)
         {
             if (_finished) return false;
+            _now = now;
+            var since = _lastTick < 0 ? 0 : now - _lastTick;
+            _lastTick = now;
+            if (Paused)
+            {
+                // Held between parts: no part's time runs, nor the run's.
+                if (_firstAt >= 0) _pausedFor += since;
+                return true;
+            }
 
             if (_current == null && !Begin(now))
             {
@@ -270,7 +306,7 @@ namespace Scry
 
             _current = _pending.Dequeue();
             _report = new ScenarioReport { Name = _current.Name };
-            _probe = new Probe(_report, _write, _slowdown);
+            _probe = new Probe(_report, Mark, _slowdown);
             _startedAt = now;
             if (_firstAt < 0) _firstAt = now;
             _waitUntil = now;
@@ -291,6 +327,14 @@ namespace Scry
         private static IEnumerator Empty()
         {
             yield break;
+        }
+
+        /// <summary>A part's line written, and kept with when where it needs a look (<see cref="Marked"/>).</summary>
+        private void Mark(string line)
+        {
+            _write(line);
+            if (_current != null && (line.StartsWith("  FAIL ", StringComparison.Ordinal) || line.StartsWith("  BUSY ", StringComparison.Ordinal) || line.StartsWith("  untried ", StringComparison.Ordinal)))
+                _marked.Add((_current.Name, line, _now));
         }
 
         private void End(double now, Result result, string line)

@@ -73,6 +73,27 @@ namespace Scry
             return $"{which} started: {Numbers.Count(parts)} {(parts == 1 ? "part" : "parts")}, {About(seconds)}. Stand still and leave the panel be; it shows how far the test has got. /scry selftest stop stops it.{more}";
         }
 
+        /// <summary>
+        /// The strip while a run goes on: which part of how many, about how long is left and the
+        /// part's name, then the newest line that needs a look while it is new, else how much
+        /// slower than its best the machine runs where it is busy; held, that it waits between parts.
+        /// </summary>
+        public static string Running(int done, int total, double secondsLeft, string current, string latest, double slowdown, bool paused)
+        {
+            if (paused) return $"Paused after part {Numbers.Count(done)} of {Numbers.Count(total)}, {About(secondsLeft)} left: move as you like, then Go on.";
+            var line = $"Part {Numbers.Count(done + 1)} of {Numbers.Count(total)}, {About(secondsLeft)} left" + (current != null ? ": " + current : "");
+            if (latest != null) return line + " · " + latest;
+            return slowdown >= MachinePace.BusyAt ? line + $" · machine {Numbers.Fixed(slowdown, 1)}× slower than its best" : line;
+        }
+
+        /// <summary>The chat's line, once a session, that something near lets untried rows be tried.</summary>
+        public static string NearChat(string thing, int rows) =>
+            $"Scry self-test: {thing} is near: {Numbers.Count(rows)} untried {(rows == 1 ? "row" : "rows")} can be tried here. Type /scry selftest near to try {(rows == 1 ? "it" : "them")}.";
+
+        /// <summary>The chat's line, once a session, that the machine runs near its best again for the checks not judged.</summary>
+        public static string QuietChat(int checks) =>
+            $"Scry self-test: the machine runs near its best again: /scry selftest busy judges the {Numbers.Count(checks)} {(checks == 1 ? "check" : "checks")} it could not.";
+
         /// <summary>A run's length ahead: less than a minute, or about so many minutes.</summary>
         private static string About(double seconds) => seconds < 60 ? "less than a minute" : $"about {Numbers.Count((int)Math.Round(seconds / 60, MidpointRounding.AwayFromZero))} min";
 

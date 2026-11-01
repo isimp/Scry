@@ -15,8 +15,12 @@ namespace Scry
     /// </summary>
     internal static partial class SelfTest
     {
+        /// <summary>The area the parts listed next belong to, for the live view's rows of tiles, set as the list goes.</summary>
+        private static string _area;
+
         private static IEnumerable<Scenario> Scenarios()
         {
+            _area = "Panel and search";
             yield return S("the startup check found every part it relies on", StartupCheck, 5);
             yield return S("the catalog holds every kind", Catalog, 5);
             yield return S("the search finds by name, kind and biome", Searching, 5);
@@ -49,6 +53,7 @@ namespace Scry
             yield return S("the catalog is sound: keys, names, groups and counts", CatalogSound, 10);
             yield return S("every search is quick enough to run as you type", SearchSpeed, 10, ResetList);
 
+            _area = "Kinds on the stage";
             yield return S("a creature shows on the stage and tells its facts", p => Shows(p, Pick(Kind.Creature, "Troll", "Greydwarf"), true), 20);
             yield return S("an item shows on the stage and tells its facts", p => Shows(p, Pick(Kind.Item, "SwordIron", "AxeBronze"), true), 20);
             yield return S("a piece shows on the stage and tells its facts", p => Shows(p, Pick(Kind.Piece, "piece_workbench"), true), 20);
@@ -57,6 +62,7 @@ namespace Scry
             yield return S("an effect shows on the stage", p => Shows(p, Pick(Kind.Effect, "vfx_HitSparks", "vfx_Place_workbench"), false), 20);
             yield return S("a status effect shows on the person and tells its facts", p => Shows(p, StatusOnPerson(), true), 20);
 
+            _area = "Pages";
             yield return S("creatures tell their weak spots, when they turn on you and how far they chase", CreatureFacts, 60);
             yield return S("a piece tells its support and what wears it", PieceFacts, 10);
             yield return S("every skill has a page telling what it changes at your level, and reading them leaves your save alone", SkillPages, 30);
@@ -70,6 +76,7 @@ namespace Scry
             yield return S("the mod report links every mod station as the game does", ModReportLinks, 20);
             yield return S("what creatures drop in play is watched", DropsWatched, 5);
             yield return S("what equipping something changes in play is watched", EquippingWatched, 5);
+            _area = "Compendium";
             yield return S("what the character knows is kept, caught up with its records and with what it carries", CompendiumKept, 30);
             yield return S("the compendium's rules are chosen in the panel, for the character played", CompendiumChosen, 10, () => { ScryPanel.HoldCompendiumBox(false); PutRuleBack(); AllKnown(); });
             yield return S("what a world shows as known is chosen source by source in the box, and what a source shows is marked", WorldSourcesShown, 15, () => { ScryPanel.HoldCompendiumBox(false); PutSourcesBack(); Session.ShowKnownInstead(null); });
@@ -104,11 +111,20 @@ namespace Scry
             yield return S("the explored map tells which kinds of place were seen", CompendiumMapRead, 30);
             yield return S("with the whole world counted, the server's census tells how many of each kind this world holds, on a place's page and in the Locations tab", WorldCensus, 40, () => { CensusAsItWas(); AllKnown(); ResetList(); });
             yield return S("each boss's fall opens its tier, worked out from how things are come by", CompendiumTierRead, 30, () => { AllKnown(); ResetList(); });
+            foreach (var each in ModAndPageParts()) yield return each;
+            foreach (var each in StageAndPlaceParts()) yield return each;
+        }
+
+        /// <summary>The mods' parts and the pages' last, in their turn after the compendium's.</summary>
+        private static IEnumerable<Scenario> ModAndPageParts()
+        {
+            _area = "Mods";
             yield return S("every mod has a page of what it adds and changes", ModPages, 10);
             yield return S("a mod's page tells what its package says and how it ties to other mods", ModPackages, 10);
             yield return S("an item a mod's settings are named after shows them", ModSettingsOfItems, 10);
             yield return S("an item's tooltip shows as the game builds it, with what mods add marked", TooltipsFromMods, 30);
             yield return S("which mod added what is found from every clue, and nothing of the game's is put down to a mod", ModClues, 10);
+            _area = "Pages";
             yield return S("gear tells its resistances, what it changes while worn, and a weapon its second attack", GearFacts, 10);
             yield return S("tame creatures tell how they breed and are ridden, their young where they come from and what they grow into", BreedingFacts, 10);
             yield return S("fish tell their baits, doors their keys, and bosses and trophies their Forsaken powers, each both ways", BaitsKeysPowers, 10);
@@ -133,12 +149,12 @@ namespace Scry
             yield return S("a spawner tells its pool and pace, and its creatures their share", SpawnerFacts, 10);
             yield return S("items tell their odds in the tables that give them", LootOdds, 10);
             yield return S("items, stations, smelters and beds tell what they are for", WhatThingsTell, 10);
-            foreach (var each in StageAndPlaceParts()) yield return each;
         }
 
         /// <summary>The parts on the stage, the world and the places, in their turn after the pages'.</summary>
         private static IEnumerable<Scenario> StageAndPlaceParts()
         {
+            _area = "Stage and previews";
             yield return S("the stage's lighting, backdrops and views all draw", StageControls, 20);
             yield return S("a bigger size makes a bigger copy", SizeAdjusts, 10);
             yield return S("a creature stands with stars and in each look", StarsAndLooks, 30, () => X.Modifiers.Reset());
@@ -176,6 +192,7 @@ namespace Scry
             yield return S("Clear world takes away what stands in the world", ClearWorld, 15);
             yield return S("closing the panel quiets it, and opening it brings the selection back", CloseAndOpen, 25, () => { if (!Session.IsOpen) Session.Show(null); });
 
+            _area = "Places and dungeons";
             yield return S("a raid tells what it brings, and its creatures lead back to it", RaidLinks, 10);
             yield return S("a location loads, shows what it holds and rolls again", LocationLoads, 45);
             yield return S("a runestone location tells its texts", RunestoneTexts, 40);
@@ -215,14 +232,17 @@ namespace Scry
             yield return S("the stage's camera looks at the floor opened, zooms toward the pointer and drags with it", CameraMoves, 90, LightsAsTheyWere, bearsSkips: true);
             yield return S("the world's lights stay off the stage", WorldLightsOff, 20);
             yield return S("the Ground backdrop lays each biome's own ground", GroundBackdrop, 120, bearsSkips: true);
+            _area = "Stage and previews";
             yield return S("a meadow's grass grows out to where its ground fades, a big creature, a raid and a camp stand in it, and what lies low stays in view", GroundGrass, 120, GroundAsItWas);
             yield return S("a place's own modifiers dig its ground on the stage, its tar settled in it and its parts at rest", DugGround, 120, DugGroundAsItWas);
             yield return S("the sea holds a Serpent at its swim depth, swimming, and a Leviathan at its surface, over a sea as deep as the world places them", SeaHolds, 90, SeaAsItWas, bearsSkips: true);
             yield return S("a Serpent's attacks on the stage, pictured part way with its tail bent and without", SerpentAttacks, 60, SerpentAttacksAsItWas, bearsSkips: true);
             yield return S("a Drake and Moder are told they fly and fly as high as the game keeps them, and so do a raid's flyers", FlyersFly, 60, StageAsItWas, bearsSkips: true);
+            _area = "Cost";
             yield return S("Scry costs next to nothing idling with the panel closed", IdleCost, 320);
             yield return S("the resource monitor shows what Scry costs and holds", ResourceMonitor, 10);
             yield return S("standing open on a page and on a dungeon, what Scry's own work costs and allocates a frame, by part", OpenCost, 240);
+            _area = "Locations read whole";
             yield return S("placement details tell the woods and lava a location keeps to", PlacementDetails, 20);
             // Reading every place again takes minutes: only a full run does it.
             yield return S("reading every location fills their details", ReadLocations, 450, bearsSkips: true, full: true);
@@ -243,7 +263,7 @@ namespace Scry
             yield return S("closing the panel lets go of every bundle", ClosingLetsGo, 5);
             yield return S("a full run took each of the README's pictures clean, without the strip and the game's HUD", ReadmePictures, 5, full: true);
 
-            yield return new Scenario("Scry's own work over the whole run", WholeRun) { Timeout = 5 };
+            yield return new Scenario("Scry's own work over the whole run", WholeRun) { Timeout = 5, Area = "Cost" };
         }
 
         // ----- The whole run -----

@@ -66,6 +66,10 @@ namespace Scry
         private const double SlowFrame = 50;
 
         private static ScenarioRunner _runner;
+
+        /// <summary>The last run this session, for its card once it is done, and its parts' last times, for how long is left.</summary>
+        private static ScenarioRunner _lastRunner;
+        private static SelfTestTimes _runTimes;
         private static Before _before;
 
         /// <summary>
@@ -115,6 +119,7 @@ namespace Scry
                     return;
                 }
                 if (!_runner.Tick(Time.unscaledTime)) _runner = null;
+                HoldFigures();
                 return;
             }
 
@@ -126,6 +131,7 @@ namespace Scry
                 return;
             }
             TraceWhere(Player.m_localPlayer);
+            Recommend();
             if (explorer == _autoFor) return;
             if (_readyAt < 0f)
             {
@@ -148,6 +154,7 @@ namespace Scry
             var parts = Scenario.ForRun(Scenarios(), asked, SelfTestTimes.FailedOf(Kept(FailedFile)), Listed);
             if (parts.Count == 0) return SelfTestWords.NothingToRun(asked);
             var times = SelfTestTimes.Load(Kept(TimesFile));
+            _runTimes = times;
 
             LogAside();
             Write("");
@@ -272,7 +279,7 @@ namespace Scry
         private static void Finish() => Finish(_runner, null);
 
         /// <summary>The self-test's progress while it runs, for the panel's strip; null when none runs.</summary>
-        public static string Progress => _runner == null ? null : SelfTestWords.Progress(_runner.Done, _runner.Total, _runner.Current, _runner.FailedSoFar);
+        public static string Progress => _runner == null ? null : LiveLine();
 
         /// <summary>How much of the run is done, from 0 to 1.</summary>
         public static float Fraction => _runner == null || _runner.Total == 0 ? 0f : (float)_runner.Done / _runner.Total;
@@ -289,6 +296,7 @@ namespace Scry
         private static void Finish(ScenarioRunner runner, string stopped)
         {
             SelfTestPanel.HiddenForPicture = false;
+            _lastRunner = runner;
             var reports = runner?.Reports ?? new List<ScenarioReport>();
             LastHeadline = stopped == null ? SelfTestWords.Finished(reports, runner?.Seconds) : $"Self-test stopped after {Numbers.Count(reports.Count)} of {Numbers.Count(runner?.Total ?? 0)} parts, as {stopped}.";
             LastSummary = SelfTestWords.Summary(reports);
@@ -441,7 +449,7 @@ namespace Scry
         /// marked <paramref name="full"/>.
         /// </summary>
         private static Scenario S(string name, Func<Probe, IEnumerator> body, double timeout = 20, Action cleanup = null, bool bearsSkips = false, bool full = false) =>
-            new Scenario(name, p => Watched(p, body, bearsSkips), cleanup) { Timeout = timeout, Full = full };
+            new Scenario(name, p => Watched(p, body, bearsSkips), cleanup) { Timeout = timeout, Full = full, Area = _area };
 
         private static IEnumerator Watched(Probe p, Func<Probe, IEnumerator> body, bool bearsSkips)
         {

@@ -46,6 +46,9 @@ namespace Scry
             var progress = Progress;
             p.Check(progress != null && progress.Contains(ProgressPart), "it names the part running", progress);
             p.Check(Fraction > 0f && Fraction < 1f, "and how far it has got", Numbers.Percent(Fraction));
+            var live = SelfTestLive.Of(_runner);
+            p.Check(live.InRunOrder.Count == _runner.Total && live.InRunOrder.Count(t => t.State == TileState.Running) == 1 && live.Areas.All(a => !string.IsNullOrEmpty(a.Area)),
+                "its foot has a segment a part, the running one lit, each part in an area", $"{Numbers.Count(live.InRunOrder.Count)} of {Numbers.Count(_runner.Total)}, areas {string.Join(", ", live.Areas.Select(a => a.Area))}");
         }
 
         /// <summary>Both views draw, and /scry with words searches for them.</summary>

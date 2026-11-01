@@ -17,7 +17,10 @@ namespace Scry
         public static string ResultsFile => Path.Combine(BepInEx.Paths.BepInExRootPath, "Scry-selftest.result");
 
         /// <summary>Every part's name, in the order a run takes them.</summary>
-        private static List<string> PartNames() => Scenarios().Select(s => s.Name).ToList();
+        private static List<string> PartNames() => _partNames ?? (_partNames = Scenarios().Select(s => s.Name).ToList());
+
+        /// <summary>Every part's name, read once: the list does not change while the game runs.</summary>
+        private static List<string> _partNames;
 
         /// <summary>The parts a run of what the last run left takes: the plan's, those with rows untried (all, or those whose need is near now), or those with checks not judged.</summary>
         private static ICollection<string> Listed(RunScope scope)

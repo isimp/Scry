@@ -68,6 +68,13 @@ namespace Scry
             return _pace.Slowdown(times[2]);
         }
 
+        /// <summary>How fast the machine runs between runs, the pace kept read first where no run read it yet.</summary>
+        private static double IdlePace()
+        {
+            if (_pace == null) _pace = MachinePace.Load(Kept(PaceFile));
+            return SamplePace();
+        }
+
         /// <summary>Keeps the quickest the reference work took, for the runs to come.</summary>
         private static void KeepPace()
         {
