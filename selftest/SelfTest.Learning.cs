@@ -153,7 +153,7 @@ namespace Scry
         /// </summary>
         private static void RecordsOfDeeds(Probe p, CompendiumRecords records, CompendiumBook told)
         {
-            p.Note($"records of deeds: {Numbers.Count(records.PickedFrom.Count)} things picked from, {Numbers.Count(records.Collected.Count)} producers taken from, {Numbers.Count(records.Caught.Count)} fish caught");
+            p.Note($"records of deeds: {Numbers.Count(records.PickedFrom.Count)} things picked from, {Numbers.Count(records.Collected.Count)} producers taken from, {Numbers.Count(records.Cooked.Count)} cooking stations cooked at, {Numbers.Count(records.Caught.Count)} fish caught");
             var odd = new List<string>();
             foreach (var name in records.PickedFrom)
             {
@@ -164,6 +164,10 @@ namespace Scry
             {
                 var producer = GamePrefabs.Named(name);
                 if (producer == null || (producer.GetComponent<Beehive>() == null && producer.GetComponent<SapCollector>() == null) || !told.Proved(name, EntryKeys.Did(Deed.Collected))) odd.Add(name);
+            }
+            foreach (var name in records.Cooked)
+            {
+                if (GamePrefabs.Named(name).OrNull()?.GetComponent<CookingStation>() == null || !told.Proved(name, EntryKeys.Did(Deed.Finished))) odd.Add(name);
             }
             foreach (var name in records.Caught)
             {

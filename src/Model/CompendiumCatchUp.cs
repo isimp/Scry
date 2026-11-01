@@ -186,8 +186,9 @@ namespace Scry
                     book.FoundOut(creature.Key, killedProof);
                 }
             }
-            // Honey or sap taken, a fish caught: what each shows found out, as news after the first reading.
+            // Honey or sap taken, food cooked, a fish caught: what each shows found out, as news after the first reading.
             foreach (var (thing, proof) in Prefabs(records.Collected, Kind.Piece).Select(e => (e, EntryKeys.Did(Deed.Collected)))
+                .Concat(Prefabs(records.Cooked, Kind.Piece).Select(e => (e, EntryKeys.Did(Deed.Finished))))
                 .Concat(Prefabs(records.Caught, Kind.Item).Select(e => (e, EntryKeys.Did(Deed.Caught)))))
             {
                 if (firstLoad) book.Prove(thing.Key, proof);

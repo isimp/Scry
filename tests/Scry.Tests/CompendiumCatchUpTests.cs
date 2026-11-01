@@ -120,6 +120,23 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void FoodCookedBeforeShowsHowLongCookingTakes()
+        {
+            // The game counts food taken off a cooking station, done or burnt, by the kind of station;
+            // the records name the stations whose count is above none.
+            var grill = E(Kind.Piece, "piece_cookingstation", "$piece_cookingstation");
+            var oven = E(Kind.Piece, "piece_oven", "$piece_oven");
+            var (catchUp, book) = Fresh(grill, oven);
+            var records = new CompendiumRecords();
+            records.Cooked.Add("piece_cookingstation");
+
+            catchUp.Fill(records, book, firstLoad: true);
+
+            Assert.True(book.Proved(grill.Key, EntryKeys.Did(Deed.Finished)));
+            Assert.False(book.Proved(oven.Key, EntryKeys.Did(Deed.Finished)));
+        }
+
+        [Fact]
         public void FishCaughtBeforeShowHowTheyFight()
         {
             // The game counts each catch by the fish's own name; the records name the fish caught, and

@@ -65,6 +65,7 @@ namespace Scry
             Copy(ready ? stats.m_pickableStats.Keys.SelectMany(item => _pickedFrom.TryGetValue(item, out var givers) && givers.Count == 1 ? givers : Enumerable.Empty<string>()) : Enumerable.Empty<string>(), into.PickedFrom);
             Copy(ready ? Sole(_hives, Taken(stats, PlayerStatType.BeesHarvested)).Concat(Sole(_taps, Taken(stats, PlayerStatType.SapHarvested))) : Enumerable.Empty<string>(), into.Collected);
             Copy(ready ? stats.m_pickableStats.Keys.SelectMany(name => _fish.TryGetValue(name, out var fish) ? fish : Enumerable.Empty<string>()) : Enumerable.Empty<string>(), into.Caught);
+            Copy(ready ? _cookers.Where(c => Taken(stats, c.Done) || Taken(stats, c.Burnt)).Select(c => c.Prefab) : Enumerable.Empty<string>(), into.Cooked);
             Copy(stats.m_piecesPlacedStats.Keys, into.Placed);
             var power = Power(player);
             Copy(power.Length > 0 ? new[] { power } : Array.Empty<string>(), into.Powers);
@@ -133,15 +134,16 @@ namespace Scry
             _uniques = AccessTools.FieldRefAccess<Player, HashSet<string>>("m_uniques");
         }
 
-        /// <summary>How many of honey and sap the character ever took, none, one or both, as the game counts them: a first take grows the records.</summary>
+        /// <summary>How many of honey, sap and each kind of cooking the game counts the character ever took, done or burnt: a first take grows the records.</summary>
         public static int Harvests(PlayerProfile profile)
         {
             var stats = profile.m_playerStats[0];
-            return (Taken(stats, PlayerStatType.BeesHarvested) ? 1 : 0) + (Taken(stats, PlayerStatType.SapHarvested) ? 1 : 0);
+            var cooking = Kinds() ? _cookers.SelectMany(c => new[] { c.Done, c.Burnt }).Distinct().Count(s => Taken(stats, s)) : 0;
+            return (Taken(stats, PlayerStatType.BeesHarvested) ? 1 : 0) + (Taken(stats, PlayerStatType.SapHarvested) ? 1 : 0) + cooking;
         }
 
         /// <summary>Whether the character took honey or sap, as the game counts it.</summary>
-        private static bool Taken(PlayerProfile.PlayerStats stats, PlayerStatType what) => stats.m_stats != null && stats.m_stats.TryGetValue(what, out var count) && count > 0f;
+        private static bool Taken(PlayerProfile.PlayerStats stats, PlayerStatType what) => what != PlayerStatType.None && stats.m_stats != null && stats.m_stats.TryGetValue(what, out var count) && count > 0f;
 
         /// <summary>The one kind of producer of a sort, where the game has only one and the character took from it; none otherwise, as the game counts what was taken, not from which.</summary>
         private static IEnumerable<string> Sole(List<string> kinds, bool taken) => taken && kinds.Count == 1 ? kinds : Enumerable.Empty<string>();
@@ -150,12 +152,15 @@ namespace Scry
         private static Dictionary<string, List<string>> _fish;
         private static List<string> _hives;
         private static List<string> _taps;
+        private static List<(string Prefab, PlayerStatType Done, PlayerStatType Burnt)> _cookers;
 
         /// <summary>
         /// The game's prefabs by what the records count them by, worked out once: what gives each
         /// item by picking (<c>Pickable.m_itemPrefab</c>, as <c>Pickable.Interact</c> counts a pick by
         /// the item), the fish going by each name (<c>Fish.m_name</c>, as a catch is counted), and
-        /// the kinds of beehive and sap collector. False while the game has no prefabs to read.
+        /// the kinds of beehive and sap collector, and each cooking station with what the game counts
+        /// food taken off it by, done or burnt (<c>CookingStation.m_cookStat</c>, <c>m_burntStat</c>).
+        /// False while the game has no prefabs to read.
         /// </summary>
         private static bool Kinds()
         {
@@ -165,6 +170,7 @@ namespace Scry
             var fish = new Dictionary<string, List<string>>(StringComparer.Ordinal);
             var hives = new List<string>();
             var taps = new List<string>();
+            var cookers = new List<(string, PlayerStatType, PlayerStatType)>();
             void Add(Dictionary<string, List<string>> by, string key, string prefab)
             {
                 if (string.IsNullOrEmpty(key)) return;
@@ -180,8 +186,10 @@ namespace Scry
                 if (swimmer != null) Add(fish, swimmer.m_name, prefab.name);
                 if (prefab.GetComponent<Beehive>() != null) hives.Add(prefab.name);
                 if (prefab.GetComponent<SapCollector>() != null) taps.Add(prefab.name);
+                var cooker = prefab.GetComponent<CookingStation>();
+                if (cooker != null) cookers.Add((prefab.name, cooker.m_cookStat, cooker.m_burntStat));
             }
-            (_pickedFrom, _fish, _hives, _taps) = (pickedFrom, fish, hives, taps);
+            (_pickedFrom, _fish, _hives, _taps, _cookers) = (pickedFrom, fish, hives, taps, cookers);
             return true;
         }
 
@@ -192,6 +200,7 @@ namespace Scry
             _fish = null;
             _hives = null;
             _taps = null;
+            _cookers = null;
         }
 
         private static void Copy(IEnumerable<string> from, HashSet<string> into)
