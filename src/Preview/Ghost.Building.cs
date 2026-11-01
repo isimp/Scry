@@ -324,8 +324,10 @@ namespace Scry
 
                         // Posed and woken where it stands, all but the parts that wake later.
                         var woken = Timing.Start();
+                        var placing = watch.Elapsed.TotalMilliseconds;
                         Place(_copy, _parent, _position, _rotation, _local);
                         Timing.Add("copy placed", woken);
+                        TellSlowPlacing(watch.Elapsed.TotalMilliseconds - placing);
                         _step = Step.Wake;
                         return;
                     }
@@ -372,6 +374,19 @@ namespace Scry
                 if (part == null || ms < SlowPartMs) return;
                 var colliders = part.GetComponentsInChildren<MeshCollider>(true).Length;
                 Log.Note($"Scry woke {_prefab.OrNull()?.name}: its part {part.name} took {Numbers.Amount(ms, 0)} ms, {Numbers.Count(part.GetComponentsInChildren<Transform>(true).Length)} parts, {Numbers.Count(colliders)} mesh colliders.");
+            }
+
+            /// <summary>
+            /// Tells in the log a copy whose placing took long: placing it wakes at once every part
+            /// not held back to wake later, so what it holds then, its parts and mesh colliders
+            /// awake, is what to look at.
+            /// </summary>
+            private void TellSlowPlacing(double ms)
+            {
+                if (ms < SlowPartMs || _copy == null) return;
+                var awake = _copy.GetComponentsInChildren<Transform>(false).Length;
+                var colliders = _copy.GetComponentsInChildren<MeshCollider>(false).Length;
+                Log.Note($"Scry placed {_prefab.OrNull()?.name} in {Numbers.Amount(ms, 0)} ms: {Numbers.Count(awake)} parts awake at once of {Numbers.Count(Parts)}, {Numbers.Count(colliders)} mesh colliders among them, {Numbers.Count(_asleep.Count)} chunks left to wake.");
             }
 
             /// <summary>Switches off the parts to wake one after another, while the copy still sleeps, where nothing notices.</summary>
