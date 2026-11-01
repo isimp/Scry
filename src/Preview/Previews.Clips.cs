@@ -95,65 +95,6 @@ namespace Scry
         }
 
         /// <summary>
-        /// Works out, once what each clip plays is known, which clips the stage copy never plays and
-        /// which it plays only with other gear in hand: where each of its animator's attack triggers
-        /// leads, and what it plays under each stance and with each switch an item names, each seen
-        /// on a hidden copy over the next frames and kept for its prefab whatever it carries; and
-        /// what it carries now. A person plays any attack once it holds the item, so what its other
-        /// attacks play is other gear's, not never played.
-        /// </summary>
-        private static void SortLeftovers()
-        {
-            var plays = StagePlays(out var ears);
-            if (plays == null || !plays.Ready || (plays.Unplayed != null && !plays.Provisional)) return;
-            var animator = ClipPlayer.AnimatorOf(Stage.Subject);
-            if (animator == null || animator.runtimeAnimatorController == null) return;
-            var key = ears.Prefab.name + "|" + animator.runtimeAnimatorController.name;
-            if (!LeadsOf.TryGetValue(key, out var leads))
-            {
-                var asked = ClipLeftovers.Candidates(animator.parameters.Where(p => p.type == AnimatorControllerParameterType.Trigger).Select(p => p.name));
-                var seen = asked.Count > 0 ? TriggerProbe.ClipsOf(ears.Prefab.name, animator, asked, wait: false) : null;
-                if (seen != null && seen.Busy) return;
-                leads = new Dictionary<string, IReadOnlyList<string>>();
-                if (seen != null) foreach (var trigger in asked) if (seen.Triggers.TryGetValue(trigger, out var clips)) leads[trigger] = clips;
-                LeadsOf[key] = leads;
-            }
-            var gear = GameGear();
-            // The stance it stands in swept first, answered before the rest (HeldClips.OtherGear's
-            // provisional rule), and worked out again once every stance is.
-            var now = StanceNow(animator);
-            var swept = TriggerProbe.StancesOf(ears.Prefab.name, animator, Stances.OrderBy(s => s == now ? 0 : 1).ToList(), gear.Holds, wait: false);
-            // Only a person, whose sweep is long, is told from its own stance first; a creature's is short, and waited for.
-            var partial = swept.Busy;
-            if (partial && (plays.Provisional || ears.Prefab.GetComponent<Player>() == null || !HasStance(animator) || !swept.Stances.ContainsKey(now))) return;
-
-            var other = plays.Tags.Keys.Concat(plays.Actions.Keys).Concat(plays.Around.Keys).Concat(plays.ByName.Keys).Concat(plays.Attacks.Keys).ToList();
-            var held = HeldClips.OtherGear(swept.Stances, swept.Holds, now, plays.Holding, gear.HoldStances,
-                partial ? ClipNames() : null, partial ? other.Concat(plays.Idles) : null);
-            var left = ClipLeftovers.UnplayedBy(leads, plays.Pulled, other.Where(c => !held.ContainsKey(c)));
-            var unplayed = new HashSet<string>(System.StringComparer.Ordinal);
-            var person = ears.Prefab.GetComponent<Player>() != null;
-            foreach (var clip in left)
-            {
-                if (held.ContainsKey(clip.Key)) continue;
-                if (person) held[clip.Key] = gear.AttackStances.TryGetValue(clip.Value, out var stance) ? stance : -1;
-                else unplayed.Add(clip.Key);
-            }
-            // What it plays now, as its own attacks and actions, is never other gear's.
-            foreach (var clip in plays.Attacks.Keys.Concat(plays.Actions.Keys)) held.Remove(clip);
-            plays.Groups = GroupsOf(plays, swept);
-            plays.Stance = HasStance(animator) ? StanceNow(animator) : -1;
-            plays.OtherGear = held;
-            plays.Unplayed = unplayed;
-            plays.Provisional = partial;
-            if (unplayed.Count > 0) Log.Note($"Scry leaves out {Numbers.Count(unplayed.Count)} clips {ears.Prefab.name} never plays, as nothing it carries starts them: {string.Join(", ", unplayed.OrderBy(c => c, System.StringComparer.Ordinal))}.");
-            if (held.Count > 0) Log.Note($"Scry leaves out {Numbers.Count(held.Count)} clips {ears.Prefab.name} plays only with other gear in hand.");
-        }
-
-        /// <summary>Where each attack trigger of a prefab's animator leads, by prefab and controller, seen once (<see cref="SortLeftovers"/>).</summary>
-        private static readonly Dictionary<string, Dictionary<string, IReadOnlyList<string>>> LeadsOf = new Dictionary<string, Dictionary<string, IReadOnlyList<string>>>();
-
-        /// <summary>
         /// What each of the stage copy's clips is for (<see cref="ClipGroups"/>): its attacks by
         /// their tags; moving, blocking and jumping by the sweep's runs; the rest by the switches
         /// the sweep pulled, the game's own actions the probe watched and the clips found by name;
@@ -941,7 +882,7 @@ namespace Scry
         private static void ForgetClips()
         {
             ClipPlaysCache.Clear();
-            LeadsOf.Clear();
+            ForgetLeads();
             _gear = default;
             WeaponOf.Clear();
             _clipsOf = null;
