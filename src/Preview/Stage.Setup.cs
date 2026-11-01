@@ -51,6 +51,7 @@ namespace Scry
                 _texture = null;
             }
 
+            ForgetMotionTexture();
             GiveLayerBack();
         }
 

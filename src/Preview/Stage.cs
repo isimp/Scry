@@ -97,7 +97,7 @@ namespace Scry
         private static int _backdrop = StageGround.FirstBackdrop;
         private static bool _showPerson;
 
-        public static Texture Texture => _texture;
+        public static Texture Texture => FilmedInMotion ? _motionTexture : _texture;
 
         /// <summary>Whether the model turns on its own: the config's AutoSpin, which the View box switches.</summary>
         public static bool Spin

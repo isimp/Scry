@@ -775,9 +775,14 @@ namespace Scry
             var lit = Stage.DimmedLights().Count;
             p.Check(Stage.ExampleRoomsDimmed > 0 && lit == 0, "the rooms dimmed below the floor opened are filmed without their own lights",
                 $"{Numbers.Count(Stage.ExampleRoomsDimmed)} rooms dimmed, {Numbers.Count(lit)} lights on");
+            // The lights kept are a setting a player turns on, off by default: their frames are
+            // timed by the films alone and left out of what Scry's own work is judged by.
             Settings.LightDimmedRooms = true;
+            var measuring = Timing.Measuring;
+            Timing.Measuring = null;
             var kept = new FilmTimes();
             yield return kept.Take();
+            Timing.Measuring = measuring;
             var relit = Stage.DimmedLights().Count;
             // Mörkhalla's rooms below its top floor hold lights; another dungeon's may hold none.
             if (entry.Name == "MorkBorg") p.Check(relit > 0, "with LightDimmedRooms on they keep them", "none came on again");
@@ -810,10 +815,16 @@ namespace Scry
             var grabbed = Stage.PointUnder(from);
             Stage.Pan(from, to);
             yield return null;
+            var lighter = Stage.FilmedInMotion;
             yield return null;
             var followed = grabbed is Vector3 held ? Stage.PictureOf(held) : null;
             p.Check(followed is Vector2 now && (now - to).magnitude < 0.02f, "a drag with the right button keeps what was grabbed under the pointer",
                 $"{(followed is Vector2 f ? Figures.Point(f, 3) : "not in view")} for {Figures.Point(to, 3)}");
+            // Filmed lighter while the camera moved, whole again once it holds still; a fast stage always as it is.
+            yield return Until(() => !Stage.FilmedInMotion && !Stage.Gliding, 2);
+            if (Settings.StageQuality == StageQuality.Full)
+                p.Check(lighter && !Stage.FilmedInMotion, "moved, the stage is filmed lighter, and whole again once the camera holds still",
+                    $"lighter while moving: {lighter}, whole after: {!Stage.FilmedInMotion}");
 
             // With the roof on, the wheel zooms toward what is under the pointer as well.
             Stage.OpenLevel(Stage.FloorHeights.Count);

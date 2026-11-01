@@ -2,7 +2,7 @@
 
 ## 0.3.3
 
-Pages open faster. The first page after the game starts has less to prepare, and a page opened for the first time answers the click at once and fills in over the next frames, each part fading in from a faint outline.
+Pages open faster. The first page after the game starts has less to prepare, and a page opened for the first time answers the click at once and fills in over the next frames, each part fading in from a faint outline. Turning, zooming or dragging the stage's camera over a big dungeon is smoother: while the camera moves the picture is drawn a little lighter, and whole again as soon as it holds still.
 
 The stage's sea holds what lives in it: a Serpent swims at its depth with its tail bending as in the game and opens showing its side across the picture, a Leviathan rides the surface, and the camera stays above the water. Drakes, Moder and a raid's flyers show in flight.
 

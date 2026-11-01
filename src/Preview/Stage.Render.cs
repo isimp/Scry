@@ -86,6 +86,9 @@ namespace Scry
             KeepBeforeFilm();
             // Nothing moved or changed: the last film stays on the panel.
             if (!FilmDue()) return;
+            // Into the lighter picture while the camera moves, else the stage's own (Stage.Motion).
+            var target = FilmTarget();
+            if (_camera.targetTexture != target) _camera.targetTexture = target;
             _camera.renderingPath = PathOverride ?? RenderingPath.UsePlayerSettings;
             var step = Timing.Start();
 
@@ -141,6 +144,7 @@ namespace Scry
                 Timing.Add(films != null ? "render films" : "render film", step);
                 TellSlowFilm();
                 Filmed++;
+                FilmedInto(target);
 
                 // A floor's cut is the near plane laid along it, which cut the creatures with all
                 // else. What of them is above it is drawn again over the picture, by a projection

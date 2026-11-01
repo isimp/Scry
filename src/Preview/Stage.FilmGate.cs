@@ -66,20 +66,25 @@ namespace Scry
             _liveLookedFrame = -1000;
         }
 
+        /// <summary>Whether the film due is one made while the camera moves, lighter (<see cref="FilmTarget"/>).</summary>
+        private static bool FilmInMotionNow { get; set; }
+
         /// <summary>Whether to film this frame; a frame not filmed keeps the last film on the panel.</summary>
         private static bool FilmDue()
         {
             var at = _camera.transform.position;
             var turn = _camera.transform.rotation;
             var cut = TheCut.At;
-            var moved = Yaw != _filmedYaw || Pitch != _filmedPitch || Zoom != _filmedZoom || cut != _filmedCut || at != _filmedAt || turn != _filmedTurn
-                || _width != _filmedWidth || _height != _filmedHeight;
-            var due = _touched || moved || Dragging || Gliding || Played.Count > 0 || Time.frameCount - _lastFilmFrame >= FilmFloorFrames || GrassMoving() || Live();
+            var cameraMoved = Yaw != _filmedYaw || Pitch != _filmedPitch || Zoom != _filmedZoom || cut != _filmedCut || at != _filmedAt || turn != _filmedTurn || Dragging || Gliding;
+            var moved = cameraMoved || _width != _filmedWidth || _height != _filmedHeight;
+            // A film in motion is followed by a whole one as soon as the camera holds still.
+            var due = _touched || moved || Played.Count > 0 || Time.frameCount - _lastFilmFrame >= FilmFloorFrames || GrassMoving() || Live() || FilmedInMotion && !cameraMoved;
             if (!due)
             {
                 FilmsSkipped++;
                 return false;
             }
+            FilmInMotionNow = cameraMoved && Settings.StageQuality != StageQuality.Fast;
             _touched = false;
             _filmedYaw = Yaw;
             _filmedPitch = Pitch;
