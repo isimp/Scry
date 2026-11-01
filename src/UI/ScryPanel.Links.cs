@@ -632,20 +632,62 @@ namespace Scry
         private static float StrictLeftLine(Explorer explorer, string topic, float width, float y, string name = null)
         {
             var (unmet, apart) = (_strictUnmet, _strictApart);
-            var (unmetKinds, apartKinds) = (StrictUnmetKinds.ToArray(), StrictApartKinds.ToArray());
             var waiting = _recipesWait;
             _strictUnmet = 0;
             _strictApart = 0;
+            _recipesWait = 0;
+            var lines = explorer.NamesOnlyMet ? LeftOutLinesOf(explorer, topic, unmet, apart, name) : null;
             StrictUnmetKinds.Clear();
             StrictApartKinds.Clear();
-            _recipesWait = 0;
-            if (!explorer.NamesOnlyMet) return y;
+            if (lines == null) return y;
             // Names left out alone are said here, as they are gone from the page; a weak spot not
             // found, as every number held back, is in the You box's list. A recipe row waiting for
             // the game to list it is said the same way, so the page does not go silent on it.
-            var lines = explorer.LeftOutLines(topic, unmet, apart, alone: _strictNamed == 0, name: name, unmetKinds: unmetKinds, apartKinds: apartKinds);
             for (var i = 0; i < lines.Count; i++) y = HintLine(lines[i].Line, "strict-left:", lines[i].Line, PanelPart.StrictLeftOut, width, y, lines[i].Tip);
             return HintLine(waiting > 0 ? CompendiumWords.RecipeRowsWait(waiting) : null, "recipe-wait:", topic, PanelPart.RecipeWaits, width, y);
+        }
+
+        /// <summary>
+        /// A section's left-out lines (<see cref="Explorer.LeftOutLines"/>), worked out once for what
+        /// they say and kept, as the section is drawn again each repaint with the same counts: by the
+        /// section, its counts, whether it names anything, the page's name, the rules, and the kinds
+        /// counted (<see cref="KindsSum"/>).
+        /// </summary>
+        private static List<(string Line, string Tip)> LeftOutLinesOf(Explorer explorer, string topic, int unmet, int apart, string name)
+        {
+            var key = (topic, unmet, apart, _strictNamed == 0, name, explorer.LeavingOut, KindsSum(StrictUnmetKinds), KindsSum(StrictApartKinds));
+            if (LeftOutLineCache.TryGetValue(key, out var lines)) return lines;
+            if (LeftOutLineCache.Count > 256) LeftOutLineCache.Clear();
+            lines = explorer.LeftOutLines(topic, unmet, apart, alone: key.Item4, name: name, unmetKinds: StrictUnmetKinds.ToArray(), apartKinds: StrictApartKinds.ToArray());
+            LeftOutLineCache[key] = lines;
+            return lines;
+        }
+
+        private static readonly Dictionary<(string, int, int, bool, string, bool, long, long), List<(string Line, string Tip)>> LeftOutLineCache =
+            new Dictionary<(string, int, int, bool, string, bool, long, long), List<(string Line, string Tip)>>();
+
+        /// <summary>
+        /// The kinds a line counts as one number, the same whatever their order, as the line's hover
+        /// counts them by kind and not by order: each kind adds its own scrambled number, so two
+        /// different sets of counts practically never add up alike.
+        /// </summary>
+        private static long KindsSum(List<Kind> kinds)
+        {
+            var sum = 0UL;
+            foreach (var kind in kinds) sum = unchecked(sum + Scrambled((ulong)kind + 1UL));
+            return unchecked((long)sum);
+        }
+
+        /// <summary>A kind's number in <see cref="KindsSum"/>, scrambled so that sums of different counts do not line up (the finishing step of SplitMix64).</summary>
+        private static ulong Scrambled(ulong x)
+        {
+            unchecked
+            {
+                x *= 0x9E3779B97F4A7C15UL;
+                x = (x ^ (x >> 30)) * 0xBF58476D1CE4E5B9UL;
+                x = (x ^ (x >> 27)) * 0x94D049BB133111EBUL;
+                return x ^ (x >> 31);
+            }
         }
 
         /// <summary>
