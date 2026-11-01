@@ -162,7 +162,7 @@ namespace Scry
             var shield = Pick(Kind.Item, "ShieldBronzeBuckler", "ShieldWood", "ShieldBanded");
             if (shield != null) p.Check(Facts.For(shield).Yours.ContainsKey("Block") && Facts.For(shield).Yours.ContainsKey("Parry bonus"), $"{shield.ShownName} tells its block and parry at your Blocking", Pairs(Facts.For(shield)));
             var fish = Pick(Kind.Item, "Fish1", "Fish2");
-            if (fish != null) p.Check(Facts.For(fish).Yours.ContainsKey("Reeling in"), $"{fish.ShownName} tells what reeling it in costs at your Fishing", Pairs(Facts.For(fish)));
+            if (fish != null) p.Check(Facts.For(fish).Yours.ContainsKey("Stamina while reeling"), $"{fish.ShownName} tells what reeling it in costs at your Fishing", Pairs(Facts.For(fish)));
             var summon = Pick(Kind.Creature, "Skeleton_Friendly");
             if (summon != null)
             {

@@ -115,16 +115,16 @@ namespace Scry.Tests
             Assert.Equal("No cut", StageWords.CutModeName(CutMode.Closed));
             Assert.Equal("Cut from above", StageWords.CutModeName(CutMode.Top));
             Assert.Equal("Cut from the side", StageWords.CutModeName(CutMode.Side));
-            Assert.Equal("No cut: the roof on", StageWords.CutModeTip(CutMode.Closed, inRoom: false));
-            Assert.Equal("Cut from above: the roof off over a floor or level", StageWords.CutModeTip(CutMode.Top, inRoom: false));
-            Assert.Equal("Cut from the side: the half of every room facing you taken away", StageWords.CutModeTip(CutMode.Side, inRoom: false));
+            Assert.Equal("No cut: the roof stays on", StageWords.CutModeTip(CutMode.Closed, inRoom: false));
+            Assert.Equal("Cut from above: takes the roof off over a floor or level", StageWords.CutModeTip(CutMode.Top, inRoom: false));
+            Assert.Equal("Cut from the side: takes away the half of every room that faces you", StageWords.CutModeTip(CutMode.Side, inRoom: false));
         }
 
         [Fact]
         public void InARoomTheCutControlActsOnTheRoomAndStaysInIt()
         {
-            Assert.Equal("No cut: the room's roof on, the rooms above it back, still in the room", StageWords.CutModeTip(CutMode.Closed, inRoom: true));
-            Assert.Equal("Cut from above: the room's roof off at head height over its floor", StageWords.CutModeTip(CutMode.Top, inRoom: true));
+            Assert.Equal("No cut: the room's roof and the rooms above it come back, and you stay in the room", StageWords.CutModeTip(CutMode.Closed, inRoom: true));
+            Assert.Equal("Cut from above: takes the room's roof off at head height over its floor", StageWords.CutModeTip(CutMode.Top, inRoom: true));
         }
 
         [Fact]

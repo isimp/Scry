@@ -189,7 +189,7 @@ namespace Scry
             yield return S("a tree felled leaves what it leaves, which goes again", TreeFalls, 40);
             yield return S("a model stands in the world and goes again", ModelInWorld, 10);
             yield return S("a projectile flies where you look", ProjectileFlies, 15);
-            yield return S("Clear world takes away what stands in the world", ClearWorld, 15);
+            yield return S("Clear previews takes away what stands in the world", ClearWorld, 15);
             yield return S("closing the panel quiets it, and opening it brings the selection back", CloseAndOpen, 25, () => { if (!Session.IsOpen) Session.Show(null); });
 
             _area = "Places and dungeons";

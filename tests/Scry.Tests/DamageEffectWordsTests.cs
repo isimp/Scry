@@ -16,7 +16,7 @@ namespace Scry.Tests
         public void BurningDealsFireOverItsTimeNotAtOnce()
         {
             var burning = DamageEffectWords.OverTime("fire", lasts: 5f, every: 1f);
-            Assert.Equal("Dealt over 5 s in 5 even hits, one a second, not at once: what a hit leaves after resistances and armour", Value(burning, "Fire damage"));
+            Assert.Equal("Dealt over 5 s in 5 even hits, one a second, instead of at once. Resistances and armour apply to the hit first", Value(burning, "Fire damage"));
             Assert.Equal("Adds to what is left, over 5 s again", Value(burning, "More fire"));
             // Each hit at least 0.2, or none of it is dealt.
             Assert.Equal("One leaving under 1 fire damage deals none of it, unless some is still being dealt", Value(burning, "A small hit"));
@@ -26,7 +26,7 @@ namespace Scry.Tests
         public void SpiritIsDealtTheSameWayInItsOwnHits()
         {
             var spirit = DamageEffectWords.OverTime("spirit", lasts: 3f, every: 0.5f);
-            Assert.Equal("Dealt over 3 s in 6 even hits, one every 0.5 s, not at once: what a hit leaves after resistances and armour", Value(spirit, "Spirit damage"));
+            Assert.Equal("Dealt over 3 s in 6 even hits, one every 0.5 s, instead of at once. Resistances and armour apply to the hit first", Value(spirit, "Spirit damage"));
             Assert.Equal("One leaving under 1.2 spirit damage deals none of it, unless some is still being dealt", Value(spirit, "A small hit"));
         }
 
@@ -48,8 +48,8 @@ namespace Scry.Tests
         public void PoisonLastsLongerTheMoreOfItThereIsLongestOnYou()
         {
             var poison = DamageEffectWords.Poison(baseLasts: 1f, perDamagePlayer: 5f, perDamage: 1f, power: 0.5f, every: 1f);
-            Assert.Equal("Dealt over time in even hits, one a second, not at once: what a hit leaves after resistances and armour", Value(poison, "Poison damage"));
-            Assert.Equal("On you 1 s and the square root of 5 times the damage; on a creature 1 s and the square root of the damage", Value(poison, "How long"));
+            Assert.Equal("Dealt over time in even hits, one a second, instead of at once. Resistances and armour apply to the hit first", Value(poison, "Poison damage"));
+            Assert.Equal("On you, 1 s plus as many seconds as the square root of 5 times the damage. On a creature, 1 s plus as many seconds as the square root of the damage", Value(poison, "How long"));
             Assert.Equal("Only a stronger hit starts it over; a weaker one adds nothing while it lasts", Value(poison, "More poison"));
 
             // 20 poison: 1 + √100 = 11 s on you, 11 hits of 1.8; 1 + √20 = 5.5 s on a creature, 5 hits of 4.

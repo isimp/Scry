@@ -60,24 +60,24 @@ namespace Scry.Tests
         public void PeekingWarnsThatEverythingShowsAndUntilWhen()
         {
             // Peeking shows the page looked at whole, not the whole catalog: the list stays as the character knows it.
-            Assert.Equal("Show each page whole for now, its links leading anywhere and a whole name in quotes finding what your character has not met; the list stays as it knows it, and it stops when the panel closes", CompendiumWords.PeekTip(false, pageShown: false));
+            Assert.Equal("Show each page whole until you close the panel. Its links open any page, and a full name in quotes in the search finds things your character has not met. The list itself stays as your character knows it", CompendiumWords.PeekTip(false, pageShown: false));
             Assert.Equal("Show only what your character has met again", CompendiumWords.PeekTip(true, pageShown: true));
             // With a page shown, the eye peeks at that page alone; its strip can widen it.
-            Assert.Equal("Show this page whole for now, its links leading anywhere, until you go to another page. Every page, on the strip that then shows, does the same for all pages until the panel closes", CompendiumWords.PeekTip(false, pageShown: true));
+            Assert.Equal("Show this page whole until you go to another page; its links open any page. Every page, on the strip that then shows, does the same for all pages until you close the panel", CompendiumWords.PeekTip(false, pageShown: true));
             Assert.Equal("Peeking at Troll: this page shows whole until you go to another", CompendiumWords.PeekingPageLine("Troll", compact: false));
             Assert.Equal("Peeking at Troll", CompendiumWords.PeekingPageLine("Troll", compact: true));
-            Assert.Equal("Until you go to another page, this one shows whole and its links lead anywhere; the list stays as your character knows it", CompendiumWords.PeekingPageTip);
+            Assert.Equal("Until you go to another page, this one shows whole and its links open any page. The list itself stays as your character knows it", CompendiumWords.PeekingPageTip);
             Assert.Equal("Every page", CompendiumWords.EveryPage);
-            Assert.Equal("Show every page whole until the panel closes, a whole name in quotes finding what your character has not met", CompendiumWords.EveryPageTip);
+            Assert.Equal("Show every page whole until you close the panel. A full name in quotes in the search finds things your character has not met", CompendiumWords.EveryPageTip);
             // The strip says it short; the rest in the tip of its line.
             Assert.Equal("Peeking: pages show whole until the panel closes", CompendiumWords.Peeking);
-            Assert.Equal("Each page shows whole, its links lead anywhere and a whole name in quotes finds what your character has not met; the list stays as it knows it", CompendiumWords.PeekingTip);
+            Assert.Equal("Each page shows whole and its links open any page. A full name in quotes in the search finds things your character has not met. The list itself stays as your character knows it", CompendiumWords.PeekingTip);
             Assert.Equal("Stop peeking", CompendiumWords.StopPeeking);
             // The compact view's strip says it short enough not to slide; how long it lasts moves to the tip.
             Assert.Equal(CompendiumWords.Peeking, CompendiumWords.PeekingLine(compact: false));
             Assert.Equal("Peeking: pages show whole", CompendiumWords.PeekingLine(compact: true));
             Assert.Equal(CompendiumWords.PeekingTip, CompendiumWords.PeekingLineTip(compact: false));
-            Assert.Equal("Until the panel closes, each page shows whole, its links lead anywhere and a whole name in quotes finds what your character has not met; the list stays as it knows it", CompendiumWords.PeekingLineTip(compact: true));
+            Assert.Equal("Until you close the panel, each page shows whole and its links open any page. A full name in quotes in the search finds things your character has not met. The list itself stays as your character knows it", CompendiumWords.PeekingLineTip(compact: true));
         }
 
         [Fact]
@@ -91,16 +91,16 @@ namespace Scry.Tests
         [Fact]
         public void CatchingUpFromTheMapSaysWhatItDidAndWhyNot()
         {
-            Assert.Equal("the explored map will be read again for your character in this world", CompendiumWords.MapAgain);
-            Assert.Equal("the explored map can be read only in a world", CompendiumWords.MapNoWorld);
-            Assert.Equal("caught up from the explored map: 1,200 kinds of place lie in explored ground, 3 of them new to it", CompendiumWords.MapRead(1200, 3, fromServer: false));
-            Assert.Equal("caught up from the explored map with the server's answer: 12 kinds of place lie in explored ground, 0 of them new to it", CompendiumWords.MapRead(12, 0, fromServer: true));
-            Assert.Equal("answered a player's explored map: 12 kinds of place lie in it", CompendiumWords.MapAnswered(12));
-            Assert.Equal("the server did not answer on the explored map (it has no Scry, or one too old): places count as the character meets them", CompendiumWords.MapNoServerScry);
-            Assert.Equal("Look at the map again", CompendiumWords.ReadMap);
+            Assert.Equal("the map of ground you explored will be read again for your character in this world", CompendiumWords.MapAgain);
+            Assert.Equal("the map of ground you explored can be read only in a world", CompendiumWords.MapNoWorld);
+            Assert.Equal("caught up from the map of ground you explored: 1,200 kinds of place lie in it, 3 of them new to the book", CompendiumWords.MapRead(1200, 3, fromServer: false));
+            Assert.Equal("caught up from the map of ground you explored with the server's answer: 12 kinds of place lie in it, 0 of them new to the book", CompendiumWords.MapRead(12, 0, fromServer: true));
+            Assert.Equal("answered a player's map of the ground they explored: 12 kinds of place lie in it", CompendiumWords.MapAnswered(12));
+            Assert.Equal("the server did not answer on the map of ground you explored (it has no Scry, or one too old): places count as the character meets them", CompendiumWords.MapNoServerScry);
+            Assert.Equal("Read the map again", CompendiumWords.ReadMap);
             Assert.Equal("Places in the ground your character explored show as the Ground you explored setting says. Scry reads the map again each session", CompendiumWords.MapBar);
-            Assert.Equal("Read again which kinds of place lie in the ground your character explored in this world, as on its first visit with Scry", CompendiumWords.ReadMapTip);
-            Assert.Equal("on a dedicated server Scry only answers players' explored maps, the world's census and their Scry's hello, sends the world's settings for the compendium, keeps how far and on which days they walk its dungeons, reads what was left inside them, and runs the self-test's made-up events for the player asking", CompendiumWords.ServerPart);
+            Assert.Equal("Check again which kinds of place lie in the ground your character explored in this world. Scry also does this each session and as you explore", CompendiumWords.ReadMapTip);
+            Assert.Equal("on a dedicated server Scry only answers players' maps of the ground they explored, the world's count of places and their Scry's hello, sends the world's settings for the compendium, keeps how far and on which days they walk its dungeons, reads what was left inside them, and runs the self-test's made-up events for the player asking", CompendiumWords.ServerPart);
         }
 
         [Fact]

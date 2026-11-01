@@ -17,7 +17,7 @@ namespace Scry
 
         public const string Hooked = "A mod runs code of its own here, and only the mod knows what it does";
         public const string Seen = "What happened in all your play, not the game's odds; a rare drop may not have come yet";
-        public const string SeenWorn = "What changed on you when you equipped it in your games, the latest seen; another world's settings or what else you wore may make it differ";
+        public const string SeenWorn = "What changed on you when you equipped this item in your games, as last seen. Another world's settings, or other gear you wore, may make it differ";
         public const string NothingFound = "Scry found nothing that gives it; a location, an event or a mod's own code still may";
         public const string NowhereFound = "Scry found nothing that places it; a location, an event, another creature or a mod's own code still may";
         public const string ModStars = "Nothing Scry reads in the world gives this mod's creature stars; its mod may give them in its own way";
@@ -51,9 +51,9 @@ namespace Scry
             const string not = "; the mod does not say so itself";
             switch (clue)
             {
-                case "its scripts": return "Scry matched it to this mod by the scripts it carries, which come from the mod's own assembly" + not;
-                case "a bundle holding it by name": return "Scry matched it to this mod by an asset bundle the mod ships that holds something of its name" + not;
-                case "the bundles holding what it uses": return "Scry matched it to this mod by its sounds or icons, found in asset bundles the mod ships" + not;
+                case "its scripts": return "Scry matched it to this mod because it carries scripts from the mod's own code" + not;
+                case "a bundle holding it": return "Scry matched it to this mod because a file the mod ships holds something by its name" + not;
+                case "the bundles holding what it uses": return "Scry matched it to this mod by its sounds or icons, found in files the mod ships" + not;
                 default: return "Scry matched it to this mod by clues" + not;
             }
         }

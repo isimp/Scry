@@ -53,9 +53,9 @@ namespace Scry.Tests
         {
             Assert.Equal(PlayingWithWords.RowHint, PlayingWithWords.Hint(ServerScry.Scry));
             Assert.Equal(PlayingWithWords.RowHint, PlayingWithWords.Hint(ServerScry.Here));
-            Assert.Equal("The server runs no Scry: what your explored and shared maps show, the world's census and the server's dungeon records are left out, and places count as you meet them. " + PlayingWithWords.RowHint,
+            Assert.Equal("The server runs no Scry: what ground you explored and shared maps show, the world's count of places and the server's dungeon records are left out, and places count as you meet them. " + PlayingWithWords.RowHint,
                 PlayingWithWords.Hint(ServerScry.None));
-            Assert.Equal("The server's Scry needs updating: what your explored and shared maps show, the world's census and the server's dungeon records are left out, and places count as you meet them. " + PlayingWithWords.RowHint,
+            Assert.Equal("The server's Scry needs updating: what ground you explored and shared maps show, the world's count of places and the server's dungeon records are left out, and places count as you meet them. " + PlayingWithWords.RowHint,
                 PlayingWithWords.Hint(ServerScry.Outdated));
         }
     }

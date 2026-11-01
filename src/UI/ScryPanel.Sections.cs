@@ -214,7 +214,7 @@ namespace Scry
         private static StripClick OffNotice(Rect rect, string step = null)
         {
             if (_offLine == null) return StripClick.None;
-            var clicked = NoticeStrip(rect, Skin.Warn, _offLine, Skin.WarnLabel, true, "Details", _card == ListCard.Off, true, crossTip: "Put this away until more of Scry goes off", step: step);
+            var clicked = NoticeStrip(rect, Skin.Warn, _offLine, Skin.WarnLabel, true, "Details", _card == ListCard.Off, true, crossTip: "Put this away until another feature of Scry turns off", step: step);
             switch (clicked)
             {
                 case StripClick.Chip:

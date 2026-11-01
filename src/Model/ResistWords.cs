@@ -59,9 +59,9 @@ namespace Scry
                 case Degree.VeryWeak: return "Very weak to";
                 case Degree.Weak: return "Weak to";
                 case Degree.SlightlyWeak: return "Slightly weak to";
-                case Degree.SlightlyResistant: return "Slightly resists";
-                case Degree.Resistant: return "Resists";
-                case Degree.VeryResistant: return "Strongly resists";
+                case Degree.SlightlyResistant: return "Slightly resistant to";
+                case Degree.Resistant: return "Resistant to";
+                case Degree.VeryResistant: return "Very resistant to";
                 case Degree.Immune: return "Immune to";
                 case Degree.Ignore: return "Unaffected by";
                 default: return Naming.FieldLabel(degree.ToString());
@@ -118,6 +118,9 @@ namespace Scry
         public static List<ResistCell> ForBroken(IEnumerable<ResistCell> cells) =>
             cells.Select(c => c.Tone == Tone.Immune ? new ResistCell { Type = c.Type, Value = c.Value, Tip = c.Type + ": takes none; your hits show only the damage it does take", Tone = Tone.Quiet } : c).ToList();
 
+        /// <summary>The damage types whose hits also put an effect on (burning, frost, shock, poison), which only immunity keeps off (<c>Character.RPC_Damage</c>).</summary>
+        private static bool Lingers(string type) => type == "Fire" || type == "Frost" || type == "Lightning" || type == "Poison";
+
         public static ResistCell Cell(string type, Degree degree)
         {
             string value, word;
@@ -125,14 +128,14 @@ namespace Scry
             switch (degree)
             {
                 case Degree.Normal: value = "100%"; word = "takes it in full"; break;
-                case Degree.SlightlyResistant: value = "75%"; word = "slightly resists it: takes three quarters"; tone = Tone.Resists; break;
-                case Degree.Resistant: value = "50%"; word = "resists it: takes half"; tone = Tone.Resists; break;
-                case Degree.VeryResistant: value = "25%"; word = "strongly resists it: takes a quarter"; tone = Tone.Resists; break;
+                case Degree.SlightlyResistant: value = "75%"; word = "slightly resistant to it: takes three quarters"; tone = Tone.Resists; break;
+                case Degree.Resistant: value = "50%"; word = "resistant to it: takes half"; tone = Tone.Resists; break;
+                case Degree.VeryResistant: value = "25%"; word = "very resistant to it: takes a quarter"; tone = Tone.Resists; break;
                 case Degree.SlightlyWeak: value = "125%"; word = "slightly weak to it: takes a quarter more"; tone = Tone.Weak; break;
                 case Degree.Weak: value = "150%"; word = "weak to it: takes half again"; tone = Tone.Weak; break;
                 case Degree.VeryWeak: value = "200%"; word = "very weak to it: takes double"; tone = Tone.Weak; break;
-                case Degree.Immune: value = "0%"; word = "immune to it: takes none"; tone = Tone.Immune; break;
-                case Degree.Ignore: value = "0%"; word = "unaffected by it: takes none"; tone = Tone.Immune; break;
+                case Degree.Immune: value = "0%"; word = "immune to it: takes none" + (Lingers(type) ? $", and {type.ToLowerInvariant()} hits cannot put their effect on it" : ""); tone = Tone.Immune; break;
+                case Degree.Ignore: value = "0%"; word = "unaffected by it: takes none" + (Lingers(type) ? $", and its {type.ToLowerInvariant()} damage brings no lasting effect; only an attack that carries the effect itself still puts it on" : ""); tone = Tone.Immune; break;
                 default: value = "?"; word = $"a degree Scry does not know ({Numbers.Count((int)degree)})"; break;
             }
             return new ResistCell { Type = type, Value = value, Tip = $"{type}: {word}", Tone = tone };

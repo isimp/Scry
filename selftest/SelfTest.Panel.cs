@@ -226,7 +226,7 @@ namespace Scry
                 yield break;
             }
             var width = ScryPanel.PanelDrawnForTest.width;
-            if (Previews.OutLines > 0) p.Note("Clear world stands in the title row: the way back may start the search row");
+            if (Previews.OutCount > 0) p.Note("Clear previews stands in the title row: the way back may start the search row");
             else p.Check(nav.yMax <= search.y, "the list button and the way back stand in the title row, over the search", $"way back {Said(nav)}, search {Said(search)}");
             p.Check(pill.y >= search.yMax && pill.y - search.yMax < search.height && Mathf.Abs(origin.y - pill.y) < 0.5f && origin.xMax <= width + 0.5f && origin.x > pill.xMax,
                 "the kind pill stands the row under the search, the origin chip at its end", $"pill {Said(pill)}, origin {Said(origin)}, panel {Numbers.Fixed(width, 0)} wide");

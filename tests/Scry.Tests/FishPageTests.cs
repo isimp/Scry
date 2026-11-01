@@ -58,7 +58,7 @@ namespace Scry.Tests
         public void HowItFindsTheFloatAndWhatDrivesItOff()
         {
             var page = FishPage.Of(Perch(), new[] { PerchSpawn() });
-            Assert.Equal("within 50 m, one time in ten each time it swims somewhere new, every 5 to 15 s: about once in 100 s for each one near", Line(page, FishWords.FindsFloat));
+            Assert.Equal("about once in 100 s for each fish within 50 m of the float. A fish swims somewhere new every 5 to 15 s and heads for the float one time in ten", Line(page, FishWords.FindsFloat));
             Assert.Equal(FishWords.SwimsOffLine, Line(page, FishWords.SwimsOff));
             Assert.Equal(FishWords.WrongBaitLine, Line(page, FishWords.WrongBait));
             Assert.Equal("breaks when the float is 10 m beyond the line's length, or more than 30 m from you", Line(page, FishWords.Line));

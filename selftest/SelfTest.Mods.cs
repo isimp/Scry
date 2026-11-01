@@ -83,7 +83,7 @@ namespace Scry
                 if (mod.Sourceless.Count > 0) gaps.Add($"{Numbers.Count(mod.Sourceless.Count)} items with no source ({string.Join(", ", mod.Sourceless.Take(4).Select(e => e.Name))})");
                 if (mod.Unspawned.Count > 0) gaps.Add($"{Numbers.Count(mod.Unspawned.Count)} creatures spawning nowhere seen ({string.Join(", ", mod.Unspawned.Take(4).Select(e => e.Name))})");
                 if (mod.Unbuilt.Count > 0) gaps.Add($"{Numbers.Count(mod.Unbuilt.Count)} pieces in no build menu");
-                p.Note($"{mod.Mod}: {ModReportWords.Counts(mod)}" + (mod.Hooks.Count > 0 ? $"; hooks into {ModReportWords.Hooks(mod.Hooks)}" : "")
+                p.Note($"{mod.Mod}: {ModReportWords.Counts(mod)}" + (mod.Hooks.Count > 0 ? $"; may change {ModReportWords.Hooks(mod.Hooks)}" : "")
                        + string.Concat(mod.Stations.Select(s => $"; station {s.Name}: {ModReportWords.Station(s)}"))
                        + string.Concat(mod.Tools.Select(t => $"; tool {t.Name}: {ModReportWords.Tool(t)}"))
                        + (gaps.Count > 0 ? "; not placed: " + string.Join(", ", gaps) : ""));

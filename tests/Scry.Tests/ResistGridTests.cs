@@ -11,14 +11,14 @@ namespace Scry.Tests
 
         [Theory]
         [InlineData(Degree.Normal, "100%", "takes it in full", Tone.Plain)]
-        [InlineData(Degree.SlightlyResistant, "75%", "slightly resists it: takes three quarters", Tone.Resists)]
-        [InlineData(Degree.Resistant, "50%", "resists it: takes half", Tone.Resists)]
-        [InlineData(Degree.VeryResistant, "25%", "strongly resists it: takes a quarter", Tone.Resists)]
+        [InlineData(Degree.SlightlyResistant, "75%", "slightly resistant to it: takes three quarters", Tone.Resists)]
+        [InlineData(Degree.Resistant, "50%", "resistant to it: takes half", Tone.Resists)]
+        [InlineData(Degree.VeryResistant, "25%", "very resistant to it: takes a quarter", Tone.Resists)]
         [InlineData(Degree.SlightlyWeak, "125%", "slightly weak to it: takes a quarter more", Tone.Weak)]
         [InlineData(Degree.Weak, "150%", "weak to it: takes half again", Tone.Weak)]
         [InlineData(Degree.VeryWeak, "200%", "very weak to it: takes double", Tone.Weak)]
-        [InlineData(Degree.Immune, "0%", "immune to it: takes none", Tone.Immune)]
-        [InlineData(Degree.Ignore, "0%", "unaffected by it: takes none", Tone.Immune)]
+        [InlineData(Degree.Immune, "0%", "immune to it: takes none, and fire hits cannot put their effect on it", Tone.Immune)]
+        [InlineData(Degree.Ignore, "0%", "unaffected by it: takes none, and its fire damage brings no lasting effect; only an attack that carries the effect itself still puts it on", Tone.Immune)]
         public void EachDegreeIsTheShareTaken(object degree, string value, string word, object tone)
         {
             var cell = ResistWords.Cell("Fire", (Degree)degree);
@@ -27,6 +27,17 @@ namespace Scry.Tests
             Assert.Equal(value, cell.Value);
             Assert.Equal("Fire: " + word, cell.Tip);
             Assert.Equal((Tone)tone, cell.Tone);
+        }
+
+        [Fact]
+        public void ImmuneAndUnaffectedDifferOnlyWhereAHitLeavesAnEffect()
+        {
+            // Only fire, frost, lightning and poison hits put an effect on, which immunity alone
+            // keeps off (Character.RPC_Damage); for other types the two read the same.
+            Assert.Equal("Poison: immune to it: takes none, and poison hits cannot put their effect on it", ResistWords.Cell("Poison", Degree.Immune).Tip);
+            Assert.Equal("Lightning: unaffected by it: takes none, and its lightning damage brings no lasting effect; only an attack that carries the effect itself still puts it on", ResistWords.Cell("Lightning", Degree.Ignore).Tip);
+            Assert.Equal("Blunt: immune to it: takes none", ResistWords.Cell("Blunt", Degree.Immune).Tip);
+            Assert.Equal("Blunt: unaffected by it: takes none", ResistWords.Cell("Blunt", Degree.Ignore).Tip);
         }
 
         [Fact]

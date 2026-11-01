@@ -227,9 +227,9 @@ namespace Scry
             _playOnSelect = config.Bind("2 - Preview", "PlayOnSelect", true,
                 "Plays a sound as soon as it is selected, so the list can be auditioned with the arrow keys.");
             _stageQuality = config.Bind("2 - Preview", "StageQuality", StageQuality.Full,
-                "How the stage is filmed. Full films it at the panel's own size with its grass and the lights below a dungeon's cut as LightDimmedRooms says. Fast films it at half the size, without grass or those lights, for a big dungeon on a weaker machine.");
+                "How the stage is drawn. Full draws it at the panel's own size, with its grass, and with the lights below a dungeon's cut as LightDimmedRooms says. Fast draws it at half size, without grass or those lights, for a big dungeon on a weaker machine.");
             _lightDimmedRooms = config.Bind("2 - Preview", "LightDimmedRooms", false,
-                "Lets the rooms shown dimmed below a dungeon's opened floor keep their own lights, as the game lights them. Off, only the stage's light reaches them, and a big dungeon is filmed in about half the time.");
+                "Lets the rooms shown dimmed below a dungeon's opened floor keep their own lights, as the game lights them. Off, only the stage's light reaches them, and a big dungeon is drawn in about half the time.");
             _logPreviews = config.Bind("3 - Diagnostics", "LogPreviews", false,
                 "Writes to the log what each preview played and what Scry found out about each prefab (its animator, its gear, what it leaves behind), for finding out why something looks or sounds wrong. Off, the log only says when the game has changed in a way Scry notices, and how long reading the catalog took.");
             _readTracesOnStart = config.Bind("5 - Server", "ReadTracesOnStart", true,

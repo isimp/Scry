@@ -212,9 +212,9 @@ namespace Scry
                 case Degree.VeryWeak: return "very weak to it";
                 case Degree.Weak: return "weak to it";
                 case Degree.SlightlyWeak: return "slightly weak to it";
-                case Degree.SlightlyResistant: return "slightly resisted";
-                case Degree.Resistant: return "resisted";
-                case Degree.VeryResistant: return "strongly resisted";
+                case Degree.SlightlyResistant: return "slightly resistant to it";
+                case Degree.Resistant: return "resistant to it";
+                case Degree.VeryResistant: return "very resistant to it";
                 case Degree.Immune: return "immune";
                 case Degree.Ignore: return "unaffected";
                 default: return "taken plainly";

@@ -31,9 +31,9 @@ namespace Scry
                     // PlaceRooms stops early only when it has required rooms and enough are in.
                     var required = plan.MinRequiredRooms > 0 && plan.RequiredRooms.Count > 0;
                     var tries = required
-                        ? $"up to {Numbers.Count(plan.MaxRooms)} tries at a room, stopping once {Numbers.Count(plan.MinRequiredRooms)} of its required rooms and over {Numbers.Count(plan.MinRooms)} rooms are in"
-                        : $"{Numbers.Count(plan.MaxRooms)} tries at a room";
-                    return $"room by room from its entrance, {tries}, then end caps on every open doorway";
+                        ? $"up to {Numbers.Count(plan.MaxRooms)} tries to add a room, stopping once {Numbers.Count(plan.MinRequiredRooms)} of its required rooms and more than {Numbers.Count(plan.MinRooms)} rooms in all are in"
+                        : $"{Numbers.Count(plan.MaxRooms)} tries to add a room";
+                    return $"room by room from its entrance, {tries}; then every doorway left open gets an end cap";
             }
         }
 
@@ -44,8 +44,8 @@ namespace Scry
         /// </summary>
         public static string Picks(DungeonPlan plan)
         {
-            if (plan.Algorithm != "Dungeon") return "by their weights";
-            return plan.Weighted ? "by their weights, among those that fit the doorway" : "any room that fits the doorway, all alike";
+            if (plan.Algorithm != "Dungeon") return "each room with its own chance";
+            return plan.Weighted ? "among the rooms that fit the doorway, each with its own chance" : "any room that fits the doorway, each as likely";
         }
 
         /// <summary>
@@ -210,7 +210,7 @@ namespace Scry
         {
             if (room.Doorways.Count == 0) return null;
             var types = room.Doorways.GroupBy(d => d.Type ?? "").OrderBy(g => g.Key.Length == 0).ThenByDescending(g => g.Count()).ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
-                .Select(g => $"{Numbers.Count(g.Count())} {(g.Key.Length > 0 ? g.Key : "untagged")}");
+                .Select(g => $"{Numbers.Count(g.Count())} {(g.Key.Length > 0 ? g.Key : "with no type")}");
             return string.Join(", ", types);
         }
     }

@@ -220,7 +220,7 @@ namespace Scry
         public static Group Mod(bool adds, bool hooks)
         {
             if (adds) return new Group("Adding to the game", 1);
-            return hooks ? new Group("Hooking into what Scry tells", 2) : new Group("Neither, as far as Scry sees", 3);
+            return hooks ? new Group("Changing the game's rules", 2) : new Group("Neither, as far as Scry sees", 3);
         }
 
         /// <summary>

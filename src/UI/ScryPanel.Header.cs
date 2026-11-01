@@ -439,7 +439,7 @@ namespace Scry
         /// <summary>
         /// The compendium in the title row, once the character's book is read and only in the full
         /// view: a button naming the rules chosen, the box under it opening while the mouse is on
-        /// either, as Clear world's list does, with the rules as segments and, while it is on, the
+        /// either, as Clear previews' list does, with the rules as segments and, while it is on, the
         /// floor between arrows; and while it is on, the eye peeking at everything for now beside
         /// the button. Left out where it would reach past <paramref name="leftmost"/>. Where the
         /// drawn controls begin, else <paramref name="right"/>.

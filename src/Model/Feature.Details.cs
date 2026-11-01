@@ -20,7 +20,7 @@ namespace Scry
         public static readonly Feature SpawnersShares = Listed("spawners' shares in the details");
         public static readonly Feature SpawnersCaps = Listed("spawners' caps in the details");
         public static readonly Feature WhereSpawnersPutWhatTheySpawn = Listed("where spawners put what they spawn, in the details");
-        public static readonly Feature HowRaidsAreRolled = Listed("how raids are rolled, in the details");
+        public static readonly Feature HowRaidsAreRolled = Listed("how raids are picked, in the details");
         public static readonly Feature WhomRaidsComeFor = Listed("whom raids come for, in the details");
         public static readonly Feature WhenRaidsAreOnTable = Listed("when raids are on the table, in the details");
         public static readonly Feature HowLongRaidsLast = Listed("how long raids last, in the details");
@@ -101,7 +101,7 @@ namespace Scry
         public static readonly Feature WindmillWind = Listed("the wind a windmill needs, in the details");
         public static readonly Feature WhereThingsGrow = Listed("where things grow, in the details");
         public static readonly Feature GameFigures = Listed("figures read from the game's data, in the details");
-        public static readonly Feature ModHooks = Listed("mods' hooks, in the details");
+        public static readonly Feature ModHooks = Listed("which rules mods may change, in the details");
         public static readonly Feature ModPages = Listed("mod pages and the mod report");
         public static readonly Feature ModSettings = Listed("mods' settings for an item, in the details");
         public static readonly Feature TooltipFromMods = Listed("an item's tooltip as the game shows it, with what mods add to it");

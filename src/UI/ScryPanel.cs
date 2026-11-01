@@ -267,23 +267,23 @@ namespace Scry
             }
         }
 
-        /// <summary>The header: the name, the way back and forward, the locations' button, the compendium's, Clear world, the gear, the view switch and the close button; it drags the panel. Timed as a part of its own.</summary>
+        /// <summary>The header: the name, the way back and forward, the locations' button, the compendium's, Clear previews, the gear, the view switch and the close button; it drags the panel. Timed as a part of its own.</summary>
         private static void Header(Explorer explorer, float w, float h, float pad, Event e)
         {
             var timed = Timing.Start();
             // Header: the name, the catalog size, the view switch and a close button. It drags the panel.
             var viewText = PanelWords.ViewButton(_compact);
             var viewW = Skin.Width(Skin.Button, viewText) + U(10f);
-            // Clear world sits in the header so it is in the same place whatever is selected, and
+            // Clear previews sits in the header so it is in the same place whatever is selected, and
             // only while something of Scry's is in the world.
-            var outLines = Previews.OutLines;
-            var clearText = ClearText(outLines);
-            var clearW = outLines > 0 ? Skin.Width(Skin.Button, clearText) + U(10f) : 0f;
+            var outCount = Previews.OutCount;
+            var clearText = ClearText(outCount);
+            var clearW = outCount > 0 ? Skin.Width(Skin.Button, clearText) + U(10f) : 0f;
             var viewRect = new Rect(w - pad - U(40f) - viewW, U(15f), viewW, U(28f));
             var gearRect = new Rect(viewRect.x - U(6f) - viewRect.height, viewRect.y, viewRect.height, viewRect.height);
             // The compendium's button beside the gear, its box under it, what else the row holds to their left.
             var front = CompendiumFront(explorer, gearRect.x, viewRect.y, viewRect.height, pad + U(98f), new Rect(pad, 0f, w - pad * 2f, h - pad));
-            var clearRect = new Rect(front - (outLines > 0 ? U(8f) + clearW : 0f), viewRect.y, clearW, viewRect.height);
+            var clearRect = new Rect(front - (outCount > 0 ? U(8f) + clearW : 0f), viewRect.y, clearW, viewRect.height);
 
             // Reading the locations completes what the search and the details know, so it is
             // offered here too until it is done; while reading it shows how far it has got. Its
@@ -317,8 +317,8 @@ namespace Scry
                 if (locRect.Contains(e.mousePosition)) AskTip("locations", reading ? "Stop reading the locations and dungeons; nothing read so far is kept" : LocationsButtonTip);
             }
 
-            if (outLines > 0 && GUI.Button(clearRect, clearText, Skin.Primary)) ClearWorld();
-            OutHover(clearRect, outLines, e, new Rect(pad, 0f, w - pad * 2f, h - pad));
+            if (outCount > 0 && GUI.Button(clearRect, clearText, Skin.Primary)) ClearWorld();
+            OutHover(clearRect, outCount, e, new Rect(pad, 0f, w - pad * 2f, h - pad));
             OutClicks(explorer, e);
             CompendiumBoxClicks(e);
 

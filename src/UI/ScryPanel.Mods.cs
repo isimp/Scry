@@ -59,7 +59,7 @@ namespace Scry
                 ModReportWords.Bar(_modCount), Skin.DimLabel);
             var button = new Rect(inner.xMax - w - U(6f), inner.y, w, U(26f));
             if (GUI.Button(button, open, Skin.Fitted(Skin.Chip, button))) ShowModReport();
-            if (button.Contains(Event.current.mousePosition)) AskTip("mod-report", "What each mod adds, what Scry links for its stations and tools, what it hooks into, and what Scry could not place");
+            if (button.Contains(Event.current.mousePosition)) AskTip("mod-report", "What each mod adds, what Scry links for its stations and tools, which game rules it may change, and what Scry could not tie into the game");
             return new Rect(inner.x, inner.y + barH, inner.width, inner.height - barH);
         }
 
@@ -71,11 +71,11 @@ namespace Scry
             var width = body.Width;
             var y = body.Y;
 
-            y = Paragraph("What each mod adds, what Scry links for its crafting stations and build tools, which of the game's rules it hooks into, and what Scry could not place. What could not be placed may come from the mod's own code, which only the mod knows.", x, y, width);
+            y = Paragraph("What each mod adds, what Scry links for its crafting stations and build tools, which game rules it may change, and what Scry could not tie into the game: stations nothing is made or built at, items with no source, creatures that spawn nowhere and pieces in no build menu. The mod's own code may still use them; only the mod knows.", x, y, width);
             if (Locations.Now != Locations.State.Read) y = Paragraph("Until every location is read, what is found only in locations counts as having no source.", x, y, width);
 
             var all = ModReportReader.Of(explorer.Catalog);
-            if (all.Count == 0) y = Paragraph("No mod adds anything or hooks into the game's drops or spawning.", x, y + U(6f), width);
+            if (all.Count == 0) y = Paragraph("No mod adds anything, and none may change what Scry tells.", x, y + U(6f), width);
 
             // Narrowed by a mod's name, or to the mods that add something of their own.
             if (all.Count > 0)

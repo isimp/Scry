@@ -63,9 +63,9 @@ namespace Scry.Tests
             // its line, its tip telling why: the Seeker Queen's slap starts by a trigger its animator
             // lacks, the Writhan's blast by one that leads nowhere (Attack.Start pulls it all the same).
             Assert.Equal("Slap  ·  no animation", ClipWords.NoAnimation("Slap"));
-            Assert.Equal("The game starts it by \"attack_slash0\", which this creature's animator does not have, so it plays no animation",
+            Assert.Equal("The game starts this attack with the signal \"attack_slash0\", which this creature does not know, so it plays no animation",
                 ClipWords.NoAnimationTip("attack_slash0", inAnimator: false));
-            Assert.Equal("The game starts it by \"attack_explode_test\", which leads this creature's animator to no animation",
+            Assert.Equal("The game starts this attack with the signal \"attack_explode_test\"; this creature knows the signal but has no animation for it",
                 ClipWords.NoAnimationTip("attack_explode_test", inAnimator: true));
             Assert.Equal("No animation of its own was found for this attack", ClipWords.NoAnimationTip(null, inAnimator: false));
             // Under the strict rules an attack's clips not shown yet are one chip counting them.

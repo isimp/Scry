@@ -34,7 +34,7 @@ namespace Scry
         public const string Stage = "Stage";
         public const string Full = "Full";
         public const string Fast = "Fast";
-        public const string StageTip = "Fast films the stage at half its size, without the ground's vegetation or the lights below a dungeon's cut, for a big dungeon on a weaker machine";
+        public const string StageTip = "Fast draws the stage at half size, without grass or the lights below a dungeon's cut. It suits a big dungeon on a weaker machine";
         public const string News = "News of what you learn";
         public const string Notice = "Notice";
         public const string LearnedOnly = "Learned tab only";
@@ -51,7 +51,7 @@ namespace Scry
         public const string WalkedByYou = "Walked by you";
         public const string WalkedOnServer = "Walked on this server";
         public const string Entrances = "Entrances";
-        public const string MarksShownTip = "Which dungeon marks the map shows: those you walked, those others on this server walked where a source shows them with insides, and the entrances of dungeons nobody walked, faint until the pointer rests on one";
+        public const string MarksShownTip = "Which dungeon marks the map shows. Walked by you: dungeons you walked. Walked on this server: dungeons others on this server walked, where a source is set to With insides. Entrances: dungeons nobody walked, faint until you point at one";
         public const string Minimap = "Marks on the minimap";
         public const string Off = "Off";
         public const string On = "On";
@@ -63,7 +63,7 @@ namespace Scry
         /// <summary>A mark size dragged to, in tenths within those the slider reaches.</summary>
         public static float MarkSizeStep(float size) => Math.Max(SmallestMarkSize, Math.Min(LargestMarkSize, (float)Math.Round(size * 10f) / 10f));
 
-        public const string SizeTip = "How big the panel is drawn, on top of its scaling to the screen's height; it takes the size as the slider is let go";
+        public const string SizeTip = "How big the panel is drawn, on top of its scaling to your screen's height. The new size applies when you let go of the slider";
 
         /// <summary>The panel's sizes the slider reaches, on top of the scaling by screen height, as the config file allows them.</summary>
         public const float SmallestSize = 0.6f, LargestSize = 2f;
@@ -100,11 +100,11 @@ namespace Scry
         /// <summary>The guide's paragraphs, each its caption and its words.</summary>
         public static readonly (string Caption, string Words)[] Guide =
         {
-            ("Off, Loose and Strict", "Off shows everything the game holds. Loose shows a thing your character knows with its whole page, naming only what it has met; what the game's own menus show, a recipe's materials, a piece's cost and tool, a store's wares, comes with the thing. Each section says how many it left out, and a page's title row counts how much of what it names was met. What it only saw stands on the stage with its page closed, telling what sight gave. Strict also keeps back what the game never shows of how things connect until your character saw them go together, and the numbers the game never shows until it found them out, each saying what shows it, and each section says how many it left out; a page's title row counts how much of all that was found out, and the stage shows a creature only with the stars and gear it was seen with up close."),
-            ("Known up to", "Shows everything of the biomes whose bosses your character has beaten as known, tier by tier, marked with stairs where it shows something; it can be lowered again."),
-            ("Peeking", "The eye beside the compendium's button shows the page you are on whole until you go to another; Every page, on the strip that then shows, does the same for all pages until the panel closes."),
-            ("Learned and You", "Learned lists what your character learned, day by day; under Strict also the numbers it found out, which Loose shows from the start. A row there opens its page at what changed, lit a moment. A page's You box tells when it first saw the thing and came to know it, and how its fights went."),
-            ("What this world shows as known", "Each source can show more of the world as known: the ground you explored, maps shared at a cartography table, places a Vegvisir or rune stone marked, the places every map shows, and the whole world counted. What shows so is marked with a folded map; your book keeps only what you met, so turning a source down takes it all back."),
+            ("Off, Loose and Strict", "Off shows everything the game holds. Loose shows each thing your character knows with its whole page, but names only what your character has met. What the game's own menus show comes with the thing: a recipe's materials, a piece's cost and tool, a store's wares. Each section says how many things it left out, and a page's title row counts how much of what it names your character has met. A thing your character only saw stands on the stage with its page closed, telling what sight gave. Strict also keeps back what the game never shows of how things connect, until your character saw them go together. It keeps back the numbers the game never shows, too, until your character found them out, and each says what shows it. Under Strict, each section also counts what it kept back, and a page's title row counts how much of all that was found out. The stage shows a creature only with the stars and gear your character saw on it up close."),
+            ("Known up to", "Known up to shows everything of the biomes whose bosses your character has beaten as known, tier by tier. What it shows is marked with stairs. You can lower it again."),
+            ("Peeking", "The eye beside the compendium's button shows the page you are on whole until you go to another page. Every page, on the strip that then shows, does the same for all pages until you close the panel."),
+            ("Learned and You", "Learned lists what your character learned, day by day. Under Strict it also lists the numbers your character found out, which Loose shows from the start. A row there opens its page at what changed, lit for a moment. A page's You box tells when your character first saw the thing and came to know it, and how its fights went."),
+            ("What this world shows as known", "Each source can show more of the world as known: Ground you explored, Shared maps (read at a cartography table), Places marked for you (by a Vegvisir or rune stone), Places on every map, and The whole world, counted. What a source shows is marked with a folded map. Your book keeps only what your character met, so turning a source down takes back all it showed."),
             ("Pins", "The pin at the end of a ground's row marks its dungeon entrances on the large map: solid where you walked it, ticked where every room was walked, by you or with others on this server, hollow where only others did, faint for an entrance alone until pointed at. Each mark carries a glyph for the dungeon's kind. A click on a mark shows the dungeon in Scry."),
             ("Playing together", "Where your friends have Scry, what their game runs near you counts for you as it would alone. A server can set the rules for everyone; the box then shows them locked, your own choices kept beneath."),
         };

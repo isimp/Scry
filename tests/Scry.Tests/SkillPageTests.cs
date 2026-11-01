@@ -108,8 +108,8 @@ namespace Scry.Tests
         {
             var fishing = new SkillInputs { Name = "Fishing", HookedAtNone = 1f, HookedAtTop = 0.2f, PullAtTop = 0.2f, LineAtNone = 2f, LineAtTop = 6f };
             Assert.Equal(new[] { "Stamina: with a fish on", "1 a second", "0.6 a second", "0.2 a second" }, Line(fishing, 50f, "Stamina: with a fish on"));
-            Assert.Equal(new[] { "Stamina: reeling in", "100%", "60%", "20%" }, Line(fishing, 50f, "Stamina: reeling in"));
-            Assert.Equal(new[] { "Reeling in", "2 m/s", "4 m/s", "6 m/s" }, Line(fishing, 50f, "Reeling in"));
+            Assert.Equal(new[] { "Stamina: while reeling", "100%", "60%", "20%" }, Line(fishing, 50f, "Stamina: while reeling"));
+            Assert.Equal(new[] { "Reeling speed", "2 m/s", "4 m/s", "6 m/s" }, Line(fishing, 50f, "Reeling speed"));
         }
 
         [Fact]
@@ -227,8 +227,8 @@ namespace Scry.Tests
             Assert.Equal("Hitting creatures with what trains it, or an archery target, up to a third as much at its middle", SkillPageWords.RisesBy("Bows"));
             Assert.Equal("Each jump with the stamina for it", SkillPageWords.RisesBy("Jump"));
             Assert.Equal("Each second reeling in, twice as much with a fish on", SkillPageWords.RisesBy("Fishing"));
-            Assert.Equal("Putting food on a cooking station and taking it off, cooked or burnt, and making things where it speeds the making", SkillPageWords.RisesBy("Cooking"));
-            Assert.Equal("Making things where it speeds the making, each of several made at once; repairing, by how worn it was; building, each piece taken down cancelling the next one built, up to 20", SkillPageWords.RisesBy("Crafting"));
+            Assert.Equal("Putting food on a cooking station and taking it off, cooked or burnt, and making things at a station where the skill speeds the making", SkillPageWords.RisesBy("Cooking"));
+            Assert.Equal("Making things at a station where the skill speeds the making; a batch of 5 counts as 5. Repairing, by how worn the item was. Building, though each piece you take down cancels the next piece you build, for up to 20 pieces", SkillPageWords.RisesBy("Crafting"));
             Assert.Equal("Picking crops and wild plants, by hand or with a scythe, each plant once, and planting with the cultivator", SkillPageWords.RisesBy("Farming"));
             Assert.Equal("Each second running with stamina left", SkillPageWords.RisesBy("Run"));
             Assert.Equal("Each second sneaking, a tenth as much with no creature near enough to notice you", SkillPageWords.RisesBy("Sneak"));

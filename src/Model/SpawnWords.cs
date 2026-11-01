@@ -86,7 +86,7 @@ namespace Scry
         {
             var boss = bossOf?.Invoke(key);
             if (!string.IsNullOrEmpty(boss)) return $"{boss} is defeated";
-            return key != null && BroughtFor.TryGetValue(key, out var brought) ? $"{brought.Item} is brought to {brought.Trader}" : $"the world key \"{key}\" is set";
+            return key != null && BroughtFor.TryGetValue(key, out var brought) ? $"{brought.Item} is brought to {brought.Trader}" : $"this world has the key \"{key}\"";
         }
 
         /// <summary>The world keys a trader sets for an item brought to it (<c>Trader.m_useItems</c>, as Hildir's chests), by key.</summary>
@@ -193,15 +193,18 @@ namespace Scry
         {
             var parts = new List<string> { string.IsNullOrEmpty(spawn.Biomes) ? start : start + " " + spawn.Biomes };
             if (spawn.AtNight != spawn.AtDay) parts.Add(spawn.AtNight ? "at night" : "by day");
-            if (spawn.MaxLevel > 0) parts.Add(Stars(spawn.MinLevel, spawn.MaxLevel));
-            var group = Group(spawn.GroupMin, spawn.GroupMax);
-            if (group != null) parts.Add(group);
             if (spawn.InForest != spawn.OutsideForest) parts.Add(spawn.InForest ? "in forests" : "outside forests");
-            if (spawn.Weather != null && spawn.Weather.Length > 0) parts.Add("in weather " + string.Join(" or ", spawn.Weather));
-            if (spawn.Keys != null) foreach (var key in spawn.Keys) if (!string.IsNullOrEmpty(key)) parts.Add(Once(key, bossOf));
-            if (spawn.NotKeys != null) foreach (var key in spawn.NotKeys) if (!string.IsNullOrEmpty(key)) parts.Add(Until(key, bossOf));
+            if (spawn.Weather != null && spawn.Weather.Length > 0) parts.Add("when the weather is " + string.Join(" or ", spawn.Weather));
             if (!string.IsNullOrEmpty(spawn.Event)) parts.Add("only during " + spawn.Event);
-            return string.Join(", ", parts);
+            // How many, and what must have happened first, as a second sentence.
+            var more = new List<string>();
+            if (spawn.MaxLevel > 0) more.Add(Stars(spawn.MinLevel, spawn.MaxLevel));
+            var group = Group(spawn.GroupMin, spawn.GroupMax);
+            if (group != null) more.Add(group);
+            if (spawn.Keys != null) foreach (var key in spawn.Keys) if (!string.IsNullOrEmpty(key)) more.Add(Once(key, bossOf));
+            if (spawn.NotKeys != null) foreach (var key in spawn.NotKeys) if (!string.IsNullOrEmpty(key)) more.Add(Until(key, bossOf));
+            var line = string.Join(", ", parts);
+            return more.Count == 0 ? line : line + ". " + Naming.Capital(string.Join(", ", more));
         }
     }
 }

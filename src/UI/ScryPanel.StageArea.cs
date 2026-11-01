@@ -382,7 +382,7 @@ namespace Scry
             var middle = new Rect(rect.x + U(30f), rect.y + rect.height / 2f - U(34f), rect.width - U(60f), U(70f));
             GUI.Label(new Rect(middle.x, middle.y, middle.width, U(28f)), "Nothing to see or hear", Skin.Center);
             GUI.Label(new Rect(middle.x, middle.y + U(30f), middle.width, U(40f)),
-                "It has no model, particles, light or sound. Often a spawner or a controller.", Skin.CenterDim);
+                "It has no model, particles, light or sound. It is often a hidden helper, such as a spawner.", Skin.CenterDim);
                     return;
             }
             Timing.Add("stage card", drawn);

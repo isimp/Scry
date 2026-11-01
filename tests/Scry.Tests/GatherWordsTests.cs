@@ -67,9 +67,9 @@ namespace Scry.Tests
         [InlineData(Degree.VeryWeak, "Very weak to")]
         [InlineData(Degree.Weak, "Weak to")]
         [InlineData(Degree.SlightlyWeak, "Slightly weak to")]
-        [InlineData(Degree.SlightlyResistant, "Slightly resists")]
-        [InlineData(Degree.Resistant, "Resists")]
-        [InlineData(Degree.VeryResistant, "Strongly resists")]
+        [InlineData(Degree.SlightlyResistant, "Slightly resistant to")]
+        [InlineData(Degree.Resistant, "Resistant to")]
+        [InlineData(Degree.VeryResistant, "Very resistant to")]
         [InlineData(Degree.Immune, "Immune to")]
         [InlineData(Degree.Ignore, "Unaffected by")]
         public void EachDegreeReadsAsALabel(object degree, string label) => Assert.Equal(label, ResistWords.Label((Degree)degree));
@@ -81,7 +81,7 @@ namespace Scry.Tests
             {
                 ("fire", Degree.Resistant), ("blunt", Degree.Weak), ("slash", Degree.Normal), ("frost", Degree.Resistant), ("spirit", Degree.Immune), ("pierce", Degree.VeryWeak),
             });
-            Assert.Equal(new[] { "Very weak to", "Weak to", "Resists", "Immune to" }, groups.Select(g => g.Words));
+            Assert.Equal(new[] { "Very weak to", "Weak to", "Resistant to", "Immune to" }, groups.Select(g => g.Words));
             Assert.Equal(new[] { "fire", "frost" }, groups[2].Types);
         }
 

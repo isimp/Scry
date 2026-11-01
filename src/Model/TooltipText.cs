@@ -64,7 +64,7 @@ namespace Scry
             return names;
         }
 
-        /// <summary>The legend under the card: what its tint means, leading into the mods hooking the tooltip where any are named.</summary>
-        public static string Legend(bool modsNamed) => modsNamed ? "Tinted lines come from the mods hooking the tooltip:" : "Tinted lines come from mods hooking the tooltip.";
+        /// <summary>The legend under the card: what its tint means, leading into the mods that add to the tooltip where any are named.</summary>
+        public static string Legend(bool modsNamed) => modsNamed ? "Tinted lines come from the mods that add to the tooltip:" : "Tinted lines come from mods that add to the tooltip.";
     }
 }

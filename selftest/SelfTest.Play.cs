@@ -592,7 +592,7 @@ namespace Scry
                 view.InWorld("self-test");
                 view.Tell(book, CompendiumRule.Strict);
                 p.Check(view.Of(place) == KnownLevel.Seen && view.ByWorld(place) == WorldSource.Explored && book.Level(place.Key) < KnownLevel.Seen,
-                    "a place the map brings shows as seen from your explored ground, not written into the book", $"{place.Name}: {view.Of(place)}, book {book.Level(place.Key)}");
+                    "a place the map brings shows as seen from ground you explored, not written into the book", $"{place.Name}: {view.Of(place)}, book {book.Level(place.Key)}");
             }
             Session.ShowKnownInstead(null);
         }

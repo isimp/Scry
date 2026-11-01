@@ -33,7 +33,7 @@ namespace Scry.Tests
         {
             Assert.Equal("jumps, by name", ClipWords.ByName("Jump_Start"));
             Assert.Equal("swims, by name", ClipWords.ByName("swim_idle"));
-            Assert.Equal("in water, by name", ClipWords.ByName("Water_Idle"));
+            Assert.Equal("is in water, by name", ClipWords.ByName("Water_Idle"));
         }
 
         [Fact]

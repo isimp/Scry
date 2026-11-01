@@ -121,7 +121,7 @@ namespace Scry
             if (shape == null) return;
             Add("Role", DungeonWords.Role(shape));
             Add("Size", DungeonWords.Size(shape));
-            Add("Connection tags", DungeonWords.ConnectionTags(shape));
+            Add("Doorway types", DungeonWords.ConnectionTags(shape));
             if (shape.MinPlaceOrder > 0) Add("Not before", DungeonWords.NotBefore(shape.MinPlaceOrder));
         }
 

@@ -12,7 +12,7 @@ Every command is typed in the chat as shown, or in the game's console (F5) witho
 
 `/scry forget` forgets what Scry kept of the locations and their floors, and reads them afresh, as *Read locations again* does.
 
-`/scry map` looks at your explored map again for the compendium, as *Look at the map again* in the compendium's box does.
+`/scry map` reads the map of ground you explored again for the compendium, as *Read the map again* in the compendium's box does.
 
 `/scry forget maps` forgets your character's own maps of the dungeons of this world: the rooms you walked, and the marks on the large map.
 
@@ -22,7 +22,7 @@ Every command is typed in the chat as shown, or in the game's console (F5) witho
 
 ## Animations
 
-`/scry forget clips` forgets what Scry saw each animator play, kept from one session to the next, so the clips of a page are worked out again as it opens, as *Work out again* over the clips does. It helps where an animation mod changed an animator in place.
+`/scry forget clips` forgets the animations Scry found and kept from one session to the next, so Scry finds a page's animations again as it opens, as *Find again* over the clips does. It helps where an animation mod changed an animator in place.
 
 ## For an admin of a server
 

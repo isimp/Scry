@@ -12,15 +12,15 @@ namespace Scry.Tests
         [Fact]
         public void TheRaidRollSaysHowOftenAndThatOneIsPickedAmongThoseThatCan()
         {
-            Assert.Equal("every 46 min, 20% each time, one picked among the raids that can start", RaidWords.Roll(46f, 20f));
+            Assert.Equal("every 46 min, with a 20% chance, one at random among the raids that can start", RaidWords.Roll(46f, 20f));
         }
 
         [Fact]
         public void ARaidWithATimerOfItsOwnSaysSo()
         {
-            // A raid with m_standaloneInterval is rolled on its own besides.
-            Assert.Equal("on its own every 50 min, 25% each time", RaidWords.OwnRoll(3000f, 25f));
-            Assert.Equal("on its own every 50 min", RaidWords.OwnRoll(3000f, 100f));
+            // A raid with m_standaloneInterval has a timer of its own besides.
+            Assert.Equal("every 50 min, with a 25% chance", RaidWords.OwnRoll(3000f, 25f));
+            Assert.Equal("every 50 min", RaidWords.OwnRoll(3000f, 100f));
             Assert.Null(RaidWords.OwnRoll(0f, 100f));
         }
 
@@ -38,12 +38,12 @@ namespace Scry.Tests
         [Fact]
         public void ARaidsCreaturesKeepComingWhileItLasts()
         {
-            // There are no waves: for as long as the raid lasts, each creature is rolled again at
-            // its pace (SpawnSystem.UpdateSpawnList), one with a maximum kept topped up to it near you,
+            // There are no waves: for as long as the raid lasts, each creature may come again at
+            // its own interval (SpawnSystem.UpdateSpawnList), one with a maximum refilled up to it near you,
             // one without one more each time.
-            Assert.Equal("throughout the raid, each creature is rolled again at its pace and kept topped up to its maximum near you, so the fallen are replaced", RaidWords.KeepsComing(2, 2));
-            Assert.Equal("throughout the raid, each creature is rolled again at its pace, one more each time", RaidWords.KeepsComing(0, 1));
-            Assert.Equal("throughout the raid, each creature is rolled again at its pace, those with a maximum kept topped up to it near you, so the fallen are replaced", RaidWords.KeepsComing(1, 2));
+            Assert.Equal("throughout the raid, each creature may come again at its own interval and is refilled up to its maximum near you, so the fallen are replaced", RaidWords.KeepsComing(2, 2));
+            Assert.Equal("throughout the raid, each creature may come again at its own interval, one more each time", RaidWords.KeepsComing(0, 1));
+            Assert.Equal("throughout the raid, each creature may come again at its own interval; those with a maximum are refilled up to it near you, so the fallen are replaced", RaidWords.KeepsComing(1, 2));
             Assert.Null(RaidWords.KeepsComing(0, 0));
         }
 
@@ -62,7 +62,7 @@ namespace Scry.Tests
             Assert.Equal("from the start", RaidWords.Starts(new string[0], new string[0], Boss));
             Assert.Equal("from the start, until Eikthyr is defeated", RaidWords.Starts(new string[0], new[] { "defeated_eikthyr" }, Boss));
             Assert.Equal("once Eikthyr is defeated, until The Elder is defeated", RaidWords.Starts(new[] { "defeated_eikthyr" }, new[] { "defeated_gdking" }, Boss));
-            Assert.Equal("once the world key \"KilledTroll\" is set", RaidWords.Starts(new[] { "KilledTroll", "" }, null, Boss));
+            Assert.Equal("once this world has the key \"KilledTroll\"", RaidWords.Starts(new[] { "KilledTroll", "" }, null, Boss));
         }
 
         [Fact]
@@ -71,13 +71,13 @@ namespace Scry.Tests
             // RandEventSystem.GetForcedEvent: while EnemyHud shows a boss (EnemyHud.TestShow: alerted,
             // within m_maxShowDistanceBoss), the event its Character.m_bossEvent names is on.
             Assert.Equal("Fighting Eikthyr", RaidWords.Fighting("Eikthyr"));
-            Assert.Equal("while Eikthyr is alerted within 100 m of you, its health bar showing", RaidWords.WhileFighting("Eikthyr", 100f));
+            Assert.Equal("while Eikthyr is alert within 100 m of you, which is when its health bar shows", RaidWords.WhileFighting("Eikthyr", 100f));
         }
 
         [Fact]
         public void TheRaidsTabListsRaidsFirstThenBossFightsThenTheRest()
         {
-            // A boss's event is its fight's music and weather, not a raid, even if it could be rolled.
+            // A boss's event is its fight's music and weather, not a raid, even if it could be picked.
             Assert.Equal(RaidRole.Raid, RaidGrouping.Role(random: true, standaloneInterval: 0f, namedByBoss: false));
             Assert.Equal(RaidRole.Raid, RaidGrouping.Role(random: false, standaloneInterval: 3000f, namedByBoss: false));
             Assert.Equal(RaidRole.BossFight, RaidGrouping.Role(random: false, standaloneInterval: 0f, namedByBoss: true));
@@ -130,9 +130,9 @@ namespace Scry.Tests
             Assert.Equal(62, ranks["raid62"]);
         }
 
-        // A raid's biomes are where the game rolls it (RandEventSystem.InValidBiome): those set,
+        // A raid's biomes are where the game can pick it (RandEventSystem.InValidBiome): those set,
         // or every biome when none is set. A boss's fight and what something else starts are never
-        // rolled, so no biome is theirs, and no biome page lists them.
+        // picked, so no biome is theirs, and no biome page lists them.
         [Fact]
         public void OnlyARolledRaidHasBiomesEveryOneWhenNoneIsSet()
         {
@@ -176,8 +176,8 @@ namespace Scry.Tests
             Assert.Equal(new[] { "Creature", "At once", "Every", "Chance", "Stars", "Also" }, RaidWords.BringColumns);
             Assert.Equal(new[] { "Troll", "up to 2", "60 s", "58%", "up to 2 stars", "in groups of 2–3, at night, hunting you" },
                 RaidWords.BringLine("Troll", 2, 60f, 58f, 1, 3, 2, 3, night: true, day: false, hunts: true));
-            // Without a most the game spawns one each roll; a dash for nothing more to say.
-            Assert.Equal(new[] { "Draugr", "one each roll", "5 s", "100%", "no stars", "–" },
+            // Without a most the game counts none and sets no limit; a dash for nothing more to say.
+            Assert.Equal(new[] { "Draugr", "no limit", "5 s", "100%", "no stars", "–" },
                 RaidWords.BringLine("Draugr", 0, 5f, 100f, 1, 1, 1, 1, night: true, day: true, hunts: false));
         }
     }

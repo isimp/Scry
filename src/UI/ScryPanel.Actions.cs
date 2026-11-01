@@ -243,7 +243,7 @@ namespace Scry
                     if (ActionButton("Pin", ActionLook.Plain, ActionWords.Pin))
                     {
                         Previews.Pin();
-                        Say("Pinned. It stays where it is until you press Clear world.");
+                        Say("Pinned. The preview stays where it is until you press Clear previews.");
                     }
                 }
             }
@@ -255,7 +255,7 @@ namespace Scry
             var note = _actionNote;
             if (note == null && (Previews.InWorld || Previews.PinnedCount > 0))
             {
-                note = "Only you see it, and it is gone when you leave the world. Hold the right mouse button outside the panel to look around, or close the panel with F7: previews stay until you clear them.";
+                note = ActionWords.InWorldNote(Settings.OpenKey.ToString());
             }
             if (note != null)
             {

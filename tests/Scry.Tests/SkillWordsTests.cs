@@ -194,7 +194,7 @@ namespace Scry.Tests
         [Fact]
         public void TheFaintLinesSayWhatTheyLeaveOut()
         {
-            Assert.Equal("What it comes to at your Swords level now, with what effects add to the level. What you wear and other effects change it further.", SkillWords.YoursTip("Swords"));
+            Assert.Equal("The value at your Swords level now, counting the levels effects add. Your gear and other effects change it further.", SkillWords.YoursTip("Swords"));
         }
     }
 }

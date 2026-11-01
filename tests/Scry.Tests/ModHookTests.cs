@@ -19,24 +19,24 @@ namespace Scry.Tests
         [Fact]
         public void ACreaturesDropsNameTheModsThatHookIntoThem()
         {
-            Assert.Equal("Jewelcrafting hooks into them: it may drop more or other than listed",
+            Assert.Equal("Jewelcrafting may change its drops: it may drop more or other things than listed",
                 ModHookWords.Note(HookedRule.Drops, new[] { "Jewelcrafting" }));
-            Assert.Equal("Jewelcrafting and Epic Loot hook into them: it may drop more or other than listed",
+            Assert.Equal("Jewelcrafting and Epic Loot may change its drops: it may drop more or other things than listed",
                 ModHookWords.Note(HookedRule.Drops, new[] { "Jewelcrafting", "Epic Loot" }));
         }
 
         [Fact]
         public void ThreeOrMoreModsAreListedWithAnAndBeforeTheLast()
         {
-            Assert.Equal("Drop That, Jewelcrafting and Epic Loot hook into them: it may drop more or other than listed",
+            Assert.Equal("Drop That, Jewelcrafting and Epic Loot may change its drops: it may drop more or other things than listed",
                 ModHookWords.Note(HookedRule.Drops, new[] { "Drop That", "Jewelcrafting", "Epic Loot" }));
         }
 
         [Fact]
         public void LootAndSpawningSayWhatTheyMayChange()
         {
-            Assert.Equal("Drop That hooks into it: it may give more or other than listed", ModHookWords.Note(HookedRule.Loot, new[] { "Drop That" }));
-            Assert.Equal("Monstrum hooks into it: it may spawn elsewhere or otherwise than told", ModHookWords.Note(HookedRule.Spawns, new[] { "Monstrum" }));
+            Assert.Equal("Drop That may change what it gives: it may give more or other things than listed", ModHookWords.Note(HookedRule.Loot, new[] { "Drop That" }));
+            Assert.Equal("Monstrum may change its spawning: it may spawn elsewhere or otherwise than told", ModHookWords.Note(HookedRule.Spawns, new[] { "Monstrum" }));
         }
 
         [Fact]
@@ -50,9 +50,9 @@ namespace Scry.Tests
                 (HookedRule.Spawns, new[] { "Monstrum", "Drop That" }),
                 (HookedRule.Taming, new[] { "AllTameable" }),
             };
-            Assert.Equal("4 mods hook into its drops, its spawning and taming", ModHookWords.Line(hooks));
-            Assert.Equal("A mod hooks into its drops", ModHookWords.Line(new List<(HookedRule, IReadOnlyList<string>)> { (HookedRule.Drops, new[] { "Drop That" }) }));
-            Assert.Equal("2 mods hook into its drops", ModHookWords.Line(new List<(HookedRule, IReadOnlyList<string>)> { (HookedRule.Drops, new[] { "A", "B" }) }));
+            Assert.Equal("4 mods may change its drops, its spawning and taming", ModHookWords.Line(hooks));
+            Assert.Equal("A mod may change its drops", ModHookWords.Line(new List<(HookedRule, IReadOnlyList<string>)> { (HookedRule.Drops, new[] { "Drop That" }) }));
+            Assert.Equal("2 mods may change its drops", ModHookWords.Line(new List<(HookedRule, IReadOnlyList<string>)> { (HookedRule.Drops, new[] { "A", "B" }) }));
         }
 
         [Fact]
@@ -63,7 +63,7 @@ namespace Scry.Tests
                 (HookedRule.Drops, new[] { "Drop That" }),
                 (HookedRule.Spawns, new[] { "Monstrum" }),
             };
-            Assert.Equal("Drop That hooks into them: it may drop more or other than listed\nMonstrum hooks into it: it may spawn elsewhere or otherwise than told", ModHookWords.Tip(hooks));
+            Assert.Equal("Drop That may change its drops: it may drop more or other things than listed\nMonstrum may change its spawning: it may spawn elsewhere or otherwise than told", ModHookWords.Tip(hooks));
         }
 
         [Fact]
@@ -75,7 +75,7 @@ namespace Scry.Tests
 
             // A rule no mod hooks into is left out of the line and its hover.
             var some = new List<(HookedRule, IReadOnlyList<string>)> { (HookedRule.Drops, new[] { "Drop That" }), (HookedRule.Spawns, new string[0]) };
-            Assert.Equal("A mod hooks into its drops", ModHookWords.Line(some));
+            Assert.Equal("A mod may change its drops", ModHookWords.Line(some));
             Assert.Equal(ModHookWords.Note(HookedRule.Drops, new[] { "Drop That" }), ModHookWords.Tip(some));
         }
 
@@ -95,29 +95,29 @@ namespace Scry.Tests
             // growing, the weather, raids, taming and trading may change on a page.
             var expected = new (HookedRule Rule, string Label, string Note)[]
             {
-                (HookedRule.Comfort, "Mods and its comfort", "ComfortMe hooks into comfort: it may count otherwise than told"),
-                (HookedRule.Smelting, "Mods and how it works", "ComfortMe hooks into smelting: its pace, what it takes and what it holds may differ from what is told"),
-                (HookedRule.Cooking, "Mods and how it works", "ComfortMe hooks into cooking: its pace, what it takes and what it holds may differ from what is told"),
-                (HookedRule.Fermenting, "Mods and how it works", "ComfortMe hooks into fermenting: its pace, what it takes and what it holds may differ from what is told"),
-                (HookedRule.Producing, "Mods and how it works", "ComfortMe hooks into it: how fast it makes and how much it holds may differ from what is told"),
-                (HookedRule.Burning, "Mods and its fuel", "ComfortMe hooks into fires: how long its fuel lasts may differ from what is told"),
-                (HookedRule.Wear, "Mods and its wear", "ComfortMe hooks into wear and support: it may stand or wear otherwise than told"),
-                (HookedRule.Crafting, "Mods and its cost", "ComfortMe hooks into crafting and building costs: it may cost otherwise than told"),
-                (HookedRule.ItemStats, "Mods and its stats", "ComfortMe hooks into item stats: its figures may differ from those told"),
-                (HookedRule.Food, "Mods and eating it", "ComfortMe hooks into eating: what it gives may differ from what is told"),
-                (HookedRule.Growth, "Mods and its growing", "ComfortMe hooks into growing: it may grow or grow back otherwise than told"),
-                (HookedRule.Weather, "Mods and the weather", "ComfortMe hooks into the weather: it may come or act otherwise than told"),
-                (HookedRule.Raids, "Mods and raids", "ComfortMe hooks into raids: they may come otherwise than told"),
-                (HookedRule.Taming, "Mods and taming", "ComfortMe hooks into taming and breeding: it may tame or breed otherwise than told"),
-                (HookedRule.Trading, "Mods and its wares", "ComfortMe hooks into trading: what is sold may differ from what is told"),
-                (HookedRule.Storage, "Mods and its size", "ComfortMe hooks into containers: it may hold more or less than told"),
+                (HookedRule.Comfort, "Mods and its comfort", "ComfortMe may change comfort: it may count otherwise than told"),
+                (HookedRule.Smelting, "Mods and how it works", "ComfortMe may change smelting: its pace, what it takes and what it holds may differ from what is told"),
+                (HookedRule.Cooking, "Mods and how it works", "ComfortMe may change cooking: its pace, what it takes and what it holds may differ from what is told"),
+                (HookedRule.Fermenting, "Mods and how it works", "ComfortMe may change fermenting: its pace, what it takes and what it holds may differ from what is told"),
+                (HookedRule.Producing, "Mods and how it works", "ComfortMe may change how it produces: how fast it makes and how much it holds may differ from what is told"),
+                (HookedRule.Burning, "Mods and its fuel", "ComfortMe may change fires: how long its fuel lasts may differ from what is told"),
+                (HookedRule.Wear, "Mods and its wear", "ComfortMe may change wear and support: it may stand or wear otherwise than told"),
+                (HookedRule.Crafting, "Mods and its cost", "ComfortMe may change crafting and building costs: it may cost otherwise than told"),
+                (HookedRule.ItemStats, "Mods and its stats", "ComfortMe may change item stats: its figures may differ from those told"),
+                (HookedRule.Food, "Mods and what eating it gives", "ComfortMe may change eating: what it gives may differ from what is told"),
+                (HookedRule.Growth, "Mods and its growing", "ComfortMe may change growing: it may grow or grow back otherwise than told"),
+                (HookedRule.Weather, "Mods and the weather", "ComfortMe may change the weather: it may come or act otherwise than told"),
+                (HookedRule.Raids, "Mods and raids", "ComfortMe may change raids: they may come otherwise than told"),
+                (HookedRule.Taming, "Mods and taming", "ComfortMe may change taming and breeding: it may tame or breed otherwise than told"),
+                (HookedRule.Trading, "Mods and its wares", "ComfortMe may change trading: what is sold may differ from what is told"),
+                (HookedRule.Storage, "Mods and its size", "ComfortMe may change containers: it may hold more or less than told"),
             };
             foreach (var (rule, label, note) in expected)
             {
                 Assert.Equal(label, ModHookWords.Label(rule));
                 Assert.Equal(note, ModHookWords.Note(rule, new[] { "ComfortMe" }));
             }
-            Assert.Equal("ComfortMe and InfiniteFire hook into fires: how long its fuel lasts may differ from what is told", ModHookWords.Note(HookedRule.Burning, new[] { "ComfortMe", "InfiniteFire" }));
+            Assert.Equal("ComfortMe and InfiniteFire may change fires: how long its fuel lasts may differ from what is told", ModHookWords.Note(HookedRule.Burning, new[] { "ComfortMe", "InfiniteFire" }));
         }
 
         [Fact]
@@ -136,7 +136,7 @@ namespace Scry.Tests
         [Fact]
         public void AModNamedTwiceIsNamedOnce()
         {
-            Assert.Equal("Epic Loot hooks into them: it may drop more or other than listed",
+            Assert.Equal("Epic Loot may change its drops: it may drop more or other things than listed",
                 ModHookWords.Note(HookedRule.Drops, new[] { "Epic Loot", "Epic Loot" }));
         }
     }

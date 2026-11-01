@@ -38,8 +38,8 @@ namespace Scry.Tests
         [Fact]
         public void ModsHookingIntoSkillsAreSaid()
         {
-            Assert.Equal("Mods and what your skills change", ModHookWords.Label(HookedRule.Skills));
-            Assert.Equal("Skill Tweaks hooks into skills: what a level changes may differ from what is told",
+            Assert.Equal("Mods and what your skills do", ModHookWords.Label(HookedRule.Skills));
+            Assert.Equal("Skill Tweaks may change skills: what a level changes may differ from what is told",
                 ModHookWords.Note(HookedRule.Skills, new List<string> { "Skill Tweaks" }));
         }
     }

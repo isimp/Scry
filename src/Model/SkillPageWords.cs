@@ -105,8 +105,8 @@ namespace Scry
                     break;
                 case "Fishing":
                     Line("Stamina: with a fish on", l => SkillWords.PerSecond(SkillMath.Between(inputs.HookedAtNone, inputs.HookedAtTop, l)));
-                    Line("Stamina: reeling in", l => Share(SkillMath.Between(1f, inputs.PullAtTop, l)));
-                    Line("Reeling in", l => SkillWords.Speed(SkillMath.Between(inputs.LineAtNone, inputs.LineAtTop, l)));
+                    Line("Stamina: while reeling", l => Share(SkillMath.Between(1f, inputs.PullAtTop, l)));
+                    Line("Reeling speed", l => SkillWords.Speed(SkillMath.Between(inputs.LineAtNone, inputs.LineAtTop, l)));
                     break;
             }
 
@@ -253,9 +253,9 @@ namespace Scry
                 case "Ride": return "Each second riding at a run";
                 case "Sneak": return "Each second sneaking, a tenth as much with no creature near enough to notice you";
                 case "Fishing": return "Each second reeling in, twice as much with a fish on";
-                case "Cooking": return "Putting food on a cooking station and taking it off, cooked or burnt, and making things where it speeds the making";
+                case "Cooking": return "Putting food on a cooking station and taking it off, cooked or burnt, and making things at a station where the skill speeds the making";
                 case "Farming": return "Picking crops and wild plants, by hand or with a scythe, each plant once, and planting with the cultivator";
-                case "Crafting": return "Making things where it speeds the making, each of several made at once; repairing, by how worn it was; building, each piece taken down cancelling the next one built, up to 20";
+                case "Crafting": return "Making things at a station where the skill speeds the making; a batch of 5 counts as 5. Repairing, by how worn the item was. Building, though each piece you take down cancels the next piece you build, for up to 20 pieces";
             }
             if (Melee.Contains(skill)) return "Hitting creatures with what trains it, once a swing however many it hits";
             return Ranged.Contains(skill) ? "Hitting creatures with what trains it" : null;

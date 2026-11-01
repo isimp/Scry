@@ -86,22 +86,22 @@ namespace Scry
                 case CameBy.Recipe: return "recipe unlocked";
                 case CameBy.Card: return "card read";
                 case CameBy.Used: return "used";
-                case CameBy.Near: return "been near";
+                case CameBy.Near: return "stood near";
                 case CameBy.Built: return "built";
                 case CameBy.Hit: return "hit";
                 case CameBy.Picked: return "picked";
-                case CameBy.Trophy: return "its trophy held";
+                case CameBy.Trophy: return "trophy held";
                 case CameBy.StoodIn: return "stepped into";
                 case CameBy.WentInside: return "gone inside";
                 case CameBy.LivedThrough: return "lived through";
                 case CameBy.Traded: return "traded with";
                 case CameBy.OnYou: return "had on you";
-                case CameBy.Given: return "come by what gives it";
-                case CameBy.Gives: return "its gift taken";
+                case CameBy.Given: return "giver known";
+                case CameBy.Gives: return "gifts taken";
                 case CameBy.Chosen: return "chosen at its stone";
                 case CameBy.Born: return "seen born";
                 case CameBy.GrewUp: return "seen grow up";
-                case CameBy.MinedPieces: return "its pieces mined";
+                case CameBy.MinedPieces: return "pieces mined";
                 default: return "known";
             }
         }
@@ -159,7 +159,7 @@ namespace Scry
                     case Deed.Fought: return $"how {name} senses and chases";
                     case Deed.Felt: return $"how {name} works on you";
                     case Deed.Sprang: return $"how {name} springs";
-                    case Deed.Raided: return $"how {name} is rolled";
+                    case Deed.Raided: return $"how likely {name} is to start";
                     case Deed.Guarded: return $"what stars {name}'s creatures have";
                     case Deed.Born: return $"how {name} breeds";
                     case Deed.Hatched: return $"how {name} hatches";
@@ -208,7 +208,7 @@ namespace Scry
             {
                 var counted = places > 0 && biomes > 0 ? $"{Naming.Count(places, "place", "places")} and {Naming.Count(biomes, "biome", "biomes")}"
                     : places > 0 ? Naming.Count(places, "place", "places") : Naming.Count(biomes, "biome", "biomes");
-                parts.Add("your explored map showed " + counted);
+                parts.Add("ground you explored showed " + counted);
             }
             if (parts.Count == 0) return "";
 

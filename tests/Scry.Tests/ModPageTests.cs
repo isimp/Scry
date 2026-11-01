@@ -34,7 +34,7 @@ namespace Scry.Tests
 
             Assert.Equal("Adding to the game", adds.Name);
             Assert.Equal(adds, Groups.Mod(adds: true, hooks: false));
-            Assert.Equal("Hooking into what Scry tells", hooks.Name);
+            Assert.Equal("Changing the game's rules", hooks.Name);
             Assert.Equal("Neither, as far as Scry sees", neither.Name);
             Assert.True(adds.Order < hooks.Order && hooks.Order < neither.Order);
         }

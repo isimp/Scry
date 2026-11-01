@@ -174,7 +174,7 @@ namespace Scry.Tests
             Assert.Equal(new[] { "Armour", "+2", "+4" }, lines[1]);
             Assert.Equal(new[] { "Movement", "-5%", "-5%" }, lines[2]);
             Assert.Equal(new[] { "Run stamina", "-10%", "no change" }, lines[3]);
-            Assert.Equal(new[] { "Frost damage", "resisted", "resisted" }, lines[4]);
+            Assert.Equal(new[] { "Frost damage", "resistant to it", "resistant to it" }, lines[4]);
             Assert.Equal(new[] { "Brings", "Pack level 2", "nothing" }, lines[5]);
             Assert.Equal(6, lines.Count);
         }

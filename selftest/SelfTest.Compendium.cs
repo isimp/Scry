@@ -931,11 +931,11 @@ namespace Scry
             p.Check(ScryPanel.Drawn(PanelPart.LearnedTab) > learnedTabs && X.LearnedCount == learned.Count, $"its tab stands after All, counting {Numbers.Count(learned.Count)}", $"counted {Numbers.Count(X.LearnedCount)}");
             X.LearnedOnly = false;
 
-            // The places' tab says the explored map counts, and offers to read it again.
+            // The places' tab says ground you explored counts, and offers to read it again.
             var mapBars = ScryPanel.Drawn(PanelPart.MapBar);
             X.KindFilter = Kind.Location;
             yield return Until(() => ScryPanel.Drawn(PanelPart.MapBar) > mapBars + 1, 3);
-            p.Check(ScryPanel.Drawn(PanelPart.MapBar) > mapBars, "the places' tab tells that the explored map counts, with Look at the map again");
+            p.Check(ScryPanel.Drawn(PanelPart.MapBar) > mapBars, "the places' tab tells that ground you explored counts, with Read the map again");
             X.KindFilter = null;
 
             // Peek: each page whole, its links leading anywhere, a whole name in quotes finding what

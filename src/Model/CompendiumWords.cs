@@ -81,31 +81,31 @@ namespace Scry
         public static string PeekTip(bool peeking, bool pageShown) => peeking
             ? "Show only what your character has met again"
             : pageShown
-                ? "Show this page whole for now, its links leading anywhere, until you go to another page. Every page, on the strip that then shows, does the same for all pages until the panel closes"
-                : "Show each page whole for now, its links leading anywhere and a whole name in quotes finding what your character has not met; the list stays as it knows it, and it stops when the panel closes";
+                ? "Show this page whole until you go to another page; its links open any page. Every page, on the strip that then shows, does the same for all pages until you close the panel"
+                : "Show each page whole until you close the panel. Its links open any page, and a full name in quotes in the search finds things your character has not met. The list itself stays as your character knows it";
 
         /// <summary>The warning strip while peeking at the page shown alone: in the compact view its name alone, the rest in its tip.</summary>
         public static string PeekingPageLine(string name, bool compact) => compact ? "Peeking at " + name : "Peeking at " + name + ": this page shows whole until you go to another";
 
         /// <summary>The tip of the strip's line while peeking at one page.</summary>
-        public const string PeekingPageTip = "Until you go to another page, this one shows whole and its links lead anywhere; the list stays as your character knows it";
+        public const string PeekingPageTip = "Until you go to another page, this one shows whole and its links open any page. The list itself stays as your character knows it";
 
         /// <summary>The strip's chip widening a peek at one page to every page.</summary>
         public const string EveryPage = "Every page";
 
         /// <summary>That chip's tip.</summary>
-        public const string EveryPageTip = "Show every page whole until the panel closes, a whole name in quotes finding what your character has not met";
+        public const string EveryPageTip = "Show every page whole until you close the panel. A full name in quotes in the search finds things your character has not met";
 
         /// <summary>The warning strip while peeking, short; the rest in its tip.</summary>
         public const string Peeking = "Peeking: pages show whole until the panel closes";
-        public const string PeekingTip = "Each page shows whole, its links lead anywhere and a whole name in quotes finds what your character has not met; the list stays as it knows it";
+        public const string PeekingTip = "Each page shows whole and its links open any page. A full name in quotes in the search finds things your character has not met. The list itself stays as your character knows it";
 
         /// <summary>The peeking strip's line: in the compact view short enough for its strip not to slide, how long it lasts moved to the tip (<see cref="PeekingLineTip"/>).</summary>
         public static string PeekingLine(bool compact) => compact ? "Peeking: pages show whole" : Peeking;
 
         /// <summary>The peeking strip's tip: in the compact view saying too how long it lasts, as its line does not.</summary>
         public static string PeekingLineTip(bool compact) => compact
-            ? "Until the panel closes, each page shows whole, its links lead anywhere and a whole name in quotes finds what your character has not met; the list stays as it knows it"
+            ? "Until you close the panel, each page shows whole and its links open any page. A full name in quotes in the search finds things your character has not met. The list itself stays as your character knows it"
             : PeekingTip;
 
         /// <summary>The strip's chip that stops peeking.</summary>
@@ -118,35 +118,35 @@ namespace Scry
         public const string ShowLearned = "Show what was learned";
 
         /// <summary>The reply to <c>/scry map</c> in a world.</summary>
-        public const string MapAgain = "the explored map will be read again for your character in this world";
+        public const string MapAgain = "the map of ground you explored will be read again for your character in this world";
 
         /// <summary>The reply to <c>/scry map</c> outside a world.</summary>
-        public const string MapNoWorld = "the explored map can be read only in a world";
+        public const string MapNoWorld = "the map of ground you explored can be read only in a world";
 
         /// <summary>The log's line once the map was read.</summary>
         public static string MapRead(int kinds, int found, bool fromServer) =>
-            $"caught up from the explored map{(fromServer ? " with the server's answer" : "")}: {Numbers.Count(kinds)} kinds of place lie in explored ground, {Numbers.Count(found)} of them new to it";
+            $"caught up from the map of ground you explored{(fromServer ? " with the server's answer" : "")}: {Naming.Count(kinds, "kind of place lies", "kinds of place lie")} in it, {Numbers.Count(found)} of them new to the book";
 
         /// <summary>The server's log line on answering a player's map.</summary>
-        public static string MapAnswered(int kinds) => $"answered a player's explored map: {Numbers.Count(kinds)} kinds of place lie in it";
+        public static string MapAnswered(int kinds) => $"answered a player's map of the ground they explored: {Naming.Count(kinds, "kind of place lies", "kinds of place lie")} in it";
 
         /// <summary>The server's log line, once a player, for one whose asks about ground came sooner than it answers (<see cref="GroundAskPace"/>).</summary>
         public static string GroundAsksPassedOver(string player) => $"{(string.IsNullOrEmpty(player) ? "a player" : player)}'s game asked about its ground more often than the server answers; what came sooner was passed over";
 
         /// <summary>The log's line when the server never answered.</summary>
-        public static string MapNoServerScry => "the server did not answer on the explored map (it has no Scry, or one too old): places count as the character meets them";
+        public static string MapNoServerScry => "the server did not answer on the map of ground you explored (it has no Scry, or one too old): places count as the character meets them";
 
         /// <summary>The line above the Locations tab's list with the compendium on, beside the button reading the explored map again.</summary>
         public const string MapBar = "Places in the ground your character explored show as the Ground you explored setting says. Scry reads the map again each session";
 
         /// <summary>The button reading the explored map again, in the Locations tab's bar.</summary>
-        public const string ReadMap = "Look at the map again";
+        public const string ReadMap = "Read the map again";
 
         /// <summary>That chip's tip.</summary>
-        public const string ReadMapTip = "Read again which kinds of place lie in the ground your character explored in this world, as on its first visit with Scry";
+        public const string ReadMapTip = "Check again which kinds of place lie in the ground your character explored in this world. Scry also does this each session and as you explore";
 
         /// <summary>The log's line on a dedicated server.</summary>
-        public static string ServerPart => "on a dedicated server Scry only answers players' explored maps, the world's census and their Scry's hello, sends the world's settings for the compendium, keeps how far and on which days they walk its dungeons, reads what was left inside them, and runs the self-test's made-up events for the player asking";
+        public static string ServerPart => "on a dedicated server Scry only answers players' maps of the ground they explored, the world's count of places and their Scry's hello, sends the world's settings for the compendium, keeps how far and on which days they walk its dungeons, reads what was left inside them, and runs the self-test's made-up events for the player asking";
 
         /// <summary>The caption of the milestone floor in the title row.</summary>
         public const string FloorCaption = "Known up to";
@@ -362,11 +362,11 @@ namespace Scry
         {
             switch (source)
             {
-                case WorldSource.Explored: return "your explored ground";
+                case WorldSource.Explored: return "ground you explored";
                 case WorldSource.SharedMaps: return "shared maps";
                 case WorldSource.Marked: return "the places marked for you";
                 case WorldSource.OnEveryMap: return "the places every map shows";
-                default: return "this world's census";
+                default: return "the world's count of places";
             }
         }
 
@@ -379,7 +379,7 @@ namespace Scry
                 case WorldSource.SharedMaps: return "The places lying in ground from maps you read at a cartography table.";
                 case WorldSource.Marked: return "The places a Vegvisir or a rune stone marked on your map, though you never looked at them. Seen as they are marked; set this row to Known, With insides or Off as you like.";
                 case WorldSource.OnEveryMap: return "The places the game shows on every map: traders, the start, and the places Hildir sends you to.";
-                default: return "Every kind of place this world holds, by the server's census of it: how many of each there are, never where.";
+                default: return "Every kind of place this world holds, as the server counts them: how many of each there are, never where.";
             }
         }
 
@@ -433,14 +433,14 @@ namespace Scry
                 case SourceLevel.Counted: return "Counts how many places of each kind this world holds; none shows as seen until you find it.";
                 case SourceLevel.Seen: return "Lists them, their pages closed";
                 case SourceLevel.Known: return "Opens their pages, with what a known place brings along";
-                default: return "Known, with what anyone on this server walked inside: those rooms and what they hold. A dungeon nobody walked shows only its entrance.";
+                default: return "Like Known, and also shows the rooms anyone on this server has walked, and what is in them. A dungeon nobody has walked shows only its entrance.";
             }
         }
 
         /// <summary>The tip on what a source shows: from where, and as what (<see cref="CompendiumView.ByWorld"/>).</summary>
         public static string ByWorld(WorldSource source, KnownLevel shown) =>
-            shown < KnownLevel.Seen ? $"Heard of from {SourcePhrase(source)}, not yet met by your character"
-            : $"Shown as {(shown == KnownLevel.Known ? "known" : "seen")} from {SourcePhrase(source)}, not yet met by your character";
+            shown < KnownLevel.Seen ? $"Heard of from {SourcePhrase(source)}; your character has not met it yet"
+            : $"Shown as {(shown == KnownLevel.Known ? "known" : "seen")} from {SourcePhrase(source)}; your character has not met it yet";
 
         /// <summary>A tip on a chip or link to what a source shows, its own tip under it.</summary>
         public static string WorldTip(WorldSource source, KnownLevel shown, string tip) => Naming.Lines(ByWorld(source, shown), tip);
@@ -486,7 +486,7 @@ namespace Scry
             Pending(Deed.Fought, "Fight one", "shows how it senses, chases and flees");
             Pending(Deed.Felt, "Have it on you", "shows how it works on you");
             Pending(Deed.Sprang, "See one spring", "shows how it hurts and rearms");
-            Pending(Deed.Raided, "See its raiders up close", "shows how it is rolled");
+            Pending(Deed.Raided, "See its raiders up close", "shows how likely it is to start");
             Pending(Deed.Guarded, "See its creatures up close", "shows the stars its spawn points give");
             foreach (var landed in landedPending) rows.Add(($"Catch one with {StarsWords(landed)}", $"shows how one with {StarsWords(landed)} fights"));
             if (raiders > 0) rows.Add(("See them up close", Naming.Count(raiders, "kind of raider", "kinds of raider") + ": how many come, how often, how strong"));
@@ -528,7 +528,7 @@ namespace Scry
         public static string FoundOutNote(string proof)
         {
             if (string.IsNullOrEmpty(proof)) return null;
-            if (proof == EntryKeys.OnMap) return "seen on your explored map";
+            if (proof == EntryKeys.OnMap) return "seen in ground you explored";
             if (EntryKeys.IsStarsFell(proof, out var fell)) return $"what {StarsChange(fell)} found out";
             if (EntryKeys.IsRaider(proof, out _)) return "a raider's numbers found out";
             if (EntryKeys.IsLanded(proof, out var landed)) return $"how it fights with {StarsWords(landed)} found out";
@@ -541,7 +541,7 @@ namespace Scry
                     case Deed.Fought: return "its ways found out";
                     case Deed.Felt: return "how it works found out";
                     case Deed.Sprang: return "its springing found out";
-                    case Deed.Raided: return "how it is rolled found out";
+                    case Deed.Raided: return "its chance to start found out";
                     case Deed.Guarded: return "its creatures' stars found out";
                     case Deed.Born: return "its pregnancy found out";
                     case Deed.Hatched: return "its hatching found out";
@@ -676,7 +676,7 @@ namespace Scry
         }
 
         /// <summary>The faint line under a section whose recipe rows wait for the game to list them for the character.</summary>
-        public static string RecipeRowsWait(int rows) => rows == 1 ? "1 recipe row waits for the game to list it" : $"{Numbers.Count(rows)} recipe rows wait for the game to list them";
+        public static string RecipeRowsWait(int rows) => rows == 1 ? "1 recipe shows here once your character unlocks it" : $"{Numbers.Count(rows)} recipes show here once your character unlocks them";
 
         private static string Seen(string proof)
         {

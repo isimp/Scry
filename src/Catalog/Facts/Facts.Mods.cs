@@ -41,7 +41,7 @@ namespace Scry
                 return;
             }
             Add("Adds", ModReportWords.Counts(summary));
-            if (summary.Hooks.Count > 0) Add("Hooks into", ModReportWords.HooksInto(summary.Hooks));
+            if (summary.Hooks.Count > 0) Add("May change", ModReportWords.HooksInto(summary.Hooks));
             foreach (var station in summary.Stations) AddListed(ModReportWords.StationLabel(station.Shown), ModReportWords.Station(station), station.Key);
             foreach (var tool in summary.Tools) AddListed(ModReportWords.ToolLabel(tool.Shown), ModReportWords.Tool(tool), tool.Key);
 

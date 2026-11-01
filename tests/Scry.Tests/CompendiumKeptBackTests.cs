@@ -217,7 +217,7 @@ namespace Scry.Tests
             Assert.Equal("shows once you have seen one of these raiders up close", CompendiumWords.ShowsOnce(troll));
             Assert.Equal("shows once you have seen one of its raiders up close", CompendiumWords.ShowsOnce(EntryKeys.Did(Deed.Raided)));
             var rows = CompendiumWords.StillToFindOut(new[] { troll, EntryKeys.Raider("Greydwarf"), EntryKeys.Did(Deed.Raided) }, new string[0], attacks: 0, spots: 0, new Tally[0]);
-            Assert.Equal(new[] { ("See its raiders up close", "shows how it is rolled"), ("See them up close", "2 kinds of raider: how many come, how often, how strong") }, rows.ToArray());
+            Assert.Equal(new[] { ("See its raiders up close", "shows how likely it is to start"), ("See them up close", "2 kinds of raider: how many come, how often, how strong") }, rows.ToArray());
             Assert.Equal("a raider's numbers found out", CompendiumWords.FoundOutNote(troll));
             Assert.Equal("what Troll raid brings", JournalWords.FoundOutOf(troll, "Troll raid"));
             Assert.True(StrictDeeds.Fits(Deed.Raided, Kind.Raid));
@@ -385,7 +385,7 @@ namespace Scry.Tests
 
             Assert.True(world.Explorer.FromMap(world.Meadows));
             Assert.False(world.Explorer.FromMap(world.Troll));
-            Assert.Equal("seen on your explored map", world.Explorer.LearnedNote(world.Meadows));
+            Assert.Equal("seen in ground you explored", world.Explorer.LearnedNote(world.Meadows));
             world.Rule(CompendiumRule.Off);
             Assert.False(world.Explorer.FromMap(world.Meadows));
         }

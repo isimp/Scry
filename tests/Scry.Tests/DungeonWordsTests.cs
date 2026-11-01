@@ -13,7 +13,7 @@ namespace Scry.Tests
         public void ADungeonGrowsFromItsEntranceForSoManyTries()
         {
             var plan = new DungeonPlan { Algorithm = "Dungeon", MinRooms = 20, MaxRooms = 40 };
-            Assert.Equal("room by room from its entrance, 40 tries at a room, then end caps on every open doorway", DungeonWords.Layout(plan));
+            Assert.Equal("room by room from its entrance, 40 tries to add a room; then every doorway left open gets an end cap", DungeonWords.Layout(plan));
         }
 
         [Fact]
@@ -21,7 +21,7 @@ namespace Scry.Tests
         {
             var plan = new DungeonPlan { Algorithm = "Dungeon", MinRooms = 15, MaxRooms = 30, MinRequiredRooms = 1 };
             plan.RequiredRooms.Add("dvergrtown_boss");
-            Assert.Equal("room by room from its entrance, up to 30 tries at a room, stopping once 1 of its required rooms and over 15 rooms are in, then end caps on every open doorway", DungeonWords.Layout(plan));
+            Assert.Equal("room by room from its entrance, up to 30 tries to add a room, stopping once 1 of its required rooms and more than 15 rooms in all are in; then every doorway left open gets an end cap", DungeonWords.Layout(plan));
         }
 
         [Fact]
@@ -41,9 +41,9 @@ namespace Scry.Tests
         [Fact]
         public void RoomsArePickedAlikeOrByWeight()
         {
-            Assert.Equal("any room that fits the doorway, all alike", DungeonWords.Picks(new DungeonPlan { Algorithm = "Dungeon" }));
-            Assert.Equal("by their weights, among those that fit the doorway", DungeonWords.Picks(new DungeonPlan { Algorithm = "Dungeon", Weighted = true }));
-            Assert.Equal("by their weights", DungeonWords.Picks(new DungeonPlan { Algorithm = "CampGrid" }));
+            Assert.Equal("any room that fits the doorway, each as likely", DungeonWords.Picks(new DungeonPlan { Algorithm = "Dungeon" }));
+            Assert.Equal("among the rooms that fit the doorway, each with its own chance", DungeonWords.Picks(new DungeonPlan { Algorithm = "Dungeon", Weighted = true }));
+            Assert.Equal("each room with its own chance", DungeonWords.Picks(new DungeonPlan { Algorithm = "CampGrid" }));
         }
 
         // A doorway that allows a door gets one of the doors listed for its type, each alike
@@ -199,13 +199,13 @@ namespace Scry.Tests
         [Fact]
         public void ARoomsConnectionTagsAreCountedForTheCurious()
         {
-            // The builder's tags, which only rooms of the same tag join at: under More, the untagged told so.
+            // Each doorway's type, which only doorways of the same type join at: under More, those with no type told so.
             var room = new RoomShape();
             room.Doorways.Add(new Doorway { Type = "crypt" });
             room.Doorways.Add(new Doorway { Type = "crypt" });
             room.Doorways.Add(new Doorway { Type = "large" });
             room.Doorways.Add(new Doorway { Type = "" });
-            Assert.Equal("2 crypt, 1 large, 1 untagged", DungeonWords.ConnectionTags(room));
+            Assert.Equal("2 crypt, 1 large, 1 with no type", DungeonWords.ConnectionTags(room));
             Assert.Null(DungeonWords.ConnectionTags(new RoomShape()));
         }
 

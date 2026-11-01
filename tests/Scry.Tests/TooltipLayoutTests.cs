@@ -150,8 +150,8 @@ namespace Scry.Tests
         [Fact]
         public void TheLegendSaysWhatTheTintMeansAndIntroducesTheModsWhereAnyAreNamed()
         {
-            Assert.Equal("Tinted lines come from the mods hooking the tooltip:", TooltipWords.Legend(true));
-            Assert.Equal("Tinted lines come from mods hooking the tooltip.", TooltipWords.Legend(false));
+            Assert.Equal("Tinted lines come from the mods that add to the tooltip:", TooltipWords.Legend(true));
+            Assert.Equal("Tinted lines come from mods that add to the tooltip.", TooltipWords.Legend(false));
         }
     }
 }

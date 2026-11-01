@@ -29,23 +29,17 @@ namespace Scry
         public static bool AnythingInWorld => _world != null || Pinned.Count > 0 || Played.Count > 0 || TheSound.Copy != null || StatusVisuals.Count > 0;
 
         /// <summary>
-        /// How many lines <see cref="Out"/> would list, counted without making the list, since the
-        /// button showing it is drawn several times a frame.
+        /// How many previews <see cref="Out"/> would list, each copy of a played thing its own,
+        /// counted without making the list, since the button showing it is drawn several times a frame.
         /// </summary>
-        public static int OutLines
+        public static int OutCount
         {
             get
             {
-                var lines = (_world != null ? 1 : 0) + (TheSound.Copy != null ? 1 : 0) + (_status != null && StatusVisuals.Count > 0 ? 1 : 0);
-                foreach (var pinned in Pinned) if (pinned != null) lines++;
-                for (var i = 0; i < Played.Count; i++)
-                {
-                    if (Played[i].Thing == null) continue;
-                    var first = true;
-                    for (var j = 0; j < i && first; j++) first = Played[j].Thing == null || Played[j].Key != Played[i].Key;
-                    if (first) lines++;
-                }
-                return lines;
+                var count = (_world != null ? 1 : 0) + (TheSound.Copy != null ? 1 : 0) + (_status != null && StatusVisuals.Count > 0 ? 1 : 0);
+                foreach (var pinned in Pinned) if (pinned != null) count++;
+                foreach (var played in Played) if (played.Thing != null) count++;
+                return count;
             }
         }
 

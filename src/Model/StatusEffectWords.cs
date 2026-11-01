@@ -75,10 +75,18 @@ namespace Scry
             ["m_ttlPerItemLevel"] = "Lasts per quality",
             ["m_windMovementModifier"] = "Speed with the wind behind",
             ["m_windRunStaminaModifier"] = "Run stamina with the wind behind",
-            ["m_tickInterval"] = "Ticks every",
-            ["m_healthPerTick"] = "Health each tick",
-            ["m_removeInterval"] = "Throws up a food every",
+            ["m_tickInterval"] = "Repeats every",
+            ["m_healthPerTick"] = "Health each time",
+            ["m_removeInterval"] = "Removes a food every",
             ["m_delay"] = "Takes hold after",
+            ["m_eitrOverTimeDuration"] = "Gives eitr over",
+            ["m_healthPerTickMinHealthPercentage"] = "Only while health is at least",
+            ["m_moreHealth"] = "Raises maximum health by",
+            ["m_moreStamina"] = "Raises maximum stamina by",
+            ["m_TTLPerComfortLevel"] = "Lasts longer per comfort level",
+            ["m_closeFrequency"] = "Pings every, when near",
+            ["m_distantFrequency"] = "Pings every, when far",
+            ["m_absorbDamage"] = "Absorbs",
         };
 
         /// <summary>
@@ -92,7 +100,7 @@ namespace Scry
             ["SailingPower"] = "the wind blows the way your ship sails",
             ["TamingBoost"] = "tames animals near you faster",
             ["DoubleImpactDamage"] = "falling and rolling things hit twice as hard",
-            ["ColdResistance"] = "a mark of cold resistance the game itself never reads",
+            ["ColdResistance"] = "cold resistance, which has no effect: the game never checks for it",
         };
 
         /// <summary>A setting's label: in players' words where it has some, else its name in words.</summary>
@@ -128,6 +136,12 @@ namespace Scry
                 case "m_windRunStaminaModifier":
                     // Full with a wind of full strength straight behind, none against it.
                     return value is float wind ? $"up to {Numbers.Percent(wind, 0, signed: true)}, the wind full behind you" : shown;
+                case "m_TTLPerComfortLevel":
+                case "m_closeFrequency":
+                case "m_distantFrequency":
+                    return value is float seconds ? Numbers.Duration(seconds) : shown;
+                case "m_healthPerTickMinHealthPercentage":
+                    return value is float least ? Numbers.Percent(least) : shown;
                 case "m_healthPerTick":
                     return value is float tick ? tick >= 0f ? Numbers.Amount(tick, 1, signed: true) : Numbers.Amount(-tick, 1) + " damage" : shown;
                 default:

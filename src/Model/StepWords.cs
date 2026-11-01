@@ -9,11 +9,14 @@ namespace Scry
     /// </summary>
     internal static class StepWords
     {
-        /// <summary>A footstep's note: "walk/run on stone", "any gait on any ground".</summary>
+        /// <summary>A footstep's note: "walk/run on stone", "walk on any ground", or that it never plays.</summary>
         public static string Note(IReadOnlyList<string> gaits, IReadOnlyList<string> grounds, bool anyGround)
         {
-            var gait = gaits.Count > 0 ? string.Join("/", gaits.Select(g => g.ToLowerInvariant())) : "any gait";
-            var ground = anyGround ? "any ground" : grounds.Count > 0 ? string.Join("/", grounds.Select(Ground)) : "nothing";
+            // A step set for no gait or no ground matches no footfall (FootStep.FindBestStepEffect), so it never plays.
+            if (gaits.Count == 0) return "set for no gait, so it never plays";
+            var gait = string.Join("/", gaits.Select(g => g.ToLowerInvariant()));
+            if (!anyGround && grounds.Count == 0) return $"{gait} on no ground, so it never plays";
+            var ground = anyGround ? "any ground" : string.Join("/", grounds.Select(Ground));
             return $"{gait} on {ground}";
         }
 

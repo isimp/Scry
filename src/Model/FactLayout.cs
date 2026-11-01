@@ -180,7 +180,7 @@ namespace Scry
             Label(plan, "food", "Food", "Heals", "Lasts", "When used");
             Label(plan, "hatching", "Hatches into", "Hatches in", "Hatches when");
             // What a trophy, a key, a fish, a bait or a building tool is for.
-            Label(plan, "does", "On its boss stone", "Opens", "Each use costs", "Each use wears", "Harvests within", "Stamina with a fish on", "Reeling in");
+            Label(plan, "does", "On its boss stone", "Opens", "Each use costs", "Each use wears", "Harvests within", "Stamina with a fish on", "Reeling speed");
             Part(plan, "does", "builds", "fishing", "bait");
             Label(plan, "making", "Type", "Weight", "Quality", "Durability", "Repaired at", "Upgrades need", "Skill", "Tool tier", "Stacks to", "Worth", "Portals");
             Label(plan, More, "Not shown");
@@ -231,13 +231,13 @@ namespace Scry
             Label(plan, "lives", FishWords.Water, FishWords.Never, FishWords.HowMany);
             Label(plan, "when", FishWords.Comes, FishWords.Leaps);
             Label(plan, "biting", FishWords.FindsFloat, FishWords.SwimsOff, FishWords.WrongBait);
-            Label(plan, "fishfight", FishWords.FightTitle, "Reeling in", FishWords.Rests, FishWords.Line);
+            Label(plan, "fishfight", FishWords.FightTitle, "Stamina while reeling", FishWords.Rests, FishWords.Line);
             Label(plan, "catch", FishWords.OnLand);
             Part(plan, "biting", "fishing");
             Lead(plan, "biting", FishWords.BitesOn);
             Part(plan, "catch", "fish catch");
             RowsFirst(plan, "catch");
-            Lead(plan, "fishfight", FishWords.FightTitle, "Reeling in");
+            Lead(plan, "fishfight", FishWords.FightTitle, "Stamina while reeling");
             plan.Blocks[FactBlock.Where] = "lives";
             plan.Blocks[FactBlock.FoundIn] = "lives";
             plan.Blocks[FactBlock.Biomes] = "lives";
@@ -333,7 +333,7 @@ namespace Scry
             Label(plan, "layout", "Building", "Role", "Built into");
             Label(plan, "contents", "What it holds", "What its rooms hold", "Stars at its spawn points");
             Label(plan, "music", "Music");
-            Label(plan, More, "Not shown", "Connection tags");
+            Label(plan, More, "Not shown", "Doorway types");
             // What a dungeon's rooms hold, read with its example: "Its rooms hold", "Loot in its rooms" and the like.
             plan.Starts.Add((l => l.StartsWith("Its rooms", StringComparison.Ordinal) || l.Contains(" in its rooms"), "contents"));
             Part(plan, "placement", "placement");
@@ -355,7 +355,7 @@ namespace Scry
                 Topics = new[] { ("overview", (string)null), ("comes", "What comes"), ("when", "When"), ("music", "Music"), (More, "More"), ("hooks", null) },
             };
             Tile(plan, "overview", null, "Lasts", "Weather", "Comes for");
-            Label(plan, "when", "On the table", "Rolled", "Also rolled", "Ends with", "When");
+            Label(plan, "when", "Can start", "Picked", "Own timer", "End message", "When");
             Label(plan, "music", "Music");
             Label(plan, More, "Not shown");
             // What it brings is told creature by creature, each by its name.
@@ -412,12 +412,12 @@ namespace Scry
             {
                 Topics = new[]
                 {
-                    ("overview", (string)null), ("adds", "What it adds"), ("hooksinto", "What it hooks into"), ("ties", "Ties to other mods"), ("about", "About"), (More, "More"), ("hooks", null),
+                    ("overview", (string)null), ("adds", "What it adds"), ("hooksinto", "What it may change"), ("ties", "Ties to other mods"), ("about", "About"), (More, "More"), ("hooks", null),
                 },
             };
             Tile(plan, "overview", null, "Version", "By");
             Label(plan, "about", "Website", "Id", "Folder");
-            Label(plan, "hooksinto", "Hooks into");
+            Label(plan, "hooksinto", "May change");
             Label(plan, More, "Not shown");
             // Its ties, each a row counting the mods: "Needs (2)", "Works with, when there (1)".
             plan.Starts.Add((l => l.StartsWith("Will not run with", StringComparison.Ordinal) || l.StartsWith("Needs", StringComparison.Ordinal)

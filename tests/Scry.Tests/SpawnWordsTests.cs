@@ -122,9 +122,9 @@ namespace Scry.Tests
         public void ABossKeyNamesTheBossAndAnyOtherKeyIsToldAsAWorldKey()
         {
             Assert.Equal("once Bonemass is defeated", SpawnWords.Once("defeated_bonemass", Boss));
-            Assert.Equal("once the world key \"KilledTroll\" is set", SpawnWords.Once("KilledTroll", Boss));
+            Assert.Equal("once this world has the key \"KilledTroll\"", SpawnWords.Once("KilledTroll", Boss));
             Assert.Equal("until Eikthyr is defeated", SpawnWords.Until("defeated_eikthyr", Boss));
-            Assert.Equal("until the world key \"nomap\" is set", SpawnWords.Until("nomap", Boss));
+            Assert.Equal("until this world has the key \"nomap\"", SpawnWords.Until("nomap", Boss));
         }
 
         [Fact]
@@ -140,7 +140,7 @@ namespace Scry.Tests
             {
                 SpawnWords.ForgetBrought();
             }
-            Assert.Equal("once the world key \"Hildir2\" is set", SpawnWords.Once("Hildir2", Boss));
+            Assert.Equal("once this world has the key \"Hildir2\"", SpawnWords.Once("Hildir2", Boss));
         }
 
         [Fact]
@@ -152,11 +152,11 @@ namespace Scry.Tests
                 Keys = new[] { "defeated_eikthyr" }, Weather = new[] { "Rain", "Thunder storm" }, InForest = true, OutsideForest = false,
             };
 
-            Assert.Equal("Spawns in Swamp, at night, up to 2 stars, in groups of 2–3, in forests, in weather Rain or Thunder storm, once Eikthyr is defeated",
+            Assert.Equal("Spawns in Swamp, at night, in forests, when the weather is Rain or Thunder storm. Up to 2 stars, in groups of 2–3, once Eikthyr is defeated",
                 SpawnWords.Line("Spawns in", spawn, Boss));
-            // One waiting for a world event says so.
+            // One waiting for a world event says so where it says when.
             spawn.Event = "Fimbulvinter";
-            Assert.EndsWith("once Eikthyr is defeated, only during Fimbulvinter", SpawnWords.Line("Spawns in", spawn, Boss));
+            Assert.Equal("Spawns in Swamp, at night, in forests, when the weather is Rain or Thunder storm, only during Fimbulvinter. Up to 2 stars, in groups of 2–3, once Eikthyr is defeated", SpawnWords.Line("Spawns in", spawn, Boss));
         }
 
         [Fact]
@@ -164,7 +164,7 @@ namespace Scry.Tests
         {
             var spawn = new SpawnFacts { Biomes = "Meadows", AtNight = true, AtDay = true, MinLevel = 1, MaxLevel = 1, GroupMin = 1, GroupMax = 1, InForest = true, OutsideForest = true };
 
-            Assert.Equal("Spawns in Meadows, no stars", SpawnWords.Line("Spawns in", spawn, Boss));
+            Assert.Equal("Spawns in Meadows. No stars", SpawnWords.Line("Spawns in", spawn, Boss));
         }
 
         [Fact]
@@ -172,7 +172,7 @@ namespace Scry.Tests
         {
             var spawn = new SpawnFacts { Biomes = "Plains", AtNight = false, AtDay = true, MinLevel = 1, MaxLevel = 1, GroupMin = 1, GroupMax = 1, InForest = false, OutsideForest = true };
 
-            Assert.Equal("Spawns in Plains, by day, no stars, outside forests", SpawnWords.Line("Spawns in", spawn, Boss));
+            Assert.Equal("Spawns in Plains, by day, outside forests. No stars", SpawnWords.Line("Spawns in", spawn, Boss));
         }
 
         [Fact]
@@ -180,7 +180,7 @@ namespace Scry.Tests
         {
             var raid = new SpawnFacts { Biomes = "Black Forest", Keys = new[] { "defeated_eikthyr" }, NotKeys = new[] { "defeated_bonemass" } };
 
-            Assert.Equal("Comes in the raid \"The forest is moving\", in Black Forest, once Eikthyr is defeated, until Bonemass is defeated",
+            Assert.Equal("Comes in the raid \"The forest is moving\", in Black Forest. Once Eikthyr is defeated, until Bonemass is defeated",
                 SpawnWords.Line("Comes in the raid \"The forest is moving\", in", raid, Boss));
         }
     

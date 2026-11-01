@@ -25,7 +25,7 @@ namespace Scry.Tests
             Assert.Equal("a love point every 30 s at a 50% chance; 4 make it pregnant", BreedWords.Love(30f, 0.5f, 4));
             Assert.Equal("a 25% chance every 60 s to get pregnant", BreedWords.Love(60f, 0.75f, 1));
             Assert.Equal("a 25% chance every 60 s to get pregnant", BreedWords.Love(60f, 0.75f, 0));
-            Assert.Equal("never: the game skips every check", BreedWords.Love(30f, 1f, 3));
+            Assert.Equal("never: its chance is 0%", BreedWords.Love(30f, 1f, 3));
         }
 
         [Fact]

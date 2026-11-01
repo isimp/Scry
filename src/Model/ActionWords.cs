@@ -30,13 +30,13 @@ namespace Scry
         public const string Replay = "Play it again on the stage, for an effect that has played out";
 
         /// <summary>A raid's roll.</summary>
-        public const string RollRaid = "Roll the raid's creatures again, as the game rolls them";
+        public const string RollRaid = "Pick the raid's creatures again, as the game picks them";
 
         /// <summary>A biome's search for what is there.</summary>
         public const string EverythingHere = "Search for everything that lives, grows or is found in this biome";
 
         /// <summary>A place's roll.</summary>
-        public const string RollPlace = "Roll again what the game leaves to chance here: which containers, piles and creatures appear";
+        public const string RollPlace = "Pick again what the game leaves to chance here: which containers, piles and creatures appear";
 
         /// <summary>A dungeon's or camp's new layout.</summary>
         public const string AnotherLayout = "Lay out another example, as the game might in another world";
@@ -58,6 +58,10 @@ namespace Scry
 
         /// <summary>The selection shown in the world.</summary>
         public static string InWorld(bool shown) => shown ? "Take the preview out of the world" : "Put a preview in the world where you look, which only you see";
+
+        /// <summary>The note at a page's top while a preview stands in the world, naming the key that closes the panel.</summary>
+        public static string InWorldNote(string openKey) =>
+            $"Only you see the preview, and it is gone when you leave the world. To look around, hold the right mouse button outside the panel, or close the panel with {openKey}. Previews stay until you clear them.";
 
         /// <summary>The copy in the world moved.</summary>
         public const string MoveHere = "Move the preview to where you look";

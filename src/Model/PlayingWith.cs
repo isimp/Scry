@@ -106,7 +106,7 @@ namespace Scry
         private const string ServerName = "The server";
 
         /// <summary>What a server without Scry, or Scry of other messages, leaves out.</summary>
-        private const string ServerLeavesOut = ": what your explored and shared maps show, the world's census and the server's dungeon records are left out, and places count as you meet them. ";
+        private const string ServerLeavesOut = ": what ground you explored and shared maps show, the world's count of places and the server's dungeon records are left out, and places count as you meet them. ";
 
         /// <summary>The faint line under the row: what a game without Scry means, first what the server's lacking leaves out where it lacks it.</summary>
         public static string Hint(ServerScry server) =>

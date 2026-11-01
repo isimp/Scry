@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Scry
 {
     /// <summary>
-    /// What Scry has in the world, listed under the "Clear world" button while the mouse is on
+    /// What Scry has in the world, listed under the "Clear previews" button while the mouse is on
     /// it or on the list: each line goes to its entry when its name is clicked and is taken out
     /// of the world by its ×. The button itself still clears everything.
     /// </summary>
@@ -23,11 +23,11 @@ namespace Scry
         private static float OutTop => U(30f);
         private static float OutCrossW => U(34f);
 
-        /// <summary>The button's text for so many lines out, made once for each count.</summary>
-        private static string ClearText(int lines)
+        /// <summary>The button's text for so many previews out, made once for each count.</summary>
+        private static string ClearText(int count)
         {
-            if (lines <= 1 || lines >= ClearTexts.Length) return OutWords.ClearWorld(lines);
-            return ClearTexts[lines] ?? (ClearTexts[lines] = OutWords.ClearWorld(lines));
+            if (count <= 1 || count >= ClearTexts.Length) return OutWords.ClearWorld(count);
+            return ClearTexts[count] ?? (ClearTexts[count] = OutWords.ClearWorld(count));
         }
 
         /// <summary>Takes everything of Scry's out of the world, as the header's button does, and says so.</summary>
@@ -35,16 +35,16 @@ namespace Scry
         {
             Previews.ClearWorld();
             _outOpen = false;
-            Say("Cleared. Nothing from Scry is left in the world.");
+            Say("Cleared. No previews are left in the world.");
         }
 
         /// <summary>
         /// Opens the list while the mouse is on the button or on the list (with a little room
         /// between them), and works out its lines once a frame while open.
         /// </summary>
-        private static void OutHover(Rect button, int lines, Event e, Rect room)
+        private static void OutHover(Rect button, int count, Event e, Rect room)
         {
-            if (lines == 0)
+            if (count == 0)
             {
                 _outOpen = false;
                 return;
@@ -145,7 +145,8 @@ namespace Scry
 
             if (_outFits < _outRows.Count)
             {
-                var more = _outRows.Count - _outFits;
+                var more = 0;
+                for (var k = _outFits; k < _outRows.Count; k++) more += Mathf.Max(1, _outRows[k].Count);
                 GUI.Label(new Rect(_outRect.x + U(12f), _outRect.y + OutTop + _outFits * OutRowH, _outRect.width - U(24f), OutRowH),
                     OutWords.More(more), Skin.FaintLabel);
             }

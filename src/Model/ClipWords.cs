@@ -9,20 +9,20 @@ namespace Scry
     internal static class ClipWords
     {
         /// <summary>The Animations section's button that forgets what each animator was seen to play (<see cref="KeptClips"/>).</summary>
-        public const string WorkOutAgain = "Work out again";
+        public const string WorkOutAgain = "Find again";
 
         /// <summary>That button's hover.</summary>
-        public const string WorkOutAgainTip = "Forget what Scry saw each animator play, kept from one session to the next, and work it out again";
+        public const string WorkOutAgainTip = "Forget the animations Scry found and kept from one session to the next, and find them again as pages open";
 
         /// <summary>The reply to <c>/scry forget clips</c>: how many animators' clips were forgotten.</summary>
         public static string Forgotten(int probes) =>
-            probes == 0 ? "no clips were kept; they are worked out again as pages open." : $"forgot the clips of {Numbers.Count(probes)} kept {(probes == 1 ? "look at an animator" : "looks at animators")}; they are worked out again as pages open.";
+            probes == 0 ? "no animations were kept; Scry finds them as pages open." : $"forgot {Naming.Count(probes, "set", "sets")} of animations; Scry finds them again as pages open.";
 
         /// <summary>What the game's own actions are called, by the action's name.</summary>
         private static readonly Dictionary<string, string> Actions = new Dictionary<string, string>
         {
-            ["jump"] = "jumps", ["consume"] = "eats", ["sleep"] = "sleeps", ["wake"] = "wakes", ["alert"] = "alerted",
-            ["spawn"] = "spawns", ["stagger"] = "staggers", ["water"] = "in water", ["swim"] = "swims", ["fly"] = "flies", ["dead"] = "dies",
+            ["jump"] = "jumps", ["consume"] = "eats", ["sleep"] = "sleeps", ["wake"] = "wakes", ["alert"] = "is alerted",
+            ["spawn"] = "spawns", ["stagger"] = "staggers", ["water"] = "is in water", ["swim"] = "swims", ["fly"] = "flies", ["dead"] = "dies",
         };
 
         /// <summary>What a clip the creature idles in is called.</summary>
@@ -112,15 +112,15 @@ namespace Scry
         /// </summary>
         public static string NoAnimationTip(string trigger, bool inAnimator) =>
             string.IsNullOrEmpty(trigger) ? "No animation of its own was found for this attack"
-            : inAnimator ? $"The game starts it by \"{trigger}\", which leads this creature's animator to no animation"
-            : $"The game starts it by \"{trigger}\", which this creature's animator does not have, so it plays no animation";
+            : inAnimator ? $"The game starts this attack with the signal \"{trigger}\"; this creature knows the signal but has no animation for it"
+            : $"The game starts this attack with the signal \"{trigger}\", which this creature does not know, so it plays no animation";
 
         /// <summary>A clip's chip: its name, and what it is where that is known and says more than the name does.</summary>
         public static string Row(string name, string what) => string.IsNullOrEmpty(what) || !SaysMore(name, what) ? name : name + "  \u00B7  " + what;
 
         /// <summary>
         /// Whether what a clip is says anything its name does not: a word of three letters or more
-        /// that no word of the name is akin to ("swims" is said by "Swim Forward", "in water" is not
+        /// that no word of the name is akin to ("swims" is said by "Swim Forward", "is in water" is not
         /// said by "Idle Swim").
         /// </summary>
         private static bool SaysMore(string name, string what)

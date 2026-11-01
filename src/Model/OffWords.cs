@@ -16,7 +16,7 @@ namespace Scry
             if (features == null || features.Count == 0) return null;
             if (features.Count == 1) return Naming.Capital(features[0].Name) + " is off until Scry is updated. Everything else works.";
             var named = Naming.Joined(features.Select(f => f.Name).ToList());
-            return $"{Numbers.Count(features.Count)} parts of Scry are off until it is updated: {named}. Everything else works.";
+            return $"{Numbers.Count(features.Count)} features of Scry are off until Scry is updated: {named}. Everything else works.";
         }
 
         /// <summary>What is off with Scry's and the game's versions, copied for a report.</summary>
@@ -24,7 +24,7 @@ namespace Scry
 
         /// <summary>What the details card says above the list of what is off.</summary>
         public static string Details() =>
-            "This version of Scry does not know something it relies on in this version of the game, or a part of it failed, so the parts below are off. " +
+            "This version of Scry does not know something it relies on in this version of the game, or one of its features failed, so the features below are off. " +
             "Everything else works as before. A newer Scry turns them back on; until then, BepInEx/LogOutput.log says what was not found, which helps when reporting it.";
     }
 }

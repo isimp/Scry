@@ -26,7 +26,7 @@ namespace Scry.Tests
             // After the name, three buttons and their gaps, ending before the buttons at the row's right.
             Assert.True(HeaderLayout.NavInTitleRow(afterName: 114f, navWidth: 92f, before: 350f));
             Assert.True(HeaderLayout.NavInTitleRow(114f, 92f, 205.75f));
-            // Clear world beside the view button leaves no room at the narrowest: they start the search row, as before.
+            // Clear previews beside the view button leaves no room at the narrowest: they start the search row, as before.
             Assert.False(HeaderLayout.NavInTitleRow(114f, 92f, 205f));
         }
 

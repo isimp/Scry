@@ -150,7 +150,7 @@ namespace Scry.Tests
             Assert.StartsWith("Nothing is known to be in a location yet", LocationWords.NoPlacesYet(reading: false));
             Assert.Equal("What 1 mod adds", ModReportWords.Bar(1));
             Assert.Equal("What 3 mods add", ModReportWords.Bar(3));
-            Assert.Equal("Hooks into what drop tables, chests and plants give.", ModReportWords.HooksLine(new[] { HookedRule.Loot }));
+            Assert.Equal("May change what drop tables, chests and plants give.", ModReportWords.HooksLine(new[] { HookedRule.Loot }));
         }
 
         [Fact]
@@ -228,7 +228,7 @@ namespace Scry.Tests
             Assert.Equal("Swim Forward", ClipWords.Row("Swim Forward", "swims"));
             Assert.Equal("Sleeping", ClipWords.Row("Sleeping", "sleeps"));
             Assert.Equal("Swim", ClipWords.Row("Swim", "swims in"));
-            Assert.Equal("Idle Swim  ·  in water", ClipWords.Row("Idle Swim", "in water"));
+            Assert.Equal("Idle Swim  ·  is in water", ClipWords.Row("Idle Swim", "is in water"));
             Assert.Equal("Jump  ·  jumps, by name", ClipWords.Row("Jump", "jumps, by name"));
             Assert.Equal("Attack2  ·  attack club, second", ClipWords.Row("Attack2", "attack club, second"));
             Assert.Equal("Attack1", ClipWords.Row("Attack1", null));
@@ -293,12 +293,12 @@ namespace Scry.Tests
         [Fact]
         public void TheOutListCountsWhatIsOutAndWhatDidNotFit()
         {
-            Assert.Equal("Clear world", OutWords.ClearWorld(0));
-            Assert.Equal("Clear world", OutWords.ClearWorld(1));
-            Assert.Equal("Clear world  3", OutWords.ClearWorld(3));
+            Assert.Equal("Clear previews", OutWords.ClearWorld(0));
+            Assert.Equal("Clear previews", OutWords.ClearWorld(1));
+            Assert.Equal("Clear previews  3", OutWords.ClearWorld(3));
             Assert.Equal("Troll", OutWords.Row("Troll", 1));
             Assert.Equal("Troll  ×3", OutWords.Row("Troll", 3));
-            Assert.Equal("and 5 more; Clear world takes them all", OutWords.More(5));
+            Assert.Equal("and 5 more previews; Clear previews removes all", OutWords.More(5));
         }
 
         [Fact]

@@ -26,7 +26,7 @@ namespace Scry
 
         public const string ComesWith = "Chance";
         public const string PullsFor = "Pulls for up to";
-        public const string Drains = "Reeling drains";
+        public const string Drains = "Stamina by star level";
         public const string Size = "Size";
         public const string WeightRow = "Weight";
         public const string RawFish = "Cuts into";
@@ -127,7 +127,7 @@ namespace Scry
         {
             var times = Math.Abs(1f / chance - Math.Round(1f / chance)) < 0.01f ? "one time in " + InWords((int)Math.Round(1f / chance)) : Numbers.Percent(chance) + " of the time";
             var average = (least + most) / 2f / chance;
-            return $"within {Numbers.Metres(range, 0)}, {times} each time it swims somewhere new, every {Numbers.Amount(least, 1)} to {Numbers.Amount(most, 1)} s: about once in {Numbers.Duration(average)} for each one near";
+            return $"about once in {Numbers.Duration(average)} for each fish within {Numbers.Metres(range, 0)} of the float. A fish swims somewhere new every {Numbers.Amount(least, 1)} to {Numbers.Amount(most, 1)} s and heads for the float {times}";
         }
 
         public static string RestsLine(float least, float most) => $"{Numbers.Amount(least, 1)} to {Numbers.Amount(most, 1)} s between pulls";

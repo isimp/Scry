@@ -88,14 +88,14 @@ namespace Scry
                 case HookedRule.Wear: return "its wear";
                 case HookedRule.Crafting: return "its cost";
                 case HookedRule.ItemStats: return "its stats";
-                case HookedRule.Food: return "eating it";
+                case HookedRule.Food: return "what eating it gives";
                 case HookedRule.Growth: return "its growing";
                 case HookedRule.Weather: return "the weather";
                 case HookedRule.Raids: return "raids";
                 case HookedRule.Taming: return "taming";
                 case HookedRule.Trading: return "its wares";
                 case HookedRule.Storage: return "its size";
-                case HookedRule.Skills: return "what your skills change";
+                case HookedRule.Skills: return "what your skills do";
                 default: return "how it works";
             }
         }
@@ -122,7 +122,7 @@ namespace Scry
             }
             if (mods.Count == 0) return null;
             var what = Naming.Joined(topics);
-            return mods.Count == 1 ? $"A mod hooks into {what}" : $"{Numbers.Count(mods.Count)} mods hook into {what}";
+            return mods.Count == 1 ? $"A mod may change {what}" : $"{Numbers.Count(mods.Count)} mods may change {what}";
         }
 
         /// <summary>The line's hover: each rule's note, naming its mods and what they may change; null for none.</summary>
@@ -146,30 +146,29 @@ namespace Scry
             if (names.Count == 0) return null;
 
             var who = Naming.Joined(names);
-            var hook = Naming.Noun(names.Count, "hooks", "hook");
             const string working = "its pace, what it takes and what it holds may differ from what is told";
             switch (rule)
             {
-                case HookedRule.Drops: return $"{who} {hook} into them: it may drop more or other than listed";
-                case HookedRule.Loot: return $"{who} {hook} into it: it may give more or other than listed";
-                case HookedRule.Spawns: return $"{who} {hook} into it: it may spawn elsewhere or otherwise than told";
-                case HookedRule.Comfort: return $"{who} {hook} into comfort: it may count otherwise than told";
-                case HookedRule.Smelting: return $"{who} {hook} into smelting: {working}";
-                case HookedRule.Cooking: return $"{who} {hook} into cooking: {working}";
-                case HookedRule.Fermenting: return $"{who} {hook} into fermenting: {working}";
-                case HookedRule.Producing: return $"{who} {hook} into it: how fast it makes and how much it holds may differ from what is told";
-                case HookedRule.Burning: return $"{who} {hook} into fires: how long its fuel lasts may differ from what is told";
-                case HookedRule.Wear: return $"{who} {hook} into wear and support: it may stand or wear otherwise than told";
-                case HookedRule.Crafting: return $"{who} {hook} into crafting and building costs: it may cost otherwise than told";
-                case HookedRule.ItemStats: return $"{who} {hook} into item stats: its figures may differ from those told";
-                case HookedRule.Food: return $"{who} {hook} into eating: what it gives may differ from what is told";
-                case HookedRule.Growth: return $"{who} {hook} into growing: it may grow or grow back otherwise than told";
-                case HookedRule.Weather: return $"{who} {hook} into the weather: it may come or act otherwise than told";
-                case HookedRule.Raids: return $"{who} {hook} into raids: they may come otherwise than told";
-                case HookedRule.Taming: return $"{who} {hook} into taming and breeding: it may tame or breed otherwise than told";
-                case HookedRule.Storage: return $"{who} {hook} into containers: it may hold more or less than told";
-                case HookedRule.Skills: return $"{who} {hook} into skills: what a level changes may differ from what is told";
-                default: return $"{who} {hook} into trading: what is sold may differ from what is told";
+                case HookedRule.Drops: return $"{who} may change its drops: it may drop more or other things than listed";
+                case HookedRule.Loot: return $"{who} may change what it gives: it may give more or other things than listed";
+                case HookedRule.Spawns: return $"{who} may change its spawning: it may spawn elsewhere or otherwise than told";
+                case HookedRule.Comfort: return $"{who} may change comfort: it may count otherwise than told";
+                case HookedRule.Smelting: return $"{who} may change smelting: {working}";
+                case HookedRule.Cooking: return $"{who} may change cooking: {working}";
+                case HookedRule.Fermenting: return $"{who} may change fermenting: {working}";
+                case HookedRule.Producing: return $"{who} may change how it produces: how fast it makes and how much it holds may differ from what is told";
+                case HookedRule.Burning: return $"{who} may change fires: how long its fuel lasts may differ from what is told";
+                case HookedRule.Wear: return $"{who} may change wear and support: it may stand or wear otherwise than told";
+                case HookedRule.Crafting: return $"{who} may change crafting and building costs: it may cost otherwise than told";
+                case HookedRule.ItemStats: return $"{who} may change item stats: its figures may differ from those told";
+                case HookedRule.Food: return $"{who} may change eating: what it gives may differ from what is told";
+                case HookedRule.Growth: return $"{who} may change growing: it may grow or grow back otherwise than told";
+                case HookedRule.Weather: return $"{who} may change the weather: it may come or act otherwise than told";
+                case HookedRule.Raids: return $"{who} may change raids: they may come otherwise than told";
+                case HookedRule.Taming: return $"{who} may change taming and breeding: it may tame or breed otherwise than told";
+                case HookedRule.Storage: return $"{who} may change containers: it may hold more or less than told";
+                case HookedRule.Skills: return $"{who} may change skills: what a level changes may differ from what is told";
+                default: return $"{who} may change trading: what is sold may differ from what is told";
             }
         }
     }

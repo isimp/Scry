@@ -719,7 +719,7 @@ namespace Scry
             if (Stage.Subject != null && Settings.LogPreviews)
             {
                 y += U(4f);
-                var text = "Write its parts to the log";
+                var text = "Write the model's parts to the log file";
                 var w = Skin.Width(Skin.Chip, text) + U(8f);
                 var dump = new Rect(0f, y, Mathf.Min(width, w), U(26f));
                 if (GUI.Button(dump, text, Skin.Fitted(Skin.Chip, dump))) Say(Stage.Dump());

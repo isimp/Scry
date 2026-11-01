@@ -12,7 +12,7 @@ namespace Scry.Tests
         [Fact]
         public void AFoldedListOfTheCardSaysHowManyItHoldsAndThatItOpens()
         {
-            Assert.Equal("Creatures in this roll 3  ▸", RoomCardWords.ListHeading(RoomCardWords.Creatures, 3, open: false));
+            Assert.Equal("Creatures in this preview 3  ▸", RoomCardWords.ListHeading(RoomCardWords.Creatures, 3, open: false));
             Assert.Equal("To loot 12  ▾", RoomCardWords.ListHeading(RoomCardWords.Loot, 12, open: true));
             Assert.Equal(RoomCardWords.CreaturesTip + "\nOpen the list", RoomCardWords.ListTip(RoomCardWords.CreaturesTip, open: false));
             Assert.Equal(RoomCardWords.LootTip + "\nFold the list away to its count", RoomCardWords.ListTip(RoomCardWords.LootTip, open: true));
@@ -107,7 +107,7 @@ namespace Scry.Tests
         {
             Assert.Empty(RoomCardWords.Counted(new string[0]));
             Assert.Empty(RoomCardWords.Odds(new (string, float)[0]));
-            Assert.Equal("None in this roll", RoomCardWords.None);
+            Assert.Equal("None in this preview", RoomCardWords.None);
         }
 
         [Fact]

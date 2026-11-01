@@ -15,7 +15,7 @@ namespace Scry.Tests
         [Fact]
         public void OneFiredByAnAttackSaysItTakesTheAttacksFiguresAndSpeed()
         {
-            Assert.StartsWith("Fired by an attack, it takes that attack's damage", ProjectileWords.Description(true));
+            Assert.StartsWith("When an attack fires it, that attack's damage", ProjectileWords.Description(true));
             Assert.Equal("Its speed comes from whatever launches it.", ProjectileWords.Description(false));
         }
 

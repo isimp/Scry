@@ -210,7 +210,7 @@ namespace Scry
             var what = Only(rules, "AshLands") ? "lava" : Only(rules, "Mistlands") ? "Mistlands growth" : "lava or Mistlands growth";
             var within = $"within {Numbers.Metres(rules.SurroundDistance)}";
             if (rules.SurroundBetter <= 0f) return $"more {what} {within} than the average spot that meets its other rules";
-            return $"{what} {within} at least {Numbers.Percent(rules.SurroundBetter, 1)} of the way from the average spot that meets its other rules to the most found";
+            return $"more {what} {within} than the average spot that meets its other rules, at least {Numbers.Percent(rules.SurroundBetter, 1)} of the way from that average to the most found";
         }
 
         /// <summary>
@@ -221,9 +221,9 @@ namespace Scry
         private static string Placed(LocationRules rules)
         {
             var parts = new List<string>();
-            if (rules.Prioritized) parts.Add("before the others with five times the tries");
+            if (rules.Prioritized) parts.Add("before other locations, with five times as many tries");
             if (rules.CenterFirst) parts.Add("outward from the world's centre");
-            if (rules.Unique) parts.Add("one only, the first reached keeps its place");
+            if (rules.Unique) parts.Add("only one in the world: the first a player comes near stays, the others are removed");
             return parts.Count > 0 ? string.Join("; ", parts) : null;
         }
 
@@ -374,7 +374,7 @@ namespace Scry
 
         /// <summary>The switch's tip: what it does, then whether it is on.</summary>
         public static string EveryWorldTip(bool on) => Naming.Lines(
-            "Reads where things are by itself in every world, in the background once the prefabs are read, taking a few minutes; turned on, it starts here at once",
+            "Scry reads where things are in every world you play, without being asked. It runs in the background once the prefabs are read and takes a few minutes. Turning it on starts it in this world at once.",
             on ? "On." : "Off.");
 
         /// <summary>How far reading the locations has got, where something waits on it (<see cref="CatalogWords.Progress(string, int, int)"/>).</summary>

@@ -24,7 +24,7 @@ namespace Scry
         public static string Love(float interval, float skipChance, int points)
         {
             var chance = (int)Math.Round((1f - skipChance) * 100f, MidpointRounding.AwayFromZero);
-            if (chance <= 0) return "never: the game skips every check";
+            if (chance <= 0) return "never: its chance is 0%";
             var every = Numbers.Duration(interval);
             return points <= 1 ? $"a {Numbers.Count(chance)}% chance every {every} to get pregnant" : $"a love point every {every} at a {Numbers.Count(chance)}% chance; {Numbers.Count(points)} make it pregnant";
         }

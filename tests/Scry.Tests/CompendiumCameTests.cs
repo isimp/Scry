@@ -81,7 +81,7 @@ namespace Scry.Tests
             Assert.Equal("day 3, unlocking its recipe", CompendiumWords.CameToKnow(CameBy.Recipe, 3, null));
             // The game's record of stations fills by being near one, not by using it.
             Assert.Equal("day 3, being near it", CompendiumWords.CameToKnow(CameBy.Near, 3, null));
-            Assert.Equal("been near", JournalWords.LearnedNote(new BookNews(NewsHow.Known, null, CameBy.Near, 3)));
+            Assert.Equal("stood near", JournalWords.LearnedNote(new BookNews(NewsHow.Known, null, CameBy.Near, 3)));
             // A taming seen is not the character's own taming, and petting one is neither.
             Assert.Equal("seen tamed", JournalWords.LearnedNote(new BookNews(NewsHow.Known, null, CameBy.SeenTamed, 3)));
             Assert.Equal("petted", JournalWords.LearnedNote(new BookNews(NewsHow.Known, null, CameBy.Petted, 3)));
@@ -116,7 +116,7 @@ namespace Scry.Tests
             Assert.Equal(KnownLevel.Known, book.Level(finger.Key));
             Assert.Equal(CameBy.MinedPieces, book.Came(finger.Key)?.Way);
             Assert.Contains("mining its pieces with your Iron pickaxe", CompendiumWords.CameToKnow(CameBy.MinedPieces, 424, "Plains", inHand: "Iron pickaxe"));
-            Assert.Equal("its pieces mined", JournalWords.LearnedNote(new BookNews(NewsHow.Known, null, CameBy.MinedPieces, 424)));
+            Assert.Equal("pieces mined", JournalWords.LearnedNote(new BookNews(NewsHow.Known, null, CameBy.MinedPieces, 424)));
 
             // Pieces two rocks break into tell neither apart, so neither is known by them.
             Assert.True(catchUp.Hit(shared.Key, new[] { rock.Key, otherRock.Key }, book));

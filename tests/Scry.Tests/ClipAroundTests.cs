@@ -18,11 +18,11 @@ namespace Scry.Tests
             // A troll wakes silently and roars once it spots you; spawned, it roars as it rises.
             var seen = Seen(("wake", new[] { "Wakeup", "Idle_Breathing" }), ("spawn", new[] { "Spawn Roar" }));
 
-            var around = ClipAround.Match(new[] { ("wake", (object)"alerted"), ("spawn", "alerted") }, seen,
+            var around = ClipAround.Match(new[] { ("wake", (object)"is alerted"), ("spawn", "is alerted") }, seen,
                 new[] { "Idle_Breathing" }, null, new string[0]);
 
-            Assert.Equal("alerted", around["Wakeup"]);
-            Assert.Equal("alerted", around["Spawn Roar"]);
+            Assert.Equal("is alerted", around["Wakeup"]);
+            Assert.Equal("is alerted", around["Spawn Roar"]);
             Assert.Equal(2, around.Count);
         }
 
@@ -50,7 +50,7 @@ namespace Scry.Tests
         {
             var seen = Seen(("wake", new[] { "Attack Jump" }));
 
-            var around = ClipAround.Match(new[] { ("wake", (object)"alerted") }, seen,
+            var around = ClipAround.Match(new[] { ("wake", (object)"is alerted") }, seen,
                 new[] { "Attack Claws" }, "idle sound", new[] { "Attack Jump", "Attack Claws" });
 
             Assert.Empty(around);
@@ -61,9 +61,9 @@ namespace Scry.Tests
         {
             var seen = Seen(("wake", new[] { "Idle" }));
 
-            var around = ClipAround.Match(new[] { ("wake", (object)"alerted") }, seen, new[] { "Idle" }, "idle sound", new string[0]);
+            var around = ClipAround.Match(new[] { ("wake", (object)"is alerted") }, seen, new[] { "Idle" }, "idle sound", new string[0]);
 
-            Assert.Equal("alerted", around["Idle"]);
+            Assert.Equal("is alerted", around["Idle"]);
         }
 
         [Fact]
@@ -81,7 +81,7 @@ namespace Scry.Tests
         {
             var seen = Seen(("spawn", new string[0]));
 
-            var around = ClipAround.Match(new[] { ("spawn", (object)"alerted"), ("wake", "alerted") }, seen, new string[0], null, new string[0]);
+            var around = ClipAround.Match(new[] { ("spawn", (object)"is alerted"), ("wake", "is alerted") }, seen, new string[0], null, new string[0]);
 
             Assert.Empty(around);
         }

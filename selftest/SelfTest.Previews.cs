@@ -418,7 +418,7 @@ namespace Scry
             p.Check(!Previews.AnythingInWorld, "and is gone once it has landed");
         }
 
-        /// <summary>Clear world takes away what stands in the world, pinned or not.</summary>
+        /// <summary>Clear previews takes away what stands in the world, pinned or not.</summary>
         private static IEnumerator ClearWorld(Probe p)
         {
             yield return Until(() => !Previews.AnythingInWorld, 8);
@@ -431,10 +431,10 @@ namespace Scry
             yield return Until(() => Previews.AnythingInWorld, 3);
             Previews.Pin();
             yield return null;
-            p.Check(Previews.PinnedCount > 0 && Previews.OutLines > 0, "a copy stands pinned in the world", $"{Numbers.Count(Previews.PinnedCount)} pinned, {Numbers.Count(Previews.OutLines)} lines out");
+            p.Check(Previews.PinnedCount > 0 && Previews.OutCount > 0, "a copy stands pinned in the world", $"{Numbers.Count(Previews.PinnedCount)} pinned, {Numbers.Count(Previews.OutCount)} lines out");
             Previews.ClearWorld();
             yield return null;
-            p.Check(!Previews.AnythingInWorld && Previews.PinnedCount == 0 && Previews.OutLines == 0, "Clear world takes all of it away");
+            p.Check(!Previews.AnythingInWorld && Previews.PinnedCount == 0 && Previews.OutCount == 0, "Clear previews takes all of it away");
         }
     }
 }

@@ -39,7 +39,7 @@ namespace Scry
             var hits = Hits(lasts, every);
             return new List<FactPair>
             {
-                new FactPair(Naming.Capital(damage) + " damage", $"Dealt over {Numbers.Duration(lasts)} in {Numbers.Count(hits)} even hits, {Each(every)}, not at once: what a hit leaves after resistances and armour"),
+                new FactPair(Naming.Capital(damage) + " damage", $"Dealt over {Numbers.Duration(lasts)} in {Numbers.Count(hits)} even hits, {Each(every)}, instead of at once. Resistances and armour apply to the hit first"),
                 new FactPair("More " + damage, $"Adds to what is left, over {Numbers.Duration(lasts)} again"),
                 new FactPair("A small hit", $"One leaving under {Numbers.Amount(LeastHit * hits, 1)} {damage} damage deals none of it, unless some is still being dealt"),
             };
@@ -71,14 +71,14 @@ namespace Scry
         {
             var times = Math.Abs(perDamage - 1f) < 1e-4f ? "the damage" : $"{Numbers.Amount(perDamage)} times the damage";
             var raised = Math.Abs(power - 0.5f) < 1e-4f ? "the square root of " + times : $"{times} to the power {Numbers.Amount(power)}";
-            return $"{Numbers.Duration(baseLasts)} and {raised}";
+            return $"{Numbers.Duration(baseLasts)} plus as many seconds as {raised}";
         }
 
         /// <summary>Poison dealt over a time that grows with it, in even hits; only a stronger one starts it over (<c>SE_Poison.AddDamage</c>).</summary>
         public static List<FactPair> Poison(float baseLasts, float perDamagePlayer, float perDamage, float power, float every) => new List<FactPair>
         {
-            new FactPair("Poison damage", $"Dealt over time in even hits, {Each(every)}, not at once: what a hit leaves after resistances and armour"),
-            new FactPair("How long", $"On you {PoisonTime(baseLasts, perDamagePlayer, power)}; on a creature {PoisonTime(baseLasts, perDamage, power)}"),
+            new FactPair("Poison damage", $"Dealt over time in even hits, {Each(every)}, instead of at once. Resistances and armour apply to the hit first"),
+            new FactPair("How long", $"On you, {PoisonTime(baseLasts, perDamagePlayer, power)}. On a creature, {PoisonTime(baseLasts, perDamage, power)}"),
             new FactPair("More poison", "Only a stronger hit starts it over; a weaker one adds nothing while it lasts"),
         };
 

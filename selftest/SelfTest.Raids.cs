@@ -110,7 +110,7 @@ namespace Scry
             Select(raid);
             yield return null;
             var told = Facts.For(raid);
-            foreach (var row in new[] { "Comes for", "On the table", "Lasts" }) p.Check(Tells(told, row), $"it tells {row.ToLowerInvariant()}", Pairs(told));
+            foreach (var row in new[] { "Comes for", "Can start", "Lasts" }) p.Check(Tells(told, row), $"it tells {row.ToLowerInvariant()}", Pairs(told));
             var brought = told.Rows.FirstOrDefault(r => r.Title == RaidWords.BringsTitle);
             p.Check(brought != null && brought.Lines.Count > 0, "it tells what it brings, a creature a line", Pairs(told));
             if (brought != null) p.Note("its creatures: " + string.Join(" | ", brought.Lines.Select(l => string.Join(", ", l.Cells))));

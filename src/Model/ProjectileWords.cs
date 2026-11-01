@@ -44,7 +44,7 @@ namespace Scry
         public static string Speed(float metresPerSecond) => $"{Numbers.Count((long)System.Math.Round(metresPerSecond))} m/s";
 
         public static string Description(bool shotFromAnAttack) => shotFromAnAttack
-            ? "Fired by an attack, it takes that attack's damage, knockback, blocking and status effect in place of its own below, and the attack's speed."
+            ? "When an attack fires it, that attack's damage, knockback, blocking and status effect replace its own below, and the attack sets its speed."
             : "Its speed comes from whatever launches it.";
 
         public static List<FactPair> Pairs(ProjectileFacts f)

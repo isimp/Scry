@@ -24,11 +24,11 @@ namespace Scry
             switch (mode)
             {
                 case CutMode.Closed:
-                    return inRoom ? "No cut: the room's roof on, the rooms above it back, still in the room" : "No cut: the roof on";
+                    return inRoom ? "No cut: the room's roof and the rooms above it come back, and you stay in the room" : "No cut: the roof stays on";
                 case CutMode.Top:
-                    return inRoom ? "Cut from above: the room's roof off at head height over its floor" : "Cut from above: the roof off over a floor or level";
+                    return inRoom ? "Cut from above: takes the room's roof off at head height over its floor" : "Cut from above: takes the roof off over a floor or level";
                 default:
-                    return "Cut from the side: the half of every room facing you taken away";
+                    return "Cut from the side: takes away the half of every room that faces you";
             }
         }
 
@@ -69,7 +69,7 @@ namespace Scry
         /// <summary>The creatures chip's tip.</summary>
         public static string CreaturesTip(bool shown) => shown
             ? "Put away the creatures its spawn points put here"
-            : "Show the creatures its spawn points put here, rolled anew with every preview";
+            : "Show the creatures its spawn points put here, picked anew with every preview";
 
         /// <summary>The mark of the stage's key sheet, in its corner.</summary>
         public const string KeysMark = "?";
@@ -129,7 +129,7 @@ namespace Scry
         public const string LightsBelow = "Lights below";
         public const string LightsKept = "Kept";
         public const string StageLight = "Stage light";
-        public const string LightsBelowTip = "Whether the rooms dimmed below the floor opened keep their own lights, as the game lights them; with the stage's light alone a big dungeon is filmed in about half the time";
+        public const string LightsBelowTip = "Whether the rooms dimmed below the opened floor keep their own lights, as the game lights them. With the stage light alone, a big dungeon is drawn in about half the time";
 
         /// <summary>What an effect's stage says once it has played out, its stage left standing.</summary>
         public const string PlayedOut = "It has played out: click the stage to play it again";

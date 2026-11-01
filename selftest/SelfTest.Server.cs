@@ -36,7 +36,7 @@ namespace Scry
             ScryPanel.HoldCompendiumBox(true);
             var (without, hint) = ScryPanel.PlayingWithForTest;
             p.Check(without != null && without.StartsWith("The server \u00b7 no Scry", System.StringComparison.Ordinal), "a server without Scry is named so", without);
-            p.Check(hint != null && hint.StartsWith("The server runs no Scry: what your explored and shared maps show", System.StringComparison.Ordinal), "and the line under it says what that leaves out", hint);
+            p.Check(hint != null && hint.StartsWith("The server runs no Scry: what ground you explored and shared maps show", System.StringComparison.Ordinal), "and the line under it says what that leaves out", hint);
             yield return Picture(p, "compendium box server without Scry");
             ServerAsItWas();
         }

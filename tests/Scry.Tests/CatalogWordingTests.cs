@@ -92,9 +92,9 @@ namespace Scry.Tests
         public void AFootstepSaysHowTheCreatureMovesAndOnWhat()
         {
             Assert.Equal("walk/run on stone", StepWords.Note(new[] { "Walk", "Run" }, new[] { "Stone" }, anyGround: false));
-            Assert.Equal("any gait on any ground", StepWords.Note(new string[0], new string[0], anyGround: true));
+            Assert.Equal("set for no gait, so it never plays", StepWords.Note(new string[0], new string[0], anyGround: true));
             Assert.Equal("jog on plain ground/ground", StepWords.Note(new[] { "Jog" }, new[] { "Default", "GenericGround" }, anyGround: false));
-            Assert.Equal("sneak on nothing", StepWords.Note(new[] { "Sneak" }, new string[0], anyGround: false));
+            Assert.Equal("sneak on no ground, so it never plays", StepWords.Note(new[] { "Sneak" }, new string[0], anyGround: false));
         }
 
         [Fact]

@@ -134,7 +134,7 @@ namespace Scry.Tests
         {
             var rules = Crypt();
             rules.Unique = true;
-            Assert.Equal("one only, the first reached keeps its place", Row(rules, "Placed"));
+            Assert.Equal("only one in the world: the first a player comes near stays, the others are removed", Row(rules, "Placed"));
         }
 
         [Fact]
@@ -264,7 +264,7 @@ namespace Scry.Tests
             rules.SurroundDistance = 30f;
             Assert.Equal("more lava within 30 m than the average spot that meets its other rules", Row(rules, "Surroundings"));
             rules.SurroundBetter = 0.5f;
-            Assert.Equal("lava within 30 m at least 50% of the way from the average spot that meets its other rules to the most found", Row(rules, "Surroundings"));
+            Assert.Equal("more lava within 30 m than the average spot that meets its other rules, at least 50% of the way from that average to the most found", Row(rules, "Surroundings"));
         }
 
         [Fact]
@@ -298,7 +298,7 @@ namespace Scry.Tests
             rules.Prioritized = true;
             rules.Unique = true;
             rules.CenterFirst = true;
-            Assert.Equal("before the others with five times the tries; outward from the world's centre; one only, the first reached keeps its place", Row(rules, "Placed"));
+            Assert.Equal("before other locations, with five times as many tries; outward from the world's centre; only one in the world: the first a player comes near stays, the others are removed", Row(rules, "Placed"));
         }
 
         [Fact]

@@ -101,8 +101,8 @@ namespace Scry.Tests
             Assert.Equal("You've met these but not yet seen them go together with this page. Each is named here once you see the two go together in play, "
                 + "as a drop falls, a ware stands in a store, an item goes into or comes out of a station, a tool breaks it or a creature eats it", CompendiumWords.TogetherTip("fight"));
             Assert.Equal(CompendiumWords.TogetherTip("fight"), CompendiumWords.TogetherTip(null));
-            Assert.Equal("1 recipe row waits for the game to list it", CompendiumWords.RecipeRowsWait(1));
-            Assert.Equal("2 recipe rows wait for the game to list them", CompendiumWords.RecipeRowsWait(2));
+            Assert.Equal("1 recipe shows here once your character unlocks it", CompendiumWords.RecipeRowsWait(1));
+            Assert.Equal("2 recipes show here once your character unlocks them", CompendiumWords.RecipeRowsWait(2));
         }
 
         [Fact]
@@ -151,7 +151,7 @@ namespace Scry.Tests
             Assert.Equal("stepped into", JournalWords.LearnedNote(new BookNews(NewsHow.Known, null, CameBy.StoodIn, 14)));
             Assert.Equal("known", JournalWords.LearnedNote(new BookNews(NewsHow.Known, null, null, -1)));
             Assert.Equal("how fire lands found out", JournalWords.LearnedNote(new BookNews(NewsHow.FoundOut, EntryKeys.Damage("fire"), CameBy.Fought, 14)));
-            Assert.Equal("seen on your explored map", JournalWords.LearnedNote(new BookNews(NewsHow.Map, EntryKeys.OnMap, null, 14)));
+            Assert.Equal("seen in ground you explored", JournalWords.LearnedNote(new BookNews(NewsHow.Map, EntryKeys.OnMap, null, 14)));
         }
 
         [Fact]
@@ -194,8 +194,8 @@ namespace Scry.Tests
             Assert.Equal("Since day 12: came to know 9 things, among them Troll and Forge, and saw 14 more", JournalWords.News(days, 0, 0));
 
             Assert.Equal("Day 3: saw Boar and Deer", JournalWords.News(new[] { N("Boar", NewsHow.Seen, 3), N("Deer", NewsHow.Seen, 3) }, 0, 0));
-            Assert.Equal("Day 14: came to know Troll, and your explored map showed 12 places and 1 biome", JournalWords.News(new[] { N("Troll", NewsHow.Known, 14) }, 12, 1));
-            Assert.Equal("Your explored map showed 12 places", JournalWords.News(new NewsLine[0], 12, 0));
+            Assert.Equal("Day 14: came to know Troll, and ground you explored showed 12 places and 1 biome", JournalWords.News(new[] { N("Troll", NewsHow.Known, 14) }, 12, 1));
+            Assert.Equal("Ground you explored showed 12 places", JournalWords.News(new NewsLine[0], 12, 0));
         }
 
         [Fact]

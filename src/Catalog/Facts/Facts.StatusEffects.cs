@@ -70,7 +70,7 @@ namespace Scry
                 // A shield absorbing more by its caster's skill (SE_Shield.SetLevel), the skill of the area that puts it on.
                 if (effect is SE_Shield shield && shield.m_absorbDamagePerSkillLevel > 0f)
                 {
-                    YoursAt(Naming.FieldLabel(nameof(SE_Shield.m_absorbDamage)), SkillReading.ShieldSkill(shield.name),
+                    YoursAt(StatusEffectWords.Label(nameof(SE_Shield.m_absorbDamage)), SkillReading.ShieldSkill(shield.name),
                         level => Numbers.Amount(SkillMath.ShieldAbsorb(shield.m_absorbDamage, shield.m_absorbDamagePerSkillLevel, level), 0));
                 }
 
@@ -210,6 +210,10 @@ namespace Scry
             "m_ttl", "m_name", "m_category", "m_tooltip", "m_icon", "m_iconText", "m_startMessage", "m_stopMessage",
             "m_repeatMessage", "m_startMessageType", "m_stopMessageType", "m_repeatMessageType", "m_flashIcon",
             "m_cooldownIcon", "m_nameHash", "m_activationAnimation", "m_repeatInterval",
+            // How the Wisplight's wisp flies, and the Wishbone's trigger distances the game never reads: nothing a player can use.
+            "m_ballAcceleration", "m_ballFriction", "m_ballMaxSpeed", "m_characterVelocityFactor", "m_noiseDistance",
+            "m_noiseDistanceInterior", "m_noiseDistanceYScale", "m_noiseSpeed", "m_rotationSpeed",
+            "m_closerTriggerDistance", "m_furtherTriggerDistance",
         };
     }
 }

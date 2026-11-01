@@ -13,7 +13,7 @@ namespace Scry
     {
         private const string Apart = "  ·  ";
 
-        public const string Creatures = "Creatures in this roll";
+        public const string Creatures = "Creatures in this preview";
         public const string Loot = "To loot";
         public const string Ways = "Ways on";
         public const string Floors = "Floors in this room";
@@ -27,7 +27,7 @@ namespace Scry
         public static string ListTip(string about, bool open) => about + "\n" + (open ? "Fold the list away to its count" : "Open the list");
 
         /// <summary>What a section with nothing in it says.</summary>
-        public const string None = "None in this roll";
+        public const string None = "None in this preview";
 
         /// <summary>
         /// The lines an open list of the card shows: its own, then how many were left out, a line for each way they wait; where
@@ -41,8 +41,8 @@ namespace Scry
             return lines;
         }
 
-        public const string CreaturesTip = "The creatures this preview's spawn points put in the room; another preview rolls them anew";
-        public const string LootTip = "What this preview's rolls put in the room to loot, each with how likely a room of its kind holds it";
+        public const string CreaturesTip = "The creatures this preview's spawn points put in the room; another preview picks them anew";
+        public const string LootTip = "What this preview put in the room to loot, each with how likely a room of its kind holds it";
         public const string FloorTip = "Cut at head height over this floor";
         public const string OpenPageTip = "The page of this kind of room";
 

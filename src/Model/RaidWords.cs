@@ -16,15 +16,15 @@ namespace Scry
         /// </summary>
         public static string Roll(float intervalMinutes, float chance)
         {
-            return $"every {Numbers.Duration(intervalMinutes * 60f)}, {Numbers.Amount(chance)}% each time, one picked among the raids that can start";
+            return $"every {Numbers.Duration(intervalMinutes * 60f)}, with a {Numbers.Amount(chance)}% chance, one at random among the raids that can start";
         }
 
         /// <summary>A raid with a timer of its own (<c>m_standaloneInterval</c>), rolled besides; null for one without.</summary>
         public static string OwnRoll(float intervalSeconds, float chance)
         {
             if (intervalSeconds <= 0f) return null;
-            var words = "on its own every " + Numbers.Duration(intervalSeconds);
-            return chance < 100f ? $"{words}, {Numbers.Amount(chance)}% each time" : words;
+            var words = "every " + Numbers.Duration(intervalSeconds);
+            return chance < 100f ? $"{words}, with a {Numbers.Amount(chance)}% chance" : words;
         }
 
         /// <summary>
@@ -68,7 +68,7 @@ namespace Scry
         public const string ForEachPlayer = "for one player at a time, whose own progress allows it";
 
         /// <summary>How a raid only something else starts is rolled.</summary>
-        public const string NeverRolled = "never by the raid roll; only something else starts it";
+        public const string NeverRolled = "never by chance; only the event console command or a mod starts it";
 
         /// <summary>The label of the line telling a creature a raid brings.</summary>
         public static string Brings(string creature) => "Brings " + creature;
@@ -81,7 +81,7 @@ namespace Scry
 
         /// <summary>
         /// A creature it brings as a line of that table: how many near at once (without a most the
-        /// game spawns one each roll and counts none), how often it is rolled and at what chance,
+        /// game counts none and sets no limit), how often it is tried and at what chance,
         /// its stars, and the rest of what it is like; a dash for nothing more.
         /// </summary>
         public static string[] BringLine(string creature, int maxSpawned, float interval, float chance, int minLevel, int maxLevel, int groupMin, int groupMax, bool night, bool day, bool hunts)
@@ -89,7 +89,7 @@ namespace Scry
             var also = Also(groupMin, groupMax, night, day, hunts);
             return new[]
             {
-                creature, maxSpawned > 0 ? "up to " + Numbers.Count(maxSpawned) : "one each roll", Numbers.Duration(interval), Numbers.Amount(chance) + "%",
+                creature, maxSpawned > 0 ? "up to " + Numbers.Count(maxSpawned) : "no limit", Numbers.Duration(interval), Numbers.Amount(chance) + "%",
                 SpawnWords.Stars(minLevel, maxLevel), also.Length > 0 ? also : "–",
             };
         }
@@ -139,16 +139,16 @@ namespace Scry
         public static string KeepsComing(int capped, int all)
         {
             if (all <= 0) return null;
-            const string again = "throughout the raid, each creature is rolled again at its pace";
-            if (capped >= all) return again + " and kept topped up to its maximum near you, so the fallen are replaced";
+            const string again = "throughout the raid, each creature may come again at its own interval";
+            if (capped >= all) return again + " and is refilled up to its maximum near you, so the fallen are replaced";
             if (capped <= 0) return again + ", one more each time";
-            return again + ", those with a maximum kept topped up to it near you, so the fallen are replaced";
+            return again + "; those with a maximum are refilled up to it near you, so the fallen are replaced";
         }
 
         /// <summary>The first roll of each of a raid's creatures (<see cref="RaidRoll"/>): each in the order it came, how many, and how many with stars.</summary>
         public static string FirstRoll(IReadOnlyList<RolledCreature> rolled, System.Func<string, string> nameOf, IReadOnlyList<string> leftOut = null)
         {
-            if (rolled.Count == 0 && (leftOut == null || leftOut.Count == 0)) return "This roll brought nothing; roll again.";
+            if (rolled.Count == 0 && (leftOut == null || leftOut.Count == 0)) return "The game picked nothing this time; press Roll again.";
             var order = new List<string>();
             var counts = new Dictionary<string, (int All, int Starred)>();
             foreach (var creature in rolled)
@@ -162,7 +162,7 @@ namespace Scry
                 var count = counts[prefab];
                 parts.Add(Naming.Repeated(nameOf(prefab), count.All) + (count.Starred > 0 ? $" ({Numbers.Count(count.Starred)} with stars)" : ""));
             }
-            return "The first roll of each, as the game rolls it: " + string.Join(", ", parts) + LeftOutAfter(parts.Count, leftOut) + ".";
+            return "The first creatures to come, as the game picks them: " + string.Join(", ", parts) + LeftOutAfter(parts.Count, leftOut) + ".";
         }
 
         /// <summary>The name of a boss's own event, which has no message of its own to go by.</summary>
@@ -173,6 +173,6 @@ namespace Scry
         /// boss is alerted within so many metres (<c>RandEventSystem.GetForcedEvent</c>,
         /// <c>EnemyHud.TestShow</c>).
         /// </summary>
-        public static string WhileFighting(string boss, float range) => $"while {boss} is alerted within {Numbers.Amount(range)} m of you, its health bar showing";
+        public static string WhileFighting(string boss, float range) => $"while {boss} is alert within {Numbers.Amount(range)} m of you, which is when its health bar shows";
     }
 }

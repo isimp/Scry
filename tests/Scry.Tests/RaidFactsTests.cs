@@ -28,7 +28,7 @@ namespace Scry.Tests
         [Fact]
         public void ARaidOnlySomethingElseStartsIsNeverRolled()
         {
-            Assert.Equal("never by the raid roll; only something else starts it", RaidWords.NeverRolled);
+            Assert.Equal("never by chance; only the event console command or a mod starts it", RaidWords.NeverRolled);
         }
 
         [Fact]

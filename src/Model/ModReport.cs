@@ -126,14 +126,14 @@ namespace Scry
 
         /// <summary>The tip of the report's switch to show only mods that add something.</summary>
         public static string AddingTip(bool on) => on
-            ? "Show the mods that only hook in too"
-            : "Leave out mods that only hook into the game's rules";
+            ? "Show the mods that only change the game's rules too"
+            : "Leave out mods that only change the game's rules";
 
         /// <summary>The bar over the list of what mods add: how many mods add something.</summary>
         public static string Bar(int mods) => mods == 1 ? "What 1 mod adds" : $"What {Numbers.Count(mods)} mods add";
 
         /// <summary>The report's line for which of the rules Scry tells a mod hooks into.</summary>
-        public static string HooksLine(IReadOnlyList<HookedRule> rules) => Naming.Sentence("hooks into " + Hooks(rules));
+        public static string HooksLine(IReadOnlyList<HookedRule> rules) => Naming.Sentence("may change " + Hooks(rules));
 
         /// <summary>Which of the rules Scry tells a mod hooks into, and that what Scry tells of them may differ.</summary>
         public static string HooksInto(IReadOnlyList<HookedRule> rules) => Hooks(rules) + ", so what Scry tells of these may differ from what happens";

@@ -177,7 +177,7 @@ namespace Scry
 
         /// <summary>What the faint lines at the character's skill say on hover.</summary>
         public static string YoursTip(string skill) =>
-            $"What it comes to at your {skill} level now, with what effects add to the level. What you wear and other effects change it further.";
+            $"The value at your {skill} level now, counting the levels effects add. Your gear and other effects change it further.";
 
         private const string None = "–";
     }

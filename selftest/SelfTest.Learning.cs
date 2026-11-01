@@ -196,7 +196,7 @@ namespace Scry
             p.Check(book.Proved(dropless[0], EntryKeys.Did(Deed.Killed)) && book.Proved(dropless[0], EntryKeys.Did(Deed.StarredFell)), $"{dropless[0]} dying with one star beside you, no loot told, shows its health and what stars change");
         }
 
-        /// <summary>A raid's *On the table* goes to a boss whose fall brings it, the only fall seen together with it; raids a fall only ends are named.</summary>
+        /// <summary>A raid's *Can start* goes to a boss whose fall brings it, the only fall seen together with it; raids a fall only ends are named.</summary>
         private static void RaidBossesTell(Probe p)
         {
             var events = RandEventSystem.instance != null ? RandEventSystem.instance.m_events : null;
@@ -211,10 +211,10 @@ namespace Scry
             {
                 var entry = X.Find(EntryKeys.For(Kind.Raid, raid.m_name));
                 if (entry == null) continue;
-                if (Facts.For(entry).Links.TryGetValue("On the table", out var boss))
+                if (Facts.For(entry).Links.TryGetValue("Can start", out var boss))
                 {
                     linked++;
-                    p.Check(raid.m_requiredGlobalKeys != null && raid.m_requiredGlobalKeys.Contains(Knowledge.FallKeyOf(boss)), $"{raid.m_name}'s On the table goes to {boss}, whose fall brings it");
+                    p.Check(raid.m_requiredGlobalKeys != null && raid.m_requiredGlobalKeys.Contains(Knowledge.FallKeyOf(boss)), $"{raid.m_name}'s Can start goes to {boss}, whose fall brings it");
                 }
                 else if ((raid.m_notRequiredGlobalKeys ?? new List<string>()).Any(k => Knowledge.BossPrefabOf(k) != null)) endedOnly.Add(raid.m_name);
             }
@@ -265,7 +265,7 @@ namespace Scry
             p.Check(book.Witnessed(altar.m_bossPrefab.name, place), $"{altar.m_bossPrefab.name} seen at its altar goes with {place}, whoever called it");
         }
 
-        /// <summary>What a raid brings waits line by line for its raiders seen up close, how it is rolled for any of them; a place's spawn stars wait for one of its creatures seen up close there, as a loaded one standing in its place shows.</summary>
+        /// <summary>What a raid brings waits line by line for its raiders seen up close, how likely it is to start for any of them; a place's spawn stars wait for one of its creatures seen up close there, as a loaded one standing in its place shows.</summary>
         private static void RaidsAndPlacesTell(Probe p, System.Func<CompendiumBook> fresh)
         {
             var raid = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Raid && Facts.For(e).Rows.Any(r => r.Title == RaidWords.BringsTitle));

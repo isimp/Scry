@@ -52,20 +52,20 @@ namespace Scry
 
             // A world set to pick raids by each player's own progress checks other keys for them.
             var perPlayer = Knowledge.ByEachPlayer(raid);
-            Add("On the table", RaidWords.OnTheTable(perPlayer, raid.m_requiredGlobalKeys, raid.m_notRequiredGlobalKeys, Knowledge.BossOf),
+            Add("Can start", RaidWords.OnTheTable(perPlayer, raid.m_requiredGlobalKeys, raid.m_notRequiredGlobalKeys, Knowledge.BossOf),
                 RaidWords.WaitsFor(perPlayer, raid.m_requiredGlobalKeys, Knowledge.BossPrefabOf));
 
             var system = RandEventSystem.instance;
-            if (raid.m_random && system != null) Add("Rolled", RaidWords.Roll(system.m_eventIntervalMin, system.m_eventChance));
-            Add("Also rolled", RaidWords.OwnRoll(raid.m_standaloneInterval, raid.m_standaloneChance));
+            if (raid.m_random && system != null) Add("Picked", RaidWords.Roll(system.m_eventIntervalMin, system.m_eventChance));
+            Add("Own timer", RaidWords.OwnRoll(raid.m_standaloneInterval, raid.m_standaloneChance));
             // How likely it is rolled, a chance the game never shows, waits for one of its raiders seen up close.
-            if (raid.m_random && system != null) Proofs["Rolled"] = EntryKeys.Did(Deed.Raided);
-            Proofs["Also rolled"] = EntryKeys.Did(Deed.Raided);
-            if (!raid.m_random && raid.m_standaloneInterval <= 0f) Add("Rolled", RaidWords.NeverRolled);
+            if (raid.m_random && system != null) Proofs["Picked"] = EntryKeys.Did(Deed.Raided);
+            Proofs["Own timer"] = EntryKeys.Did(Deed.Raided);
+            if (!raid.m_random && raid.m_standaloneInterval <= 0f) Add("Picked", RaidWords.NeverRolled);
             Add("Lasts", RaidWords.Lasts(raid.m_duration, raid.m_pauseIfNoPlayerInArea, raid.m_eventRange));
             var brought = (raid.m_spawn ?? new List<SpawnSystem.SpawnData>()).Where(d => d != null && d.m_enabled && d.m_prefab != null).ToList();
             Add("Keeps coming", RaidWords.KeepsComing(brought.Count(d => d.m_maxSpawned > 0), brought.Count));
-            Add("Ends with", CatalogBuilder.Localize(raid.m_endMessage));
+            Add("End message", CatalogBuilder.Localize(raid.m_endMessage));
             if (boss == null)
             {
                 Add("Music", MusicWords.Name(raid.m_forceMusic), EntryKeys.PlayMusic);

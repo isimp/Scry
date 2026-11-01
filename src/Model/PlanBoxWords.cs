@@ -22,8 +22,8 @@ namespace Scry
         {
             switch (view)
             {
-                case PlanView.Levels: return "Each level from above, the highest first, turned with the view; rooms over each other line up, and ways down drop at their doorways";
-                case PlanView.Tree: return "Each room by its ways, as walked from the entrance: a row for each room further in, left doors to the left, straight on below, right doors to the right";
+                case PlanView.Levels: return "Each level from above, highest first, turned with the view. Rooms over each other line up, and ways down drop at their doorways";
+                case PlanView.Tree: return "Rooms as a tree walked from the entrance, a row for each room further in. Left doors go to the left, straight on goes below, right doors go to the right";
                 default: return "Seen from above, turned with the view, each room shaded by its depth";
             }
         }
@@ -52,7 +52,7 @@ namespace Scry
         public const string TabTip = "Bring the plan back";
 
         /// <summary>The tip of the box folded as the stage is too short for it under the room's card.</summary>
-        public const string TooShortTip = "The stage is too short for the plan under the room's card: drag the stage taller, or come back out of the room";
+        public const string TooShortTip = "The plan does not fit under the room's card. Drag the stage taller, or press Esc to leave the room.";
 
         public const string Entrance = "Entrance";
         public const string EntranceTip = "Go into the entrance";
@@ -84,7 +84,7 @@ namespace Scry
         public const string Example = "Example";
 
         /// <summary>The tip of an example's tag.</summary>
-        public const string ExampleTip = "Rolled by its kind's own rules: one way it can come out. Each one in your world lays out its own, tagged In your world once walked or opened from the big map.";
+        public const string ExampleTip = "Built by the game's rules for its kind: one way it can turn out. Each one in your world has a layout of its own, tagged In your world once walked or opened from the big map.";
         public const string ThisDungeonTipFogged = "The rooms as they stand in your world, as far as you have walked them";
 
         /// <summary>What marks the room the player stands in on the breadcrumb, and the tip of their room there.</summary>

@@ -504,7 +504,7 @@ namespace Scry
             p.Check(!told.Unsure.ContainsKey("Health") && told.Pairs.Any(pair => pair.Key == "Health"), $"{creature.Name}'s health is told as sure");
             if (ModHooks.Mods(HookedRule.Drops).Count > 0)
             {
-                p.Check(ModHookWords.Line(told.Hooks) != null && HookNote(told, HookedRule.Drops) != null, $"{creature.Name} tells in one line after the rest that mods hook into its drops", ModHookWords.Line(told.Hooks) ?? "no line");
+                p.Check(ModHookWords.Line(told.Hooks) != null && HookNote(told, HookedRule.Drops) != null, $"{creature.Name} tells in one line after the rest that mods may change its drops", ModHookWords.Line(told.Hooks) ?? "no line");
             }
             p.Check(told.Unsure.Values.All(why => !string.IsNullOrEmpty(why)), "every mark says why");
 
