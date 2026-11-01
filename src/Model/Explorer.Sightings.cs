@@ -14,7 +14,7 @@ namespace Scry
         /// </summary>
         public bool KeepsBack(string proof) => LeavingOut && proof != null && !_view.Book.Proved(_selected.Key, proof) && !AlsoShownBy(proof);
 
-        /// <summary>The game prints the health of the creature ridden (<c>EnemyHud</c>, its health text for the mount alone): riding one proves its health as a kill does.</summary>
+        /// <summary>The game prints the health of the creature ridden (<c>Hud.m_mountHealthText</c>, its health text on the mount's bar): riding one proves its health as a kill does.</summary>
         private bool AlsoShownBy(string proof) => proof == EntryKeys.Did(Deed.Killed) && _view.Book.Proved(_selected.Key, EntryKeys.Did(Deed.Ridden));
 
         /// <summary>The hover of a creature's drops title under the strict rules (<see cref="TallyWords.KillsSeenTip"/>): the kills whose loot was seen to fall against the game's count; none otherwise.</summary>
