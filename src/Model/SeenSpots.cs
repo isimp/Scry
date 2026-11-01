@@ -45,6 +45,9 @@ namespace Scry
         /// <summary>How many spots are kept, in every world.</summary>
         public int Count => _counts.Values.Sum();
 
+        /// <summary>How many spots a world keeps.</summary>
+        public int CountIn(string world) => world != null && _counts.TryGetValue(world, out var count) ? count : 0;
+
         /// <summary>
         /// A thing of a kind seen standing at x and z in a world: kept as a spot unless one of its
         /// kind is kept there already or the world keeps its most already; whether it was new.

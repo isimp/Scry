@@ -122,10 +122,14 @@ namespace Scry.Tests
             var spots = new SeenSpots();
             spots.Saw(World, "Tin", 1f, 2f);
             spots.Saw(Other, "Tin", 1f, 2f);
+            spots.Saw(Other, "Copper deposit", 9f, 2f);
             spots.Save();
+            Assert.Equal(1, spots.CountIn(World));
             spots.Forget(World);
             Assert.Empty(spots.Of(World, "Tin"));
+            Assert.Equal(0, spots.CountIn(World));
             Assert.Single(spots.Of(Other, "Tin"));
+            Assert.Equal(2, spots.CountIn(Other));
             Assert.True(spots.Changed);
             spots.Forget();
             Assert.Equal(0, spots.Count);
@@ -185,6 +189,14 @@ namespace Scry.Tests
             Assert.False(SeenOnMap.Findable(false, Gathered.Mined, new[] { "Stone" }));
             Assert.False(SeenOnMap.Findable(false, Gathered.None, new[] { "Wood", "Resin" }));
             Assert.False(SeenOnMap.Findable(false, Gathered.Mined, new string[0]));
+        }
+
+        [Fact]
+        public void ForgettingSaysHowManyThingsWereForgottenOrThatNoneAreRead()
+        {
+            Assert.Equal("forgot where this character saw 12 things worth finding again in this world.", ConsoleWords.SpotsForgotten(12));
+            Assert.Equal("forgot where this character saw 1 thing worth finding again in this world.", ConsoleWords.SpotsForgotten(1));
+            Assert.Equal("no character is played in a world, so there is nothing seen to forget.", ConsoleWords.SpotsForgotten(null));
         }
 
         [Fact]

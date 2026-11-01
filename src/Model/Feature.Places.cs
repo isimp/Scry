@@ -10,6 +10,7 @@ namespace Scry
         public static readonly Feature ExampleDungeonAndCampLayouts = Listed("example dungeons and camps");
         public static readonly Feature DungeonMaps = Listed("maps of the dungeons a player is in or has been in");
         public static readonly Feature DungeonMarksOnMap = Listed("marks on Valheim's map at the dungeons been in");
+        public static readonly Feature SeenSpots = Listed("where your character saw things worth finding again, for the map");
         public static readonly Feature GroupDungeonMaps = Listed("the walks of the dungeons kept on the server");
         public static readonly Feature BossFightsAmongRaids = Listed("boss fights among the raids");
         public static readonly Feature PlacesCreaturesOnStage = Listed("places' creatures on the stage");

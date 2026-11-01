@@ -34,6 +34,7 @@ namespace Scry
         private static ConfigEntry<bool> _markNames;
         private static ConfigEntry<float> _markSize;
         private static ConfigEntry<bool> _marksWalkedByYou, _marksWalkedOnServer, _markEntrances, _marksOnMinimap;
+        private static ConfigEntry<bool> _recordSeenSpots;
 
         /// <summary>
         /// The key that opens the panel. One the game or the panel already uses for something
@@ -117,6 +118,9 @@ namespace Scry
         /// <summary>Whether the minimap shows the marks of dungeons you walked too.</summary>
         public static bool DungeonMarksOnMinimap { get => _marksOnMinimap?.Value ?? false; set => Set(_marksOnMinimap, value); }
 
+        /// <summary>Whether the character's sight remembers where it saw things worth finding again, for the map.</summary>
+        public static bool RecordSeenSpots { get => _recordSeenSpots?.Value ?? true; set => Set(_recordSeenSpots, value); }
+
         /// <summary>A setting's new value, kept in the config file; nothing before the settings are bound.</summary>
         private static void Set<T>(ConfigEntry<T> entry, T value)
         {
@@ -163,7 +167,10 @@ namespace Scry
         /// <summary>What the world's server allows the compendium, synced to every player by ServerSync (see src/ServerSync/README.md).</summary>
         private static ConfigEntry<WorldRule> _worldRules;
         private static ConfigEntry<bool> _worldPeeking, _worldFloor;
-        private static ConfigEntry<float> _worldSeenReach;
+        private static ConfigEntry<float> _worldSeenReach, _worldSeenOnMapReach;
+
+        /// <summary>How far, in metres, a player's sight records where a thing worth finding again stands, as the world sets it; none at 0.</summary>
+        public static float SeenOnMapReach => _worldSeenOnMapReach?.Value ?? SeenOnMap.DefaultReach;
         private static readonly Dictionary<WorldSource, ConfigEntry<SourceLevel>> WorldUpTo = new Dictionary<WorldSource, ConfigEntry<SourceLevel>>();
         private static ServerSync.ConfigSync _sync;
 
@@ -219,6 +226,8 @@ namespace Scry
                 "Marks the entrances of dungeons nobody walked, where a source's pin shows them, faint until the pointer rests on one. Off, they are left out.");
             _marksOnMinimap = config.Bind("1 - General", "DungeonMarksOnMinimap", false,
                 "Shows the marks of dungeons you walked on the minimap too, at its pins' size, without names.");
+            _recordSeenSpots = config.Bind("1 - General", "RecordSeenSpots", true,
+                "Remembers where your character saw ore deposits, berries, flint and the like, and places, for showing them on Valheim's map. Off, nothing new is remembered; what is remembered stays until /scry forget spots.");
             _autoSpin = config.Bind("2 - Preview", "AutoSpin", true,
                 "Turns the model in the preview slowly while you are not dragging it. The View box's Spin switches it.");
             _spinSpeed = config.Bind("2 - Preview", "SpinSpeed", 14f,
@@ -261,7 +270,11 @@ namespace Scry
             Sync(_worldRules);
             Sync(_worldPeeking);
             Sync(_worldFloor);
+            _worldSeenOnMapReach = config.Bind("4 - World", "SeenOnMapReach", SeenOnMap.DefaultReach,
+                new ConfigDescription("How far away, in metres, a player's own sight remembers where an ore deposit, a pickable or a place stands, for showing it on the map; things smaller than a person are seen nearer. At 0 nothing is remembered.",
+                    new AcceptableValueRange<float>(0f, 150f)));
             Sync(_worldSeenReach);
+            Sync(_worldSeenOnMapReach);
             foreach (var source in WorldSources.All)
             {
                 var offered = WorldSources.Offered(source);
