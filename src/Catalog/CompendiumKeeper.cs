@@ -359,11 +359,11 @@ namespace Scry
             if (creature == null) return null;
             var view = creature.GetComponent<ZNetView>().OrNull();
             var zdo = view != null && view.IsValid() && !view.IsOwner() ? view.GetZDO() : null;
-            if (zdo != null && ObjectDB.instance != null)
+            if (zdo != null)
             {
                 foreach (var slot in new[] { ZDOVars.s_rightItem, ZDOVars.s_leftItem })
                 {
-                    var item = ObjectDB.instance.GetItemPrefab(zdo.GetInt(slot));
+                    var item = GamePrefabs.Hashed(zdo.GetInt(slot));
                     var shared = item != null ? item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared : null;
                     if (shared != null && shared.m_itemType != ItemDrop.ItemData.ItemType.Torch) return item;
                 }
