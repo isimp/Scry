@@ -38,6 +38,18 @@ namespace Scry
 
         /// <summary>The parts whose names hold every word given.</summary>
         Named,
+
+        /// <summary>The parts a session planned (<see cref="SelfTestPlan"/>).</summary>
+        Plan,
+
+        /// <summary>The parts with rows untried last time whose need is near the character now.</summary>
+        Near,
+
+        /// <summary>Every part with rows untried last time.</summary>
+        Untried,
+
+        /// <summary>Every part with checks not judged last time as the machine was busy.</summary>
+        Busy,
     }
 
     /// <summary>What a /scry command or the marker file asks of the self-test: start, stop or list, which parts and how far.</summary>
@@ -57,7 +69,10 @@ namespace Scry
     /// The words of /scry the self-test answers once installed: <c>selftest</c> starts a quick
     /// run, <c>selftest deep</c> one going through every place, <c>selftest full</c> one also
     /// reading every location again, <c>selftest failed</c> the parts that failed last,
-    /// <c>selftest list</c> writes every part's name, <c>selftest help</c> (or <c>?</c>) says what
+    /// <c>selftest plan</c> the parts a session planned, <c>selftest near</c> those with rows
+    /// untried last time that can be tried near the character now, <c>selftest untried</c> every
+    /// part with untried rows, <c>selftest busy</c> every part with checks not judged as the
+    /// machine was busy, <c>selftest list</c> writes every part's name, <c>selftest help</c> (or <c>?</c>) says what
     /// each run takes, <c>selftest stop</c> stops it, and any other words after <c>selftest</c>
     /// run the parts whose names hold them all; in any case and
     /// spacing. Everything else stays Scry's, so without the self-test the same words are only a
@@ -92,6 +107,10 @@ namespace Scry
                     case "deep": return new SelfTestRequest { Ask = SelfTestAsk.Start, Scope = RunScope.Deep };
                     case "full": return new SelfTestRequest { Ask = SelfTestAsk.Start, Scope = RunScope.Full };
                     case "failed": return new SelfTestRequest { Ask = SelfTestAsk.Start, Scope = RunScope.Failed };
+                    case "plan": return new SelfTestRequest { Ask = SelfTestAsk.Start, Scope = RunScope.Plan };
+                    case "near": return new SelfTestRequest { Ask = SelfTestAsk.Start, Scope = RunScope.Near };
+                    case "untried": return new SelfTestRequest { Ask = SelfTestAsk.Start, Scope = RunScope.Untried };
+                    case "busy": return new SelfTestRequest { Ask = SelfTestAsk.Start, Scope = RunScope.Busy };
                 }
             }
             return new SelfTestRequest { Ask = SelfTestAsk.Start, Scope = RunScope.Named, Words = words.Skip(1).ToArray() };

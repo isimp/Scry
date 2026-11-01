@@ -104,7 +104,7 @@ namespace Scry
                 yield return Until(() => CompendiumKeeper.Book.Level(standingEntry.Key) >= want, 3);
                 p.Check(CompendiumKeeper.Book.Level(standingEntry.Key) >= want, $"the place stood in, {standingEntry.Name}, is {(want == KnownLevel.Known ? "known" : "seen at least, as a dungeon not entered")}");
             }
-            else p.Untried("standing in a place", "stand inside a camp, a village or a dungeon's entrance");
+            else p.Untried("standing in a place", "stand inside a camp, a village or a dungeon's entrance", "place");
 
             // What it carries is known within a moment.
             var carried = player.GetInventory().GetAllItems().Where(i => i?.m_dropPrefab != null).Select(i => i.m_dropPrefab.name).Where(n => X.Find(n) != null).Distinct().ToList();
@@ -569,7 +569,7 @@ namespace Scry
             var marks = UnityEngine.Object.FindObjectsByType<Vegvisir>(FindObjectsSortMode.None)
                 .SelectMany(v => v.m_locations.Select(l => l.m_locationName)).Where(n => !string.IsNullOrEmpty(n)).Distinct().ToList();
             var unmarked = marks.Where(name => X.Find(EntryKeys.For(Kind.Location, name)) == null).ToList();
-            if (marks.Count == 0) p.Untried("the places a Vegvisir marks", "stand near a Vegvisir");
+            if (marks.Count == 0) p.Untried("the places a Vegvisir marks", "stand near a Vegvisir", "vegvisir");
             else p.Check(unmarked.Count == 0, $"the {Numbers.Count(marks.Count)} places the Vegvisirs near mark are all in the catalog", string.Join(", ", unmarked.Take(5)));
             var player = Player.m_localPlayer;
             if (!p.Check(player != null, "a character is played")) yield break;

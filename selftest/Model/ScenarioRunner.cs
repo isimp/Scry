@@ -24,6 +24,9 @@ namespace Scry
         public double Seconds;
 
         public readonly List<string> Lines = new List<string>();
+
+        /// <summary>Each untried row, as written after its mark, with what near the character would let it be tried (<see cref="Probe.Untried"/>); rows nothing near can free are not here.</summary>
+        public readonly Dictionary<string, string> Needs = new Dictionary<string, string>(StringComparer.Ordinal);
     }
 
     /// <summary>A named test that runs over time, and what to put back afterwards.</summary>
@@ -42,12 +45,20 @@ namespace Scry
         /// <summary>
         /// The scenarios a run takes, in their order: every one in a full run; a quick or a deep
         /// one leaving out those only a full run takes; those that failed last (<paramref name="failed"/>);
-        /// or those whose names hold every word asked for, in any case.
+        /// or those whose names hold every word asked for, in any case; for a run of a list the
+        /// last run left (the plan, the untried, the not judged), those it names
+        /// (<paramref name="listed"/>), in the run's order.
         /// </summary>
-        public static List<Scenario> ForRun(IEnumerable<Scenario> all, SelfTestRequest asked, IEnumerable<string> failed)
+        public static List<Scenario> ForRun(IEnumerable<Scenario> all, SelfTestRequest asked, IEnumerable<string> failed, Func<RunScope, ICollection<string>> listed = null)
         {
             switch (asked.Scope)
             {
+                case RunScope.Plan:
+                case RunScope.Near:
+                case RunScope.Untried:
+                case RunScope.Busy:
+                    var named = listed?.Invoke(asked.Scope);
+                    return named == null ? new List<Scenario>() : all.Where(s => named.Contains(s.Name)).ToList();
                 case RunScope.Full:
                     return all.ToList();
                 case RunScope.Failed:
@@ -113,11 +124,18 @@ namespace Scry
             Line($"  BUSY {what}: {why}");
         }
 
-        /// <summary>A row with nothing near to try it on: what it would show and where to stand for it; accounted for, so a part of such rows alone has not checked nothing.</summary>
-        public void Untried(string what, string where)
+        /// <summary>
+        /// A row with nothing near to try it on: what it would show and where to stand for it;
+        /// accounted for, so a part of such rows alone has not checked nothing. Where a thing
+        /// loaded near the character would let it be tried, <paramref name="need"/> names it, for
+        /// the self-test to say so once one is near.
+        /// </summary>
+        public void Untried(string what, string where, string need = null)
         {
             Checks++;
-            Line($"  untried {what}: {where}");
+            var row = $"{what}: {where}";
+            if (!string.IsNullOrEmpty(need)) _report.Needs[row] = need;
+            Line("  untried " + row);
         }
 
         /// <summary>Records one expectation. Returns whether it held, so a scenario can stop early.</summary>

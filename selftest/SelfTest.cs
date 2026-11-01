@@ -136,6 +136,7 @@ namespace Scry
             _autoFor = explorer;
             _readyAt = -1f;
             if (File.Exists(MarkerFile)) Start("the marker file is present", SelfTestCommand.OfMarker(File.ReadAllText(MarkerFile)));
+            else if (PlanOnLoad()) Start("the plan file asks for it once the world is ready", new SelfTestRequest { Ask = SelfTestAsk.Start, Scope = RunScope.Plan });
         }
 
         /// <summary>Starts a run of the parts asked for (<see cref="Scenario.ForRun"/>), and says so, with about how long it takes by the parts' last times.</summary>
@@ -144,7 +145,7 @@ namespace Scry
             if (_runner != null) return "the self-test is already running.";
             if (Player.m_localPlayer == null) return "the self-test runs in a world.";
             if (Session.Explorer == null) return "the catalog of this world is not read yet; try again in a few seconds.";
-            var parts = Scenario.ForRun(Scenarios(), asked, SelfTestTimes.FailedOf(Kept(FailedFile)));
+            var parts = Scenario.ForRun(Scenarios(), asked, SelfTestTimes.FailedOf(Kept(FailedFile)), Listed);
             if (parts.Count == 0) return SelfTestWords.NothingToRun(asked);
             var times = SelfTestTimes.Load(Kept(TimesFile));
 
@@ -155,6 +156,7 @@ namespace Scry
                   $"{(ScryPanel.Compact ? " in its compact view" : "")}, locations {Locations.Now}, LogPreviews {(Settings.LogPreviews ? "on" : "off")}, Compendium {CompendiumKeeper.Book?.Rule ?? CompendiumRule.Off} (shown off while the test runs).");
             Write("Each part uses Scry as a player would and checks what it did. START and PASS, FAIL or SKIP frame a part; within it, PASS is a check that held,");
             Write("FAIL one that did not (with what was found), and note is something worth knowing. The summary at the end lists every failed check again.");
+            if (asked.Scope == RunScope.Plan) PlanUnmatched();
 
             // The panel's saved place is read on its first draw; read before anything is kept, so a
             // test started with the panel never opened keeps the player's place and sets up over it.
@@ -294,6 +296,7 @@ namespace Scry
             LastFailed = reports.Any(r => r.Result == Result.Fail);
             KeepTimes(reports);
             KeepPace();
+            KeepOutcomes(reports);
 
             var readHere = _before != null && _before.LocationsWere != Locations.State.Read && Locations.Now == Locations.State.Read;
             StageDice.Fix(false);

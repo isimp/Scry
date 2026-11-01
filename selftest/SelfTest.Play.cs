@@ -18,7 +18,7 @@ namespace Scry
             // A hit of the character's on the nearest loaded creature: how its damage landed, then its weak spot.
             var creature = UnityEngine.Object.FindObjectsByType<Character>(FindObjectsSortMode.None).Where(c => c != null && !c.IsPlayer())
                 .OrderBy(c => (c.transform.position - player.transform.position).sqrMagnitude).FirstOrDefault();
-            if (creature == null) p.Untried("a hit on a creature", "stand near a creature");
+            if (creature == null) p.Untried("a hit on a creature", "stand near a creature", "creature");
             else
             {
                 var key = Utils.GetPrefabName(creature.gameObject);
@@ -72,7 +72,7 @@ namespace Scry
                 .FirstOrDefault(c => c != null && c.IsTamed() && !c.IsPlayer() && Vector3.Distance(c.transform.position, player.transform.position) <= 30f);
             if (tame == null)
             {
-                p.Untried("a taming the game tells of", "stand near a tame creature");
+                p.Untried("a taming the game tells of", "stand near a tame creature", "tame");
                 return;
             }
             CompendiumKeeper.ToldTamed(tame.m_name + " $hud_tamedone");
@@ -108,7 +108,7 @@ namespace Scry
             }
             if (again == null)
             {
-                p.Untried("a pickable seen bearing again", "stand near a bush you picked that bears again");
+                p.Untried("a pickable seen bearing again", "stand near a bush you picked that bears again", "pickable");
                 return;
             }
             DeedWatch.SeenBearingAgain(again);
@@ -122,7 +122,7 @@ namespace Scry
             var cooked = station.OrNull()?.m_conversion?.FirstOrDefault(c => c?.m_to != null)?.m_to;
             if (station == null || cooked == null)
             {
-                p.Untried("food cooking", "stand by a cooking station");
+                p.Untried("food cooking", "stand by a cooking station", "cooking");
                 return;
             }
             var key = Utils.GetPrefabName(station.gameObject);
@@ -140,7 +140,7 @@ namespace Scry
                 .FirstOrDefault(d => d != null && Vector3.Distance(d.transform.position, player.transform.position) <= Sighting.PersonReach && InSight(d));
             if (thing == null)
             {
-                p.Untried("breaking a thing open", "stand near a pot, a log or a rock that breaks");
+                p.Untried("breaking a thing open", "stand near a pot, a log or a rock that breaks", "breakable");
                 return;
             }
             var hit = new HitData();
@@ -157,7 +157,7 @@ namespace Scry
                 .Where(t => t != null && t.m_itemPrefab != null).OrderBy(t => (t.transform.position - player.transform.position).sqrMagnitude).FirstOrDefault();
             if (treasure == null)
             {
-                p.Untried("picking up treasure", "stand near treasure lying loose");
+                p.Untried("picking up treasure", "stand near treasure lying loose", "treasure");
                 return;
             }
             var key = Utils.GetPrefabName(treasure.gameObject);
@@ -174,7 +174,7 @@ namespace Scry
             var plant = UnityEngine.Object.FindObjectsByType<Plant>(FindObjectsSortMode.None)
                 .FirstOrDefault(c => c != null && c.m_grownPrefabs != null && c.m_grownPrefabs.Length > 0 && c.m_grownPrefabs[0] != null
                     && Vector3.Distance(c.transform.position, player.transform.position) <= near && InSight(c));
-            if (plant == null) p.Untried("a plant growing", "stand near a planted crop or sapling");
+            if (plant == null) p.Untried("a plant growing", "stand near a planted crop or sapling", "plant");
             else
             {
                 var plantKey = Utils.GetPrefabName(plant.gameObject);
@@ -196,7 +196,7 @@ namespace Scry
                 .OrderBy(d => (d.transform.position - player.transform.position).sqrMagnitude).FirstOrDefault();
             if (thing == null)
             {
-                p.Untried("a hit on what breaks", "stand near a tree, a rock or a pot");
+                p.Untried("a hit on what breaks", "stand near a tree, a rock or a pot", "breakable");
                 return;
             }
             var key = Utils.GetPrefabName(thing.gameObject);
@@ -238,7 +238,7 @@ namespace Scry
                 .OrderBy(m => (m.transform.position - player.transform.position).sqrMagnitude).FirstOrDefault();
             if (thing == null)
             {
-                p.Untried("a rock's pieces hit", "stand near a large rock or a copper deposit");
+                p.Untried("a rock's pieces hit", "stand near a large rock or a copper deposit", "rock");
                 return;
             }
             var key = Utils.GetPrefabName(thing.gameObject);
@@ -306,7 +306,7 @@ namespace Scry
                 .FirstOrDefault(c => c != null && Vector3.Distance(c.transform.position, player.transform.position) <= Sighting.PersonReach && !DeedWatch.Pregnant(c) && InSight(c));
             if (parent == null)
             {
-                p.Untried("a birth", "stand near tame creatures that breed");
+                p.Untried("a birth", "stand near tame creatures that breed", "breeding");
                 return;
             }
             var key = Utils.GetPrefabName(parent.gameObject);
@@ -351,7 +351,7 @@ namespace Scry
 
             // An armed creature's hit taken: its attack's damage found out.
             var armed = UnityEngine.Object.FindObjectsByType<Humanoid>(FindObjectsSortMode.None).FirstOrDefault(h => h != null && !h.IsPlayer() && h.GetCurrentWeapon()?.m_dropPrefab != null);
-            if (armed == null) p.Untried("a hit by an armed creature", "stand near a creature with a weapon, as a skeleton");
+            if (armed == null) p.Untried("a hit by an armed creature", "stand near a creature with a weapon, as a skeleton", "armed");
             else
             {
                 CompendiumKeeper.HitBy(armed);
@@ -364,7 +364,7 @@ namespace Scry
             BirthSeen(p, book, player);
             var bush = UnityEngine.Object.FindObjectsByType<Pickable>(FindObjectsSortMode.None)
                 .FirstOrDefault(b => b != null && Vector3.Distance(b.transform.position, player.transform.position) <= near && InSight(b));
-            if (bush == null) p.Untried("a bush seen growing back", "stand near a pickable bush");
+            if (bush == null) p.Untried("a bush seen growing back", "stand near a pickable bush", "pickable");
             else
             {
                 DeedWatch.SetPicked(bush, wasPicked: true, picked: false);
@@ -374,7 +374,7 @@ namespace Scry
             var tame = UnityEngine.Object.FindObjectsByType<Tameable>(FindObjectsSortMode.None)
                 .Select(t => t != null ? t.GetComponent<Character>() : null)
                 .FirstOrDefault(c => c != null && Vector3.Distance(c.transform.position, player.transform.position) <= near && InSight(c));
-            if (tame == null) p.Untried("a taming", "stand near a creature that can be tamed, as a boar or a wolf");
+            if (tame == null) p.Untried("a taming", "stand near a creature that can be tamed, as a boar or a wolf", "tameable");
             else
             {
                 CompendiumKeeper.Tamings(player, c => c != tame && c.IsTamed());
@@ -386,7 +386,7 @@ namespace Scry
             // A tree breaking by the character's hit with an item come to be meanwhile: counted as what it gave, however far.
             var tree = Nearest<TreeBase>(player);
             var item = Nearest<ItemDrop>(player);
-            if (tree == null || item == null) p.Untried("a tree's break counted", "stand near a tree");
+            if (tree == null || item == null) p.Untried("a tree's break counted", "stand near a tree", "tree");
             else
             {
                 YieldWatch.Begin(tree, me);
@@ -398,7 +398,7 @@ namespace Scry
 
             // A pick of the character's with an item come to be: counted as what it gave, no break.
             var picked = Nearest<Pickable>(player);
-            if (picked == null || item == null) p.Untried("a pick counted", "stand near a pickable");
+            if (picked == null || item == null) p.Untried("a pick counted", "stand near a pickable", "pickable");
             else
             {
                 YieldWatch.Begin(picked, me);
@@ -413,7 +413,7 @@ namespace Scry
             var chest = UnityEngine.Object.FindObjectsByType<Container>(FindObjectsSortMode.None)
                 .Where(c => c != null && c.m_defaultItems?.m_drops != null && c.m_defaultItems.m_drops.Count > 0 && c.GetInventory() != null)
                 .OrderBy(c => (c.transform.position - player.transform.position).sqrMagnitude).FirstOrDefault();
-            if (chest == null) p.Untried("a chest the world filled, opened", "stand near a chest in a dungeon or a camp");
+            if (chest == null) p.Untried("a chest the world filled, opened", "stand near a chest in a dungeon or a camp", "chest");
             else
             {
                 CompendiumKeeper.Opened(chest);
@@ -424,14 +424,14 @@ namespace Scry
             // A spawner spawning near by, a hive collected from.
             var spawner = UnityEngine.Object.FindObjectsByType<SpawnArea>(FindObjectsSortMode.None)
                 .FirstOrDefault(a => a != null && Vector3.Distance(a.transform.position, player.transform.position) <= near && InSight(a));
-            if (spawner == null) p.Untried("a spawner seen spawning", "stand near a nest or a spawner");
+            if (spawner == null) p.Untried("a spawner seen spawning", "stand near a nest or a spawner", "spawner");
             else
             {
                 DeedWatch.Spawned(spawner, spawned: true);
                 p.Check(book.Proved(Utils.GetPrefabName(spawner.gameObject), EntryKeys.Did(Deed.Spawned)), "a spawn seen near by shows its pool and pace");
             }
             var hive = Nearest<Beehive>(player);
-            if (hive == null) p.Untried("collecting from a beehive", "stand near a beehive");
+            if (hive == null) p.Untried("collecting from a beehive", "stand near a beehive", "beehive");
             else
             {
                 DeedWatch.Collected(hive, player, held: true);

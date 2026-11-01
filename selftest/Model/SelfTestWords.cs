@@ -64,6 +64,10 @@ namespace Scry
                 : scope == RunScope.Deep ? "deep self-test, every part through every place it names"
                 : scope == RunScope.Failed ? "self-test of the parts that failed last"
                 : scope == RunScope.Named ? "self-test of the parts named so"
+                : scope == RunScope.Plan ? "self-test of the parts planned for a change"
+                : scope == RunScope.Near ? "self-test of the untried rows near you"
+                : scope == RunScope.Untried ? "self-test of every part with untried rows"
+                : scope == RunScope.Busy ? "self-test of the checks not judged as the machine was busy"
                 : "quick self-test, the long parts through a few of their places";
             var more = scope == RunScope.Quick ? " /scry selftest deep goes through every place, /scry selftest failed runs again what failed, and other words run the parts whose names hold them." : "";
             return $"{which} started: {Numbers.Count(parts)} {(parts == 1 ? "part" : "parts")}, {About(seconds)}. Stand still and leave the panel be; it shows how far the test has got. /scry selftest stop stops it.{more}";
@@ -72,10 +76,19 @@ namespace Scry
         /// <summary>A run's length ahead: less than a minute, or about so many minutes.</summary>
         private static string About(double seconds) => seconds < 60 ? "less than a minute" : $"about {Numbers.Count((int)Math.Round(seconds / 60, MidpointRounding.AwayFromZero))} min";
 
-        /// <summary>Why a run asked for has no part to run: no name holds the words, or nothing failed last.</summary>
-        public static string NothingToRun(SelfTestRequest asked) => asked.Scope == RunScope.Failed
-            ? "nothing failed in the last run, so there is nothing to run again."
-            : $"no part's name holds {Naming.Joined(asked.Words.Select(w => "\"" + w + "\"").ToList())}; /scry selftest list writes every part's name to the log.";
+        /// <summary>Why a run asked for has no part to run: no name holds the words, nothing failed last, or the list it runs is empty.</summary>
+        public static string NothingToRun(SelfTestRequest asked)
+        {
+            switch (asked.Scope)
+            {
+                case RunScope.Failed: return "nothing failed in the last run, so there is nothing to run again.";
+                case RunScope.Plan: return "no plan asks for a part; a session writes BepInEx/Scry-selftest.plan.";
+                case RunScope.Near: return "nothing near you lets an untried row be tried; the last run's summary says where to stand for each.";
+                case RunScope.Untried: return "no row was untried in the last runs.";
+                case RunScope.Busy: return "every check was judged in the last runs.";
+                default: return $"no part's name holds {Naming.Joined(asked.Words.Select(w => "\"" + w + "\"").ToList())}; /scry selftest list writes every part's name to the log.";
+            }
+        }
 
         /// <summary>
         /// What can be run, each after /scry: a quick, deep and full run with how many parts each
@@ -101,6 +114,10 @@ namespace Scry
             }
             var such = examples.Select(e => $"selftest {e.Words} ({Numbers.Count(e.Size.Parts)} {(e.Size.Parts == 1 ? "part" : "parts")}, {About(e.Size.Seconds)})").ToList();
             lines.Add("  selftest and any words: the parts whose names hold every word" + (such.Count > 0 ? ", such as " + string.Join(" or ", such) : "") + ".");
+            lines.Add("  selftest plan: the parts a session planned for a change, in BepInEx/Scry-selftest.plan.");
+            lines.Add("  selftest near: the parts with rows untried last that something near you lets be tried.");
+            lines.Add("  selftest untried: every part with rows untried last.");
+            lines.Add("  selftest busy: every part with checks not judged last as the machine was busy.");
             lines.Add($"  selftest list: writes every part's name, with how long it took last, to {file}.");
             lines.Add("  selftest stop: stops a run.");
             return string.Join("\n", lines);

@@ -133,8 +133,12 @@ namespace Scry.Tests
             Assert.Equal("  selftest full: also reads every location again; 161 parts, about 26 min.", help[3]);
             Assert.Equal("  selftest failed: the 2 parts that failed last, less than a minute: the plan box shows a dungeon; rune stones are read.", help[4]);
             Assert.Equal("  selftest and any words: the parts whose names hold every word, such as selftest rune (2 parts, less than a minute) or selftest plan box (6 parts, about 3 min).", help[5]);
-            Assert.Equal("  selftest list: writes every part's name, with how long it took last, to BepInEx/Scry-selftest.log.", help[6]);
-            Assert.Equal("  selftest stop: stops a run.", help[7]);
+            Assert.Equal("  selftest plan: the parts a session planned for a change, in BepInEx/Scry-selftest.plan.", help[6]);
+            Assert.Equal("  selftest near: the parts with rows untried last that something near you lets be tried.", help[7]);
+            Assert.Equal("  selftest untried: every part with rows untried last.", help[8]);
+            Assert.Equal("  selftest busy: every part with checks not judged last as the machine was busy.", help[9]);
+            Assert.Equal("  selftest list: writes every part's name, with how long it took last, to BepInEx/Scry-selftest.log.", help[10]);
+            Assert.Equal("  selftest stop: stops a run.", help[11]);
         }
 
         [Fact]
