@@ -115,8 +115,17 @@ namespace Scry
             p.Check(Of("Standing Up") != ClipGroup.Moving, "standing up from a bed is no moving clip, each run of the sweep starting awake", Of("Standing Up").ToString());
             // Kept for the next session, and taken up again with nothing watched anew.
             p.Check(ClipStore.Holds("Player|stances"), "what the person plays by stance is kept for the next session", $"{Numbers.Count(ClipStore.Count)} looks kept");
-            // A probe still running from the first opening (another stance's) is not one watched anew: it ends first.
-            yield return Until(() => !TriggerProbe.Busy, 60);
+            // A probe still running from the first opening (another stance's) is not one watched anew:
+            // it ends first. Sorting the clips goes a step a frame, a probe it starts coming a few
+            // frames after the last ended, so the first opening has ended once nothing is probed,
+            // sorted or told provisionally for some frames on end.
+            var quiet = 0;
+            var settling = UnityEngine.Time.unscaledTime + 60f;
+            while (quiet < 10 && UnityEngine.Time.unscaledTime < settling)
+            {
+                quiet = TriggerProbe.Busy || Previews.ClipsSorting || Previews.ClipsProvisional ? 0 : quiet + 1;
+                yield return null;
+            }
             var probes = TriggerProbe.DoneForTest.Count;
             var again = UnityEngine.Time.unscaledTime;
             Previews.ForgetClipsInMemory();
