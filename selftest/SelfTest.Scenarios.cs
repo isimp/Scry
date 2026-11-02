@@ -37,6 +37,7 @@ namespace Scry
             yield return S("the search's help opens and closes", HelpOpens, 5, () => ScryPanel.ShowHelp(false));
             yield return S("held looking around with the panel open, the cursor stays captured and hidden, and is freed once let go", CursorHeldWhileLooking, 10, () => ScryPanel.LookForTest(false));
             yield return S("the settings card shows every setting in its section, each set and reset as a click does, the server's locked while it decides them, a fast stage filmed at half the size", SettingsCardShown, 30, SettingsAsTheyWere);
+            yield return S("the compendium's rows stand in the settings' Compendium section as in its box, a level set lit in both at once, what the world allows under each", CompendiumSettingsShown, 15, CompendiumSettingsAsTheyWere);
             yield return S("the compendium's box shows its guide's ?, and the guide opens in the list's place, giving way to the list asked for", GuideShown, 10, () => { ScryPanel.ShowGuide(false); ScryPanel.HoldCompendiumBox(false); });
             yield return S("a lasting file set aside is told under the header, naming what it was set aside as, until put away", SetAsideTold, 10, () => { while (SetAsideNotice.Files.Count > 0) SetAsideNotice.Files.PutAway(); });
             yield return S("the first start tells the key by its name and offers the setup again from the settings, Later and Done putting it away", SetupShown, 10, SetupAsItWas);

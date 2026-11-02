@@ -28,7 +28,7 @@ namespace Scry
             KeepView();
             ScryPanel.Compact = false;
             _settingsBefore = new Dictionary<string, string>();
-            foreach (var key in SettingsCatalog.Sections.SelectMany(s => s.Rows).SelectMany(r => r.Keys))
+            foreach (var key in SettingsCatalog.AllRows.SelectMany(r => r.Keys))
             {
                 var entry = Settings.Entry(key);
                 if (entry != null) _settingsBefore[key] = entry.GetSerializedValue();
@@ -66,9 +66,9 @@ namespace Scry
             // Hosting with others connected, what the server decides is left as it is: each change would go out to them.
             var othersHere = ZNet.instance != null && ZNet.instance.IsServer() && ZNet.instance.GetPeers().Count > 0;
             if (othersHere) p.Note("others are connected to this world, so what the server decides is not tried here");
-            foreach (var row in SettingsCatalog.Sections.SelectMany(s => s.Rows))
+            foreach (var row in SettingsCatalog.AllRows)
             {
-                if (row.Control == SettingControl.Key || ScryPanel.SettingLocked(row) || row.ServerDecides && othersHere) continue;
+                if (row.Control == SettingControl.Key || row.Control == SettingControl.Book || ScryPanel.SettingLocked(row) || row.ServerDecides && othersHere) continue;
                 foreach (var key in row.Keys)
                 {
                     foreach (var value in Offered(row))
@@ -94,7 +94,7 @@ namespace Scry
             RestoreSettings();
 
             // What the server decides: locked while a server decides it, the player's own otherwise.
-            var server = SettingsCatalog.Sections.First(s => s.Name == "This server").Rows;
+            var server = SettingsCatalog.AllRows.Where(r => r.ServerDecides).ToList();
             if (Settings.WorldFromServer)
             {
                 var row = server.First(r => r.Control == SettingControl.Switch);

@@ -32,7 +32,7 @@ For a relaxed group that shares what it finds: leave `Rules` at `PlayersChoose` 
 
 ## What players see
 
-On joining, a notice under the panel's header says once what the server sets, such as "This server plays Strict; peeking and Known up to are off.", with *Show the rules* opening the compendium's guide; it is told again only when the server's settings change. The compendium's box shows a rule or a level the server set locked, with a lock after its caption and a tip saying the server keeps it so; levels above a cap are dimmed. Players without Scry join and play as before.
+On joining, a notice under the panel's header says once what the server sets, such as "This server plays Strict; peeking and Known up to are off.", with *Show the rules* opening the compendium's guide; it is told again only when the server's settings change. The compendium's box shows a rule or a level the server set locked, with a lock after its caption and a tip saying the server keeps it so; levels above a cap are dimmed. The settings' *Compendium* section shows the same rows, a line after a lock under each saying what the server keeps from it. Playing alone or hosting, that line is where these are set instead, each under the row it limits: *Your world plays* for `Rules`, *Your world allows it* for `KnownUpTo`, *Your world allows up to* for each source's cap; `Peeking`, `SeenReach` and the rest stand in the settings' *This server* section. Players without Scry join and play as before.
 
 ![The notice told once on joining a world whose server sets the rules](../images/server-rules-notice.webp)
 

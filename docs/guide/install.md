@@ -10,7 +10,7 @@ Install Scry from a mod manager, or put `Scry.dll` in `BepInEx/plugins`. Press F
 
 A new character starts with the compendium off, and Scry is then a lookup of everything in the game. A few seconds into a world, Scry tells once where the game shows its messages which key opens it. The first time the panel opens, a short setup asks for the open key, whether to keep a compendium (*Off*, *Loose* or *Strict*, [the compendium's rules](rules.md)), walking and looking while the panel is open, and what Scry puts on Valheim's map; each is set already, so *Done* at once is fine, and *Later* asks again the next time Scry opens. The choice can be changed any time under *Compendium* at the top of the panel. Each character keeps its own choice and its own knowledge.
 
-The gear beside *Compendium* holds the panel's settings: its size, the key opening it, walking and looking while it is open, sounds, tips, the dungeon marks on the large map, and *Stage* set to *Fast* for a big dungeon on a weaker machine. They are kept in `BepInEx/config/isimp.Scry.cfg` with the rest, which a mod manager's config editor shows too.
+The gear beside *Compendium* holds the panel's settings: its size, the key opening it, walking and looking while it is open, sounds, tips, your character's compendium, the dungeon marks on the large map, and *Stage* set to *Fast* for a big dungeon on a weaker machine. The settings' *Compendium* section holds the same rows as the compendium's box, and the gear in the box opens it. They are kept in `BepInEx/config/isimp.Scry.cfg` with the rest, which a mod manager's config editor shows too.
 
 ## Playing with friends
 

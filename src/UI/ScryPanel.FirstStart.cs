@@ -209,16 +209,20 @@ namespace Scry
             if (world.RulesSet) return Wrapped(SettingsWords.SetupRulesSet(CompendiumWords.RuleName(world.Rule.Value)), Skin.DimWrap, w, y) + U(8f);
             var gap = U(8f);
             var boxW = (w - gap * 2f) / 3f;
+            // Each box as tall as the longest words wrap in it, so none is cut.
+            var meansH = 0f;
+            foreach (var (_, _, means) in SettingsWords.SetupRules) meansH = Mathf.Max(meansH, Skin.DimWrap.CalcHeight(new GUIContent(means), boxW - U(20f)));
+            var boxH = U(26f) + meansH + U(8f);
             for (var i = 0; i < SettingsWords.SetupRules.Length; i++)
             {
                 var (rule, name, means) = SettingsWords.SetupRules[i];
-                var box = new Rect(i * (boxW + gap), y, boxW, U(56f));
+                var box = new Rect(i * (boxW + gap), y, boxW, boxH);
                 var on = book.ChosenRule == rule;
                 if (GUI.Button(box, GUIContent.none, on ? Skin.On : Skin.Button) && !on) Choose(rule);
                 GUI.Label(new Rect(box.x + U(10f), box.y + U(6f), box.width - U(20f), U(20f)), name, Skin.Label);
-                GUI.Label(new Rect(box.x + U(10f), box.y + U(26f), box.width - U(20f), U(26f)), means, Skin.DimWrap);
+                GUI.Label(new Rect(box.x + U(10f), box.y + U(26f), box.width - U(20f), meansH), means, Skin.DimWrap);
             }
-            return y + U(64f);
+            return y + boxH + U(8f);
         }
 
         /// <summary>Words wrapped across a width at a height; where they end.</summary>

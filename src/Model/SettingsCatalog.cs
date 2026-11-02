@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Scry
 {
-    /// <summary>How a setting is set on the card: a key pressed, a switch, one of a few, several at once, or a slider.</summary>
+    /// <summary>How a setting is set on the card: a key pressed, a switch, one of a few, several at once, a slider, or a choice kept in the character's book.</summary>
     internal enum SettingControl
     {
         Key,
@@ -12,6 +12,16 @@ namespace Scry
         Choices,
         Ticks,
         Slider,
+        Book,
+    }
+
+    /// <summary>What of the character's compendium a row sets, kept in its book rather than the config file, as the compendium's box sets it.</summary>
+    internal enum BookPart
+    {
+        None,
+        Rules,
+        KnownUpTo,
+        Source,
     }
 
     /// <summary>One of a setting's values offered on the card, as the config file writes it, and its name.</summary>
@@ -28,8 +38,9 @@ namespace Scry
     }
 
     /// <summary>
-    /// A row of the settings card: the config entries it sets, by key (several for ticks), its
-    /// label and its explanation, how it is set, and whether the world's server decides it.
+    /// A row of the settings card: the config entries it sets, by key (several for ticks), or the
+    /// part of the character's compendium; its label and its explanation, how it is set, whether
+    /// the world's server decides it, and what the server allows of it, standing under it.
     /// </summary>
     internal sealed class SettingRow
     {
@@ -53,6 +64,13 @@ namespace Scry
         public Func<float, string> Shown { get; set; } = v => Numbers.Amount(v);
 
         public bool ServerDecides { get; set; }
+
+        /// <summary>What of the character's compendium the row sets, and the source of the world for a source's row.</summary>
+        public BookPart Book { get; set; }
+        public WorldSource Source { get; set; }
+
+        /// <summary>What the world's server allows of the row, standing under it: set there while you play alone or host, shown on the row while a server decides it; none.</summary>
+        public SettingRow Limit { get; set; }
     }
 
     /// <summary>A section of the settings card, its rows in order.</summary>
@@ -71,8 +89,10 @@ namespace Scry
     /// <summary>
     /// Every setting Scry keeps, as the settings card shows it: in sections from the panel to the
     /// world's server, each row with a label, a plain explanation always shown under it, and a
-    /// control fit for it; what the server decides in a section of its own. The card draws them
-    /// as they stand here and sets them through the config file's own words for their values.
+    /// control fit for it, each in one place under one name. The character's compendium stands in
+    /// its own section, as its box sets it, what the server allows of each row under it; the rest
+    /// the server decides in a section of its own. The card draws them as they stand here and
+    /// sets them through the config file's own words for their values, the compendium's in its book.
     /// </summary>
     internal static class SettingsCatalog
     {
@@ -105,9 +125,7 @@ namespace Scry
                 Slider("LighterFilmFromMs", "Softer while moving", "While you turn or zoom the stage, one that took at least this long to draw is drawn a little softer, so a big dungeon moves smoothly. It is sharp again once the camera holds still.",
                     0f, StageFilm.LighterNeverMs, 1f, v => v <= 0f ? "always" : v >= StageFilm.LighterNeverMs ? "never" : Numbers.Count((long)Math.Round(v)) + " ms")),
 
-            new SettingSection("Compendium",
-                Choices("News", "News of what you learn", "What a notice under the header tells as your character learns it: all of it, new pages only, leaving out what was found out about one met before, or nothing, the Learned tab alone telling it.",
-                    ("All", "All of it"), ("NewPages", "New pages only"), ("Off", "Learned tab only"))),
+            new SettingSection("Compendium", CompendiumRows().ToArray()),
 
             new SettingSection("Map",
                 In("Dungeon marks", Switch("DungeonMarksOnMap", "Dungeon marks", "Marks dungeons on Valheim's large map, telling how much of each was walked; a click on a mark opens its map in Scry. Off, no dungeon marks show.")),
@@ -153,23 +171,44 @@ namespace Scry
             Ticks(new[] { "DungeonMarksOnMap", "RecordSeenSpots" }, "On Valheim's map", "Marks for the dungeons you walked, and where you saw ore, berries and places, for a page's Show on map.", "Mark dungeons", "Remember what you see"),
         };
 
-        /// <summary>What the world's server decides, each saying so: the compendium's rules, what players may do and see, and what the server itself keeps.</summary>
+        /// <summary>Every row, with what the server allows of a row standing under it; for the tests.</summary>
+        [ForTest]
+        public static IEnumerable<SettingRow> AllRows =>
+            Sections.SelectMany(s => s.Rows).SelectMany(r => r.Limit == null ? new[] { r } : new[] { r, r.Limit });
+
+        /// <summary>
+        /// The character's compendium, as its box sets it: the rules, Known up to and what each
+        /// source of the world shows as known, each with what the world's server allows of it under
+        /// it; then the news of what it learns.
+        /// </summary>
+        private static IEnumerable<SettingRow> CompendiumRows()
+        {
+            yield return Book(BookPart.Rules, CompendiumWords.RulesCaption, "Off shows every page whole, as a lookup. Loose shows whole the pages of what your character met. Strict also keeps back what the game never shows, until your character found it out. Each character keeps its own.",
+                Server(Choices("Rules", SettingsWords.WorldPlays, "The compendium's rules everyone joining your world plays by, or each player's own choice. A server you join sets its own.",
+                    ("PlayersChoose", "Each player's"), ("Off", "Off"), ("Loose", "Loose"), ("Strict", "Strict"))));
+            yield return Book(BookPart.KnownUpTo, CompendiumWords.FloorCaption, "Shows everything of the biomes whose bosses your character has beaten as known, tier by tier, marked with stairs. You can lower it again.",
+                Server(Switch("KnownUpTo", SettingsWords.WorldAllowsIt, "Whether players joining your world may show everything of the tiers whose bosses they beat as known. A server you join sets its own.")));
+            foreach (var source in WorldSources.All)
+            {
+                var row = Book(BookPart.Source, CompendiumWords.SourceName(source), CompendiumWords.SourceTip(source),
+                    Server(Choices(source + "UpTo", SettingsWords.WorldAllowsUpTo, "How much this source may show as known to players joining your world, at most. A server you join sets its own.",
+                        WorldSources.Offered(source).Select(l => (l.ToString(), CompendiumWords.LevelName(l))).ToArray())));
+                row.Source = source;
+                yield return In(CompendiumWords.SourcesCaption, row);
+            }
+            yield return In(SettingsWords.NewsGroup, Choices("News", "News of what you learn", "What a notice under the header tells as your character learns it: all of it, new pages only, leaving out what was found out about one met before, or nothing, the Learned tab alone telling it.",
+                ("All", "All of it"), ("NewPages", "New pages only"), ("Off", "Learned tab only")));
+        }
+
+        /// <summary>What the world's server decides beside the compendium's rows, each saying so: what players may do and see, and what the server itself keeps.</summary>
         private static IEnumerable<SettingRow> ServerRows()
         {
-            yield return Server(Choices("Rules", "Compendium rules", "The compendium's rules everyone on this server plays by, or each player's own choice.",
-                ("PlayersChoose", "Each player's"), ("Off", "Off"), ("Loose", "Loose"), ("Strict", "Strict")));
             yield return Server(Switch("Peeking", "Peeking", "Whether players on this server may peek: show the page they are on whole, or every page until the panel closes."));
-            yield return Server(Switch("KnownUpTo", "Known up to", "Whether players on this server may show everything of the tiers whose bosses they beat as known."));
             yield return Server(Slider("SeenReach", "Seen within", "How near a player on this server must be to a creature to see its stars, gear and attacks, and to a thing to see it. At none, things are seen by their size alone.",
                 0f, 150f, 1f, Metres));
             yield return Server(Slider("SeenOnMapReach", "Remembered within", "How far away a player's sight on this server remembers where ore, pickables and places stand, for Show on map. At none, nothing is remembered.",
                 0f, 150f, 1f, Metres));
             yield return Server(Switch("SquaresOnMap", "Squares on the map", "Whether this server tells players the squares that hold a place in ground they explored but never came near."));
-            foreach (var source in WorldSources.All)
-            {
-                yield return Server(Choices(source + "UpTo", CompendiumWords.SourceName(source), "How much this source may show as known on this server, at most.",
-                    WorldSources.Offered(source).Select(l => (l.ToString(), CompendiumWords.LevelName(l))).ToArray()));
-            }
             yield return In(RunningTheWorld, Server(Switch("ReadTracesOnStart", "Read dungeon traces", "On the game that runs the world, reads what was left inside its dungeons once its records are read, so rooms emptied before anyone's walk was kept count as walked on this server.")));
             yield return In(RunningTheWorld, Server(Switch("TakeWalks", "Keep players' walks", "The server keeps the dungeon walks players' games send and tells them to everyone as walked on this server.")));
         }
@@ -210,6 +249,9 @@ namespace Scry
 
         private static SettingRow Slider(string key, string label, string why, float min, float max, float step, Func<float, string> shown) =>
             new SettingRow { Keys = new[] { key }, Label = label, Why = why, Control = SettingControl.Slider, Min = min, Max = max, Step = step, Shown = shown };
+
+        private static SettingRow Book(BookPart part, string label, string why, SettingRow limit) =>
+            new SettingRow { Label = label, Why = why, Control = SettingControl.Book, Book = part, Limit = limit };
 
         private static SettingRow In(string group, SettingRow row)
         {

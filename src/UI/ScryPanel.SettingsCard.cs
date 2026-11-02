@@ -13,7 +13,8 @@ namespace Scry
     /// off, joined choices one of a few, ticks several at once, a slider a value in its unit,
     /// set once it is let go. Each section resets to its defaults. What the world's server decides
     /// is shown but not set while a server decides it. Each change is written to the config file
-    /// at once, through the file's own words for its values.
+    /// at once, through the file's own words for its values; the character's compendium to its
+    /// book, as its box writes it (<see cref="BookControl"/>).
     /// </summary>
     internal static partial class ScryPanel
     {
@@ -87,9 +88,14 @@ namespace Scry
             }
         }
 
-        private static void SettingsCard(Rect rect)
+        /// <summary>The explorer the card is drawn for, naming the boss Known up to waits for; none outside its drawing.</summary>
+        private static Explorer _settingsExplorer;
+
+        private static void SettingsCard(Explorer explorer, Rect rect)
         {
+            _settingsExplorer = explorer;
             var e = Event.current;
+            BookCellsAnew();
             CountDrawn(PanelPart.SettingsCard);
             var drawn = Timing.Start();
             Skin.Box(rect, Skin.Panel);
@@ -106,6 +112,8 @@ namespace Scry
 
             var close = new Rect(rect.xMax - U(96f), rect.yMax - CardFootHeight - U(10f), U(80f), CardFootHeight);
             if (GUI.Button(close, SettingsWords.Close, Skin.Button)) ShowSettings(false);
+            // Held while the card draws alone, so no world's explorer outlives it.
+            _settingsExplorer = null;
             Timing.Add("panel settings", drawn);
         }
 
@@ -135,11 +143,11 @@ namespace Scry
             if (GUI.Button(again, SettingsWords.RunSetupAgain, Skin.Button)) ShowSetup();
         }
 
-        /// <summary>How many settings a section holds, a tick each.</summary>
+        /// <summary>How many settings a section holds, a tick each, a row of the compendium's one.</summary>
         private static int SettingCount(SettingSection section)
         {
             var count = 0;
-            foreach (var row in section.Rows) count += row.Keys.Count;
+            foreach (var row in section.Rows) count += row.Control == SettingControl.Book ? 1 : row.Keys.Count;
             return count;
         }
 
@@ -152,14 +160,9 @@ namespace Scry
             // Where a server decides every row, a reset would set nothing: none offered.
             if (!AllLocked(section) && GUI.Button(new Rect(width - resetW, y, resetW, U(26f)), SettingsWords.Reset, Skin.Button)) ResetSettings(section);
             y += U(38f);
-            if (HasServerRows(section))
-            {
-                var line = Settings.WorldFromServer ? SettingsWords.ServerDecides : SettingsWords.ServerYours;
-                var h = Skin.DimWrap.CalcHeight(new GUIContent(line), width);
-                Skin.Icon(new Rect(0f, y + U(1f), U(14f), U(14f)), Skin.Lock, Skin.Faint);
-                GUI.Label(new Rect(U(20f), y, width - U(20f), h), line, Skin.DimWrap);
-                y += h + U(10f);
-            }
+            if (HasBookRows(section)) y = BookIntro(width, y);
+            if (HasServerRows(section)) y = LockedLine(Settings.WorldFromServer ? SettingsWords.ServerDecides : SettingsWords.ServerYours, 0f, width, y) + U(10f);
+            else if (HasBookRows(section)) y = LockedLine(Settings.WorldFromServer ? SettingsWords.LimitsServer : SettingsWords.LimitsYours, 0f, width, y) + U(10f);
             var labelW = Mathf.Min(U(220f), width * 0.34f);
             string group = null;
             var drawn = 0;
@@ -186,6 +189,7 @@ namespace Scry
                 var whyH = Skin.DimWrap.CalcHeight(new GUIContent(row.Why), controlW);
                 GUI.Label(new Rect(labelW, y, controlW, whyH), row.Why, Skin.DimWrap);
                 y += whyH + U(10f);
+                if (row.Limit != null) y = LimitLine(row, labelW, width, y);
                 drawn++;
             }
             if (Event.current.type == EventType.Repaint) SettingsRowsDrawnForTest = drawn;
@@ -204,6 +208,21 @@ namespace Scry
             return false;
         }
 
+        private static bool HasBookRows(SettingSection section)
+        {
+            foreach (var row in section.Rows) if (row.Control == SettingControl.Book) return true;
+            return false;
+        }
+
+        /// <summary>A line of what the world's server decides, after its lock, from a point across a width; where it ends.</summary>
+        private static float LockedLine(string line, float x, float width, float y)
+        {
+            Skin.Icon(new Rect(x, y + U(1f), U(14f), U(14f)), Skin.Lock, Skin.Faint);
+            var h = Skin.DimWrap.CalcHeight(new GUIContent(line), width - U(20f));
+            GUI.Label(new Rect(x + U(20f), y, width - U(20f), h), line, Skin.DimWrap);
+            return y + h;
+        }
+
         /// <summary>Whether a row is drawn: what only the game running the world reads is left out while a server decides the world, as this game's own would tell nothing of it.</summary>
         public static bool ShowsSettingRow(SettingRow row) => !(row.Group == SettingsCatalog.RunningTheWorld && Settings.WorldFromServer);
 
@@ -219,6 +238,7 @@ namespace Scry
                 case SettingControl.Switch: return SwitchControl(row, at);
                 case SettingControl.Choices: return ChoicesControl(row, at);
                 case SettingControl.Ticks: return TicksControl(row, at);
+                case SettingControl.Book: return BookControl(row, at);
                 default: return SliderControl(row, at);
             }
         }
@@ -345,7 +365,7 @@ namespace Scry
             entry.SetSerializedValue(value);
         }
 
-        /// <summary>Every setting of a section back to its default, but those a server decides while it does.</summary>
+        /// <summary>Every setting of a section back to its default, but those a server decides while it does; the character's own choices kept, as no default stands for them, and what your world allows under them, which players joining it go by.</summary>
         public static void ResetSettings(SettingSection section)
         {
             foreach (var row in section.Rows)

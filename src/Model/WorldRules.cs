@@ -165,6 +165,20 @@ namespace Scry
             return $"The highest level {CompendiumWords.SourceName(source)} may show in the compendium's box; one chosen above it shows this one. {taken}.";
         }
 
+        /// <summary>The line under a row of the settings' Compendium section saying what the world's server keeps from it; none where it keeps nothing.</summary>
+        public static string OnRow(BookPart part, WorldSource source, WorldRules rules)
+        {
+            switch (part)
+            {
+                case BookPart.Rules: return rules.RulesSet ? $"This server sets the rules: {CompendiumWords.RuleName(rules.Rule.Value)}." : null;
+                case BookPart.KnownUpTo: return rules.FloorAllowed ? null : NoFloor;
+                case BookPart.Source:
+                    var offered = WorldSources.Offered(source);
+                    return rules.Highest(source) < offered[offered.Length - 1] ? UpTo(source, rules.Highest(source)) : null;
+                default: return null;
+            }
+        }
+
         /// <summary>The tip of a level above what the server allows a source.</summary>
         public static string UpTo(WorldSource source, SourceLevel highest) => $"This server allows {CompendiumWords.SourceName(source)} up to {CompendiumWords.LevelName(highest)}.";
     }

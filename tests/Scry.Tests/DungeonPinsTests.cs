@@ -198,6 +198,8 @@ namespace Scry.Tests
             Assert.Equal("Marks every dungeon entrance in this ground on Valheim's big map. Under With insides, a dungeon walked on this server shows the rooms walked. Clicking a mark opens that dungeon in Scry. Dungeons you walked are marked anyway.\nOff.",
                 CompendiumWords.PinTip(on: false));
             Assert.EndsWith("\nOn.", CompendiumWords.PinTip(on: true));
+            // With the map's marks off in the settings, a pin on marks nothing, and says so.
+            Assert.EndsWith("\nOn, but Dungeon marks is off in the settings' Map section, so the big map shows none.", CompendiumWords.PinTip(on: true, marksShown: false));
         }
     }
 }

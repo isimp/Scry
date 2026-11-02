@@ -24,7 +24,60 @@ namespace Scry.Tests
             return bound;
         }
 
-        private static IEnumerable<SettingRow> Rows => SettingsCatalog.Sections.SelectMany(s => s.Rows);
+        /// <summary>Every row of the card, what the server allows of a row standing under it among them.</summary>
+        private static IEnumerable<SettingRow> Rows => SettingsCatalog.AllRows;
+
+        private static SettingSection Section(string name) => SettingsCatalog.Sections.Single(s => s.Name == name);
+
+        [Fact]
+        public void YourCharactersCompendiumIsSetInTheCompendiumSectionAlone()
+        {
+            // The rules, Known up to and each source of the world, as the compendium's box sets them: one home on the card.
+            var compendium = Section("Compendium");
+            var book = compendium.Rows.Where(r => r.Control == SettingControl.Book).ToList();
+            Assert.Equal(new[] { BookPart.Rules, BookPart.KnownUpTo }.Concat(WorldSources.All.Select(_ => BookPart.Source)), book.Select(r => r.Book));
+            Assert.Equal(WorldSources.All, book.Where(r => r.Book == BookPart.Source).Select(r => r.Source));
+            Assert.Equal(new[] { "Rules", "Known up to" }.Concat(WorldSources.All.Select(CompendiumWords.SourceName)), book.Select(r => r.Label));
+            Assert.All(SettingsCatalog.Sections.Where(s => s != compendium).SelectMany(s => s.Rows), r => Assert.Equal(BookPart.None, r.Book));
+            Assert.All(book, r => Assert.Empty(r.Keys));
+        }
+
+        [Fact]
+        public void WhatTheServerAllowsStandsUnderTheRowItLimitsNotOnARowOfItsOwn()
+        {
+            var compendium = Section("Compendium");
+            SettingRow Book(BookPart part, WorldSource source = default) => compendium.Rows.Single(r => r.Book == part && (part != BookPart.Source || r.Source == source));
+            Assert.Equal(new[] { "Rules" }, Book(BookPart.Rules).Limit.Keys);
+            Assert.Equal(new[] { "KnownUpTo" }, Book(BookPart.KnownUpTo).Limit.Keys);
+            foreach (var source in WorldSources.All) Assert.Equal(new[] { source + "UpTo" }, Book(BookPart.Source, source).Limit.Keys);
+            Assert.All(compendium.Rows.Where(r => r.Limit != null), r => Assert.True(r.Limit.ServerDecides, r.Label + ": what it allows is the server's"));
+            // This server's section keeps what is no choice of the player's.
+            var server = Section("This server").Rows.SelectMany(r => r.Keys).ToList();
+            Assert.Equal(new[] { "Peeking", "SeenReach", "SeenOnMapReach", "SquaresOnMap", "ReadTracesOnStart", "TakeWalks" }, server);
+        }
+
+        [Fact]
+        public void NoTwoRowsOfTheCardShareALabel()
+        {
+            // The same name in two places reads as the same setting, though they hold different values.
+            var labels = SettingsCatalog.Sections.SelectMany(s => s.Rows).Select(r => r.Label).ToList();
+            var twice = labels.GroupBy(l => l).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+            Assert.True(twice.Count == 0, "Named twice on the card: " + string.Join(", ", twice));
+        }
+
+        [Fact]
+        public void ARowSaysWhatTheServerKeepsFromItAndNothingWhereItKeepsNothing()
+        {
+            var open = WorldRules.Open;
+            Assert.Null(WorldRulesWords.OnRow(BookPart.Rules, default, open));
+            Assert.Null(WorldRulesWords.OnRow(BookPart.KnownUpTo, default, open));
+            foreach (var source in WorldSources.All) Assert.Null(WorldRulesWords.OnRow(BookPart.Source, source, open));
+            var set = WorldRules.From(WorldRule.Strict, true, false, s => s == WorldSource.SharedMaps ? SourceLevel.Known : SourceLevel.WithInsides);
+            Assert.Equal("This server sets the rules: Strict.", WorldRulesWords.OnRow(BookPart.Rules, default, set));
+            Assert.Equal("This server keeps Known up to off.", WorldRulesWords.OnRow(BookPart.KnownUpTo, default, set));
+            Assert.Equal("This server allows Shared maps up to Known.", WorldRulesWords.OnRow(BookPart.Source, WorldSource.SharedMaps, set));
+            Assert.Null(WorldRulesWords.OnRow(BookPart.Source, WorldSource.Explored, set));
+        }
 
         [Fact]
         public void EverySettingHasExactlyOneRowOnTheCard()
@@ -64,14 +117,19 @@ namespace Scry.Tests
         public void WhatTheServerDecidesStandsInItsOwnSectionAndSaysSo()
         {
             var bound = Bound();
+            bool Server(SettingRow row) => row.Keys.Count > 0 && row.Keys.All(k => bound[k] == "4 - World" || bound[k] == "5 - Server");
             foreach (var section in SettingsCatalog.Sections)
             {
                 foreach (var row in section.Rows)
                 {
-                    var server = row.Keys.All(k => bound[k] == "4 - World" || bound[k] == "5 - Server");
-                    Assert.Equal(server, row.ServerDecides);
-                    Assert.Equal(server, section.Name == "This server");
-                    if (server) Assert.Contains("server", row.Why);
+                    Assert.Equal(Server(row), row.ServerDecides);
+                    Assert.Equal(Server(row), section.Name == "This server");
+                    if (Server(row)) Assert.Contains("server", row.Why);
+                    // What the server allows of a row of the player's stands under it, saying so.
+                    if (row.Limit == null) continue;
+                    Assert.True(Server(row.Limit) && row.Limit.ServerDecides, row.Label + ": what stands under it is the server's");
+                    Assert.Contains("server", row.Limit.Why);
+                    Assert.Null(row.Limit.Limit);
                 }
             }
         }
@@ -102,6 +160,9 @@ namespace Scry.Tests
                         Assert.True(row.Min < row.Max && row.Step > 0f, row.Label + ": a range and a step");
                         Assert.False(string.IsNullOrEmpty(row.Shown(row.Min)), row.Label + ": its value says its unit");
                         break;
+                    case SettingControl.Book:
+                        Assert.NotEqual(BookPart.None, row.Book);
+                        break;
                 }
             }
         }
@@ -128,7 +189,7 @@ namespace Scry.Tests
             // A source's levels are those it offers.
             foreach (var each in WorldSources.All)
             {
-                var row = Rows.Single(r => r.Keys[0] == each + "UpTo");
+                var row = Rows.Single(r => r.Keys.FirstOrDefault() == each + "UpTo");
                 Assert.Equal(WorldSources.Offered(each).Select(l => l.ToString()), row.Choices.Select(c => c.Value));
             }
         }
