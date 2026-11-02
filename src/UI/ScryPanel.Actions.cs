@@ -201,11 +201,12 @@ namespace Scry
             var kind = MapSpots.KindOf(entry);
             if (kind == null) return;
             var count = SeenSpotsKeeper.CountOf(kind);
-            var block = MapSpots.BlockOf(count);
-            if (ActionShown(SpotWords.ShowOnMap, ActionLook.Plain, block == MapBlock.None, block == MapBlock.None ? SpotWords.Tip(count) : SpotWords.WhyNot(block))) ShowOnMap(entry);
+            var squares = MapSpots.SquareCount(entry);
+            var block = MapSpots.BlockOf(count, squares);
+            if (ActionShown(SpotWords.ShowOnMap, ActionLook.Plain, block == MapBlock.None, block == MapBlock.None ? SpotWords.Tip(count, squares) : SpotWords.WhyNot(block))) ShowOnMap(entry);
         }
 
-        /// <summary>Closes Scry and opens Valheim's map with a dot on each of the page's kind the character saw (<see cref="MapSpots"/>).</summary>
+        /// <summary>Closes Scry and opens Valheim's map with a dot on each of the page's kind the character saw, and a place's squares (<see cref="MapSpots"/>).</summary>
         private static void ShowOnMap(Entry entry)
         {
             AskClose();

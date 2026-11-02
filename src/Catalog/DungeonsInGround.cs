@@ -213,6 +213,8 @@ namespace Scry
             if (ZNet.instance == null || !ZNet.instance.IsServer()) return;
             var world = package.ReadString();
             var source = package.ReadInt();
+            // A ground the server allows nothing of is told nothing, whatever a game asks.
+            if (!System.Enum.IsDefined(typeof(WorldSource), source) || Settings.World().Highest((WorldSource)source) == SourceLevel.Off) return;
             var ground = Packed.Unpack(package.ReadByteArray(), ExploredGrid.MostSent);
             if (ground == null) return;
             var maps = InGround(world, ground, KindsAsked(package));

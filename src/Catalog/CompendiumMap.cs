@@ -37,14 +37,14 @@ namespace Scry
 
         /// <summary>The world whose shared maps were asked about this session; none while they are to be asked again.</summary>
         private static string _sharedFor;
-        private static Task<List<(string Kind, int Count)>> _sharing;
+        private static Task<GroundTold> _sharing;
         private static string _sharingFor;
 
         /// <summary>How often the places on every map are looked at.</summary>
         private const float IconsEvery = 30f;
         private static float _iconsAt = float.NegativeInfinity;
         private static readonly Dictionary<Vector3, string> Icons = new Dictionary<Vector3, string>();
-        private static Task<(ExploredGrid Grid, List<(string Kind, int Count)> Counted)> _reading;
+        private static Task<(ExploredGrid Grid, GroundTold Told)> _reading;
         private static string _readingFor;
 
         /// <summary>The explored map last asked about in this world this session, for the ground new since; none before the first ask.</summary>
@@ -55,7 +55,7 @@ namespace Scry
         private static float _grownAt = float.NegativeInfinity;
         private static Task<(ExploredGrid Now, ExploredGrid New, byte[] Packed)> _growing;
         private static string _growingFor;
-        private static Task<List<(string Kind, int Count)>> _growingKinds;
+        private static Task<GroundTold> _growingKinds;
         private static string _growingKindsFor;
 
         /// <summary>How many times the ground new since was asked about this session, for the self-test.</summary>
@@ -152,20 +152,24 @@ namespace Scry
         }
 
         /// <summary>Takes in the kinds of place a server told lie in the explored map, and how many of each.</summary>
-        public static void Told(CompendiumBook book, string world, List<(string Kind, int Count)> counted)
+        public static void Told(CompendiumBook book, string world, GroundTold told)
         {
             if (book == null || world == null || world != World || book.Mapped(world)) return;
+            var counted = told.Counted;
             Counts.Took(WorldSource.Explored, counted, whole: true);
+            TookSquares(WorldSource.Explored, told, whole: true);
             var found = MapCatchUp.Apply(book, world, Kinds(counted));
             CompendiumKeeper.Noted(PlayEvent.MapRead);
             Log.Report(CompendiumWords.MapRead(counted.Count, found, fromServer: true));
         }
 
         /// <summary>Takes in the kinds of place lying in the ground explored since the last ask, and how many, what is new noted as the first reading's is.</summary>
-        public static void ToldMore(CompendiumBook book, string world, List<(string Kind, int Count)> counted)
+        public static void ToldMore(CompendiumBook book, string world, GroundTold told)
         {
             if (book == null || world == null || world != World) return;
+            var counted = told.Counted;
             Counts.Took(WorldSource.Explored, counted, whole: false);
+            TookSquares(WorldSource.Explored, told, whole: false);
             var found = MapCatchUp.Apply(book, world, Kinds(counted));
             if (found == 0) return;
             CompendiumKeeper.Noted(PlayEvent.MapRead);
@@ -245,8 +249,9 @@ namespace Scry
                 if (ZNet.instance.IsServer())
                 {
                     var places = Places();
+                    var squares = Settings.SquaresOnMap;
                     _growingKindsFor = world;
-                    _growingKinds = Task.Run(() => MapCatchUp.Counted(fresh, places));
+                    _growingKinds = Task.Run(() => GroundTold.Worked(fresh, places, squares));
                 }
                 else CompendiumLink.AskMore(world, packed);
                 return;
@@ -268,11 +273,19 @@ namespace Scry
         }
 
         /// <summary>Takes in the kinds of place a server told lie in the ground from shared maps, and how many of each.</summary>
-        public static void ToldShared(CompendiumBook book, string world, List<(string Kind, int Count)> counted)
+        public static void ToldShared(CompendiumBook book, string world, GroundTold told)
         {
             if (book == null || world == null || world != World) return;
-            Counts.Took(WorldSource.SharedMaps, counted, whole: true);
-            book.FoundIn(world, WorldSource.SharedMaps, Kinds(counted));
+            Counts.Took(WorldSource.SharedMaps, told.Counted, whole: true);
+            TookSquares(WorldSource.SharedMaps, told, whole: true);
+            book.FoundIn(world, WorldSource.SharedMaps, Kinds(told.Counted));
+        }
+
+        /// <summary>Keeps the squares an answer on a ground told for Show on map, or why it told none.</summary>
+        private static void TookSquares(WorldSource source, GroundTold told, bool whole)
+        {
+            if (told.Heard == SquaresHeard.Told) Counts.TookSquares(source, told.Squares, whole);
+            else Counts.SquaresNot(source, told.Heard);
         }
 
         /// <summary>A map read at a cartography table: the shared ground is asked about again.</summary>
@@ -314,8 +327,9 @@ namespace Scry
                 _sharedFor = world;
                 if (words == null) return;
                 var places = Places();
+                var squares = Settings.SquaresOnMap;
                 _sharingFor = world;
-                _sharing = Task.Run(() => MapCatchUp.Counted(Grid(size, pixel, words), places));
+                _sharing = Task.Run(() => GroundTold.Worked(Grid(size, pixel, words), places, squares));
             }
             else if (CompendiumLink.AskShared(world)) _sharedFor = world;
         }
@@ -332,7 +346,13 @@ namespace Scry
         }
 
         /// <summary>Gives up on this world for the session, as when its server has no Scry to ask.</summary>
-        public static void GiveUp(string world) => _failedFor = world;
+        public static void GiveUp(string world)
+        {
+            _failedFor = world;
+            // No answer comes: Show on map says the server tells no squares, keeping any it told before.
+            Counts.NoAnswer(WorldSource.Explored);
+            Counts.NoAnswer(WorldSource.SharedMaps);
+        }
 
         /// <summary>The explored map of the character played, read and packed for the server on a worker thread from a copy taken now; none before it is in.</summary>
         public static Task<(ExploredGrid Grid, byte[] Packed)> GridOnWorker()
@@ -384,11 +404,12 @@ namespace Scry
         {
             var (size, pixel, words) = Copy();
             if (words == null) return;
+            var squares = Settings.SquaresOnMap;
             _readingFor = world;
             _reading = Task.Run(() =>
             {
                 var grid = Grid(size, pixel, words);
-                return (grid, MapCatchUp.Counted(grid, places));
+                return (grid, GroundTold.Worked(grid, places, squares));
             });
         }
 
@@ -406,10 +427,12 @@ namespace Scry
             }
             if (book == null || world != World || book.Mapped(world)) return;
             Asked(world, reading.Result.Grid);
-            Counts.Took(WorldSource.Explored, reading.Result.Counted, whole: true);
-            var found = MapCatchUp.Apply(book, world, Kinds(reading.Result.Counted));
+            var counted = reading.Result.Told.Counted;
+            Counts.Took(WorldSource.Explored, counted, whole: true);
+            TookSquares(WorldSource.Explored, reading.Result.Told, whole: true);
+            var found = MapCatchUp.Apply(book, world, Kinds(counted));
             CompendiumKeeper.Noted(PlayEvent.MapRead);
-            Log.Report(CompendiumWords.MapRead(reading.Result.Counted.Count, found, fromServer: false));
+            Log.Report(CompendiumWords.MapRead(counted.Count, found, fromServer: false));
         }
 
         /// <summary>
@@ -459,6 +482,15 @@ namespace Scry
             var words = new int[(bits.Length + 31) / 32];
             bits.CopyTo(words, 0);
             return Array.TrueForAll(words, w => w == 0) ? (0, 0f, null) : (size, map.m_pixelSize, words);
+        }
+
+        /// <summary>The map's explored bits as the game keeps them, the character's own and those from shared maps, a bit a pixel at y times the side plus x; none where the map has none.</summary>
+        public static (BitArray Own, BitArray Shared) ExploredBits(Minimap map)
+        {
+            if (map == null) return (null, null);
+            if (_exploredBits == null) _exploredBits = AccessTools.FieldRefAccess<Minimap, BitArray>("m_explored");
+            if (_sharedBits == null) _sharedBits = AccessTools.FieldRefAccess<Minimap, BitArray>("m_exploredOthers");
+            return (_exploredBits(map), _sharedBits(map));
         }
 
         private static ExploredGrid Grid(int size, float pixel, int[] words, float cellMetres = ExploredGrid.PlaceCellMetres) =>

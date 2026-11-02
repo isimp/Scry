@@ -14,7 +14,9 @@ namespace Scry
     /// layer, too; it takes no clicks, so a click on it is the map's. Dots are placed where the map
     /// shows them each frame, smaller as it zooms out (<see cref="SeenOnMap.DotSize"/>); made a few
     /// a frame from a pool, as the dungeon marks are. The strip naming the kind stands in Scry's
-    /// look at the map's top left (<see cref="ScryPanel.MapStripGUI"/>).
+    /// look at the map's top left (<see cref="ScryPanel.MapStripGUI"/>). A place's page shows
+    /// the server's squares too (<see cref="MapSquares"/>), each round one of its kind the
+    /// character never came near, in ground it explored or saw on a shared map.
     /// </summary>
     internal static class MapSpots
     {
@@ -74,7 +76,9 @@ namespace Scry
         {
             get
             {
-                if (_layer == null || _holder == null || Dots.Count == 0 || _holder.parent != _layer || _holder.GetSiblingIndex() != 0) return false;
+                if (_layer == null || _holder == null || Dots.Count == 0 || _holder.parent != _layer) return false;
+                // Only Scry's own layers come before it (the squares, under the dots): every pin after.
+                for (var i = 0; i < _holder.GetSiblingIndex(); i++) if (!_layer.GetChild(i).name.StartsWith("Scry ", System.StringComparison.Ordinal)) return false;
                 foreach (var (_, rect) in Dots) if (rect.parent != _holder) return false;
                 return true;
             }
@@ -100,9 +104,54 @@ namespace Scry
             return _kindOf;
         }
 
-        /// <summary>Why a kind with so many seen shows nothing now; none where it can show them.</summary>
-        public static MapBlock BlockOf(int count) =>
-            SeenOnMap.Block(Game.m_noMap, Settings.SeenOnMapReach, Settings.RecordSeenSpots, SeenSpotsKeeper.Unreadable, count);
+        /// <summary>Why a kind with so many seen, and so many squares, shows nothing now; none where it can show them.</summary>
+        public static MapBlock BlockOf(int count, int squares = 0) =>
+            SeenOnMap.Block(Game.m_noMap, Settings.SeenOnMapReach, Settings.RecordSeenSpots, SeenSpotsKeeper.Unreadable, count, squares);
+
+        /// <summary>
+        /// A place's squares to shade (<see cref="PlaceSquares.Shown"/>): those the server told for
+        /// the grounds the book shows, the character's own explored ground and shared maps, each with
+        /// how many of its places the character did not see; none for anything but a place, or under
+        /// rules that show neither ground.
+        /// </summary>
+        public static IReadOnlyList<(int X, int Z, int Left)> SquaresOf(Entry entry, IReadOnlyList<(int X, int Z)> seen)
+        {
+            if (entry == null || entry.Kind != Kind.Location || entry.IsRoom) return NoSquares;
+            return PlaceSquares.Shown(CompendiumMap.Counts.Squares(entry.Name, SquaresGround), seen);
+        }
+
+        /// <summary>How many squares a place's page would shade, worked out again only as the answers or its spots change, as the page asks each time it is drawn.</summary>
+        public static int SquareCount(Entry entry)
+        {
+            if (entry == null || entry.Kind != Kind.Location) return 0;
+            var kind = KindOf(entry);
+            // The book's sources too: a ground turned down takes its squares away.
+            var stamp = (entry, CompendiumMap.Counts.Version, kind != null ? SeenSpotsKeeper.CountOf(kind) : 0, CompendiumKeeper.Book?.SourcesVersion ?? -1);
+            if (stamp.Equals(_countedFor)) return _counted;
+            _countedFor = stamp;
+            _counted = SquaresOf(entry, kind != null ? SeenSpotsKeeper.Of(kind) : null).Count;
+            return _counted;
+        }
+
+        private static (Entry, int, int, int) _countedFor;
+        private static int _counted;
+
+        private static readonly IReadOnlyList<(int X, int Z, int Left)> NoSquares = new List<(int, int, int)>();
+
+        /// <summary>The grounds whose squares a page shows: the explored ground and shared maps, as the book shows them above Off (none under the rules' Off, never the whole world).</summary>
+        private static bool SquaresGround(WorldSource source)
+        {
+            if (source != WorldSource.Explored && source != WorldSource.SharedMaps) return false;
+            var book = CompendiumKeeper.Book;
+            return book != null && book.Shows(source) > SourceLevel.Off;
+        }
+
+        /// <summary>Why a place shows no squares, where it shows none: nothing heard yet, a server without Scry or with an older one, or one giving none; none where neither ground is shown.</summary>
+        private static string SquaresNote()
+        {
+            if (!SquaresGround(WorldSource.Explored) && !SquaresGround(WorldSource.SharedMaps)) return null;
+            return SpotWords.SquaresNote(CompendiumMap.Counts.Heard(SquaresGround));
+        }
 
         /// <summary>A page's kind shown on the map: its spots in the world played, by its name, in its list colour.</summary>
         public static void Show(Entry entry)
@@ -111,25 +160,36 @@ namespace Scry
             if (kind == null) return;
             // A broken form's page shows the whole one's spots, by the whole one's name.
             var named = entry.Kind == Kind.Location ? entry : WorldCatalog.Find(kind) ?? entry;
-            Show(kind, named.ShownName, Skin.KindColor(entry.Kind), SeenSpotsKeeper.Of(kind));
+            var spots = SeenSpotsKeeper.Of(kind);
+            var squares = SquaresOf(entry, spots);
+            var note = entry.Kind == Kind.Location && squares.Count == 0 ? SquaresNote() : null;
+            Show(kind, named.ShownName, Skin.KindColor(entry.Kind), spots, squares, note);
         }
 
-        /// <summary>A kind's spots shown on the map, as the button shows them, and the map opened as its key opens it; the self-test gives spots of its own.</summary>
-        public static void Show(string kind, string name, Color colour, IReadOnlyList<(int X, int Z)> spots)
+        /// <summary>
+        /// A kind's spots shown on the map, and a place's squares with them, as the button shows
+        /// them, and the map opened as its key opens it; the self-test gives spots and squares of its
+        /// own. A note says why a place shows no squares.
+        /// </summary>
+        public static void Show(string kind, string name, Color colour, IReadOnlyList<(int X, int Z)> spots, IReadOnlyList<(int X, int Z, int Left)> squares = null, string note = null)
         {
             Showing.Show(CompendiumMap.World, kind, name, spots);
+            squares = squares ?? NoSquares;
+            MapSquares.Show(squares);
             _colour = colour;
             var player = Player.m_localPlayer;
             var nearest = player != null ? SeenOnMap.Nearest(spots, player.transform.position.x, player.transform.position.z) : null;
+            var more = PlaceSquares.More(squares);
             _strip = nearest is (float away, float dx, float dz)
-                ? SpotWords.Strip(name, spots.Count, away, SpotWords.Direction(dx, dz))
-                : SpotWords.Strip(name, spots.Count, null, null);
+                ? SpotWords.Strip(name, spots.Count, away, SpotWords.Direction(dx, dz), more, note)
+                : SpotWords.Strip(name, spots.Count, null, null, more, note);
             Minimap.instance.OrNull()?.SetMapMode(Minimap.MapMode.Large);
         }
 
         public static void Hide()
         {
             Showing.Hide();
+            MapSquares.Show(NoSquares);
             PutAway();
         }
 
@@ -140,6 +200,9 @@ namespace Scry
             _strip = null;
             _kindFor = null;
             _kindOf = null;
+            _countedFor = default;
+            _counted = 0;
+            MapSquares.Forget();
         }
 
         /// <summary>Lets go of the dots made and what holds them, for another map or another world.</summary>
@@ -175,6 +238,8 @@ namespace Scry
             }
             if (_holder == null) return;
             if (!_holder.gameObject.activeSelf) _holder.gameObject.SetActive(true);
+            // The squares under the dots, placed as the map moves, as the dots are.
+            MapSquares.Update(map, _colour);
             var image = map.m_mapImageLarge;
             var window = image.uvRect;
             var area = image.rectTransform.rect;
@@ -230,6 +295,7 @@ namespace Scry
         /// <summary>Puts every dot away at once, by what holds them, each left as it is inside; placed afresh as a kind is shown again.</summary>
         private static void PutAway()
         {
+            MapSquares.PutAway();
             if (_holder != null && _holder.gameObject.activeSelf) _holder.gameObject.SetActive(false);
             _standing = 0;
             _placedFor = default;

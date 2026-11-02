@@ -6,12 +6,18 @@ namespace Scry
     /// <summary>
     /// How many of each kind of place the world played holds, by the server's census, and how
     /// many lie in each ground, by its answers: a whole answer on a ground replaces its counts,
-    /// one on the ground new since adds to them. Held for the session, the world's own.
+    /// one on the ground new since adds to them; and the squares those places stand in
+    /// (<see cref="PlaceSquares"/>), kept the same way, with what the server said of them. Held
+    /// for the session, the world's own.
     /// </summary>
     internal sealed class PlaceCounts
     {
         private Dictionary<string, int> _census;
         private readonly Dictionary<WorldSource, Dictionary<string, int>> _in = new Dictionary<WorldSource, Dictionary<string, int>>();
+        private readonly Dictionary<WorldSource, Dictionary<string, Dictionary<(int X, int Z), int>>> _squares = new Dictionary<WorldSource, Dictionary<string, Dictionary<(int X, int Z), int>>>();
+        private readonly Dictionary<WorldSource, SquaresHeard> _heard = new Dictionary<WorldSource, SquaresHeard>();
+
+        private static readonly IReadOnlyDictionary<(int X, int Z), int> NoSquares = new Dictionary<(int X, int Z), int>();
 
         /// <summary>Counts up each time anything here changes.</summary>
         public int Version { get; private set; }
@@ -49,11 +55,74 @@ namespace Scry
         public int In(WorldSource source, string kind) =>
             !_in.TryGetValue(source, out var counts) ? -1 : kind != null && counts.TryGetValue(kind, out var n) ? n : 0;
 
+        /// <summary>Takes in the squares a ground's answer told: a whole answer in place of those before, one on the ground new since on top of them.</summary>
+        public void TookSquares(WorldSource source, IEnumerable<PlaceSquare> squares, bool whole)
+        {
+            if (whole || !_squares.TryGetValue(source, out var kinds)) _squares[source] = kinds = new Dictionary<string, Dictionary<(int X, int Z), int>>(StringComparer.Ordinal);
+            foreach (var square in squares)
+            {
+                if (string.IsNullOrEmpty(square.Kind) || square.Count <= 0) continue;
+                if (!kinds.TryGetValue(square.Kind, out var of)) kinds[square.Kind] = of = new Dictionary<(int X, int Z), int>();
+                var key = (square.X, square.Z);
+                of[key] = of.TryGetValue(key, out var n) ? n + square.Count : square.Count;
+            }
+            _heard[source] = SquaresHeard.Told;
+            Version++;
+        }
+
+        /// <summary>No answer came on a ground (no Scry heard on the server, or an answer given up on): squares told before stay, else none are said to come.</summary>
+        public void NoAnswer(WorldSource source)
+        {
+            if (_heard.TryGetValue(source, out var heard) && heard == SquaresHeard.Told) return;
+            _heard[source] = SquaresHeard.NoScry;
+            Version++;
+        }
+
+        /// <summary>The server told no squares for a ground, and why.</summary>
+        public void SquaresNot(WorldSource source, SquaresHeard why)
+        {
+            _squares.Remove(source);
+            _heard[source] = why;
+            Version++;
+        }
+
+        /// <summary>
+        /// The squares holding a kind in the grounds shown, with how many each holds: a square told
+        /// for both grounds holds the more of the two, as a place in your own ground and on a shared
+        /// map is the same place; none before an answer.
+        /// </summary>
+        public IReadOnlyDictionary<(int X, int Z), int> Squares(string kind, Func<WorldSource, bool> shown)
+        {
+            Dictionary<(int X, int Z), int> squares = null;
+            foreach (var pair in _squares)
+            {
+                if (kind == null || !shown(pair.Key) || !pair.Value.TryGetValue(kind, out var of)) continue;
+                if (squares == null) squares = new Dictionary<(int X, int Z), int>();
+                foreach (var square in of) squares[square.Key] = squares.TryGetValue(square.Key, out var n) ? Math.Max(n, square.Value) : square.Value;
+            }
+            return squares ?? NoSquares;
+        }
+
+        /// <summary>What the server said of squares for the grounds shown: told where any told them, else why not, nothing yet before an answer.</summary>
+        public SquaresHeard Heard(Func<WorldSource, bool> shown)
+        {
+            var heard = SquaresHeard.Waiting;
+            foreach (var pair in _heard)
+            {
+                if (!shown(pair.Key)) continue;
+                if (pair.Value == SquaresHeard.Told) return SquaresHeard.Told;
+                if (pair.Value > heard) heard = pair.Value;
+            }
+            return heard;
+        }
+
         /// <summary>On leaving a world: nothing is known of the next.</summary>
         public void Forget()
         {
             _census = null;
             _in.Clear();
+            _squares.Clear();
+            _heard.Clear();
             Version++;
         }
     }

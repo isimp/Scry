@@ -114,6 +114,76 @@ namespace Scry
             ShowOnMapAsItWas();
         }
 
+        /// <summary>
+        /// The server's squares (B) as a place's page shows them: squares round the character, as
+        /// the self-test gives them, each standing where the map shows its 512 m, under the dots and
+        /// the pins, cut to explored ground pixel for pixel as the map's fog lies, a count on one
+        /// holding more than one, the strip counting them; Hide taking them away. Then a place whose
+        /// squares the world's server told, where one is.
+        /// </summary>
+        private static IEnumerator ShowOnMapSquares(Probe p)
+        {
+            var player = Player.m_localPlayer;
+            var map = Minimap.instance;
+            if (player == null || map == null || Game.m_noMap || CompendiumMap.World == null) p.Skip("there is no character, or no map in this world");
+            var here = player.transform.position;
+            var middleX = PlaceSquares.Index(here.x);
+            var middleZ = PlaceSquares.Index(here.z);
+            // Five by five squares round the character's own, one of them holding three; two spots seen in the middle one.
+            var squares = new List<(int X, int Z, int Left)>();
+            for (var dx = -2; dx <= 2; dx++) for (var dz = -2; dz <= 2; dz++) squares.Add((middleX + dx, middleZ + dz, dx == 1 && dz == 1 ? 3 : 1));
+            var spots = new List<(int X, int Z)> { ((int)Mathf.Round(here.x), (int)Mathf.Round(here.z)), ((int)Mathf.Round(here.x) + 20, (int)Mathf.Round(here.z)) };
+            _zoomBefore = map.LargeZoom;
+            _modeBefore = map.m_mode;
+            map.LargeZoom = SpotsZoom;
+            Session.Hide();
+            Timing.ForgetBytesByPart();
+            MapSpots.Show(MadeUpSpots, "Self-test places", Skin.KindColor(Kind.Location), spots, squares);
+            yield return Until(() => MapSquares.SquaresShown >= squares.Count, 10);
+            yield return new Wait(1);
+            p.Check(MapSquares.SquaresShown == squares.Count, $"all {Numbers.Count(squares.Count)} squares in view stand on the map", Numbers.Count(MapSquares.SquaresShown));
+            p.Within(Timing.MostMs("spots"), 16, "making and placing them holds no frame a sixtieth of a second", $"{Numbers.Amount(Timing.MostMs("spots"), 1)} ms at the most");
+            p.Check(MapSpots.Strip == "Self-test places · 2 you saw · nearest beside you · 27 more in squares", "the strip counts the places in squares once, after those seen", MapSpots.Strip);
+            p.Check(MapSquares.UnderDotsForTest && MapSpots.DotsUnderPinsForTest, "the squares stand first on the pins' layer, under the dots and every pin, clipped to the map's window");
+            p.Check(MapSquares.CountsShown == 1, "the one square holding three carries its count", Numbers.Count(MapSquares.CountsShown));
+            var (read, wrong, fog) = MapSquares.MaskAgainstMapForTest();
+            p.Check(read > 0 && wrong == 0, "each square is cut to explored ground, pixel for pixel as the map's fog lies", $"{Numbers.Count(wrong)} of {Numbers.Count(read)} pixels otherwise");
+            if (fog == 0) p.Untried("a square cut where the fog starts", "stand within a kilometre of unexplored ground", "fog");
+            else p.Note($"{Numbers.Count(fog)} of the {Numbers.Count(read)} pixels under the squares lie in fog, and are left out");
+            yield return Picture(p, "show on map, squares round you");
+            map.LargeZoom = SeenOnMap.NearestZoom * 4f;
+            yield return Until(() => MapSquares.SquaresShown > 0, 5);
+            yield return null;
+            yield return Picture(p, "show on map, a square near");
+
+            MapSpots.Hide();
+            yield return null;
+            p.Check(MapSquares.SquaresShown == 0 && MapSpots.Strip == null, "Hide takes the squares away with the dots");
+            map.LargeZoom = SpotsZoom;
+            map.SetMapMode(Minimap.MapMode.Small);
+            yield return null;
+
+            // A place whose squares the world's server told, as its button shows them.
+            var heard = CompendiumMap.Counts.Heard(_ => true);
+            p.Note($"the server told of squares: {heard}");
+            var told = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Location && !e.IsRoom && MapSpots.SquareCount(e) > 0);
+            if (told == null)
+            {
+                p.Untried("a place's own squares from the server", heard == SquaresHeard.Told ? "explore ground holding a place you never came near" : "join a world whose server runs this Scry", "squares");
+            }
+            else
+            {
+                var count = MapSpots.SquareCount(told);
+                MapSpots.Show(told);
+                yield return Until(() => MapSquares.SquaresShown > 0, 10);
+                var strip = MapSpots.Strip ?? "";
+                p.Check(MapSpots.SquaresOf(told, SeenSpotsKeeper.Of(MapSpots.KindOf(told))).Count == count && (strip.Contains(" in squares") || strip.Contains(" in a square")),
+                    $"{told.ShownName}'s page shows the {Numbers.Count(count)} squares the server told", MapSpots.Strip);
+                yield return Picture(p, "show on map, a place's squares from the server");
+            }
+            ShowOnMapAsItWas();
+        }
+
         /// <summary>Spots on a grid round a point, 40 across, so many a row, this many metres apart, one on the point.</summary>
         private static List<(int X, int Z)> Grid(Vector3 here, int many, int apart)
         {

@@ -184,29 +184,41 @@ namespace Scry
             var world = package.ReadString();
             var grid = ExploredGrid.Unpack(Packed.Unpack(package.ReadByteArray(), ExploredGrid.MostSent));
             if (grid == null) return;
-            var counted = MapCatchUp.Counted(grid, CompendiumMap.Places());
+            // The server's own caps, as it set them: a ground it allows nothing of is told nothing,
+            // whatever a player's game was changed to ask (the synced setting alone stops only a game that heeds it).
+            var source = answerRpc == SharedAnswerRpc ? WorldSource.SharedMaps : WorldSource.Explored;
+            var allowed = Settings.World().Highest(source) != SourceLevel.Off;
+            var places = CompendiumMap.Places();
+            var counted = allowed ? MapCatchUp.Counted(grid, places) : new List<(string Kind, int Count)>();
             var reply = new ZPackage();
             reply.Write(world);
             reply.Write(counted.Count);
             foreach (var (kind, _) in counted) reply.Write(kind);
-            // How many of each, after the kinds, so a client's older Scry reads the kinds as before.
+            // How many of each, after the kinds, so a client's older Scry reads the kinds as before;
+            // then the squares, by the server's own switch, which an older Scry leaves unread too.
             foreach (var (_, count) in counted) reply.Write(count);
+            reply.Write(allowed && Settings.SquaresOnMap ? PlaceSquares.Pack(counted.ConvertAll(c => c.Kind), PlaceSquares.Of(grid, places)) : PlaceSquares.PackOff());
             ZRoutedRpc.instance.InvokeRoutedRPC(to, answerRpc, reply);
             Answered++;
             LastAnswered = counted.Count;
             Log.Report(CompendiumWords.MapAnswered(counted.Count));
         }
 
-        /// <summary>The kinds an answer names, with how many of each where the server's Scry tells it, else one each.</summary>
-        private static List<(string Kind, int Count)> ReadCounted(ZPackage package)
+        /// <summary>
+        /// What an answer tells: the kinds it names, with how many of each where the server's Scry
+        /// tells it, else one each; and the squares they stand in, where it tells them, else why not.
+        /// </summary>
+        private static GroundTold ReadTold(ZPackage package)
         {
             var count = package.ReadInt();
-            if (count < 0 || count > MostKinds) return new List<(string, int)>();
+            if (count < 0 || count > MostKinds) return new GroundTold(new List<(string, int)>(), SquaresHeard.OldScry, null);
             var counted = new List<(string Kind, int Count)>(count);
             for (var i = 0; i < count; i++) counted.Add((package.ReadString(), 1));
-            if (package.GetPos() >= package.Size()) return counted;
+            if (package.GetPos() >= package.Size()) return new GroundTold(counted, SquaresHeard.OldScry, null);
             for (var i = 0; i < count; i++) counted[i] = (counted[i].Kind, package.ReadInt());
-            return counted;
+            if (package.GetPos() >= package.Size()) return new GroundTold(counted, SquaresHeard.OldScry, null);
+            var (off, squares) = PlaceSquares.Unpack(package.ReadByteArray(), counted.ConvertAll(c => c.Kind));
+            return new GroundTold(counted, off ? SquaresHeard.Off : SquaresHeard.Told, squares);
         }
 
         /// <summary>The most kinds of place an answer may name.</summary>
@@ -227,6 +239,8 @@ namespace Scry
         private static void AnswerCensus(long sender, ZPackage package)
         {
             if (ZNet.instance == null || !ZNet.instance.IsServer()) return;
+            // A server allowing nothing of the whole world tells no census, whatever a game asks.
+            if (Settings.World().Highest(WorldSource.WholeWorld) == SourceLevel.Off) return;
             var world = package.ReadString();
             var census = MapCatchUp.Census(CompendiumMap.Places());
             var reply = new ZPackage();
@@ -266,19 +280,19 @@ namespace Scry
         {
             if (sender != EventLink.WorldSession) return;
             var world = package.ReadString();
-            var counted = ReadCounted(package);
+            var told = ReadTold(package);
             if (world == _askedMoreFor && world != _askedFor)
             {
                 _askedMoreFor = null;
                 TakenMore++;
-                CompendiumMap.ToldMore(CompendiumKeeper.Book, world, counted);
+                CompendiumMap.ToldMore(CompendiumKeeper.Book, world, told);
                 return;
             }
             if (world != _askedFor) return;
             _askedFor = null;
-            LastTold = counted.Count;
+            LastTold = told.Counted.Count;
             Taken++;
-            CompendiumMap.Told(CompendiumKeeper.Book, world, counted);
+            CompendiumMap.Told(CompendiumKeeper.Book, world, told);
         }
 
         /// <summary>How many answers on the ground new since this game took, as a client; for the self-test.</summary>
@@ -291,10 +305,10 @@ namespace Scry
             if (sender != EventLink.WorldSession) return;
             SharedHeard++;
             var world = package.ReadString();
-            var counted = ReadCounted(package);
+            var told = ReadTold(package);
             if (world != _sharedAskedFor) return;
             _sharedAskedFor = null;
-            CompendiumMap.ToldShared(CompendiumKeeper.Book, world, counted);
+            CompendiumMap.ToldShared(CompendiumKeeper.Book, world, told);
         }
 
         /// <summary>How many answers on shared ground this game heard from its world's server, for any world; for the self-test.</summary>

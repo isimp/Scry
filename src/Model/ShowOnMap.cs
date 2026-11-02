@@ -39,12 +39,35 @@ namespace Scry
         /// <summary>How near the nearest stands to be beside you rather than at a distance.</summary>
         private const float Beside = 5f;
 
-        /// <summary>The strip over the map: the kind, how many the character saw, and how far and which way the nearest is.</summary>
-        public static string Strip(string name, int count, float? nearest, string direction)
+        /// <summary>
+        /// The strip over the map: the kind, how many the character saw, how far and which way the
+        /// nearest is, and how many more stand somewhere in the squares shaded, or why there are
+        /// none (<see cref="SquaresNote"/>); with none seen, the squares alone.
+        /// </summary>
+        public static string Strip(string name, int count, float? nearest, string direction, int more = 0, string note = null)
         {
-            var said = $"{name} · {Numbers.Count(count)} you saw";
-            if (nearest is float metres) said += metres < Beside ? " · nearest beside you" : $" · nearest {Distance(metres)} {direction}";
-            return said;
+            string said;
+            if (count == 0 && more > 0) said = more == 1 ? $"{name} · 1 in a square, somewhere inside it" : $"{name} · {Numbers.Count(more)} in squares, somewhere inside each";
+            else
+            {
+                said = $"{name} · {Numbers.Count(count)} you saw";
+                if (nearest is float metres) said += metres < Beside ? " · nearest beside you" : $" · nearest {Distance(metres)} {direction}";
+                if (more > 0) said += $" · {Numbers.Count(more)} more in squares";
+            }
+            return note != null ? said + " · " + note : said;
+        }
+
+        /// <summary>Why a place's strip shows no squares; none where the server told them.</summary>
+        public static string SquaresNote(SquaresHeard heard)
+        {
+            switch (heard)
+            {
+                case SquaresHeard.Waiting: return "squares once the server has read your map";
+                case SquaresHeard.NoScry: return "no squares: this server has no Scry";
+                case SquaresHeard.OldScry: return "no squares: this server's Scry is older";
+                case SquaresHeard.Off: return "no squares on this server";
+                default: return null;
+            }
         }
 
         /// <summary>A distance as the strip gives it: to the metre under a hundred, in tens of metres under a kilometre, past it in kilometres.</summary>
@@ -67,6 +90,15 @@ namespace Scry
 
         /// <summary>The You box's line: how many of the kind the character saw in this world.</summary>
         public static string YouLine(int count) => $"{Numbers.Count(count)} in this world";
+
+        /// <summary>The button's tip where it can show the character's dots, the server's squares, or both.</summary>
+        public static string Tip(int count, int squares)
+        {
+            if (squares <= 0) return Tip(count);
+            var shaded = squares == 1 ? "the square one of these stands somewhere in" : $"the {Numbers.Count(squares)} squares one of these stands somewhere in";
+            if (count <= 0) return "Open Valheim's map with " + shaded;
+            return Tip(count) + (squares == 1 ? ", and a square round 1 more" : $", and a square round each of {Numbers.Count(squares)} more");
+        }
 
         /// <summary>The button's tip where it can show them.</summary>
         public static string Tip(int count) => count == 1

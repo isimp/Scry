@@ -71,9 +71,6 @@ namespace Scry
             public string Showing;
         }
 
-        /// <summary>What the game makes a pin's name from (<c>Minimap.m_pinNamePrefab</c>), its words set as it sets them.</summary>
-        private static readonly AccessTools.FieldRef<Minimap, GameObject> PinNamePrefab = AccessTools.FieldRefAccess<Minimap, GameObject>("m_pinNamePrefab");
-
         private static readonly List<Mark> Marks = new List<Mark>();
         private static readonly List<DungeonMark> Kept = new List<DungeonMark>();
 
@@ -479,7 +476,7 @@ namespace Scry
         private static void SizeName(Mark mark, float scale)
         {
             if (mark.Label == null || Mathf.Approximately(mark.NameScaled, scale)) return;
-            var text = mark.Label.GetComponentsInChildren<Component>(true).FirstOrDefault(c => c != null && IsText(c.GetType()));
+            var text = PinNames.Text(mark.Label);
             if (text == null) return;
             var property = text.GetType().GetProperty("fontSize");
             if (property == null || property.PropertyType != typeof(float)) return;
@@ -510,24 +507,8 @@ namespace Scry
             }
         }
 
-        /// <summary>
-        /// Sets a mark's label's words (<see cref="DungeonMapWords.MarkLabel"/>, in the accent, or
-        /// its name alone). The game's pin name writes with TextMeshPro, which Scry does not build
-        /// against, so its text is set by the name the game's own code sets it by.
-        /// </summary>
-        private static void SetText(GameObject label, string said)
-        {
-            var text = label.GetComponentsInChildren<Component>(true).FirstOrDefault(c => c != null && IsText(c.GetType()));
-            if (text == null) return;
-            text.GetType().GetProperty("text")?.SetValue(text, said);
-        }
-
-        /// <summary>Whether a component writes with TextMeshPro (<c>TMP_Text</c> or what derives from it).</summary>
-        private static bool IsText(System.Type type)
-        {
-            for (var t = type; t != null; t = t.BaseType) if (t.Name == "TMP_Text") return true;
-            return false;
-        }
+        /// <summary>Sets a mark's label's words (<see cref="DungeonMapWords.MarkLabel"/>, in the accent, or its name alone), as the game's pin names are set (<see cref="PinNames"/>).</summary>
+        private static void SetText(GameObject label, string said) => PinNames.SetText(label, said);
 
         /// <summary>The mark standing at a point of the screen, read with no camera as the game's map and tips read the pointer; none.</summary>
         private static Mark MarkAt(Vector2 screen)
@@ -588,14 +569,8 @@ namespace Scry
             picture.raycastTarget = false;
             var mark = new Mark { Made = made, Rect = rect, Picture = picture };
             // Its words, a copy of the game's own pin name on the same layer, hidden until the pointer rests on it.
-            var named = PinNamePrefab(map);
-            if (named != null)
-            {
-                mark.Label = Object.Instantiate(named, _layer);
-                mark.Label.name = "Scry dungeon mark name";
-                mark.LabelRect = mark.Label.transform as RectTransform;
-                mark.Label.SetActive(false);
-            }
+            mark.Label = PinNames.Make(map, _layer, "Scry dungeon mark name");
+            if (mark.Label != null) mark.LabelRect = mark.Label.transform as RectTransform;
             Marks.Add(mark);
             return mark;
         }
