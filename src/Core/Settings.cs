@@ -13,7 +13,7 @@ namespace Scry
     /// </summary>
     internal static class Settings
     {
-        private static ConfigEntry<KeyCode> _openKey;
+        private static ConfigEntry<KeyboardShortcut> _openKey;
         private static ConfigEntry<bool> _autoSpin;
         private static ConfigEntry<bool> _playOnSelect;
         private static ConfigEntry<bool> _lightDimmedRooms;
@@ -41,19 +41,16 @@ namespace Scry
         private static ConfigEntry<bool> _mapZoomOut, _mapSquares;
 
         /// <summary>
-        /// The key that opens the panel. One the game or the panel already uses for something
-        /// else (a click, Escape, the mouse's back and forward buttons) would open and close it
-        /// by accident, so F7 stands in for it, and the log says so once. The settings box sets it.
+        /// The key that opens the panel, without its modifiers (<see cref="OpenMods"/>). One the
+        /// game or the panel already uses for something else (a click, Escape, the mouse's back and
+        /// forward buttons) would open and close it by accident, so F7 stands in for it, alone, and
+        /// the log says so once. The settings card sets it (<see cref="SetOpenKey"/>).
         /// </summary>
         public static KeyCode OpenKey
         {
-            set
-            {
-                if (_openKey != null && OpensPanel(value)) _openKey.Value = value;
-            }
             get
             {
-                var key = _openKey?.Value ?? KeyCode.F7;
+                var key = _openKey?.Value.MainKey ?? KeyCode.F7;
                 if (OpensPanel(key)) return key;
                 if (_toldKey != key)
                 {
@@ -65,6 +62,46 @@ namespace Scry
         }
 
         private static KeyCode _toldKey = KeyCode.None;
+
+        /// <summary>The modifiers held with the key opening the panel; none where F7 stands in for a key it cannot be.</summary>
+        public static KeyMods OpenMods => _openKey != null && OpensPanel(_openKey.Value.MainKey) ? ModsOf(_openKey.Value.Modifiers) : KeyMods.None;
+
+        /// <summary>The key opening the panel as a player says it: "Shift+F7".</summary>
+        public static string OpenKeyName => OpenKeys.Name(OpenKey.ToString(), OpenMods);
+
+        /// <summary>The key opening the panel set, with its modifiers; one the game or the panel already uses is refused.</summary>
+        public static void SetOpenKey(KeyCode key, KeyMods mods)
+        {
+            if (_openKey == null || !OpensPanel(key)) return;
+            var held = new List<KeyCode>();
+            if ((mods & KeyMods.Control) != 0) held.Add(KeyCode.LeftControl);
+            if ((mods & KeyMods.Alt) != 0) held.Add(KeyCode.LeftAlt);
+            if ((mods & KeyMods.Shift) != 0) held.Add(KeyCode.LeftShift);
+            _openKey.Value = new KeyboardShortcut(key, held.ToArray());
+        }
+
+        /// <summary>The modifiers among keys, either side of the keyboard alike.</summary>
+        public static KeyMods ModsOf(IEnumerable<KeyCode> keys)
+        {
+            var mods = KeyMods.None;
+            foreach (var key in keys)
+            {
+                if (key == KeyCode.LeftShift || key == KeyCode.RightShift) mods |= KeyMods.Shift;
+                else if (key == KeyCode.LeftControl || key == KeyCode.RightControl) mods |= KeyMods.Control;
+                else if (key == KeyCode.LeftAlt || key == KeyCode.RightAlt || key == KeyCode.AltGr) mods |= KeyMods.Alt;
+            }
+            return mods;
+        }
+
+        /// <summary>The modifiers held now.</summary>
+        public static KeyMods HeldMods() => ModsOf(HeldModifierKeys());
+
+        private static IEnumerable<KeyCode> HeldModifierKeys()
+        {
+            foreach (var key in ModifierKeys) if (Input.GetKey(key)) yield return key;
+        }
+
+        private static readonly KeyCode[] ModifierKeys = { KeyCode.LeftShift, KeyCode.RightShift, KeyCode.LeftControl, KeyCode.RightControl, KeyCode.LeftAlt, KeyCode.RightAlt, KeyCode.AltGr };
 
         /// <summary>Whether a key may open the panel: none the game or the panel already uses for something else.</summary>
         public static bool OpensPanel(KeyCode key) =>
@@ -224,8 +261,8 @@ namespace Scry
             _config = config;
             ByKey.Clear();
             BindWorld(config);
-            _openKey = config.Bind("1 - General", "OpenKey", KeyCode.F7,
-                "Opens and closes the Scry panel. /scry in the chat does the same.");
+            _openKey = config.Bind("1 - General", "OpenKey", new KeyboardShortcut(KeyCode.F7),
+                "Opens and closes the Scry panel, with Shift, Ctrl or Alt held where it names them, as F7 + LeftShift; other keys held besides never stop it. /scry in the chat does the same.");
             _uiScale = config.Bind("1 - General", "PanelScale", 1f,
                 new ConfigDescription("Size of the panel and its text, on top of the automatic scaling by screen height.",
                     new AcceptableValueRange<float>(0.6f, 2f)));

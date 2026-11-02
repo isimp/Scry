@@ -79,7 +79,7 @@ namespace Scry
         public static readonly IReadOnlyList<SettingSection> Sections = new[]
         {
             new SettingSection("Panel",
-                Key("OpenKey", "Open Scry with", "The key that opens and closes the panel. /scry in the chat does the same."),
+                Key("OpenKey", "Open Scry with", "The key that opens and closes the panel, with Shift, Ctrl or Alt if you press it with them. /scry in the chat does the same."),
                 Slider("PanelScale", "Panel size", "How big the panel and its text are, on top of the scaling to your screen's height. The new size applies when you let go.",
                     SettingsWords.SmallestSize, SettingsWords.LargestSize, 0.05f, v => Math.Abs(v - 1f) < 0.001f ? "normal size" : Numbers.Amount(v) + " times"),
                 Switch("WalkWhileOpen", "Walk while open", "Your keys walk your character while the panel is open and you are not typing in it."),

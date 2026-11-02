@@ -46,7 +46,13 @@ namespace Scry
             }
             var e = Event.current;
             if (e.type != EventType.KeyDown || e.keyCode == KeyCode.None) return false;
-            if (e.keyCode != KeyCode.Escape && Settings.OpensPanel(e.keyCode)) Settings.OpenKey = e.keyCode;
+            // A modifier pressed alone waits for the key it goes with.
+            if (Settings.ModsOf(new[] { e.keyCode }) != KeyMods.None)
+            {
+                e.Use();
+                return true;
+            }
+            if (e.keyCode != KeyCode.Escape) Settings.SetOpenKey(e.keyCode, Settings.HeldMods());
             _keyWaiting = false;
             e.Use();
             return true;
@@ -212,7 +218,7 @@ namespace Scry
         /// <summary>The key opening the panel, sunken as a value read, and the button that waits for another.</summary>
         private static float KeyControl(Rect at)
         {
-            var keyName = _keyWaiting ? SettingsWords.Waiting : Settings.OpenKey.ToString();
+            var keyName = _keyWaiting ? SettingsWords.Waiting : Settings.OpenKeyName;
             var keyW = Mathf.Max(U(60f), Skin.Width(Skin.Value, keyName) + U(16f));
             GUI.Label(new Rect(at.x, at.y, keyW, at.height), keyName, Skin.Value);
             var press = new Rect(at.x + keyW + U(6f), at.y, Skin.Width(Skin.Button, SettingsWords.PressAKey) + U(12f), at.height);
@@ -319,7 +325,8 @@ namespace Scry
             if (entry == null || SettingLocked(row)) return;
             if (row.Control == SettingControl.Key)
             {
-                if (Enum.TryParse<KeyCode>(value, out var pressed)) Settings.OpenKey = pressed;
+                var shortcut = KeyboardShortcut.Deserialize(value);
+                Settings.SetOpenKey(shortcut.MainKey, Settings.ModsOf(shortcut.Modifiers));
                 return;
             }
             if (entry.SettingType == typeof(int) && Stored.TryExact(value, out var number))

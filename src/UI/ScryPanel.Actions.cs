@@ -276,7 +276,7 @@ namespace Scry
             var note = _actionNote;
             if (note == null && (Previews.InWorld || Previews.PinnedCount > 0))
             {
-                note = ActionWords.InWorldNote(Settings.OpenKey.ToString());
+                note = ActionWords.InWorldNote(Settings.OpenKeyName);
             }
             if (note != null)
             {

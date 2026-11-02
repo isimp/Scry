@@ -120,7 +120,8 @@ namespace Scry
 
             Step(Feature.OpenKey, "the key that opens the panel", "update key", () =>
             {
-                if (Input.GetKeyDown(Settings.OpenKey) && CanToggle() && !TypingIt(Settings.OpenKey)) Toggle();
+                var held = Settings.HeldMods();
+                if (OpenKeys.Fires(Input.GetKeyDown(Settings.OpenKey), Settings.OpenMods, held) && CanToggle() && !TypingIt(Settings.OpenKey, held)) Toggle();
             });
 
             // After the key, so the panel opened by it is handed what it shows in the same frame.
@@ -295,10 +296,10 @@ namespace Scry
         }
 
         /// <summary>A key that types a character does not close the panel while its search box has it.</summary>
-        private static bool TypingIt(KeyCode key)
+        private static bool TypingIt(KeyCode key, KeyMods held)
         {
             if (!IsOpen || !ScryPanel.SearchFocused) return false;
-            return (key >= KeyCode.Space && key <= KeyCode.Z) || (key >= KeyCode.Keypad0 && key <= KeyCode.KeypadEquals);
+            return OpenKeys.TypesText((key >= KeyCode.Space && key <= KeyCode.Z) || (key >= KeyCode.Keypad0 && key <= KeyCode.KeypadEquals), held);
         }
 
         /// <summary>

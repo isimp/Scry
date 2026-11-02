@@ -20,7 +20,7 @@ namespace Scry
         public const string ServerYours = "While you play alone or host, these are yours, and players joining your world play by them. A server you join decides them for its world.";
 
         public const string PressAKey = "Press a key";
-        public const string PressTip = "Press the key you want to open Scry with; Escape keeps the current one";
+        public const string PressTip = "Press the key you want to open Scry with, holding Shift, Ctrl or Alt with it if you like; Escape keeps the current one";
         public const string Waiting = "Press the key...";
         public const string Off = "Off";
         public const string On = "On";

@@ -83,6 +83,8 @@ namespace Scry
             }
             p.Check(tried > 0 && wrong.Count == 0, $"every setting the card sets takes each value its control offers ({Numbers.Count(tried)} tried)", string.Join("; ", wrong.Take(5)));
 
+            OpenKeyKept(p);
+
             // A section's reset brings back its defaults.
             var panel = SettingsCatalog.Sections.First(s => s.Name == "Panel");
             Settings.TooltipDelay = 2f;
@@ -128,6 +130,32 @@ namespace Scry
             var kept = _settingsBefore;
             SettingsAsTheyWere();
             p.Check(kept != null && kept.All(pair => Settings.Entry(pair.Key)?.GetSerializedValue() == pair.Value), "every setting is put back as it was");
+        }
+
+        /// <summary>
+        /// The key opening the panel as the config file holds it: a key alone, as older configs
+        /// wrote it, reads as it was; one with Shift reads with it; a mouse click is refused, as
+        /// the card's own way of setting it would refuse it. Put back after.
+        /// </summary>
+        private static void OpenKeyKept(Probe p)
+        {
+            var entry = Settings.Entry("OpenKey");
+            var row = SettingsCatalog.Sections.SelectMany(s => s.Rows).First(r => r.Control == SettingControl.Key);
+            if (entry == null)
+            {
+                p.Note("there is no open key in the config file");
+                return;
+            }
+            var was = entry.GetSerializedValue();
+            entry.SetSerializedValue("F7");
+            var alone = (Settings.OpenKey, Settings.OpenMods, Settings.OpenKeyName);
+            entry.SetSerializedValue("F7 + LeftShift");
+            var shifted = (Settings.OpenKey, Settings.OpenMods, Settings.OpenKeyName);
+            ScryPanel.SetSetting(row, "OpenKey", "Mouse0");
+            var refused = Settings.OpenKeyName;
+            entry.SetSerializedValue(was);
+            p.Check(alone == (KeyCode.F7, KeyMods.None, "F7") && shifted == (KeyCode.F7, KeyMods.Shift, "Shift+F7") && refused == "Shift+F7",
+                "the open key reads as an older config wrote it, takes Shift with it, and refuses a mouse click", $"{alone.Item3}, {shifted.Item3}, then {refused}");
         }
 
         /// <summary>The values a row's control offers, as the config file writes them: both ways of a switch or tick, each choice, a slider's ends.</summary>
