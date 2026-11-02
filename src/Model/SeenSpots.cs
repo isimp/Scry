@@ -249,6 +249,16 @@ namespace Scry
         public static bool Findable(bool location, Gathered gatheredBy, IEnumerable<string> gives) =>
             location || (gatheredBy != Gathered.None && gives.Any(item => !Everywhere.Contains(item)));
 
+        /// <summary>
+        /// Whether a thing that breaks is a deposit mined: the pickaxe's damage counts against it
+        /// and every other damage is turned away (<c>Destructible.m_damages</c>), as a tin or an
+        /// obsidian deposit; not a pot or a stump anything breaks.
+        /// </summary>
+        public static bool OnlyAPickaxeBreaks(Degree pickaxe, IEnumerable<Degree> others) =>
+            !TurnedAway(pickaxe) && others.All(TurnedAway);
+
+        private static bool TurnedAway(Degree degree) => degree == Degree.Immune || degree == Degree.Ignore;
+
         /// <summary>The spot nearest a point: how far, and how far east and north of the point; none where there is no spot.</summary>
         public static (float Distance, float Dx, float Dz)? Nearest(IReadOnlyList<(int X, int Z)> spots, float x, float z)
         {

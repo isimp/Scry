@@ -54,16 +54,28 @@ namespace Scry
             return deposit != null && SeenOnMap.Findable(false, Gathered.Mined, deposit.m_drops.Where(d => d.m_item != null).Select(d => d.m_item.name));
         }
 
-        /// <summary>What a deposit gives when mined: its own drops, or those of the broken form a whole deposit becomes; none for anything else.</summary>
+        /// <summary>What a deposit gives when mined: its own drops, those of the broken form a whole deposit becomes, or what one only a pickaxe breaks drops; none for anything else.</summary>
         private static DropTable DepositOf(GameObject prefab)
         {
             var mine5 = prefab.GetComponent<MineRock5>();
             if (mine5 != null) return mine5.m_dropItems;
             var mine = prefab.GetComponent<MineRock>();
             if (mine != null) return mine.m_dropItems;
-            var broken = prefab.GetComponent<Destructible>().OrNull()?.m_spawnWhenDestroyed;
-            return broken != null && broken.GetComponent<Destructible>() == null ? DepositOf(broken) : null;
+            var breaks = prefab.GetComponent<Destructible>();
+            if (breaks == null) return null;
+            var broken = breaks.m_spawnWhenDestroyed;
+            if (broken != null) return broken.GetComponent<Destructible>() == null ? DepositOf(broken) : null;
+            // A tin or obsidian deposit breaks whole under the pickaxe alone and drops what it gives.
+            var dropping = prefab.GetComponent<DropOnDestroyed>();
+            return dropping != null && OnlyAPickaxeBreaks(breaks.m_damages) ? dropping.m_dropWhenDestroyed : null;
         }
+
+        private static bool OnlyAPickaxeBreaks(HitData.DamageModifiers mods) =>
+            SeenOnMap.OnlyAPickaxeBreaks((Degree)(int)mods.m_pickaxe, new[]
+            {
+                (Degree)(int)mods.m_blunt, (Degree)(int)mods.m_slash, (Degree)(int)mods.m_pierce, (Degree)(int)mods.m_chop,
+                (Degree)(int)mods.m_fire, (Degree)(int)mods.m_frost, (Degree)(int)mods.m_lightning, (Degree)(int)mods.m_poison, (Degree)(int)mods.m_spirit,
+            });
 
         private static void Forget()
         {

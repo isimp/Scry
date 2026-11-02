@@ -205,6 +205,19 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ADepositOnlyAPickaxeBreaksIsMined()
+        {
+            // A tin or obsidian deposit: every damage but the pickaxe's is turned away (Destructible.m_damages).
+            var turned = new[] { Degree.Immune, Degree.Immune, Degree.Immune, Degree.Immune, Degree.Immune, Degree.Immune, Degree.Immune, Degree.Immune, Degree.Immune };
+            Assert.True(SeenOnMap.OnlyAPickaxeBreaks(Degree.Normal, turned));
+            Assert.True(SeenOnMap.OnlyAPickaxeBreaks(Degree.Weak, new[] { Degree.Ignore, Degree.Immune }));
+            // A pot or a stump anything breaks, or what nothing breaks, is no deposit.
+            Assert.False(SeenOnMap.OnlyAPickaxeBreaks(Degree.Normal, new[] { Degree.Normal, Degree.Immune }));
+            Assert.False(SeenOnMap.OnlyAPickaxeBreaks(Degree.Immune, turned));
+            Assert.False(SeenOnMap.OnlyAPickaxeBreaks(Degree.Ignore, new[] { Degree.Normal }));
+        }
+
+        [Fact]
         public void ForgettingSaysHowManyThingsWereForgottenOrThatNoneAreRead()
         {
             Assert.Equal("forgot where this character saw 12 things worth finding again in this world.", ConsoleWords.SpotsForgotten(12));

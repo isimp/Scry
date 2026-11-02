@@ -116,7 +116,7 @@ namespace Scry
         {
             foreach (var (name, findable, how) in new[]
             {
-                ("rock4_copper", true, "a copper deposit"), ("MineRock_Tin", true, "a tin deposit"), ("Pickable_Flint", true, "flint"),
+                ("rock4_copper", true, "a copper deposit"), ("MineRock_Tin", true, "a tin deposit"), ("MineRock_Obsidian", true, "an obsidian deposit"), ("Pickable_Flint", true, "flint"),
                 ("RaspberryBush", true, "a raspberry bush"), ("Pickable_Mushroom", true, "a mushroom"), ("silvervein", false, "a buried silver vein, which a Wishbone finds"),
                 ("Pickable_Stone", false, "a stone"), ("Pickable_Branch", false, "a branch"), ("Beech1", false, "a beech"), ("rock1", false, "a plain rock"),
             })

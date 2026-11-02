@@ -31,11 +31,10 @@ namespace Scry
             if (player == null || map == null || Game.m_noMap || CompendiumMap.World == null) p.Skip("there is no character, or no map in this world");
             PagesShowingSpots(p);
 
-            // A thousand spots on a grid around the character, ten metres apart, one where it stands.
+            // A thousand spots on a grid around the character, 25 metres apart, so each dot shows apart at the first zoom, one where it stands.
             const int many = 1000;
             var here = player.transform.position;
-            var spots = new List<(int X, int Z)>(many);
-            for (var i = 0; i < many; i++) spots.Add(((int)Mathf.Round(here.x) + (i % 40 - 20) * 10, (int)Mathf.Round(here.z) + (i / 40 - 12) * 10));
+            var spots = Grid(here, many, 25);
             _zoomBefore = map.LargeZoom;
             _modeBefore = map.m_mode;
             map.LargeZoom = SpotsZoom;
@@ -65,10 +64,11 @@ namespace Scry
                 $"strip at {Numbers.Point(strip.x, strip.y, 0)}, map at {(shown is Rect at ? Numbers.Point(at.x, at.y, 0) + " to " + Numbers.Point(at.xMax, at.yMax, 0) : "none")}");
             yield return Picture(p, "show on map, a thousand dots around you");
 
-            // Zoomed out the dots are smaller, and all still stand.
+            // Zoomed out the dots are smaller; shown on a grid 200 metres apart, kilometres across, so they stand clear of the pins round the character.
             var near = MapSpots.DotSizeForTest;
             map.LargeZoom = SeenOnMap.FarthestZoom;
-            yield return null;
+            MapSpots.Show(MadeUpSpots, "Self-test spots", Skin.KindColor(Kind.Resource), Grid(here, many, 200));
+            yield return Until(() => MapSpots.DotsShown > many / 2, 10);
             yield return null;
             var far = MapSpots.DotSizeForTest;
             p.Check(far > 0f && far < near, "zoomed out, the dots are drawn smaller", $"{Numbers.Amount(near, 1)} near, {Numbers.Amount(far, 1)} zoomed out");
@@ -111,6 +111,14 @@ namespace Scry
                 yield return Picture(p, "show on map, the copper deposits you saw");
             }
             ShowOnMapAsItWas();
+        }
+
+        /// <summary>Spots on a grid round a point, 40 across, so many a row, this many metres apart, one on the point.</summary>
+        private static List<(int X, int Z)> Grid(Vector3 here, int many, int apart)
+        {
+            var spots = new List<(int X, int Z)>(many);
+            for (var i = 0; i < many; i++) spots.Add(((int)Mathf.Round(here.x) + (i % 40 - 20) * apart, (int)Mathf.Round(here.z) + (i / 40 - 12) * apart));
+            return spots;
         }
 
         /// <summary>Which pages show spots, and by which kind: a deposit and its broken form by the whole one, a place by its own key, none for a tree or a dungeon's room.</summary>
