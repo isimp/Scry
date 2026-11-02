@@ -11,7 +11,9 @@ namespace Scry
     /// the joints itself, after the animator has posed them and before the film, over its own
     /// sea's surface and ground in place of the world's. It is bent in steps of its own
     /// (<see cref="TailBend.Step"/>) and shown part way between the last two, so its shape does not
-    /// change with how long the stage's frames take. Only what is shown is bent, not a raid's
+    /// change with how long the stage's frames take. Held swimming, it stops while one of its
+    /// attacks plays and sets off again after, as the game stops it once what it attacks is in
+    /// reach, so it rears and bites in place. Only what is shown is bent, not a raid's
     /// crowd or a place's creatures.
     /// </summary>
     internal static partial class Stage
@@ -37,6 +39,22 @@ namespace Scry
         private static float _tailSwimSpeed;
 
         private static bool _tailLivesInWater;
+
+        /// <summary>
+        /// How fast what is shown swims this moment, and how fast it gains speed
+        /// (<c>Character.m_swimAcceleration</c>): the game stops a creature once what it attacks
+        /// is in reach (<c>MonsterAI.StopMoving</c>) and sets it off again after, so it rears and
+        /// bites in place, its tail no longer streaming out.
+        /// </summary>
+        private static float _tailSpeed, _tailAcceleration;
+
+        /// <summary>The prefab shown, whose clips' attacks tell when it stops.</summary>
+        private static GameObject _tailPrefab;
+
+        /// <summary>The clip last looked at, whether the clips' attacks were known then, and whether it plays an attack.</summary>
+        private static AnimationClip _tailClip;
+
+        private static bool _tailClipKnown, _tailClipAttacks;
 
         /// <summary>Whether the joints were taken where the copy first stands, which the game takes as it wakes.</summary>
         private static bool _tailTaken;
@@ -94,6 +112,27 @@ namespace Scry
             TailJoints.Clear();
             _tailTaken = false;
             _tailCarried = 0f;
+            _tailPrefab = null;
+            _tailClip = null;
+            _tailClipKnown = _tailClipAttacks = false;
+        }
+
+        /// <summary>For the self-test: how fast what is shown swims this moment, in metres a second at size one.</summary>
+        [ForTest]
+        public static float TailSwimSpeed => _tailTaken ? _tailSpeed : 0f;
+
+        /// <summary>How fast what is shown is going toward: its swim speed while it swims, none while it attacks or does not swim.</summary>
+        private static float SwimTarget() => SeaHold.InWater(_sea.Held, _seaShown, _tailLivesInWater) && !AttackPlaying() ? _tailSwimSpeed : 0f;
+
+        /// <summary>Whether one of the creature's attacks plays on the stage, looked up once a clip starts and again until its clips are known.</summary>
+        private static bool AttackPlaying()
+        {
+            var clip = _subject != null ? _subject.GetComponent<ClipPlayer>().OrNull()?.Clip : null;
+            if (clip == _tailClip && _tailClipKnown) return _tailClipAttacks;
+            _tailClip = clip;
+            _tailClipKnown = clip == null || Previews.ClipsKnown(_tailPrefab, _subject);
+            _tailClipAttacks = clip != null && _tailClipKnown && Previews.AttackOfClip(_tailPrefab, _subject, clip.name) != null;
+            return _tailClipAttacks;
         }
 
         /// <summary>
@@ -117,7 +156,9 @@ namespace Scry
                 Radius = tail.m_tailRadius,
             };
             _tailSwimSpeed = SwimSpeed(prefab);
+            _tailAcceleration = SwimAcceleration(prefab);
             _tailLivesInWater = LivesInWater(prefab);
+            _tailPrefab = prefab;
             foreach (var joint in tail.m_tailJoints)
             {
                 var bone = Counterpart(prefab.transform, joint, _subject.transform);
@@ -132,6 +173,9 @@ namespace Scry
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static float SwimSpeed(GameObject prefab) => prefab.GetComponent<Character>().OrNull()?.m_swimSpeed ?? 0f;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static float SwimAcceleration(GameObject prefab) => prefab.GetComponent<Character>().OrNull()?.m_swimAcceleration ?? 0f;
 
         /// <summary>The copy's part standing where a part stands under the prefab's root, found child by child by name; null where there is none.</summary>
         private static Transform Counterpart(Transform root, Transform part, Transform copyRoot)
@@ -172,6 +216,8 @@ namespace Scry
                     joint.Rotation = joint.WasRotation = joint.Bone.rotation;
                     joint.Length = Vector3.Distance(joint.Bone.parent.position, joint.Bone.position) / scale;
                 }
+                // Shown swimming, as the game's always does, at its full speed.
+                _tailSpeed = SwimTarget();
                 _tailTaken = true;
             }
             var steps = TailBend.Steps(ref _tailCarried, Time.unscaledDeltaTime, out var share);
@@ -202,7 +248,8 @@ namespace Scry
             var dt = TailBend.Step;
             // The game bends the tail of a creature that always swims, its tail streaming out
             // behind; on the stage, where it stays put while told it swims, the water goes by it as fast.
-            var swim = SeaHold.InWater(_sea.Held, _seaShown, _tailLivesInWater) ? _tailSwimSpeed * scale : 0f;
+            _tailSpeed = TailBend.Eased(_tailSpeed, SwimTarget(), _tailAcceleration, dt, Time.fixedDeltaTime);
+            var swim = _tailSpeed * scale;
             var forward = V(_subject != null ? _subject.transform.forward : Vector3.forward);
             foreach (var joint in TailJoints)
             {

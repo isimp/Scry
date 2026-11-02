@@ -213,6 +213,42 @@ namespace Scry.Tests
             Assert.Equal(0f, carried);
         }
 
+        // The game stops a creature once what it attacks is in reach and starts it again after
+        // (MonsterAI.StopMoving, Character.UpdateSwimming): a swimmer's speed halves each physics
+        // step as it stops, and grows by half its acceleration each step as it starts again. A
+        // Serpent: 10 m/s, acceleration 0.2, steps of 0.02 s.
+
+        private static float SwimFor(float seconds, float speed, float target)
+        {
+            for (var t = 0f; t < seconds - 1e-4f; t += TailBend.Step) speed = TailBend.Eased(speed, target, 0.2f, TailBend.Step, 0.02f);
+            return speed;
+        }
+
+        [Fact]
+        public void ASwimmerStoppingToAttackComesToRestInATenthOfASecond()
+        {
+            Assert.InRange(SwimFor(0.05f, 10f, 0f), 1f, 3f);
+            Assert.True(SwimFor(0.2f, 10f, 0f) < 0.02f, $"{SwimFor(0.2f, 10f, 0f)} m/s after a fifth of a second");
+        }
+
+        [Fact]
+        public void ASwimmerSetOffAgainTakesTwoSecondsToFullSpeedAndNoMore()
+        {
+            // Half of 0.2 m/s gained each 0.02 s: five metres a second each second.
+            Assert.Equal(5f, SwimFor(1f, 0f, 10f), 1);
+            Assert.Equal(10f, SwimFor(2.1f, 0f, 10f), 3);
+            Assert.Equal(10f, SwimFor(5f, 0f, 10f), 3);
+            // At full speed it stays there.
+            Assert.Equal(10f, TailBend.Eased(10f, 10f, 0.2f, TailBend.Step, 0.02f), 5);
+        }
+
+        [Fact]
+        public void WithoutAPhysicsStepOrTimeTheSpeedIsWhatItWasOrWhereItGoes()
+        {
+            Assert.Equal(4f, TailBend.Eased(4f, 10f, 0.2f, 0f, 0.02f), 5);
+            Assert.Equal(10f, TailBend.Eased(4f, 10f, 0.2f, TailBend.Step, 0f), 5);
+        }
+
         [Fact]
         public void AShareOfTheWayBeyondAllOrNoneIsTakenAsAllOrNone()
         {

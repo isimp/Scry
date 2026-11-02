@@ -90,6 +90,20 @@ namespace Scry
             return steps;
         }
 
+        /// <summary>
+        /// A swimmer's speed after <paramref name="dt"/> seconds going toward a speed, as the game
+        /// eases a creature's (<c>Character.UpdateSwimming</c>), each physics step of
+        /// <paramref name="physicsStep"/> seconds: slowing, it goes half the way there; speeding
+        /// up, it gains half its acceleration (<c>m_swimAcceleration</c>), held at the speed it goes to.
+        /// </summary>
+        public static float Eased(float speed, float toward, float acceleration, float dt, float physicsStep)
+        {
+            if (physicsStep <= 0f) return toward;
+            var steps = dt / physicsStep;
+            if (toward < speed) return toward + (speed - toward) * (float)Math.Pow(0.5, steps);
+            return Math.Min(toward, speed + acceleration * 0.5f * steps);
+        }
+
         /// <summary>The way <paramref name="from"/> turned toward <paramref name="to"/>, by at most an angle in radians; both of length one.</summary>
         private static Vec3 Turned(Vec3 from, Vec3 to, float most)
         {

@@ -167,7 +167,8 @@ namespace Scry
         /// last the bite half through with its tail left as the animator poses it, to set beside
         /// the bent one. Played through once, how far its tail's joints stand from their parents at
         /// the most is noted, against how far they hung when it was shown, and kept short of 1.4
-        /// times through the long frames of its size change and pictures. Long, it opens showing
+        /// times through the long frames of its size change and pictures. Roaring, it stops in
+        /// place and swims on after, pictured rearing and coming down. Long, it opens showing
         /// its side across most of the picture, pictured so; a Troll after it opens from the front.
         /// </summary>
         private static IEnumerator SerpentAttacks(Probe p)
@@ -214,6 +215,8 @@ namespace Scry
             }
             p.Note($"swimming, its tail's joints stand at most {Numbers.Fixed(still, 2)} times as far from their parents as when shown; through its bite {Numbers.Fixed(most, 2)} times");
             _tailMost = most;
+            // Stopped for its bite, it takes two seconds to swim at full speed again.
+            yield return new Wait(2.5f);
 
             // Made twice as big while shown, the tail keeps its joints as far apart for its size: the
             // most of a second at each size, so a swing caught at one moment decides nothing.
@@ -229,6 +232,25 @@ namespace Scry
             p.Check(Mathf.Abs(grown - swimming) < 0.25f, "made twice as big while shown, its tail keeps its joints as far apart for its size",
                 $"at most {Numbers.Fixed(grown, 2)} times as far as when shown, swimming at its size {Numbers.Fixed(swimming, 2)}");
             _tailMost = Mathf.Max(_tailMost, Mathf.Max(swimming, grown));
+
+            // Roaring, it stops in place as the game stops it once what it roars at is in reach,
+            // and swims on after: pictured rearing and coming down, played through at its pace.
+            if (roar != null)
+            {
+                var swimmingBefore = Stage.TailSwimSpeed;
+                Previews.PlayClip(roar);
+                yield return Until(() => Previews.PlayingClip() == roar, 3);
+                yield return new Wait(roar.length * 0.4f);
+                var roaring = Stage.TailSwimSpeed;
+                yield return Picture(p, "a Serpent rearing 40% into its Rawr, stopped to roar");
+                yield return new Wait(roar.length * 0.4f);
+                yield return Picture(p, "a Serpent coming down near the end of its Rawr");
+                Previews.StopClip();
+                yield return new Wait(3f);
+                var after = Stage.TailSwimSpeed;
+                p.Check(swimmingBefore > 9f && roaring < 0.5f && after > 9f, "roaring it stops in place, and swims on after",
+                    $"{Numbers.Fixed(swimmingBefore, 1)} m/s before, {Numbers.Fixed(roaring, 1)} m/s roaring, {Numbers.Fixed(after, 1)} m/s three seconds after");
+            }
 
             foreach (var share in new[] { 0.25f, 0.5f, 0.75f }) yield return HeldAt(p, bite, share, "bent");
             if (roar != null) yield return HeldAt(p, roar, 0.5f, "bent");

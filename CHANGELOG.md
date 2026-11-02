@@ -4,7 +4,7 @@
 
 Pages open faster: a page answers the click at once and fills in over the next frames, and the stage stays smooth while its camera moves over a big dungeon.
 
-The stage's sea holds what lives in it: a Serpent swims at its depth and opens showing its side across the picture, a Leviathan rides the surface. Drakes, Moder and a raid's flyers show in flight.
+The stage's sea holds what lives in it: a Serpent swims at its depth, stops to bite and roar as it does in the world, and opens showing its side across the picture, a Leviathan rides the surface. Drakes, Moder and a raid's flyers show in flight.
 
 Under *Strict* every section ends saying what to do about what it left out, as "Meet 55 more sources of Copper" or "See it drop 6 items you've met", and `is:left` finds the pages with more to find out. Under *Loose* the title row reads like "3 of 6 met".
 
