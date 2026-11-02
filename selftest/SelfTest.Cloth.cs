@@ -47,9 +47,10 @@ namespace Scry
             yield return new Wait(2f);
             var dressed = CopyOf(mage);
             var hood = dressed != null && dressed.GetComponentsInChildren<SkinnedMeshRenderer>(true).Any(r => r.name == "Hood" && r.enabled);
-            var worn = dressed != null ? dressed.GetComponentsInChildren<MonoBehaviour>(true).Count(c => c != null && c.GetType().FullName.StartsWith("MagicaCloth2.", System.StringComparison.Ordinal)) : -1;
+            // Only cloth counts: the shapes the hood would rest against sit on the mage's own legs and stay.
+            var worn = dressed != null ? dressed.GetComponentsInChildren<MonoBehaviour>(true).Count(c => c != null && c.GetType().FullName == "MagicaCloth2.MagicaCloth") : -1;
             p.Check(hood && worn == 0, "a Charred mage wears its hood, which keeps no cloth of its own",
-                $"hood drawn {hood}, {Numbers.Count(worn)} cloth parts on it");
+                $"hood drawn {hood}, {Numbers.Count(worn)} cloths on the mage");
             yield return Picture(p, "a Charred mage in its hood");
         }
 
