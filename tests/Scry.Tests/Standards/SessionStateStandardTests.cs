@@ -19,6 +19,7 @@ namespace Scry.Tests
         private static readonly Dictionary<string, string> KeptAcrossWorlds = new Dictionary<string, string>
         {
             ["CatalogBuilder.OwnListsByType"] = "the effect lists each of the game's types holds, found once per type",
+            ["ClothLibrary.ByType"] = "what each cloth type of the game's cloth library has, found once per type",
             ["CharacterRecords._materials"] = "bound once to the game's own code, the same in every world",
             ["CharacterRecords._recipes"] = "bound once to the game's own code, the same in every world",
             ["CharacterRecords._stations"] = "bound once to the game's own code, the same in every world",

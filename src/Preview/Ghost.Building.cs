@@ -21,7 +21,6 @@ namespace Scry
             private readonly GameObject _copy;
             private readonly bool _falling;
             private readonly bool _keepColliders;
-            private readonly bool _skinned;
             private readonly List<KeyValuePair<int, Component>> _doomed = new List<KeyValuePair<int, Component>>();
             private Transform[] _parts;
             private int _next;
@@ -35,12 +34,11 @@ namespace Scry
             /// <summary>How many components the copy had, once noted.</summary>
             public int Parts { get; private set; }
 
-            public Stripping(GameObject copy, bool falling, bool keepColliders, bool skinned = false)
+            public Stripping(GameObject copy, bool falling, bool keepColliders)
             {
                 _copy = copy;
                 _falling = falling;
                 _keepColliders = keepColliders;
-                _skinned = skinned;
             }
 
             /// <summary>Notes what is to go, part by part, until the watch reaches the budget (no watch: all); true once all is noted, in the order it goes.</summary>
@@ -58,7 +56,7 @@ namespace Scry
                     {
                         Parts++;
                         if (component == null || _keepColliders && component is Collider) continue;
-                        var pass = PassFor(component, _falling, _skinned);
+                        var pass = PassFor(component, _falling);
                         if (pass != StripPolicy.Keep) _doomed.Add(new KeyValuePair<int, Component>(pass, component));
                     }
                     Found.Clear();

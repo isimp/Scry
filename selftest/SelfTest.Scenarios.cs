@@ -243,7 +243,7 @@ namespace Scry
             yield return S("the sea holds a Serpent at its swim depth, swimming, and a Leviathan at its surface, over a sea as deep as the world places them", SeaHolds, 90, SeaAsItWas, bearsSkips: true);
             yield return S("a Serpent's attacks on the stage, pictured part way with its tail bent and without", SerpentAttacks, 60, SerpentAttacksAsItWas, bearsSkips: true);
             yield return S("a Drake and Moder are told they fly and fly as high as the game keeps them, and so do a raid's flyers", FlyersFly, 60, StageAsItWas, bearsSkips: true);
-            yield return S("Gjall's tentacles, a Wolf's body, the Ulv's tail, Hildir's skirt and a Karve's sail keep their cloth, and it runs; a worn hood keeps none", ClothMoves, 60, StageAsItWas);
+            yield return S("Gjall's tentacles, a Wolf's body, the Ulv's tail, Hildir's skirt and a Karve's sail keep their cloth, and it runs; a worn hood's cloth runs on its wearer's bones", ClothMoves, 60, ClothAsItWas);
             yield return S("with its ground chosen automatically, a Karve floats on the sea, a Charred warlock stands in the Ashlands, an iron sword in the Swamp and a goblin raid on the Plains", ThingsStandWhereTheGameHasThem, 90, SeaAsItWas);
             _area = "Cost";
             yield return S("Scry costs next to nothing idling with the panel closed", IdleCost, 320);

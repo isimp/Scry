@@ -81,21 +81,37 @@ namespace Scry.Tests
             Assert.Equal(StripPolicy.Keep, StripPolicy.PassFor(Script(script), falling: true));
         }
 
-        // Cloth worn on the body (a cape, a dress, a Charred's hood) the game sets up as it puts
-        // it on: bound to the wearer's bones and the shapes it rests against (VisEquipment.SetupCloth).
-        // A copy skinned onto a body without that would build its cloth on bones it no longer
-        // follows, so it goes there and the part hangs as the body poses it.
+        // Cloth worn on the body (a cape, a dress, a Charred's hood) the game keeps and sets up as
+        // it puts it on: bound to the wearer's bones and the shapes it rests against
+        // (VisEquipment.SetupCloth). A copy skinned onto a body keeps it too, held from building
+        // itself on the part's own bones, which no longer move, until the wearer sets it up.
+        [Fact]
+        public void ClothOnAPartSkinnedOntoABodyWaitsForItsWearer()
+        {
+            var cloth = Script("MagicaCloth2.MagicaCloth");
+            Assert.True(StripPolicy.WaitsForWearer(cloth, skinned: true));
+            // A hat hung on the head or a staff in hand builds its own cloth, as the game's do.
+            Assert.False(StripPolicy.WaitsForWearer(cloth, skinned: false));
+        }
+
         [Theory]
-        [InlineData("MagicaCloth2.MagicaCloth")]
+        // The shapes cloth rests against build nothing of their own.
         [InlineData("MagicaCloth2.MagicaCapsuleCollider")]
         [InlineData("MagicaCloth2.MagicaSphereCollider")]
         [InlineData("MagicaCloth2.MagicaPlaneCollider")]
-        public void ClothOnAPartSkinnedOntoABodyGoes(string script)
+        // A mod's script named as the cloth, in its own namespace or none.
+        [InlineData("SomeMod.MagicaCloth")]
+        [InlineData("MagicaCloth")]
+        public void OnlyTheClothItselfWaitsForItsWearer(string script)
         {
-            Assert.Equal(StripPolicy.ScriptsPass, StripPolicy.PassFor(Script(script), skinned: true));
-            // What else a skinned part keeps, it keeps.
-            Assert.Equal(StripPolicy.Keep, StripPolicy.PassFor(Script("LightFlicker"), skinned: true));
-            Assert.Equal(StripPolicy.Keep, StripPolicy.PassFor(Engine("SkinnedMeshRenderer"), skinned: true));
+            Assert.False(StripPolicy.WaitsForWearer(Script(script), skinned: true));
+        }
+
+        [Fact]
+        public void TheEnginesOwnClothBuildsNothingToWaitFor()
+        {
+            Assert.False(StripPolicy.WaitsForWearer(Engine("Cloth"), skinned: true));
+            Assert.False(StripPolicy.WaitsForWearer(new ComponentFacts("MagicaCloth2.MagicaCloth"), skinned: true));
         }
 
         [Theory]

@@ -148,17 +148,24 @@ namespace Scry
         /// <summary>The cloth physics' scripts copies keep, by full name.</summary>
         public static IEnumerable<string> KeptClothNames => KeptCloth;
 
+        /// <summary>The cloth itself, which builds; the others are the shapes it rests against.</summary>
+        private const string ClothName = "MagicaCloth2.MagicaCloth";
+
         /// <summary>
-        /// Whether a component stays, and if not, in which pass it goes. A part copied to be
-        /// <paramref name="skinned"/> onto a body loses its cloth: the game binds worn cloth to the
-        /// wearer's bones and the shapes it rests against as it puts it on (<c>VisEquipment.SetupCloth</c>),
-        /// and built without that it would follow bones the part no longer moves with.
+        /// Whether a kept cloth is held from building itself as its copy wakes, for the wearer to
+        /// set up: on a part copied to be <paramref name="skinned"/> onto a body, which the game
+        /// binds to the wearer's bones and the shapes it rests against as it puts it on
+        /// (<c>VisEquipment.SetupCloth</c>). Built on its own it would follow the part's own bones,
+        /// which no longer move. A hat hung on the head or a staff in hand builds its own.
         /// </summary>
-        public static int PassFor(ComponentFacts facts, bool falling = false, bool skinned = false)
+        public static bool WaitsForWearer(ComponentFacts facts, bool skinned) => skinned && facts.IsScript && facts.TypeName == ClothName;
+
+        /// <summary>Whether a component stays, and if not, in which pass it goes.</summary>
+        public static int PassFor(ComponentFacts facts, bool falling = false)
         {
             var name = facts.TypeName ?? "";
 
-            if (facts.IsScript) return KeptScripts.Contains(name) || !skinned && KeptCloth.Contains(name) ? Keep : ScriptsPass;
+            if (facts.IsScript) return KeptScripts.Contains(name) || KeptCloth.Contains(name) ? Keep : ScriptsPass;
             if (facts.IsJoint) return falling ? Keep : JointsPass;
             if (falling && KeptFalling.Contains(name)) return Keep;
             return KeptEngine.Contains(name) ? Keep : RestPass;

@@ -399,7 +399,7 @@ namespace Scry
             ("Character", "UpdateSwimming", 1, 0x0FCF0647, Feature.TailBentOnStage),
             ("MonsterAI", "UpdateAI", 1, 0xF625E201, Feature.TailBentOnStage),
             ("Humanoid", "GetAttackSpeedFactorMovement", 0, 0xF2D12069, Feature.TailBentOnStage),
-            ("VisEquipment", "SetupCloth", 1, 0x085C561E, Feature.ClothMovingOnCopies),
+            ("VisEquipment", "SetupCloth", 1, 0x085C561E, Feature.WornClothMoving),
             ("BaseAI", "MoveTo", 4, 0x3D65CBA8, Feature.FlyersHighOnStage),
             ("GameCamera", "GetCameraPosition", 3, 0x25D43903, Feature.SeaHoldsOnStage),
             ("Leviathan", "FixedUpdate", 0, 0xD1B2386F, Feature.SeaHoldsOnStage),
@@ -552,6 +552,13 @@ namespace Scry
             {
                 Each($"script {script}", () => list.Add($"script {script}", Feature.ClothMovingOnCopies, ClothType(script) != null ? Found.Present : Found.Missing));
             }
+            Each("VisEquipment.m_clothColliders", () => Member(list, "VisEquipment", "m_clothColliders", Feature.WornClothMoving));
+            Each("worn cloth's setup", () =>
+            {
+                var cloth = ClothType("MagicaCloth2.MagicaCloth");
+                if (cloth == null) list.Add("MagicaCloth2.MagicaCloth", Feature.WornClothMoving, Found.Missing);
+                else foreach (var (name, found) in ClothLibrary.Of(cloth).Members()) list.Add(name, Feature.WornClothMoving, found ? Found.Present : Found.Missing);
+            });
             foreach (var (_, effect) in CombatWords.DamageEffects)
             {
                 Each($"status effect {effect}", () =>

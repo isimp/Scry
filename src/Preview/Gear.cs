@@ -192,6 +192,7 @@ namespace Scry
             var left = vis.m_leftHand != null ? Looks.Twin(root, copy.transform, vis.m_leftHand) : null;
             var head = vis.m_helmet != null ? Looks.Twin(root, copy.transform, vis.m_helmet) : null;
             var body = vis.m_bodyModel != null ? Looks.Twin(root, copy.transform, vis.m_bodyModel.transform).OrNull()?.GetComponent<SkinnedMeshRenderer>() : null;
+            List<Component> clothColliders = null;
 
             var usedRight = false;
             var usedLeft = false;
@@ -209,7 +210,11 @@ namespace Scry
                 GameObject worn = null;
                 if (skin)
                 {
-                    if (body != null) worn = Skin(item, part, body, copy.layer);
+                    if (body != null)
+                    {
+                        if (clothColliders == null && !Guard.Run(Feature.WornClothMoving, "worn cloth's shapes", () => Cloth.WearerColliders(vis, root, copy.transform), out clothColliders)) clothColliders = new List<Component>();
+                        worn = Skin(item, part, body, copy.layer, clothColliders);
+                    }
                 }
                 else
                 {
@@ -338,14 +343,18 @@ namespace Scry
             if (model.m_baseMaterial != null && (body.sharedMaterial == null || body.sharedMaterials.Length == 0)) body.sharedMaterial = model.m_baseMaterial;
         }
 
-        /// <summary>Hangs a skinned part (armour, cape) on the body's own bones.</summary>
-        private static GameObject Skin(GameObject item, GameObject part, SkinnedMeshRenderer body, int layer)
+        /// <summary>
+        /// Hangs a skinned part (armour, cape) on the body's own bones, and sets up its cloth on
+        /// them, resting against the body's <paramref name="clothColliders"/>, as the game does.
+        /// </summary>
+        private static GameObject Skin(GameObject item, GameObject part, SkinnedMeshRenderer body, int layer, List<Component> clothColliders)
         {
-            // Its cloth goes as it is copied: the game binds worn cloth to the wearer as it puts it on (StripPolicy.PassFor).
+            // Its cloth is held from building itself on the part's own bones as it wakes (Cloth.Hold).
             var worn = Hang(item, part, body.transform.parent, layer, skinned: true);
             if (worn == null) return null;
 
             var bones = body.bones;
+            var leftOff = false;
             foreach (var renderer in worn.GetComponentsInChildren<SkinnedMeshRenderer>(true))
             {
                 // Armour made for another skeleton cannot be bound to this one; it is left off
@@ -355,6 +364,7 @@ namespace Scry
                 {
                     Log.Note($"Scry left {part.name} off: made for {Numbers.Count(mesh.bindposes.Length)} bones, the body has {Numbers.Count(bones.Length)}.");
                     renderer.enabled = false;
+                    leftOff = true;
                     continue;
                 }
 
@@ -362,6 +372,9 @@ namespace Scry
                 renderer.bones = bones;
                 renderer.updateWhenOffscreen = true;
             }
+
+            // A part left off keeps its cloth held, unbuilt.
+            if (!leftOff) Cloth.Wear(worn, body, clothColliders);
             return worn;
         }
 
