@@ -820,11 +820,12 @@ namespace Scry
             var followed = grabbed is Vector3 held ? Stage.PictureOf(held) : null;
             p.Check(followed is Vector2 now && (now - to).magnitude < 0.02f, "a drag with the right button keeps what was grabbed under the pointer",
                 $"{(followed is Vector2 f ? Figures.Point(f, 3) : "not in view")} for {Figures.Point(to, 3)}");
-            // Filmed lighter while the camera moved, whole again once it holds still; a fast stage always as it is.
+            // Filmed lighter while the camera moved where its still film takes as long as LighterFilmFromMs says, whole again once it holds still; a fast stage always as it is.
+            var slow = StageFilm.Lighter(true, false, Stage.StillFilmMs, Settings.LighterFilmFromMs);
             yield return Until(() => !Stage.FilmedInMotion && !Stage.Gliding, 2);
             if (Settings.StageQuality == StageQuality.Full)
-                p.Check(lighter && !Stage.FilmedInMotion, "moved, the stage is filmed lighter, and whole again once the camera holds still",
-                    $"lighter while moving: {lighter}, whole after: {!Stage.FilmedInMotion}");
+                p.Check(lighter == slow && !Stage.FilmedInMotion, slow ? "moved, the stage slow to film is filmed lighter, and whole again once the camera holds still" : "moved, the stage quick to film stays whole",
+                    $"lighter while moving: {lighter}, its still film {Numbers.Fixed(Stage.StillFilmMs, 1)} ms against {Numbers.Amount(Settings.LighterFilmFromMs, 1)}, whole after: {!Stage.FilmedInMotion}");
 
             // With the roof on, the wheel zooms toward what is under the pointer as well.
             Stage.OpenLevel(Stage.FloorHeights.Count);

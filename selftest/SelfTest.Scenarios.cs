@@ -234,6 +234,7 @@ namespace Scry
             yield return S("a place's creatures stand on the stage with it", PlaceCreatures, 60, bearsSkips: true);
             yield return S("the stage's camera looks at the floor opened, zooms toward the pointer and drags with it", CameraMoves, 90, LightsAsTheyWere, bearsSkips: true);
             yield return S("the world's lights stay off the stage", WorldLightsOff, 20);
+            yield return S("a stage quick to film stays sharp while its camera turns and spins", QuickStageStaysSharp, 20);
             yield return S("the Ground backdrop lays each biome's own ground", GroundBackdrop, 120, bearsSkips: true);
             _area = "Stage and previews";
             yield return S("a meadow's grass grows out to where its ground fades, a big creature, a raid and a camp stand in it, and what lies low stays in view", GroundGrass, 120, GroundAsItWas);

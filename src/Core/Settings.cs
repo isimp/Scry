@@ -26,7 +26,7 @@ namespace Scry
         private static ConfigEntry<bool> _lookWithRightMouse;
         private static ConfigEntry<float> _tooltipDelay;
         private static ConfigEntry<int> _recentCount;
-        private static ConfigEntry<float> _spinSpeed;
+        private static ConfigEntry<float> _spinSpeed, _lighterFilmFrom;
         private static ConfigEntry<bool> _readLocations;
         private static ConfigEntry<bool> _dungeonMarks;
         private static ConfigEntry<StageQuality> _stageQuality;
@@ -100,6 +100,9 @@ namespace Scry
 
         /// <summary>How the stage is filmed: whole, or faster for a weaker machine (<see cref="Scry.StageQuality"/>).</summary>
         public static StageQuality StageQuality { get => _stageQuality?.Value ?? StageQuality.Full; set => Set(_stageQuality, value); }
+
+        /// <summary>From how many milliseconds a still film of the stage takes it is filmed lighter while its camera moves (<see cref="StageFilm.Lighter"/>).</summary>
+        public static float LighterFilmFromMs { get => Mathf.Clamp(_lighterFilmFrom?.Value ?? StageFilm.LighterFromMs, 0f, StageFilm.LighterNeverMs); set => Set(_lighterFilmFrom, Mathf.Clamp(value, 0f, StageFilm.LighterNeverMs)); }
 
         /// <summary>Whether the notice under the header tells what the character learned, else the Learned tab alone does.</summary>
         public static bool NewsNotice { get => _newsNotice?.Value ?? true; set => Set(_newsNotice, value); }
@@ -237,6 +240,9 @@ namespace Scry
                 "Plays a sound as soon as it is selected, so the list can be auditioned with the arrow keys.");
             _stageQuality = config.Bind("2 - Preview", "StageQuality", StageQuality.Full,
                 "How the stage is drawn. Full draws it at the panel's own size, with its grass, and with the lights below a dungeon's cut as LightDimmedRooms says. Fast draws it at half size, without grass or those lights, for a big dungeon on a weaker machine.");
+            _lighterFilmFrom = config.Bind("2 - Preview", "LighterFilmFromMs", StageFilm.LighterFromMs,
+                new ConfigDescription("While the preview's camera moves (turned, zoomed, dragged, spinning or settling on what it shows), draws a stage whose last still picture took at least this many milliseconds at three quarters of its size with softer edges, so a big dungeon moves smoothly; it is drawn whole again as soon as the camera holds still. A creature or an item takes a millisecond or two and stays sharp. 0 draws every moving stage lighter, 1,000 none. StageQuality Fast draws it at half size always.",
+                    new AcceptableValueRange<float>(0f, StageFilm.LighterNeverMs)));
             _lightDimmedRooms = config.Bind("2 - Preview", "LightDimmedRooms", false,
                 "Lets the rooms shown dimmed below a dungeon's opened floor keep their own lights, as the game lights them. Off, only the stage's light reaches them, and a big dungeon is drawn in about half the time.");
             _logPreviews = config.Bind("3 - Diagnostics", "LogPreviews", false,

@@ -88,6 +88,7 @@ namespace Scry
             {
                 _lastShown = entry;
                 ResetView();
+                ForgetStillFilm();
             }
             if (!IsStaged(entry) || !(entry.Source is GameObject || entry.Source is StatusEffect || entry.Source is PlaceSource || entry.Source is RandomEvent)) return;
             if (!Ensure()) return;
