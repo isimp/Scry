@@ -71,8 +71,8 @@ namespace Scry
                     if (floor > 0) p.Note($"the milestone floor is {Numbers.Count(floor)}, which works the tiers out too, so this does not show the stage working them out itself");
                 }
                 Select(entry);
-                // Tiers are worked out on a worker; the ground follows once they are in.
-                yield return Until(() => CopyOf(entry) != null && Stage.HomeShown == biome, 20);
+                // Tiers are worked out on a worker; the ground follows once they are in, laid as the stage next films.
+                yield return Until(() => CopyOf(entry) != null && Stage.HomeShown == biome && Stage.GroundUnderfoot == biome, 20);
                 p.Check(Stage.HomeShown == biome && Stage.GroundUnderfoot == biome, $"{why}: {entry.Name} on {biome}",
                     $"home {Stage.HomeShown}, ground {Stage.GroundUnderfoot ?? "none"}");
                 yield return Picture(p, $"{entry.Name} where it stands");
