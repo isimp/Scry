@@ -67,6 +67,32 @@ namespace Scry.Tests
             Assert.Equal(StripPolicy.Keep, StripPolicy.PassFor(Script(script)));
         }
 
+        // Gjall's tentacles, a Wolf's body, the Ulv's and Neck's tails, a Seeker's jiggling bones,
+        // Hildir's skirt and a ship's sail move by the cloth physics the game ships (MagicaCloth 2),
+        // which lives on the prefab as scripts; stripped, they hang stiff in their resting shape.
+        [Theory]
+        [InlineData("MagicaCloth2.MagicaCloth")]
+        [InlineData("MagicaCloth2.MagicaCapsuleCollider")]
+        [InlineData("MagicaCloth2.MagicaSphereCollider")]
+        [InlineData("MagicaCloth2.MagicaPlaneCollider")]
+        public void ACopyKeepsTheClothPhysicsItsPrefabMovesWith(string script)
+        {
+            Assert.Equal(StripPolicy.Keep, StripPolicy.PassFor(Script(script)));
+            Assert.Equal(StripPolicy.Keep, StripPolicy.PassFor(Script(script), falling: true));
+        }
+
+        [Theory]
+        // A wind zone blows every cloth around it, the settings set the cloth of the whole world.
+        [InlineData("MagicaCloth2.MagicaWindZone")]
+        [InlineData("MagicaCloth2.MagicaSettings")]
+        // A mod's script named as the cloth, in its own namespace.
+        [InlineData("SomeMod.MagicaCloth")]
+        [InlineData("MagicaCloth")]
+        public void WhatActsOnTheWholeWorldsClothOrOnlySharesItsNameGoes(string script)
+        {
+            Assert.Equal(StripPolicy.ScriptsPass, StripPolicy.PassFor(Script(script)));
+        }
+
         [Fact]
         public void ALightStaysOnFarFromThePlayer()
         {

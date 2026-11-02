@@ -80,6 +80,22 @@ namespace Scry
         };
 
         /// <summary>
+        /// The cloth physics the game ships (MagicaCloth 2), which moves Gjall's tentacles, a
+        /// Wolf's body, the Ulv's and Neck's tails, a Seeker's jiggling bones, Hildir's skirt and a
+        /// ship's sail as their prefabs carry it: the cloth and the shapes it rests against. It
+        /// builds itself as the copy wakes, needs no network view, and on a copy simulates always,
+        /// as it follows the animator's culling, which copies set to animate always; no prefab of
+        /// the game culls it by distance. Its wind zone and settings act on the whole world's cloth and go.
+        /// </summary>
+        private static readonly HashSet<string> KeptCloth = new HashSet<string>
+        {
+            "MagicaCloth2.MagicaCloth",
+            "MagicaCloth2.MagicaCapsuleCollider",
+            "MagicaCloth2.MagicaSphereCollider",
+            "MagicaCloth2.MagicaPlaneCollider",
+        };
+
+        /// <summary>
         /// What a copy that falls keeps as well: its bodies, their colliders and the joints that
         /// hold them together, so a ragdoll slumps and the parts of a broken piece tumble. Where
         /// such a copy stands, its colliders only meet the ground, never a player or a creature.
@@ -129,12 +145,15 @@ namespace Scry
         /// <summary>The game's scripts copies keep, by name.</summary>
         public static IEnumerable<string> KeptScriptNames => KeptScripts;
 
+        /// <summary>The cloth physics' scripts copies keep, by full name.</summary>
+        public static IEnumerable<string> KeptClothNames => KeptCloth;
+
         /// <summary>Whether a component stays, and if not, in which pass it goes.</summary>
         public static int PassFor(ComponentFacts facts, bool falling = false)
         {
             var name = facts.TypeName ?? "";
 
-            if (facts.IsScript) return KeptScripts.Contains(name) ? Keep : ScriptsPass;
+            if (facts.IsScript) return KeptScripts.Contains(name) || KeptCloth.Contains(name) ? Keep : ScriptsPass;
             if (facts.IsJoint) return falling ? Keep : JointsPass;
             if (falling && KeptFalling.Contains(name)) return Keep;
             return KeptEngine.Contains(name) ? Keep : RestPass;

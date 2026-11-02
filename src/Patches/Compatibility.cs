@@ -546,6 +546,10 @@ namespace Scry
             {
                 Each($"script {script}", () => list.Add($"script {script}", Feature.KeptScript(script), GameType(script) != null ? Found.Present : Found.Missing));
             }
+            foreach (var script in StripPolicy.KeptClothNames)
+            {
+                Each($"script {script}", () => list.Add($"script {script}", Feature.ClothMovingOnCopies, ClothType(script) != null ? Found.Present : Found.Missing));
+            }
             foreach (var (_, effect) in CombatWords.DamageEffects)
             {
                 Each($"status effect {effect}", () =>
@@ -577,7 +581,17 @@ namespace Scry
         private static Type GameType(string name) =>
             typeof(ZNetScene).Assembly.GetType(name, false) ?? typeof(ZInput).Assembly.GetType(name, false) ?? typeof(Localization).Assembly.GetType(name, false);
 
-        private const BindingFlags All = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+        /// <summary>A type of the cloth physics the game ships, from its own library (<c>MagicaClothV2</c>); null where it is not loaded.</summary>
+        private static Type ClothType(string name)
+        {
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                if (assembly.GetName().Name == "MagicaClothV2") return assembly.GetType(name, false);
+            }
+            return null;
+        }
+
+        private const BindingFlags All =BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
 
         private static void Member(Checklist list, string typeName, string name, Feature feature)
         {
