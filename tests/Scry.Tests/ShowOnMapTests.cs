@@ -131,17 +131,47 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void ARingedDotIsMostOfAPinNearAndHalfOneZoomedOut()
+        public void ARingedDotIsAPinAndAHalfNearAndAWholePinZoomedOut()
         {
             // The game's large map zooms from 0.01 (nearest) to 1 (the whole world); its pins are 48 across (Minimap.m_pinSizeLarge).
             var near = SeenOnMap.DotSize(48f, 0.01f);
             var middle = SeenOnMap.DotSize(48f, 0.1f);
             var far = SeenOnMap.DotSize(48f, 1f);
-            Assert.Equal(38.4f, near, 3);
-            Assert.Equal(24f, far, 3);
+            Assert.Equal(72f, near, 3);
+            Assert.Equal(48f, far, 3);
             Assert.True(near > middle && middle > far);
             Assert.Equal(far, SeenOnMap.DotSize(48f, 5f));
             Assert.Equal(near, SeenOnMap.DotSize(48f, 0.001f));
+        }
+
+        // The game's map: 2,048 pixels of 12 m, 24,576 m across; its large window 1.6 times as wide as tall.
+        private const float MapMetres = 24576f, Aspect = 1.6f;
+
+        [Fact]
+        public void TheMapOpensAsItIsWhereTheNearestMarksAreInView()
+        {
+            // At zoom 0.1 the window reaches 1,229 m up and down, 1,966 m to either side.
+            Assert.Equal(0.1f, SeenOnMap.FitZoom(0.1f, new[] { (300f, 200f), (-800f, 500f), (100f, -900f) }, MapMetres, Aspect), 4);
+            // None to hold: as it is.
+            Assert.Equal(0.1f, SeenOnMap.FitZoom(0.1f, new (float, float)[0], MapMetres, Aspect), 4);
+        }
+
+        [Fact]
+        public void TheMapZoomsOutJustFarEnoughToHoldTheNearestMarks()
+        {
+            // 3,000 m east needs the window 6,000 m wide: 0.1526 of the map's width at 1.6 to one, with a margin of 15%.
+            Assert.Equal(0.1755f, SeenOnMap.FitZoom(0.1f, new[] { (3000f, 0f) }, MapMetres, Aspect), 4);
+            // 3,000 m north needs it 6,000 m tall.
+            Assert.Equal(0.2808f, SeenOnMap.FitZoom(0.1f, new[] { (0f, -3000f) }, MapMetres, Aspect), 4);
+            // The farthest of the nearest three decides; one far beyond them does not.
+            Assert.Equal(0.2808f, SeenOnMap.FitZoom(0.1f, new[] { (20000f, 0f), (0f, 3000f), (100f, 0f), (0f, 50f) }, MapMetres, Aspect), 4);
+        }
+
+        [Fact]
+        public void TheMapNeverZoomsInNorPastTheWholeWorld()
+        {
+            Assert.Equal(0.5f, SeenOnMap.FitZoom(0.5f, new[] { (10f, 10f) }, MapMetres, Aspect), 4);
+            Assert.Equal(SeenOnMap.FarthestZoom, SeenOnMap.FitZoom(0.1f, new[] { (30000f, 0f) }, MapMetres, Aspect), 4);
         }
 
         [Fact]

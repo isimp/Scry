@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using HarmonyLib;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -185,7 +186,7 @@ namespace Scry
             var spots = SeenSpotsKeeper.Of(kind);
             var squares = SquaresOf(entry, spots);
             var note = entry.Kind == Kind.Location && squares.Count == 0 ? SquaresNote() : null;
-            Show(kind, named.ShownName, Skin.KindColor(entry.Kind), spots, squares, note);
+            Show(kind, named.ShownName, Skin.MapDot(entry.Kind), spots, squares, note);
         }
 
         /// <summary>
@@ -206,8 +207,58 @@ namespace Scry
             _strip = nearest is (float away, float dx, float dz)
                 ? SpotWords.Strip(name, spots.Count, away, SpotWords.Direction(dx, dz), more, note)
                 : SpotWords.Strip(name, spots.Count, null, null, more, note);
-            Minimap.instance.OrNull()?.SetMapMode(Minimap.MapMode.Large);
+            var map = Minimap.instance;
+            if (map == null) return;
+            // Opened, the game centres the map on the character; already open, it is centred here, as the map key leaves it panned.
+            if (map.m_mode == Minimap.MapMode.Large) MapOffset(map) = Vector3.zero;
+            map.SetMapMode(Minimap.MapMode.Large);
+            if (player != null) FitZoom(map, player.transform.position, spots, squares);
         }
+
+        /// <summary>How far the large map is panned from the character (<c>Minimap.m_mapOffset</c>).</summary>
+        private static readonly AccessTools.FieldRef<Minimap, Vector3> MapOffset = AccessTools.FieldRefAccess<Minimap, Vector3>("m_mapOffset");
+
+        /// <summary>
+        /// The large map's zoom before a kind was shown zoomed out, and the zoom it was shown at,
+        /// the one put back as the map closes while the other still stands; none while it was
+        /// left as it was.
+        /// </summary>
+        private static float? _zoomBefore;
+        private static float _zoomFitted;
+
+        /// <summary>
+        /// The large map, opened centred on the character, zoomed out just far enough to hold the
+        /// nearest of the spots and squares shown (<see cref="SeenOnMap.FitZoom"/>), its zoom before
+        /// kept to be put back as the map closes.
+        /// </summary>
+        private static void FitZoom(Minimap map, Vector3 at, IReadOnlyList<(int X, int Z)> spots, IReadOnlyList<(int X, int Z, int Left)> squares)
+        {
+            var marks = new List<(float Dx, float Dz)>(spots.Count + squares.Count);
+            foreach (var (x, z) in spots) marks.Add((x - at.x, z - at.z));
+            foreach (var (x, z, _) in squares) marks.Add(((x + 0.5f) * PlaceSquares.Metres - at.x, (z + 0.5f) * PlaceSquares.Metres - at.z));
+            var area = map.m_mapImageLarge != null ? map.m_mapImageLarge.rectTransform.rect : default;
+            var aspect = area.height > 0f ? area.width / area.height : 1f;
+            var zoom = SeenOnMap.FitZoom(map.LargeZoom, marks, map.m_textureSize * map.m_pixelSize, aspect);
+            if (zoom <= map.LargeZoom) return;
+            if (_zoomBefore == null) _zoomBefore = map.LargeZoom;
+            map.LargeZoom = zoom;
+            _zoomFitted = map.LargeZoom;
+        }
+
+        /// <summary>
+        /// The zoom the map had before a kind was shown zoomed out, back once the map is closed, so
+        /// the map key opens it as it was left; a zoom the player chose since stands.
+        /// </summary>
+        private static void PutZoomBack(Minimap map)
+        {
+            if (_zoomBefore == null || map == null) return;
+            if (Mathf.Approximately(map.LargeZoom, _zoomFitted)) map.LargeZoom = _zoomBefore.Value;
+            _zoomBefore = null;
+        }
+
+        /// <summary>The colour the dots stand in now, for the self-test.</summary>
+        [Diagnostic]
+        public static Color ColourShownForTest => _colour;
 
         public static void Hide()
         {
@@ -225,6 +276,7 @@ namespace Scry
             _kindOf = null;
             _countedFor = default;
             _counted = 0;
+            _zoomBefore = null;
             MapSquares.Forget();
         }
 
@@ -246,6 +298,7 @@ namespace Scry
         {
             var map = Minimap.instance;
             var large = LargeOpen;
+            if (!large) PutZoomBack(map);
             if (Showing.Showing) Showing.Tick(large, CompendiumMap.World);
             if (!Showing.Showing || !large)
             {
@@ -263,7 +316,7 @@ namespace Scry
             if (_holder == null) return;
             if (!_holder.gameObject.activeSelf) _holder.gameObject.SetActive(true);
             // The squares under the dots, placed as the map moves, as the dots are; the other pins dimmed.
-            MapSquares.Update(map, _colour);
+            MapSquares.Update(map);
             MapDim.Hold(map, _holder, MapSquares.Holder, MapSquares.CountsHolder);
             var image = map.m_mapImageLarge;
             var window = image.uvRect;

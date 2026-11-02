@@ -48,7 +48,8 @@ namespace Scry.Tests
         private static bool InPanel(SyntaxNode node)
         {
             var path = ScrySource.Relative(node.SyntaxTree);
-            return path.StartsWith("src/UI/", System.StringComparison.Ordinal) && path != "src/UI/Skin.cs";
+            // Skin, in any of its files, is where colours and styles are made.
+            return path.StartsWith("src/UI/", System.StringComparison.Ordinal) && !path.StartsWith("src/UI/Skin.", System.StringComparison.Ordinal);
         }
 
         private static bool IsColour(ITypeSymbol type)

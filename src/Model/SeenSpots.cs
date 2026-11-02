@@ -303,15 +303,38 @@ namespace Scry
         public const float NearestZoom = 0.01f, FarthestZoom = 1f;
 
         /// <summary>
-        /// How big a dot is drawn, ring and all (<see cref="DotAt"/>): most of a pin at the map's
-        /// nearest zoom, smaller as it zooms out, to half a pin at the whole world, where its own
-        /// dot is a fifth of one and the ring keeps it standing out among the pins.
+        /// How big a dot is drawn, ring and all (<see cref="DotAt"/>): a pin and a half at the
+        /// map's nearest zoom, smaller as it zooms out, to a whole pin at the whole world, so a dot
+        /// stands as big as the pins it is among.
         /// </summary>
         public static float DotSize(float pinSize, float zoom)
         {
             var clamped = Math.Min(FarthestZoom, Math.Max(NearestZoom, zoom));
             var t = (float)(Math.Log(clamped / NearestZoom) / Math.Log(FarthestZoom / NearestZoom));
-            return pinSize * (0.8f + (0.5f - 0.8f) * t);
+            return pinSize * (1.5f + (1f - 1.5f) * t);
+        }
+
+        /// <summary>How many of the marks nearest the character the map opens to hold, and the room left round the farthest of them.</summary>
+        public const int FitNearest = 3;
+        public const float FitMargin = 1.15f;
+
+        /// <summary>
+        /// The zoom the large map opens at for a kind shown, centred on the character: as it is
+        /// where the nearest marks (<see cref="FitNearest"/>) stand in its window, else out just far
+        /// enough to hold them, never nearer and never past the whole world. The window shows the
+        /// zoom's share of the map's height and that times its <paramref name="aspect"/> across
+        /// (<c>Minimap.CenterMap</c>); <paramref name="mapMetres"/> is the map's side.
+        /// </summary>
+        public static float FitZoom(float zoom, IEnumerable<(float Dx, float Dz)> marks, float mapMetres, float aspect)
+        {
+            var nearest = marks.OrderBy(m => m.Dx * m.Dx + m.Dz * m.Dz).Take(FitNearest);
+            var needed = 0f;
+            foreach (var (dx, dz) in nearest)
+            {
+                needed = Math.Max(needed, 2f * Math.Abs(dz) / mapMetres);
+                needed = Math.Max(needed, 2f * Math.Abs(dx) / (mapMetres * aspect));
+            }
+            return Math.Min(FarthestZoom, Math.Max(zoom, needed * FitMargin));
         }
 
         /// <summary>
@@ -332,6 +355,9 @@ namespace Scry
 
         /// <summary>How bright the player's other pins stand while a kind is shown, of what they were.</summary>
         public const float OthersDimmed = 1f / 3f;
+
+        /// <summary>How dark a veil lies over the map's picture while a kind is shown, under every mark: half.</summary>
+        public const float MapDarkened = 0.5f;
 
         /// <summary>A pin layer's see-through while a kind is shown, from what it was.</summary>
         public static float Dimmed(float before) => before * OthersDimmed;

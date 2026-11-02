@@ -67,6 +67,10 @@ namespace Scry
             p.Check(MapDim.Dimming && Mathf.Abs(lit.Pins - before.Pins / 3f) < 0.01f && Mathf.Abs(lit.Names - before.Names / 3f) < 0.01f && Mathf.Abs(lit.Dots - before.Pins) < 0.01f,
                 "your other pins and their names stand at a third of their brightness, the dots at the map's own",
                 $"pins {Numbers.Fixed(lit.Pins, 2)}, names {Numbers.Fixed(lit.Names, 2)}, dots {Numbers.Fixed(lit.Dots, 2)}, of {Numbers.Fixed(before.Pins, 2)} and {Numbers.Fixed(before.Names, 2)} before");
+            var veil = MapDim.VeilForTest();
+            p.Check(veil.Shown && Mathf.Abs(veil.Alpha - SeenOnMap.MapDarkened) < 0.01f && veil.FirstInPicture,
+                "the map's picture lies darkened by half under every mark",
+                $"shown {veil.Shown}, {Numbers.Fixed(veil.Alpha, 2)} dark, first in the picture {veil.FirstInPicture}");
             yield return null;
             var strip = MapSpots.StripRectForTest;
             var shown = MapSpots.MapOnScreen();
@@ -92,8 +96,8 @@ namespace Scry
             yield return null;
             p.Check(MapSpots.DotsShown == 0 && MapSpots.Strip == null && map.m_mode == Minimap.MapMode.Large, "Hide takes the dots and the strip away, the map staying open");
             var hidden = MapDim.BrightnessForTest(null);
-            p.Check(!MapDim.Dimming && Mathf.Abs(hidden.Pins - before.Pins) < 0.01f && Mathf.Abs(hidden.Names - before.Names) < 0.01f,
-                "and brings your pins and their names back to full", $"pins {Numbers.Fixed(hidden.Pins, 2)}, names {Numbers.Fixed(hidden.Names, 2)}");
+            p.Check(!MapDim.Dimming && !MapDim.VeilForTest().Shown && Mathf.Abs(hidden.Pins - before.Pins) < 0.01f && Mathf.Abs(hidden.Names - before.Names) < 0.01f,
+                "and brings your pins, their names and the map back to full", $"pins {Numbers.Fixed(hidden.Pins, 2)}, names {Numbers.Fixed(hidden.Names, 2)}, veil {MapDim.VeilForTest().Shown}");
 
             // Shown again and the map closed: gone, so the next time it opens it shows as usual.
             MapSpots.Show(MadeUpSpots, "Self-test spots", Skin.KindColor(Kind.Resource), spots);
@@ -102,13 +106,15 @@ namespace Scry
             yield return null;
             yield return null;
             var closed = MapDim.BrightnessForTest(null);
-            p.Check(MapSpots.KindShown == null && !MapDim.Dimming && Mathf.Abs(closed.Pins - before.Pins) < 0.01f, "closing the map takes them away, your pins back to full");
+            p.Check(MapSpots.KindShown == null && !MapDim.Dimming && !MapDim.VeilForTest().Shown && Mathf.Abs(closed.Pins - before.Pins) < 0.01f, "closing the map takes them away, your pins and the map back to full");
             map.SetMapMode(Minimap.MapMode.Large);
             yield return null;
             yield return null;
             p.Check(MapSpots.DotsShown == 0 && MapSpots.Strip == null, "and the map opened again shows none");
             map.SetMapMode(Minimap.MapMode.Small);
             yield return null;
+
+            yield return FitsTheZoom(p, map, here);
 
             // A page's own spots, as its button shows them.
             var copper = X.Find("rock4_copper");
@@ -153,7 +159,7 @@ namespace Scry
             map.LargeZoom = SpotsZoom;
             Session.Hide();
             Timing.ForgetBytesByPart();
-            MapSpots.Show(MadeUpSpots, "Self-test places", Skin.KindColor(Kind.Location), spots, squares);
+            MapSpots.Show(MadeUpSpots, "Self-test places", Skin.MapDot(Kind.Location), spots, squares);
             yield return Until(() => MapSquares.SquaresShown >= squares.Count, 10);
             yield return new Wait(1);
             p.Check(MapSquares.SquaresShown == squares.Count, $"all {Numbers.Count(squares.Count)} squares in view stand on the map", Numbers.Count(MapSquares.SquaresShown));
@@ -161,6 +167,11 @@ namespace Scry
             p.Check(MapSpots.Strip == "Self-test places · 2 you saw · nearest beside you · 27 more in squares", "the strip counts the places in squares once, after those seen", MapSpots.Strip);
             p.Check(MapSquares.UnderDotsForTest && MapSpots.DotsUnderPinsForTest, "the squares stand first on the pins' layer, under the dots and every pin, clipped to the map's window");
             p.Check(MapSquares.CountsShown == 1, "the one square holding three carries its count", Numbers.Count(MapSquares.CountsShown));
+            var edges = MapSquares.EdgeLookForTest();
+            p.Check(edges.HasValue && Close(edges.Value.Edge, Skin.Text) && edges.Value.Halo.a > 0.5f && Lightness(edges.Value.Halo) < 0.25f
+                    && edges.Value.HaloUnder && edges.Value.HaloThick > edges.Value.EdgeThick && edges.Value.EdgeThick > 0f,
+                "each square has a light edge over a wider dark halo, as the dots' ring",
+                edges.HasValue ? $"edge {Shown(edges.Value.Edge)} {Numbers.Fixed(edges.Value.EdgeThick, 1)} thick, halo {Shown(edges.Value.Halo)} {Numbers.Fixed(edges.Value.HaloThick, 1)} thick, under the edge {edges.Value.HaloUnder}" : "no square");
             var plain = MapDim.BrightnessForTest(null);
             var squaresLit = MapDim.BrightnessForTest(MapSquares.Holder).Dots;
             var countsLit = MapDim.BrightnessForTest(MapSquares.CountsHolder).Dots;
@@ -197,14 +208,44 @@ namespace Scry
             else
             {
                 var count = MapSpots.SquareCount(told);
+                var seenOfIt = SeenSpotsKeeper.Of(MapSpots.KindOf(told));
+                var fromZoom = map.LargeZoom;
                 MapSpots.Show(told);
-                yield return Until(() => MapSquares.SquaresShown > 0, 10);
+                yield return Until(() => MapSquares.SquaresShown > 0 || MapSpots.DotsShown > 0, 10);
                 var strip = MapSpots.Strip ?? "";
                 p.Check(MapSpots.SquaresOf(told, SeenSpotsKeeper.Of(MapSpots.KindOf(told))).Count == count && (strip.Contains(" in squares") || strip.Contains(" in a square")),
                     $"{told.ShownName}'s page shows the {Numbers.Count(count)} squares the server told", MapSpots.Strip);
+                // Its nearest marks, dots and squares' middles, as the map is fitted to them.
+                var marks = (seenOfIt ?? new List<(int X, int Z)>()).Select(s => (s.X - here.x, s.Z - here.z))
+                    .Concat(MapSpots.SquaresOf(told, seenOfIt).Select(q => ((q.X + 0.5f) * PlaceSquares.Metres - here.x, (q.Z + 0.5f) * PlaceSquares.Metres - here.z))).ToList();
+                var placeArea = map.m_mapImageLarge.rectTransform.rect;
+                var expected = SeenOnMap.FitZoom(fromZoom, marks, map.m_textureSize * map.m_pixelSize, placeArea.width / placeArea.height);
+                p.Check(Mathf.Abs(map.LargeZoom - expected) < 0.001f && MapSquares.SquaresShown + MapSpots.DotsShown > 0,
+                    "the map opens zoomed out just far enough for its nearest marks, which stand in view",
+                    $"zoom {Numbers.Fixed(map.LargeZoom, 3)} from {Numbers.Fixed(fromZoom, 3)}, {Numbers.Fixed(expected, 3)} to hold them; {Numbers.Count(MapSquares.SquaresShown)} squares and {Numbers.Count(MapSpots.DotsShown)} dots in view");
+                p.Check(Close(MapSpots.ColourShownForTest, Skin.MapPlace), "a place's marks stand in the places' sky blue on the map", Shown(MapSpots.ColourShownForTest));
                 yield return Picture(p, "show on map, a place's squares from the server");
             }
             ShowOnMapAsItWas();
+        }
+
+        /// <summary>A spot far off to the north, as far whatever the window's width: the map opens zoomed out just far enough to hold it, and closing it puts the zoom back.</summary>
+        private static IEnumerator FitsTheZoom(Probe p, Minimap map, Vector3 here)
+        {
+            map.LargeZoom = SpotsZoom;
+            var northX = (int)Mathf.Round(here.x);
+            var northZ = (int)Mathf.Round(here.z) + 3000;
+            MapSpots.Show(MadeUpSpots, "Self-test spots", Skin.KindColor(Kind.Resource), new List<(int X, int Z)> { (northX, northZ) });
+            yield return Until(() => MapSpots.DotsShown > 0, 10);
+            var mapArea = map.m_mapImageLarge.rectTransform.rect;
+            var fitted = SeenOnMap.FitZoom(SpotsZoom, new[] { (northX - here.x, northZ - here.z) }, map.m_textureSize * map.m_pixelSize, mapArea.width / mapArea.height);
+            p.Check(map.LargeZoom > SpotsZoom && Mathf.Abs(map.LargeZoom - fitted) < 0.001f && MapSpots.DotsShown == 1,
+                "a spot 3 km off opens the map zoomed out just far enough to hold it",
+                $"zoom {Numbers.Fixed(map.LargeZoom, 3)} from {Numbers.Fixed(SpotsZoom, 3)}, {Numbers.Fixed(fitted, 3)} to hold it; {Numbers.Count(MapSpots.DotsShown)} dot in view");
+            map.SetMapMode(Minimap.MapMode.Small);
+            yield return null;
+            yield return null;
+            p.Check(Mathf.Abs(map.LargeZoom - SpotsZoom) < 0.0001f, "and closing the map puts its zoom back", $"zoom {Numbers.Fixed(map.LargeZoom, 3)}");
         }
 
         /// <summary>Whether two colours are the same within a step of eight in 255.</summary>

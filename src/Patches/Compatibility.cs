@@ -418,6 +418,7 @@ namespace Scry
             ("Minimap", "WorldToMapPoint", 3, 0xF712954C, Feature.DungeonMarksOnMap),
             ("Minimap", "MapPointToLocalGuiPos", 4, 0x867FE4B7, Feature.DungeonMarksOnMap),
             ("Minimap", "OnMapLeftUp", 1, 0xE21A99DA, Feature.DungeonMarksOnMap),
+            ("Minimap", "CenterMap", 1, 0x6BA2BC1C, Feature.ShowOnMap),
             ("OfferingBowl", "Interact", 3, 0xE0D1BB7B, Feature.AltarsItemStands),
             ("Player", "HaveRequirements", 4, 0x23C01547, Feature.UpgradeKits),
             ("Player", "TakeInput", 0, 0x3DECB72C, Feature.KeysKeptFromGame),
@@ -528,6 +529,7 @@ namespace Scry
             Each("Minimap.m_exploredOthers", () => Member(list, "Minimap", "m_exploredOthers", Feature.CompendiumMap));
             Each("Player.m_knownTexts", () => Member(list, "Player", "m_knownTexts", Feature.CompendiumTextsRead));
             Each("Minimap.m_pinNamePrefab", () => Member(list, "Minimap", "m_pinNamePrefab", Feature.DungeonMarksOnMap));
+            Each("Minimap.m_mapOffset", () => Member(list, "Minimap", "m_mapOffset", Feature.ShowOnMap));
             Each("Minimap.m_pinNameRootSmall", () => Member(list, "Minimap", "m_pinNameRootSmall", Feature.DungeonMarksOnMap));
             Each("Minimap.m_mapImageSmall", () => Member(list, "Minimap", "m_mapImageSmall", Feature.DungeonMarksOnMap));
             Each("Minimap.m_pinSizeSmall", () => Member(list, "Minimap", "m_pinSizeSmall", Feature.DungeonMarksOnMap));
