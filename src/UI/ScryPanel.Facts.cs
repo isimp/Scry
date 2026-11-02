@@ -145,8 +145,10 @@ namespace Scry
                 // A skill's page opens with the character's level and the way to the next.
                 if (entry.Source is SkillSource skill) _you.AddRange(YourSkills.Lines(skill));
                 _still = FindsOf(explorer, entry).Still;
+                var kind = MapSpots.KindOf(entry);
+                _youSpots = kind != null ? SeenSpotsKeeper.CountOf(kind) : 0;
             }
-            if (_you.Count == 0 && _still.Count == 0) return y;
+            if (_you.Count == 0 && _still.Count == 0 && _youSpots == 0) return y;
 
             var top = y;
             NoteTopic(NewsArrival.YouTopic, top);
@@ -173,6 +175,7 @@ namespace Scry
                 GUI.Label(valueRect, value, Skin.Wrap);
                 y += height + U(6f);
             }
+            if (_youSpots > 0) y = SeenSpotsRow(entry, pad, labelW, valueW, y);
             // What is still to find out: what to do on the left, what it shows faint on the right.
             foreach (var (label, value) in _still)
             {
@@ -196,6 +199,45 @@ namespace Scry
             return y + U(10f);
         }
 
+        /// <summary>How many of the page's kind the character saw in this world, as last read for the You box (<see cref="SeenSpotsKeeper"/>).</summary>
+        private static int _youSpots;
+
+        /// <summary>
+        /// The You box's row of how many of the page's kind the character saw in this world, with
+        /// Show on map after it where the map can show them (<see cref="MapSpots"/>).
+        /// </summary>
+        private static float SeenSpotsRow(Entry entry, float pad, float labelW, float valueW, float y)
+        {
+            var value = SpotWords.YouLine(_youSpots);
+            var height = YouRowHeight(SpotWords.YouLabel, value, labelW, valueW);
+            GUI.Label(new Rect(pad, y, labelW, height), SpotWords.YouLabel, Skin.DimWrap);
+            var x = pad + labelW + U(10f);
+            var said = Skin.Width(Skin.Wrap, value);
+            GUI.Label(new Rect(x, y, valueW, height), value, Skin.Wrap);
+            if (MapSpots.BlockOf(_youSpots) == MapBlock.None)
+            {
+                var dot = " · ";
+                var linkW = Skin.Width(Skin.Wrap, SpotWords.ShowOnMap) + U(4f);
+                var linkX = x + said + Skin.Width(Skin.Wrap, dot);
+                Rect link;
+                if (linkX + linkW <= x + valueW)
+                {
+                    Skin.LabelIn(new Rect(x + said, y, U(20f), U(20f)), dot, Skin.Wrap, Skin.Faint);
+                    link = new Rect(linkX, y, linkW, U(20f));
+                }
+                else
+                {
+                    // Too narrow beside the count: on a line of its own under it.
+                    link = new Rect(x, y + height, linkW, U(20f));
+                    height += U(20f);
+                }
+                LinkLabel(link, SpotWords.ShowOnMap, Skin.Wrap, Skin.Accent);
+                if (link.Contains(Event.current.mousePosition)) AskTip("you-map", SpotWords.Tip(_youSpots));
+                if (GUI.Button(link, GUIContent.none, GUIStyle.none)) ShowOnMap(entry);
+            }
+            return y + height + U(6f);
+        }
+
         /// <summary>A row of the You box as tall as its label or its value wraps to, whichever is taller, and a line at least.</summary>
         private static float YouRowHeight(string label, string value, float labelW, float valueW) =>
             Mathf.Max(U(20f), Mathf.Max(Skin.Height(Skin.DimWrap, label, labelW), Skin.Height(Skin.Wrap, value, valueW)));
@@ -215,6 +257,7 @@ namespace Scry
             _you.Clear();
             _still = NothingStill;
             _youHeight = 0f;
+            _youSpots = 0;
         }
 
         /// <summary>One labelled fact: counted over every character's play, it stands faint under the strict rules beside the character's own counts, saying so on hover.</summary>

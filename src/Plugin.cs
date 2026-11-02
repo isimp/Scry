@@ -183,6 +183,7 @@ namespace Scry
             // Once the game's map has moved this frame, so the dungeons' marks keep to it as it is dragged;
             // timed as a part of the frame's own, "marks".
             Guard.Run(Feature.DungeonMarksOnMap, "the marks on Valheim's map", MapMarkButtons.Update, "marks");
+            Guard.Run(Feature.ShowOnMap, "the dots on Valheim's map", MapSpots.Update, "spots");
             Guard.Run(Feature.Stage, "drawing the stage", Session.LateUpdate, "render");
             FrameWork.End();
         }
@@ -200,6 +201,7 @@ namespace Scry
             // The panel catches its own sections; this is for a panel that cannot run at all,
             // which is told once rather than an error every frame.
             Guard.Run(Feature.Panel, "the panel", ScryPanel.OnGUI, "panel");
+            if (MapSpots.Strip != null) Guard.Run(Feature.ShowOnMap, "the strip on Valheim's map", ScryPanel.MapStripGUI, "map strip");
             if (Settings.LogPreviews) Timing.Add(EventPart(kind), started);
 
             // The resource monitor over everything, its own drawing a part of its own.

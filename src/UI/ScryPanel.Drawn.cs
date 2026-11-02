@@ -11,6 +11,7 @@ namespace Scry
         ModReport,
         PlacesBar,
         Monitor,
+        MapStrip,
         Plan,
         PlanTab,
         Readme,

@@ -211,6 +211,7 @@ namespace Scry
             yield return S("show on map checks: the map's sizes, the resources the world's rules place and how deep, what a Wishbone finds, sight lines to deposits near you, and squares over your ground and fog", MapChecks, 30, MapChecksAsTheyWere, full: true);
             yield return S("the sight keeps where things worth finding again stand, a deposit by the whole it was, a thing destroyed taking its spot away, at little cost a frame", SpotsKept, 30, SpotPutBack);
             yield return S("a ground of hundreds of dungeons stands on Valheim's large map within a few seconds, holding no frame long", ManyMarks, 60, PinsAsTheyWere);
+            yield return S("Show on map stands a thousand dots on Valheim's map within a few seconds, under the pins, smaller zoomed out, named in a strip, gone with Hide or the map closed", ShowOnMapDots, 60, ShowOnMapAsItWas);
             yield return S("Hildir's Sealed Tower is a place stood in, its visits kept, no dungeon lying inside", PlacesStoodIn, 10);
             yield return S("a creature's stars follow what in the world can give it a level", StarsFollowSources, 300);
             yield return S("a fish's page tells where it lives, when it comes, how it bites and fights, and keeps that back until one is caught", FishPageTells, 30);

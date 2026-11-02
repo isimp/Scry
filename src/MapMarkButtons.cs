@@ -632,7 +632,7 @@ namespace Scry
     /// <summary>
     /// The game's map ticks the pin nearest a click (<c>Minimap.OnMapLeftClick</c>) and opens the box
     /// for a new pin on a double-click (<c>Minimap.OnMapDblClick</c>); with the pointer on a dungeon's
-    /// mark, the click is the mark's and the map does neither. Should it fail, it stands aside and
+    /// mark, the click is the mark's, and on Show on map's strip the strip's, and the map does neither. Should it fail, it stands aside and
     /// leaves the map as it is.
     /// </summary>
     [HarmonyPatch(typeof(Minimap), "OnMapLeftClick")]
@@ -651,8 +651,9 @@ namespace Scry
             return !taken;
         }
 
+        /// <summary>A click on a mark is the mark's; one on Show on map's strip is the strip's (<see cref="MapSpots.PointerOnStrip"/>).</summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static bool Take() => MapMarkButtons.TakeClick(ZInput.pointerPosition);
+        private static bool Take() => MapSpots.PointerOnStrip() || MapMarkButtons.TakeClick(ZInput.pointerPosition);
     }
 
     /// <summary>A double-click on a dungeon's mark adds no pin (<see cref="MapMarkClick"/>).</summary>
@@ -673,6 +674,6 @@ namespace Scry
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static bool On() => MapMarkButtons.PointerOnMark();
+        private static bool On() => MapSpots.PointerOnStrip() || MapMarkButtons.PointerOnMark();
     }
 }

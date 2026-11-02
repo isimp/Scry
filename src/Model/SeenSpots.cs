@@ -68,6 +68,15 @@ namespace Scry
             return true;
         }
 
+        /// <summary>How many spots of a kind a world keeps, counted without listing them, as a page asks each time it is drawn.</summary>
+        public int CountOf(string world, string kind)
+        {
+            if (world == null || kind == null || !_spots.TryGetValue(world, out var kinds) || !kinds.TryGetValue(kind, out var buckets)) return 0;
+            var count = 0;
+            foreach (var list in buckets.Values) count += list.Count;
+            return count;
+        }
+
         /// <summary>Whether a spot of a kind is kept at x and z in a world already (within <see cref="SameSpot"/>), so a thing seen there needs no further look.</summary>
         public bool Has(string world, string kind, float x, float z) => Find(world, kind, x, z, out _, out _);
 
@@ -239,6 +248,51 @@ namespace Scry
         /// </summary>
         public static bool Findable(bool location, Gathered gatheredBy, IEnumerable<string> gives) =>
             location || (gatheredBy != Gathered.None && gives.Any(item => !Everywhere.Contains(item)));
+
+        /// <summary>The spot nearest a point: how far, and how far east and north of the point; none where there is no spot.</summary>
+        public static (float Distance, float Dx, float Dz)? Nearest(IReadOnlyList<(int X, int Z)> spots, float x, float z)
+        {
+            (float, float, float)? nearest = null;
+            var best = float.MaxValue;
+            foreach (var spot in spots)
+            {
+                var dx = spot.X - x;
+                var dz = spot.Z - z;
+                var away = dx * dx + dz * dz;
+                if (away >= best) continue;
+                best = away;
+                nearest = ((float)Math.Sqrt(away), dx, dz);
+            }
+            return nearest;
+        }
+
+        /// <summary>
+        /// Why Show on map shows nothing now: a world with no map, or a server keeping no spots,
+        /// shows none at all; spots kept show while any are kept, recording on or off; with none,
+        /// recording off, an unreadable file, or none seen yet says why.
+        /// </summary>
+        public static MapBlock Block(bool noMap, float reach, bool recording, bool unreadable, int count)
+        {
+            if (noMap) return MapBlock.NoMap;
+            if (reach <= 0f) return MapBlock.NoReach;
+            if (count > 0) return MapBlock.None;
+            if (!recording) return MapBlock.RecordingOff;
+            return unreadable ? MapBlock.Unreadable : MapBlock.NoneSeen;
+        }
+
+        /// <summary>The game's large map's nearest and farthest zoom (<c>Minimap.m_minZoom</c>, <c>m_maxZoom</c>), the share of the world it shows across.</summary>
+        public const float NearestZoom = 0.01f, FarthestZoom = 1f;
+
+        /// <summary>
+        /// How big a dot is drawn: about half a pin at the map's nearest zoom, smaller as it zooms
+        /// out, to a fifth of a pin at the whole world, so a kind's many spots read as patches.
+        /// </summary>
+        public static float DotSize(float pinSize, float zoom)
+        {
+            var clamped = Math.Min(FarthestZoom, Math.Max(NearestZoom, zoom));
+            var t = (float)(Math.Log(clamped / NearestZoom) / Math.Log(FarthestZoom / NearestZoom));
+            return pinSize * (0.5f + (0.2f - 0.5f) * t);
+        }
     }
 
     /// <summary>How a thing is gathered, as far as finding it again goes: picked, mined (a deposit or its broken form), or neither.</summary>

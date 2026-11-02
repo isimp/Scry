@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -33,6 +34,23 @@ namespace Scry
 
         /// <summary>Whether the character's spots could not be read, so none are kept while it plays.</summary>
         public static bool Unreadable => _unreadable;
+
+        /// <summary>How many of a kind the character saw in the world played; none before its spots are read. Counted once a frame for the kind last asked, as a page asks each time it is drawn.</summary>
+        public static int CountOf(string kind)
+        {
+            if (!Ready) return 0;
+            if (_countedIn == Time.frameCount && string.Equals(kind, _countedKind, System.StringComparison.Ordinal)) return _counted;
+            _countedIn = Time.frameCount;
+            _countedKind = kind;
+            _counted = _own.CountOf(CompendiumMap.World, kind);
+            return _counted;
+        }
+
+        private static int _countedIn = -1, _counted;
+        private static string _countedKind;
+
+        /// <summary>The spots of a kind the character saw in the world played; none before its spots are read.</summary>
+        public static IReadOnlyList<(int X, int Z)> Of(string kind) => Ready ? _own.Of(CompendiumMap.World, kind) : System.Array.Empty<(int, int)>();
 
         /// <summary>A thing worth finding again seen at x and z in the world played: kept as a spot, where recording is on; whether it was new.</summary>
         public static bool Saw(string kind, float x, float z)

@@ -166,7 +166,7 @@ namespace Scry
             return note;
         }
 
-        /// <summary>A place's actions: roll what it leaves to chance again, and lay a dungeon's or camp's example out anew; the note of what the example holds.</summary>
+        /// <summary>A place's actions: roll what it leaves to chance again, lay a dungeon's or camp's example out anew, and show where the character saw places of its kind on the map; the note of what the example holds.</summary>
         private static string LocationActions(Entry entry, bool withStage)
         {
             string note = null;
@@ -191,12 +191,31 @@ namespace Scry
                     : ExampleLayouts.Of(entry) ? DungeonWords.Reading(ExampleLayouts.Read, ExampleLayouts.Total) : null;
                 if (note != null) DungeonNoteForTest = note;
             }
+            ShowOnMapAction(entry);
             return note;
+        }
+
+        /// <summary>Show on map, after a page's other actions, where its kind's spots are kept: greyed, its tip saying why, where it can show nothing now.</summary>
+        private static void ShowOnMapAction(Entry entry)
+        {
+            var kind = MapSpots.KindOf(entry);
+            if (kind == null) return;
+            var count = SeenSpotsKeeper.CountOf(kind);
+            var block = MapSpots.BlockOf(count);
+            if (ActionShown(SpotWords.ShowOnMap, ActionLook.Plain, block == MapBlock.None, block == MapBlock.None ? SpotWords.Tip(count) : SpotWords.WhyNot(block))) ShowOnMap(entry);
+        }
+
+        /// <summary>Closes Scry and opens Valheim's map with a dot on each of the page's kind the character saw (<see cref="MapSpots"/>).</summary>
+        private static void ShowOnMap(Entry entry)
+        {
+            AskClose();
+            MapSpots.Show(entry);
         }
 
         /// <summary>
         /// A thing's actions: fire a projectile, wear an item and keep it on, let the stage's copy
-        /// fall as a ragdoll or roll loose, and show a model in the world, move it there and pin it.
+        /// fall as a ragdoll or roll loose, show a model in the world, move it there and pin it, and
+        /// show where the character saw things of its kind on the map.
         /// </summary>
         private static void ThingActions(Entry entry, bool withStage)
         {
@@ -247,6 +266,7 @@ namespace Scry
                     }
                 }
             }
+            ShowOnMapAction(entry);
         }
 
         /// <summary>What the actions note at the page's top: what their last pass said, that a copy in the world is yours alone, and a dungeon's maps kept.</summary>
