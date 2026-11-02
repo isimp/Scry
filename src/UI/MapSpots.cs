@@ -146,6 +146,8 @@ namespace Scry
         /// <summary>How many squares a place's page would shade, worked out again only as the answers or its spots change, as the page asks each time it is drawn.</summary>
         public static int SquareCount(Entry entry)
         {
+            // Squares turned off in the settings' Map section count for nothing, the button offered by what was seen alone.
+            if (!Settings.MapSquares) return 0;
             if (entry == null || entry.Kind != Kind.Location) return 0;
             var kind = KindOf(entry);
             // The book's sources too: a ground turned down takes its squares away.
@@ -184,8 +186,8 @@ namespace Scry
             // A broken form's page shows the whole one's spots, by the whole one's name.
             var named = entry.Kind == Kind.Location ? entry : WorldCatalog.Find(kind) ?? entry;
             var spots = SeenSpotsKeeper.Of(kind);
-            var squares = SquaresOf(entry, spots);
-            var note = entry.Kind == Kind.Location && squares.Count == 0 ? SquaresNote() : null;
+            var squares = Settings.MapSquares ? SquaresOf(entry, spots) : NoSquares;
+            var note = entry.Kind == Kind.Location && squares.Count == 0 && Settings.MapSquares ? SquaresNote() : null;
             Show(kind, named.ShownName, Skin.MapDot(entry.Kind), spots, squares, note);
         }
 
@@ -212,7 +214,7 @@ namespace Scry
             // Opened, the game centres the map on the character; already open, it is centred here, as the map key leaves it panned.
             if (map.m_mode == Minimap.MapMode.Large) MapOffset(map) = Vector3.zero;
             map.SetMapMode(Minimap.MapMode.Large);
-            if (player != null) FitZoom(map, player.transform.position, spots, squares);
+            if (player != null && Settings.MapZoomOut) FitZoom(map, player.transform.position, spots, squares);
         }
 
         /// <summary>How far the large map is panned from the character (<c>Minimap.m_mapOffset</c>).</summary>
@@ -321,7 +323,7 @@ namespace Scry
             var image = map.m_mapImageLarge;
             var window = image.uvRect;
             var area = image.rectTransform.rect;
-            var size = SeenOnMap.DotSize(map.m_pinSizeLarge, window.height);
+            var size = SeenOnMap.DotSize(map.m_pinSizeLarge, window.height) * MapLook.DotScale(Settings.MapDotSize);
             // A map standing still with every dot made costs nothing more: nothing moved.
             var placing = (window, area.size, Showing.Spots, size);
             if (_allMade && placing == _placedFor) return;

@@ -86,9 +86,12 @@ namespace Scry
         {
             if (Layers.Count == 0)
             {
-                Veil(map.m_mapImageLarge);
-                Dim(map.m_pinRootLarge);
-                Dim(map.m_pinNameRootLarge);
+                // As the player set them in the settings' Map section (MapLook); at full the pins' layers are left as the game has them.
+                Veil(map.m_mapImageLarge, MapLook.Veil(Settings.MapDarken));
+                if (!MapLook.Dims(Settings.MapOtherPins)) return;
+                var share = MapLook.PinsShare(Settings.MapOtherPins);
+                Dim(map.m_pinRootLarge, share);
+                Dim(map.m_pinNameRootLarge, share);
                 Keep(dots);
                 Keep(squares);
                 Keep(counts);
@@ -112,9 +115,14 @@ namespace Scry
         }
 
         /// <summary>The veil laid over the map's picture, first in it and as big as it, made once for each picture.</summary>
-        private static void Veil(RawImage picture)
+        private static void Veil(RawImage picture, float alpha)
         {
             if (picture == null) return;
+            if (alpha <= 0f)
+            {
+                if (_veil != null && _veil.gameObject.activeSelf) _veil.gameObject.SetActive(false);
+                return;
+            }
             if (_veil == null || _veil.transform.parent != picture.transform)
             {
                 if (_veil != null) Object.Destroy(_veil.gameObject);
@@ -125,20 +133,20 @@ namespace Scry
                 rect.offsetMin = Vector2.zero;
                 rect.offsetMax = Vector2.zero;
                 _veil = rect.gameObject.AddComponent<Image>();
-                _veil.color = Skin.Alpha(Skin.OnAccent, SeenOnMap.MapDarkened);
                 // Clicks go through to the map.
                 _veil.raycastTarget = false;
             }
+            if (!Mathf.Approximately(_veil.color.a, alpha)) _veil.color = Skin.Alpha(Skin.OnAccent, alpha);
             if (_veil.transform.GetSiblingIndex() != 0) _veil.transform.SetAsFirstSibling();
             if (!_veil.gameObject.activeSelf) _veil.gameObject.SetActive(true);
         }
 
-        private static void Dim(RectTransform layer)
+        private static void Dim(RectTransform layer, float share)
         {
             if (layer == null) return;
             var group = Group(layer);
             var dimmed = new Dimmed { Layer = layer, Group = group, Before = group.alpha };
-            group.alpha = SeenOnMap.Dimmed(dimmed.Before);
+            group.alpha = SeenOnMap.Dimmed(dimmed.Before, share);
             Layers.Add(dimmed);
         }
 

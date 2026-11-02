@@ -151,6 +151,19 @@ namespace Scry
             yield return S("items, stations, smelters and beds tell what they are for", WhatThingsTell, 10);
         }
 
+        /// <summary>The parts on Valheim's map: the dungeon marks, what the sight keeps, and Show on map.</summary>
+        private static IEnumerable<Scenario> MapParts()
+        {
+            yield return S("Valheim's large map marks the dungeons been in, a click opening the map in Scry", MarksOnTheMap, 200, () => { MarksAsTheyWere(); StageAsItWas(); }, bearsSkips: true);
+            yield return S("a ground's pin marks every dungeon lying in it on Valheim's large map, hollow where walked on this server and shown with insides, and With insides is dimmed where nothing has insides", DungeonPins, 240, () => { PinsAsTheyWere(); StageAsItWas(); });
+            yield return S("show on map checks: the map's sizes, the resources the world's rules place and how deep, what a Wishbone finds, sight lines to deposits near you, and squares over your ground and fog", MapChecks, 30, MapChecksAsTheyWere, full: true);
+            yield return S("the sight keeps where things worth finding again stand, a deposit by the whole it was, a thing destroyed taking its spot away, at little cost a frame", SpotsKept, 30, SpotPutBack);
+            yield return S("a ground of hundreds of dungeons stands on Valheim's large map within a few seconds, holding no frame long", ManyMarks, 60, PinsAsTheyWere);
+            yield return S("Show on map stands a thousand dots on Valheim's map within a few seconds, under the pins, smaller zoomed out, named in a strip, gone with Hide or the map closed", ShowOnMapDots, 60, ShowOnMapAsItWas);
+            yield return S("Show on map shades the server's squares round places never come near, under the dots, cut to explored ground, counted in the strip", ShowOnMapSquares, 60, ShowOnMapAsItWas);
+            yield return S("Show on map follows the settings' Map section: your other pins, the darkened map, the dots' size, zooming out and the squares", ShowOnMapFollowsItsSettings, 60, ShowOnMapAsItWas);
+        }
+
         /// <summary>The parts on the stage, the world and the places, in their turn after the pages'.</summary>
         private static IEnumerable<Scenario> StageAndPlaceParts()
         {
@@ -206,13 +219,7 @@ namespace Scry
             yield return S("the dungeon the player is in stands as saved, tagged, the menu switching to an example and back", ThisDungeon, 200, () => { ThisDungeonAsItWas(); StageAsItWas(); }, bearsSkips: true);
             yield return S("with the compendium on, the dungeon the player is in shows as walked, where they stand marked, peek showing the rest", DungeonFogShows, 240, () => { DungeonFogAsItWas(); StageAsItWas(); }, bearsSkips: true);
             yield return S("a dungeon's maps kept are on its page, open from anywhere and are forgotten", MapsKept, 200, () => { DungeonFogAsItWas(); StageAsItWas(); }, bearsSkips: true);
-            yield return S("Valheim's large map marks the dungeons been in, a click opening the map in Scry", MarksOnTheMap, 200, () => { MarksAsTheyWere(); StageAsItWas(); }, bearsSkips: true);
-            yield return S("a ground's pin marks every dungeon lying in it on Valheim's large map, hollow where walked on this server and shown with insides, and With insides is dimmed where nothing has insides", DungeonPins, 240, () => { PinsAsTheyWere(); StageAsItWas(); });
-            yield return S("show on map checks: the map's sizes, the resources the world's rules place and how deep, what a Wishbone finds, sight lines to deposits near you, and squares over your ground and fog", MapChecks, 30, MapChecksAsTheyWere, full: true);
-            yield return S("the sight keeps where things worth finding again stand, a deposit by the whole it was, a thing destroyed taking its spot away, at little cost a frame", SpotsKept, 30, SpotPutBack);
-            yield return S("a ground of hundreds of dungeons stands on Valheim's large map within a few seconds, holding no frame long", ManyMarks, 60, PinsAsTheyWere);
-            yield return S("Show on map stands a thousand dots on Valheim's map within a few seconds, under the pins, smaller zoomed out, named in a strip, gone with Hide or the map closed", ShowOnMapDots, 60, ShowOnMapAsItWas);
-            yield return S("Show on map shades the server's squares round places never come near, under the dots, cut to explored ground, counted in the strip", ShowOnMapSquares, 60, ShowOnMapAsItWas);
+            foreach (var part in MapParts()) yield return part;
             yield return S("Hildir's Sealed Tower is a place stood in, its visits kept, no dungeon lying inside", PlacesStoodIn, 10);
             yield return S("a creature's stars follow what in the world can give it a level", StarsFollowSources, 300);
             yield return S("a fish's page tells where it lives, when it comes, how it bites and fights, and keeps that back until one is caught", FishPageTells, 30);

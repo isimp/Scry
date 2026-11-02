@@ -35,6 +35,10 @@ namespace Scry
         private static ConfigEntry<float> _markSize;
         private static ConfigEntry<bool> _marksWalkedByYou, _marksWalkedOnServer, _markEntrances, _marksOnMinimap;
         private static ConfigEntry<bool> _recordSeenSpots;
+        private static ConfigEntry<OtherPinsShown> _mapOtherPins;
+        private static ConfigEntry<MapDarkening> _mapDarken;
+        private static ConfigEntry<DotSizeChoice> _mapDotSize;
+        private static ConfigEntry<bool> _mapZoomOut, _mapSquares;
 
         /// <summary>
         /// The key that opens the panel. One the game or the panel already uses for something
@@ -127,6 +131,13 @@ namespace Scry
         /// <summary>The config file every setting is bound to, for the settings card to read and set each by its key.</summary>
         private static ConfigFile _config;
         private static readonly Dictionary<string, ConfigEntryBase> ByKey = new Dictionary<string, ConfigEntryBase>();
+
+        /// <summary>How Show on map sets the rest of the map back and draws its marks (<see cref="MapLook"/>), whether it zooms out to them, and whether it shows the server's squares.</summary>
+        public static OtherPinsShown MapOtherPins { get => _mapOtherPins?.Value ?? OtherPinsShown.Third; set => Set(_mapOtherPins, value); }
+        public static MapDarkening MapDarken { get => _mapDarken?.Value ?? MapDarkening.Half; set => Set(_mapDarken, value); }
+        public static DotSizeChoice MapDotSize { get => _mapDotSize?.Value ?? DotSizeChoice.Normal; set => Set(_mapDotSize, value); }
+        public static bool MapZoomOut { get => _mapZoomOut?.Value ?? true; set => Set(_mapZoomOut, value); }
+        public static bool MapSquares { get => _mapSquares?.Value ?? true; set => Set(_mapSquares, value); }
 
         /// <summary>A setting by its key in the config file, as the settings card sets it (<see cref="SettingsCatalog"/>); none before the settings are bound.</summary>
         public static ConfigEntryBase Entry(string key)
@@ -254,6 +265,16 @@ namespace Scry
                 "Shows the marks of dungeons you walked on the minimap too, at its pins' size, without names.");
             _recordSeenSpots = config.Bind("1 - General", "RecordSeenSpots", true,
                 "Remembers where your character saw ore deposits, berries, flint and the like, and places, for showing them on Valheim's map. Off, nothing new is remembered; what is remembered stays until /scry forget spots.");
+            _mapOtherPins = config.Bind("1 - General", "ShowOnMapOtherPins", OtherPinsShown.Third,
+                "While a page's kind is shown on Valheim's map, your other pins and their names stand at full, at a third of their brightness, or hidden, so its marks stand out. Back to full when it is hidden or the map closes.");
+            _mapDarken = config.Bind("1 - General", "ShowOnMapDarken", MapDarkening.Half,
+                "While a kind is shown, the map's picture under its marks is not darkened, darkened by half, or strongly.");
+            _mapDotSize = config.Bind("1 - General", "ShowOnMapDotSize", DotSizeChoice.Normal,
+                "How big Show on map's dots are drawn beside the game's pins.");
+            _mapZoomOut = config.Bind("1 - General", "ShowOnMapZoomOut", true,
+                "Opens the map zoomed out just far enough to hold the nearest marks of the kind shown; your own zoom comes back as it closes. Off, the map keeps your zoom.");
+            _mapSquares = config.Bind("1 - General", "ShowOnMapSquares", true,
+                "Shows the squares the world's server tells, each holding a place you never came near somewhere inside. Off, only what you saw is shown. Whether the server tells any is its own setting, SquaresOnMap.");
             _autoSpin = config.Bind("2 - Preview", "AutoSpin", true,
                 "Turns the model in the preview slowly while you are not dragging it. The View box's Spin switches it.");
             _spinSpeed = config.Bind("2 - Preview", "SpinSpeed", 14f,

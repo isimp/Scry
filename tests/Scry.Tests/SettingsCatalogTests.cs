@@ -109,7 +109,11 @@ namespace Scry.Tests
         [Fact]
         public void ChoicesNameValuesTheirSettingTakes()
         {
-            var types = new Dictionary<string, Type> { ["StageQuality"] = typeof(StageQuality), ["Rules"] = typeof(WorldRule) };
+            var types = new Dictionary<string, Type>
+            {
+                ["StageQuality"] = typeof(StageQuality), ["Rules"] = typeof(WorldRule),
+                ["ShowOnMapOtherPins"] = typeof(OtherPinsShown), ["ShowOnMapDarken"] = typeof(MapDarkening), ["ShowOnMapDotSize"] = typeof(DotSizeChoice),
+            };
             foreach (var each in WorldSources.All) types[each + "UpTo"] = typeof(SourceLevel);
             foreach (var row in Rows.Where(r => r.Control == SettingControl.Choices))
             {

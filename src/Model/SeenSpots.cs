@@ -364,7 +364,7 @@ namespace Scry
         public const float MapDarkened = 0.78f;
 
         /// <summary>A pin layer's see-through while a kind is shown, from what it was.</summary>
-        public static float Dimmed(float before) => before * OthersDimmed;
+        public static float Dimmed(float before, float share = OthersDimmed) => before * share;
 
         /// <summary>
         /// How bright Scry's own marks on a dimmed layer stand: as the layer was before, with every

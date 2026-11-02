@@ -36,6 +36,7 @@ namespace Scry
             const int many = 1000;
             var here = player.transform.position;
             var spots = Grid(here, many, 25);
+            MapLookAtDefaults();
             _zoomBefore = map.LargeZoom;
             _modeBefore = map.m_mode;
             map.LargeZoom = SpotsZoom;
@@ -154,6 +155,7 @@ namespace Scry
             var squares = new List<(int X, int Z, int Left)>();
             for (var dx = -2; dx <= 2; dx++) for (var dz = -2; dz <= 2; dz++) squares.Add((middleX + dx * 2, middleZ + dz * 2, dx == 1 && dz == 1 ? 3 : 1));
             var spots = new List<(int X, int Z)> { ((int)Mathf.Round(here.x), (int)Mathf.Round(here.z)), ((int)Mathf.Round(here.x) + 20, (int)Mathf.Round(here.z)) };
+            MapLookAtDefaults();
             _zoomBefore = map.LargeZoom;
             _modeBefore = map.m_mode;
             map.LargeZoom = SpotsZoom;
@@ -285,10 +287,41 @@ namespace Scry
             p.Note($"in this world the button {(MapSpots.BlockOf(1) == MapBlock.None ? "can show what was seen" : "is greyed: " + SpotWords.WhyNot(MapSpots.BlockOf(1)))}");
         }
 
+        /// <summary>Show on map's own settings before a part set them to their defaults, put back after it.</summary>
+        private static (OtherPinsShown Pins, MapDarkening Darken, DotSizeChoice Size, bool ZoomOut, bool Squares)? _mapLookBefore;
+
+        /// <summary>Show on map's settings at their defaults, as the parts' checks and pictures read them; the player's kept to put back.</summary>
+        private static void MapLookAtDefaults()
+        {
+            if (_mapLookBefore == null) _mapLookBefore = (Settings.MapOtherPins, Settings.MapDarken, Settings.MapDotSize, Settings.MapZoomOut, Settings.MapSquares);
+            Settings.MapOtherPins = OtherPinsShown.Third;
+            Settings.MapDarken = MapDarkening.Half;
+            Settings.MapDotSize = DotSizeChoice.Normal;
+            Settings.MapZoomOut = true;
+            Settings.MapSquares = true;
+        }
+
+        /// <summary>The large map's zoom and mode kept to put back, its zoom then set as a part shows its spots at.</summary>
+        private static void KeepMapView(Minimap map)
+        {
+            _zoomBefore = map.LargeZoom;
+            _modeBefore = map.m_mode;
+            map.LargeZoom = SpotsZoom;
+        }
+
         /// <summary>Takes the dots away and puts the map and its zoom back, should the part have stopped before it did.</summary>
         private static void ShowOnMapAsItWas()
         {
             MapSpots.Hide();
+            if (_mapLookBefore is (OtherPinsShown pins, MapDarkening darken, DotSizeChoice size, bool zoomOut, bool squares))
+            {
+                Settings.MapOtherPins = pins;
+                Settings.MapDarken = darken;
+                Settings.MapDotSize = size;
+                Settings.MapZoomOut = zoomOut;
+                Settings.MapSquares = squares;
+            }
+            _mapLookBefore = null;
             var map = Minimap.instance;
             if (map == null) return;
             if (_zoomBefore is float zoom) map.LargeZoom = zoom;
