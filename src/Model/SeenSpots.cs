@@ -43,6 +43,7 @@ namespace Scry
         public bool Changed { get; private set; }
 
         /// <summary>How many spots are kept, in every world.</summary>
+        [ForTest]
         public int Count => _counts.Values.Sum();
 
         /// <summary>How many spots a world keeps.</summary>
@@ -67,6 +68,9 @@ namespace Scry
             return true;
         }
 
+        /// <summary>Whether a spot of a kind is kept at x and z in a world already (within <see cref="SameSpot"/>), so a thing seen there needs no further look.</summary>
+        public bool Has(string world, string kind, float x, float z) => Find(world, kind, x, z, out _, out _);
+
         /// <summary>A thing of a kind gone from x and z in a world: its spot taken away; whether one was kept.</summary>
         public bool Gone(string world, string kind, float x, float z)
         {
@@ -85,6 +89,7 @@ namespace Scry
         }
 
         /// <summary>Every spot of a world within a reach of x and z, the reach itself counting, with its kind: what to look for where the character stands.</summary>
+        [ForTest]
         public IEnumerable<(string Kind, int X, int Z)> Near(string world, float x, float z, float reach)
         {
             if (world == null || !_spots.TryGetValue(world, out var kinds)) yield break;
@@ -171,17 +176,21 @@ namespace Scry
             list = null;
             index = -1;
             if (world == null || kind == null || !_spots.TryGetValue(world, out var kinds) || !kinds.TryGetValue(kind, out var buckets)) return false;
-            foreach (var key in BucketsAround(x, z, SameSpot))
+            // Looped in place, not through BucketsAround, so the sight's look for a kept spot makes no garbage.
+            for (var bx = FloorBucket(x - SameSpot); bx <= FloorBucket(x + SameSpot); bx++)
             {
-                if (!buckets.TryGetValue(key, out var candidates)) continue;
-                for (var i = 0; i < candidates.Count; i++)
+                for (var bz = FloorBucket(z - SameSpot); bz <= FloorBucket(z + SameSpot); bz++)
                 {
-                    var dx = candidates[i].X - x;
-                    var dz = candidates[i].Z - z;
-                    if (dx * dx + dz * dz > SameSpot * SameSpot) continue;
-                    list = candidates;
-                    index = i;
-                    return true;
+                    if (!buckets.TryGetValue(Key(bx, bz), out var candidates)) continue;
+                    for (var i = 0; i < candidates.Count; i++)
+                    {
+                        var dx = candidates[i].X - x;
+                        var dz = candidates[i].Z - z;
+                        if (dx * dx + dz * dz > SameSpot * SameSpot) continue;
+                        list = candidates;
+                        index = i;
+                        return true;
+                    }
                 }
             }
             return false;

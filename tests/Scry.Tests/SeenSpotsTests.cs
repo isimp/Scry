@@ -33,6 +33,19 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AThingWhoseSpotIsKeptIsKnownSoTheSightLooksNoFurther()
+        {
+            var spots = new SeenSpots();
+            Assert.False(spots.Has(World, "Copper deposit", 120f, 80f));
+            spots.Saw(World, "Copper deposit", 120f, 80f);
+            Assert.True(spots.Has(World, "Copper deposit", 120.9f, 80.8f));
+            // Another kind there, the same kind a few metres off or in another world: not kept yet.
+            Assert.False(spots.Has(World, "Tin", 120f, 80f));
+            Assert.False(spots.Has(World, "Copper deposit", 123f, 80f));
+            Assert.False(spots.Has(Other, "Copper deposit", 120f, 80f));
+        }
+
+        [Fact]
         public void TwoThingsOfAKindAFewMetresApartAreTwoSpots()
         {
             var spots = new SeenSpots();

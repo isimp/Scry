@@ -31,6 +31,9 @@ namespace Scry
         /// <summary>Whether the character's spots are read, so what it saw is all here and new ones may be kept.</summary>
         public static bool Ready => _file != null && _reading == null && !_unreadable;
 
+        /// <summary>Whether the character's spots could not be read, so none are kept while it plays.</summary>
+        public static bool Unreadable => _unreadable;
+
         /// <summary>A thing worth finding again seen at x and z in the world played: kept as a spot, where recording is on; whether it was new.</summary>
         public static bool Saw(string kind, float x, float z)
         {
@@ -53,12 +56,14 @@ namespace Scry
             var count = _own.CountIn(world);
             _own.Forget(world);
             Save(now: true);
+            CompendiumSight.LookAgainForSpots();
             return count;
         }
 
         public static void Update()
         {
             Faults.TellEach(Feature.SeenSpots, Files.Failures());
+            CompendiumSight.WatchGone();
             var file = CompendiumKeeper.CharacterFile;
             if (file != _file) Begin(file);
             if (_reading != null && !Opened()) return;
@@ -125,6 +130,6 @@ namespace Scry
             return (spots, aside);
         }
 
-        private static string PathOf(string file) => Path.Combine(Settings.CacheFolder, "spots", file);
+        public static string PathOf(string file) => Path.Combine(Settings.CacheFolder, "spots", file);
     }
 }

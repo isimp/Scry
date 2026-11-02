@@ -47,7 +47,7 @@ namespace Scry.Tests
             ["CompendiumSight._places"] = "bound once to the game's own code, the same in every world",
             ["CompendiumSight._container"] = "bound once to the game's own code, the same in every world",
             ["CompendiumSight._solid"] = "the layers sight looks through, the same in every world",
-            ["DungeonWalks._own"] = "the character's own, kept from world to world while it plays, worked out again when what names it changes",
+            ["CompendiumSight._spotSolid"] = "the layers sight looks through, the same in every world",            ["DungeonWalks._own"] = "the character's own, kept from world to world while it plays, worked out again when what names it changes",
             ["DungeonWalks._file"] = "the character's own, kept from world to world while it plays, worked out again when what names it changes",
             ["DungeonWalks._reading"] = "the character's own, kept from world to world while it plays, worked out again when what names it changes",
             ["DungeonWalks._unreadable"] = "the character's own, kept from world to world while it plays, worked out again when what names it changes",

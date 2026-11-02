@@ -22,7 +22,7 @@ namespace Scry
     /// view within its own reach and <see cref="CreatureReach"/> beyond it. A container opened
     /// shows what it holds, seen, and the container itself is known.
     /// </summary>
-    internal static class CompendiumSight
+    internal static partial class CompendiumSight
     {
         static CompendiumSight() => WorldCaches.Register(nameof(CompendiumSight), () =>
         {
@@ -34,6 +34,7 @@ namespace Scry
             _letGo = false;
             _from = _eye = _forward = Vector3.zero;
             _sweepStarted = 0;
+            ForgetSpotsWorld();
             Bodies.Clear();
             CarriedNow.Clear();
             Meshes.Clear();
@@ -78,6 +79,10 @@ namespace Scry
             public bool Regrows;
             public CompendiumCatchUp ListedBy;
             public bool Listed;
+
+            /// <summary>Its widest side, for how far it is seen for the map, and the kind it is kept by as a spot there (<see cref="SpotKinds"/>); none for one not worth finding again.</summary>
+            public float Size;
+            public string Spot;
         }
 
         /// <summary>How many things are kept to look at now, those resting among them.</summary>
@@ -151,6 +156,8 @@ namespace Scry
                     catchUp.Met(key, KnownLevel.Seen, book);
                     // Seen in its biome, as a creature or a thing is where it stands.
                     CompendiumKeeper.MetInBiome(key, centre);
+                    // Its spot kept for the map, where the world lets the map keep any.
+                    if (Settings.SeenOnMapReach > 0f) SeenSpotsKeeper.Saw(key, centre.x, centre.z);
                 }
             }
             var gui = InventoryGui.instance;
@@ -323,17 +330,23 @@ namespace Scry
             var at = thing.transform.position;
             var middle = at + Vector3.up * shape.Height;
             var away = (middle - _from).sqrMagnitude;
-            // Within its size's reach and the world's seen reach, as the game names a thing only on hover.
+            // Within its size's reach and the world's seen reach, as the game names a thing only on
+            // hover; one worth finding again whose spot is not kept yet, within the map's reach too.
             var reach = Sighting.ThingReach(shape.Reach, _book.World.SeenReach);
-            if (away > reach * reach)
+            var spotReach = SpotsWanted(shape) ? SeenOnMap.Reach(shape.Size, Settings.SeenOnMapReach) : 0f;
+            var farthest = Mathf.Max(reach, spotReach);
+            if (away > farthest * farthest)
             {
-                var beyond = reach + Viewpoint.Step;
+                var beyond = farthest + Viewpoint.Step;
                 return Unchanged(shape, away > beyond * beyond);
             }
+            var spot = spotReach > 0f ? SpotToKeep(shape, at) : null;
             // A pickable whose growing back is not yet found out is kept, as the usual way to meet
             // it is coming back to one bearing again (DeedWatch.SeenBearingAgain).
             var regrowth = shape.Regrows && !_book.Proved(shape.Key, GrewBack);
-            if (_letGo && !regrowth && _book.Level(shape.Key) >= KnownLevel.Seen && CompendiumKeeper.PairedIn(shape.Key, at)) return Looked.LetGo;
+            // Seen and paired before: let go, or, while its spot is to be kept, only the map's line looked along.
+            var known = _letGo && !regrowth && _book.Level(shape.Key) >= KnownLevel.Seen && CompendiumKeeper.PairedIn(shape.Key, at);
+            if (known && spot == null) return Looked.LetGo;
             var toward = middle - _eye;
             var angle = Vector3.Angle(_forward, toward);
             if (angle > HalfView)
@@ -342,13 +355,17 @@ namespace Scry
                 var near = toward.magnitude;
                 return Unchanged(shape, near > Viewpoint.Step && angle > HalfView + Viewpoint.Turn + Mathf.Asin(Viewpoint.Step / near) * Mathf.Rad2Deg);
             }
-            if (!Clear(_eye, middle, thing.transform)) return Unchanged(shape, true);
+            // The map keeps its spot where its own line reaches it, leaves stopping it as they stop a creature's eye.
+            var spotted = spot != null && away <= spotReach * spotReach && SpotInSight(_eye, middle, thing.transform) && SeenSpotsKeeper.Saw(spot, at.x, at.z);
+            if (known) return spotted ? Looked.LetGo : SpotUnseen(shape, away, spotReach);
+            if (away > reach * reach || !Clear(_eye, middle, thing.transform)) return Unchanged(shape, true);
             _catchUp.Met(shape.Key, KnownLevel.Seen, _book);
             CompendiumKeeper.MetIn(shape.Key, at);
             if (regrowth) DeedWatch.SeenBearingAgain(thing.GetComponent<Pickable>());
-            // It stays where it is: seen and paired once, it is let go, so a farm of crops or a
-            // forest in view costs nothing the next second.
-            return _letGo && !regrowth ? Looked.LetGo : Looked.Kept;
+            // It stays where it is: seen and paired once, and its spot kept where it is worth finding
+            // again, it is let go, so a farm of crops or a forest in view costs nothing the next second.
+            if (!_letGo || regrowth) return Looked.Kept;
+            return spot == null || spotted ? Looked.LetGo : SpotUnseen(shape, away, spotReach);
         }
 
         /// <summary>
@@ -371,7 +388,9 @@ namespace Scry
             {
                 var size = bounds.size;
                 shape.Shows = true;
-                shape.Reach = Sighting.Reach(Mathf.Max(size.y, Mathf.Max(size.x, size.z)));
+                shape.Size = Mathf.Max(size.y, Mathf.Max(size.x, size.z));
+                shape.Reach = Sighting.Reach(shape.Size);
+                shape.Spot = SpotKinds.Of(prefab);
                 shape.Height = Mathf.Max(LeastHeight, bounds.center.y - thing.transform.position.y);
             }
             Shapes[prefab] = shape;
