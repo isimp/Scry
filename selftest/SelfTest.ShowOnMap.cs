@@ -8,9 +8,10 @@ namespace Scry
     /// <summary>
     /// The self-test's look at Show on map (<see cref="MapSpots"/>): which pages show which kind,
     /// a thousand spots around the character shown as the button shows a kind, all coming to stand
-    /// within a few seconds and holding no frame long, under the game's pins, smaller zoomed out,
-    /// the strip naming them at the map's top left; Hide and closing the map taking them away; and
-    /// a page's own spots shown where the character saw any.
+    /// within a few seconds and holding no frame long, under the game's pins, ringed, smaller zoomed
+    /// out, the strip naming them at the map's top left, the other pins dimmed meanwhile; Hide and
+    /// closing the map taking them away and the pins back to full; and a page's own spots shown
+    /// where the character saw any.
     /// </summary>
     internal static partial class SelfTest
     {
@@ -39,6 +40,7 @@ namespace Scry
             _modeBefore = map.m_mode;
             map.LargeZoom = SpotsZoom;
             Session.Hide();
+            var before = MapDim.BrightnessForTest(null);
             var first = Timing.Measuring?.Frames ?? 0;
             Timing.ForgetBytesByPart();
             MapSpots.Show(MadeUpSpots, "Self-test spots", Skin.KindColor(Kind.Resource), spots);
@@ -56,6 +58,15 @@ namespace Scry
             p.Within(mostMs, 16, "making and placing them holds no frame a sixtieth of a second", $"{Numbers.Amount(mostMs, 1)} ms at the most");
             p.Check(MapSpots.Strip == "Self-test spots · 1,000 you saw · nearest beside you", "the strip names them, how many, and the nearest", MapSpots.Strip);
             p.Check(MapSpots.DotsUnderPinsForTest, "the dots stand first on the pins' layer, under every pin");
+            var look = MapSpots.DotLookForTest();
+            p.Check(look.HasValue && Close(look.Value.Middle, Skin.KindColor(Kind.Resource)) && look.Value.Edge.a > 0.9f && Lightness(look.Value.Edge) < 0.25f
+                    && look.Value.Gap.a < 0.05f && look.Value.Ring.a > 0.9f && Lightness(look.Value.Ring) > 0.8f && look.Value.Outside.a < 0.05f,
+                "each dot is its kind's colour in a dark edge, inside a light ring with the map showing between",
+                look.HasValue ? $"middle {Shown(look.Value.Middle)}, edge {Shown(look.Value.Edge)}, gap {Shown(look.Value.Gap)}, ring {Shown(look.Value.Ring)}, outside {Shown(look.Value.Outside)}" : "no dot");
+            var lit = MapDim.BrightnessForTest(MapSpots.DotsHolderForTest);
+            p.Check(MapDim.Dimming && Mathf.Abs(lit.Pins - before.Pins / 3f) < 0.01f && Mathf.Abs(lit.Names - before.Names / 3f) < 0.01f && Mathf.Abs(lit.Dots - before.Pins) < 0.01f,
+                "your other pins and their names stand at a third of their brightness, the dots at the map's own",
+                $"pins {Numbers.Fixed(lit.Pins, 2)}, names {Numbers.Fixed(lit.Names, 2)}, dots {Numbers.Fixed(lit.Dots, 2)}, of {Numbers.Fixed(before.Pins, 2)} and {Numbers.Fixed(before.Names, 2)} before");
             yield return null;
             var strip = MapSpots.StripRectForTest;
             var shown = MapSpots.MapOnScreen();
@@ -80,6 +91,9 @@ namespace Scry
             MapSpots.Hide();
             yield return null;
             p.Check(MapSpots.DotsShown == 0 && MapSpots.Strip == null && map.m_mode == Minimap.MapMode.Large, "Hide takes the dots and the strip away, the map staying open");
+            var hidden = MapDim.BrightnessForTest(null);
+            p.Check(!MapDim.Dimming && Mathf.Abs(hidden.Pins - before.Pins) < 0.01f && Mathf.Abs(hidden.Names - before.Names) < 0.01f,
+                "and brings your pins and their names back to full", $"pins {Numbers.Fixed(hidden.Pins, 2)}, names {Numbers.Fixed(hidden.Names, 2)}");
 
             // Shown again and the map closed: gone, so the next time it opens it shows as usual.
             MapSpots.Show(MadeUpSpots, "Self-test spots", Skin.KindColor(Kind.Resource), spots);
@@ -87,7 +101,8 @@ namespace Scry
             map.SetMapMode(Minimap.MapMode.Small);
             yield return null;
             yield return null;
-            p.Check(MapSpots.KindShown == null, "closing the map takes them away");
+            var closed = MapDim.BrightnessForTest(null);
+            p.Check(MapSpots.KindShown == null && !MapDim.Dimming && Mathf.Abs(closed.Pins - before.Pins) < 0.01f, "closing the map takes them away, your pins back to full");
             map.SetMapMode(Minimap.MapMode.Large);
             yield return null;
             yield return null;
@@ -116,10 +131,10 @@ namespace Scry
 
         /// <summary>
         /// The server's squares (B) as a place's page shows them: squares round the character, as
-        /// the self-test gives them, each standing where the map shows its 512 m, under the dots and
-        /// the pins, cut to explored ground pixel for pixel as the map's fog lies, a count on one
-        /// holding more than one, the strip counting them; Hide taking them away. Then a place whose
-        /// squares the world's server told, where one is.
+        /// the self-test gives them, each standing where the map shows its 128 m, under the dots and
+        /// the pins, as bright as the map while the pins dim, cut to explored ground pixel for pixel
+        /// as the map's fog lies, a count on one holding more than one, the strip counting them; Hide
+        /// taking them away. Then a place whose squares the world's server told, where one is.
         /// </summary>
         private static IEnumerator ShowOnMapSquares(Probe p)
         {
@@ -129,9 +144,9 @@ namespace Scry
             var here = player.transform.position;
             var middleX = PlaceSquares.Index(here.x);
             var middleZ = PlaceSquares.Index(here.z);
-            // Five by five squares round the character's own, one of them holding three; two spots seen in the middle one.
+            // Five by five squares round the character's own, every other one, so they reach some 600 m out; one of them holding three; two spots seen in the middle one.
             var squares = new List<(int X, int Z, int Left)>();
-            for (var dx = -2; dx <= 2; dx++) for (var dz = -2; dz <= 2; dz++) squares.Add((middleX + dx, middleZ + dz, dx == 1 && dz == 1 ? 3 : 1));
+            for (var dx = -2; dx <= 2; dx++) for (var dz = -2; dz <= 2; dz++) squares.Add((middleX + dx * 2, middleZ + dz * 2, dx == 1 && dz == 1 ? 3 : 1));
             var spots = new List<(int X, int Z)> { ((int)Mathf.Round(here.x), (int)Mathf.Round(here.z)), ((int)Mathf.Round(here.x) + 20, (int)Mathf.Round(here.z)) };
             _zoomBefore = map.LargeZoom;
             _modeBefore = map.m_mode;
@@ -146,9 +161,15 @@ namespace Scry
             p.Check(MapSpots.Strip == "Self-test places · 2 you saw · nearest beside you · 27 more in squares", "the strip counts the places in squares once, after those seen", MapSpots.Strip);
             p.Check(MapSquares.UnderDotsForTest && MapSpots.DotsUnderPinsForTest, "the squares stand first on the pins' layer, under the dots and every pin, clipped to the map's window");
             p.Check(MapSquares.CountsShown == 1, "the one square holding three carries its count", Numbers.Count(MapSquares.CountsShown));
+            var plain = MapDim.BrightnessForTest(null);
+            var squaresLit = MapDim.BrightnessForTest(MapSquares.Holder).Dots;
+            var countsLit = MapDim.BrightnessForTest(MapSquares.CountsHolder).Dots;
+            p.Check(MapDim.Dimming && Mathf.Abs(squaresLit - plain.Pins * 3f) < 0.01f && Mathf.Abs(countsLit - plain.Names * 3f) < 0.01f,
+                "the squares and their counts stand at the map's own brightness while your pins dim",
+                $"squares {Numbers.Fixed(squaresLit, 2)}, counts {Numbers.Fixed(countsLit, 2)}, pins {Numbers.Fixed(plain.Pins, 2)}");
             var (read, wrong, fog) = MapSquares.MaskAgainstMapForTest();
             p.Check(read > 0 && wrong == 0, "each square is cut to explored ground, pixel for pixel as the map's fog lies", $"{Numbers.Count(wrong)} of {Numbers.Count(read)} pixels otherwise");
-            if (fog == 0) p.Untried("a square cut where the fog starts", "stand within a kilometre of unexplored ground", "fog");
+            if (fog == 0) p.Untried("a square cut where the fog starts", "stand within 500 m of unexplored ground", "fog");
             else p.Note($"{Numbers.Count(fog)} of the {Numbers.Count(read)} pixels under the squares lie in fog, and are left out");
             yield return Picture(p, "show on map, squares round you");
             map.LargeZoom = SeenOnMap.NearestZoom * 4f;
@@ -185,6 +206,14 @@ namespace Scry
             }
             ShowOnMapAsItWas();
         }
+
+        /// <summary>Whether two colours are the same within a step of eight in 255.</summary>
+        private static bool Close(Color a, Color b) => Mathf.Abs(a.r - b.r) < 0.03f && Mathf.Abs(a.g - b.g) < 0.03f && Mathf.Abs(a.b - b.b) < 0.03f && Mathf.Abs(a.a - b.a) < 0.03f;
+
+        /// <summary>How light a colour is, its channels' mean.</summary>
+        private static float Lightness(Color c) => (c.r + c.g + c.b) / 3f;
+
+        private static string Shown(Color c) => "#" + ColorUtility.ToHtmlStringRGBA(c);
 
         /// <summary>Spots on a grid round a point, 40 across, so many a row, this many metres apart, one on the point.</summary>
         private static List<(int X, int Z)> Grid(Vector3 here, int many, int apart)

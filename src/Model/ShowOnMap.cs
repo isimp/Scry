@@ -64,7 +64,7 @@ namespace Scry
             {
                 case SquaresHeard.Waiting: return "squares once the server has read your map";
                 case SquaresHeard.NoScry: return "no squares: this server has no Scry";
-                case SquaresHeard.OldScry: return "no squares: this server's Scry is older";
+                case SquaresHeard.OtherScry: return "no squares: this server runs another version of Scry";
                 case SquaresHeard.Off: return "no squares on this server";
                 default: return null;
             }

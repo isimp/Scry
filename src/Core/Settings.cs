@@ -283,7 +283,7 @@ namespace Scry
                 new ConfigDescription("How far away, in metres, a player's own sight remembers where an ore deposit, a pickable or a place stands, for showing it on the map; things smaller than a person are seen nearer. At 0 nothing is remembered.",
                     new AcceptableValueRange<float>(0f, 150f)));
             _worldSquares = config.Bind("4 - World", "SquaresOnMap", true,
-                "Whether Show on map shades the 512 m squares that hold a place in ground a player explored or saw on a shared map but never came near, so they know one stands somewhere inside; the server works them out and never tells where. Off, the server tells no squares, and players see only the places they saw themselves. Only the server's own setting counts.");
+                "Whether Show on map shades the 128 m squares that hold a place in ground a player explored or saw on a shared map but never came near, so they know one stands somewhere inside; the server works them out and never tells where. Off, the server tells no squares, and players see only the places they saw themselves. Only the server's own setting counts.");
             Sync(_worldSeenReach);
             Sync(_worldSeenOnMapReach);
             Sync(_worldSquares);

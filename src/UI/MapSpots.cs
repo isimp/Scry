@@ -9,11 +9,12 @@ namespace Scry
     /// character saw in the world played (<see cref="SeenSpotsKeeper"/>), until <see cref="Hide"/>,
     /// until the map opened for it closes, or until it never opens (<see cref="MapShowing"/>). The
     /// button closes Scry and opens the map as its key does, centred on the character. Each dot is
-    /// a picture in the kind's list colour with a dark ring, on the layer of the game's pins and
-    /// first on it, so pins and their names stand over it and Scry's dungeon marks, on the names'
-    /// layer, too; it takes no clicks, so a click on it is the map's. Dots are placed where the map
-    /// shows them each frame, smaller as it zooms out (<see cref="SeenOnMap.DotSize"/>); made a few
-    /// a frame from a pool, as the dungeon marks are. The strip naming the kind stands in Scry's
+    /// a picture in the kind's list colour inside a light ring (<see cref="SeenOnMap.DotAt"/>), on
+    /// the layer of the game's pins and first on it, so pins and their names stand over it and
+    /// Scry's dungeon marks, on the names' layer, too; it takes no clicks, so a click on it is the
+    /// map's. While a kind is shown the other pins stand dimmed (<see cref="MapDim"/>). Dots are
+    /// placed where the map shows them each frame, smaller as it zooms out
+    /// (<see cref="SeenOnMap.DotSize"/>); made a few a frame from a pool, as the dungeon marks are. The strip naming the kind stands in Scry's
     /// look at the map's top left (<see cref="ScryPanel.MapStripGUI"/>). A place's page shows
     /// the server's squares too (<see cref="MapSquares"/>), each round one of its kind the
     /// character never came near, in ground it explored or saw on a shared map.
@@ -25,9 +26,10 @@ namespace Scry
 
         private static readonly MapShowing Showing = new MapShowing();
 
-        /// <summary>The strip's words, worked out as the kind is shown, and the dots' colour.</summary>
+        /// <summary>The strip's words, worked out as the kind is shown, the dots' colour and their picture in it.</summary>
         private static string _strip;
         private static Color _colour = Color.white;
+        private static Sprite _sprite;
 
         /// <summary>
         /// The layer the dots stand on; what holds them there, first on it and as big as it, so
@@ -48,8 +50,8 @@ namespace Scry
         private static Entry _kindFor;
         private static string _kindOf;
 
-        /// <summary>The dots' picture: a white disc with a dark ring, drawn in each kind's colour.</summary>
-        private static Sprite _picture;
+        /// <summary>The dots' pictures, one drawn for each colour a kind is shown in.</summary>
+        private static readonly Dictionary<Color32, Sprite> Pictures = new Dictionary<Color32, Sprite>();
 
         /// <summary>A couple of milliseconds a frame for making dots.</summary>
         private static readonly FrameShare Share = new FrameShare(2.0);
@@ -61,6 +63,26 @@ namespace Scry
         /// <summary>How big the dots stood, in the map's units, for the self-test; 0 with none.</summary>
         [Diagnostic]
         public static float DotSizeForTest => _standing > 0 ? Dots[0].Rect.rect.width : 0f;
+
+        /// <summary>
+        /// What the first dot shows from its middle out, for the self-test: its picture's pixels at
+        /// the middle, the edge, the gap, the ring and a corner past it, with the colour drawn over
+        /// them; none with no dot.
+        /// </summary>
+        [Diagnostic]
+        public static (Color Middle, Color Edge, Color Gap, Color Ring, Color Outside)? DotLookForTest()
+        {
+            if (_standing == 0 || !(Dots[0].Picture.sprite is Sprite sprite) || sprite.texture == null) return null;
+            var texture = sprite.texture;
+            var tint = Dots[0].Picture.color;
+            var side = texture.width;
+            Color At(float share) => texture.GetPixel(side / 2 + (int)(share * side / 2f), side / 2) * tint;
+            return (At(0f), At(0.49f), At(0.64f), At(0.855f), texture.GetPixel(0, 0) * tint);
+        }
+
+        /// <summary>What holds the dots, for the self-test's look at how bright they stand.</summary>
+        [Diagnostic]
+        public static Transform DotsHolderForTest => _holder;
 
         /// <summary>The kind shown, for the self-test; none.</summary>
         [ForTest]
@@ -177,6 +199,7 @@ namespace Scry
             squares = squares ?? NoSquares;
             MapSquares.Show(squares);
             _colour = colour;
+            _sprite = Picture(colour);
             var player = Player.m_localPlayer;
             var nearest = player != null ? SeenOnMap.Nearest(spots, player.transform.position.x, player.transform.position.z) : null;
             var more = PlaceSquares.More(squares);
@@ -233,13 +256,15 @@ namespace Scry
             if (layer != _layer || (_layer != null && _holder == null))
             {
                 ForgetDots();
+                MapDim.Restore();
                 _layer = layer;
                 if (_layer != null) MakeHolder();
             }
             if (_holder == null) return;
             if (!_holder.gameObject.activeSelf) _holder.gameObject.SetActive(true);
-            // The squares under the dots, placed as the map moves, as the dots are.
+            // The squares under the dots, placed as the map moves, as the dots are; the other pins dimmed.
             MapSquares.Update(map, _colour);
+            MapDim.Hold(map, _holder, MapSquares.Holder, MapSquares.CountsHolder);
             var image = map.m_mapImageLarge;
             var window = image.uvRect;
             var area = image.rectTransform.rect;
@@ -277,13 +302,13 @@ namespace Scry
             _allMade = allMade;
         }
 
-        /// <summary>A dot stood where the map shows its spot, as big and in the colour asked, each set only as it changes.</summary>
+        /// <summary>A dot stood where the map shows its spot, as big and in the picture of the colour asked, each set only as it changes.</summary>
         private static void Stand((Image Picture, RectTransform Rect) dot, Vector2 at, float size)
         {
             if (dot.Rect.anchoredPosition != at) dot.Rect.anchoredPosition = at;
             var sized = new Vector2(size, size);
             if (dot.Rect.sizeDelta != sized) dot.Rect.sizeDelta = sized;
-            if (dot.Picture.color != _colour) dot.Picture.color = _colour;
+            if (dot.Picture.sprite != _sprite) dot.Picture.sprite = _sprite;
             if (!dot.Picture.gameObject.activeSelf) dot.Picture.gameObject.SetActive(true);
         }
 
@@ -296,6 +321,7 @@ namespace Scry
         private static void PutAway()
         {
             MapSquares.PutAway();
+            MapDim.Restore();
             if (_holder != null && _holder.gameObject.activeSelf) _holder.gameObject.SetActive(false);
             _standing = 0;
             _placedFor = default;
@@ -327,37 +353,65 @@ namespace Scry
             rect.pivot = new Vector2(0.5f, 0.5f);
             // A picture taking no rays, so the map under it gets every click.
             var picture = made.AddComponent<Image>();
-            picture.sprite = Picture();
+            picture.sprite = _sprite;
             picture.raycastTarget = false;
             Dots.Add((picture, rect));
             return true;
         }
 
-        /// <summary>The dots' picture, drawn once: a white disc for the kind's colour, its ring dark in any colour.</summary>
-        private static Sprite Picture()
+        /// <summary>
+        /// The dots' picture in a colour, drawn once for it: the colour inside a dark edge, the map
+        /// showing between it and a light ring, a dark halo either side of the ring
+        /// (<see cref="SeenOnMap.DotAt"/>); the edge and halo in the dark the dungeon marks are
+        /// outlined in, the ring in Scry's writing colour. Each pixel is the mean of four by four
+        /// points in it, so the circles stay round when the dot is drawn small.
+        /// </summary>
+        private static Sprite Picture(Color colour)
         {
-            if (_picture != null) return _picture;
-            const int side = 32;
+            var key = (Color32)colour;
+            if (Pictures.TryGetValue(key, out var made) && made != null) return made;
+            const int side = 64, points = 4;
             var pixels = new Color32[side * side];
             for (var y = 0; y < side; y++)
             {
                 for (var x = 0; x < side; x++)
                 {
-                    var dx = x + 0.5f - side / 2f;
-                    var dy = y + 0.5f - side / 2f;
-                    var r = Mathf.Sqrt(dx * dx + dy * dy);
-                    // Soft at the edge: a pixel's coverage by how far its middle lies inside the disc.
-                    var a = Mathf.Clamp01(side / 2f - r);
-                    var ring = r > side / 2f - 5f;
-                    // The ring in the dark the dungeon marks are outlined in.
-                    pixels[y * side + x] = ring ? Skin.Alpha(Skin.OnAccent, a) : Skin.Light(a);
+                    var sum = Skin.Alpha(Skin.OnAccent, 0f) * 0f;
+                    var a = 0f;
+                    for (var py = 0; py < points; py++)
+                    {
+                        for (var px = 0; px < points; px++)
+                        {
+                            var dx = x + (px + 0.5f) / points - side / 2f;
+                            var dy = y + (py + 0.5f) / points - side / 2f;
+                            var shade = Shade(SeenOnMap.DotAt(Mathf.Sqrt(dx * dx + dy * dy) / (side / 2f)), colour);
+                            sum += shade * shade.a;
+                            a += shade.a;
+                        }
+                    }
+                    // Each point's colour by how much of it shows, so the parts' borders blend as they lie on the map.
+                    pixels[y * side + x] = a > 0f ? Skin.Alpha(sum / a, a / (points * points)) : Skin.Alpha(Skin.OnAccent, 0f);
                 }
             }
             var texture = Kept.Add(new Texture2D(side, side, TextureFormat.RGBA32, false) { name = "Scry seen spot", filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp });
             texture.SetPixels32(pixels);
-            texture.Apply(false, true);
-            _picture = Kept.Add(Sprite.Create(texture, new Rect(0f, 0f, side, side), new Vector2(0.5f, 0.5f)));
-            return _picture;
+            texture.Apply(false, false);
+            made = Kept.Add(Sprite.Create(texture, new Rect(0f, 0f, side, side), new Vector2(0.5f, 0.5f)));
+            Pictures[key] = made;
+            return made;
+        }
+
+        /// <summary>The colour a part of a dot is drawn in.</summary>
+        private static Color Shade(DotPart part, Color colour)
+        {
+            switch (part)
+            {
+                case DotPart.Disc: return colour;
+                case DotPart.Edge: return Skin.OnAccent;
+                case DotPart.Halo: return Skin.Alpha(Skin.OnAccent, 0.55f);
+                case DotPart.Ring: return Skin.Text;
+                default: return Skin.Alpha(Skin.OnAccent, 0f);
+            }
         }
 
         /// <summary>Milliseconds since a timestamp.</summary>

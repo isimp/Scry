@@ -6,7 +6,7 @@ using UnityEngine.UI;
 namespace Scry
 {
     /// <summary>
-    /// Show on map's squares (B): for a place shown, the 512 m squares the world's server told hold
+    /// Show on map's squares (B): for a place shown, the 128 m squares the world's server told hold
     /// one in ground the character explored or saw on a shared map but never came near
     /// (<see cref="PlaceSquares"/>), hatched with a dashed edge in the dots' colour. Each is cut to
     /// explored ground: it stands in a stencil (<see cref="Mask"/>) made of the map's own explored
@@ -66,6 +66,10 @@ namespace Scry
                 return shown;
             }
         }
+
+        /// <summary>What holds the squares, and what holds their counts, kept at the map's brightness while the other pins dim (<see cref="MapDim"/>).</summary>
+        public static RectTransform Holder => _holder;
+        public static RectTransform CountsHolder => _badges;
 
         /// <summary>Whether every square stands first on the pins' layer under the dots, clipped to the map's window, for the self-test.</summary>
         [Diagnostic]

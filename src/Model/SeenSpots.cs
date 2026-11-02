@@ -303,15 +303,64 @@ namespace Scry
         public const float NearestZoom = 0.01f, FarthestZoom = 1f;
 
         /// <summary>
-        /// How big a dot is drawn: about half a pin at the map's nearest zoom, smaller as it zooms
-        /// out, to a fifth of a pin at the whole world, so a kind's many spots read as patches.
+        /// How big a dot is drawn, ring and all (<see cref="DotAt"/>): most of a pin at the map's
+        /// nearest zoom, smaller as it zooms out, to half a pin at the whole world, where its own
+        /// dot is a fifth of one and the ring keeps it standing out among the pins.
         /// </summary>
         public static float DotSize(float pinSize, float zoom)
         {
             var clamped = Math.Min(FarthestZoom, Math.Max(NearestZoom, zoom));
             var t = (float)(Math.Log(clamped / NearestZoom) / Math.Log(FarthestZoom / NearestZoom));
-            return pinSize * (0.5f + (0.2f - 0.5f) * t);
+            return pinSize * (0.8f + (0.5f - 0.8f) * t);
         }
+
+        /// <summary>
+        /// What a dot shows at a distance from its middle, as a share of its radius: the kind's
+        /// colour inside a dark edge, the map between it and a light ring, and a dark halo either
+        /// side of the ring so it reads on light ground and dark. No pin of the game is ringed, so
+        /// a ringed dot reads as Scry's among them.
+        /// </summary>
+        public static DotPart DotAt(float share)
+        {
+            if (share <= 0.41f) return DotPart.Disc;
+            if (share <= 0.57f) return DotPart.Edge;
+            if (share <= 0.71f) return DotPart.Clear;
+            if (share <= 0.78f) return DotPart.Halo;
+            if (share <= 0.93f) return DotPart.Ring;
+            return share <= 1f ? DotPart.Halo : DotPart.Clear;
+        }
+
+        /// <summary>How bright the player's other pins stand while a kind is shown, of what they were.</summary>
+        public const float OthersDimmed = 1f / 3f;
+
+        /// <summary>A pin layer's see-through while a kind is shown, from what it was.</summary>
+        public static float Dimmed(float before) => before * OthersDimmed;
+
+        /// <summary>
+        /// How bright Scry's own marks on a dimmed layer stand: as the layer was before, with every
+        /// group above it that fades the map, from the layer up, as Unity reckons a group's
+        /// see-through, ending at one that ignores those above it.
+        /// </summary>
+        public static float AsShown(IEnumerable<(float Alpha, bool IgnoresParents)> fromLayerUp)
+        {
+            var alpha = 1f;
+            foreach (var (each, ignores) in fromLayerUp)
+            {
+                alpha *= each;
+                if (ignores) break;
+            }
+            return alpha;
+        }
+    }
+
+    /// <summary>The parts of a dot on the map, from its middle out (<see cref="SeenOnMap.DotAt"/>).</summary>
+    internal enum DotPart
+    {
+        Clear,
+        Disc,
+        Edge,
+        Halo,
+        Ring,
     }
 
     /// <summary>How a thing is gathered, as far as finding it again goes: picked, mined (a deposit or its broken form), or neither.</summary>

@@ -7,7 +7,7 @@ namespace Scry.Tests
     public class PlaceSquaresTests
     {
         // Show on map's squares (B): for each place a character never came near but whose ground
-        // it explored, the server tells the 512 m square it stands in, never where; the map shades
+        // it explored, the server tells the 128 m square it stands in, never where; the map shades
         // that square so the player knows one stands somewhere inside.
 
         private const int MapSize = 200;
@@ -23,17 +23,17 @@ namespace Scry.Tests
             var grid = Explored((x, z) => true);
             var squares = PlaceSquares.Of(grid, new[] { ("TrollCave02", 700f, 1030f) });
             var square = Assert.Single(squares);
-            Assert.Equal(("TrollCave02", 1, 2, 1), (square.Kind, square.X, square.Z, square.Count));
+            Assert.Equal(("TrollCave02", 5, 8, 1), (square.Kind, square.X, square.Z, square.Count));
         }
 
         [Fact]
         public void SquaresGoByTheWorldsOwnGridWestAndSouthOfTheMiddleToo()
         {
             Assert.Equal(0, PlaceSquares.Index(0f));
-            Assert.Equal(0, PlaceSquares.Index(511.9f));
-            Assert.Equal(1, PlaceSquares.Index(512f));
+            Assert.Equal(0, PlaceSquares.Index(127.9f));
+            Assert.Equal(1, PlaceSquares.Index(128f));
             Assert.Equal(-1, PlaceSquares.Index(-0.5f));
-            Assert.Equal(-2, PlaceSquares.Index(-513f));
+            Assert.Equal(-2, PlaceSquares.Index(-129f));
         }
 
         [Fact]
@@ -41,7 +41,7 @@ namespace Scry.Tests
         {
             // Explored east of x = 0 only.
             var grid = Explored((x, z) => x >= 0f);
-            var squares = PlaceSquares.Of(grid, new[] { ("Crypt2", 300f, 40f), ("Crypt2", -300f, 40f), ("Crypt2", -900f, -900f) });
+            var squares = PlaceSquares.Of(grid, new[] { ("Crypt2", 100f, 40f), ("Crypt2", -100f, 40f), ("Crypt2", -900f, -900f) });
             Assert.Equal(new[] { (0, 0, 1) }, squares.Select(s => (s.X, s.Z, s.Count)));
         }
 
@@ -49,7 +49,7 @@ namespace Scry.Tests
         public void TwoOfAKindInOneSquareAreCountedTogetherAndKindsApart()
         {
             var grid = Explored((x, z) => true);
-            var squares = PlaceSquares.Of(grid, new[] { ("Runestone", 10f, 10f), ("Runestone", 400f, 300f), ("Crypt2", 20f, 20f), ("Runestone", 600f, 10f) });
+            var squares = PlaceSquares.Of(grid, new[] { ("Runestone", 10f, 10f), ("Runestone", 100f, 90f), ("Crypt2", 20f, 20f), ("Runestone", 200f, 10f) });
             Assert.Equal(new[] { ("Runestone", 0, 0, 2), ("Crypt2", 0, 0, 1), ("Runestone", 1, 0, 1) },
                 squares.Select(s => (s.Kind, s.X, s.Z, s.Count)));
         }
@@ -59,7 +59,7 @@ namespace Scry.Tests
         {
             var squares = new Dictionary<(int X, int Z), int> { [(0, 0)] = 2, [(1, 0)] = 1, [(-1, -1)] = 1 };
             // One of the two in (0, 0) seen, the one in (1, 0) seen, a spot out in (5, 5) seen as well.
-            var seen = new[] { (100, 100), (700, 20), (2600, 2600) };
+            var seen = new[] { (100, 100), (200, 20), (2600, 2600) };
             var shown = PlaceSquares.Shown(squares, seen);
             Assert.Equal(new[] { (-1, -1, 1), (0, 0, 1) }, shown.OrderBy(s => s.X).Select(s => (s.X, s.Z, s.Left)));
             Assert.Equal(2, PlaceSquares.More(shown));
@@ -107,7 +107,7 @@ namespace Scry.Tests
             Assert.Equal(SquaresHeard.Off, counts.Heard(source => source == WorldSource.Explored));
             Assert.Equal("no squares on this server", SpotWords.SquaresNote(SquaresHeard.Off));
             Assert.Equal("no squares: this server has no Scry", SpotWords.SquaresNote(SquaresHeard.NoScry));
-            Assert.Equal("no squares: this server's Scry is older", SpotWords.SquaresNote(SquaresHeard.OldScry));
+            Assert.Equal("no squares: this server runs another version of Scry", SpotWords.SquaresNote(SquaresHeard.OtherScry));
             Assert.Equal("squares once the server has read your map", SpotWords.SquaresNote(SquaresHeard.Waiting));
             Assert.Null(SpotWords.SquaresNote(SquaresHeard.Told));
         }
@@ -148,15 +148,32 @@ namespace Scry.Tests
             var kinds = new List<string> { "Crypt2", "TrollCave02" };
             var squares = new List<PlaceSquare> { new PlaceSquare("TrollCave02", -3, 9, 2), new PlaceSquare("Crypt2", 0, 0, 1) };
             var back = PlaceSquares.Unpack(PlaceSquares.Pack(kinds, squares), kinds);
-            Assert.False(back.Off);
+            Assert.Equal(SquaresHeard.Told, back.Heard);
             Assert.Equal(new[] { ("TrollCave02", -3, 9, 2), ("Crypt2", 0, 0, 1) }, back.Squares.Select(s => (s.Kind, s.X, s.Z, s.Count)));
+        }
+
+        [Fact]
+        public void SquaresOnAnotherGridThanThisScrysAreReadAsNone()
+        {
+            var kinds = new List<string> { "Crypt2" };
+            var packed = PlaceSquares.Pack(kinds, new List<PlaceSquare> { new PlaceSquare("Crypt2", 2, 2, 1) });
+            // The grid's size is the answer's third to sixth bytes, after what it begins with.
+            System.BitConverter.GetBytes(512).CopyTo(packed, 4);
+            var back = PlaceSquares.Unpack(packed, kinds);
+            Assert.Equal(SquaresHeard.OtherScry, back.Heard);
+            Assert.Empty(back.Squares);
+            // Nor a server saying it gives none in a shape without the grid: what it gives cannot be told.
+            var shorter = new byte[8];
+            packed.Take(4).ToArray().CopyTo(shorter, 0);
+            System.BitConverter.GetBytes(-1).CopyTo(shorter, 4);
+            Assert.Equal(SquaresHeard.OtherScry, PlaceSquares.Unpack(shorter, kinds).Heard);
         }
 
         [Fact]
         public void AServerGivingNoSquaresSaysSo()
         {
             var back = PlaceSquares.Unpack(PlaceSquares.PackOff(), new List<string>());
-            Assert.True(back.Off);
+            Assert.Equal(SquaresHeard.Off, back.Heard);
             Assert.Empty(back.Squares);
         }
 
@@ -164,11 +181,14 @@ namespace Scry.Tests
         public void BrokenOrForeignSquaresAreReadAsNone()
         {
             var kinds = new List<string> { "Crypt2" };
-            Assert.Empty(PlaceSquares.Unpack(null, kinds).Squares);
-            Assert.Empty(PlaceSquares.Unpack(new byte[] { 1, 2, 3 }, kinds).Squares);
+            Assert.Equal((SquaresHeard.OtherScry, 0), (PlaceSquares.Unpack(null, kinds).Heard, PlaceSquares.Unpack(null, kinds).Squares.Count));
+            Assert.Equal((SquaresHeard.OtherScry, 0), (PlaceSquares.Unpack(new byte[] { 1, 2, 3 }, kinds).Heard, PlaceSquares.Unpack(new byte[] { 1, 2, 3 }, kinds).Squares.Count));
             // A square naming a kind the answer does not hold is passed over, the rest kept.
             var packed = PlaceSquares.Pack(new List<string> { "Crypt2", "Other" }, new List<PlaceSquare> { new PlaceSquare("Other", 1, 1, 1), new PlaceSquare("Crypt2", 2, 2, 1) });
             Assert.Equal(new[] { "Crypt2" }, PlaceSquares.Unpack(packed, kinds).Squares.Select(s => s.Kind));
+            Assert.Equal(SquaresHeard.Told, PlaceSquares.Unpack(packed, kinds).Heard);
+            // Squares told longer or shorter than they say are none of this Scry's.
+            Assert.Equal(SquaresHeard.OtherScry, PlaceSquares.Unpack(packed.Take(packed.Length - 4).ToArray(), kinds).Heard);
         }
 
         [Fact]
@@ -177,29 +197,30 @@ namespace Scry.Tests
             // The game's map: 2,048 pixels of 12 m; a window of a tenth of it around the middle, on a layer 1,000 by 1,000.
             var window = (0.45f, 0.45f, 0.1f, 0.1f);
             Assert.True(PlaceSquares.OnMap(0, 0, 12f, 2048, window, (1000f, 1000f), out var at));
-            // 512 m is 42.67 pixels of 2,048, a tenth of the window's 204.8 pixels: 208.3 of the layer's 1,000.
+            // 128 m is 10.67 pixels of 2,048, a tenth of the window's 204.8 pixels: 52.1 of the layer's 1,000.
             Assert.Equal(500f, at.X, 1);
             Assert.Equal(500f, at.Y, 1);
-            Assert.Equal(208.3f, at.W, 1);
-            Assert.Equal(208.3f, at.H, 1);
-            // Partly in the window it still stands; wholly out of it, not.
-            Assert.True(PlaceSquares.OnMap(2, 0, 12f, 2048, window, (1000f, 1000f), out _));
-            Assert.False(PlaceSquares.OnMap(3, 0, 12f, 2048, window, (1000f, 1000f), out _));
-            Assert.False(PlaceSquares.OnMap(-4, 0, 12f, 2048, window, (1000f, 1000f), out _));
+            Assert.Equal(52.1f, at.W, 1);
+            Assert.Equal(52.1f, at.H, 1);
+            // The window reaches 1,228.8 m either side. Partly in it a square still stands; wholly out of it, not.
+            Assert.True(PlaceSquares.OnMap(9, 0, 12f, 2048, window, (1000f, 1000f), out _));
+            Assert.False(PlaceSquares.OnMap(10, 0, 12f, 2048, window, (1000f, 1000f), out _));
+            Assert.True(PlaceSquares.OnMap(-10, 0, 12f, 2048, window, (1000f, 1000f), out _));
+            Assert.False(PlaceSquares.OnMap(-11, 0, 12f, 2048, window, (1000f, 1000f), out _));
         }
 
         [Fact]
         public void ASquaresFogMaskIsTheMapsOwnPixelsUnderIt()
         {
             var mask = PlaceSquares.MaskPixels(0, 0, 12f, 2048);
-            // The middle of the map is pixel 1,024; 512 m is 42.67 pixels, so 44 cover it whole.
-            Assert.Equal((1024, 1024, 44), (mask.FromX, mask.FromY, mask.Side));
+            // The middle of the map is pixel 1,024; 128 m is 10.67 pixels, so 12 cover it whole.
+            Assert.Equal((1024, 1024, 12), (mask.FromX, mask.FromY, mask.Side));
             Assert.Equal(0f, mask.U, 3);
-            Assert.Equal(42.667f / 44f, mask.Span, 3);
+            Assert.Equal(10.667f / 12f, mask.Span, 3);
             var west = PlaceSquares.MaskPixels(-1, -1, 12f, 2048);
-            // -512 m is pixel 981.33: from 981, a third of a pixel in.
-            Assert.Equal((981, 981), (west.FromX, west.FromY));
-            Assert.Equal(0.333f / 44f, west.U, 3);
+            // -128 m is pixel 1,013.33: from 1,013, a third of a pixel in.
+            Assert.Equal((1013, 1013), (west.FromX, west.FromY));
+            Assert.Equal(0.333f / 12f, west.U, 3);
         }
 
         [Fact]

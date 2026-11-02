@@ -211,14 +211,14 @@ namespace Scry
         private static GroundTold ReadTold(ZPackage package)
         {
             var count = package.ReadInt();
-            if (count < 0 || count > MostKinds) return new GroundTold(new List<(string, int)>(), SquaresHeard.OldScry, null);
+            if (count < 0 || count > MostKinds) return new GroundTold(new List<(string, int)>(), SquaresHeard.OtherScry, null);
             var counted = new List<(string Kind, int Count)>(count);
             for (var i = 0; i < count; i++) counted.Add((package.ReadString(), 1));
-            if (package.GetPos() >= package.Size()) return new GroundTold(counted, SquaresHeard.OldScry, null);
+            if (package.GetPos() >= package.Size()) return new GroundTold(counted, SquaresHeard.OtherScry, null);
             for (var i = 0; i < count; i++) counted[i] = (counted[i].Kind, package.ReadInt());
-            if (package.GetPos() >= package.Size()) return new GroundTold(counted, SquaresHeard.OldScry, null);
-            var (off, squares) = PlaceSquares.Unpack(package.ReadByteArray(), counted.ConvertAll(c => c.Kind));
-            return new GroundTold(counted, off ? SquaresHeard.Off : SquaresHeard.Told, squares);
+            if (package.GetPos() >= package.Size()) return new GroundTold(counted, SquaresHeard.OtherScry, null);
+            var (heard, squares) = PlaceSquares.Unpack(package.ReadByteArray(), counted.ConvertAll(c => c.Kind));
+            return new GroundTold(counted, heard, squares);
         }
 
         /// <summary>The most kinds of place an answer may name.</summary>

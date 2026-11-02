@@ -28,6 +28,7 @@ namespace Scry.Tests
             "Falling.All",   // stand-ins take themselves off in OnDestroy
             "Falling.Down",  // likewise
             "ModFolders.Icons",  // made from the mods' own files, of no world, so kept for the next
+            "MapSpots.Pictures",  // Scry's own drawing of a dot in each colour, of no world, so kept for the next
         };
 
         private static string Root()

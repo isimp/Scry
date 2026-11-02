@@ -131,17 +131,46 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void ADotShrinksAsTheMapZoomsOutButStaysVisible()
+        public void ARingedDotIsMostOfAPinNearAndHalfOneZoomedOut()
         {
-            // The game's large map zooms from 0.01 (nearest) to 1 (the whole world).
-            var near = SeenOnMap.DotSize(32f, 0.01f);
-            var middle = SeenOnMap.DotSize(32f, 0.1f);
-            var far = SeenOnMap.DotSize(32f, 1f);
+            // The game's large map zooms from 0.01 (nearest) to 1 (the whole world); its pins are 48 across (Minimap.m_pinSizeLarge).
+            var near = SeenOnMap.DotSize(48f, 0.01f);
+            var middle = SeenOnMap.DotSize(48f, 0.1f);
+            var far = SeenOnMap.DotSize(48f, 1f);
+            Assert.Equal(38.4f, near, 3);
+            Assert.Equal(24f, far, 3);
             Assert.True(near > middle && middle > far);
-            Assert.True(near < 32f, "a dot is smaller than a pin");
-            Assert.True(far >= 6f, "and never too small to see");
-            Assert.Equal(far, SeenOnMap.DotSize(32f, 5f));
-            Assert.Equal(near, SeenOnMap.DotSize(32f, 0.001f));
+            Assert.Equal(far, SeenOnMap.DotSize(48f, 5f));
+            Assert.Equal(near, SeenOnMap.DotSize(48f, 0.001f));
+        }
+
+        [Fact]
+        public void ADotIsItsKindsColourInADarkEdgeWithALightRingSetOffFromAnyGround()
+        {
+            // From the middle out, by the share of the mark's radius.
+            Assert.Equal(DotPart.Disc, SeenOnMap.DotAt(0f));
+            Assert.Equal(DotPart.Disc, SeenOnMap.DotAt(0.35f));
+            Assert.Equal(DotPart.Edge, SeenOnMap.DotAt(0.5f));
+            // Between the dot and its ring the map shows.
+            Assert.Equal(DotPart.Clear, SeenOnMap.DotAt(0.65f));
+            Assert.Equal(DotPart.Halo, SeenOnMap.DotAt(0.75f));
+            Assert.Equal(DotPart.Ring, SeenOnMap.DotAt(0.85f));
+            Assert.Equal(DotPart.Halo, SeenOnMap.DotAt(0.97f));
+            Assert.Equal(DotPart.Clear, SeenOnMap.DotAt(1.01f));
+        }
+
+        [Fact]
+        public void YourOtherPinsDimToAThirdWhileScrysMarksKeepTheMapsOwnBrightness()
+        {
+            Assert.Equal(1f / 3f, SeenOnMap.Dimmed(1f), 4);
+            // A layer the game or a mod had see-through already: a third of that.
+            Assert.Equal(1f / 6f, SeenOnMap.Dimmed(0.5f), 4);
+            // Scry's marks as bright as the layer was, with whatever fades the map above it, from the layer up.
+            Assert.Equal(1f, SeenOnMap.AsShown(new[] { (1f, false), (1f, false) }), 4);
+            Assert.Equal(0.25f, SeenOnMap.AsShown(new[] { (0.5f, false), (0.5f, false) }), 4);
+            // A group that ignores those above it ends the reckoning there, as Unity's own does.
+            Assert.Equal(0.5f, SeenOnMap.AsShown(new[] { (0.5f, true), (0.1f, false) }), 4);
+            Assert.Equal(1f, SeenOnMap.AsShown(new (float, bool)[0]), 4);
         }
 
         [Fact]
