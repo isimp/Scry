@@ -318,9 +318,11 @@ namespace Scry
         }
 
         /// <summary>
-        /// A stage quick to film, a piece on the plain backdrop, stays sharp while its camera
-        /// turns and spins: it is filmed lighter (smaller, stretched) only where its still film
-        /// takes at least what LighterFilmFromMs says, a big dungeon's, not a piece's.
+        /// A stage quick to film, a piece on the plain backdrop, stays sharp while it spins, as it
+        /// does from the moment it is shown with AutoSpin on: it is filmed lighter (smaller,
+        /// stretched) only where its film takes at least what LighterFilmFromMs says, a big
+        /// dungeon's, not a piece's, and a slow first film or a hitch softens it for a frame at the
+        /// most. What it costs is read last, from a still camera.
         /// </summary>
         private static IEnumerator QuickStageStaysSharp(Probe p)
         {
@@ -329,37 +331,33 @@ namespace Scry
             if (Settings.StageQuality == StageQuality.Fast) p.Skip("the stage is filmed fast, always at half size");
             var spin = Stage.Spin;
             var backdrop = Stage.BackdropIndex;
-            Stage.Spin = false;
             Stage.BackdropIndex = 0;
+            Stage.Spin = true;
             Select(entry);
             yield return Until(() => CopyOf(entry) != null, 10);
-            var settled = Time.unscaledTime;
-            yield return Until(() => Time.unscaledTime - settled > 0.6f && !Stage.Gliding && !Stage.FilmedInMotion, 4);
-            var still = Stage.StillFilmMs;
-            var from = Settings.LighterFilmFromMs;
-            var expected = StageFilm.Lighter(true, false, still, from);
-            p.Note($"its still film took {Numbers.Fixed(still, 2)} ms; a moving film goes lighter from {Numbers.Amount(from, 1)} ms");
+            var shown = Time.unscaledTime;
+            yield return Until(() => Time.unscaledTime - shown > 1f, 2);
 
             var lighter = 0;
             var films = 0;
-            for (var i = 0; i < 20; i++)
+            for (var i = 0; i < 40; i++)
             {
-                Stage.TurnTo(Stage.Yaw + 4f, Stage.Pitch);
+                if (i == 20) Stage.TurnTo(Stage.Yaw + 30f, Stage.Pitch);
                 yield return null;
                 films++;
                 if (Stage.FilmedInMotion) lighter++;
             }
-            Stage.Spin = true;
-            for (var i = 0; i < 20; i++)
-            {
-                yield return null;
-                films++;
-                if (Stage.FilmedInMotion) lighter++;
-            }
+            Stage.Spin = false;
+            var settled = Time.unscaledTime;
+            yield return Until(() => Time.unscaledTime - settled > 0.6f && !Stage.Gliding && !Stage.FilmedInMotion, 4);
+            var cost = Stage.WholeFilmMs;
+            var from = Settings.LighterFilmFromMs;
             Stage.Spin = spin;
             Stage.BackdropIndex = backdrop;
-            p.Check(expected ? lighter > 0 : lighter == 0,
-                expected ? "turned and spinning, a stage slow to film goes lighter, as LighterFilmFromMs says" : "turned and spinning, a stage quick to film stays sharp, filmed whole every frame",
+            var slow = StageFilm.Lighter(true, false, cost, false, from);
+            p.Note($"its film takes {Numbers.Fixed(cost, 2)} ms still; a moving film goes lighter from {Numbers.Amount(from, 1)} ms; {Numbers.Count(lighter)} of {Numbers.Count(films)} frames spinning were lighter");
+            p.Check(slow ? lighter >= films * 3 / 4 : lighter <= 2,
+                slow ? "spinning, a stage slow to film goes lighter, as LighterFilmFromMs says" : "spinning, a stage quick to film stays sharp, filmed whole but for a frame or two",
                 $"{Numbers.Count(lighter)} of {Numbers.Count(films)} frames filmed lighter");
         }
 

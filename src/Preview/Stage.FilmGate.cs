@@ -84,7 +84,7 @@ namespace Scry
                 FilmsSkipped++;
                 return false;
             }
-            FilmInMotionNow = StageFilm.Lighter(cameraMoved, Settings.StageQuality == StageQuality.Fast, StillFilmMs, Settings.LighterFilmFromMs);
+            FilmInMotionNow = StageFilm.Lighter(cameraMoved, Settings.StageQuality == StageQuality.Fast, WholeFilmMs, FilmedInMotion, Settings.LighterFilmFromMs);
             _touched = false;
             _filmedYaw = Yaw;
             _filmedPitch = Pitch;

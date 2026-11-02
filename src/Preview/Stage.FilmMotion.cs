@@ -4,8 +4,8 @@ namespace Scry
 {
     /// <summary>
     /// A lighter film while the camera moves: turned, zoomed, dragged, gliding or its cut moved,
-    /// a full stage whose last still film took long (<see cref="StageFilm.Lighter"/>, from
-    /// <see cref="Settings.LighterFilmFromMs"/>) is filmed into a picture of <see cref="MotionShare"/>
+    /// a full stage whose last film took long whole (<see cref="StageFilm.Lighter"/>, from
+    /// <see cref="Settings.LighterFilmFromMs"/>) is filmed into a picture of <see cref="StageFilm.MotionShare"/>
     /// its size with less smoothing of its edges (<see cref="MotionAntiAliasing"/>), drawn stretched
     /// to the stage's, as a big dungeon's film costs tens of milliseconds a frame while the camera
     /// moves and the eye follows the motion rather than the edges; once the camera holds still, the
@@ -15,9 +15,6 @@ namespace Scry
     /// </summary>
     internal static partial class Stage
     {
-        /// <summary>How much of the stage's size a film in motion takes.</summary>
-        private const float MotionShare = 0.75f;
-
         /// <summary>How many samples a film in motion smooths its edges with, a still film's being 4.</summary>
         private const int MotionAntiAliasing = 2;
 
@@ -26,8 +23,8 @@ namespace Scry
         /// <summary>Whether the last film was one in motion, shown until the camera holds still and the stage is filmed whole.</summary>
         private static bool _lastInMotion;
 
-        /// <summary>How long the last still, whole film of what is shown took, in milliseconds; nought until one is made, so what is newly shown is first filmed whole and measured.</summary>
-        public static double StillFilmMs { get; private set; }
+        /// <summary>How long the last film of what is shown took, or would have taken whole where it was lighter (<see cref="StageFilm.AsWhole"/>), in milliseconds; nought until one is made, so what is newly shown is first filmed whole.</summary>
+        public static double WholeFilmMs { get; private set; }
 
         /// <summary>Whether a film in motion is shown, so the panel draws that picture and the next still frame films whole.</summary>
         public static bool FilmedInMotion => _lastInMotion && _motionTexture != null;
@@ -36,8 +33,8 @@ namespace Scry
         private static RenderTexture FilmTarget()
         {
             if (!FilmInMotionNow || _texture == null) return _texture;
-            var width = Mathf.Max(32, Mathf.RoundToInt(_texture.width * MotionShare));
-            var height = Mathf.Max(32, Mathf.RoundToInt(_texture.height * MotionShare));
+            var width = Mathf.Max(32, Mathf.RoundToInt(_texture.width * StageFilm.MotionShare));
+            var height = Mathf.Max(32, Mathf.RoundToInt(_texture.height * StageFilm.MotionShare));
             if (_motionTexture != null && (_motionTexture.width != width || _motionTexture.height != height)) ForgetMotionTexture();
             if (_motionTexture == null)
             {
@@ -55,11 +52,11 @@ namespace Scry
         private static void FilmedInto(RenderTexture target)
         {
             _lastInMotion = target != null && target == _motionTexture;
-            if (!_lastInMotion) StillFilmMs = LastFilmMs;
+            WholeFilmMs = StageFilm.AsWhole(LastFilmMs, _lastInMotion);
         }
 
-        /// <summary>Forgets how long a still film took, as something else is shown: its first film is whole and measured.</summary>
-        private static void ForgetStillFilm() => StillFilmMs = 0;
+        /// <summary>Forgets how long a film took, as something else is shown: its first film is whole.</summary>
+        private static void ForgetFilmCost() => WholeFilmMs = 0;
 
         /// <summary>Lets go of the picture filmed in motion, as the stage goes or its size changes.</summary>
         private static void ForgetMotionTexture()

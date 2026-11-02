@@ -18,12 +18,23 @@ namespace Scry
         /// <summary>The most the player can set it to, which no film reaches, so none is lighter.</summary>
         public const float LighterNeverMs = 1000f;
 
+        /// <summary>How much of the stage's width and height a lighter film takes.</summary>
+        public const float MotionShare = 0.75f;
+
+        /// <summary>How far under the line a lighter film's stage must come to be filmed whole again while it moves, so one costing about the line keeps one look.</summary>
+        public const float StayLighterShare = 0.75f;
+
+        /// <summary>What a film would have taken whole: a lighter one's time over the share of the pixels it drew, which a film's cost follows at the most.</summary>
+        public static double AsWhole(double filmMs, bool lighter) => lighter ? filmMs / (MotionShare * MotionShare) : filmMs;
+
         /// <summary>
         /// Whether a film is made lighter: the camera moves, the stage is not already filmed fast,
-        /// and its last still film took at least <paramref name="fromMs"/>, so a stage quick to
-        /// film stays sharp as it turns and only a slow one trades its edges for smoothness.
+        /// and its last film took, whole (<see cref="AsWhole"/>), at least <paramref name="fromMs"/>,
+        /// or a <see cref="StayLighterShare"/> of it while it was lighter, so a stage quick to film
+        /// stays sharp as it turns, only a slow one trades its edges for smoothness, and each film
+        /// measures it again, so one slow film does not keep a quick stage soft.
         /// </summary>
-        public static bool Lighter(bool cameraMoved, bool fast, double stillFilmMs, float fromMs) =>
-            cameraMoved && !fast && fromMs < LighterNeverMs && stillFilmMs >= fromMs;
+        public static bool Lighter(bool cameraMoved, bool fast, double wholeMs, bool wasLighter, float fromMs) =>
+            cameraMoved && !fast && fromMs < LighterNeverMs && wholeMs >= (wasLighter ? fromMs * StayLighterShare : fromMs);
     }
 }

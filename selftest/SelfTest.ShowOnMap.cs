@@ -68,7 +68,8 @@ namespace Scry
             var near = MapSpots.DotSizeForTest;
             map.LargeZoom = SeenOnMap.FarthestZoom;
             MapSpots.Show(MadeUpSpots, "Self-test spots", Skin.KindColor(Kind.Resource), Grid(here, many, 200));
-            yield return Until(() => MapSpots.DotsShown > many / 2, 10);
+            // The dots shown before stand until the next placing: wait for those placed at this zoom.
+            yield return Until(() => MapSpots.DotSizeForTest < near && MapSpots.DotsShown > many / 2, 10);
             yield return null;
             var far = MapSpots.DotSizeForTest;
             p.Check(far > 0f && far < near, "zoomed out, the dots are drawn smaller", $"{Numbers.Amount(near, 1)} near, {Numbers.Amount(far, 1)} zoomed out");

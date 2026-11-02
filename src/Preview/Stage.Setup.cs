@@ -52,7 +52,7 @@ namespace Scry
             }
 
             ForgetMotionTexture();
-            ForgetStillFilm();
+            ForgetFilmCost();
             GiveLayerBack();
         }
 
