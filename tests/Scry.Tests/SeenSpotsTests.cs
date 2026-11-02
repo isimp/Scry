@@ -205,6 +205,16 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AWildKindTheGardenGrowsTooIsKeptOnlyOffTilledGround()
+        {
+            // A seed carrot grows wild and from a planted carrot alike: the game grows a planted one only on tilled ground (Plant.m_needCultivatedGround).
+            Assert.True(SeenOnMap.InAGarden(grownFromPlanting: true, tilled: true));
+            Assert.False(SeenOnMap.InAGarden(grownFromPlanting: true, tilled: false));
+            // What no garden grows is kept wherever it stands.
+            Assert.False(SeenOnMap.InAGarden(grownFromPlanting: false, tilled: true));
+        }
+
+        [Fact]
         public void CropsGrownFromPlantingAreNoFinds()
         {
             // A vine grown from a planted sapling, or a carrot from a seed, stands where the player planted it.

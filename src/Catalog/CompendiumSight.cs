@@ -83,6 +83,9 @@ namespace Scry
             /// <summary>Its widest side, for how far it is seen for the map, and the kind it is kept by as a spot there (<see cref="SpotKinds"/>); none for one not worth finding again.</summary>
             public float Size;
             public string Spot;
+
+            /// <summary>Whether its kind grows in gardens too, so one on tilled ground is no spot (<see cref="SpotKinds.GrowsInGardens"/>).</summary>
+            public bool Garden;
         }
 
         /// <summary>How many things are kept to look at now, those resting among them.</summary>
@@ -391,6 +394,7 @@ namespace Scry
                 shape.Size = Mathf.Max(size.y, Mathf.Max(size.x, size.z));
                 shape.Reach = Sighting.Reach(shape.Size);
                 shape.Spot = SpotKinds.Of(prefab);
+                shape.Garden = shape.Spot != null && SpotKinds.GrowsInGardens(prefab);
                 shape.Height = Mathf.Max(LeastHeight, bounds.center.y - thing.transform.position.y);
             }
             Shapes[prefab] = shape;

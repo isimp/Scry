@@ -28,10 +28,12 @@ namespace Scry
         /// The kind a thing whose spot is wanted (<see cref="SpotsWanted"/>) would be kept by where
         /// it stands, while none is kept there yet and the world keeps fewer than its most; none
         /// otherwise, so the thing is let go as any other once seen. Before the character's spots
-        /// are read, the kind still, so the thing is held to be looked at once they are.
+        /// are read, the kind still, so the thing is held to be looked at once they are. One
+        /// standing in a garden, a kind that grows wild and from planting on tilled ground, is none.
         /// </summary>
         private static string SpotToKeep(Shape shape, Vector3 at)
         {
+            if (shape.Garden && SpotKinds.InAGarden(true, at)) return null;
             if (!SeenSpotsKeeper.Ready) return shape.Spot;
             var world = SpotWorld();
             var spots = SeenSpotsKeeper.Spots;

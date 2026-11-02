@@ -23,8 +23,8 @@ namespace Scry
         /// <summary>The whole deposit each broken form comes of, by the broken form's name.</summary>
         private static Dictionary<string, string> _wholeOf;
 
-        /// <summary>What a sapling or a seed grows into once planted (<c>Plant.m_grownPrefabs</c>), by name.</summary>
-        private static HashSet<string> _grown;
+        /// <summary>What a sapling or a seed grows into once planted (<c>Plant.m_grownPrefabs</c>), and what the world places wild by its vegetation rules (<c>ZoneSystem.m_vegetation</c>), by name.</summary>
+        private static HashSet<string> _grown, _wild;
 
         /// <summary>The kind a prefab's things are kept by as spots; none for one not worth finding again, or one a Wishbone finds.</summary>
         public static string Of(int prefab)
@@ -52,7 +52,7 @@ namespace Scry
         {
             if (!SeenOnMap.Records(prefab.GetComponentInChildren<Beacon>(true) != null)) return false;
             var pickable = prefab.GetComponent<Pickable>();
-            if (pickable != null) return SeenOnMap.Findable(false, Gathered.Picked, pickable.m_itemPrefab != null ? new[] { pickable.m_itemPrefab.name } : System.Array.Empty<string>(), Grown(prefab.name));
+            if (pickable != null) return SeenOnMap.Findable(false, Gathered.Picked, pickable.m_itemPrefab != null ? new[] { pickable.m_itemPrefab.name } : System.Array.Empty<string>(), Grown(prefab.name) && !Wild(prefab.name));
             var deposit = DepositOf(prefab);
             return deposit != null && SeenOnMap.Findable(false, Gathered.Mined, deposit.m_drops.Where(d => d.m_item != null).Select(d => d.m_item.name));
         }
@@ -85,6 +85,42 @@ namespace Scry
             Kinds.Clear();
             _wholeOf = null;
             _grown = null;
+            _wild = null;
+            Gardens.Clear();
+        }
+
+        /// <summary>Whether a prefab grows both wild and from planting, as a seed carrot, by its hash: its things are kept only off tilled ground (<see cref="InAGarden"/>).</summary>
+        private static readonly Dictionary<int, bool> Gardens = new Dictionary<int, bool>();
+
+        public static bool GrowsInGardens(int prefab)
+        {
+            if (Gardens.TryGetValue(prefab, out var grows)) return grows;
+            var source = GamePrefabs.Hashed(prefab);
+            grows = source != null && Grown(source.name) && Wild(source.name);
+            Gardens[prefab] = grows;
+            return grows;
+        }
+
+        /// <summary>Whether a thing of such a kind stands in a garden, on tilled ground where the game grows a planted one (<c>Heightmap.IsCultivated</c>).</summary>
+        public static bool InAGarden(bool growsInGardens, Vector3 at)
+        {
+            if (!growsInGardens) return false;
+            var ground = Heightmap.FindHeightmap(at);
+            return SeenOnMap.InAGarden(true, ground != null && ground.IsCultivated(at));
+        }
+
+        /// <summary>Whether the world places a prefab wild by its vegetation rules.</summary>
+        private static bool Wild(string name)
+        {
+            if (_wild == null)
+            {
+                // Read once the world's rules are in, not before.
+                var zones = ZoneSystem.instance;
+                if (zones == null || zones.m_vegetation == null) return false;
+                _wild = new HashSet<string>(System.StringComparer.Ordinal);
+                foreach (var rule in zones.m_vegetation) if (rule != null && rule.m_enable && rule.m_prefab != null) _wild.Add(rule.m_prefab.name);
+            }
+            return _wild.Contains(name);
         }
 
         /// <summary>Whether a prefab is what a sapling or a seed grows into once planted, a crop.</summary>

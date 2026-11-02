@@ -244,12 +244,17 @@ namespace Scry
         /// Whether a kind of thing is worth finding again on the map: a place; a thing picked or
         /// mined (<paramref name="gatheredBy"/>) that gives something besides wood and stone, as a
         /// berry bush, flint, a mushroom or an ore deposit. Not a branch, a stone, a plain rock, a
-        /// tree, a shrub or a log, which stand everywhere, nor a crop grown from planting
-        /// (<paramref name="planted"/>: what a sapling or a seed grows into, <c>Plant.m_grownPrefabs</c>),
-        /// which stands where the player planted it; its wild kin is a prefab of its own.
+        /// tree, a shrub or a log, which stand everywhere, nor a crop only ever grown from planting
+        /// (<paramref name="planted"/>: what a sapling or a seed grows into, <c>Plant.m_grownPrefabs</c>,
+        /// that the world never places wild), which stands where the player planted it. A kind
+        /// growing both wild and from planting, as a seed carrot, is one, kept off tilled ground
+        /// (<see cref="InAGarden"/>).
         /// </summary>
         public static bool Findable(bool location, Gathered gatheredBy, IEnumerable<string> gives, bool planted = false) =>
             location || (!planted && gatheredBy != Gathered.None && gives.Any(item => !Everywhere.Contains(item)));
+
+        /// <summary>Whether a thing stands in a garden and is no find there: a kind a planted sapling or seed grows into, standing on tilled ground, where the game grows a planted one (<c>Plant.m_needCultivatedGround</c>).</summary>
+        public static bool InAGarden(bool grownFromPlanting, bool tilled) => grownFromPlanting && tilled;
 
         /// <summary>
         /// Whether a thing that breaks is a deposit mined: the pickaxe's damage counts against it
