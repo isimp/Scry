@@ -57,6 +57,30 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void EverySettingTheServerSendsSaysSoInTheConfigFile()
+        {
+            // A mod manager's config editor shows these words alone: each says the server's value wins.
+            var source = File.ReadAllText(Path.Combine(ScrySource.Root(), "src", "Core", "Settings.cs"));
+            var binds = Regex.Matches(source, "config\\.Bind\\(\"4 - World\", (\"[^\"]+\"|source \\+ \"UpTo\")[\\s\\S]*?\\);\\r?\\n").Cast<Match>().ToList();
+            Assert.Equal(7, binds.Count);
+            foreach (var bind in binds) Assert.True(bind.Value.Contains("SettingsWords.Synced(") || bind.Value.Contains("UpToSetting") || bind.Value.Contains("Only the server's own setting counts"), bind.Groups[1].Value + " does not say the server decides it");
+            foreach (var each in WorldSources.All) Assert.EndsWith(SettingsWords.WorldSynced, WorldRulesWords.UpToSetting(each));
+            Assert.StartsWith(" Set on the world's server", SettingsWords.WorldSynced);
+            Assert.Equal("Whether." + SettingsWords.WorldSynced, SettingsWords.Synced("Whether."));
+        }
+
+        [Fact]
+        public void DungeonMarksSaysWhatItPutsAwayAndWhatStays()
+        {
+            // Off, no dungeon mark shows on either map, others' and entrances too; a page's Show on map is its own.
+            var why = Section("Map").Rows.Single(r => r.Keys.Contains("DungeonMarksOnMap")).Why;
+            Assert.Contains("Off, no dungeon mark shows", why);
+            Assert.Contains("Show on map", why);
+            Assert.Equal(why, SettingsWords.DungeonMarksWhy);
+            Assert.Contains("SettingsWords.DungeonMarksWhy", File.ReadAllText(Path.Combine(ScrySource.Root(), "src", "Core", "Settings.cs")));
+        }
+
+        [Fact]
         public void NoTwoRowsOfTheCardShareALabel()
         {
             // The same name in two places reads as the same setting, though they hold different values.

@@ -128,7 +128,7 @@ namespace Scry
             new SettingSection("Compendium", CompendiumRows().ToArray()),
 
             new SettingSection("Map",
-                In("Dungeon marks", Switch("DungeonMarksOnMap", "Dungeon marks", "Marks dungeons on Valheim's large map, telling how much of each was walked; a click on a mark opens its map in Scry. Off, no dungeon marks show.")),
+                In("Dungeon marks", Switch("DungeonMarksOnMap", "Dungeon marks", SettingsWords.DungeonMarksWhy)),
                 In("Dungeon marks", Ticks(new[] { "DungeonMarksWalkedByYou", "DungeonMarksWalkedOnServer", "DungeonMarkEntrances" }, "Marks shown",
                     "Each on its own. Others' walks show where a source shows them with insides; an entrance nobody walked stays faint until you point at it.",
                     "Walked by you", "Walked by others on this server", "Entrances nobody walked")),

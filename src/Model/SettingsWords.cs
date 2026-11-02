@@ -25,6 +25,15 @@ namespace Scry
         public static string CompendiumFor(string character) =>
             (string.IsNullOrEmpty(character) ? "For your character" : "For " + character) + " in this world. The compendium's box at the top sets the same.";
 
+        /// <summary>What every setting the world's server sends ends with in the config file.</summary>
+        public const string WorldSynced = " Set on the world's server, its value holds for every player connected to it.";
+
+        /// <summary>A setting's description in the config file, saying the world's server decides it.</summary>
+        public static string Synced(string description) => description + WorldSynced;
+
+        /// <summary>What the dungeon marks' switch does, on the card and in the config file alike.</summary>
+        public const string DungeonMarksWhy = "Marks dungeons on Valheim's large map and, where you ask for it, the minimap, telling how much of each was walked; a click on a mark opens its map in Scry. Off, no dungeon mark shows on either map, yours or others', entrances neither; a page's Show on map still marks what it shows.";
+
         public const string NoBook = "Your character's compendium is read once you stand in a world.";
         public const string RulesOff = "With the rules Off, Known up to and what this world shows wait for Loose or Strict.";
         public const string NewsGroup = "News";

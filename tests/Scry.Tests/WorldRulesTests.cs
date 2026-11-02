@@ -139,9 +139,9 @@ namespace Scry.Tests
             Assert.Equal("This server allows Shared maps up to Seen.", WorldRulesWords.UpTo(WorldSource.SharedMaps, SourceLevel.Seen));
             Assert.Equal("This server allows The whole world up to Off.", WorldRulesWords.UpTo(WorldSource.WholeWorld, SourceLevel.Off));
             // Each source's setting says what it caps and what it takes.
-            Assert.Equal("The highest level Shared maps may show in the compendium's box; one chosen above it shows this one. Off, Seen, Known or WithInsides.", WorldRulesWords.UpToSetting(WorldSource.SharedMaps));
-            Assert.Equal("The highest level The whole world may show in the compendium's box; one chosen above it shows this one. Off or Counted.", WorldRulesWords.UpToSetting(WorldSource.WholeWorld));
-            Assert.Equal("The highest level Ground you explored may show in the compendium's box; one chosen above it shows this one. Off, Seen, Known or WithInsides.", WorldRulesWords.UpToSetting(WorldSource.Explored));
+            Assert.Equal("The highest level Shared maps may show in the compendium's box; one chosen above it shows this one. Off, Seen, Known or WithInsides." + SettingsWords.WorldSynced, WorldRulesWords.UpToSetting(WorldSource.SharedMaps));
+            Assert.Equal("The highest level The whole world may show in the compendium's box; one chosen above it shows this one. Off or Counted." + SettingsWords.WorldSynced, WorldRulesWords.UpToSetting(WorldSource.WholeWorld));
+            Assert.Equal("The highest level Ground you explored may show in the compendium's box; one chosen above it shows this one. Off, Seen, Known or WithInsides." + SettingsWords.WorldSynced, WorldRulesWords.UpToSetting(WorldSource.Explored));
         }
     }
 }

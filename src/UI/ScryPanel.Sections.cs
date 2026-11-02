@@ -426,11 +426,11 @@ namespace Scry
         private static StripClick PlayingWithNotice(Rect rect, string step = null)
         {
             CountDrawn(PanelPart.PlayingWithNotice);
-            var clicked = NoticeStrip(rect, Skin.Accent, _withLine, Skin.Label, false, PlayingWithWords.WhoHasScry, _bookPinned, true, crossTip: PlayingWithWords.PutAway, step: step);
+            var clicked = NoticeStrip(rect, Skin.Accent, _withLine, Skin.Label, false, PlayingWithWords.WhoHasScry, CompendiumBoxPinned, true, crossTip: PlayingWithWords.PutAway, step: step);
             switch (clicked)
             {
                 case StripClick.Chip:
-                    ShowWhoHasScry(!_bookPinned);
+                    ToggleCompendiumBox();
                     break;
                 case StripClick.Cross:
                     PutPlayingWithAway();
@@ -538,7 +538,8 @@ namespace Scry
             CountDrawn(PanelPart.NoticeLine);
         }
 
-        /// <summary>Opens the compendium's box with whom the character plays with, in the full view, or lets it close: the notice's chip, and the self-test.</summary>
+        /// <summary>Opens the compendium's box with whom the character plays with, in the full view, or lets it close, as the notice's chip does (<see cref="ToggleCompendiumBox"/>); for the self-test.</summary>
+        [ForTest]
         internal static void ShowWhoHasScry(bool show)
         {
             if (show) Compact = false;

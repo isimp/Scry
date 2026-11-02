@@ -50,7 +50,7 @@ namespace Scry.Tests
             Assert.Equal("What your character knows, shown in the catalog", CompendiumWords.BoxCaption);
             Assert.Equal("Rules", CompendiumWords.RulesCaption);
             Assert.Equal("Loose: only what your character has met shows; a page opens whole once it has fought, held, built, used or entered it", CompendiumWords.StepTip(CompendiumRule.Loose));
-            Assert.Equal("Show only what your character has come to know, by the rules chosen for it here; each character keeps its own", CompendiumWords.ModeTip);
+            Assert.Equal("Show only what your character has come to know, by the rules chosen for it here; each character keeps its own. Click to choose", CompendiumWords.ModeTip);
             Assert.Equal("show everything. What your character comes to know is kept all the same, so turning the compendium on later shows everything met meanwhile", CompendiumWords.RuleTip(CompendiumRule.Off));
             Assert.Equal("only what your character has met shows; a page opens whole once it has fought, held, built, used or entered it", CompendiumWords.RuleTip(CompendiumRule.Loose));
             Assert.Equal("as Loose, but a page shows only what your character saw go together, and keeps back the numbers the game never shows until it finds them out", CompendiumWords.RuleTip(CompendiumRule.Strict));

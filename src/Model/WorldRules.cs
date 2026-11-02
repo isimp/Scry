@@ -162,7 +162,7 @@ namespace Scry
         {
             var levels = Array.ConvertAll(WorldSources.Offered(source), l => l.ToString());
             var taken = string.Join(", ", levels, 0, levels.Length - 1) + " or " + levels[levels.Length - 1];
-            return $"The highest level {CompendiumWords.SourceName(source)} may show in the compendium's box; one chosen above it shows this one. {taken}.";
+            return $"The highest level {CompendiumWords.SourceName(source)} may show in the compendium's box; one chosen above it shows this one. {taken}." + SettingsWords.WorldSynced;
         }
 
         /// <summary>The line under a row of the settings' Compendium section saying what the world's server keeps from it; none where it keeps nothing.</summary>

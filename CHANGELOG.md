@@ -14,7 +14,9 @@ Pages count what you really do, and only that. Watching a plant grow, cooking on
 
 What a page links stands in the topic it belongs to, a dungeon room says whether it is a dead end, a passage or a junction, and grass no longer hides a small item on the stage. The panel's words say what they count, the Clear world button is now *Clear previews*, and rules checked against the game again were corrected, among them how far creatures keep from fire and that a death takes all progress toward the next skill level. Smaller fixes throughout.
 
-A new setup opens the panel with the keys still walking your character; *Search ready* under *On opening* in the settings brings the old behaviour back.
+The settings under the gear are one card in sections, each setting explained where it stands, every one in one place: the panel, the preview, your character's compendium, the map, reading in the background and what the server decides. The compendium's section holds the same rows as its box, with what the server allows standing under each; the box now opens on a click. New settings choose how a page's marks stand out on the map, how loud a preview plays, whether news of what you learn tells all of it or new pages only, and Shift, Ctrl or Alt with the key opening Scry. A new player is told that key once in a world, and the first time Scry opens it offers a short setup.
+
+On a new install the panel opens with the keys still walking your character; *Search ready* under *On opening* in the settings brings the old behaviour back.
 
 ## 0.3.2
 

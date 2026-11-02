@@ -114,6 +114,8 @@ namespace Scry
         public static void Closed()
         {
             IsOpen = false;
+            // Opened again, the panel shows the compendium's box closed.
+            PinCompendiumBox(false);
             Looking = false;
             _closedFrame = Time.frameCount;
         }

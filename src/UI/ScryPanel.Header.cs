@@ -384,7 +384,7 @@ namespace Scry
 
         private static float _frontScale = -1f, _floorValueW;
 
-        /// <summary>Whether the compendium's box is open: while the mouse is on its button or on the box, or while the self-test holds it.</summary>
+        /// <summary>Whether the compendium's box is open: once a click on its button opened it (<see cref="BookClick"/>), or while the self-test holds it.</summary>
         private static bool _bookOpen;
         private static bool _bookHeld;
 
@@ -409,15 +409,25 @@ namespace Scry
         [ForTest]
         internal static void HoldCompendiumBox(bool open) => _bookHeld = open;
 
-        /// <summary>Whether the box stays open though the mouse is elsewhere, as the notice's chip asked, until the mouse has been on it and left; and whether it has been.</summary>
-        private static bool _bookPinned, _bookPinnedVisited;
+        /// <summary>Whether the box stands open: a click on its button opens it, as the notice's chip does, and a click outside it or on the button again puts it away.</summary>
+        private static readonly ClickBox BookClick = new ClickBox();
 
-        /// <summary>Keeps the box open until the mouse has been on it and left it, or lets it close.</summary>
+        /// <summary>Opens the box as a click on its button would, or puts it away.</summary>
         private static void PinCompendiumBox(bool pin)
         {
-            _bookPinned = pin;
-            _bookPinnedVisited = false;
+            if (pin) BookClick.Show();
+            else BookClick.Close();
         }
+
+        /// <summary>The notice's chip, outside the box: opens it in the full view, or puts it away, as it stood when the chip's press began, which put it away first.</summary>
+        private static void ToggleCompendiumBox()
+        {
+            BookClick.ToggledFromOutside();
+            if (BookClick.Open) Compact = false;
+        }
+
+        /// <summary>Whether the box was opened by a click or the notice's chip, rather than held by the self-test.</summary>
+        private static bool CompendiumBoxPinned => BookClick.Open;
 
         /// <summary>Whether the box shows the players played with: while the compendium is on and another player is in the world; and where its row and the line under it stand.</summary>
         private static bool _bookWithShown;
@@ -435,8 +445,8 @@ namespace Scry
 
         /// <summary>
         /// The compendium in the title row, once the character's book is read and only in the full
-        /// view: a button naming the rules chosen, the box under it opening while the mouse is on
-        /// either, as Clear previews' list does, with the rules as segments and, while it is on, the
+        /// view: a button naming the rules chosen, the box under it opening on a click on it and put
+        /// away by a click outside (<see cref="ClickBox"/>), with the rules as segments and, while it is on, the
         /// floor between arrows; and while it is on, the eye peeking at everything for now beside
         /// the button. Left out where it would reach past <paramref name="leftmost"/>. Where the
         /// drawn controls begin, else <paramref name="right"/>.
@@ -446,7 +456,9 @@ namespace Scry
             var book = CompendiumKeeper.Book;
             if (book == null || _compact)
             {
+                // Not drawn, it is put away, so it never comes back open by itself.
                 _bookOpen = false;
+                BookClick.Close();
                 // The compact view keeps only the eye, beside the view button, with the compendium on.
                 if (book == null || !explorer.CompendiumSet) return right;
                 var eye = new Rect(right - U(8f) - height, y, height, height);
@@ -469,13 +481,14 @@ namespace Scry
             if (button.x < leftmost)
             {
                 _bookOpen = false;
+                BookClick.Close();
                 return right;
             }
             CountDrawn(PanelPart.CompendiumSwitch);
             _bookButtonW = buttonW;
             _bookLabel = label;
             var e = Event.current;
-            GUI.Button(button, label, _bookOpen ? Skin.On : Skin.Button);
+            if (GUI.Button(button, label, _bookOpen ? Skin.On : Skin.Button)) BookClick.Pressed();
             if (!_bookOpen && button.Contains(e.mousePosition)) AskTip("mode", CompendiumWords.ModeTip);
             if (on) PeekButton(explorer, peek);
             BookLayout(book, button, height, room, e);
@@ -529,6 +542,10 @@ namespace Scry
         [Diagnostic]
         public static Rect CompendiumBoxForTest => _bookBox;
 
+        /// <summary>Whether the box stood open at the last event, for the self-test.</summary>
+        [Diagnostic]
+        public static bool CompendiumBoxOpenForTest => _bookOpen;
+
         /// <summary>The column noted for the floor's arrows, which stand beside its biome rather than at their columns' starts (<see cref="BookColumns.Arrows"/>); a pin's is -1.</summary>
         public const int BesideBiome = -2;
 
@@ -542,8 +559,8 @@ namespace Scry
         /// caption, the rules' segments and, while the compendium is on and a floor can be set,
         /// the floor between its arrows; while it is on, what the world shows as known, a row of
         /// levels for each source and the faint line under them, then the players played with and
-        /// the line under them; and whether it is open, while the mouse is on the button or the
-        /// box, with a little room between them, or while the notice's chip keeps it open.
+        /// the line under them; and whether it is open, put away by a press anywhere outside the
+        /// button and the box, with a little room around them.
         /// </summary>
         private static void BookLayout(CompendiumBook book, Rect button, float height, Rect room, Event e)
         {
@@ -657,10 +674,9 @@ namespace Scry
                 var right = Mathf.Max(button.xMax, _bookBox.xMax) + U(6f);
                 zone = new Rect(left, button.y - U(6f), right - left, _bookBox.yMax - button.y + U(12f));
             }
-            var on = zone.Contains(e.mousePosition);
-            if (_bookPinned && on) _bookPinnedVisited = true;
-            else if (_bookPinned && _bookPinnedVisited) PinCompendiumBox(false);
-            _bookOpen = _bookHeld || _bookPinned || on;
+            // Pressed anywhere, though what stands there took the press first.
+            if (e.rawType == EventType.MouseDown) BookClick.DownAt(zone.Contains(e.mousePosition));
+            _bookOpen = _bookHeld || BookClick.Open;
         }
 
         /// <summary>Whether the floor can be raised from where it is, as far as the bosses that fell in a row reach (<see cref="CompendiumKeeper.Ceiling"/>), where the world's server allows it.</summary>
@@ -684,8 +700,17 @@ namespace Scry
             if (!_bookOpen || book == null || e.type != EventType.MouseDown || !_bookBox.Contains(e.mousePosition)) return;
             if (e.button == 0)
             {
-                if (_bookGuide.Contains(e.mousePosition)) ShowGuide(!GuideShown);
-                if (_bookSettings.Contains(e.mousePosition)) OpenCompendiumSettings();
+                // The guide and the settings open in the panel's body, the box put away over them.
+                if (_bookGuide.Contains(e.mousePosition))
+                {
+                    ShowGuide(!GuideShown);
+                    BookClick.Close();
+                }
+                if (_bookSettings.Contains(e.mousePosition))
+                {
+                    OpenCompendiumSettings();
+                    BookClick.Close();
+                }
                 for (var i = 0; i < CompendiumWords.Rules.Count && !book.World.RulesSet; i++)
                 {
                     var rule = CompendiumWords.Rules[i];

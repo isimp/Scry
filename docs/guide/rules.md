@@ -1,6 +1,6 @@
 # The compendium's rules
 
-The compendium shows only what the character you play has come to know, and grows as you play. It is chosen for each character in the *Compendium* box at the top of the panel, and a character whose compendium is off is asked once whether to keep one. The *?* in that box tells these rules in short, in the game.
+The compendium shows only what the character you play has come to know, and grows as you play. It is chosen for each character in the box a click on the *Compendium* button at the top of the panel opens, or in the settings' *Compendium* section, which holds the same rows, and a character whose compendium is off is asked once whether to keep one. The *?* in that box tells these rules in short, in the game.
 
 ![The compendium's guide, opened by the ? in its box](../images/compendium-guide.webp)
 

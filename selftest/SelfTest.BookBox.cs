@@ -63,6 +63,8 @@ namespace Scry
             p.Check(over.Count == 0 && outside.Count == 0, "none of the box's parts stands over another or past the box", string.Join("; ", over.Concat(outside).Take(6)));
             yield return Picture(p, "compendium box in columns");
             ScryPanel.HoldCompendiumBox(false);
+            for (var i = 0; i < 3; i++) yield return null;
+            p.Check(!ScryPanel.CompendiumBoxOpenForTest, "let go of, the box stays shut until a click or the notice's chip opens it");
         }
     }
 }

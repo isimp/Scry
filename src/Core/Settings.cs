@@ -304,8 +304,7 @@ namespace Scry
                     new AcceptableValueRange<float>(0f, 120f)));
             _readLocations = config.Bind("1 - General", "ReadLocationsAutomatically", true,
                 "Reads where things are found in each world's locations and dungeons by itself, in the background once the prefabs are read, taking a few minutes the first time in a world and kept for the next. Off, they are read only when asked, with Find where things are or /scry locations.");
-            _dungeonMarks = config.Bind("1 - General", "DungeonMarksOnMap", true,
-                "Marks each dungeon you have been in on Valheim's large map, on its entrance, telling how much of it you walked; a click on a mark opens its map in Scry. Off, the map shows nothing of Scry's.");
+            _dungeonMarks = config.Bind("1 - General", "DungeonMarksOnMap", true, SettingsWords.DungeonMarksWhy);
             _news = config.Bind("1 - General", "News", NewsShown.All,
                 "What the notice under the header tells of what the character learned, as it learns it: All of it; NewPages, pages newly met only, leaving out what was found out about one met before; Off, the Learned tab alone tells it.");
             KeepNewsOff(config);
@@ -371,19 +370,19 @@ namespace Scry
         {
             _sync = new ServerSync.ConfigSync(About.Guid) { DisplayName = About.Name, CurrentVersion = About.Version, ModRequired = false, IsLocked = true };
             _worldRules = config.Bind("4 - World", "Rules", WorldRule.PlayersChoose,
-                "The compendium's rules everyone in this world plays by: Off, Loose or Strict; PlayersChoose leaves them to each player. Set on the server, it holds for every player connected to it.");
+                SettingsWords.Synced("The compendium's rules everyone in this world plays by: Off, Loose or Strict; PlayersChoose leaves them to each player."));
             _worldPeeking = config.Bind("4 - World", "Peeking", true,
-                "Whether players may peek, the page shown showing whole until they go to another, or every page until the panel closes.");
+                SettingsWords.Synced("Whether players may peek, the page shown showing whole until they go to another, or every page until the panel closes."));
             _worldFloor = config.Bind("4 - World", "KnownUpTo", true,
-                "Whether players may raise Known up to, showing everything of the tiers below as known.");
+                SettingsWords.Synced("Whether players may raise Known up to, showing everything of the tiers below as known."));
             _worldSeenReach = config.Bind("4 - World", "SeenReach", WorldRules.SeenReachSetting.Default,
-                new ConfigDescription("How near, in metres, you must be to a creature to see its stars, what it carries and its attacks begin, and to an item, piece or resource to see it; 10 is as far as the game names a creature and marks its stars. At 0 no stars, gear or attacks are kept, and things are seen by their size alone.",
+                new ConfigDescription(SettingsWords.Synced("How near, in metres, you must be to a creature to see its stars, what it carries and its attacks begin, and to an item, piece or resource to see it; 10 is as far as the game names a creature and marks its stars. At 0 no stars, gear or attacks are kept, and things are seen by their size alone."),
                     new AcceptableValueRange<float>(0f, 150f)));
             Sync(_worldRules);
             Sync(_worldPeeking);
             Sync(_worldFloor);
             _worldSeenOnMapReach = config.Bind("4 - World", "SeenOnMapReach", SeenOnMap.DefaultReach,
-                new ConfigDescription("How far away, in metres, a player's own sight remembers where an ore deposit, a pickable or a place stands, for showing it on the map; things smaller than a person are seen nearer. At 0 nothing is remembered.",
+                new ConfigDescription(SettingsWords.Synced("How far away, in metres, a player's own sight remembers where an ore deposit, a pickable or a place stands, for showing it on the map; things smaller than a person are seen nearer. At 0 nothing is remembered."),
                     new AcceptableValueRange<float>(0f, 150f)));
             _worldSquares = config.Bind("4 - World", "SquaresOnMap", true,
                 "Whether Show on map shades the 128 m squares that hold a place in ground a player explored or saw on a shared map but never came near, so they know one stands somewhere inside; the server works them out and never tells where. Off, the server tells no squares, and players see only the places they saw themselves. Only the server's own setting counts.");

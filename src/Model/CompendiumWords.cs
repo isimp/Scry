@@ -53,7 +53,7 @@ namespace Scry
         public const string RulesCaption = "Rules";
 
         /// <summary>The mode's tip.</summary>
-        public const string ModeTip = "Show only what your character has come to know, by the rules chosen for it here; each character keeps its own";
+        public const string ModeTip = "Show only what your character has come to know, by the rules chosen for it here; each character keeps its own. Click to choose";
 
         /// <summary>The tip of the arrow stepping the mode to a rule: its name and what it shows.</summary>
         public static string StepTip(CompendiumRule rule) => RuleName(rule) + ": " + RuleTip(rule);
