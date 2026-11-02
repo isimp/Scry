@@ -33,10 +33,7 @@ namespace Scry
             var leviathan = X.Catalog.FirstOrDefault(e => e.Name == "Leviathan" && e.Source is GameObject);
             var bench = X.Catalog.FirstOrDefault(e => e.Name == "piece_workbench" && e.Source is GameObject);
             if (serpent == null && leviathan == null) p.Skip("there is neither a Serpent nor a Leviathan to show");
-            _seaBefore = (Stage.BackdropIndex, Stage.Spin, Stage.GroundChoice);
-            Stage.Spin = false;
-            Stage.GroundChoice = "Auto";
-            Stage.BackdropIndex = 5;
+            OnGroundChosenAutomatically();
 
             if (serpent != null)
             {
@@ -179,10 +176,7 @@ namespace Scry
         {
             var serpent = X.Catalog.FirstOrDefault(e => e.Name == "Serpent" && e.Source is GameObject);
             if (serpent == null) p.Skip("there is no Serpent to show");
-            _seaBefore = (Stage.BackdropIndex, Stage.Spin, Stage.GroundChoice);
-            Stage.Spin = false;
-            Stage.GroundChoice = "Auto";
-            Stage.BackdropIndex = 5;
+            OnGroundChosenAutomatically();
             Select(serpent);
             yield return Until(() => CopyOf(serpent) != null && Stage.WaterShown && Previews.Clips().Count > 0, 20);
             yield return new Wait(1f);
@@ -340,6 +334,15 @@ namespace Scry
         {
             var eye = Stage.CameraHeight;
             p.Check(eye > surface, "the camera looks at it from over the surface", $"{Numbers.Fixed(eye - surface, 2)} m over it");
+        }
+
+        /// <summary>The stage set to lay the ground of what is shown, chosen automatically, standing still; put back by <see cref="SeaAsItWas"/>.</summary>
+        private static void OnGroundChosenAutomatically()
+        {
+            _seaBefore = (Stage.BackdropIndex, Stage.Spin, Stage.GroundChoice);
+            Stage.Spin = false;
+            Stage.GroundChoice = "Auto";
+            Stage.BackdropIndex = 5;
         }
 
         /// <summary>The backdrop, spin and ground put back as they were before <see cref="SeaHolds"/>.</summary>

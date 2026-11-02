@@ -55,6 +55,7 @@ namespace Scry
         {
             _lastShown = null;
             _buildingGround = null;
+            ForgetHome();
         }
 
         /// <summary>Asked by the panel on each frame it shows the stage, with the size it shows it at.</summary>

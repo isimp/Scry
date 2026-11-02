@@ -60,6 +60,25 @@ namespace Scry
         public static SeaHold AtSurface(float floatOffset, float? placed) => new SeaHold(SeaHeld.AtSurface, floatOffset, placed);
 
         /// <summary>
+        /// A ship riding the surface where the game's push up holds it (<c>Ship.CustomFixedUpdate</c>):
+        /// its centre of mass is pushed up while it lies more than <paramref name="disableLevel"/>
+        /// under the water's level plus <paramref name="waterLevelOffset"/>, by <paramref name="force"/>
+        /// at <paramref name="forceDistance"/> under and less nearer, against
+        /// <paramref name="gravity"/> each physics step alike; it rests where the push meets its
+        /// weight, or where the push stops should it carry it from nearer. Its root lies
+        /// <paramref name="centreOfMassOverRoot"/> under its centre of mass. One nothing pushes up
+        /// the sea does not hold.
+        /// </summary>
+        public static SeaHold Floats(float waterLevelOffset, float force, float forceDistance, float disableLevel, float gravity, float centreOfMassOverRoot, float? placed)
+        {
+            if (force <= 0f || forceDistance <= 0f) return Not;
+            // The push per step, force times the share of its distance, times fifty times the step, meets gravity times the step.
+            var balanced = gravity * forceDistance / (50f * force);
+            var centreOverWater = waterLevelOffset - Math.Max(-disableLevel, balanced);
+            return new SeaHold(SeaHeld.AtSurface, centreOfMassOverRoot - centreOverWater, placed);
+        }
+
+        /// <summary>
         /// The shallowest sea any of the world's rules for a thing places it in: each at least its
         /// least ocean depth (<c>m_minOceanDepth</c>) deep, and its ground at least as far under the
         /// water as its highest altitude, the ground's height against the water, has it

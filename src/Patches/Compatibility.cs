@@ -403,6 +403,7 @@ namespace Scry
             ("BaseAI", "MoveTo", 4, 0x3D65CBA8, Feature.FlyersHighOnStage),
             ("GameCamera", "GetCameraPosition", 3, 0x25D43903, Feature.SeaHoldsOnStage),
             ("Leviathan", "FixedUpdate", 0, 0xD1B2386F, Feature.SeaHoldsOnStage),
+            ("Ship", "CustomFixedUpdate", 1, 0x7D34F1BB, Feature.SeaHoldsOnStage),
             ("WaterVolume", "DetectWaterDepth", 0, 0x825ECE7E, Feature.SeaHoldsOnStage),
             ("PickableItem", "SetupRandomPrefab", 0, 0x3B2FA4BA, Feature.WhatTreasureGives),
             ("HitData", "ApplyModifier", 6, 0xDC32A000, Feature.Resistances),

@@ -433,6 +433,102 @@ namespace Scry.Tests
             Assert.Equal(ground, StageGround.Painted(ground, 0f, 0f, new[] { none }));
         }
 
+        // Much spawns or grows nowhere of its own: a ship, a creature only a place's spawn points
+        // bring (the Charred in Ashlands fortresses), an item, a piece, a raid that may come
+        // anywhere. Each stands where the game has it: a ship on the sea, a place's creature in
+        // that place's biome, an item where what drops or yields it lives, a crafted thing in the
+        // biome of its tier, a raid where its creatures live.
+
+        private static StageGround.Home Nothing => new StageGround.Home { Tier = Tiers.None };
+
+        [Fact]
+        public void WhatSpawnsOrGrowsStandsWhereItDoesFirst()
+        {
+            var home = Nothing;
+            home.Own = new[] { "Swamp", "BlackForest" };
+            home.Places = new[] { "Mountain" };
+            home.Givers = new[] { "Plains" };
+            home.Tier = 5;
+            Assert.Equal("BlackForest", StageGround.HomeOf(home));
+            Assert.Equal("Meadows", StageGround.HomeOf(Nothing));
+        }
+
+        [Fact]
+        public void AShipStandsOnTheSea()
+        {
+            var ship = Nothing;
+            ship.Floats = true;
+            ship.Tier = 2;
+            Assert.Equal("Ocean", StageGround.HomeOf(ship));
+        }
+
+        [Fact]
+        public void ACreatureOnlyAPlaceBringsStandsInThatPlacesBiome()
+        {
+            var charred = Nothing;
+            charred.Places = new[] { "AshLands" };
+            charred.Tier = 7;
+            Assert.Equal("AshLands", StageGround.HomeOf(charred));
+        }
+
+        [Fact]
+        public void AnItemStandsWhereWhatDropsOrYieldsItLives()
+        {
+            var item = Nothing;
+            item.Givers = new[] { "Mistlands", "Plains" };
+            item.Tier = 6;
+            Assert.Equal("Plains", StageGround.HomeOf(item));
+            // Lying in a place, it stands in the place's biome before its givers'.
+            item.Places = new[] { "Swamp" };
+            Assert.Equal("Swamp", StageGround.HomeOf(item));
+        }
+
+        [Theory]
+        [InlineData(1, "Meadows")]
+        [InlineData(3, "Swamp")]
+        [InlineData(5, "Plains")]
+        [InlineData(7, "AshLands")]
+        // No tier (the Ocean's, the Deep North's, a mod's lone item), or none known yet: Meadows.
+        [InlineData(Tiers.None, "Meadows")]
+        [InlineData(0, "Meadows")]
+        public void ACraftedThingStandsInTheBiomeOfItsTier(int tier, string biome)
+        {
+            var crafted = Nothing;
+            crafted.Tier = tier;
+            Assert.Equal(biome, StageGround.HomeOf(crafted));
+        }
+
+        [Fact]
+        public void ARaidStandsWhereItsCreaturesLiveOfWhereItMayCome()
+        {
+            var goblins = Nothing;
+            goblins.Raid = true;
+            goblins.Own = new[] { "Meadows", "BlackForest", "Plains", "Mistlands" };
+            goblins.Brought = new[] { "Plains" };
+            Assert.Equal("Plains", StageGround.HomeOf(goblins));
+            // Of its creatures' biomes, only those it may come in count: then the first of its own.
+            goblins.Brought = new[] { "Swamp" };
+            Assert.Equal("Meadows", StageGround.HomeOf(goblins));
+            // Creatures living nowhere of their own: the first it may come in, as before.
+            goblins.Brought = new string[0];
+            Assert.Equal("Meadows", StageGround.HomeOf(goblins));
+            // A raid kept from the Meadows, its creatures elsewhere: the first it may come in.
+            var drakes = Nothing;
+            drakes.Raid = true;
+            drakes.Own = new[] { "Swamp", "Mountain" };
+            drakes.Brought = new[] { "Plains" };
+            Assert.Equal("Swamp", StageGround.HomeOf(drakes));
+        }
+
+        [Fact]
+        public void ABiomeLeftUnnamedTellsNothingAndTheNextWayIsAsked()
+        {
+            var unnamed = Nothing;
+            unnamed.Own = new[] { "" };
+            unnamed.Places = new[] { "AshLands" };
+            Assert.Equal("AshLands", StageGround.HomeOf(unnamed));
+        }
+
         [Fact]
         public void AModelStandsOnTheGroundOfTheFirstBiomePlayersMeetOfItsOwn()
         {

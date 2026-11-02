@@ -30,6 +30,34 @@ namespace Scry.Tests
             Assert.Equal(SeaHeld.AtSurface, SeaHold.AtSurface(0f, null).Held);
         }
 
+        // A ship floats where the game's push up holds it (Ship.CustomFixedUpdate): its centre of
+        // mass is pushed up while it lies more than m_disableLevel under the water level plus
+        // m_waterLevelOffset, the more the deeper, all of m_force at m_forceDistance; it rests
+        // where the push meets gravity, but no higher than where the push stops. These are the
+        // game's ships' numbers.
+
+        [Fact]
+        public void AShipRestsWhereTheGamesPushUpMeetsItsWeight()
+        {
+            // Karve: a full push at 2 m carries it from 0.39 m under, so it rests where the push stops, 0.5 m under 1.2 m.
+            var karve = SeaHold.Floats(waterLevelOffset: 1.2f, force: 1f, forceDistance: 2f, disableLevel: -0.5f, gravity: 9.81f, centreOfMassOverRoot: 0f, placed: null);
+            Assert.Equal(SeaHeld.AtSurface, karve.Held);
+            Assert.Equal(-0.7f, karve.SurfaceOverRoot, 3);
+            // Raft: half the push, so it sinks to 0.78 m under 1.5 m before it carries it.
+            var raft = SeaHold.Floats(1.5f, 0.5f, 2f, -0.5f, 9.81f, 0f, null);
+            Assert.Equal(-(1.5f - 9.81f * 2f / 25f), raft.SurfaceOverRoot, 3);
+            // Its root lies under its centre of mass by as much as that is over it.
+            var high = SeaHold.Floats(1.2f, 1f, 2f, -0.5f, 9.81f, centreOfMassOverRoot: 0.3f, placed: null);
+            Assert.Equal(-0.4f, high.SurfaceOverRoot, 3);
+        }
+
+        [Fact]
+        public void AShipNothingPushesUpIsNotHeldByTheSea()
+        {
+            Assert.Equal(SeaHeld.Not, SeaHold.Floats(1.2f, 0f, 2f, -0.5f, 9.81f, 0f, null).Held);
+            Assert.Equal(SeaHeld.Not, SeaHold.Floats(1.2f, 1f, 0f, -0.5f, 9.81f, 0f, null).Held);
+        }
+
         [Fact]
         public void TheSeaUnderALeviathanIsAsDeepAsTheWorldPlacesItAndClearOfItsBody()
         {

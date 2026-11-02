@@ -67,7 +67,48 @@ namespace Scry
             var leviathan = prefab.GetComponent<Leviathan>();
             if (character != null && character.m_canSwim && !character.m_flying) _sea = SeaHold.Swims(character.m_swimDepth, placed);
             else if (leviathan != null && leviathan.m_alignToWaterLevel) _sea = SeaHold.AtSurface(leviathan.m_floatOffset, placed);
+            else if (prefab.GetComponent<Ship>() is Ship ship && ship != null) _sea = ShipHold(prefab, ship, placed);
         }
+
+        /// <summary>
+        /// How the sea holds a ship (<see cref="SeaHold.Floats"/>): by its float settings, the
+        /// world's gravity and its centre of mass, which Unity works out from its hull's colliders.
+        /// </summary>
+        private static SeaHold ShipHold(GameObject prefab, Ship ship, float? placed) =>
+            SeaHold.Floats(ship.m_waterLevelOffset, ship.m_force, ship.m_forceDistance, ship.m_disableLevel, -Physics.gravity.y, CentreOfMassOverRoot(prefab), placed);
+
+        /// <summary>
+        /// How far over its root a prefab's centre of mass lies, as Unity works it out from its
+        /// colliders: read once from a copy that keeps its body and colliders, made far off,
+        /// held still and taken away at once, so it is never drawn and never falls. None for a
+        /// prefab without a body.
+        /// </summary>
+        private static float CentreOfMassOverRoot(GameObject prefab)
+        {
+            if (CentresOfMass.TryGetValue(prefab, out var known)) return known;
+            var over = 0f;
+            var copy = Ghost.Make(prefab, null, new Vector3(0f, -10000f, 0f), Quaternion.identity, falling: true);
+            if (copy != null)
+            {
+                var body = copy.GetComponent<Rigidbody>();
+                if (body != null)
+                {
+                    body.isKinematic = true;
+                    over = body.centerOfMass.y;
+                }
+                copy.SetActive(false);
+                Object.Destroy(copy);
+            }
+            CentresOfMass[prefab] = over;
+            return over;
+        }
+
+        /// <summary>Prefabs' centres of mass over their roots, worked out once each.</summary>
+        private static readonly System.Collections.Generic.Dictionary<GameObject, float> CentresOfMass = new System.Collections.Generic.Dictionary<GameObject, float>();
+
+        /// <summary>For the self-test: how far over its root the shown ship's centre of mass lies; NaN for none worked out.</summary>
+        [ForTest]
+        public static float ShownCentreOfMass => _lastShown?.Source is GameObject prefab && prefab != null && CentresOfMass.TryGetValue(prefab, out var over) ? over : float.NaN;
 
         /// <summary>Each frame, once the ground is kept: whether the sea lies under what is shown, the person beside it placed again as it comes or goes; how they move is told after (<see cref="KeepMotion"/>).</summary>
         private static void KeepSea()

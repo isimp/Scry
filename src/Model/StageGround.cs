@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Scry
 {
@@ -386,6 +387,54 @@ namespace Scry
             var from = Math.Floor(((at - radius - middle) / (double)across + 0.5) * size - 0.5);
             var to = Math.Ceiling(((at + radius - middle) / (double)across + 0.5) * size - 0.5);
             return ((int)Math.Max(0, Math.Min(size, from)), (int)Math.Max(-1, Math.Min(size - 1, to)));
+        }
+
+        /// <summary>What tells where a thing stands when its ground is chosen automatically (<see cref="HomeOf"/>).</summary>
+        internal struct Home
+        {
+            /// <summary>The biomes it spawns or grows in; for a raid, those it may come in.</summary>
+            public string[] Own;
+
+            /// <summary>The biomes of the places that hold it, once they are read.</summary>
+            public string[] Places;
+
+            /// <summary>The biomes of what drops or yields it.</summary>
+            public string[] Givers;
+
+            /// <summary>For a raid, the biomes its creatures live in.</summary>
+            public string[] Brought;
+
+            /// <summary>Its tier of progress (<see cref="Tiers"/>), <see cref="Tiers.None"/> for none.</summary>
+            public int Tier;
+
+            /// <summary>Whether it is a raid.</summary>
+            public bool Raid;
+
+            /// <summary>Whether it floats on the sea, as a ship does.</summary>
+            public bool Floats;
+        }
+
+        /// <summary>
+        /// The biome whose ground a thing stands on, where the game has it: a ship on the sea; a
+        /// raid where its creatures live, of the biomes it may come in, else the first it may come
+        /// in; anything else where it spawns or grows, else in the places that hold it, else where
+        /// what drops or yields it lives, else in the biome of its tier; Meadows for none. Of
+        /// several, the first players meet (<see cref="BiomeFor"/>).
+        /// </summary>
+        public static string HomeOf(Home home)
+        {
+            if (home.Floats) return "Ocean";
+            var own = home.Own ?? Array.Empty<string>();
+            if (home.Raid)
+            {
+                var met = (home.Brought ?? Array.Empty<string>()).Where(own.Contains).ToArray();
+                return BiomeFor(met.Length > 0 ? met : own);
+            }
+            foreach (var biomes in new[] { own, home.Places, home.Givers })
+            {
+                if (biomes != null && biomes.Any(b => !string.IsNullOrEmpty(b))) return BiomeFor(biomes);
+            }
+            return Tiers.BiomeOf(home.Tier) ?? "Meadows";
         }
 
         /// <summary>The biome whose ground it stands on: the first of its own players meet, a mod's after the game's; Meadows for none.</summary>

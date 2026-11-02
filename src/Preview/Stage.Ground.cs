@@ -31,6 +31,41 @@ namespace Scry
         /// <summary>For the self-test: a biome whose ground to lay whatever is shown; null for the shown entry's own.</summary>
         public static string GroundBiomeOverride { get; set; }
 
+        /// <summary>Where what is shown stands with its ground chosen automatically (<see cref="GroundHomes"/>), given by what holds the catalog; its own biomes' first without it.</summary>
+        public static Func<Entry, string> HomeOf { get; set; }
+
+        /// <summary>The biome what is shown stands in when chosen automatically, worked out again only when another is shown or the tiers it may stand by are worked out anew.</summary>
+        private static string HomeBiome()
+        {
+            if (_lastShown == null) return StageGround.BiomeFor(null);
+            var version = CompendiumTiers.Version;
+            if (_lastShown != _homeFor || version != _homeVersion)
+            {
+                _homeFor = _lastShown;
+                _homeVersion = version;
+                // Its own biomes' first stands should the catalog's answer fail, not asked again each frame.
+                _home = StageGround.BiomeFor(_lastShown.Biomes);
+                _home = HomeOf?.Invoke(_lastShown) ?? _home;
+            }
+            return _home;
+        }
+
+        private static Entry _homeFor;
+        private static int _homeVersion = -1;
+        private static string _home;
+
+        /// <summary>Lets go of where what was shown stands, as the stage forgets it.</summary>
+        private static void ForgetHome()
+        {
+            _homeFor = null;
+            _homeVersion = -1;
+            _home = null;
+        }
+
+        /// <summary>For the self-test: the biome what is shown stands in when its ground is chosen automatically.</summary>
+        [ForTest]
+        public static string HomeShown => HomeBiome();
+
         /// <summary>For the self-test: a rendering path for the stage's camera to try; null for the game's own setting.</summary>
         public static RenderingPath? PathOverride { get; set; }
 
@@ -98,7 +133,7 @@ namespace Scry
         /// <summary>Each frame: the ground or the plain floor as the backdrop has it, of the biome of what is shown.</summary>
         private static void KeepGround()
         {
-            var biome = GroundBiomeOverride ?? StageGround.Chosen(GroundChoice, _lastShown?.Biomes);
+            var biome = GroundBiomeOverride ?? StageGround.Chosen(GroundChoice, new[] { HomeBiome() });
             var changed = TheGround.Keep(StageGround.Ground(_backdrop, Underground), biome, _root, _layer);
             if (!Guard.Run(Feature.SeaHoldsOnStage, SeaPart, KeepSea)) ForgetSea();
             if (!Guard.Run(Feature.MotionToldOnStage, MotionPart, KeepMotion)) ForgetMotion();
