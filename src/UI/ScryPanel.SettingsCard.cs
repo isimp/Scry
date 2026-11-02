@@ -21,7 +21,10 @@ namespace Scry
         private static bool _keyWaiting;
 
         /// <summary>Whether the settings card waits for the key to open Scry with, so the key that opens it now does nothing meanwhile.</summary>
-        public static bool KeyWaiting => _keyWaiting && SettingsShown;
+        public static bool KeyWaiting => _keyWaiting && KeyRowShown;
+
+        /// <summary>Whether a card with the key's row stands: the settings or the first start's setup.</summary>
+        private static bool KeyRowShown => SettingsShown || SetupShown;
 
         /// <summary>Whether the settings card is shown, and showing or putting it away; the gear and the self-test.</summary>
         public static bool SettingsShown => _card == ListCard.Settings;
@@ -42,7 +45,7 @@ namespace Scry
         internal static bool KeyCaptured()
         {
             if (!_keyWaiting) return false;
-            if (!SettingsShown)
+            if (!KeyRowShown)
             {
                 _keyWaiting = false;
                 return false;
@@ -128,6 +131,8 @@ namespace Scry
             }
             var kept = Skin.DimWrap.CalcHeight(new GUIContent(SettingsWords.KeptAtOnce), nav.width - U(28f));
             GUI.Label(new Rect(nav.x + U(16f), y + U(14f), nav.width - U(28f), kept), SettingsWords.KeptAtOnce, Skin.DimWrap);
+            var again = new Rect(nav.x + U(16f), y + U(22f) + kept, Mathf.Min(nav.width - U(28f), Skin.Width(Skin.Button, SettingsWords.RunSetupAgain) + U(16f)), U(26f));
+            if (GUI.Button(again, SettingsWords.RunSetupAgain, Skin.Button)) ShowSetup();
         }
 
         /// <summary>How many settings a section holds, a tick each.</summary>

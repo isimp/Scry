@@ -45,10 +45,11 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void TheQuestionNamesTheCharacterWhereItHasAName()
+        public void TheSetupNamesTheCharacterAndOffersEveryRule()
         {
-            Assert.Equal("Keep a compendium for Ragna?", SettingsWords.WelcomeTitle("Ragna"));
-            Assert.Equal("Keep a compendium for your character?", SettingsWords.WelcomeTitle(""));
+            Assert.Equal("Compendium for Ragna", SettingsWords.SetupCompendium("Ragna"));
+            Assert.Equal("Compendium for your character", SettingsWords.SetupCompendium(""));
+            Assert.Equal(new[] { CompendiumRule.Off, CompendiumRule.Loose, CompendiumRule.Strict }, SettingsWords.SetupRules.Select(r => r.Rule));
         }
     }
 }

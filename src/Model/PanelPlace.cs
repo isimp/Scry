@@ -50,6 +50,25 @@ namespace Scry
         /// <summary>Whether the grown plan box names its rooms.</summary>
         public bool? PlanNames;
 
+        /// <summary>Whether the key opening Scry was told once, and the first start's setup done (<see cref="FirstStart"/>).</summary>
+        public bool? Hinted, SetUp;
+
+        /// <summary>
+        /// A panel file's lines with the first start's flags written in, every other line kept as
+        /// it was, those this build no longer writes too, as the flags may be written before the
+        /// panel ever reads the file.
+        /// </summary>
+        public static IEnumerable<string> WithFirstStart(IEnumerable<string> lines, bool? hinted, bool? setUp)
+        {
+            foreach (var line in lines)
+            {
+                if (line.StartsWith("hinted ", StringComparison.Ordinal) || line.StartsWith("setup ", StringComparison.Ordinal)) continue;
+                yield return line;
+            }
+            if (hinted.HasValue) yield return "hinted " + (hinted.Value ? "1" : "0");
+            if (setUp.HasValue) yield return "setup " + (setUp.Value ? "1" : "0");
+        }
+
         /// <summary>The settings in the file's lines.</summary>
         public static PanelPlace Read(IEnumerable<string> lines)
         {
@@ -82,6 +101,8 @@ namespace Scry
                     case "planbig" when value != null: place.PlanBig = value == "1"; break;
                     case "planbelow" when value != null: place.PlanBelow = value == "1"; break;
                     case "plannames" when value != null: place.PlanNames = value == "1"; break;
+                    case "hinted" when value != null: place.Hinted = value == "1"; break;
+                    case "setup" when value != null: place.SetUp = value == "1"; break;
                 }
             }
             return place;
@@ -111,6 +132,8 @@ namespace Scry
             if (PlanBig.HasValue) yield return "planbig " + Flag(PlanBig.Value);
             if (PlanBelow.HasValue) yield return "planbelow " + Flag(PlanBelow.Value);
             if (PlanNames.HasValue) yield return "plannames " + Flag(PlanNames.Value);
+            if (Hinted.HasValue) yield return "hinted " + Flag(Hinted.Value);
+            if (SetUp.HasValue) yield return "setup " + Flag(SetUp.Value);
         }
 
         private static string WordOf(PlanView view) => view == Scry.PlanView.Levels ? "levels" : view == Scry.PlanView.Tree ? "tree" : "above";

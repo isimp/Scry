@@ -279,6 +279,7 @@ namespace Scry
             if (place.ListHiddenCompact.HasValue) _listHiddenCompact = place.ListHiddenCompact.Value;
             if (place.Repeat.HasValue) Previews.Repeat = place.Repeat.Value;
             TakePlanBoxPlace(place);
+            TakeFirstStart(place);
         });
 
         private static void SaveRects() => Guard.Run(Feature.PanelPlace, "remembering where the panel is", () =>
@@ -307,6 +308,7 @@ namespace Scry
                 PlanBelow = PlanBelowShown,
                 PlanNames = PlanNamesShown,
             };
+            GiveFirstStart(place);
             Directory.CreateDirectory(Settings.DataFolder);
             File.WriteAllLines(RectFile, place.Lines());
         });

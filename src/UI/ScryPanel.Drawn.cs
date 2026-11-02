@@ -154,7 +154,7 @@ namespace Scry
         GuideButton,
 
         /// <summary>The question asked once of a character whose compendium is off, in the list's place.</summary>
-        WelcomeCard,
+        SetupCard,
 
         /// <summary>The notice told once on joining a world whose server sets any of the compendium's rules.</summary>
         RulesNotice,

@@ -25,6 +25,9 @@ namespace Scry
             /// <summary>Whether it has a strip to show under the panel's header.</summary>
             bool StripShown { get; }
 
+            /// <summary>Whether a run is under way, while its pictures hide the strip too.</summary>
+            bool Running { get; }
+
             void DrawStrip(Rect rect);
 
             /// <summary>Whether its details stand in the list's place.</summary>
@@ -42,6 +45,7 @@ namespace Scry
         public static void Tick() => _runner?.Tick();
         public static string Answer(string typed) => _runner?.Answer(typed);
         public static bool StripShown => _runner?.StripShown ?? false;
+        public static bool Running => _runner?.Running ?? false;
         public static void DrawStrip(Rect rect) => _runner?.DrawStrip(rect);
         public static bool CardShown => _runner?.CardShown ?? false;
         public static void DrawCard(Rect rect) => _runner?.DrawCard(rect);

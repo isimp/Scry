@@ -108,6 +108,7 @@ namespace Scry
             }
 
             public bool StripShown => SelfTestPanel.StripShown;
+            bool SelfTestHost.IRunner.Running => SelfTest.Running;
             public void DrawStrip(UnityEngine.Rect rect) => SelfTestPanel.Strip(rect);
             public bool CardShown => SelfTestPanel.CardShown;
             public void DrawCard(UnityEngine.Rect rect) => SelfTestPanel.Card(rect);

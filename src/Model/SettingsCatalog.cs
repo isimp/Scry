@@ -141,6 +141,18 @@ namespace Scry
                 Switch("ResourceMonitor", "Resource monitor", "Shows a small box in the screen's corner telling what Scry costs each frame and what it holds. /scry monitor switches it too.")),
         };
 
+        /// <summary>
+        /// What the first start's setup offers beside the compendium's rules: the key opening Scry,
+        /// walking and looking while it is open, and what it puts on Valheim's map; each a row of the
+        /// card's own, set the same way.
+        /// </summary>
+        public static readonly IReadOnlyList<SettingRow> Setup = new[]
+        {
+            Key("OpenKey", "Open Scry with", "The key that opens and closes the panel; /scry in the chat does the same."),
+            Ticks(new[] { "WalkWhileOpen", "LookWithRightMouse" }, "While the panel is open", "Each on its own; both stay under the gear.", "Walk with your keys", "Look with the right mouse"),
+            Ticks(new[] { "DungeonMarksOnMap", "RecordSeenSpots" }, "On Valheim's map", "Marks for the dungeons you walked, and where you saw ore, berries and places, for a page's Show on map.", "Mark dungeons", "Remember what you see"),
+        };
+
         /// <summary>What the world's server decides, each saying so: the compendium's rules, what players may do and see, and what the server itself keeps.</summary>
         private static IEnumerable<SettingRow> ServerRows()
         {

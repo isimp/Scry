@@ -395,6 +395,7 @@ namespace Scry
 
             // The settings over the whole body, as wide as the panel, whether the list is folded or not.
             if (SettingsShown) SettingsCard(new Rect(pad, bodyTop, w - pad * 2f, bodyH));
+            else if (SetupShown) SetupCard(new Rect(pad, bodyTop, w - pad * 2f, bodyH));
             // The list and the details share the room at the gap between them, which can be
             // dragged, or folded away to leave the details all of it.
             else if (_compact)

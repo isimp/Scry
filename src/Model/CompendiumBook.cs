@@ -342,6 +342,10 @@ namespace Scry
         /// <summary>Whether the character was asked whether to keep a compendium, or chose its rules before, which is as good.</summary>
         public bool Welcomed => _welcomed || _rule != CompendiumRule.Off;
 
+        /// <summary>Whether the character was asked about its compendium, rules chosen in the box aside.</summary>
+        [ForTest]
+        public bool Asked => _welcomed;
+
         /// <summary>Whether the character is to be asked whether to keep a compendium: never asked, and its world's server setting no rules, as it then has no choice.</summary>
         public bool WelcomeDue => !Welcomed && !World.RulesSet;
 
@@ -704,7 +708,6 @@ namespace Scry
         }
 
         /// <summary>The rules as the player chose them, whatever the world sets.</summary>
-        [ForTest]
         public CompendiumRule ChosenRule => _rule;
 
         /// <summary>Forgets that a world's map was caught up with, so the catch-up runs again.</summary>

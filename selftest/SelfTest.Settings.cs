@@ -245,27 +245,58 @@ namespace Scry
             ScryPanel.ToggleRecentForTest();
         }
 
-        /// <summary>The question of keeping a compendium draws in the list's place, asked here whatever the book says; nothing is answered, so the book is as it was.</summary>
-        private static IEnumerator WelcomeShown(Probe p)
+        /// <summary>
+        /// The first start: the key told by its name as set; the setup shown again from the
+        /// settings over the panel's body, every row drawn, the compendium's step among them where
+        /// there is a character's book; Later putting it away; Done keeping it done where the
+        /// character was asked about its compendium before, so nothing is answered for the player.
+        /// Whether the key was told and the setup done is put back as it was.
+        /// </summary>
+        private static IEnumerator SetupShown(Probe p)
         {
-            var book = CompendiumKeeper.Book;
-            if (book == null)
-            {
-                p.Skip("there is no character's book");
-                yield break;
-            }
             if (!Session.IsOpen) Session.Show(null);
             KeepView();
             ScryPanel.Compact = false;
             ScryPanel.CloseCards();
-            var (rule, welcomed) = (book.ChosenRule, book.Welcomed);
-            var cards = ScryPanel.Drawn(PanelPart.WelcomeCard);
-            ScryPanel.AskWelcomeForTest(true);
-            yield return Until(() => ScryPanel.Drawn(PanelPart.WelcomeCard) > cards, 3);
-            p.Check(ScryPanel.Drawn(PanelPart.WelcomeCard) > cards, "the question of keeping a compendium draws in the list's place");
-            yield return Picture(p, "keep a compendium question");
-            ScryPanel.AskWelcomeForTest(false);
-            p.Check(book.ChosenRule == rule && book.Welcomed == welcomed, "asked without an answer, the book is as it was", $"{book.ChosenRule}, {(book.Welcomed ? "asked" : "never asked")}");
+            var before = ScryPanel.FirstStartForTest;
+            _firstStartBefore = before;
+
+            var cards = ScryPanel.Drawn(PanelPart.SetupCard);
+            ScryPanel.ShowSetup();
+            yield return Until(() => ScryPanel.Drawn(PanelPart.SetupCard) > cards + 1, 3);
+            var rows = SettingsCatalog.Setup.Count + (CompendiumKeeper.Book != null ? 1 : 0);
+            p.Check(ScryPanel.SetupShown && ScryPanel.SetupRowsDrawnForTest == rows, "Run the setup again shows the setup over the panel, every row drawn",
+                $"{Numbers.Count(ScryPanel.SetupRowsDrawnForTest)} of {Numbers.Count(rows)} rows");
+            yield return Picture(p, "first start setup");
+
+            ScryPanel.SetupLater();
+            yield return null;
+            p.Check(!ScryPanel.SetupShown, "Later puts it away");
+
+            var book = CompendiumKeeper.Book;
+            if (book == null || !book.Asked) p.Note("this character was never asked about its compendium, so Done is not tried: it would answer for the player");
+            else
+            {
+                ScryPanel.ShowSetup();
+                yield return null;
+                ScryPanel.SetupDone();
+                yield return null;
+                p.Check(!ScryPanel.SetupShown && ScryPanel.FirstStartForTest.SetUp, "Done keeps the setup done and puts it away");
+            }
+            SetupAsItWas();
+            var onFile = ScryPanel.FirstStartOnFileForTest;
+            p.Check(onFile.Hinted == before.Hinted && onFile.SetUp == before.SetUp, "whether the key was told and the setup done is put back as it was, in the panel's file",
+                $"{onFile.Hinted}, {onFile.SetUp} for {before.Hinted}, {before.SetUp}");
+        }
+
+        private static (bool Hinted, bool SetUp)? _firstStartBefore;
+
+        /// <summary>The setup put away and its flags put back as they were, however the part ended.</summary>
+        private static void SetupAsItWas()
+        {
+            if (_firstStartBefore is (bool, bool) before) ScryPanel.FirstStartForTest = before;
+            _firstStartBefore = null;
+            ScryPanel.SetupLater();
         }
     }
 }

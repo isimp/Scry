@@ -7,7 +7,7 @@ namespace Scry
     /// The words of the settings card, opened by the gear in the panel's title row, beside each
     /// setting's own in its catalogue (<see cref="SettingsCatalog"/>): the card's title, where its
     /// changes are kept, its reset and whose the server's settings are; and of the compendium's
-    /// guide and the card asking a character whether to keep a compendium.
+    /// guide and the first start's setup.
     /// </summary>
     internal static class SettingsWords
     {
@@ -56,19 +56,27 @@ namespace Scry
             ("Playing together", "Where your friends have Scry, what their game runs near you counts for you as it would alone. A server can set the rules for everyone; the box then shows them locked, your own choices kept beneath."),
         };
 
-        // ----- Asking a character whether to keep a compendium -----
+        // ----- The first start's setup -----
 
-        /// <summary>The question, naming the character.</summary>
-        public static string WelcomeTitle(string character) => string.IsNullOrEmpty(character) ? "Keep a compendium for your character?" : "Keep a compendium for " + character + "?";
+        public const string SetupTitle = "Set up Scry";
+        public const string SetupIntro = "A few things worth choosing now. Each is set already: change what you like, or press Done.";
+        public const string Done = "Done";
+        public const string Later = "Later";
+        public const string SetupKept = "All of this stays under the gear.";
+        public const string RunSetupAgain = "Run the setup again";
 
-        public const string WelcomeWords = "Scry can show only what your character has met, growing as you play. Change it any time in the Compendium box at the top of the panel.";
+        /// <summary>The compendium's step, naming the character where it has a name.</summary>
+        public static string SetupCompendium(string character) => string.IsNullOrEmpty(character) ? "Compendium for your character" : "Compendium for " + character;
 
-        /// <summary>The answers, each its name and what it means.</summary>
-        public static readonly (string Name, string Means)[] WelcomeAnswers =
+        /// <summary>The compendium's step where the server sets its rules, naming them.</summary>
+        public static string SetupRulesSet(string rule) => "This server sets the compendium's rules: " + rule + ". Its own settings decide them for everyone.";
+
+        /// <summary>The compendium's rules to choose from, each its name and what it means.</summary>
+        public static readonly (CompendiumRule Rule, string Name, string Means)[] SetupRules =
         {
-            ("Loose", "Known pages whole, the unmet left out"),
-            ("Strict", "Numbers and connections only as you find them out"),
-            ("Not now", "Everything, as a lookup"),
+            (CompendiumRule.Off, "Off", "Every page whole, as a lookup"),
+            (CompendiumRule.Loose, "Loose", "Pages you met whole, the rest left out"),
+            (CompendiumRule.Strict, "Strict", "Only what you found out, as you play"),
         };
     }
 }

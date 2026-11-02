@@ -201,11 +201,6 @@ namespace Scry
                 GuideCard(rect);
                 return;
             }
-            if (WelcomeDue())
-            {
-                WelcomeCard(rect);
-                return;
-            }
 
             Skin.Box(rect, Skin.Panel);
             var inner = new Rect(rect.x + U(4f), rect.y + U(6f), rect.width - U(8f), rect.height - U(12f));

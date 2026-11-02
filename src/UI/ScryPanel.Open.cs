@@ -98,6 +98,8 @@ namespace Scry
         /// <summary>The panel opens, with the world's explorer and how far the catalog's reading has got.</summary>
         public static void Opened(Explorer explorer, string reading)
         {
+            // Opened again while open, by /scry or a mark on the map, a setup put off stays put off.
+            if (!IsOpen) FirstStartOpened();
             IsOpen = true;
             _explorer = explorer;
             _reading = reading;
@@ -129,6 +131,7 @@ namespace Scry
             _reading = reading;
             if (explorer != null) Guard.Run(Feature.Panel, "preparing the panel's lookups", Prepare, explorer);
             Guard.Run(Feature.LookAndWalkWhileOpen, "looking around and stepping back", LookAndStep);
+            Guard.Run(Feature.Panel, "telling the key that opens Scry", FirstStartHint);
         }
 
         private static void LookAndStep()
