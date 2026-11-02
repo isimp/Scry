@@ -356,8 +356,12 @@ namespace Scry
         /// <summary>How bright the player's other pins stand while a kind is shown, of what they were.</summary>
         public const float OthersDimmed = 1f / 3f;
 
-        /// <summary>How dark a veil lies over the map's picture while a kind is shown, under every mark: half.</summary>
-        public const float MapDarkened = 0.5f;
+        /// <summary>
+        /// How much of the dark veil covers the map's picture while a kind is shown, under every
+        /// mark: the map then looks half as bright. The game blends in linear colour, where a veil
+        /// of a half leaves about three quarters of what one sees; this much leaves a half.
+        /// </summary>
+        public const float MapDarkened = 0.78f;
 
         /// <summary>A pin layer's see-through while a kind is shown, from what it was.</summary>
         public static float Dimmed(float before) => before * OthersDimmed;
