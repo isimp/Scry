@@ -162,7 +162,7 @@ namespace Scry
             y += U(38f);
             if (HasBookRows(section)) y = BookIntro(width, y);
             if (HasServerRows(section)) y = LockedLine(Settings.WorldFromServer ? SettingsWords.ServerDecides : SettingsWords.ServerYours, 0f, width, y) + U(10f);
-            else if (HasBookRows(section)) y = LockedLine(Settings.WorldFromServer ? SettingsWords.LimitsServer : SettingsWords.LimitsYours, 0f, width, y) + U(10f);
+            else if (HasBookRows(section)) y = LockedLine(Settings.WorldFromServer ? SettingsWords.LimitsServer(CompendiumKeeper.Book?.World ?? Settings.World()) : SettingsWords.LimitsYours, 0f, width, y) + U(10f);
             var labelW = Mathf.Min(U(220f), width * 0.34f);
             string group = null;
             var drawn = 0;

@@ -16,8 +16,8 @@ namespace Scry
         public const string KeptAtOnce = "Every change is kept at once, in isimp.Scry.cfg.";
         public const string Reset = "Reset to defaults";
         public const string Close = "Close";
-        public const string ServerDecides = "This server decides these, in its own settings; you see what it chose.";
-        public const string ServerYours = "While you play alone or host, these are yours, and players joining your world play by them. A server you join decides them for its world.";
+        public const string ServerDecides = "This server decides these, in its own settings; you see what it chose. What it allows your compendium stands under each row of the Compendium section.";
+        public const string ServerYours = "While you play alone or host, these are yours, and players joining your world play by them. A server you join decides them for its world. What your world allows players' compendiums stands under each row of the Compendium section.";
 
         // ----- The compendium's section -----
 
@@ -30,7 +30,16 @@ namespace Scry
         public const string NewsGroup = "News";
 
         /// <summary>The line under the section's intro while a server decides what it allows, or while it is yours to allow.</summary>
-        public const string LimitsServer = "This server limits some of these; what it keeps from you is dimmed, saying so under its row.";
+        public const string LimitsSome = "This server limits some of these; what it keeps from you is dimmed, saying so under its row.";
+        public const string LimitsNone = "This server leaves every one of these to you.";
+
+        /// <summary>The line while a server decides what it allows: that it limits some rows, or none.</summary>
+        public static string LimitsServer(WorldRules rules)
+        {
+            var limits = WorldRulesWords.OnRow(BookPart.Rules, default, rules) != null || WorldRulesWords.OnRow(BookPart.KnownUpTo, default, rules) != null;
+            foreach (var source in WorldSources.All) limits |= WorldRulesWords.OnRow(BookPart.Source, source, rules) != null;
+            return limits ? LimitsSome : LimitsNone;
+        }
         public const string LimitsYours = "While you play alone or host, the lines with the lock are what players joining your world may choose. A server you join sets its own.";
 
         /// <summary>What the world allows of a row, as the line under it says.</summary>

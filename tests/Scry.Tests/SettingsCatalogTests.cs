@@ -80,6 +80,20 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheSectionSaysTheServerLimitsYourCompendiumOnlyWhereItDoes()
+        {
+            // A server leaving every row whole says so, rather than pointing at limits that are not there.
+            Assert.Equal(SettingsWords.LimitsNone, SettingsWords.LimitsServer(WorldRules.Open));
+            Assert.Equal(SettingsWords.LimitsSome, SettingsWords.LimitsServer(WorldRules.From(WorldRule.PlayersChoose, true, true, s => s == WorldSource.SharedMaps ? SourceLevel.Known : SourceLevel.WithInsides)));
+            Assert.Equal(SettingsWords.LimitsSome, SettingsWords.LimitsServer(WorldRules.From(WorldRule.Loose, true, true, _ => SourceLevel.WithInsides)));
+            // Peeking or the reach are no row of the compendium's, so they leave it whole.
+            Assert.Equal(SettingsWords.LimitsNone, SettingsWords.LimitsServer(WorldRules.From(WorldRule.PlayersChoose, false, true, _ => SourceLevel.WithInsides, 0f)));
+            // This server's own section says where the rest of what it decides stands.
+            Assert.Contains("Compendium section", SettingsWords.ServerDecides);
+            Assert.Contains("Compendium section", SettingsWords.ServerYours);
+        }
+
+        [Fact]
         public void EverySettingHasExactlyOneRowOnTheCard()
         {
             var keys = Rows.SelectMany(r => r.Keys).ToList();
