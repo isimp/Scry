@@ -178,6 +178,7 @@ namespace Scry
             if (Event.current.type == EventType.MouseDown) GUIUtility.keyboardControl = 0;
             LeaveBoxesIfAsked();
 
+            if (KeyCaptured()) return;
             Keys(explorer);
             if (!IsOpen) return;
 
@@ -392,9 +393,11 @@ namespace Scry
             var bodyBottom = h - pad - footerH;
             var bodyH = bodyBottom - bodyTop;
 
+            // The settings over the whole body, as wide as the panel, whether the list is folded or not.
+            if (SettingsShown) SettingsCard(new Rect(pad, bodyTop, w - pad * 2f, bodyH));
             // The list and the details share the room at the gap between them, which can be
             // dragged, or folded away to leave the details all of it.
-            if (_compact)
+            else if (_compact)
             {
                 var gapH = ListHidden ? U(28f) : U(12f);
                 _listSpan = bodyH - U(12f);

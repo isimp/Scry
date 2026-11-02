@@ -4,85 +4,32 @@ using System.Collections.Generic;
 namespace Scry
 {
     /// <summary>
-    /// The words of the settings card, opened by the gear in the panel's title row: each row's
-    /// caption, its choices and tips, and the steps a few of them take; and of the compendium's
+    /// The words of the settings card, opened by the gear in the panel's title row, beside each
+    /// setting's own in its catalogue (<see cref="SettingsCatalog"/>): the card's title, where its
+    /// changes are kept, its reset and whose the server's settings are; and of the compendium's
     /// guide and the card asking a character whether to keep a compendium.
     /// </summary>
     internal static class SettingsWords
     {
         public const string Title = "Settings";
-        public const string GearTip = "Settings: the panel's size and key, walking and looking while it is open, sounds, tips, the stage and the news";
-        public const string Kept = "Kept in BepInEx/config/isimp.Scry.cfg, with the rest of Scry's settings, each described there.";
+        public const string GearTip = "Settings: the panel, the preview, the compendium's news, the map, reading in the background, and what this server decides";
+        public const string KeptAtOnce = "Every change is kept at once, in BepInEx/config/isimp.Scry.cfg.";
+        public const string Reset = "Reset to defaults";
+        public const string Close = "Close";
+        public const string ServerDecides = "This server decides these, in its own settings; you see what it chose.";
+        public const string ServerYours = "While you play alone or host, these are yours, and players joining your world play by them. A server you join decides them for its world.";
 
-        public const string Size = "Panel size";
-        public const string Key = "Open key";
         public const string PressAKey = "Press a key";
         public const string PressTip = "Press the key you want to open Scry with; Escape keeps the current one";
         public const string Waiting = "Press the key...";
-        public const string WhileOpen = "While open";
-        public const string Walk = "Walk";
-        public const string Look = "Look with right mouse";
-        public const string WhileOpenTip = "Walk with your keys while the panel is open and you are not typing in it; hold the right mouse button outside the panel to look around";
-        public const string Opening = "On opening";
-        public const string SearchReady = "Search ready";
-        public const string KeysWalk = "Keys walk";
-        public const string OpeningTip = "Whether the keys go to the search as the panel opens, or walk until the search is clicked";
-        public const string Sounds = "Sounds";
-        public const string PlayOnSelect = "Play on select";
-        public const string OnlyOnEnter = "Only on Enter";
-        public const string Tips = "Tips after";
-        public const string Stage = "Stage";
-        public const string Full = "Full";
-        public const string Fast = "Fast";
-        public const string StageTip = "Fast draws the stage at half size, without the ground's vegetation or the lights below a dungeon's cut. It suits a big dungeon on a weaker machine";
-        public const string News = "News of what you learn";
-        public const string Notice = "Notice";
-        public const string LearnedOnly = "Learned tab only";
-        public const string NewsTip = "Whether the notice under the header tells what the character learned, or the Learned tab alone";
-
-        public const string MarkNames = "Dungeon marks' names";
-        public const string WhenPointedAt = "When pointed at";
-        public const string Always = "Always";
-        public const string MarkNamesTip = "Whether each dungeon mark on the large map shows its name under it always, as the game's pins do, or only while the pointer rests on it";
-
-        public const string MarkSize = "Dungeon marks' size";
-        public const string MarkSizeTip = "How big each dungeon mark on the map is, as a share of a map pin; its name grows with it";
-        public const string MarksShown = "Dungeon marks shown";
-        public const string WalkedByYou = "Walked by you";
-        public const string WalkedOnServer = "Walked on this server";
-        public const string Entrances = "Entrances";
-        public const string MarksShownTip = "Which dungeon marks the map shows. Walked by you: dungeons you walked. Walked on this server: dungeons others on this server walked, where a source is set to With insides. Entrances: dungeons nobody walked, faint until you point at one";
-        public const string Minimap = "Marks on the minimap";
         public const string Off = "Off";
         public const string On = "On";
-        public const string MinimapTip = "Whether the minimap shows the marks of dungeons you walked too, at its pins' size, without names";
 
         /// <summary>The dungeon marks' sizes the slider reaches, as a share of a map pin.</summary>
         public const float SmallestMarkSize = 0.5f, LargestMarkSize = 2f;
 
-        /// <summary>A mark size dragged to, in tenths within those the slider reaches.</summary>
-        public static float MarkSizeStep(float size) => Math.Max(SmallestMarkSize, Math.Min(LargestMarkSize, (float)Math.Round(size * 10f) / 10f));
-
-        public const string SizeTip = "How big the panel is drawn, on top of its scaling to your screen's height. The new size applies when you let go of the slider";
-
         /// <summary>The panel's sizes the slider reaches, on top of the scaling by screen height, as the config file allows them.</summary>
         public const float SmallestSize = 0.6f, LargestSize = 2f;
-
-        /// <summary>The waits before a tip offered, in seconds.</summary>
-        public static readonly float[] TipWaits = { 0f, 0.35f, 1f };
-
-        /// <summary>A size dragged to, in steps of 0.05 within those the slider reaches.</summary>
-        public static float SizeStep(float size) => Math.Max(SmallestSize, Math.Min(LargestSize, (float)Math.Round(size * 20f) / 20f));
-
-        /// <summary>A size as the slider says it: "1.0", "1.25".</summary>
-        public static string SizeName(float size)
-        {
-            var hundredths = (int)Math.Round(size * 100f);
-            return Numbers.Fixed(size, hundredths % 10 == 0 ? 1 : 2);
-        }
-
-        /// <summary>A wait as its choice says it: "Now", "0.35 s".</summary>
-        public static string TipWaitName(float seconds) => seconds <= 0f ? "Now" : Numbers.Fixed(seconds, seconds < 1f ? 2 : 0) + " s";
 
         /// <summary>Which of the values offered is nearest the one set, as a value set in the config file between two lights the nearest.</summary>
         public static int Nearest(IReadOnlyList<float> offered, float value)

@@ -196,11 +196,6 @@ namespace Scry
                 OffCard(rect);
                 return;
             }
-            if (_card == ListCard.Settings)
-            {
-                SettingsCard(rect);
-                return;
-            }
             if (_card == ListCard.Guide)
             {
                 GuideCard(rect);

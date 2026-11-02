@@ -84,8 +84,8 @@ namespace Scry
                     SettingsWords.SmallestSize, SettingsWords.LargestSize, 0.05f, v => Math.Abs(v - 1f) < 0.001f ? "as scaled" : Numbers.Amount(v) + " times"),
                 Switch("WalkWhileOpen", "Walk while open", "Your keys walk your character while the panel is open and you are not typing in it."),
                 Switch("LookWithRightMouse", "Look with right mouse", "Holding the right mouse button outside the panel turns the camera, to look around while it is open."),
-                Choices("FocusSearchOnOpen", "On opening", "Whether your keys go to the search box as the panel opens, or walk until you click the search. The compact view always lets them walk.",
-                    ("false", "Keys walk"), ("true", "Search ready")),
+                Choices("FocusSearchOnOpen", "On opening", "Whether your keys go to the search box as the panel opens, or stay free until you click the search, to walk with while Walk while open is on. The compact view always leaves them free.",
+                    ("false", "Keys free"), ("true", "Search ready")),
                 Slider("TooltipDelay", "Tips show after", "How long the pointer rests on something in the panel before its tip shows.",
                     0f, 3f, 0.05f, v => v <= 0f ? "at once" : Numbers.Amount(v) + " s"),
                 Slider("RecentCount", "Recent list", "How many entries the Recent list remembers.",
@@ -148,9 +148,25 @@ namespace Scry
                 yield return Server(Choices(source + "UpTo", CompendiumWords.SourceName(source), $"The most {CompendiumWords.SourceName(source)} may show as known on this server.",
                     WorldSources.Offered(source).Select(l => (l.ToString(), CompendiumWords.LevelName(l))).ToArray()));
             }
-            yield return Server(Switch("ReadTracesOnStart", "Read dungeon traces", "On the game that runs the world, reads what was left inside its dungeons once its records are read, so rooms emptied before anyone's walk was kept count as walked on this server."));
-            yield return Server(Switch("TakeWalks", "Keep players' walks", "The server keeps the dungeon walks players' games send and tells them to everyone as walked on this server."));
+            yield return In(RunningTheWorld, Server(Switch("ReadTracesOnStart", "Read dungeon traces", "On the game that runs the world, reads what was left inside its dungeons once its records are read, so rooms emptied before anyone's walk was kept count as walked on this server.")));
+            yield return In(RunningTheWorld, Server(Switch("TakeWalks", "Keep players' walks", "The server keeps the dungeon walks players' games send and tells them to everyone as walked on this server.")));
         }
+
+        /// <summary>The heading of what only the game running the world reads, a dedicated server or a host.</summary>
+        public const string RunningTheWorld = "When you run the world";
+
+        /// <summary>A slider's value at its step, within its range, as a drag lands on it.</summary>
+        public static float Stepped(SettingRow row, float value)
+        {
+            var steps = (float)Math.Round((value - row.Min) / row.Step);
+            return Math.Max(row.Min, Math.Min(row.Max, row.Min + steps * row.Step));
+        }
+
+        /// <summary>A switch's or a tick's value the other way, as the config file writes it.</summary>
+        public static string Flipped(string value) => value == True ? False : True;
+
+        /// <summary>How the config file writes a switch on and off.</summary>
+        public const string True = "true", False = "false";
 
         /// <summary>A mark's size as the slider says it, beside the game's pins.</summary>
         private static string MarkSize(float v) =>

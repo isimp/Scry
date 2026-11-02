@@ -124,6 +124,25 @@ namespace Scry
         /// <summary>Whether the character's sight remembers where it saw things worth finding again, for the map.</summary>
         public static bool RecordSeenSpots { get => _recordSeenSpots?.Value ?? true; set => Set(_recordSeenSpots, value); }
 
+        /// <summary>The config file every setting is bound to, for the settings card to read and set each by its key.</summary>
+        private static ConfigFile _config;
+        private static readonly Dictionary<string, ConfigEntryBase> ByKey = new Dictionary<string, ConfigEntryBase>();
+
+        /// <summary>A setting by its key in the config file, as the settings card sets it (<see cref="SettingsCatalog"/>); none before the settings are bound.</summary>
+        public static ConfigEntryBase Entry(string key)
+        {
+            if (_config == null || key == null) return null;
+            if (ByKey.TryGetValue(key, out var entry)) return entry;
+            foreach (var definition in _config.Keys)
+            {
+                if (definition.Key != key) continue;
+                entry = _config[definition];
+                ByKey[key] = entry;
+                return entry;
+            }
+            return null;
+        }
+
         /// <summary>A setting's new value, kept in the config file; nothing before the settings are bound.</summary>
         private static void Set<T>(ConfigEntry<T> entry, T value)
         {
@@ -181,7 +200,6 @@ namespace Scry
         private static ServerSync.ConfigSync _sync;
 
         /// <summary>Whether the world's settings are the server's, synced to this game, rather than its own; for the self-test.</summary>
-        [Diagnostic, ForTest]
         public static bool WorldFromServer => _sync != null && !_sync.IsSourceOfTruth;
 
         /// <summary>The world's rules (<see cref="WorldRules"/>): as the server's Scry sets them while connected to it, else as this game's own settings, which a game running the world sets for those joining it.</summary>
@@ -192,6 +210,8 @@ namespace Scry
         /// <summary>Binds every setting to BepInEx's config file, with its section, default, range and description.</summary>
         public static void Bind(ConfigFile config)
         {
+            _config = config;
+            ByKey.Clear();
             BindWorld(config);
             _openKey = config.Bind("1 - General", "OpenKey", KeyCode.F7,
                 "Opens and closes the Scry panel. /scry in the chat does the same.");

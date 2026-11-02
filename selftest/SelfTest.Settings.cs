@@ -1,5 +1,8 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using BepInEx.Configuration;
 using UnityEngine;
 
 namespace Scry
@@ -7,36 +10,98 @@ namespace Scry
     /// <summary>The self-test's cases for the settings card, the compendium's guide and the question of keeping a compendium.</summary>
     internal static partial class SelfTest
     {
-        private static (StageQuality Quality, bool News, float Speed)? _settingsBefore;
+        /// <summary>Every setting the card shows, as the config file wrote it before the part, put back after it.</summary>
+        private static Dictionary<string, string> _settingsBefore;
+        private static bool? _listHiddenBefore;
 
         /// <summary>
-        /// The gear in the title row opens the settings card in the list's place, each row's
-        /// choices on one line beside its label, and closes it again. A fast stage is filmed at half the size, and the View box's speed goes on to the
-        /// next; each setting is put back as it was.
+        /// The gear opens the settings card over the panel's body, the list folded or not; each
+        /// section shows every setting it holds; every setting takes each value its control
+        /// offers and reads back as set; a section's reset brings its defaults back; what the
+        /// world's server decides is locked while a server decides it. A fast stage is filmed at
+        /// half the size, and the View box's speed goes on to the next. Every setting is put back
+        /// as it was.
         /// </summary>
         private static IEnumerator SettingsCardShown(Probe p)
         {
             if (!Session.IsOpen) Session.Show(null);
             KeepView();
             ScryPanel.Compact = false;
-            _settingsBefore = (Settings.StageQuality, Settings.NewsNotice, Settings.SpinSpeed);
+            _settingsBefore = new Dictionary<string, string>();
+            foreach (var key in SettingsCatalog.Sections.SelectMany(s => s.Rows).SelectMany(r => r.Keys))
+            {
+                var entry = Settings.Entry(key);
+                if (entry != null) _settingsBefore[key] = entry.GetSerializedValue();
+            }
             var gears = ScryPanel.Drawn(PanelPart.SettingsGear);
             yield return Until(() => ScryPanel.Drawn(PanelPart.SettingsGear) > gears, 3);
             p.Check(ScryPanel.Drawn(PanelPart.SettingsGear) > gears, "the gear stands in the title row");
 
+            // Folded away, the list leaves the card its place all the same.
+            _listHiddenBefore = ScryPanel.ListHidden;
+            ScryPanel.ListHidden = true;
             var cards = ScryPanel.Drawn(PanelPart.SettingsCard);
             ScryPanel.ShowSettings(true);
             yield return Until(() => ScryPanel.Drawn(PanelPart.SettingsCard) > cards, 3);
-            p.Check(ScryPanel.SettingsShown && ScryPanel.Drawn(PanelPart.SettingsCard) > cards, "the gear opens the settings card in the list's place");
-            var wrapped = ScryPanel.Drawn(PanelPart.SettingsRowWrapped);
-            cards = ScryPanel.Drawn(PanelPart.SettingsCard);
-            yield return Until(() => ScryPanel.Drawn(PanelPart.SettingsCard) > cards + 3, 3);
-            // Rows wrap where the list is too narrow for them, as they should; where it is wide enough, none does.
-            var fit = ScryPanel.SettingsFitForTest;
-            if (fit.Needed > fit.Width) p.Note($"the list is {Numbers.Fixed(fit.Width, 0)} wide and the widest row needs {Numbers.Fixed(fit.Needed, 0)}, so rows wrap");
-            else p.Check(ScryPanel.Drawn(PanelPart.SettingsRowWrapped) == wrapped, "every row of the settings card stands on one line beside its label where the list is wide enough",
-                $"{Numbers.Count(ScryPanel.Drawn(PanelPart.SettingsRowWrapped) - wrapped)} rows wrapped over {Numbers.Count(ScryPanel.Drawn(PanelPart.SettingsCard) - cards)} frames");
-            yield return Picture(p, "settings card");
+            p.Check(ScryPanel.SettingsShown && ScryPanel.Drawn(PanelPart.SettingsCard) > cards, "the gear opens the settings card over the panel, the list folded away");
+            ScryPanel.ListHidden = false;
+
+            // Each section, shown as a click on its name shows it, draws every row it holds.
+            var short_ = new List<string>();
+            for (var i = 0; i < SettingsCatalog.Sections.Count; i++)
+            {
+                ScryPanel.ShownSettingsSection = i;
+                yield return null;
+                yield return null;
+                var section = SettingsCatalog.Sections[i];
+                var expected = section.Rows.Count(ScryPanel.ShowsSettingRow);
+                if (ScryPanel.SettingsRowsDrawnForTest != expected) short_.Add($"{section.Name} {Numbers.Count(ScryPanel.SettingsRowsDrawnForTest)} of {Numbers.Count(expected)}");
+                if (section.Name == "Panel" || section.Name == "Map" || section.Name == "This server") yield return Picture(p, "settings card, " + section.Name.ToLowerInvariant());
+            }
+            p.Check(short_.Count == 0, "every section shows every setting it holds", string.Join("; ", short_));
+
+            // Each value a control offers, set as a click sets it, reads back as set: the key opening the panel aside, set by a key pressed.
+            var wrong = new List<string>();
+            var tried = 0;
+            // Hosting with others connected, what the server decides is left as it is: each change would go out to them.
+            var othersHere = ZNet.instance != null && ZNet.instance.IsServer() && ZNet.instance.GetPeers().Count > 0;
+            if (othersHere) p.Note("others are connected to this world, so what the server decides is not tried here");
+            foreach (var row in SettingsCatalog.Sections.SelectMany(s => s.Rows))
+            {
+                if (row.Control == SettingControl.Key || ScryPanel.SettingLocked(row) || row.ServerDecides && othersHere) continue;
+                foreach (var key in row.Keys)
+                {
+                    foreach (var value in Offered(row))
+                    {
+                        ScryPanel.SetSetting(row, key, value);
+                        tried++;
+                        var read = Settings.Entry(key)?.GetSerializedValue();
+                        if (!SameValue(read, value)) wrong.Add($"{key} set {value} read {read ?? "nothing"}");
+                    }
+                    if (_settingsBefore.TryGetValue(key, out var was)) Settings.Entry(key)?.SetSerializedValue(was);
+                }
+            }
+            p.Check(tried > 0 && wrong.Count == 0, $"every setting the card sets takes each value its control offers ({Numbers.Count(tried)} tried)", string.Join("; ", wrong.Take(5)));
+
+            // A section's reset brings back its defaults.
+            var panel = SettingsCatalog.Sections.First(s => s.Name == "Panel");
+            Settings.TooltipDelay = 2f;
+            ScryPanel.ResetSettings(panel);
+            var notDefault = panel.Rows.SelectMany(r => r.Keys).Where(k => Settings.Entry(k) is ConfigEntryBase e && !Equals(e.BoxedValue, e.DefaultValue)).ToList();
+            p.Check(notDefault.Count == 0 && Mathf.Approximately(Settings.TooltipDelay, 0.35f), "a section's reset brings back each of its settings' defaults", string.Join(", ", notDefault));
+            RestoreSettings();
+
+            // What the server decides: locked while a server decides it, the player's own otherwise.
+            var server = SettingsCatalog.Sections.First(s => s.Name == "This server").Rows;
+            if (Settings.WorldFromServer)
+            {
+                var row = server.First(r => r.Control == SettingControl.Switch);
+                var key = row.Keys[0];
+                var before = Settings.Entry(key)?.GetSerializedValue();
+                ScryPanel.SetSetting(row, key, before == "true" ? "false" : "true");
+                p.Check(server.All(ScryPanel.SettingLocked) && Settings.Entry(key)?.GetSerializedValue() == before, "on a server deciding them, what it decides is shown locked and a click sets nothing");
+            }
+            else p.Check(!server.Any(ScryPanel.SettingLocked), "playing alone or hosting, what a server would decide is the player's own to set");
             ScryPanel.ShowSettings(false);
             p.Check(!ScryPanel.SettingsShown, "and closes it");
 
@@ -60,20 +125,45 @@ namespace Scry
                 p.Check(ScryPanel.ViewRowsForTest(troll).Contains("Speed") && Settings.SpinSpeed != speed, "the View box's speed goes on to the next, kept in the config file", $"{Numbers.Fixed(speed, 0)} to {Numbers.Fixed(Settings.SpinSpeed, 0)}");
             }
             else p.Note("there is no creature, so the stage's quality and speed are not tried");
+            var kept = _settingsBefore;
             SettingsAsTheyWere();
-            p.Check(Settings.StageQuality == _settingsBefore?.Quality || _settingsBefore == null, "each setting is put back as it was");
+            p.Check(kept != null && kept.All(pair => Settings.Entry(pair.Key)?.GetSerializedValue() == pair.Value), "every setting is put back as it was");
         }
 
-        /// <summary>The settings tried put back, the card put away.</summary>
+        /// <summary>The values a row's control offers, as the config file writes them: both ways of a switch or tick, each choice, a slider's ends.</summary>
+        private static IEnumerable<string> Offered(SettingRow row)
+        {
+            switch (row.Control)
+            {
+                case SettingControl.Switch:
+                case SettingControl.Ticks:
+                    return new[] { "false", "true" };
+                case SettingControl.Choices:
+                    return row.Choices.Select(c => c.Value);
+                default:
+                    return new[] { row.Min, row.Max }.Select(Stored.Exact);
+            }
+        }
+
+        /// <summary>Whether a value read back is the one set: alike as words, or as numbers.</summary>
+        private static bool SameValue(string read, string set) =>
+            string.Equals(read, set, System.StringComparison.OrdinalIgnoreCase)
+            || Stored.TryExact(read, out var a) && Stored.TryExact(set, out var b) && Mathf.Abs(a - b) < 0.001f;
+
+        /// <summary>Every setting the part changed back as the config file had it.</summary>
+        private static void RestoreSettings()
+        {
+            if (_settingsBefore == null) return;
+            foreach (var pair in _settingsBefore) Settings.Entry(pair.Key)?.SetSerializedValue(pair.Value);
+        }
+
+        /// <summary>The settings tried put back, the list as it was, the card put away.</summary>
         private static void SettingsAsTheyWere()
         {
             ScryPanel.ShowSettings(false);
-            if (_settingsBefore is (StageQuality quality, bool news, float speed))
-            {
-                Settings.StageQuality = quality;
-                Settings.NewsNotice = news;
-                Settings.SpinSpeed = speed;
-            }
+            RestoreSettings();
+            if (_listHiddenBefore is bool hidden) ScryPanel.ListHidden = hidden;
+            _listHiddenBefore = null;
             _settingsBefore = null;
         }
 
