@@ -148,12 +148,17 @@ namespace Scry
         /// <summary>The cloth physics' scripts copies keep, by full name.</summary>
         public static IEnumerable<string> KeptClothNames => KeptCloth;
 
-        /// <summary>Whether a component stays, and if not, in which pass it goes.</summary>
-        public static int PassFor(ComponentFacts facts, bool falling = false)
+        /// <summary>
+        /// Whether a component stays, and if not, in which pass it goes. A part copied to be
+        /// <paramref name="skinned"/> onto a body loses its cloth: the game binds worn cloth to the
+        /// wearer's bones and the shapes it rests against as it puts it on (<c>VisEquipment.SetupCloth</c>),
+        /// and built without that it would follow bones the part no longer moves with.
+        /// </summary>
+        public static int PassFor(ComponentFacts facts, bool falling = false, bool skinned = false)
         {
             var name = facts.TypeName ?? "";
 
-            if (facts.IsScript) return KeptScripts.Contains(name) || KeptCloth.Contains(name) ? Keep : ScriptsPass;
+            if (facts.IsScript) return KeptScripts.Contains(name) || !skinned && KeptCloth.Contains(name) ? Keep : ScriptsPass;
             if (facts.IsJoint) return falling ? Keep : JointsPass;
             if (falling && KeptFalling.Contains(name)) return Keep;
             return KeptEngine.Contains(name) ? Keep : RestPass;

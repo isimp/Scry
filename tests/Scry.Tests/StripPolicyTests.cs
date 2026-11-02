@@ -81,6 +81,23 @@ namespace Scry.Tests
             Assert.Equal(StripPolicy.Keep, StripPolicy.PassFor(Script(script), falling: true));
         }
 
+        // Cloth worn on the body (a cape, a dress, a Charred's hood) the game sets up as it puts
+        // it on: bound to the wearer's bones and the shapes it rests against (VisEquipment.SetupCloth).
+        // A copy skinned onto a body without that would build its cloth on bones it no longer
+        // follows, so it goes there and the part hangs as the body poses it.
+        [Theory]
+        [InlineData("MagicaCloth2.MagicaCloth")]
+        [InlineData("MagicaCloth2.MagicaCapsuleCollider")]
+        [InlineData("MagicaCloth2.MagicaSphereCollider")]
+        [InlineData("MagicaCloth2.MagicaPlaneCollider")]
+        public void ClothOnAPartSkinnedOntoABodyGoes(string script)
+        {
+            Assert.Equal(StripPolicy.ScriptsPass, StripPolicy.PassFor(Script(script), skinned: true));
+            // What else a skinned part keeps, it keeps.
+            Assert.Equal(StripPolicy.Keep, StripPolicy.PassFor(Script("LightFlicker"), skinned: true));
+            Assert.Equal(StripPolicy.Keep, StripPolicy.PassFor(Engine("SkinnedMeshRenderer"), skinned: true));
+        }
+
         [Theory]
         // A wind zone blows every cloth around it, the settings set the cloth of the whole world.
         [InlineData("MagicaCloth2.MagicaWindZone")]

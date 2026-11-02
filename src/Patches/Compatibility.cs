@@ -399,6 +399,7 @@ namespace Scry
             ("Character", "UpdateSwimming", 1, 0x0FCF0647, Feature.TailBentOnStage),
             ("MonsterAI", "UpdateAI", 1, 0xF625E201, Feature.TailBentOnStage),
             ("Humanoid", "GetAttackSpeedFactorMovement", 0, 0xF2D12069, Feature.TailBentOnStage),
+            ("VisEquipment", "SetupCloth", 1, 0x085C561E, Feature.ClothMovingOnCopies),
             ("BaseAI", "MoveTo", 4, 0x3D65CBA8, Feature.FlyersHighOnStage),
             ("GameCamera", "GetCameraPosition", 3, 0x25D43903, Feature.SeaHoldsOnStage),
             ("Leviathan", "FixedUpdate", 0, 0xD1B2386F, Feature.SeaHoldsOnStage),

@@ -13,7 +13,8 @@ namespace Scry
         /// <summary>
         /// Each of a few prefabs whose body moves by the game's cloth physics (MagicaCloth 2) is
         /// shown on the stage: its copy keeps the cloth and, once woken, the cloth has built and
-        /// runs, rather than the copy hanging stiff in its resting shape; each is pictured.
+        /// runs, rather than the copy hanging stiff in its resting shape; each is pictured. A
+        /// Charred mage's worn hood, cloth the game binds to its wearer, keeps none.
         /// </summary>
         private static IEnumerator ClothMoves(Probe p)
         {
@@ -32,6 +33,24 @@ namespace Scry
                     cloths == null ? "no copy" : $"{Numbers.Count(cloths.Count)} cloths kept, {Numbers.Count(running)} running");
                 yield return Picture(p, entry.Name + " with its cloth moving");
             }
+
+            // Worn cloth the game binds to its wearer as it puts it on (VisEquipment.SetupCloth);
+            // a copy skinned on without that keeps none, its hood hanging as the body poses it.
+            var mage = X.Catalog.FirstOrDefault(e => e.Source is GameObject prefab && prefab != null && prefab.name == "Charred_Mage");
+            if (mage == null)
+            {
+                p.Note("there is no Charred mage to show");
+                yield break;
+            }
+            Select(mage);
+            yield return Until(() => CopyOf(mage) != null, 20);
+            yield return new Wait(2f);
+            var dressed = CopyOf(mage);
+            var hood = dressed != null && dressed.GetComponentsInChildren<SkinnedMeshRenderer>(true).Any(r => r.name == "Hood" && r.enabled);
+            var worn = dressed != null ? dressed.GetComponentsInChildren<MonoBehaviour>(true).Count(c => c != null && c.GetType().FullName.StartsWith("MagicaCloth2.", System.StringComparison.Ordinal)) : -1;
+            p.Check(hood && worn == 0, "a Charred mage wears its hood, which keeps no cloth of its own",
+                $"hood drawn {hood}, {Numbers.Count(worn)} cloth parts on it");
+            yield return Picture(p, "a Charred mage in its hood");
         }
 
         /// <summary>Whether a cloth has built and runs (<c>MagicaCloth.IsValid</c>), asked by name so the self-test needs no reference to the cloth's library.</summary>

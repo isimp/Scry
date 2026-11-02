@@ -27,7 +27,7 @@ namespace Scry
         /// its bodies, colliders and joints, for <see cref="Falling"/> to put where they only meet
         /// the ground.
         /// </summary>
-        public static GameObject Make(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer = -1, bool falling = false)
+        public static GameObject Make(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer = -1, bool falling = false, bool skinned = false)
         {
             if (prefab == null) return null;
 
@@ -42,7 +42,7 @@ namespace Scry
                 {
                     // A large prefab (the person, with hundreds of parts) is stripped once and kept
                     // stripped under the sleeping holder; later copies are made from that.
-                    var key = new KeyValuePair<GameObject, bool>(prefab, falling);
+                    var key = (prefab, falling, skinned);
                     if (Templates.TryGetValue(key, out var template) && template != null)
                     {
                         copy = Object.Instantiate(template, Holder().transform, false);
@@ -52,7 +52,7 @@ namespace Scry
                     else
                     {
                         copy = Object.Instantiate(prefab, Holder().transform, false);
-                        if (Strip(copy, falling) >= TemplateFrom) KeepTemplate(key, copy);
+                        if (Strip(copy, falling, skinned) >= TemplateFrom) KeepTemplate(key, copy);
                     }
                     copy.name = prefab.name;
 
@@ -129,9 +129,9 @@ namespace Scry
         /// hangs effects and held items on bones. Bones are often scaled, a creature's by a
         /// hundred, so a copy that kept its own scale under one would be drawn that much bigger.
         /// </summary>
-        public static GameObject MakeOn(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer = -1)
+        public static GameObject MakeOn(GameObject prefab, Transform parent, Vector3 position, Quaternion rotation, int layer = -1, bool skinned = false)
         {
-            var copy = Make(prefab, null, position, rotation, layer);
+            var copy = Make(prefab, null, position, rotation, layer, skinned: skinned);
             if (copy != null && parent != null) copy.transform.SetParent(parent, true);
             return copy;
         }
@@ -145,16 +145,16 @@ namespace Scry
             Used.Clear();
         }
 
-        /// <summary>Stripped copies kept to copy again, by prefab and way of copying, and the order they were last used in.</summary>
-        private static readonly Dictionary<KeyValuePair<GameObject, bool>, GameObject> Templates = new Dictionary<KeyValuePair<GameObject, bool>, GameObject>();
-        private static readonly List<KeyValuePair<GameObject, bool>> Used = new List<KeyValuePair<GameObject, bool>>();
+        /// <summary>Stripped copies kept to copy again, by prefab and way of copying (falling, skinned onto a body), and the order they were last used in.</summary>
+        private static readonly Dictionary<(GameObject, bool, bool), GameObject> Templates = new Dictionary<(GameObject, bool, bool), GameObject>();
+        private static readonly List<(GameObject, bool, bool)> Used = new List<(GameObject, bool, bool)>();
 
         /// <summary>How many parts a prefab has before its stripped copy is kept, and how many are kept at most.</summary>
         private const int TemplateFrom = 150;
         private const int TemplatesKept = 4;
 
         /// <summary>Keeps a stripped copy of a large prefab asleep under the holder, the one used longest ago going when too many are.</summary>
-        private static void KeepTemplate(KeyValuePair<GameObject, bool> key, GameObject stripped)
+        private static void KeepTemplate((GameObject, bool, bool) key, GameObject stripped)
         {
             var template = Object.Instantiate(stripped, Holder().transform, false);
             template.name = stripped.name + " (Scry template)";
@@ -187,9 +187,9 @@ namespace Scry
         }
 
         /// <summary>Takes off everything the policy does not keep (<see cref="Stripping"/>); how many components the copy had.</summary>
-        private static int Strip(GameObject copy, bool falling)
+        private static int Strip(GameObject copy, bool falling, bool skinned)
         {
-            var stripping = new Stripping(copy, falling, keepColliders: false);
+            var stripping = new Stripping(copy, falling, keepColliders: false, skinned);
             stripping.Go(null, double.PositiveInfinity);
             return stripping.Parts;
         }
@@ -220,19 +220,19 @@ namespace Scry
         private static readonly List<Component> Siblings = new List<Component>();
 
         /// <summary>What the policy says of a component, worked out once for each type and way of copying.</summary>
-        private static int PassFor(Component component, bool falling)
+        private static int PassFor(Component component, bool falling, bool skinned)
         {
             var type = component.GetType();
-            var key = new KeyValuePair<Type, bool>(type, falling);
+            var key = (type, falling, skinned);
             if (!PassByType.TryGetValue(key, out var pass))
             {
-                pass = StripPolicy.PassFor(new ComponentFacts(type.FullName, component is MonoBehaviour, component is Joint), falling);
+                pass = StripPolicy.PassFor(new ComponentFacts(type.FullName, component is MonoBehaviour, component is Joint), falling, skinned);
                 PassByType[key] = pass;
             }
             return pass;
         }
 
-        private static readonly Dictionary<KeyValuePair<Type, bool>, int> PassByType = new Dictionary<KeyValuePair<Type, bool>, int>();
+        private static readonly Dictionary<(Type, bool, bool), int> PassByType = new Dictionary<(Type, bool, bool), int>();
 
         private static Type[] Requires(Type type)
         {

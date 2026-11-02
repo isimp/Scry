@@ -212,6 +212,7 @@ namespace Scry
             yield return S("the sight keeps where things worth finding again stand, a deposit by the whole it was, a thing destroyed taking its spot away, at little cost a frame", SpotsKept, 30, SpotPutBack);
             yield return S("a ground of hundreds of dungeons stands on Valheim's large map within a few seconds, holding no frame long", ManyMarks, 60, PinsAsTheyWere);
             yield return S("Show on map stands a thousand dots on Valheim's map within a few seconds, under the pins, smaller zoomed out, named in a strip, gone with Hide or the map closed", ShowOnMapDots, 60, ShowOnMapAsItWas);
+            yield return S("Show on map shades the server's squares round places never come near, under the dots, cut to explored ground, counted in the strip", ShowOnMapSquares, 60, ShowOnMapAsItWas);
             yield return S("Hildir's Sealed Tower is a place stood in, its visits kept, no dungeon lying inside", PlacesStoodIn, 10);
             yield return S("a creature's stars follow what in the world can give it a level", StarsFollowSources, 300);
             yield return S("a fish's page tells where it lives, when it comes, how it bites and fights, and keeps that back until one is caught", FishPageTells, 30);
@@ -242,7 +243,7 @@ namespace Scry
             yield return S("the sea holds a Serpent at its swim depth, swimming, and a Leviathan at its surface, over a sea as deep as the world places them", SeaHolds, 90, SeaAsItWas, bearsSkips: true);
             yield return S("a Serpent's attacks on the stage, pictured part way with its tail bent and without", SerpentAttacks, 60, SerpentAttacksAsItWas, bearsSkips: true);
             yield return S("a Drake and Moder are told they fly and fly as high as the game keeps them, and so do a raid's flyers", FlyersFly, 60, StageAsItWas, bearsSkips: true);
-            yield return S("Gjall's tentacles, a Wolf's body, the Ulv's tail, Hildir's skirt and a Karve's sail keep their cloth, and it runs", ClothMoves, 60, StageAsItWas);
+            yield return S("Gjall's tentacles, a Wolf's body, the Ulv's tail, Hildir's skirt and a Karve's sail keep their cloth, and it runs; a worn hood keeps none", ClothMoves, 60, StageAsItWas);
             _area = "Cost";
             yield return S("Scry costs next to nothing idling with the panel closed", IdleCost, 320);
             yield return S("the resource monitor shows what Scry costs and holds", ResourceMonitor, 10);

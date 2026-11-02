@@ -341,7 +341,8 @@ namespace Scry
         /// <summary>Hangs a skinned part (armour, cape) on the body's own bones.</summary>
         private static GameObject Skin(GameObject item, GameObject part, SkinnedMeshRenderer body, int layer)
         {
-            var worn = Hang(item, part, body.transform.parent, layer);
+            // Its cloth goes as it is copied: the game binds worn cloth to the wearer as it puts it on (StripPolicy.PassFor).
+            var worn = Hang(item, part, body.transform.parent, layer, skinned: true);
             if (worn == null) return null;
 
             var bones = body.bones;
@@ -370,9 +371,9 @@ namespace Scry
         /// creature whose bones are scaled up as in a hand. The item's <c>equipoffset</c> shifts it,
         /// and its <c>equiped</c> child, the glow or flame it has while held, is switched on.
         /// </summary>
-        private static GameObject Hang(GameObject item, GameObject part, Transform parent, int layer)
+        private static GameObject Hang(GameObject item, GameObject part, Transform parent, int layer, bool skinned = false)
         {
-            var worn = Ghost.MakeOn(part, parent, parent.position, parent.rotation, layer);
+            var worn = Ghost.MakeOn(part, parent, parent.position, parent.rotation, layer, skinned);
             if (worn == null) return null;
 
             var t = worn.transform;
