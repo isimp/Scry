@@ -179,6 +179,7 @@ namespace Scry
                 _explorer = explorer;
                 _selectionVersion = -1;
                 Stage.HomeOf = entry => GroundHomes.Of(entry, explorer.Entries);
+                Stage.HomeSettled = () => CompendiumTiers.Settled(explorer.Entries);
             }
 
             var modifiers = explorer.Modifiers;

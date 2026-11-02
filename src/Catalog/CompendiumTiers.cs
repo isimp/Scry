@@ -211,6 +211,21 @@ namespace Scry
             return keys;
         }
 
+        /// <summary>
+        /// Whether the tiers of a catalog as it is now are worked out, or failed to be; asking
+        /// moves the work on as <see cref="Of"/> does, so what waits on them can keep asking.
+        /// </summary>
+        public static bool Settled(EntryCatalog catalog)
+        {
+            if (catalog == null) return true;
+            Of(catalog);
+            return _gathering == null && _working == null && ReferenceEquals(catalog, _for) && catalog.Regroups == _forRegroups;
+        }
+
+        /// <summary>For the self-test: no tiers worked out, as in a fresh session.</summary>
+        [ForTest]
+        public static void ForgetForTest() => Forget();
+
         private static void Forget()
         {
             _for = null;

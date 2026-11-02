@@ -75,18 +75,18 @@ namespace Scry
         /// world's gravity and its centre of mass, which Unity works out from its hull's colliders.
         /// </summary>
         private static SeaHold ShipHold(GameObject prefab, Ship ship, float? placed) =>
-            SeaHold.Floats(ship.m_waterLevelOffset, ship.m_force, ship.m_forceDistance, ship.m_disableLevel, -Physics.gravity.y, CentreOfMassOverRoot(prefab), placed);
+            SeaHold.Floats(ship.m_waterLevelOffset, ship.m_force, ship.m_forceDistance, ship.m_disableLevel, -Physics.gravity.y, OrRoot(CentreOfMassOverRoot(prefab)), placed);
 
         /// <summary>
         /// How far over its root a prefab's centre of mass lies, as Unity works it out from its
         /// colliders: read once from a copy that keeps its body and colliders, made far off,
-        /// held still and taken away at once, so it is never drawn and never falls. None for a
-        /// prefab without a body.
+        /// held still and taken away at once, so it is never drawn and never falls. NaN for a
+        /// prefab without a body, or none copied: it floats by its root (<see cref="OrRoot"/>).
         /// </summary>
         private static float CentreOfMassOverRoot(GameObject prefab)
         {
             if (CentresOfMass.TryGetValue(prefab, out var known)) return known;
-            var over = 0f;
+            var over = float.NaN;
             var copy = Ghost.Make(prefab, null, new Vector3(0f, -10000f, 0f), Quaternion.identity, falling: true);
             if (copy != null)
             {
@@ -102,6 +102,9 @@ namespace Scry
             CentresOfMass[prefab] = over;
             return over;
         }
+
+        /// <summary>A centre of mass over the root as read, or the root itself where none was read.</summary>
+        private static float OrRoot(float over) => float.IsNaN(over) ? 0f : over;
 
         /// <summary>Prefabs' centres of mass over their roots, worked out once each.</summary>
         private static readonly System.Collections.Generic.Dictionary<GameObject, float> CentresOfMass = new System.Collections.Generic.Dictionary<GameObject, float>();

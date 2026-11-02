@@ -34,7 +34,18 @@ namespace Scry
         /// <summary>Where what is shown stands with its ground chosen automatically (<see cref="GroundHomes"/>), given by what holds the catalog; its own biomes' first without it.</summary>
         public static Func<Entry, string> HomeOf { get; set; }
 
-        /// <summary>The biome what is shown stands in when chosen automatically, worked out again only when another is shown or the tiers it may stand by are worked out anew.</summary>
+        /// <summary>
+        /// Whether the tiers a home may stand by are worked out for the catalog as it is now, given
+        /// by what holds the catalog; asking moves their working out on, as nothing else may while
+        /// no milestone floor is set (<see cref="CompendiumTiers.Settled"/>).
+        /// </summary>
+        public static Func<bool> HomeSettled { get; set; }
+
+        /// <summary>
+        /// The biome what is shown stands in when chosen automatically, worked out again only when
+        /// another is shown or the tiers it may stand by are worked out anew; until they are, each
+        /// frame moves their working out on.
+        /// </summary>
         private static string HomeBiome()
         {
             if (_lastShown == null) return StageGround.BiomeFor(null);
@@ -46,13 +57,17 @@ namespace Scry
                 // Its own biomes' first stands should the catalog's answer fail, not asked again each frame.
                 _home = StageGround.BiomeFor(_lastShown.Biomes);
                 _home = HomeOf?.Invoke(_lastShown) ?? _home;
+                // Asked from the next frame on, the catalog's answer having moved the tiers on this one.
+                _homeWaits = true;
             }
+            else if (_homeWaits) _homeWaits = !(HomeSettled?.Invoke() ?? true);
             return _home;
         }
 
         private static Entry _homeFor;
         private static int _homeVersion = -1;
         private static string _home;
+        private static bool _homeWaits;
 
         /// <summary>Lets go of where what was shown stands, as the stage forgets it.</summary>
         private static void ForgetHome()
@@ -60,6 +75,7 @@ namespace Scry
             _homeFor = null;
             _homeVersion = -1;
             _home = null;
+            _homeWaits = false;
         }
 
         /// <summary>For the self-test: the biome what is shown stands in when its ground is chosen automatically.</summary>
