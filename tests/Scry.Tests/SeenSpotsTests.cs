@@ -205,6 +205,16 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void CropsGrownFromPlantingAreNoFinds()
+        {
+            // A vine grown from a planted sapling, or a carrot from a seed, stands where the player planted it.
+            Assert.False(SeenOnMap.Findable(false, Gathered.Picked, new[] { "Vineberry" }, planted: true));
+            Assert.False(SeenOnMap.Findable(false, Gathered.Picked, new[] { "Carrot" }, planted: true));
+            // Its wild kin, a prefab of its own the world places, is one.
+            Assert.True(SeenOnMap.Findable(false, Gathered.Picked, new[] { "CarrotSeeds" }, planted: false));
+        }
+
+        [Fact]
         public void ADepositOnlyAPickaxeBreaksIsMined()
         {
             // A tin or obsidian deposit: every damage but the pickaxe's is turned away (Destructible.m_damages).

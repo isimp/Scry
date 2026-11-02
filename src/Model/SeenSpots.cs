@@ -244,10 +244,12 @@ namespace Scry
         /// Whether a kind of thing is worth finding again on the map: a place; a thing picked or
         /// mined (<paramref name="gatheredBy"/>) that gives something besides wood and stone, as a
         /// berry bush, flint, a mushroom or an ore deposit. Not a branch, a stone, a plain rock, a
-        /// tree, a shrub or a log, which stand everywhere.
+        /// tree, a shrub or a log, which stand everywhere, nor a crop grown from planting
+        /// (<paramref name="planted"/>: what a sapling or a seed grows into, <c>Plant.m_grownPrefabs</c>),
+        /// which stands where the player planted it; its wild kin is a prefab of its own.
         /// </summary>
-        public static bool Findable(bool location, Gathered gatheredBy, IEnumerable<string> gives) =>
-            location || (gatheredBy != Gathered.None && gives.Any(item => !Everywhere.Contains(item)));
+        public static bool Findable(bool location, Gathered gatheredBy, IEnumerable<string> gives, bool planted = false) =>
+            location || (!planted && gatheredBy != Gathered.None && gives.Any(item => !Everywhere.Contains(item)));
 
         /// <summary>
         /// Whether a thing that breaks is a deposit mined: the pickaxe's damage counts against it

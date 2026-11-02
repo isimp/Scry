@@ -8,7 +8,7 @@ namespace Scry
     /// What each of the game's prefabs counts as for the spots a character's sight keeps
     /// (<see cref="SeenSpots"/>), worked out once a prefab from its parts: whether it is worth
     /// finding again (<see cref="SeenOnMap.Findable"/>: picked or mined, giving something besides
-    /// wood and stone), not while it carries a beacon a Wishbone finds; and the kind it is kept
+    /// wood and stone, not a crop grown from planting), not while it carries a beacon a Wishbone finds; and the kind it is kept
     /// by, a deposit's broken form by the whole deposit that becomes it when first struck
     /// (<c>Destructible.m_spawnWhenDestroyed</c>), so a spot keeps its kind as the deposit breaks.
     /// </summary>
@@ -22,6 +22,9 @@ namespace Scry
 
         /// <summary>The whole deposit each broken form comes of, by the broken form's name.</summary>
         private static Dictionary<string, string> _wholeOf;
+
+        /// <summary>What a sapling or a seed grows into once planted (<c>Plant.m_grownPrefabs</c>), by name.</summary>
+        private static HashSet<string> _grown;
 
         /// <summary>The kind a prefab's things are kept by as spots; none for one not worth finding again, or one a Wishbone finds.</summary>
         public static string Of(int prefab)
@@ -49,7 +52,7 @@ namespace Scry
         {
             if (!SeenOnMap.Records(prefab.GetComponentInChildren<Beacon>(true) != null)) return false;
             var pickable = prefab.GetComponent<Pickable>();
-            if (pickable != null) return SeenOnMap.Findable(false, Gathered.Picked, pickable.m_itemPrefab != null ? new[] { pickable.m_itemPrefab.name } : System.Array.Empty<string>());
+            if (pickable != null) return SeenOnMap.Findable(false, Gathered.Picked, pickable.m_itemPrefab != null ? new[] { pickable.m_itemPrefab.name } : System.Array.Empty<string>(), Grown(prefab.name));
             var deposit = DepositOf(prefab);
             return deposit != null && SeenOnMap.Findable(false, Gathered.Mined, deposit.m_drops.Where(d => d.m_item != null).Select(d => d.m_item.name));
         }
@@ -81,6 +84,26 @@ namespace Scry
         {
             Kinds.Clear();
             _wholeOf = null;
+            _grown = null;
+        }
+
+        /// <summary>Whether a prefab is what a sapling or a seed grows into once planted, a crop.</summary>
+        private static bool Grown(string name)
+        {
+            if (_grown == null)
+            {
+                _grown = new HashSet<string>(System.StringComparer.Ordinal);
+                foreach (var prefab in ZNetScene.instance != null ? ZNetScene.instance.m_prefabs : new List<GameObject>())
+                {
+                    var plant = prefab != null ? prefab.GetComponent<Plant>() : null;
+                    if (plant == null || plant.m_grownPrefabs == null) continue;
+                    foreach (var grown in plant.m_grownPrefabs)
+                    {
+                        if (grown != null) _grown.Add(grown.name);
+                    }
+                }
+            }
+            return _grown.Contains(name);
         }
 
         /// <summary>The kind a prefab is kept by: the whole deposit a broken form comes of, else its own name.</summary>
