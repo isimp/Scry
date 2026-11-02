@@ -108,7 +108,7 @@ namespace Scry
                 MapSpots.Show(copper);
                 yield return Until(() => MapSpots.DotsShown > 0, 10);
                 p.Check(MapSpots.KindShown == "rock4_copper" && (MapSpots.Strip ?? "").StartsWith(copper.ShownName + " · " + Numbers.Count(count) + " you saw", System.StringComparison.Ordinal),
-                    $"Copper deposit's page shows the {Numbers.Count(count)} the character saw", MapSpots.Strip);
+                    $"{copper.ShownName}'s page shows the {Numbers.Count(count)} the character saw", MapSpots.Strip);
                 yield return Picture(p, "show on map, the copper deposits you saw");
             }
             ShowOnMapAsItWas();
@@ -163,7 +163,9 @@ namespace Scry
             map.SetMapMode(Minimap.MapMode.Small);
             yield return null;
 
-            // A place whose squares the world's server told, as its button shows them.
+            // A place whose squares the world's server told, as its button shows them. A test begun
+            // as the world loads comes before the map is read: its answer is waited for.
+            yield return Until(() => CompendiumMap.Counts.Heard(_ => true) != SquaresHeard.Waiting, 45);
             var heard = CompendiumMap.Counts.Heard(_ => true);
             p.Note($"the server told of squares: {heard}");
             var told = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Location && !e.IsRoom && MapSpots.SquareCount(e) > 0);
