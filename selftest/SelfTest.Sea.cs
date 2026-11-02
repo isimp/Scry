@@ -12,6 +12,9 @@ namespace Scry
         /// <summary>How far the Serpent's tail joints stood from their parents at the most through its attacks part, against when shown.</summary>
         private static float _tailMost;
 
+        /// <summary>The most of the Serpent's tail links pointing back toward its head through its roar.</summary>
+        private static int _tailFoldsMost;
+
         /// <summary>The creatures the game starts flying whose animators land them when not told: a Drake and Moder.</summary>
         private static readonly string[] FlyerNames = { "Hatchling", "Dragon" };
 
@@ -167,8 +170,9 @@ namespace Scry
         /// last the bite half through with its tail left as the animator poses it, to set beside
         /// the bent one. Played through once, how far its tail's joints stand from their parents at
         /// the most is noted, against how far they hung when it was shown, and kept short of 1.4
-        /// times through the long frames of its size change and pictures. Roaring, it stops in
-        /// place and swims on after, pictured rearing and coming down. Long, it opens showing
+        /// times through the long frames of its size change and pictures. Roaring, it slows to its
+        /// taunt's pace, its body never folding back, and swims on after, pictured rearing and
+        /// coming down. Long, it opens showing
         /// its side across most of the picture, pictured so; a Troll after it opens from the front.
         /// </summary>
         private static IEnumerator SerpentAttacks(Probe p)
@@ -233,23 +237,28 @@ namespace Scry
                 $"at most {Numbers.Fixed(grown, 2)} times as far as when shown, swimming at its size {Numbers.Fixed(swimming, 2)}");
             _tailMost = Mathf.Max(_tailMost, Mathf.Max(swimming, grown));
 
-            // Roaring, it stops in place as the game stops it once what it roars at is in reach,
-            // and swims on after: pictured rearing and coming down, played through at its pace.
+            // Roaring, it slows to its taunt's pace (a fifth of its swim speed) rather than
+            // stopping, so its body does not fold back into loops, and swims on after: pictured
+            // rearing and coming down, played through at its pace.
             if (roar != null)
             {
                 var swimmingBefore = Stage.TailSwimSpeed;
+                _tailFoldsMost = 0;
                 Previews.PlayClip(roar);
                 yield return Until(() => Previews.PlayingClip() == roar, 3);
-                yield return new Wait(roar.length * 0.4f);
+                yield return WatchingFolds(roar.length * 0.4f);
                 var roaring = Stage.TailSwimSpeed;
-                yield return Picture(p, "a Serpent rearing 40% into its Rawr, stopped to roar");
-                yield return new Wait(roar.length * 0.4f);
+                yield return Picture(p, "a Serpent rearing 40% into its Rawr, slowed to roar");
+                yield return WatchingFolds(roar.length * 0.4f);
                 yield return Picture(p, "a Serpent coming down near the end of its Rawr");
+                yield return WatchingFolds(roar.length * 0.15f);
                 Previews.StopClip();
                 yield return new Wait(3f);
                 var after = Stage.TailSwimSpeed;
-                p.Check(swimmingBefore > 9f && roaring < 0.5f && after > 9f, "roaring it stops in place, and swims on after",
+                p.Check(swimmingBefore > 9f && roaring > 1.5f && roaring < 2.5f && after > 9f, "roaring it slows to its taunt's pace, and swims on after",
                     $"{Numbers.Fixed(swimmingBefore, 1)} m/s before, {Numbers.Fixed(roaring, 1)} m/s roaring, {Numbers.Fixed(after, 1)} m/s three seconds after");
+                p.Check(_tailFoldsMost == 0, "through its roar its body never folds back toward its head",
+                    $"at most {Numbers.Count(_tailFoldsMost)} of its tail's links pointing back");
             }
 
             foreach (var share in new[] { 0.25f, 0.5f, 0.75f }) yield return HeldAt(p, bite, share, "bent");
@@ -275,6 +284,17 @@ namespace Scry
                     $"{(Stage.ShownSideOn ? "side on" : "from the front")}, turned {Numbers.Fixed(Stage.Yaw, 0)} degrees");
             }
             SerpentAttacksAsItWas();
+        }
+
+        /// <summary>Waits a while, noting each frame the most of the tail's links pointing back toward the head (<see cref="Stage.TailFoldedBack"/>).</summary>
+        private static IEnumerator WatchingFolds(float seconds)
+        {
+            var until = Time.unscaledTime + seconds;
+            while (Time.unscaledTime < until)
+            {
+                _tailFoldsMost = Mathf.Max(_tailFoldsMost, Stage.TailFoldedBack);
+                yield return null;
+            }
         }
 
         /// <summary>The most the shown tail's joints stand from their parents over a second, against when it was shown (<see cref="Stage.TailStretch"/>).</summary>

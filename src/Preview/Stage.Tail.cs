@@ -11,9 +11,9 @@ namespace Scry
     /// the joints itself, after the animator has posed them and before the film, over its own
     /// sea's surface and ground in place of the world's. It is bent in steps of its own
     /// (<see cref="TailBend.Step"/>) and shown part way between the last two, so its shape does not
-    /// change with how long the stage's frames take. Held swimming, it stops while one of its
-    /// attacks plays and sets off again after, as the game stops it once what it attacks is in
-    /// reach, so it rears and bites in place. Only what is shown is bent, not a raid's
+    /// change with how long the stage's frames take. Held swimming, it slows while one of its
+    /// attacks plays to the pace that attack names and sets off again after, so it rears and
+    /// bites nearly in place, the body not coiling as it would held fully still. Only what is shown is bent, not a raid's
     /// crowd or a place's creatures.
     /// </summary>
     internal static partial class Stage
@@ -42,19 +42,20 @@ namespace Scry
 
         /// <summary>
         /// How fast what is shown swims this moment, and how fast it gains speed
-        /// (<c>Character.m_swimAcceleration</c>): the game stops a creature once what it attacks
-        /// is in reach (<c>MonsterAI.StopMoving</c>) and sets it off again after, so it rears and
-        /// bites in place, its tail no longer streaming out.
+        /// (<c>Character.m_swimAcceleration</c>): while one of its attacks plays it eases to that
+        /// attack's pace (<see cref="TailBend.Toward"/>) and after to its full speed again.
         /// </summary>
         private static float _tailSpeed, _tailAcceleration;
 
-        /// <summary>The prefab shown, whose clips' attacks tell when it stops.</summary>
+        /// <summary>The prefab shown, whose clips' attacks tell when it slows.</summary>
         private static GameObject _tailPrefab;
 
-        /// <summary>The clip last looked at, whether the clips' attacks were known then, and whether it plays an attack.</summary>
+        /// <summary>The clip last looked at, whether the clips' attacks were known then, and the pace of the attack it plays; none for no attack.</summary>
         private static AnimationClip _tailClip;
 
-        private static bool _tailClipKnown, _tailClipAttacks;
+        private static bool _tailClipKnown;
+
+        private static float? _tailClipPace;
 
         /// <summary>Whether the joints were taken where the copy first stands, which the game takes as it wakes.</summary>
         private static bool _tailTaken;
@@ -114,26 +115,49 @@ namespace Scry
             _tailCarried = 0f;
             _tailPrefab = null;
             _tailClip = null;
-            _tailClipKnown = _tailClipAttacks = false;
+            _tailClipKnown = false;
+            _tailClipPace = null;
+        }
+
+        /// <summary>
+        /// For the self-test: how many of the tail's links point back toward the head, more than
+        /// five centimetres at size one: the body folding into loops, as a tail held fully still does.
+        /// </summary>
+        [ForTest]
+        public static int TailFoldedBack
+        {
+            get
+            {
+                if (!_tailTaken || _subject == null) return 0;
+                var forward = _subject.transform.forward;
+                var scale = _scale > 0f ? _scale : 1f;
+                var folded = 0;
+                foreach (var joint in TailJoints)
+                    if (joint.Bone != null && Vector3.Dot(joint.Bone.position - joint.Bone.parent.position, forward) > 0.05f * scale) folded++;
+                return folded;
+            }
         }
 
         /// <summary>For the self-test: how fast what is shown swims this moment, in metres a second at size one.</summary>
         [ForTest]
         public static float TailSwimSpeed => _tailTaken ? _tailSpeed : 0f;
 
-        /// <summary>How fast what is shown is going toward: its swim speed while it swims, none while it attacks or does not swim.</summary>
-        private static float SwimTarget() => SeaHold.InWater(_sea.Held, _seaShown, _tailLivesInWater) && !AttackPlaying() ? _tailSwimSpeed : 0f;
+        /// <summary>How fast what is shown is going toward (<see cref="TailBend.Toward"/>).</summary>
+        private static float SwimTarget() => TailBend.Toward(_tailSwimSpeed, SeaHold.InWater(_sea.Held, _seaShown, _tailLivesInWater), AttackPace());
 
-        /// <summary>Whether one of the creature's attacks plays on the stage, looked up once a clip starts and again until its clips are known.</summary>
-        private static bool AttackPlaying()
+        /// <summary>The pace of the attack playing on the stage (<c>Attack.m_speedFactor</c>), looked up once a clip starts and again until its clips are known; none while no attack plays.</summary>
+        private static float? AttackPace()
         {
             var clip = _subject != null ? _subject.GetComponent<ClipPlayer>().OrNull()?.Clip : null;
-            if (clip == _tailClip && _tailClipKnown) return _tailClipAttacks;
+            if (clip == _tailClip && _tailClipKnown) return _tailClipPace;
             _tailClip = clip;
             _tailClipKnown = clip == null || Previews.ClipsKnown(_tailPrefab, _subject);
-            _tailClipAttacks = clip != null && _tailClipKnown && Previews.AttackOfClip(_tailPrefab, _subject, clip.name) != null;
-            return _tailClipAttacks;
+            _tailClipPace = clip != null && _tailClipKnown ? PaceOf(Previews.AttackOfClip(_tailPrefab, _subject, clip.name)) : null;
+            return _tailClipPace;
         }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static float? PaceOf(ClipAttack attack) => (attack?.Key as Attack ?? (attack?.Key as ComboStep)?.Attack as Attack)?.m_speedFactor;
 
         /// <summary>
         /// Reads a copy newly shown for the game's tail on its prefab, with its settings, and finds

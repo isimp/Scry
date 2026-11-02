@@ -91,6 +91,15 @@ namespace Scry
         }
 
         /// <summary>
+        /// How fast a swimmer held on the stage goes: its swim speed, or while one of its attacks
+        /// plays that attack's own pace of it (<c>Attack.m_speedFactor</c>); nothing out of the
+        /// water. The game stops a creature in reach of what it attacks, but held fully still its
+        /// tail rule coils the body, so the stage slows it to the pace the attack names instead.
+        /// </summary>
+        public static float Toward(float swimSpeed, bool inWater, float? attackPace) =>
+            inWater ? swimSpeed * Math.Max(0f, attackPace ?? 1f) : 0f;
+
+        /// <summary>
         /// A swimmer's speed after <paramref name="dt"/> seconds going toward a speed, as the game
         /// eases a creature's (<c>Character.UpdateSwimming</c>), each physics step of
         /// <paramref name="physicsStep"/> seconds: slowing, it goes half the way there; speeding

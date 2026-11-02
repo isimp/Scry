@@ -225,6 +225,21 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhileItAttacksASwimmerGoesAtItsAttacksOwnPace()
+        {
+            // The game's attacks each name a pace (Attack.m_speedFactor): a Serpent's bite 0.6, its
+            // taunt 0.2. Held fully still the game's tail rule coils the body, so on the stage it
+            // slows to that pace rather than stopping.
+            Assert.Equal(10f, TailBend.Toward(10f, inWater: true, attackPace: null), 5);
+            Assert.Equal(6f, TailBend.Toward(10f, inWater: true, attackPace: 0.6f), 5);
+            Assert.Equal(2f, TailBend.Toward(10f, inWater: true, attackPace: 0.2f), 5);
+            // Out of the water nothing goes by, attacking or not; a pace under none is none.
+            Assert.Equal(0f, TailBend.Toward(10f, inWater: false, attackPace: null), 5);
+            Assert.Equal(0f, TailBend.Toward(10f, inWater: false, attackPace: 0.6f), 5);
+            Assert.Equal(0f, TailBend.Toward(10f, inWater: true, attackPace: -1f), 5);
+        }
+
+        [Fact]
         public void ASwimmerStoppingToAttackComesToRestInATenthOfASecond()
         {
             Assert.InRange(SwimFor(0.05f, 10f, 0f), 1f, 3f);
