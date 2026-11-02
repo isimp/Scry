@@ -85,12 +85,18 @@ namespace Scry
         public static KeyMods ModsOf(IEnumerable<KeyCode> keys)
         {
             var mods = KeyMods.None;
+            bool leftControl = false, rightControl = false, altGr = false;
             foreach (var key in keys)
             {
                 if (key == KeyCode.LeftShift || key == KeyCode.RightShift) mods |= KeyMods.Shift;
                 else if (key == KeyCode.LeftControl || key == KeyCode.RightControl) mods |= KeyMods.Control;
                 else if (key == KeyCode.LeftAlt || key == KeyCode.RightAlt || key == KeyCode.AltGr) mods |= KeyMods.Alt;
+                leftControl |= key == KeyCode.LeftControl;
+                rightControl |= key == KeyCode.RightControl;
+                altGr |= key == KeyCode.RightAlt || key == KeyCode.AltGr;
             }
+            // Windows sends a left Ctrl with the right Alt on layouts with AltGr: that Alt is Alt alone.
+            if (altGr && leftControl && !rightControl) mods &= ~KeyMods.Control;
             return mods;
         }
 

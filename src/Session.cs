@@ -125,7 +125,8 @@ namespace Scry
             Step(Feature.OpenKey, "the key that opens the panel", "update key", () =>
             {
                 var held = Settings.HeldMods();
-                if (OpenKeys.Fires(Input.GetKeyDown(Settings.OpenKey), Settings.OpenMods, held) && CanToggle() && !TypingIt(Settings.OpenKey, held)) Toggle();
+                // Not while the settings card waits for a key: the key pressed there is the new one.
+                if (OpenKeys.Fires(Input.GetKeyDown(Settings.OpenKey), Settings.OpenMods, held) && CanToggle() && !TypingIt(Settings.OpenKey) && !ScryPanel.KeyWaiting) Toggle();
             });
 
             // After the key, so the panel opened by it is handed what it shows in the same frame.
@@ -300,10 +301,10 @@ namespace Scry
         }
 
         /// <summary>A key that types a character does not close the panel while its search box has it.</summary>
-        private static bool TypingIt(KeyCode key, KeyMods held)
+        private static bool TypingIt(KeyCode key)
         {
             if (!IsOpen || !ScryPanel.SearchFocused) return false;
-            return OpenKeys.TypesText((key >= KeyCode.Space && key <= KeyCode.Z) || (key >= KeyCode.Keypad0 && key <= KeyCode.KeypadEquals), held);
+            return OpenKeys.TypesText((key >= KeyCode.Space && key <= KeyCode.Z) || (key >= KeyCode.Keypad0 && key <= KeyCode.KeypadEquals), Settings.OpenMods);
         }
 
         /// <summary>
@@ -371,6 +372,8 @@ namespace Scry
             if (_favourites.Problem != null) Faults.Tell(Feature.Favourites, "reading the favourites", _favourites.Problem);
 
             Explorer = new Explorer(catalog, _favourites) { RecentLimit = Settings.RecentCount, RecipeListedBy = RecipeListed, MostLevelShownBy = MostLevelShown, WorldNow = ZNet.instance != null ? ZNet.instance.GetWorldName() : null };
+            // The loudness a selection starts at, before a page asked for meanwhile is selected below.
+            Explorer.Modifiers.StartVolume = Settings.PreviewLoudness;
             WorldCatalog.Set(Explorer.Entries);
             // A creature the page shown would leave out stands on no place's copy and in no raid's crowd:
             // one the character has not met, and under the strict rules one never seen together with the page.

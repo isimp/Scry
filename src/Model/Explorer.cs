@@ -233,10 +233,10 @@ namespace Scry
         /// <summary>Where an entry's row in the learned list opens its page (<see cref="NewsArrival"/>); none with the compendium off or no news.</summary>
         public NewsArrival ArrivalOf(Entry entry) => NewsOf(entry) is BookNews news ? NewsArrival.Of(news) : null;
 
-        /// <summary>An entry's latest news as a line of the notice, by the name it is shown by; seen for one with none to tell.</summary>
-        public NewsLine NewsLineOf(Entry entry)
+        /// <summary>An entry's latest news as a line of the notice, by the name it is shown by; its meeting alone where the notice tells new pages only; seen for one with none to tell.</summary>
+        public NewsLine NewsLineOf(Entry entry, bool pagesOnly = false)
         {
-            var news = NewsOf(entry);
+            var news = pagesOnly ? (CompendiumOn && entry != null ? _view.NewsOf(entry.Key, metOnly: true) : null) : NewsOf(entry);
             return new NewsLine(entry?.ShownName ?? "", news?.How ?? NewsHow.Seen, news?.Proof, news?.Day ?? -1, LearnedWorldShown(entry));
         }
 

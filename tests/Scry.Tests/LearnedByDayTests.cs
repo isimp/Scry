@@ -148,12 +148,12 @@ namespace Scry.Tests
 
             Assert.Equal(new NewsLine("Troll", NewsHow.Known, null, 14), world.Explorer.NewsLineOf(world.Troll));
             Assert.Equal("Since day 13: came to know Troll, saw Boar, found out how fire lands on Neck, and read 1 thing from the game's records of your character",
-                JournalWords.News(news.Select(world.Explorer.NewsLineOf).ToList(), 0, 0));
+                JournalWords.News(news.Select(e => world.Explorer.NewsLineOf(e)).ToList(), 0, 0));
 
             var loose = Learned(CompendiumRule.Loose);
             var looseNews = new LearnedNotice().New(loose.Explorer);
             Assert.Equal("Since day 13: came to know Neck and Troll, saw Boar, and read 1 thing from the game's records of your character",
-                JournalWords.News(looseNews.Select(loose.Explorer.NewsLineOf).ToList(), 0, 0));
+                JournalWords.News(looseNews.Select(e => loose.Explorer.NewsLineOf(e)).ToList(), 0, 0));
         }
 
         [Fact]

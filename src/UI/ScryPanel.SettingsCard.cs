@@ -20,6 +20,9 @@ namespace Scry
         /// <summary>Whether the next key pressed becomes the one opening the panel.</summary>
         private static bool _keyWaiting;
 
+        /// <summary>Whether the settings card waits for the key to open Scry with, so the key that opens it now does nothing meanwhile.</summary>
+        public static bool KeyWaiting => _keyWaiting && SettingsShown;
+
         /// <summary>Whether the settings card is shown, and showing or putting it away; the gear and the self-test.</summary>
         public static bool SettingsShown => _card == ListCard.Settings;
 

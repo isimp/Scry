@@ -193,7 +193,7 @@ namespace Scry
         /// An entry's latest news as the rules tell it: under the strict rules what was found out
         /// too, under the loose ones, which show it whole, only the meeting (<see cref="CompendiumBook.MetNewsOf"/>).
         /// </summary>
-        public BookNews? NewsOf(string key) => _rule == CompendiumRule.Strict ? _book?.NewsOf(key) : _book?.MetNewsOf(key);
+        public BookNews? NewsOf(string key, bool metOnly = false) => _rule == CompendiumRule.Strict && !metOnly ? _book?.NewsOf(key) : _book?.MetNewsOf(key);
 
         /// <summary>
         /// The keys learned after a count taken before, as the rules tell news (<see cref="NewsOf"/>),

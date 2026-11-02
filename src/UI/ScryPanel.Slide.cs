@@ -79,7 +79,7 @@ namespace Scry
                 SlideIcon(Slide.Speed, entry, Next(), Skin.Speed, !Mathf.Approximately(modifiers.AnimationSpeed, 1f), HeaderSliders.SpeedTip(modifiers.AnimationSpeed), k == 0, k == count - 1);
                 k++;
             }
-            SlideIcon(Slide.Volume, entry, Next(), Skin.Speaker, !Mathf.Approximately(modifiers.Volume, 1f), HeaderSliders.VolumeTip(modifiers.Volume), k == 0, k == count - 1);
+            SlideIcon(Slide.Volume, entry, Next(), Skin.Speaker, !Mathf.Approximately(modifiers.Volume, modifiers.StartVolume), HeaderSliders.VolumeTip(modifiers.Volume), k == 0, k == count - 1);
             k++;
             if (sized) SlideIcon(Slide.Size, entry, Next(), Skin.Resize, !Mathf.Approximately(modifiers.Scale, 1f), HeaderSliders.SizeTip(modifiers.Scale), k == 0, k == count - 1);
         }
@@ -138,9 +138,9 @@ namespace Scry
             : _slide == Slide.Speed ? HeaderSliders.SpeedShare(modifiers.AnimationSpeed)
             : HeaderSliders.SizeShare(modifiers.Scale);
 
-        /// <summary>Where the selection's own value is along the open slider's track: where a click on the value puts it back.</summary>
-        private static float OwnShare() =>
-            _slide == Slide.Volume ? HeaderSliders.VolumeShare(1f) : _slide == Slide.Speed ? HeaderSliders.SpeedShare(1f) : 0.5f;
+        /// <summary>Where the selection's own value is along the open slider's track: where a click on the value puts it back, the volume at the loudness set.</summary>
+        private static float OwnShare(float startVolume = 1f) =>
+            _slide == Slide.Volume ? HeaderSliders.VolumeShare(startVolume) : _slide == Slide.Speed ? HeaderSliders.SpeedShare(1f) : 0.5f;
 
         private static void SlideTo(Modifiers modifiers, float share)
         {
@@ -192,7 +192,7 @@ namespace Scry
                         if (!_slideIcon.Contains(mouse)) _slide = Slide.None;
                         return false;
                     }
-                    if (_slideValue.Contains(mouse)) SlideTo(modifiers, OwnShare());
+                    if (_slideValue.Contains(mouse)) SlideTo(modifiers, OwnShare(modifiers.StartVolume));
                     else
                     {
                         _sliding = true;

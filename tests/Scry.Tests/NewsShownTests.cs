@@ -30,6 +30,19 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APageNewlyMetIsToldAsMetNotAsWhatWasFoundOutAfter()
+        {
+            var book = new CompendiumBook();
+            var mark = book.Learned;
+            book.Raise("Greyling", KnownLevel.Known);
+            book.FoundOut("Greyling", EntryKeys.Did(Deed.Killed));
+            var view = StrictOn(book);
+            Assert.Equal(NewsHow.FoundOut, view.NewsOf("Greyling")?.How);
+            Assert.NotEqual(NewsHow.FoundOut, view.NewsOf("Greyling", metOnly: true)?.How);
+            Assert.Equal(new[] { "Greyling" }, view.LearnedSince(mark, pagesOnly: true).ToArray());
+        }
+
+        [Fact]
         public void TheNewsStripShowsAsSet()
         {
             Assert.True(NewsChoices.Shows(NewsShown.All));

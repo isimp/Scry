@@ -36,7 +36,11 @@ namespace Scry
             return name.ToString();
         }
 
-        /// <summary>Whether a key typed into the search writes text there: one that types, with neither Ctrl nor Alt held.</summary>
-        public static bool TypesText(bool typesAlone, KeyMods held) => typesAlone && (held & (KeyMods.Control | KeyMods.Alt)) == 0;
+        /// <summary>
+        /// Whether the key, pressed in the search, writes text there rather than opening or
+        /// closing: one that types, unless it itself wants Ctrl or Alt. Ctrl or Alt held by the way,
+        /// as Ctrl+V pastes or AltGr types a sign, leaves it text.
+        /// </summary>
+        public static bool TypesText(bool typesAlone, KeyMods wanted) => typesAlone && (wanted & (KeyMods.Control | KeyMods.Alt)) == 0;
     }
 }

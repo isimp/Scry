@@ -338,7 +338,7 @@ namespace Scry
                 _newsFor = news;
                 // What the explored map brought is counted, as it may be hundreds of places at once;
                 // the rest is told by what happened, by day (JournalWords.News).
-                _newsLine = JournalWords.News(news.Where(e => !explorer.FromMap(e)).Select(explorer.NewsLineOf).ToList(),
+                _newsLine = JournalWords.News(news.Where(e => !explorer.FromMap(e)).Select(e => explorer.NewsLineOf(e, NewsChoices.PagesOnly(Settings.News))).ToList(),
                     news.Count(e => explorer.FromMap(e) && e.Kind != Kind.Biome), news.Count(e => explorer.FromMap(e) && e.Kind == Kind.Biome));
             }
             CountDrawn(PanelPart.LearnedStrip);

@@ -39,7 +39,8 @@ namespace Scry.Tests
         [Fact]
         public void TypingInTheSearchKeepsAKeyThatTypesFromOpening()
         {
-            // A letter or digit typed into the search is text, not the key; with Ctrl or Alt held it types nothing.
+            // A letter or digit typed into the search is text, Ctrl+V pasting or AltGr typing a sign
+            // included; only a key that itself wants Ctrl or Alt types nothing there and opens.
             Assert.True(OpenKeys.TypesText(true, KeyMods.None));
             Assert.True(OpenKeys.TypesText(true, KeyMods.Shift));
             Assert.False(OpenKeys.TypesText(true, KeyMods.Control));
