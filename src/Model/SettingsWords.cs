@@ -13,7 +13,7 @@ namespace Scry
     {
         public const string Title = "Settings";
         public const string GearTip = "Settings: the panel, the preview, the compendium's news, the map, reading in the background, and what this server decides";
-        public const string KeptAtOnce = "Every change is kept at once, in BepInEx/config/isimp.Scry.cfg.";
+        public const string KeptAtOnce = "Every change is kept at once, in isimp.Scry.cfg.";
         public const string Reset = "Reset to defaults";
         public const string Close = "Close";
         public const string ServerDecides = "This server decides these, in its own settings; you see what it chose.";

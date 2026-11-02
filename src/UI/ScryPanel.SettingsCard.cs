@@ -135,7 +135,8 @@ namespace Scry
             var y = U(6f);
             GUI.Label(new Rect(0f, y, width * 0.6f, U(28f)), section.Name, Skin.Big);
             var resetW = Skin.Width(Skin.Button, SettingsWords.Reset) + U(16f);
-            if (GUI.Button(new Rect(width - resetW, y, resetW, U(26f)), SettingsWords.Reset, Skin.Button)) ResetSettings(section);
+            // Where a server decides every row, a reset would set nothing: none offered.
+            if (!AllLocked(section) && GUI.Button(new Rect(width - resetW, y, resetW, U(26f)), SettingsWords.Reset, Skin.Button)) ResetSettings(section);
             y += U(38f);
             if (HasServerRows(section))
             {
@@ -175,6 +176,12 @@ namespace Scry
             }
             if (Event.current.type == EventType.Repaint) SettingsRowsDrawnForTest = drawn;
             return y + U(10f);
+        }
+
+        private static bool AllLocked(SettingSection section)
+        {
+            foreach (var row in section.Rows) if (!SettingLocked(row)) return false;
+            return true;
         }
 
         private static bool HasServerRows(SettingSection section)

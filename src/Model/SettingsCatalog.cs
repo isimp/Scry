@@ -81,7 +81,7 @@ namespace Scry
             new SettingSection("Panel",
                 Key("OpenKey", "Open Scry with", "The key that opens and closes the panel. /scry in the chat does the same."),
                 Slider("PanelScale", "Panel size", "How big the panel and its text are, on top of the scaling to your screen's height. The new size applies when you let go.",
-                    SettingsWords.SmallestSize, SettingsWords.LargestSize, 0.05f, v => Math.Abs(v - 1f) < 0.001f ? "as scaled" : Numbers.Amount(v) + " times"),
+                    SettingsWords.SmallestSize, SettingsWords.LargestSize, 0.05f, v => Math.Abs(v - 1f) < 0.001f ? "normal size" : Numbers.Amount(v) + " times"),
                 Switch("WalkWhileOpen", "Walk while open", "Your keys walk your character while the panel is open and you are not typing in it."),
                 Switch("LookWithRightMouse", "Look with right mouse", "Holding the right mouse button outside the panel turns the camera, to look around while it is open."),
                 Choices("FocusSearchOnOpen", "On opening", "Whether your keys go to the search box as the panel opens, or stay free until you click the search, to walk with while Walk while open is on. The compact view always leaves them free.",
@@ -145,7 +145,7 @@ namespace Scry
             yield return Server(Switch("SquaresOnMap", "Squares on the map", "Whether this server tells players the squares that hold a place in ground they explored but never came near."));
             foreach (var source in WorldSources.All)
             {
-                yield return Server(Choices(source + "UpTo", CompendiumWords.SourceName(source), $"The most {CompendiumWords.SourceName(source)} may show as known on this server.",
+                yield return Server(Choices(source + "UpTo", CompendiumWords.SourceName(source), "How much this source may show as known on this server, at most.",
                     WorldSources.Offered(source).Select(l => (l.ToString(), CompendiumWords.LevelName(l))).ToArray()));
             }
             yield return In(RunningTheWorld, Server(Switch("ReadTracesOnStart", "Read dungeon traces", "On the game that runs the world, reads what was left inside its dungeons once its records are read, so rooms emptied before anyone's walk was kept count as walked on this server.")));
