@@ -164,5 +164,22 @@ namespace Scry.Tests
             modifiers.AnimationSpeed = 0.5f;
             Assert.False(modifiers.IsDefault);
         }
+
+        [Fact]
+        public void EachSelectionStartsAtThePreviewLoudnessSet()
+        {
+            var modifiers = new Modifiers { StartVolume = 0.4f };
+            modifiers.Reset();
+            Assert.Equal(0.4f, modifiers.Volume, 4);
+            // Started there, nothing is changed: the loudness set is where a selection is as it is.
+            Assert.True(modifiers.IsDefault);
+            modifiers.Volume = 1f;
+            Assert.False(modifiers.IsDefault);
+            // Never louder than the game's own to start, nor below silent.
+            modifiers.StartVolume = 3f;
+            Assert.Equal(1f, modifiers.StartVolume);
+            modifiers.StartVolume = -1f;
+            Assert.Equal(0f, modifiers.StartVolume);
+        }
     }
 }

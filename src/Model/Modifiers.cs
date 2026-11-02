@@ -30,11 +30,19 @@ namespace Scry
         private bool _wearAvailable;
         private float _animationSpeed;
         private float _volume;
+        private float _startVolume = 1f;
+
+        /// <summary>The loudness a selection starts at, as the settings' Preview section sets it: from silent to the game's own.</summary>
+        public float StartVolume
+        {
+            get => _startVolume;
+            set => _startVolume = float.IsNaN(value) ? 1f : Math.Max(0f, Math.Min(1f, value));
+        }
 
         /// <summary>
         /// How loud the preview plays, as a share of the game's own loudness, from silent to
         /// <see cref="MaxVolume"/>. Heard at once, so turning it rebuilds nothing; back to the
-        /// game's own with every selection, as some previews play as soon as they are selected.
+        /// loudness set (<see cref="StartVolume"/>) with every selection, as some previews play as soon as they are selected.
         /// </summary>
         public float Volume
         {
@@ -108,7 +116,7 @@ namespace Scry
         }
 
         /// <summary>Whether everything is as the prefab is, so there is nothing to reset.</summary>
-        public bool IsDefault => Same(_scale, 1f) && _level == 1 && _wear == Wear.New && Same(_animationSpeed, 1f) && Same(_volume, 1f) && _look == _defaultLook;
+        public bool IsDefault => Same(_scale, 1f) && _level == 1 && _wear == Wear.New && Same(_animationSpeed, 1f) && Same(_volume, _startVolume) && _look == _defaultLook;
 
         private static bool Same(float a, float b) => Math.Abs(a - b) < 1e-4f;
 
@@ -119,7 +127,7 @@ namespace Scry
             _level = 1;
             _wear = Wear.New;
             _animationSpeed = 1f;
-            _volume = 1f;
+            _volume = _startVolume;
             _look = _defaultLook;
             Version++;
         }

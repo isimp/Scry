@@ -16,6 +16,7 @@ namespace Scry
         private static ConfigEntry<KeyboardShortcut> _openKey;
         private static ConfigEntry<bool> _autoSpin;
         private static ConfigEntry<bool> _playOnSelect;
+        private static ConfigEntry<float> _previewLoudness;
         private static ConfigEntry<bool> _lightDimmedRooms;
         private static ConfigEntry<float> _uiScale;
         private static ConfigEntry<bool> _logPreviews;
@@ -118,6 +119,7 @@ namespace Scry
         }
         // What the settings box and the boxes beside what they change set; each kept in the config file.
         public static bool PlayOnSelect { get => _playOnSelect?.Value ?? true; set => Set(_playOnSelect, value); }
+        public static float PreviewLoudness { get => Mathf.Clamp01(_previewLoudness?.Value ?? 1f); set => Set(_previewLoudness, Mathf.Clamp01(value)); }
         public static float UiScale { get => _uiScale?.Value ?? 1f; set => Set(_uiScale, Mathf.Clamp(value, 0.6f, 2f)); }
         public static bool FocusSearchOnOpen { get => _focusSearch?.Value ?? false; set => Set(_focusSearch, value); }
         public static float CatalogDelay => Mathf.Clamp(_catalogDelay?.Value ?? 10f, 0f, 120f);
@@ -319,6 +321,9 @@ namespace Scry
                     new AcceptableValueRange<float>(1f, 90f)));
             _playOnSelect = config.Bind("2 - Preview", "PlayOnSelect", true,
                 "Plays a sound as soon as it is selected, so the list can be auditioned with the arrow keys.");
+            _previewLoudness = config.Bind("2 - Preview", "PreviewLoudness", 1f,
+                new ConfigDescription("How loud a preview plays as it is selected, as a share of how loud the game plays the same sound; the volume over the stage starts there for each selection.",
+                    new AcceptableValueRange<float>(0f, 1f)));
             _stageQuality = config.Bind("2 - Preview", "StageQuality", StageQuality.Full,
                 "How the stage is drawn. Full draws it at the panel's own size, with its grass, and with the lights below a dungeon's cut as LightDimmedRooms says. Fast draws it at half size, without grass or those lights, for a big dungeon on a weaker machine.");
             _lighterFilmFrom = config.Bind("2 - Preview", "LighterFilmFromMs", StageFilm.LighterFromMs,

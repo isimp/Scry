@@ -100,8 +100,12 @@ namespace Scry
 
         public static void Update()
         {
-            // The recent list's length as set now, the settings card setting it while the panel is open.
-            if (Explorer != null) Explorer.RecentLimit = Settings.RecentCount;
+            // The recent list's length and the loudness a selection starts at as set now, the settings card setting them while the panel is open.
+            if (Explorer != null)
+            {
+                Explorer.RecentLimit = Settings.RecentCount;
+                Explorer.Modifiers.StartVolume = Settings.PreviewLoudness;
+            }
             // Each step on its own: one that fails (a game update renamed what it reads) is told
             // once and costs only itself, never the key that opens the panel or the steps after it.
             Step(Feature.Leaving, "noticing a world left", "update leaving", () =>

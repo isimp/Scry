@@ -145,6 +145,8 @@ namespace Scry.Tests
             Assert.Equal("14° a second", Slider("SpinSpeed").Shown(14f));
             Assert.Equal("50 m", Slider("SeenOnMapReach").Shown(50f));
             Assert.Equal("none", Slider("SeenOnMapReach").Shown(0f));
+            Assert.Equal("100%", Slider("PreviewLoudness").Shown(1f));
+            Assert.Equal("silent", Slider("PreviewLoudness").Shown(0f));
         }
 
         private static SettingRow Slider(string key) => Rows.Single(r => r.Control == SettingControl.Slider && r.Keys[0] == key);

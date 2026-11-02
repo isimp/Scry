@@ -100,6 +100,8 @@ namespace Scry
                 Switch("LightDimmedRooms", "Lights below the cut", "The rooms shown dimmed below a dungeon's opened floor keep their own lights, as the game lights them. Off, a big dungeon is drawn in about half the time."),
                 Choices("PlayOnSelect", "Sounds", "Whether a sound plays as soon as it is selected, so you can listen through the list with the arrow keys, or only when you press Enter.",
                     ("true", "Play on select"), ("false", "Only on Enter")),
+                Slider("PreviewLoudness", "Loudness", "How loud a sound plays when you select it, beside the game's own loudness. The volume over the stage starts here for each selection.",
+                    0f, 1f, 0.05f, v => v <= 0f ? "silent" : Numbers.Percent(v)),
                 Slider("LighterFilmFromMs", "Softer while moving", "While you turn or zoom the stage, one that took at least this long to draw is drawn a little softer, so a big dungeon moves smoothly. It is sharp again once the camera holds still.",
                     0f, StageFilm.LighterNeverMs, 1f, v => v <= 0f ? "always" : v >= StageFilm.LighterNeverMs ? "never" : Numbers.Count((long)Math.Round(v)) + " ms")),
 
