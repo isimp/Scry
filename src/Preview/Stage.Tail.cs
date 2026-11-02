@@ -9,20 +9,24 @@ namespace Scry
     /// (<c>Tail</c>, <see cref="TailBend"/>): a Serpent's long body or a Leech's, joint by joint,
     /// each trailing the one before. The copy is stripped of the game's script, so the stage bends
     /// the joints itself, after the animator has posed them and before the film, over its own
-    /// sea's surface and ground in place of the world's. Only what is shown is bent, not a raid's
-    /// crowd or a place's creatures; and as it swims in place, its tail trails the sway of its
-    /// front rather than streaming out behind as it does at speed in the world.
+    /// sea's surface and ground in place of the world's. It is bent in steps of its own
+    /// (<see cref="TailBend.Step"/>) and shown part way between the last two, so its shape does not
+    /// change with how long the stage's frames take. Only what is shown is bent, not a raid's
+    /// crowd or a place's creatures.
     /// </summary>
     internal static partial class Stage
     {
-        /// <summary>One joint of the tail: the copy's bone, where it was put last and how far from its parent it hangs.</summary>
+        /// <summary>One joint of the tail: the copy's bone, where the last step put it and the step before, and how far from its parent it hangs.</summary>
         private sealed class TailJoint
         {
             public Transform Bone;
-            public Vector3 Position;
-            public Quaternion Rotation;
+            public Vector3 Position, WasPosition;
+            public Quaternion Rotation, WasRotation;
             public float Length;
         }
+
+        /// <summary>The time since the tail's last step, carried from frame to frame.</summary>
+        private static float _tailCarried;
 
         /// <summary>What is shown's tail joints, head first, as the game's prefab lists them; none for what has no tail.</summary>
         private static readonly List<TailJoint> TailJoints = new List<TailJoint>();
@@ -89,6 +93,7 @@ namespace Scry
         {
             TailJoints.Clear();
             _tailTaken = false;
+            _tailCarried = 0f;
         }
 
         /// <summary>
@@ -144,10 +149,10 @@ namespace Scry
         }
 
         /// <summary>
-        /// Each frame, after the animator and the framing: bends each joint as the game does
-        /// (<c>Tail.CustomLateUpdate</c>), its joints' lengths and settings in metres taken at the
-        /// stage's size, so a size changed while it is shown keeps the tail's shape; the sea's
-        /// surface where the sea's ground lies and the ground under the model.
+        /// Each frame, after the animator and the framing: bends the tail the steps the frame
+        /// spans (<see cref="TailBend.Steps"/>), then shows each joint part way between its last
+        /// two steps, head first so each is set after its parent. The animator poses the joints
+        /// anew every frame, so they are set even in a frame that takes no step.
         /// </summary>
         private static void KeepTail()
         {
@@ -163,11 +168,30 @@ namespace Scry
                 // Lengths are kept as if at size one, as the settings are.
                 foreach (var joint in TailJoints)
                 {
-                    joint.Position = joint.Bone.position;
-                    joint.Rotation = joint.Bone.rotation;
+                    joint.Position = joint.WasPosition = joint.Bone.position;
+                    joint.Rotation = joint.WasRotation = joint.Bone.rotation;
                     joint.Length = Vector3.Distance(joint.Bone.parent.position, joint.Bone.position) / scale;
                 }
                 _tailTaken = true;
+            }
+            var steps = TailBend.Steps(ref _tailCarried, Time.unscaledDeltaTime, out var share);
+            for (var step = 0; step < steps; step++) StepTail(scale);
+            foreach (var joint in TailJoints)
+                joint.Bone.SetPositionAndRotation(Vector3.Lerp(joint.WasPosition, joint.Position, share), Quaternion.Slerp(joint.WasRotation, joint.Rotation, share));
+        }
+
+        /// <summary>
+        /// One step of the tail as the game bends it each frame (<c>Tail.CustomLateUpdate</c>),
+        /// its joints' lengths and settings in metres taken at the stage's size, so a size changed
+        /// while it is shown keeps the tail's shape; the sea's surface where the sea's ground lies
+        /// and the ground under the model.
+        /// </summary>
+        private static void StepTail(float scale)
+        {
+            foreach (var joint in TailJoints)
+            {
+                joint.WasPosition = joint.Position;
+                joint.WasRotation = joint.Rotation;
             }
             var rules = _tailRules;
             rules.Gravity *= scale;
@@ -175,7 +199,7 @@ namespace Scry
             rules.Radius *= scale;
             var water = _seaLevels.Surface;
             var ground = Finite(_groundY) ? _groundY : float.NegativeInfinity;
-            var dt = Time.unscaledDeltaTime;
+            var dt = TailBend.Step;
             // The game bends the tail of a creature that always swims, its tail streaming out
             // behind; on the stage, where it stays put while told it swims, the water goes by it as fast.
             var swim = SeaHold.InWater(_sea.Held, _seaShown, _tailLivesInWater) ? _tailSwimSpeed * scale : 0f;

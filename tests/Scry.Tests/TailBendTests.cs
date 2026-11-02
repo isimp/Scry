@@ -120,6 +120,99 @@ namespace Scry.Tests
             Assert.Equal(still.X, TailBend.Swum(still, forward, 0f, 1f / 60f).X, 5);
         }
 
+        // The game moves a joint a share of the way once a frame, so how far a swimming tail trails
+        // depends on how long a frame took. The stage's frames run unevenly (a page being laid can
+        // take a tenth of a second), and stepped once a frame the tail would stretch and spring
+        // back with them. Stepped on a clock of its own it keeps one shape whatever the frames.
+
+        private static Vec3 SwimThrough(float[] frames)
+        {
+            var forward = new Vec3(-1f, 0f, 0f);
+            var joint = new Vec3(2f, 0f, 0f);
+            var carried = 0f;
+            foreach (var dt in frames)
+            {
+                var steps = TailBend.Steps(ref carried, dt, out _);
+                for (var step = 0; step < steps; step++)
+                    joint = Next(TailBend.Swum(joint, forward, 10f, TailBend.Step), Serpent, water: 10f, ground: -100f, dt: TailBend.Step);
+            }
+            return joint;
+        }
+
+        private static float[] Frames(int count, params float[] lengths)
+        {
+            var frames = new float[count];
+            for (var i = 0; i < count; i++) frames[i] = lengths[i % lengths.Length];
+            return frames;
+        }
+
+        [Fact]
+        public void ASwimmingTailTrailsAsFarWhetherTheFramesRunEvenlyOrNot()
+        {
+            // Two seconds each way: sixty frames a second, then frames now short now long, then a
+            // hitch of a quarter second among them.
+            var even = SwimThrough(Frames(120, 1f / 60f));
+            var uneven = SwimThrough(Frames(80, 1f / 120f, 1f / 24f));
+            var hitched = SwimThrough(Frames(36, 1f / 60f, 1f / 60f, 1f / 60f, 1f / 60f, 1f / 60f, 0.25f));
+            // At ten metres a second it trails a step's swim behind where it belongs, as at sixty frames a second.
+            Assert.Equal(2f + 10f / 60f, even.X, 2);
+            Assert.Equal(even.X, uneven.X, 3);
+            Assert.Equal(even.X, hitched.X, 3);
+        }
+
+        [Theory]
+        [InlineData(1f / 60f)]
+        // A frame as measured at sixty a second, a hair short of a step.
+        [InlineData(0.016666f)]
+        public void FramesOfASixtiethTakeOneStepEach(float frameLength)
+        {
+            var carried = 0f;
+            for (var frame = 0; frame < 600; frame++)
+            {
+                Assert.Equal(1, TailBend.Steps(ref carried, frameLength, out var share));
+                Assert.True(share < 0.01f, $"frame {frame} stood {share} into the next step");
+            }
+        }
+
+        [Fact]
+        public void ShortFramesShareTheStepsAndShowHowFarIntoTheNextTheyStand()
+        {
+            var carried = 0f;
+            var steps = 0;
+            var lastShare = -1f;
+            var rose = 0;
+            for (var frame = 0; frame < 144; frame++)
+            {
+                var taken = TailBend.Steps(ref carried, 1f / 144f, out var share);
+                Assert.InRange(taken, 0, 1);
+                Assert.InRange(share, 0f, 1f);
+                if (taken == 0 && share > lastShare) rose++;
+                steps += taken;
+                lastShare = share;
+            }
+            // A second of frames takes a second of steps.
+            Assert.InRange(steps, 59, 60);
+            // Between steps the share grows, for the joints to be shown part way.
+            Assert.True(rose > 60, $"the share grew on {rose} frames");
+        }
+
+        [Fact]
+        public void ALongFrameTakesTheStepsItSpansUpToTheMost()
+        {
+            var carried = 0f;
+            Assert.Equal(15, TailBend.Steps(ref carried, 0.25f + 1e-4f, out _));
+            // A frame far longer is let go past: the tail would have settled anyway.
+            carried = 0f;
+            Assert.Equal(TailBend.MostSteps, TailBend.Steps(ref carried, 2f, out var share));
+            Assert.Equal(0f, share);
+            Assert.Equal(1, TailBend.Steps(ref carried, 1f / 60f, out _));
+            // No time, or time going back, takes no step.
+            carried = 0f;
+            Assert.Equal(0, TailBend.Steps(ref carried, 0f, out _));
+            Assert.Equal(0, TailBend.Steps(ref carried, -1f, out _));
+            Assert.Equal(0f, carried);
+        }
+
         [Fact]
         public void AShareOfTheWayBeyondAllOrNoneIsTakenAsAllOrNone()
         {

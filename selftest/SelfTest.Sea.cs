@@ -9,6 +9,9 @@ namespace Scry
     {
         private static (int Backdrop, bool Spin, string Choice)? _seaBefore;
 
+        /// <summary>How far the Serpent's tail joints stood from their parents at the most through its attacks part, against when shown.</summary>
+        private static float _tailMost;
+
         /// <summary>The creatures the game starts flying whose animators land them when not told: a Drake and Moder.</summary>
         private static readonly string[] FlyerNames = { "Hatchling", "Dragon" };
 
@@ -163,7 +166,8 @@ namespace Scry
         /// quarters through, held there a moment so its tail settles, the roar half through, and
         /// last the bite half through with its tail left as the animator poses it, to set beside
         /// the bent one. Played through once, how far its tail's joints stand from their parents at
-        /// the most is noted, against how far they hung when it was shown. Long, it opens showing
+        /// the most is noted, against how far they hung when it was shown, and kept short of 1.4
+        /// times through the long frames of its size change and pictures. Long, it opens showing
         /// its side across most of the picture, pictured so; a Troll after it opens from the front.
         /// </summary>
         private static IEnumerator SerpentAttacks(Probe p)
@@ -209,6 +213,7 @@ namespace Scry
                 yield return null;
             }
             p.Note($"swimming, its tail's joints stand at most {Numbers.Fixed(still, 2)} times as far from their parents as when shown; through its bite {Numbers.Fixed(most, 2)} times");
+            _tailMost = most;
 
             // Made twice as big while shown, the tail keeps its joints as far apart for its size: the
             // most of a second at each size, so a swing caught at one moment decides nothing.
@@ -223,9 +228,15 @@ namespace Scry
             yield return new Wait(0.5f);
             p.Check(Mathf.Abs(grown - swimming) < 0.25f, "made twice as big while shown, its tail keeps its joints as far apart for its size",
                 $"at most {Numbers.Fixed(grown, 2)} times as far as when shown, swimming at its size {Numbers.Fixed(swimming, 2)}");
+            _tailMost = Mathf.Max(_tailMost, Mathf.Max(swimming, grown));
 
             foreach (var share in new[] { 0.25f, 0.5f, 0.75f }) yield return HeldAt(p, bite, share, "bent");
             if (roar != null) yield return HeldAt(p, roar, 0.5f, "bent");
+            // Swimming at ten metres a second its first joint, 0.7 m from the body, trails a sixtieth
+            // of that behind (1.24 times); stepped once a frame, a long frame such as a picture's
+            // stretched it several times over and let it spring back.
+            p.Check(_tailMost > 0f && _tailMost < 1.4f, "through its bite, a size change and the pictures' long frames, its tail keeps its length",
+                $"its joints at most {Numbers.Fixed(_tailMost, 2)} times as far from their parents as when shown");
             // Last, as the tail stays let go of until the Serpent is shown again.
             Stage.LetTailGoForTest();
             yield return HeldAt(p, bite, 0.5f, "as the animator poses it");
@@ -267,7 +278,10 @@ namespace Scry
             yield return new Wait(0.8f);
             var name = $"a Serpent's {clip.name} {Numbers.Count(Mathf.RoundToInt(share * 100f))}% through, its tail {tail}";
             p.Note($"{name}: its tail's joints at most {Numbers.Fixed(Stage.TailStretch, 2)} times as far from their parents as when shown");
+            if (tail == "bent") _tailMost = Mathf.Max(_tailMost, Stage.TailStretch);
             yield return Picture(p, name);
+            // The frame after the picture's long one.
+            if (tail == "bent") _tailMost = Mathf.Max(_tailMost, Stage.TailStretch);
             Previews.PauseClip(false);
             Previews.StopClip();
             yield return null;

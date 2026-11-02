@@ -59,6 +59,37 @@ namespace Scry
         /// </summary>
         public static Vec3 Swum(Vec3 was, Vec3 forward, float speed, float dt) => was - forward * (speed * dt);
 
+        /// <summary>
+        /// How long one step of a tail lasts on the stage, in seconds. The game bends a tail once a
+        /// frame, a share of the way each time, so how far a swimming tail trails depends on how
+        /// long the frame took; the stage steps it as the game does at sixty frames a second,
+        /// whatever its own frames take, so uneven frames do not stretch the tail and let it spring back.
+        /// </summary>
+        public const float Step = 1f / 60f;
+
+        /// <summary>The most steps one frame takes: a frame longer than a quarter second is let go past, the tail having settled by then anyway.</summary>
+        public const int MostSteps = 15;
+
+        /// <summary>
+        /// How many whole steps a frame of <paramref name="dt"/> seconds takes, the time left over
+        /// carried to the next frame, and how far the frame stands into the step to come, a share
+        /// from none to all, for the joints to be shown that far between the last two steps.
+        /// </summary>
+        public static int Steps(ref float carried, float dt, out float share)
+        {
+            carried += Math.Max(0f, dt);
+            // A hair's allowance, so frames of exactly a step are not counted short by rounding.
+            var steps = (int)Math.Floor(carried / Step + 1e-3f);
+            if (steps > MostSteps)
+            {
+                steps = MostSteps;
+                carried = 0f;
+            }
+            else carried = Math.Max(0f, carried - steps * Step);
+            share = Math.Min(1f, carried / Step);
+            return steps;
+        }
+
         /// <summary>The way <paramref name="from"/> turned toward <paramref name="to"/>, by at most an angle in radians; both of length one.</summary>
         private static Vec3 Turned(Vec3 from, Vec3 to, float most)
         {
