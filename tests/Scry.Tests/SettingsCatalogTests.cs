@@ -112,7 +112,7 @@ namespace Scry.Tests
             var types = new Dictionary<string, Type>
             {
                 ["StageQuality"] = typeof(StageQuality), ["Rules"] = typeof(WorldRule),
-                ["ShowOnMapOtherPins"] = typeof(OtherPinsShown), ["ShowOnMapDarken"] = typeof(MapDarkening), ["ShowOnMapDotSize"] = typeof(DotSizeChoice),
+                ["ShowOnMapOtherPins"] = typeof(OtherPinsShown), ["ShowOnMapDarken"] = typeof(MapDarkening), ["ShowOnMapDotSize"] = typeof(DotSizeChoice), ["News"] = typeof(NewsShown),
             };
             foreach (var each in WorldSources.All) types[each + "UpTo"] = typeof(SourceLevel);
             foreach (var row in Rows.Where(r => r.Control == SettingControl.Choices))

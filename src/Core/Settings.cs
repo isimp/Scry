@@ -31,7 +31,7 @@ namespace Scry
         private static ConfigEntry<bool> _readLocations;
         private static ConfigEntry<bool> _dungeonMarks;
         private static ConfigEntry<StageQuality> _stageQuality;
-        private static ConfigEntry<bool> _newsNotice;
+        private static ConfigEntry<NewsShown> _news;
         private static ConfigEntry<bool> _markNames;
         private static ConfigEntry<float> _markSize;
         private static ConfigEntry<bool> _marksWalkedByYou, _marksWalkedOnServer, _markEntrances, _marksOnMinimap;
@@ -147,8 +147,8 @@ namespace Scry
         /// <summary>From how many milliseconds a still film of the stage takes it is filmed lighter while its camera moves (<see cref="StageFilm.Lighter"/>).</summary>
         public static float LighterFilmFromMs { get => Mathf.Clamp(_lighterFilmFrom?.Value ?? StageFilm.LighterFromMs, 0f, StageFilm.LighterNeverMs); set => Set(_lighterFilmFrom, Mathf.Clamp(value, 0f, StageFilm.LighterNeverMs)); }
 
-        /// <summary>Whether the notice under the header tells what the character learned, else the Learned tab alone does.</summary>
-        public static bool NewsNotice { get => _newsNotice?.Value ?? true; set => Set(_newsNotice, value); }
+        /// <summary>What the notice under the header tells of what the character learned: all of it, new pages only, or nothing, the Learned tab alone telling it.</summary>
+        public static NewsShown News { get => _news?.Value ?? NewsShown.All; set => Set(_news, value); }
 
         /// <summary>Whether each dungeon mark on the large map shows its name under it always, as the game's pins do, rather than while the pointer rests on it.</summary>
         public static bool MarkNamesAlways { get => _markNames?.Value ?? false; set => Set(_markNames, value); }
@@ -191,6 +191,19 @@ namespace Scry
                 return entry;
             }
             return null;
+        }
+
+        /// <summary>
+        /// The news's single switch it was before, read once as the file has it and let go of:
+        /// turned off, the news stays off (<see cref="NewsChoices.From"/>). Read by its definition,
+        /// as no setting of the card's.
+        /// </summary>
+        private static void KeepNewsOff(ConfigFile config)
+        {
+            var before = config.Bind(new ConfigDefinition("1 - General", "NewsNotice"), true);
+            if (!before.Value) _news.Value = NewsChoices.From(false);
+            config.Remove(before.Definition);
+            config.Save();
         }
 
         /// <summary>A setting's new value, kept in the config file; nothing before the settings are bound.</summary>
@@ -287,8 +300,9 @@ namespace Scry
                 "Reads where things are found in each world's locations and dungeons by itself, in the background once the prefabs are read, taking a few minutes the first time in a world and kept for the next. Off, they are read only when asked, with Find where things are or /scry locations.");
             _dungeonMarks = config.Bind("1 - General", "DungeonMarksOnMap", true,
                 "Marks each dungeon you have been in on Valheim's large map, on its entrance, telling how much of it you walked; a click on a mark opens its map in Scry. Off, the map shows nothing of Scry's.");
-            _newsNotice = config.Bind("1 - General", "NewsNotice", true,
-                "The notice under the header tells what the character learned, as it learns it. Off, the Learned tab alone tells it.");
+            _news = config.Bind("1 - General", "News", NewsShown.All,
+                "What the notice under the header tells of what the character learned, as it learns it: All of it; NewPages, pages newly met only, leaving out what was found out about one met before; Off, the Learned tab alone tells it.");
+            KeepNewsOff(config);
             _markNames = config.Bind("1 - General", "DungeonMarkNamesAlways", false,
                 "Each dungeon mark on Valheim's large map shows its name under it, as the game names its pins. Off, a mark shows its name while the pointer rests on it. Resting on one tells how far it was walked either way.");
             _markSize = config.Bind("1 - General", "DungeonMarkSize", 1f,

@@ -29,9 +29,10 @@ namespace Scry
         private int _learned = -1;
         private int _stamp = -1;
         private int _mark = -1;
+        private bool _pagesOnly;
 
-        /// <summary>What was learned since the mark, newest first, as far as the book keeps what it learned lately.</summary>
-        public List<Entry> New(Explorer explorer)
+        /// <summary>What was learned since the mark, newest first, as far as the book keeps what it learned lately; new pages only, where the news is set so.</summary>
+        public List<Entry> New(Explorer explorer, bool pagesOnly = false)
         {
             var book = explorer.CompendiumOn ? explorer.Compendium.Book : null;
             if (book == null)
@@ -40,15 +41,16 @@ namespace Scry
                 return None;
             }
             var mark = _marks.GetValue(book, _ => new Mark()).At;
-            if (ReferenceEquals(book, _book) && book.Version == _bookVersion && book.Learned == _learned && explorer.KnowStamp == _stamp && mark == _mark) return _new;
+            if (ReferenceEquals(book, _book) && book.Version == _bookVersion && book.Learned == _learned && explorer.KnowStamp == _stamp && mark == _mark && pagesOnly == _pagesOnly) return _new;
 
             _book = book;
             _bookVersion = book.Version;
             _learned = book.Learned;
             _stamp = explorer.KnowStamp;
             _mark = mark;
+            _pagesOnly = pagesOnly;
             _new = new List<Entry>();
-            foreach (var key in explorer.Compendium.LearnedSince(mark))
+            foreach (var key in explorer.Compendium.LearnedSince(mark, pagesOnly))
             {
                 var entry = explorer.Find(key);
                 // Named as the list shows them: the world a player meets.

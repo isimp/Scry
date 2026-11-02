@@ -195,8 +195,13 @@ namespace Scry
         /// </summary>
         public BookNews? NewsOf(string key) => _rule == CompendiumRule.Strict ? _book?.NewsOf(key) : _book?.MetNewsOf(key);
 
-        /// <summary>The keys learned after a count taken before, as the rules tell news (<see cref="NewsOf"/>), newest first.</summary>
-        public IEnumerable<string> LearnedSince(int mark) => (_rule == CompendiumRule.Strict ? _book?.LearnedSince(mark) : _book?.MetSince(mark)) ?? Array.Empty<string>();
+        /// <summary>
+        /// The keys learned after a count taken before, as the rules tell news (<see cref="NewsOf"/>),
+        /// newest first; pages newly met only, leaving out what was found out about one met before,
+        /// where the news is set so (<see cref="NewsShown.NewPages"/>).
+        /// </summary>
+        public IEnumerable<string> LearnedSince(int mark, bool pagesOnly = false) =>
+            (_rule == CompendiumRule.Strict && !pagesOnly ? _book?.LearnedSince(mark) : _book?.MetSince(mark)) ?? Array.Empty<string>();
 
         /// <summary>The ruleset last told; with it off, everything is known.</summary>
         public CompendiumRule Rule => _rule;

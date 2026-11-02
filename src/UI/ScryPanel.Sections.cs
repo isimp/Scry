@@ -299,8 +299,8 @@ namespace Scry
         /// <summary>The compendium's strip under the header: a warning while peeking, else what was newly learned; none otherwise.</summary>
         private static float CompendiumStripHeight(Explorer explorer) => explorer.Peeking || NewsUp(explorer) ? U(32f) : 0f;
 
-        /// <summary>Whether the notice tells what was newly learned: news there is, and the notice tells it (<see cref="Settings.NewsNotice"/>), else the Learned tab alone does.</summary>
-        private static bool NewsUp(Explorer explorer) => Settings.NewsNotice && LearnedNews.New(explorer).Count > 0;
+        /// <summary>Whether the notice tells what was newly learned: news there is, and the notice tells it (<see cref="Settings.News"/>), else the Learned tab alone does.</summary>
+        private static bool NewsUp(Explorer explorer) => NewsChoices.Shows(Settings.News) && LearnedNews.New(explorer, NewsChoices.PagesOnly(Settings.News)).Count > 0;
 
         /// <summary>
         /// Warns that the page shown shows whole while peeking at it alone, with a chip widening
@@ -332,7 +332,7 @@ namespace Scry
                 return peeked;
             }
 
-            var news = LearnedNews.New(explorer);
+            var news = LearnedNews.New(explorer, NewsChoices.PagesOnly(Settings.News));
             if (!ReferenceEquals(news, _newsFor))
             {
                 _newsFor = news;

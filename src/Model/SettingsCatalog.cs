@@ -106,8 +106,8 @@ namespace Scry
                     0f, StageFilm.LighterNeverMs, 1f, v => v <= 0f ? "always" : v >= StageFilm.LighterNeverMs ? "never" : Numbers.Count((long)Math.Round(v)) + " ms")),
 
             new SettingSection("Compendium",
-                Choices("NewsNotice", "News of what you learn", "Whether a notice under the header tells what your character learned as it learns it, or the Learned tab alone.",
-                    ("true", "Notice"), ("false", "Learned tab only"))),
+                Choices("News", "News of what you learn", "What a notice under the header tells as your character learns it: all of it, new pages only, leaving out what was found out about one met before, or nothing, the Learned tab alone telling it.",
+                    ("All", "All of it"), ("NewPages", "New pages only"), ("Off", "Learned tab only"))),
 
             new SettingSection("Map",
                 In("Dungeon marks", Switch("DungeonMarksOnMap", "Dungeon marks", "Marks dungeons on Valheim's large map, telling how much of each was walked; a click on a mark opens its map in Scry. Off, no dungeon marks show.")),
