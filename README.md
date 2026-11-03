@@ -18,7 +18,7 @@ Turn it on for a character with *Compendium* at the top of the panel. A creature
 
 ## Exploring
 
-Dungeons you walk are kept as you walked them, room by room, and marked on Valheim's large map; a click on a mark shows the dungeon in Scry, its rooms on a plan you can go into. Each world can show more as known, source by source: the ground you explored, maps shared at a cartography table, places a Vegvisir or a rune stone marked, the places every map shows. Places tell where they lie in your ground and what they hold.
+Dungeons you walk are kept as you walked them, room by room, and marked on Valheim's large map; a click on a mark shows the dungeon in Scry, its rooms on a plan you can go into. A page's *Show on map* marks where your character saw its kind, in a colour and shape of its own, and *Keep on the map* keeps it there every time the map opens. Each world can show more as known, source by source: the ground you explored, maps shared at a cartography table, places a Vegvisir or a rune stone marked, the places every map shows. Places tell where they lie in your ground and what they hold.
 
 ![A dungeon's example on the stage, the plan box seen from above and the card of the room gone into](https://raw.githubusercontent.com/isimp/Scry/main/docs/images/dungeon-plan.webp)
 
@@ -28,7 +28,7 @@ Where your friends have Scry, what their game runs near you, a kill, a drop or a
 
 ## Looking things up
 
-Anything can also be looked at on the stage inside the panel: creatures at every star level, in any animation, with their gear and their attacks' sounds and effects; trees felled, pieces worn or broken, projectiles fired; locations and example dungeons as a new zone would lay them out, cut open level by level. Every figure tells the game's rules behind it, what your skills make of it, which mods add or change it, and almost everything named can be clicked to go to it. The search takes terms such as `kind:creature`, `biome:swamp` and `station:forge`, and the ? beside it explains them all. With the compendium off, Scry is a lookup of everything the game and its mods hold.
+Anything can also be looked at on the stage inside the panel: creatures at every star level, in any animation, with their gear and their attacks' sounds and effects; trees felled, pieces worn or broken, projectiles fired; locations and example dungeons as a new zone would lay them out, cut open level by level. Every figure tells the game's rules behind it, what your skills make of it, which mods add or change it, and almost everything named can be clicked to go to it. The search takes terms such as `kind:creature`, `biome:swamp` and `station:forge`, and the *?* beside it explains them all. With the compendium off, Scry is a lookup of everything the game and its mods hold.
 
 ## Installing
 

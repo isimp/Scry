@@ -20,7 +20,7 @@ Every player plays the same version of Scry: the hello carries the messages' ver
 ## What the server keeps
 
 - `BepInEx/cache/isimp.Scry/maps-<world>.dat`: the world's dungeon records, every room any player stood in, the first and last day walked, the rooms traces uncovered, the day an admin last forgot them. Written at most every half minute, flushed to disk with the file before kept as `.bak`; a file that cannot be read, nor the copy before it, is set aside as `.unreadable-` and the date and new records start (`KeptFile`).
-- `BepInEx/config/isimp.Scry.cfg`, section *4 - World*: the rules, whether peeking and *Known up to* are allowed, and how far each source of the world may show. ServerSync sends them to every player connected; set there, they win, each player's own choices kept beneath.
+- `BepInEx/config/isimp.Scry.cfg`, section *4 - World*: the rules, whether peeking and *Known up to* are allowed, how far each source of the world may show, how near a player must be to see things up close (`SeenReach`), how far a player's sight remembers spots for Show on map (`SeenOnMapReach`) and whether the server tells places in explored ground as squares or dots (`PlacesOnMap`). ServerSync sends them to every player connected; set there, they win, each player's own choices kept beneath.
 - The same file, section *5 - Server*, the server's own and never sent: `ReadTracesOnStart` (read the traces at each start, `GroupMapsLink.KeepRecords`) and `TakeWalks` (keep players' walks; off, `GroupMapsLink.MergeIn` takes none and a list of walks is answered wanting none).
 
 A world moved from a hosting game to a dedicated server leaves the host's records behind; copy `maps-<world>.dat` across with the world to keep them.

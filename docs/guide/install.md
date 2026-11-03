@@ -4,7 +4,7 @@
 
 Install Scry from a mod manager, or put `Scry.dll` in `BepInEx/plugins`. Press F7 or type `/scry` in the chat to open it; the other commands are in [commands](commands.md). Scry spawns nothing, saves nothing into the world and shows nothing to other players, so it works on any server whether the server has it or not.
 
-![The question asked once of a character whose compendium is off](../images/keep-a-compendium.webp)
+![The first start's setup: the key, the compendium's rules, walking and looking while open, and remembering what you see](../images/first-start-setup.webp)
 
 ![The settings card, opened by the gear in the title row](../images/settings-card.webp)
 
@@ -14,7 +14,7 @@ The gear beside *Compendium* holds the panel's settings: its size, the key openi
 
 ## Playing with friends
 
-Every player should run the same version of Scry. Where a friend's game has Scry, what happens around you in their game (a kill, a drop, a pick) counts for you as it would alone. What runs in a game without Scry reaches you only as your own game sees it, a creature's death by its remains and your own pick; the rest goes unlearned. *Who has Scry* in the compendium's box lists everyone you play with and whether their game has it.
+Every player should run the same version of Scry. Where a friend's game has Scry, what happens around you in their game (a kill, a drop, a pick) counts for you as it would alone. What runs in a game without Scry reaches you only as your own game sees it, a creature's death by its remains and your own pick; the rest goes unlearned. *Playing with* in the compendium's box lists everyone you play with and whether their game has it; the notice's *Who has Scry* opens it.
 
 ## On a dedicated server
 

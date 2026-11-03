@@ -12,7 +12,7 @@ Every command is typed in the chat as shown, or in the game's console (F5) witho
 
 `/scry forget` forgets what Scry kept of the locations and their floors, and reads them afresh, as *Read locations again* does.
 
-`/scry map` reads the map of ground you explored again for the compendium, as *Read the map again* in the compendium's box does.
+`/scry map` reads the map of ground you explored again for the compendium, as *Read the map again* above the Locations list does.
 
 `/scry forget maps` forgets your character's own maps of the dungeons of this world: the rooms you walked, and the marks on the large map.
 

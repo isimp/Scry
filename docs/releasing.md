@@ -2,6 +2,10 @@
 
 Pushing builds the mod. Releasing is a manual workflow that creates a GitHub release and then publishes to [Hexium](https://valheim.hexium.gg/), [Thunderstore](https://thunderstore.io/c/valheim/) or both.
 
+Code: `.github/workflows/release.yml`, `.github/workflows/build.yml`, `tools/publish.py`, `tools/strip-references.ps1`, `packaging/manifest.json`.
+
+See also: [game updates](operations/game-updates.md), [building](operations/building.md); all notes in [the index](index.md).
+
 ## One-time setup
 
 The icon lives at `packaging/icon.png`: a 256x256 PNG, committed to the repository. The release workflow stops if it is missing or the wrong size.

@@ -6,4 +6,4 @@ See also: [releasing](../releasing.md), [game updates](game-updates.md); all not
 
 ## Building
 
-The project builds with the .NET SDK against the game's assemblies. Set `VALHEIM_DIR` to the game folder if it is not a standard Steam install, then run `dotnet build`, which also copies the DLL into the local Gale profile (`-p:DeployDir=<folder>` puts it elsewhere); `dotnet build selftest` builds and copies the self-test beside it, building Scry first. Both build against the same references (`GameReferences.props`). `dotnet test tests/Scry.Tests` runs the tests for everything in `src/Model`.
+The project builds with the .NET SDK against the game's assemblies. Set `VALHEIM_DIR` to the game folder if it is not a standard Steam install, then run `dotnet build`, which also copies the DLL into the local Gale profile (`-p:DeployDir=<folder>` puts it elsewhere); `dotnet build selftest` builds and copies the self-test beside it, building Scry first. Both build against the same references (`GameReferences.props`). `dotnet test tests/Scry.Tests` runs the model's tests, the self-test model's, and the standards tests over the whole source and the self-test.
