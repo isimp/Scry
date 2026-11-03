@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.3
+## 0.4.0
 
 Pages open faster: a page answers the click at once and fills in over the next frames, and the stage stays smooth while its camera moves over a big dungeon.
 
