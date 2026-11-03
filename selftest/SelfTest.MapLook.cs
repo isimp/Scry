@@ -74,7 +74,7 @@ namespace Scry
             Settings.MapZoomOut = false;
             MapSpots.Hide();
             map.LargeZoom = SpotsZoom;
-            MapSpots.Show(MadeUpSpots, "Self-test spots", Skin.KindColor(Kind.Resource), new List<(int X, int Z)> { ((int)Mathf.Round(here.x), (int)Mathf.Round(here.z) + 3000) });
+            MapSpots.Show(MadeUpSpots, "Self-test spots", 0, new List<(int X, int Z)> { ((int)Mathf.Round(here.x), (int)Mathf.Round(here.z) + 3000) });
             yield return null;
             yield return null;
             p.Check(Mathf.Abs(map.LargeZoom - SpotsZoom) < 0.0001f, "with zooming out off, a spot 3 km off leaves the map at your own zoom", $"zoom {Numbers.Fixed(map.LargeZoom, 3)}");
@@ -102,7 +102,7 @@ namespace Scry
         {
             MapSpots.Hide();
             yield return null;
-            MapSpots.Show(MadeUpSpots, "Self-test spots", Skin.KindColor(Kind.Resource), spots);
+            MapSpots.Show(MadeUpSpots, "Self-test spots", 0, spots);
             yield return Until(() => MapSpots.DotsShown > 0, 10);
             yield return null;
         }

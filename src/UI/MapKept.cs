@@ -23,6 +23,9 @@ namespace Scry
         private static List<(int X, int Z, Sprite Picture, string Name, string Kind)> _dots = new List<(int, int, Sprite, string, string)>();
         private static Dictionary<string, Dictionary<(int X, int Z), int>> _squaresByKind = new Dictionary<string, Dictionary<(int X, int Z), int>>(System.StringComparer.Ordinal);
         private static readonly Dictionary<string, string> NamesByKind = new Dictionary<string, string>(System.StringComparer.Ordinal);
+
+        /// <summary>The mark each kind kept stands in, its kept line's.</summary>
+        private static readonly Dictionary<string, int> MarkByKind = new Dictionary<string, int>(System.StringComparer.Ordinal);
         private static readonly Dictionary<string, (int Seen, int Squares)> Counted = new Dictionary<string, (int, int)>(System.StringComparer.Ordinal);
 
         /// <summary>What was kept and in which world as last worked out, worked out again at once as it changes; what was seen and told, and where the player stands where too many are kept, worked out again as it changes, at most every few seconds.</summary>
@@ -48,14 +51,21 @@ namespace Scry
         /// <summary>Whether anything kept stands on the map.</summary>
         public static bool Any => _dots.Count > 0 || _squaresByKind.Count > 0;
 
-        /// <summary>The kept kinds' squares added up where kinds share one, those of the kinds in <paramref name="except"/> left out, as they stand shown on demand.</summary>
-        public static Dictionary<(int X, int Z), int> Squares(ICollection<string> except)
+        /// <summary>The kept kinds' squares, each with how many of each mark's kinds it holds, those of the kinds in <paramref name="except"/> left out, as they stand shown on demand.</summary>
+        public static Dictionary<(int X, int Z), List<(int Mark, int Left)>> Squares(ICollection<string> except)
         {
-            var merged = new Dictionary<(int X, int Z), int>();
+            var merged = new Dictionary<(int X, int Z), List<(int Mark, int Left)>>();
             foreach (var pair in _squaresByKind)
             {
                 if (except.Contains(pair.Key)) continue;
-                foreach (var square in pair.Value) merged[square.Key] = (merged.TryGetValue(square.Key, out var held) ? held : 0) + square.Value;
+                var mark = MarkByKind.TryGetValue(pair.Key, out var of) ? of : 0;
+                foreach (var square in pair.Value)
+                {
+                    if (!merged.TryGetValue(square.Key, out var held)) merged[square.Key] = held = new List<(int Mark, int Left)>();
+                    var at = held.FindIndex(h => h.Mark == mark);
+                    if (at >= 0) held[at] = (mark, held[at].Left + square.Value);
+                    else held.Add((mark, square.Value));
+                }
             }
             return merged;
         }
@@ -134,11 +144,12 @@ namespace Scry
             _dots = new List<(int, int, Sprite, string, string)>();
             _squaresByKind = new Dictionary<string, Dictionary<(int X, int Z), int>>(System.StringComparer.Ordinal);
             NamesByKind.Clear();
+            MarkByKind.Clear();
             Counted.Clear();
             AllDots = 0;
             if (book == null || world == null || AsideForTest) return;
             var counted = new HashSet<string>(System.StringComparer.Ordinal);
-            foreach (var kept in book.Kept) Count(kept, kept == CompendiumBook.Dungeons ? DungeonKinds.All.Select(k => EntryKeys.For(Kind.Location, k)).ToArray() : KindsIn(kept), world, remembered, counted);
+            foreach (var kept in book.Kept) Count(kept, kept == CompendiumBook.Dungeons ? DungeonKinds.All.Select(k => EntryKeys.For(Kind.Location, k)).ToArray() : KindsIn(kept), book.MarkOf(kept) ?? 0, world, remembered, counted);
             AllDots = _dots.Count;
             var player = Player.m_localPlayer;
             if (_dots.Count > SeenOnMap.MostKept && player != null)
@@ -153,7 +164,7 @@ namespace Scry
         /// squares less those seen; how many of each stand, a dungeon's by its marks. Where nothing
         /// seen is remembered, none of them but the dungeons walked.
         /// </summary>
-        private static void Count(string kept, string[] kinds, string world, bool remembered, HashSet<string> counted)
+        private static void Count(string kept, string[] kinds, int mark, string world, bool remembered, HashSet<string> counted)
         {
             var seen = 0;
             var square = 0;
@@ -167,9 +178,10 @@ namespace Scry
                 if (!counted.Add(kind)) continue;
                 var name = NameOf(kind);
                 NamesByKind[kind] = name;
+                MarkByKind[kind] = mark;
                 if (!IsDungeon(kind))
                 {
-                    var picture = MapSpots.Picture(Skin.MapDot(PlaceOf(kind) != null ? Kind.Location : WorldCatalog.Find(kind)?.Kind ?? Kind.Resource));
+                    var picture = MapSpots.Picture(Skin.MarkColour(mark), KeptMarks.ShapeOf(mark));
                     foreach (var (x, z) in spots) _dots.Add((x, z, picture, name, kind));
                 }
                 if (!(PlaceOf(kind) is string place) || !Settings.MapSquares) continue;
@@ -210,6 +222,7 @@ namespace Scry
             _dots = new List<(int, int, Sprite, string, string)>();
             _squaresByKind = new Dictionary<string, Dictionary<(int X, int Z), int>>(System.StringComparer.Ordinal);
             NamesByKind.Clear();
+            MarkByKind.Clear();
             Counted.Clear();
             _keptFor = default;
             _seenFor = default;

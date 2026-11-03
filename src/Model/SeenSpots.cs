@@ -379,6 +379,26 @@ namespace Scry
             return share <= 1f ? DotPart.Halo : DotPart.Clear;
         }
 
+        /// <summary>
+        /// How far a point of a dot lies from its middle as a share of the way to its edge, by its
+        /// mark's shape (<see cref="KeptMarks"/>), x and y from -1 to 1 across the dot, y up: the
+        /// circle by its radius, the diamond, the square and the point-up triangle each reaching
+        /// the whole at its own edge, sized to stand about as big as the circle.
+        /// </summary>
+        public static float ShapeShare(MarkShape shape, float x, float y)
+        {
+            switch (shape)
+            {
+                case MarkShape.Diamond: return (System.Math.Abs(x) + System.Math.Abs(y)) * 0.8f;
+                case MarkShape.Square: return System.Math.Max(System.Math.Abs(x), System.Math.Abs(y)) * 1.12f;
+                case MarkShape.Triangle:
+                    // Its three sides, the bottom and the two rising to the point at the top.
+                    var lean = 1.7320508f * System.Math.Abs(x);
+                    return System.Math.Max(-2f * y, y + lean) * 0.88f;
+                default: return (float)System.Math.Sqrt(x * x + y * y);
+            }
+        }
+
         /// <summary>How bright the player's other pins stand while a kind is shown, of what they were.</summary>
         public const float OthersDimmed = 1f / 3f;
 

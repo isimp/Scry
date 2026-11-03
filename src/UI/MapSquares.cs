@@ -14,6 +14,8 @@ namespace Scry
     /// never seen and the edge stops where the fog starts. The hatch repeats at a fixed size on
     /// the screen however near the map is zoomed. The squares stand on the pins'
     /// layer under the dots and every pin, clipped to the map's window (<see cref="RectMask2D"/>);
+    /// a square of one kind hatched and edged in its mark's colour (<see cref="KeptMarks"/>), one of
+    /// several kinds in the writing colour, the tab showing each kind's mark;
     /// one holding more than one place carries their count on a dark tab inside its top right
     /// corner, in the game's pin-name writing, part of the square so it moves with it and is cut
     /// to explored ground with it, and left off a square drawn too small to hold it. Made a few a frame, as
@@ -36,6 +38,8 @@ namespace Scry
             public GameObject Count;
             public (int X, int Z) MaskedFor = (int.MinValue, int.MinValue);
             public int Said;
+            public Color Tint;
+            public readonly List<RawImage> Swatches = new List<RawImage>();
         }
 
         /// <summary>
@@ -46,9 +50,12 @@ namespace Scry
         private const float HatchEvery = 7f, EdgeWidth = 2f, HaloWidth = 5f, EdgeShare = 0.1f, HaloShare = 0.22f;
 
         /// <summary>A count's tab in the screen's points: how tall, how wide each digit and the room either side, and its writing's size.</summary>
-        private const float TabHeight = 16f, TabDigit = 7f, TabPad = 4f, TabWriting = 13f;
+        private const float TabHeight = 16f, TabDigit = 7f, TabPad = 4f, TabWriting = 13f, TabSwatch = 11f;
 
-        private static IReadOnlyList<(int X, int Z, int Left)> _shown = new List<(int, int, int)>();
+        /// <summary>How many kinds' marks a square's tab shows at most; the pointer's words name every kind.</summary>
+        private const int MostSwatches = 4;
+
+        private static IReadOnlyList<(int X, int Z, IReadOnlyList<(int Mark, int Left)> Kinds)> _shown = new List<(int, int, IReadOnlyList<(int Mark, int Left)>)>();
         private static RectTransform _layer, _holder;
         private static readonly List<Square> Made = new List<Square>();
 
@@ -56,7 +63,7 @@ namespace Scry
         private static readonly Dictionary<(int X, int Z), Square> Assigned = new Dictionary<(int X, int Z), Square>();
         private static readonly Stack<Square> Free = new Stack<Square>();
         private static int _standing;
-        private static (Rect Window, Vector2 Area, IReadOnlyList<(int X, int Z, int Left)> Shown) _placedFor;
+        private static (Rect Window, Vector2 Area, IReadOnlyList<(int X, int Z, IReadOnlyList<(int Mark, int Left)> Kinds)> Shown) _placedFor;
         private static bool _allMade;
         private static Texture2D _hatch;
         private static readonly FrameShare Share = new FrameShare(2.0);
@@ -136,10 +143,10 @@ namespace Scry
         public static int Version { get; private set; }
 
         /// <summary>The squares to shade for the kind shown, in place of those before; none takes them all away.</summary>
-        public static void Show(IReadOnlyList<(int X, int Z, int Left)> squares)
+        public static void Show(IReadOnlyList<(int X, int Z, IReadOnlyList<(int Mark, int Left)> Kinds)> squares)
         {
             Version++;
-            _shown = squares ?? new List<(int, int, int)>();
+            _shown = squares ?? new List<(int, int, IReadOnlyList<(int Mark, int Left)>)>();
             _placedFor = default;
             // Each made square free for the squares now shown, its mask made again, as explored ground may have grown since.
             foreach (var square in Assigned.Values)
@@ -180,7 +187,7 @@ namespace Scry
             var standing = 0;
             var allMade = true;
             var (own, shared) = CompendiumMap.ExploredBits(map);
-            foreach (var (x, z, left) in _shown)
+            foreach (var (x, z, kinds) in _shown)
             {
                 Assigned.TryGetValue((x, z), out var square);
                 if (!PlaceSquares.OnMap(x, z, map.m_pixelSize, map.m_textureSize, (window.xMin, window.yMin, window.width, window.height), (area.width, area.height), out var at))
@@ -203,7 +210,7 @@ namespace Scry
                     Share.Took(Since(started) - pieceFrom);
                     made++;
                 }
-                Stand(square, at, left, map);
+                Stand(square, at, kinds, map);
                 standing++;
             }
             _standing = standing;
@@ -213,8 +220,17 @@ namespace Scry
         }
 
         /// <summary>A square stood where the map shows it: its hatch, edges and halos at their size on the screen, its count's tab inside its upper right corner where it holds more than one and is drawn big enough.</summary>
-        private static void Stand(Square square, (float X, float Y, float W, float H) at, int left, Minimap map)
+        private static void Stand(Square square, (float X, float Y, float W, float H) at, IReadOnlyList<(int Mark, int Left)> kinds, Minimap map)
         {
+            var left = KeptMarks.SquareCount(kinds);
+            // One kind's square in its mark's colour, several kinds' in the writing colour.
+            var tint = KeptMarks.SquareMark(kinds) is int mark ? Skin.MarkColour(mark) : Skin.Text;
+            if (square.Tint != tint)
+            {
+                square.Tint = tint;
+                square.Hatch.color = tint;
+                foreach (var line in square.Edges) line.color = tint;
+            }
             var size = new Vector2(at.W, at.H);
             square.Rect.anchoredPosition = new Vector2(at.X, at.Y);
             if (square.Rect.sizeDelta != size) square.Rect.sizeDelta = size;
@@ -230,22 +246,57 @@ namespace Scry
             }
             if (!square.Rect.gameObject.activeSelf) square.Rect.gameObject.SetActive(true);
             var digits = left < 10 ? 1 : left < 100 ? 2 : left < 1000 ? 3 : 4;
-            var tab = new Vector2(TabPad * 2f + TabDigit * digits, TabHeight);
+            // Several kinds in one square: each one's mark on the tab before the count, up to a few.
+            var marks = kinds.Count > 1 ? Mathf.Min(kinds.Count, MostSwatches) : 0;
+            var swatches = marks * (TabSwatch + 1f);
+            var tab = new Vector2(TabPad * 2f + swatches + TabDigit * digits, TabHeight);
             // Inside the corner, under the edge, only where the square has room for it twice over; its tab made the first time it is wanted.
             var shows = left > 1 && at.W >= tab.x * 2f && at.H >= tab.y * 2f;
             if (shows && square.Tab == null) MakeTab(square, map);
             if (square.Tab == null) return;
             if (shows)
             {
-                if (square.Said != left)
+                var said = Said(kinds, left);
+                if (square.Said != said)
                 {
                     PinNames.SetText(square.Count, Numbers.Count(left));
+                    if (square.Count != null && square.Count.transform is RectTransform words) words.offsetMin = new Vector2(TabPad + swatches, 0f);
+                    Swatches(square, kinds, marks);
                     square.Tab.sizeDelta = tab;
-                    square.Said = left;
+                    square.Said = said;
                 }
                 square.Tab.anchoredPosition = new Vector2(-edge, -edge);
             }
             if (square.Tab.gameObject.activeSelf != shows) square.Tab.gameObject.SetActive(shows);
+        }
+
+        /// <summary>What a square's tab says, as one number: its count and the marks on it, for the tab to be written again only as either changes.</summary>
+        private static int Said(IReadOnlyList<(int Mark, int Left)> kinds, int left)
+        {
+            var said = left;
+            foreach (var (mark, _) in kinds) said = said * 37 + mark + 2;
+            return said;
+        }
+
+        /// <summary>Each kind's mark on a square's tab, left of its count, as many as are asked; the rest put away.</summary>
+        private static void Swatches(Square square, IReadOnlyList<(int Mark, int Left)> kinds, int marks)
+        {
+            for (var i = 0; i < marks; i++)
+            {
+                if (i == square.Swatches.Count)
+                {
+                    var made = Picture("Scry place square mark", square.Tab, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), null);
+                    made.rectTransform.pivot = new Vector2(0f, 0.5f);
+                    made.rectTransform.sizeDelta = new Vector2(TabSwatch, TabSwatch);
+                    square.Swatches.Add(made);
+                }
+                var swatch = square.Swatches[i];
+                var mark = kinds[i].Mark;
+                swatch.texture = MapSpots.Picture(Skin.MarkColour(mark), KeptMarks.ShapeOf(mark)).texture;
+                swatch.rectTransform.anchoredPosition = new Vector2(TabPad + i * (TabSwatch + 1f), 0f);
+                if (!swatch.gameObject.activeSelf) swatch.gameObject.SetActive(true);
+            }
+            for (var i = marks; i < square.Swatches.Count; i++) if (square.Swatches[i].gameObject.activeSelf) square.Swatches[i].gameObject.SetActive(false);
         }
 
         private static void Away(Square square)
@@ -265,7 +316,7 @@ namespace Scry
         public static void Forget()
         {
             ForgetMade();
-            _shown = new List<(int, int, int)>();
+            _shown = new List<(int, int, IReadOnlyList<(int Mark, int Left)>)>();
         }
 
         /// <summary>Lets go of the squares made and what holds them, their masks with them.</summary>

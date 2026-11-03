@@ -75,7 +75,7 @@ namespace Scry
                 var buttonsW = hideW + (allW > 0f ? gap + allW : 0f) + (keepW > 0f ? gap + keepW : 0f);
                 var wordsW = Skin.Width(Skin.Small, line);
                 var most = Mathf.Max(U(14f) + buttonsW + U(10f), map.Value.width * StripShare);
-                var width = Mathf.Min(map.Value.width - U(24f), most, U(14f) + Mathf.Max(wordsW, buttonsW) + U(12f));
+                var width = Mathf.Min(map.Value.width - U(24f), most, U(14f) + Mathf.Max(wordsW + U(18f), buttonsW) + U(12f));
                 var rowH = U(28f);
                 var rect = new Rect(map.Value.x + U(12f), map.Value.y + U(12f), width, rowH * 2f + U(2f));
                 // The notices' look over both rows: the panel under a tint of the accent, its bar at the left.
@@ -83,6 +83,12 @@ namespace Scry
                 Skin.Fill(rect, Skin.Alpha(Skin.Accent, 0.13f));
                 Skin.Fill(new Rect(rect.x, rect.y, U(3f), rect.height), Skin.Accent);
                 var left = rect.x + U(14f);
+                // The kind's mark before its name, as it stands on the map.
+                if (MapSpots.ShownPicture is Sprite mark)
+                {
+                    GUI.DrawTexture(new Rect(left - U(2f), rect.y + U(2f) + (rowH - U(16f)) / 2f, U(16f), U(16f)), mark.texture);
+                    left += U(18f);
+                }
                 Ticker(new Rect(left, rect.y + U(2f), rect.xMax - left - U(10f), rowH), line, Skin.Small);
                 var y = rect.y + rowH + (rowH - U(22f)) / 2f - U(2f);
                 if (GUI.Button(new Rect(left, y, hideW, U(22f)), SpotWords.Hide, Skin.Chip)) MapSpots.Hide();

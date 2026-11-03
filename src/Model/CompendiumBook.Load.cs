@@ -98,7 +98,9 @@ namespace Scry
             },
             ["kept"] = (book, parts, name) =>
             {
-                if (parts.Length == 2 && name != Dungeons) book._kept.Add(name);
+                // Its mark beside it; an older book's kept none, and one is given once the book is read.
+                if (name == Dungeons || parts.Length < 2 || parts.Length > 3) return;
+                book._kept[name] = parts.Length == 3 && Stored.TryCount(parts[2], out var mark) && mark >= 0 ? mark : -1;
             },
             ["unkept"] = (book, parts, name) =>
             {

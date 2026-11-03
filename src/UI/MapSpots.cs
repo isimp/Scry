@@ -52,8 +52,8 @@ namespace Scry
         private static Entry _kindFor;
         private static string _kindOf;
 
-        /// <summary>The dots' pictures, one drawn for each colour a kind is shown in.</summary>
-        private static readonly Dictionary<Color32, Sprite> Pictures = new Dictionary<Color32, Sprite>();
+        /// <summary>The dots' pictures, one drawn for each colour and shape a kind is shown in.</summary>
+        private static readonly Dictionary<(Color32, MarkShape), Sprite> Pictures = new Dictionary<(Color32, MarkShape), Sprite>();
 
         /// <summary>A couple of milliseconds a frame for making dots.</summary>
         private static readonly FrameShare Share = new FrameShare(2.0);
@@ -214,7 +214,15 @@ namespace Scry
             var spots = SpotsOf(kind);
             var squares = Settings.MapSquares ? SquaresOf(entry, spots) : NoSquares;
             var note = entry.Kind == Kind.Location && squares.Count == 0 && Settings.MapSquares ? SquaresNote() : null;
-            Show(kind, named.ShownName, Skin.MapDot(entry.Kind), spots, squares, note);
+            Show(kind, named.ShownName, DemandMark(kind), spots, squares, note);
+        }
+
+        /// <summary>The mark a kind shown on demand stands in: the one of the line that keeps it, else the lowest no kept kind stands in.</summary>
+        private static int DemandMark(string key)
+        {
+            var book = CompendiumKeeper.Book;
+            if (book == null) return 0;
+            return MapKept.KeptBy(book, key) is string line && book.MarkOf(line) is int kept ? kept : book.FreeMark();
         }
 
         /// <summary>Every kind of the place shown at once: their spots together, their squares added up, less those seen.</summary>
@@ -228,7 +236,8 @@ namespace Scry
                 ? PlaceSquares.Shown(PlaceSquares.Merged(_shownKinds.Select(member => CompendiumMap.Counts.Squares(member.Name, SquaresGround))), marked)
                 : NoSquares;
             var note = squares.Count == 0 && Settings.MapSquares ? SquaresNote() : null;
-            Show(MapShowing.AllKindsKey(_shownKinds.Select(member => member.Key)), SpotWords.AllKindsName(_shownFamily, _shownKinds.Count), Skin.MapDot(Kind.Location), spots, squares, note);
+            var key = MapShowing.AllKindsKey(_shownKinds.Select(member => member.Key));
+            Show(key, SpotWords.AllKindsName(_shownFamily, _shownKinds.Count), DemandMark(key), spots, squares, note);
         }
 
         /// <summary>The key the kind shown on demand is kept by; none while none is shown.</summary>
@@ -266,15 +275,16 @@ namespace Scry
         /// <summary>
         /// A kind's spots shown on the map, and a place's squares with them, as the button shows
         /// them, and the map opened as its key opens it; the self-test gives spots and squares of its
-        /// own. A note says why a place shows no squares.
+        /// own. A note says why a place shows no squares. Its dots and squares stand in its mark (<see cref="KeptMarks"/>).
         /// </summary>
-        public static void Show(string kind, string name, Color colour, IReadOnlyList<(int X, int Z)> spots, IReadOnlyList<(int X, int Z, int Left)> squares = null, string note = null)
+        public static void Show(string kind, string name, int mark, IReadOnlyList<(int X, int Z)> spots, IReadOnlyList<(int X, int Z, int Left)> squares = null, string note = null)
         {
             Showing.Show(CompendiumMap.World, kind, name, spots);
             squares = squares ?? NoSquares;
             _demandSquares = squares;
-            _colour = colour;
-            _sprite = Picture(colour);
+            _mark = mark;
+            _colour = Skin.MarkColour(mark);
+            _sprite = Picture(_colour, KeptMarks.ShapeOf(mark));
             var player = Player.m_localPlayer;
             var nearest = player != null ? SeenOnMap.Nearest(spots, player.transform.position.x, player.transform.position.z) : null;
             var more = PlaceSquares.More(squares);
@@ -329,6 +339,14 @@ namespace Scry
             if (Mathf.Approximately(map.LargeZoom, _zoomFitted)) map.LargeZoom = _zoomBefore.Value;
             _zoomBefore = null;
         }
+
+        /// <summary>The mark the kind shown on demand stands in, and its dots' picture, as the strip shows it beside the kind's name.</summary>
+        private static int _mark;
+        public static Sprite ShownPicture => Showing.Showing ? _sprite : null;
+
+        /// <summary>The mark the kind shown on demand stands in, for the self-test.</summary>
+        [Diagnostic]
+        public static int MarkShownForTest => _mark;
 
         /// <summary>The colour the dots stand in now, for the self-test.</summary>
         [Diagnostic]
@@ -436,8 +454,12 @@ namespace Scry
             _mergedFor = now;
             // The kept squares of a kind shown on demand are its own already.
             var merged = MapKept.Squares(KindsShownNow());
-            foreach (var (x, z, left) in demand) merged[(x, z)] = (merged.TryGetValue((x, z), out var held) ? held : 0) + left;
-            MapSquares.Show(merged.Select(s => (s.Key.X, s.Key.Z, s.Value)).ToList());
+            foreach (var (x, z, left) in demand)
+            {
+                if (!merged.TryGetValue((x, z), out var held)) merged[(x, z)] = held = new List<(int Mark, int Left)>();
+                held.Add((_mark, left));
+            }
+            MapSquares.Show(merged.Select(s => (s.Key.X, s.Key.Z, (IReadOnlyList<(int Mark, int Left)>)s.Value)).ToList());
         }
 
         private static readonly IReadOnlyList<(int X, int Z)> None = System.Array.Empty<(int, int)>();
@@ -636,12 +658,13 @@ namespace Scry
         /// The dots' picture in a colour, drawn once for it: the colour inside a dark edge, the map
         /// showing between it and a light ring, a dark halo either side of the ring
         /// (<see cref="SeenOnMap.DotAt"/>); the edge and halo in the dark the dungeon marks are
-        /// outlined in, the ring in Scry's writing colour. Each pixel is the mean of four by four
-        /// points in it, so the circles stay round when the dot is drawn small.
+        /// outlined in, the ring in Scry's writing colour; in a circle, or the shape of a kind's mark
+        /// (<see cref="SeenOnMap.ShapeShare"/>). Each pixel is the mean of four by four points in
+        /// it, so the edges stay smooth when the dot is drawn small.
         /// </summary>
-        public static Sprite Picture(Color colour)
+        public static Sprite Picture(Color colour, MarkShape shape = MarkShape.Circle)
         {
-            var key = (Color32)colour;
+            var key = ((Color32)colour, shape);
             if (Pictures.TryGetValue(key, out var made) && made != null) return made;
             const int side = 64, points = 4;
             var pixels = new Color32[side * side];
@@ -655,9 +678,9 @@ namespace Scry
                     {
                         for (var px = 0; px < points; px++)
                         {
-                            var dx = x + (px + 0.5f) / points - side / 2f;
-                            var dy = y + (py + 0.5f) / points - side / 2f;
-                            var shade = Shade(SeenOnMap.DotAt(Mathf.Sqrt(dx * dx + dy * dy) / (side / 2f)), colour);
+                            var dx = (x + (px + 0.5f) / points - side / 2f) / (side / 2f);
+                            var dy = (y + (py + 0.5f) / points - side / 2f) / (side / 2f);
+                            var shade = Shade(SeenOnMap.DotAt(SeenOnMap.ShapeShare(shape, dx, dy)), colour);
                             sum += shade * shade.a;
                             a += shade.a;
                         }

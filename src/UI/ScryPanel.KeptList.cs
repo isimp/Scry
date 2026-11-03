@@ -193,8 +193,10 @@ namespace Scry
                 if (line.Contains(mouse) && !onCross) Skin.Box(line, Skin.Hover);
                 var dungeons = kept == CompendiumBook.Dungeons;
                 var mark = new Rect(r.x + U(12f), y + (KeptRowH - U(12f)) / 2f, U(12f), U(12f));
-                var colour = dungeons || MapKept.IsDungeon(MapKept.KindsIn(kept)[0]) ? Skin.Accent : Skin.MapDot(MapKept.PlaceOf(MapKept.KindsIn(kept)[0]) != null ? Kind.Location : WorldCatalog.Find(kept)?.Kind ?? Kind.Resource);
-                Skin.Icon(mark, Skin.Circle, colour);
+                // Its mark as it stands on the map, as a legend; every kind of dungeon by the accent of its discs.
+                var shown = CompendiumKeeper.Book?.MarkOf(kept) ?? KeptMarks.Dungeons;
+                if (shown == KeptMarks.Dungeons) Skin.Icon(mark, Skin.Circle, Skin.Accent);
+                else GUI.DrawTexture(new Rect(mark.x - U(2f), mark.y - U(2f), mark.width + U(4f), mark.height + U(4f)), MapSpots.Picture(Skin.MarkColour(shown), KeptMarks.ShapeOf(shown)).texture);
                 var (seen, squares) = MapKept.CountOf(kept);
                 var count = dungeons ? SpotWords.DungeonsCount(seen, squares) : SpotWords.KeptCount(seen, squares);
                 var countW = Skin.Width(Skin.DimRight, count) + U(4f);

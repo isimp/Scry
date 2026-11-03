@@ -720,7 +720,7 @@ namespace Scry
             public readonly SaveCopy<(string World, WorldSource Source, string Kind)> FoundIn = new SaveCopy<(string, WorldSource, string)>();
             public readonly SaveCopy<KeyValuePair<WorldSource, SourceLevel>> Shows = new SaveCopy<KeyValuePair<WorldSource, SourceLevel>>();
             public readonly SaveCopy<string> KeptLines = new SaveCopy<string>();
-            public readonly SaveCopy<string> KeptOnMap = new SaveCopy<string>();
+            public readonly SaveCopy<KeyValuePair<string, int>> KeptOnMap = new SaveCopy<KeyValuePair<string, int>>();
             public readonly SaveCopy<(string, string)> Proofs = new SaveCopy<(string, string)>();
             public readonly SaveCopy<(string Key, string Token)> Sightings = new SaveCopy<(string, string)>();
             public readonly SaveCopy<KeyValuePair<string, (CameBy Way, Moment At)>> Came = new SaveCopy<KeyValuePair<string, (CameBy, Moment)>>();
@@ -805,7 +805,7 @@ namespace Scry
                     text.Append("place\t").Append(Stored.Escaped(world)).Append('\t').Append(source).Append('\t').Append(Stored.Escaped(kind)).Append('\n');
                 }
                 foreach (var pair in shows.OrderBy(p => p.Key)) text.Append("shows\t").Append(pair.Key).Append('\t').Append(pair.Value).Append('\n');
-                foreach (var kind in keptOnMap.OrderBy(k => k, StringComparer.Ordinal)) text.Append("kept\t").Append(Stored.Escaped(kind)).Append('\n');
+                foreach (var pair in keptOnMap.OrderBy(k => k.Key, StringComparer.Ordinal)) text.Append("kept\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(Stored.Count(pair.Value)).Append('\n');
                 if (dungeonsUnkept) text.Append("unkept\t").Append(Dungeons).Append('\n');
                 if (rule != CompendiumRule.Off) text.Append("rule\t").Append(rule).Append('\n');
                 if (floor > 0) text.Append("floor\t").Append(Stored.Count(floor)).Append('\n');
@@ -964,6 +964,7 @@ namespace Scry
             if (!book._mapApart) book.GiveBackMapPlaces();
             if (!book._biomesApart) book.GiveBackMapBiomes();
             book.DropPairNews();
+            book.MarkKept();
             return book;
         }
     }

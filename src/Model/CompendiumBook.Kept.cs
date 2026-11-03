@@ -8,14 +8,16 @@ namespace Scry
     /// The kinds the character keeps on Valheim's map, standing every time it opens as Show on map
     /// shows them: each by the key its spots are kept by, several kinds of one place shown at once
     /// as one (<see cref="MapShowing.AllKindsKey"/>); every kind of dungeon kept from the start,
-    /// as one, until taken off.
+    /// as one, until taken off. Each kept kind stands in a mark of its own (<see cref="KeptMarks"/>),
+    /// the lowest free as it is kept, kept with it while it is.
     /// </summary>
     internal sealed partial class CompendiumBook
     {
         /// <summary>The key every kind of dungeon is kept by, as one.</summary>
         public const string Dungeons = "dungeons";
 
-        private readonly HashSet<string> _kept = new HashSet<string>(StringComparer.Ordinal);
+        /// <summary>The kinds kept, each with its mark.</summary>
+        private readonly Dictionary<string, int> _kept = new Dictionary<string, int>(StringComparer.Ordinal);
 
         /// <summary>Whether every kind of dungeon was taken off the map, kept from the start otherwise.</summary>
         private bool _dungeonsUnkept;
@@ -26,7 +28,13 @@ namespace Scry
         public int KeptVersion { get; private set; }
 
         /// <summary>Whether a kind is kept on the map.</summary>
-        public bool Keeps(string kind) => kind == Dungeons ? !_dungeonsUnkept : kind != null && _kept.Contains(kind);
+        public bool Keeps(string kind) => kind == Dungeons ? !_dungeonsUnkept : kind != null && _kept.ContainsKey(kind);
+
+        /// <summary>The mark a kept kind stands in, the dungeons' for every kind of dungeon; none for one not kept.</summary>
+        public int? MarkOf(string kind) => kind == Dungeons ? KeptMarks.Dungeons : kind != null && _kept.TryGetValue(kind, out var mark) ? mark : (int?)null;
+
+        /// <summary>The lowest mark no kept kind stands in, for one shown and not kept.</summary>
+        public int FreeMark() => KeptMarks.Lowest(_kept.Values);
 
         /// <summary>What is kept, the dungeons first, then the rest by their keys.</summary>
         public IReadOnlyList<string> Kept
@@ -36,7 +44,7 @@ namespace Scry
                 if (_keptList != null) return _keptList;
                 _keptList = new List<string>();
                 if (!_dungeonsUnkept) _keptList.Add(Dungeons);
-                _keptList.AddRange(_kept.OrderBy(kind => kind, StringComparer.Ordinal));
+                _keptList.AddRange(_kept.Keys.OrderBy(kind => kind, StringComparer.Ordinal));
                 return _keptList;
             }
         }
@@ -46,7 +54,7 @@ namespace Scry
         {
             if (string.IsNullOrEmpty(kind) || Keeps(kind) == on) return;
             if (kind == Dungeons) _dungeonsUnkept = !on;
-            else if (on) _kept.Add(kind);
+            else if (on) _kept[kind] = FreeMark();
             else _kept.Remove(kind);
             KeptChanged();
         }
@@ -58,6 +66,26 @@ namespace Scry
             _kept.Clear();
             _dungeonsUnkept = true;
             KeptChanged();
+        }
+
+        /// <summary>
+        /// Once a book is read: a kind kept without a mark, as an older book keeps it, or in a mark
+        /// another kept holds too, given the lowest free, in the order of their keys.
+        /// </summary>
+        private void MarkKept()
+        {
+            var held = new HashSet<int>();
+            var unmarked = new List<string>();
+            foreach (var kind in _kept.Keys.OrderBy(k => k, StringComparer.Ordinal))
+            {
+                if (_kept[kind] < 0 || !held.Add(_kept[kind])) unmarked.Add(kind);
+            }
+            foreach (var kind in unmarked)
+            {
+                var mark = KeptMarks.Lowest(held);
+                _kept[kind] = mark;
+                held.Add(mark);
+            }
         }
 
         private void KeptChanged()

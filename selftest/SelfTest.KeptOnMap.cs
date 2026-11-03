@@ -42,6 +42,10 @@ namespace Scry
             MapSpots.SpotsInsteadForTest(k => k == kind ? spots : new List<(int X, int Z)>());
             ScryPanel.TakeAllOffMap();
             ScryPanel.KeepOnMap(kind, true);
+            var tin = X.Find("MineRock_Tin") != null ? "MineRock_Tin" : null;
+            if (tin != null) ScryPanel.KeepOnMap(tin, true);
+            p.Check(tin == null || book.MarkOf(kind) != book.MarkOf(tin), "two kinds kept stand in marks of their own", $"{Numbers.Count(book.MarkOf(kind) ?? -1)}, {Numbers.Count(book.MarkOf(tin) ?? -1)}");
+            if (tin != null) ScryPanel.KeepOnMap(tin, false);
             p.Check(book.Keeps(kind) && !book.Keeps(CompendiumBook.Dungeons), "a kind kept, the rest taken off, is kept with the character", string.Join(", ", book.Kept));
             p.Note(MapGameMarks.SaidForTest());
 

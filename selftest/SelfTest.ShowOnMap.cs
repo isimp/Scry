@@ -46,7 +46,7 @@ namespace Scry
             var before = MapDim.BrightnessForTest(null);
             var first = Timing.Measuring?.Frames ?? 0;
             Timing.ForgetBytesByPart();
-            MapSpots.Show(MadeUpSpots, "Self-test spots", Skin.KindColor(Kind.Resource), spots);
+            MapSpots.Show(MadeUpSpots, "Self-test spots", 0, spots);
             var opened = Time.unscaledTime;
             yield return Until(() => MapSpots.DotsShown >= many, 20);
             var took = Time.unscaledTime - opened;
@@ -85,7 +85,7 @@ namespace Scry
             // Zoomed out the dots are smaller; shown on a grid 200 metres apart, kilometres across, so they stand clear of the pins round the character.
             var near = MapSpots.DotSizeForTest;
             map.LargeZoom = SeenOnMap.FarthestZoom;
-            MapSpots.Show(MadeUpSpots, "Self-test spots", Skin.KindColor(Kind.Resource), Grid(here, many, 200));
+            MapSpots.Show(MadeUpSpots, "Self-test spots", 0, Grid(here, many, 200));
             // The dots shown before stand until the next placing: wait for those placed at this zoom.
             yield return Until(() => MapSpots.DotSizeForTest < near && MapSpots.DotsShown > many / 2, 10);
             yield return null;
@@ -103,7 +103,7 @@ namespace Scry
                 "and brings your pins, their names and the map back to full", $"pins {Numbers.Fixed(hidden.Pins, 2)}, names {Numbers.Fixed(hidden.Names, 2)}, veil {MapDim.VeilForTest().Shown}");
 
             // Shown again and the map closed: gone, so the next time it opens it shows as usual.
-            MapSpots.Show(MadeUpSpots, "Self-test spots", Skin.KindColor(Kind.Resource), spots);
+            MapSpots.Show(MadeUpSpots, "Self-test spots", 0, spots);
             yield return Until(() => MapSpots.DotsShown > 0, 10);
             map.SetMapMode(Minimap.MapMode.Small);
             yield return null;
@@ -164,7 +164,7 @@ namespace Scry
             map.LargeZoom = SpotsZoom;
             Session.Hide();
             Timing.ForgetBytesByPart();
-            MapSpots.Show(MadeUpSpots, "Self-test places", Skin.MapDot(Kind.Location), spots, squares);
+            MapSpots.Show(MadeUpSpots, "Self-test places", 1, spots, squares);
             yield return Until(() => MapSquares.SquaresShown >= squares.Count, 10);
             yield return new Wait(1);
             p.Check(MapSquares.SquaresShown == squares.Count, $"all {Numbers.Count(squares.Count)} squares in view stand on the map", Numbers.Count(MapSquares.SquaresShown));
@@ -173,9 +173,9 @@ namespace Scry
             p.Check(MapSquares.UnderDotsForTest && MapSpots.DotsUnderPinsForTest, "the squares stand first on the pins' layer, under the dots and every pin, clipped to the map's window");
             p.Check(MapSquares.CountsShown == 1, "the one square holding three carries its count", Numbers.Count(MapSquares.CountsShown));
             var edges = MapSquares.EdgeLookForTest();
-            p.Check(edges.HasValue && Close(edges.Value.Edge, Skin.Text) && edges.Value.Halo.a > 0.5f && Lightness(edges.Value.Halo) < 0.25f
+            p.Check(edges.HasValue && Close(edges.Value.Edge, Skin.MarkColour(1)) && edges.Value.Halo.a > 0.5f && Lightness(edges.Value.Halo) < 0.25f
                     && edges.Value.HaloUnder && edges.Value.HaloThick > edges.Value.EdgeThick && edges.Value.EdgeThick > 0f,
-                "each square has a light edge over a wider dark halo, as the dots' ring",
+                "each square of the one kind has an edge in its mark's colour over a wider dark halo, as the dots' ring",
                 edges.HasValue ? $"edge {Shown(edges.Value.Edge)} {Numbers.Fixed(edges.Value.EdgeThick, 1)} thick, halo {Shown(edges.Value.Halo)} {Numbers.Fixed(edges.Value.HaloThick, 1)} thick, under the edge {edges.Value.HaloUnder}" : "no square");
             var plain = MapDim.BrightnessForTest(null);
             var squaresLit = MapDim.BrightnessForTest(MapSquares.Holder).Dots;
@@ -227,7 +227,7 @@ namespace Scry
                 p.Check(Mathf.Abs(map.LargeZoom - expected) < 0.001f && MapSquares.SquaresShown + MapSpots.DotsShown > 0,
                     "the map opens zoomed out just far enough for its nearest marks, which stand in view",
                     $"zoom {Numbers.Fixed(map.LargeZoom, 3)} from {Numbers.Fixed(fromZoom, 3)}, {Numbers.Fixed(expected, 3)} to hold them; {Numbers.Count(MapSquares.SquaresShown)} squares and {Numbers.Count(MapSpots.DotsShown)} dots in view");
-                p.Check(Close(MapSpots.ColourShownForTest, Skin.MapPlace), "a place's marks stand in the places' sky blue on the map", Shown(MapSpots.ColourShownForTest));
+                p.Check(Close(MapSpots.ColourShownForTest, Skin.MarkColour(MapSpots.MarkShownForTest)), "a place's marks stand in its mark's colour on the map", Shown(MapSpots.ColourShownForTest));
                 yield return Picture(p, "show on map, a place's squares from the server");
             }
             ShowOnMapAsItWas();
@@ -239,7 +239,7 @@ namespace Scry
             map.LargeZoom = SpotsZoom;
             var northX = (int)Mathf.Round(here.x);
             var northZ = (int)Mathf.Round(here.z) + 3000;
-            MapSpots.Show(MadeUpSpots, "Self-test spots", Skin.KindColor(Kind.Resource), new List<(int X, int Z)> { (northX, northZ) });
+            MapSpots.Show(MadeUpSpots, "Self-test spots", 0, new List<(int X, int Z)> { (northX, northZ) });
             yield return Until(() => MapSpots.DotsShown > 0, 10);
             var mapArea = map.m_mapImageLarge.rectTransform.rect;
             var fitted = SeenOnMap.FitZoom(SpotsZoom, new[] { (northX - here.x, northZ - here.z) }, map.m_textureSize * map.m_pixelSize, mapArea.width / mapArea.height);

@@ -11,6 +11,26 @@ namespace Scry
         /// <summary>The colour a kind's dots stand in on Valheim's map: its list colour, a place's sky blue.</summary>
         public static Color MapDot(Kind kind) => kind == Kind.Location ? MapPlace : KindColor(kind);
 
+        /// <summary>
+        /// The colours the kinds on Valheim's map are told apart by (<see cref="KeptMarks"/>),
+        /// each clear of the others and of the map's greens, browns and blues, none the accent's
+        /// amber, which every kind of dungeon keeps.
+        /// </summary>
+        private static readonly Color[] Marks =
+        {
+            new Color32(0xA8, 0xD3, 0x6A, 0xFF), // lime
+            new Color32(0x7C, 0xC4, 0xF0, 0xFF), // sky
+            new Color32(0xE5, 0x8A, 0x9A, 0xFF), // rose
+            new Color32(0xB4, 0x9C, 0xF0, 0xFF), // violet
+            new Color32(0x6F, 0xD3, 0xC0, 0xFF), // teal
+            new Color32(0xE0, 0x7A, 0x45, 0xFF), // rust
+            new Color32(0xF2, 0xEE, 0xE6, 0xFF), // chalk
+            new Color32(0xE0, 0x4E, 0x58, 0xFF), // red
+        };
+
+        /// <summary>The colour of a kind's mark on the map; the accent for every kind of dungeon.</summary>
+        public static Color MarkColour(int mark) => mark < 0 ? Accent : Marks[KeptMarks.ColourOf(mark)];
+
         private static Texture2D _pointedRing;
 
         /// <summary>A thin ring round the mark the pointer rests on, on Valheim's map.</summary>
