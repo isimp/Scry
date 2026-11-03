@@ -62,9 +62,9 @@ namespace Scry
             p.Check(MapSpots.Strip == "Self-test spots · 1,000 you saw · nearest beside you", "the strip names them, how many, and the nearest", MapSpots.Strip);
             p.Check(MapSpots.DotsUnderPinsForTest, "the dots stand first on the pins' layer, under every pin");
             var look = MapSpots.DotLookForTest();
-            p.Check(look.HasValue && Close(look.Value.Middle, Skin.KindColor(Kind.Resource)) && look.Value.Edge.a > 0.9f && Lightness(look.Value.Edge) < 0.25f
+            p.Check(look.HasValue && Close(look.Value.Middle, Skin.MarkColour(0)) && look.Value.Edge.a > 0.9f && Lightness(look.Value.Edge) < 0.25f
                     && look.Value.Gap.a < 0.05f && look.Value.Ring.a > 0.9f && Lightness(look.Value.Ring) > 0.8f && look.Value.Outside.a < 0.05f,
-                "each dot is its kind's colour in a dark edge, inside a light ring with the map showing between",
+                "each dot is its mark's colour in a dark edge, inside a light ring with the map showing between",
                 look.HasValue ? $"middle {Shown(look.Value.Middle)}, edge {Shown(look.Value.Edge)}, gap {Shown(look.Value.Gap)}, ring {Shown(look.Value.Ring)}, outside {Shown(look.Value.Outside)}" : "no dot");
             var lit = MapDim.BrightnessForTest(MapSpots.DotsHolderForTest);
             p.Check(MapDim.Dimming && Mathf.Abs(lit.Pins - before.Pins / 3f) < 0.01f && Mathf.Abs(lit.Names - before.Names / 3f) < 0.01f && Mathf.Abs(lit.Dots - before.Pins) < 0.01f,
@@ -197,7 +197,7 @@ namespace Scry
             p.Check(MapSquares.SquaresShown == 0 && MapSpots.Strip == null, "Hide takes the squares away with the dots");
 
             // A server telling where places stand: the spots it told stand as hollow dots beside those seen, and say so.
-            var toldSpots = new List<(int X, int Z)> { ((int)Mathf.Round(here.x) - 40, (int)Mathf.Round(here.z) + 30) };
+            var toldSpots = new List<(int X, int Z)> { ((int)Mathf.Round(here.x) - 90, (int)Mathf.Round(here.z) + 70) };
             MapSpots.Show(MadeUpSpots, "Self-test places", 1, spots, null, null, toldSpots);
             yield return Until(() => MapSpots.DotsShown == spots.Count + toldSpots.Count, 5);
             p.Check(MapSpots.ToldDotsShownForTest == toldSpots.Count && MapSpots.DotsShown == spots.Count + toldSpots.Count && (MapSpots.Strip ?? "").Contains("1 more the server told of"),
@@ -205,7 +205,8 @@ namespace Scry
             if (MapSpots.ToldDotCenterForTest() is Vector2 hollowAt)
             {
                 PointerTo(hollowAt);
-                yield return Until(() => MapSpots.Pointed != null, 3);
+                // Read once the pointer has come to it, not while it still rests where it was.
+                yield return Until(() => (MapSpots.Pointed?.Words ?? "").Contains("the server says"), 3);
                 p.Check((MapSpots.Pointed?.Words ?? "").Contains("the server says one stands here"), "the pointer on a hollow dot says the server told of it", MapSpots.Pointed?.Words);
                 yield return Picture(p, "show on map, a place the server told of");
             }

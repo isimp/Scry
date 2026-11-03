@@ -39,26 +39,30 @@ namespace Scry
             var first = kinds[0];
             var buttons = ScryPanel.Drawn(PanelPart.MapAllKinds);
             MapSpots.Show(first, kinds, family.Name);
-            yield return Until(() => MapSpots.DotsShown == 2 && ScryPanel.Drawn(PanelPart.MapAllKinds) > buttons, 10);
-            p.Check(MapSpots.DotsShown == 2 && (MapSpots.Strip ?? "").StartsWith(first.ShownName + " · 2 you saw", System.StringComparison.Ordinal),
-                "a kind's page shows that kind's dots alone, named by it", $"{Numbers.Count(MapSpots.DotsShown)} dots, {MapSpots.Strip}");
+            // The dots of the spots given; those a server tells stand besides, hollow.
+            yield return Until(() => SeenDots == 2 && ScryPanel.Drawn(PanelPart.MapAllKinds) > buttons, 10);
+            p.Check(SeenDots == 2 && (MapSpots.Strip ?? "").StartsWith(first.ShownName + " · 2 you saw", System.StringComparison.Ordinal),
+                "a kind's page shows that kind's dots alone, named by it", $"{Numbers.Count(SeenDots)} dots, {MapSpots.Strip}");
             p.Check(MapSpots.KindsOffered == kinds.Count && ScryPanel.Drawn(PanelPart.MapAllKinds) > buttons, $"the strip offers all {Numbers.Count(kinds.Count)} kinds of {family.Name}",
                 $"{Numbers.Count(MapSpots.KindsOffered)} offered");
 
             MapSpots.ShowAllKinds(true);
             var all = kinds.Count * 2;
-            yield return Until(() => MapSpots.DotsShown == all, 10);
-            p.Check(MapSpots.DotsShown == all && (MapSpots.Strip ?? "").StartsWith(SpotWords.AllKindsName(family.Name, kinds.Count) + " · " + Numbers.Count(all) + " you saw", System.StringComparison.Ordinal),
-                "with its button lit, every kind's dots at once, under the place's name", $"{Numbers.Count(MapSpots.DotsShown)} dots, {MapSpots.Strip}");
+            yield return Until(() => SeenDots == all, 10);
+            p.Check(SeenDots == all && (MapSpots.Strip ?? "").StartsWith(SpotWords.AllKindsName(family.Name, kinds.Count) + " · " + Numbers.Count(all) + " you saw", System.StringComparison.Ordinal),
+                "with its button lit, every kind's dots at once, under the place's name", $"{Numbers.Count(SeenDots)} dots, {MapSpots.Strip}");
             yield return Picture(p, $"show on map, all kinds of {family.Name}");
 
             MapSpots.ShowAllKinds(false);
-            yield return Until(() => MapSpots.DotsShown == 2, 10);
-            p.Check(MapSpots.DotsShown == 2 && (MapSpots.Strip ?? "").StartsWith(first.ShownName, System.StringComparison.Ordinal), "off again, the page's kind alone", MapSpots.Strip);
+            yield return Until(() => SeenDots == 2, 10);
+            p.Check(SeenDots == 2 && (MapSpots.Strip ?? "").StartsWith(first.ShownName, System.StringComparison.Ordinal), "off again, the page's kind alone", MapSpots.Strip);
             AllKindsAsTheyWere();
         }
 
         /// <summary>The sight's own spots and the choice of all kinds put back, the map shut, should the part have stopped before it did.</summary>
+        /// <summary>The dots standing of spots seen, those a server told of left out.</summary>
+        private static int SeenDots => MapSpots.DotsShown - MapSpots.ToldDotsShownForTest;
+
         private static void AllKindsAsTheyWere()
         {
             MapSpots.SpotsInsteadForTest(null);
