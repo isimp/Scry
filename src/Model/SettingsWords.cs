@@ -89,18 +89,6 @@ namespace Scry
         public const string GuideTitle = "How the compendium works";
         public const string GuideTip = "How the compendium works: its rules, Known up to, peeking, and what a world shows as known";
 
-        /// <summary>The guide's paragraphs, each its caption and its words.</summary>
-        public static readonly (string Caption, string Words)[] Guide =
-        {
-            ("Off, Loose and Strict", "Off shows everything the game holds. Loose shows each thing your character knows with its whole page, but names only what your character has met. What the game's own menus show comes with the thing: a recipe's materials, a piece's cost and tool, a store's wares. Each section says how many things it left out, and a page's title row counts how much of what it names your character has met. A thing your character only saw stands on the stage with its page closed, telling what sight gave. Strict also keeps back what the game never shows of how things connect, until your character saw them go together. It keeps back the numbers the game never shows, too, until your character found them out, and each says what shows it. Under Strict, each section also counts what it kept back, and a page's title row counts how much of all that was found out. The stage shows a creature only with the stars and gear your character saw on it up close."),
-            ("Known up to", "Known up to shows everything of the biomes whose bosses your character has beaten as known, tier by tier. What it shows is marked with stairs. You can lower it again."),
-            ("Peeking", "The eye beside the compendium's button shows the page you are on whole until you go to another page. Every page, on the strip that then shows, does the same for all pages until you close the panel."),
-            ("Learned and You", "Learned lists what your character learned, day by day. Under Strict it also lists the numbers your character found out, which Loose shows from the start. A row there opens its page at what changed, lit for a moment. A page's You box tells when your character first saw the thing and came to know it, and how its fights went."),
-            ("What this world shows as known", "Each source can show more of the world as known: Ground you explored, Shared maps (read at a cartography table), Places marked for you (by a Vegvisir or rune stone), Places on every map, and The whole world, counted. What a source shows is marked with a folded map. Your book keeps only what your character met, so turning a source down takes back all it showed."),
-            ("Dungeon marks", "The large map marks each dungeon you walked, solid, ticked where every room was walked, by you or with others on this server, and each one whose entrance you saw, faint until pointed at, hollow where others on this server walked it while Ground you explored shows With insides. Each mark carries a glyph for the dungeon's kind. A click on a mark shows the dungeon in Scry. A dungeon you never came near has no mark: its page's Show on map shades the square it lies in. They stand while kept in the title row's On the map list, which any kind a page shows on the map can join."),
-            ("Playing together", "Where your friends have Scry, what their game runs near you counts for you as it would alone. A server can set the rules for everyone; the box then shows them locked, your own choices kept beneath."),
-        };
-
         // ----- The first start's setup -----
 
         public const string SetupTitle = "Set up Scry";

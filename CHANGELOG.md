@@ -20,6 +20,8 @@ Dungeon marks on the map follow what you know, as a page's Show on map does: a d
 
 Any kind a page shows on the map can be kept there with *Keep on the map*, on its page or on the map's strip, standing every time the map opens. The title row's *On the map* list holds what is kept, the dungeons among it from the start, and takes each off, replacing the *Dungeon marks* switch; *Kept on the minimap* shows it all on the minimap too. Pointing at a dot or a square on the map says what it is. The marks and dots come in an *X-small* size too. Every kind of dungeon taken off stays at the list's top with *Keep on the map* to put it back. A place the game's map marks itself, by its own icon or a Vegvisir's pin, and a dungeon you walked get no square, and a square's count stands on a tab in its corner, moving with it. Each kind on the map stands in a colour and shape of its own, its squares too, with the list and the strip as its legend. A server, or your own world, can tell where places in explored ground stand as hollow dots instead of squares, with *Places in explored ground* set to *Dots*.
 
+The compendium's guide opens each heading with a line saying what it is for, sets the three rules side by side, and shows examples in the lines a page itself shows.
+
 A place of several kinds, as the Burial Chambers, shows one kind on the map from its page, or all of them at once with the map strip's "All 3 kinds".
 
 On a new install the panel opens with the keys still walking your character; *Search ready* under *On opening* in the settings brings the old behaviour back.
