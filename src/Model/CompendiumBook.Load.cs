@@ -96,10 +96,6 @@ namespace Scry
                 if (parts.Length == 3 && Enum.TryParse(name, out WorldSource shown) && Enum.IsDefined(typeof(WorldSource), shown)
                     && Enum.TryParse(parts[2], out SourceLevel level) && Enum.IsDefined(typeof(SourceLevel), level) && WorldSources.Allows(shown, level)) book._shows[shown] = level;
             },
-            ["marks"] = (book, parts, name) =>
-            {
-                if (parts.Length == 2 && Enum.TryParse(name, out WorldSource marked) && Enum.IsDefined(typeof(WorldSource), marked) && WorldSources.HasGround(marked)) book._marks.Add(marked);
-            },
             ["welcomed"] = (book, parts, name) =>
             {
                 if (parts.Length == 2) book._welcomed = true;
@@ -219,6 +215,9 @@ namespace Scry
 
         /// <summary>The lines of a book of a later format this Scry cannot read, kept as they are for its next save, so the later Scry finds them again.</summary>
         private readonly List<string> _keptLines = new List<string>();
+
+        /// <summary>The first words of lines no Scry writes any more, left behind as a book is read: the grounds' pins, as dungeons are marked where walked or seen.</summary>
+        private static readonly HashSet<string> RetiredLines = new HashSet<string>(StringComparer.Ordinal) { "marks" };
 
         /// <summary>The first words of the lines the drops' records read on their own, no reader of theirs in the list.</summary>
         private static readonly HashSet<string> DropLines = new HashSet<string>(StringComparer.Ordinal) { "fell", "starfell", "gave", "held", "weather" };

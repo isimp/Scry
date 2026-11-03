@@ -59,7 +59,6 @@ namespace Scry.Tests
             "read\t$lore_one\n" +
             "place\t-101\tExplored\tCrypt2\n" +
             "shows\tExplored\tKnown\n" +
-            "marks\tExplored\n" +
             "rule\tStrict\n" +
             "floor\t2\n" +
             "welcomed\tyes\nmapapart\tyes\nbiomesapart\tyes\n" +

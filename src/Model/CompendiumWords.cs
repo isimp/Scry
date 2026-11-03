@@ -383,16 +383,6 @@ namespace Scry
             }
         }
 
-        /// <summary>The pin at the end of a ground's row, as its tip is headed.</summary>
-        public const string PinName = "Mark dungeons on the big map";
-
-        /// <summary>What the pin does.</summary>
-        private const string PinDoes = "Marks every dungeon entrance in this ground on Valheim's big map, the same switch as Mark the dungeons in the settings' Map section. Under With insides, a dungeon walked on this server shows the rooms walked. Clicking a mark opens that dungeon in Scry.";
-
-        /// <summary>The pin's tip: what it does, then whether it is on, and whether the big map shows Scry's marks at all.</summary>
-        public static string PinTip(bool on, bool marksShown = true) =>
-            Naming.Lines(PinDoes, !on ? "Off." : marksShown ? "On." : "On, but Dungeon marks is off in the settings' Map section, so the big map shows none.");
-
         /// <summary>The tip of With insides dimmed on a row none of whose places found in this world has insides: what would have.</summary>
         public static string NoInsides(WorldSource source)
         {

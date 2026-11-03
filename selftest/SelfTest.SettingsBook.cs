@@ -37,7 +37,6 @@ namespace Scry
             p.Check(unlike.Count == 0, "each row stands lit as the character's book holds it", string.Join("; ", unlike));
             yield return Picture(p, "settings card, compendium");
             LocksBeside(p, book, section);
-            yield return DungeonTicksSet(p, book);
 
             var limits = SettingsCatalog.AllRows.Where(r => r.Limit != null).Select(r => r.Limit).ToList();
             if (Settings.WorldFromServer) p.Check(limits.All(ScryPanel.SettingLocked), "what this server allows of each row is locked while it decides it");
@@ -68,7 +67,7 @@ namespace Scry
             p.Check(ScryPanel.SettingsShown && book.Shows(pick.Source) == pick.Level, "a level set on the card is kept, and the card stays open for the next");
             var name = CompendiumWords.SourceName(pick.Source);
             var level = CompendiumWords.LevelName(pick.Level);
-            var onCard = ScryPanel.SettingsBookCellsForTest.Where(c => c.Row == name && c.Lit && c.Choice != "pin").Select(c => c.Choice).ToList();
+            var onCard = ScryPanel.SettingsBookCellsForTest.Where(c => c.Row == name && c.Lit).Select(c => c.Choice).ToList();
             var inBox = ScryPanel.BookCellsForTest.Where(c => c.Row == name && c.Lit && c.Column >= 0).Select(c => c.Label).ToList();
             p.Check(onCard.SequenceEqual(new[] { level }) && inBox.SequenceEqual(new[] { level }), $"{name} set to {level} stands lit so on the card and in the box at once",
                 $"card {string.Join(", ", onCard)}, box {string.Join(", ", inBox)}");
@@ -104,34 +103,6 @@ namespace Scry
             p.Check(wrong.Count == 0, "beside each row the server keeps something from, its lock and what it keeps, short; nothing beside the rest", string.Join("; ", wrong));
         }
 
-        /// <summary>
-        /// The Map section's row of which dungeons are marked: its ground ticks are the
-        /// character's pins, set from either side the same; its first the config file's. Each put
-        /// back as it was.
-        /// </summary>
-        private static IEnumerator DungeonTicksSet(Probe p, CompendiumBook book)
-        {
-            var row = SettingsCatalog.Sections.First(s => s.Name == "Map").Rows.Single(r => r.Book == BookPart.DungeonPins);
-            var ground = SettingsCatalog.PinnedGrounds[0];
-            var pinWas = book.MarksDungeons(ground);
-            var walkedWas = Settings.DungeonMarksWalkedByYou;
-            ScryPanel.SetDungeonTick(row, 1, !pinWas);
-            ScryPanel.SetDungeonTick(row, 0, !walkedWas);
-            var pinSet = book.MarksDungeons(ground);
-            var walkedSet = Settings.DungeonMarksWalkedByYou;
-            ScryPanel.ShownSettingsSection = SettingsCatalog.Sections.ToList().FindIndex(s => s.Name == "Map");
-            var drawn = ScryPanel.Drawn(PanelPart.SettingsCard);
-            yield return Until(() => ScryPanel.Drawn(PanelPart.SettingsCard) > drawn + 2, 3);
-            var ticks = ScryPanel.SettingsBookCellsForTest.Where(c => c.Row == row.Label && !c.Lock).ToList();
-            ScryPanel.SetDungeonTick(row, 1, pinWas);
-            ScryPanel.SetDungeonTick(row, 0, walkedWas);
-            ScryPanel.OpenCompendiumSettings();
-            p.Check(pinSet != pinWas && walkedSet != walkedWas && book.MarksDungeons(ground) == pinWas && Settings.DungeonMarksWalkedByYou == walkedWas,
-                "Mark the dungeons sets the ground's pin and the walked tick, each put back as it was");
-            p.Check(ticks.Count == row.TickNames.Count && ticks[1].Lit == pinSet && ticks[0].Lit == walkedSet, "the Map section's ticks stand lit as the pin and the setting are",
-                string.Join(", ", ticks.Select(t => t.Choice + (t.Lit ? " on" : " off"))));
-        }
-
         /// <summary>Where the card's rows of the compendium stand otherwise than the book holds them: each lit choice by row, against the book's.</summary>
         private static List<string> CardUnlikeBook(CompendiumBook book)
         {
@@ -139,7 +110,7 @@ namespace Scry
             var unlike = new List<string>();
             void Same(string row, string expected)
             {
-                var lit = cells.Where(c => c.Row == row && c.Lit && c.Choice != "pin").Select(c => c.Choice).ToList();
+                var lit = cells.Where(c => c.Row == row && c.Lit).Select(c => c.Choice).ToList();
                 if (!lit.SequenceEqual(new[] { expected })) unlike.Add($"{row}: {string.Join(", ", lit)} lit for {expected}");
             }
             Same(CompendiumWords.RulesCaption, CompendiumWords.RuleName(book.Rule));

@@ -32,10 +32,7 @@ namespace Scry
         public static string Synced(string description) => description + WorldSynced;
 
         /// <summary>What the dungeon marks' switch does, on the card and in the config file alike.</summary>
-        public const string DungeonMarksWhy = "Marks dungeons on Valheim's large map and, where you ask for it, the minimap, telling how much of each was walked; a click on a mark opens its map in Scry. Off, no dungeon mark shows on either map, yours or others', entrances neither; a page's Show on map still marks what it shows.";
-
-        /// <summary>A ground's tick in the Map section's row of which dungeons are marked.</summary>
-        public static string PinnedGroundTick(WorldSource source) => source == WorldSource.SharedMaps ? "On shared maps" : "In ground you explored";
+        public const string DungeonMarksWhy = "Marks the dungeons you walked and those whose entrance you saw on Valheim's large map and, where you ask for it, the minimap, telling how much of each was walked, by you or others on this server; a click on a mark opens its map in Scry. Off, no dungeon mark shows on either map; a page's Show on map still marks what it shows.";
 
         public const string PointAtAName = "Point at a name for what it covers.";
         public const string HowItWorks = "How the compendium works";
@@ -98,7 +95,7 @@ namespace Scry
             ("Peeking", "The eye beside the compendium's button shows the page you are on whole until you go to another page. Every page, on the strip that then shows, does the same for all pages until you close the panel."),
             ("Learned and You", "Learned lists what your character learned, day by day. Under Strict it also lists the numbers your character found out, which Loose shows from the start. A row there opens its page at what changed, lit for a moment. A page's You box tells when your character first saw the thing and came to know it, and how its fights went."),
             ("What this world shows as known", "Each source can show more of the world as known: Ground you explored, Shared maps (read at a cartography table), Places marked for you (by a Vegvisir or rune stone), Places on every map, and The whole world, counted. What a source shows is marked with a folded map. Your book keeps only what your character met, so turning a source down takes back all it showed."),
-            ("Pins", "The pin at the end of a ground's row marks its dungeon entrances on the large map: solid where you walked it, ticked where every room was walked, by you or with others on this server, hollow where only others did, faint for an entrance alone until pointed at. Each mark carries a glyph for the dungeon's kind. A click on a mark shows the dungeon in Scry."),
+            ("Dungeon marks", "The large map marks each dungeon you walked, solid, ticked where every room was walked, by you or with others on this server, and each one whose entrance you saw, faint until pointed at, hollow where others on this server walked it while Ground you explored shows With insides. Each mark carries a glyph for the dungeon's kind. A click on a mark shows the dungeon in Scry. A dungeon you never came near has no mark: its page's Show on map shades the square it lies in."),
             ("Playing together", "Where your friends have Scry, what their game runs near you counts for you as it would alone. A server can set the rules for everyone; the box then shows them locked, your own choices kept beneath."),
         };
 

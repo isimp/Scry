@@ -11,8 +11,7 @@ namespace Scry
         /// <summary>
         /// The compendium's box stands its rows in columns: each level of the world's sources at
         /// one place down the box, the rules and the floor's biome in the same columns, the floor's
-        /// arrows as far from its biome on either side, every ground's pin in one column after the
-        /// levels; each segment as wide as its words drawn lit, none over another, all inside the
+        /// arrows as far from its biome on either side; each segment as wide as its words drawn lit, none over another, all inside the
         /// box. Pictured.
         /// </summary>
         private static IEnumerator CompendiumBoxColumns(Probe p)
@@ -41,8 +40,6 @@ namespace Scry
                 .Select(g => $"column {Numbers.Count(g.Key)}: " + string.Join(", ", g.Select(c => $"{c.Row} {c.Label} at {Numbers.Fixed(c.At.x, 0)}")))
                 .ToList();
             p.Check(ragged.Count == 0, "each level stands at one place down the box, the rules and the floor in the same columns", string.Join("; ", ragged.Take(3)));
-            var pins = cells.Where(c => c.Column == -1).ToList();
-            p.Check(pins.Count == 0 || pins.Max(c => c.At.x) - pins.Min(c => c.At.x) <= 0.5f, "every ground's pin stands in one column", string.Join(", ", pins.Select(c => $"{c.Row} at {Numbers.Fixed(c.At.x, 0)}")));
             var lower = cells.FirstOrDefault(c => c.Row == "floor" && c.Label == "lower");
             var raise = cells.FirstOrDefault(c => c.Row == "floor" && c.Label == "raise");
             var biome = cells.FirstOrDefault(c => c.Row == "floor" && c.Column >= 0);

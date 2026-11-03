@@ -331,8 +331,8 @@ namespace Scry
             if (Minimap.instance.m_mode == Minimap.MapMode.Large) Minimap.instance.SetMapMode(Minimap.MapMode.Small);
             yield return Until(() => MapMarkButtons.MarksShown == 0, 3);
             DungeonWalks.MapsInsteadForTest(maps);
-            // The dungeons a pinned ground of the player's shows stay off the map meanwhile, so the test's mark stands alone.
-            DungeonsInGround.NoneForTest();
+            // The entrances the player's sight kept stay off the map meanwhile, so the test's mark stands alone.
+            MapMarkButtons.SeenInsteadForTest(new List<(string, string, int, int)>());
             // The panel put away, as it would cover the map; the click opens it again.
             Session.Hide();
             Minimap.instance.SetMapMode(Minimap.MapMode.Large);
@@ -347,11 +347,11 @@ namespace Scry
             p.Check(Mathf.Approximately(MapMarkButtons.SizeForTest(0), pinSize * 2f), "the marks' size setting scales the mark from a pin's size", $"{Numbers.Fixed(MapMarkButtons.SizeForTest(0), 0)} against a pin's {Numbers.Fixed(pinSize, 0)}");
             Settings.DungeonMarkSize = sizeWas;
             yield return Until(() => Mathf.Approximately(MapMarkButtons.SizeForTest(0), pinSize * sizeWas), 3);
-            var byYouWas = Settings.DungeonMarksWalkedByYou;
-            Settings.DungeonMarksWalkedByYou = false;
+            var marksWas = Settings.DungeonMarksOnMap;
+            Settings.DungeonMarksOnMap = false;
             yield return Until(() => MapMarkButtons.MarksShown == 0, 3);
-            p.Check(MapMarkButtons.MarksShown == 0, "switched off, the marks of dungeons walked by you go from the map", $"{Numbers.Count(MapMarkButtons.MarksShown)} marks");
-            Settings.DungeonMarksWalkedByYou = byYouWas;
+            p.Check(MapMarkButtons.MarksShown == 0, "switched off, the dungeon marks go from the map", $"{Numbers.Count(MapMarkButtons.MarksShown)} marks");
+            Settings.DungeonMarksOnMap = marksWas;
             yield return Until(() => MapMarkButtons.MarksShown == 1, 3);
             // A dungeon's end caps and dividers are no rooms to walk, so its words count without them.
             var walkable = rolled.Rooms.Count(r => !r.Room.EndCap && !r.Room.Divider);
@@ -540,6 +540,8 @@ namespace Scry
         {
             if (Minimap.instance != null && Minimap.instance.m_mode == Minimap.MapMode.Large) Minimap.instance.SetMapMode(Minimap.MapMode.Small);
             DungeonsInGround.WorldAgainForTest();
+            MapMarkButtons.SeenInsteadForTest(null);
+            GroupMapsLink.GroupInsteadForTest(null);
             if (!Session.IsOpen) Session.Show(null);
             if (_pointerBeforeMarks is Vector2 was && Cursor.lockState != CursorLockMode.Locked) ZInput.SetMousePosition(was);
             _pointerBeforeMarks = null;

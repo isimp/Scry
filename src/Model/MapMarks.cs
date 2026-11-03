@@ -43,14 +43,6 @@ namespace Scry
         /// <summary>How much bigger a mark's name is drawn than the game's pin names: as the mark is.</summary>
         public static float NameScale(float scale) => scale;
 
-        /// <summary>
-        /// Whether a mark shows, by its look: one walked by you as its tick says; one of a ground
-        /// always, as its ground's own tick (the compendium's pin) put it there, walked by others or
-        /// by nobody told by its look.
-        /// </summary>
-        public static bool Shown(MarkLook look, bool walkedByYou) =>
-            look == MarkLook.Yours || look == MarkLook.Whole || look == MarkLook.Visited ? walkedByYou : true;
-
         /// <summary>How faint an entrance alone stands until the pointer rests on it.</summary>
         public const float FaintAlpha = 0.45f;
 

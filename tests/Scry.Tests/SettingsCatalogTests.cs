@@ -38,8 +38,7 @@ namespace Scry.Tests
             Assert.Equal(new[] { BookPart.Rules, BookPart.KnownUpTo }.Concat(WorldSources.All.Select(_ => BookPart.Source)), book.Select(r => r.Book));
             Assert.Equal(WorldSources.All, book.Where(r => r.Book == BookPart.Source).Select(r => r.Source));
             Assert.Equal(new[] { "Rules", "Known up to" }.Concat(WorldSources.All.Select(CompendiumWords.SourceName)), book.Select(r => r.Label));
-            // Elsewhere only the Map section's row of which dungeons are marked, the pins among its ticks.
-            Assert.All(SettingsCatalog.Sections.Where(s => s != compendium).SelectMany(s => s.Rows), r => Assert.True(r.Book == BookPart.None || r.Book == BookPart.DungeonPins, r.Label));
+            Assert.All(SettingsCatalog.Sections.Where(s => s != compendium).SelectMany(s => s.Rows), r => Assert.Equal(BookPart.None, r.Book));
             Assert.All(book, r => Assert.Empty(r.Keys));
         }
 
@@ -82,21 +81,16 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void WhichDungeonsAreMarkedIsOneRowByWhereYouKnowThemFrom()
+        public void WhichDungeonsAreMarkedIsNoSettingOfItsOwn()
         {
-            // You walked it, it lies in ground you explored, or on a map you read: the last two the compendium's pins.
-            var map = Section("Map");
-            var row = map.Rows.Single(r => r.Book == BookPart.DungeonPins);
-            Assert.Equal("Mark the dungeons", row.Label);
-            Assert.Equal(new[] { "DungeonMarksWalkedByYou" }, row.Keys);
-            Assert.Equal(new[] { "You walked", "In ground you explored", "On shared maps" }, row.TickNames);
-            Assert.Equal(new[] { WorldSource.Explored, WorldSource.SharedMaps }, SettingsCatalog.PinnedGrounds);
-            Assert.All(SettingsCatalog.PinnedGrounds, s => Assert.True(WorldSources.HasGround(s)));
-            Assert.Contains("compendium", row.Why);
-            // The filter by how a mark was walked is gone.
-            Assert.DoesNotContain("DungeonMarksWalkedOnServer", Bound().Keys);
-            Assert.DoesNotContain("DungeonMarkEntrances", Bound().Keys);
-            Assert.Contains("Retire(config, \"DungeonMarksWalkedOnServer\", \"DungeonMarkEntrances\")", File.ReadAllText(Path.Combine(ScrySource.Root(), "src", "Core", "Settings.cs")));
+            // Walked or seen marks them, as Show on map would show their places: nothing left to choose but whether marks show at all.
+            var marks = Section("Map").Rows.Where(r => r.Group == "Dungeon marks").Select(r => r.Label).ToArray();
+            Assert.Equal(new[] { "Dungeon marks", "Names", "Size", "On the minimap" }, marks);
+            foreach (var retired in new[] { "DungeonMarksWalkedByYou", "DungeonMarksWalkedOnServer", "DungeonMarkEntrances" }) Assert.DoesNotContain(retired, Bound().Keys);
+            Assert.Contains("Retire(config, \"DungeonMarksWalkedOnServer\", \"DungeonMarkEntrances\", \"DungeonMarksWalkedByYou\")", File.ReadAllText(Path.Combine(ScrySource.Root(), "src", "Core", "Settings.cs")));
+            // What the switch marks says so, the seen beside the walked.
+            Assert.Contains("saw", SettingsWords.DungeonMarksWhy);
+            Assert.DoesNotContain("pin on", SettingsWords.DungeonMarksWhy);
         }
 
         [Fact]
@@ -322,7 +316,6 @@ namespace Scry.Tests
             // Walking and looking while open, each on its own, and which dungeon marks show.
             Assert.Equal(SettingControl.Switch, Row("WalkWhileOpen").Control);
             Assert.Equal(SettingControl.Switch, Row("LookWithRightMouse").Control);
-            Assert.Equal(SettingControl.Book, Row("DungeonMarksWalkedByYou").Control);
             Assert.Equal(SettingControl.Choices, Row("StageQuality").Control);
             // The tip's wait keeps any value the config holds.
             Assert.Equal(SettingControl.Slider, Row("TooltipDelay").Control);

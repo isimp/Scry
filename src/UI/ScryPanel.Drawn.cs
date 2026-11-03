@@ -61,8 +61,8 @@ namespace Scry
         /// <summary>The mark of what a source of the world shows, a folded map, on a row, under a title or after a chip or link.</summary>
         SourceMark,
 
-        /// <summary>The pin at the end of a ground's row in the compendium's box, marking its dungeons on the big map.</summary>
-        DungeonPins,
+        /// <summary>Show on map's strip's button showing all of a place's kinds at once.</summary>
+        MapAllKinds,
 
         /// <summary>With insides dimmed on a source's row, none of its places found having insides.</summary>
         InsidesDimmed,

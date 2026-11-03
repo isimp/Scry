@@ -49,6 +49,12 @@ namespace Scry
         private static int _countedIn = -1, _counted;
         private static string _countedKind;
 
+        /// <summary>Changes whenever the spots held change, another character's read in among them, for what is drawn of them to be worked out again.</summary>
+        public static (int Read, int Version) Stamp => (Reads, _own.Version);
+
+        /// <summary>How many times another character's spots were read in, or begun anew.</summary>
+        private static int Reads { get; set; }
+
         /// <summary>The spots of a kind the character saw in the world played; none before its spots are read.</summary>
         public static IReadOnlyList<(int X, int Z)> Of(string kind) => Ready ? _own.Of(CompendiumMap.World, kind) : System.Array.Empty<(int, int)>();
 
@@ -115,6 +121,7 @@ namespace Scry
             Save(now: true);
             _file = file;
             _own = new SeenSpots();
+            Reads++;
             _unreadable = false;
             _reading = null;
             if (file == null) return;
@@ -129,12 +136,14 @@ namespace Scry
             if (_reading.Status == TaskStatus.RanToCompletion)
             {
                 _own = _reading.Result.Spots;
+                Reads++;
                 if (_reading.Result.Aside != null) Faults.Tell(Feature.SeenSpots, "reading where things were seen", CompendiumWords.SetAside(Path.GetFileName(_reading.Result.Aside)));
             }
             else
             {
                 Faults.Tell(Feature.SeenSpots, "reading where things were seen", _reading.Exception?.GetBaseException());
                 _own = new SeenSpots();
+                Reads++;
                 _unreadable = true;
             }
             _reading = null;

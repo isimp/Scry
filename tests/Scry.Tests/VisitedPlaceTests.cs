@@ -58,11 +58,9 @@ namespace Scry.Tests
             var maps = new DungeonMaps();
             var id = DungeonMaps.EntranceIdOf("w", 10f, 20f);
             maps.Visited(id, "Hildir_plainsfortress", new Vec3(10f, 1f, 20f), 393);
-            var marks = DungeonMarks.Of(new CompendiumBook(), maps.OfWorld("w"), _ => new (string, DungeonMap)[0], _ => null);
+            var marks = DungeonMarks.Of(new CompendiumBook(), maps.OfWorld("w"), new (string, string, int, int)[0], _ => null);
             Assert.Equal(MarkLook.Visited, marks.Single().Look);
             // Shown as yours, whole, on the small map too.
-            Assert.True(MapMarks.Shown(MarkLook.Visited, walkedByYou: true));
-            Assert.False(MapMarks.Shown(MarkLook.Visited, walkedByYou: false));
             Assert.Equal(1f, MapMarks.Alpha(MarkLook.Visited, pointedAt: false), 3);
             Assert.True(MapMarks.OnSmallMap(MarkLook.Visited));
         }

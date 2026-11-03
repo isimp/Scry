@@ -83,7 +83,7 @@ namespace Scry
         {
             (w => w == "you Troll, first seen, came to know and killed you", "readme troll page", false),
             (w => w == "learned by day, Troll selected", "readme learned by day", false),
-            (w => w == "compendium box pins", "readme compendium box", false),
+            (w => w == "compendium box sources", "readme compendium box", false),
             (w => w.StartsWith("plan ", StringComparison.Ordinal) && w.EndsWith(" Above deepest gone into", StringComparison.Ordinal), "readme dungeon plan", false),
             (w => w.StartsWith("the marks of ", StringComparison.Ordinal) && w.EndsWith(", the hollow one's tip shown", StringComparison.Ordinal), "readme map marks", true),
             (w => w.StartsWith("camp example ", StringComparison.Ordinal), "readme camp example", false),

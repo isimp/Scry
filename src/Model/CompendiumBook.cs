@@ -138,25 +138,6 @@ namespace Scry
             SourcesVersion++;
         }
 
-        /// <summary>The sources of ground whose pin is on, their dungeons marked on Valheim's big map (<see cref="DungeonMarks"/>).</summary>
-        private readonly HashSet<WorldSource> _marks = new HashSet<WorldSource>();
-
-        /// <summary>Whether a source of ground has its pin on.</summary>
-        public bool MarksDungeons(WorldSource source) => _marks.Contains(source);
-
-        /// <summary>Turns a source of ground's pin on or off: a choice of the player's; a source without ground has none.</summary>
-        public void MarkDungeons(WorldSource source, bool on)
-        {
-            if (!WorldSources.HasGround(source) || MarksDungeons(source) == on) return;
-            if (on) _marks.Add(source);
-            else _marks.Remove(source);
-            SourcesVersion++;
-            Changed = true;
-        }
-
-        /// <summary>Whether a source's dungeons are marked now: its pin on and its row showing anything.</summary>
-        public bool MarksDungeonsNow(WorldSource source) => MarksDungeons(source) && Shows(source) > SourceLevel.Off;
-
         /// <summary>Sets how a source's places show, among the levels it offers.</summary>
         public void Show(WorldSource source, SourceLevel level)
         {
@@ -739,7 +720,6 @@ namespace Scry
             public readonly SaveCopy<(string World, WorldSource Source, string Kind)> FoundIn = new SaveCopy<(string, WorldSource, string)>();
             public readonly SaveCopy<KeyValuePair<WorldSource, SourceLevel>> Shows = new SaveCopy<KeyValuePair<WorldSource, SourceLevel>>();
             public readonly SaveCopy<string> KeptLines = new SaveCopy<string>();
-            public readonly SaveCopy<WorldSource> Marks = new SaveCopy<WorldSource>();
             public readonly SaveCopy<(string, string)> Proofs = new SaveCopy<(string, string)>();
             public readonly SaveCopy<(string Key, string Token)> Sightings = new SaveCopy<(string, string)>();
             public readonly SaveCopy<KeyValuePair<string, (CameBy Way, Moment At)>> Came = new SaveCopy<KeyValuePair<string, (CameBy, Moment)>>();
@@ -783,7 +763,6 @@ namespace Scry
             var keptLines = c.KeptLines.Of(_keptLines, mayReuse);
             // A book of a later format keeps saying so, so its lines this Scry cannot read stay kept past this save.
             var format = Math.Max(Format, _formatSeen);
-            var marks = c.Marks.Of(_marks, mayReuse);
             var rule = _rule;
             var floor = _floor;
             var proofs = c.Proofs.Of(_proofs, mayReuse);
@@ -823,7 +802,6 @@ namespace Scry
                     text.Append("place\t").Append(Stored.Escaped(world)).Append('\t').Append(source).Append('\t').Append(Stored.Escaped(kind)).Append('\n');
                 }
                 foreach (var pair in shows.OrderBy(p => p.Key)) text.Append("shows\t").Append(pair.Key).Append('\t').Append(pair.Value).Append('\n');
-                foreach (var source in marks.OrderBy(s => s)) text.Append("marks\t").Append(source).Append('\n');
                 if (rule != CompendiumRule.Off) text.Append("rule\t").Append(rule).Append('\n');
                 if (floor > 0) text.Append("floor\t").Append(Stored.Count(floor)).Append('\n');
                 if (welcomed) text.Append("welcomed\tyes\n");
@@ -964,7 +942,7 @@ namespace Scry
                 var parts = line.TrimEnd('\r').Split('\t');
                 if (parts.Length < 2 || !Stored.TryUnescaped(parts[1], out var name) || name.Length == 0) continue;
                 if (LineReaders.TryGetValue(parts[0], out var read)) read(book, parts, name);
-                else if (book._formatSeen > Format && !DropLines.Contains(parts[0])) book._keptLines.Add(line.TrimEnd('\r'));
+                else if (book._formatSeen > Format && !DropLines.Contains(parts[0]) && !RetiredLines.Contains(parts[0])) book._keptLines.Add(line.TrimEnd('\r'));
             }
             // Chests the game numbered anew each load were counted again each time: their ids go, and their counts with them, once.
             if (book._chestsRenumbered)

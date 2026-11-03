@@ -42,6 +42,9 @@ namespace Scry
         /// <summary>Whether anything differs from what was last saved or loaded.</summary>
         public bool Changed { get; private set; }
 
+        /// <summary>Counts up whenever a spot is kept, taken away or forgotten, for what is drawn of them to be worked out again.</summary>
+        public int Version { get; private set; }
+
         /// <summary>How many spots are kept, in every world.</summary>
         [ForTest]
         public int Count => _counts.Values.Sum();
@@ -65,6 +68,7 @@ namespace Scry
             if (!buckets.TryGetValue(key, out var list)) buckets[key] = list = new List<(int, int)>();
             list.Add(at);
             Changed = true;
+            Version++;
             return true;
         }
 
@@ -87,6 +91,7 @@ namespace Scry
             list.RemoveAt(index);
             _counts[world]--;
             Changed = true;
+            Version++;
             return true;
         }
 
@@ -132,6 +137,7 @@ namespace Scry
                 _counts.Remove(world);
             }
             Changed = true;
+            Version++;
         }
 
         /// <summary>The spots as text, worlds, kinds and spots in a fixed order; what is saved is no longer changed.</summary>

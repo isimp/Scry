@@ -224,6 +224,15 @@ namespace Scry
             return (SquaresHeard.Told, squares);
         }
 
+        /// <summary>Several kinds' squares as one, a square two of them share counting the places of both, for a place of several kinds shown all at once.</summary>
+        public static Dictionary<(int X, int Z), int> Merged(IEnumerable<IReadOnlyDictionary<(int X, int Z), int>> kinds)
+        {
+            var merged = new Dictionary<(int X, int Z), int>();
+            foreach (var squares in kinds)
+                foreach (var square in squares) merged[square.Key] = (merged.TryGetValue(square.Key, out var held) ? held : 0) + square.Value;
+            return merged;
+        }
+
         /// <summary>How many places the squares shaded hold that the character did not see.</summary>
         public static int More(IReadOnlyList<(int X, int Z, int Left)> shown)
         {

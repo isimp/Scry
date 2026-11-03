@@ -11,8 +11,8 @@ namespace Scry
     /// <summary>
     /// While Valheim's large map is open, a mark of Scry's on the entrance of each dungeon
     /// the character has been in in the world played (<see cref="DungeonWalks"/>), of each place whose
-    /// rooms stand in the world it stood in, as Hildir's Sealed Tower, and of each lying
-    /// in a ground whose pin is on (<see cref="DungeonMarks"/>), placed as the game
+    /// rooms stand in the world it stood in, as Hildir's Sealed Tower, and of each whose entrance
+    /// the character saw (<see cref="DungeonMarks"/>, <see cref="SeenSpotsKeeper"/>), placed as the game
     /// places its pins and as big as one (<see cref="MapMarks"/>), on the layer of the pins' names
     /// so no name covers it. The pointer never reaches that layer through the game's event system,
     /// so each mark is a picture taking no clicks of its own: the pointer is read against it as the
@@ -76,7 +76,7 @@ namespace Scry
 
         /// <summary>The layer the marks stand on, and the stamps of what they were last listed from.</summary>
         private static RectTransform _layer;
-        private static (int Walked, int InGround, int Sources, int Server, bool WalkedShown) _keptStamp = (-1, -1, -1, -1, true);
+        private static (int Walked, (int, int) Seen, int Sources, int Server) _keptStamp = (-1, (-1, -1), -1, -1);
 
         /// <summary>Whether the server was asked for the marked dungeons' records since the map last opened.</summary>
         private static bool _askedServer;
@@ -200,7 +200,7 @@ namespace Scry
             Marks.Clear();
             Kept.Clear();
             _layer = null;
-            _keptStamp = (-1, -1, -1, -1, true);
+            _keptStamp = (-1, (-1, -1), -1, -1);
             _keptWorld = null;
             _askedServer = false;
             MarksShown = 0;
@@ -236,13 +236,12 @@ namespace Scry
             }
             var maps = DungeonWalks.Maps;
             var book = CompendiumKeeper.Book;
-            var walkedShown = Settings.DungeonMarksWalkedByYou;
-            var stamp = (maps.Stamp, DungeonsInGround.Stamp, book != null ? book.SourcesVersion : -1, GroupMapsLink.Group.Stamp, walkedShown);
+            var stamp = (maps.Stamp, SeenSpotsKeeper.Stamp, book != null ? book.SourcesVersion : -1, GroupMapsLink.Group.Stamp);
             if (_keptStamp != stamp || _keptWorld != world)
             {
                 var listing = Timing.Start();
                 Kept.Clear();
-                Kept.AddRange(DungeonMarks.Of(book, maps.OfWorld(world), DungeonsInGround.Of, RoomKinds.Of, GroupMapsLink.Group.Of, walkedShown));
+                Kept.AddRange(DungeonMarks.Of(book, maps.OfWorld(world), SeenDungeons(world), RoomKinds.Of, GroupMapsLink.Group.Of));
                 Timing.Add("marks listed", listing);
                 _keptStamp = stamp;
                 _keptWorld = world;
@@ -348,7 +347,6 @@ namespace Scry
             InViewIds.Clear();
             foreach (var kept in Kept)
             {
-                if (!MapMarks.Shown(kept.Look, Settings.DungeonMarksWalkedByYou)) continue;
                 if (small && !MapMarks.OnSmallMap(kept.Look)) continue;
                 if (!MapMarks.Place(kept.Map.Entrance, map.m_pixelSize, map.m_textureSize, (window.xMin, window.yMin, window.width, window.height), (area.width, area.height), out var at)) continue;
                 InView.Add((kept, at));
@@ -583,7 +581,8 @@ namespace Scry
         /// </summary>
         private static void Open(string id, MarkLook look)
         {
-            var kept = DungeonWalks.Maps.Of(id) ?? DungeonsInGround.MapOf(id);
+            // One seen by its entrance alone opens from its own mark: the server's rooms, where it sent them, or the stand-in.
+            var kept = DungeonWalks.Maps.Of(id) ?? DungeonsInGround.MapOf(id) ?? Kept.FirstOrDefault(k => k.Id == id)?.Map;
             if (kept == null) return;
             HideName();
             Minimap.instance.OrNull()?.SetMapMode(Minimap.MapMode.Small);
@@ -591,7 +590,7 @@ namespace Scry
             // A place stood in opens its page alone, as it stands.
             if (look != MarkLook.Visited)
             {
-                if (laidOut) ExampleLayouts.OpenMapWhenShown(kept.Location, id);
+                if (laidOut) ExampleLayouts.OpenMapWhenShown(kept.Location, id, kept);
                 else ExampleLayouts.StandInFor(kept.Location);
             }
             // Its page at once where the catalog is read, else once it is.
@@ -599,6 +598,20 @@ namespace Scry
             if (look != MarkLook.Visited) Stage.Inside = true;
             OpenedForTest = (id, look, laidOut);
         }
+
+        /// <summary>The dungeons whose entrances the character's sight kept in a world, or the self-test's in their place.</summary>
+        private static IEnumerable<(string Id, string Location, int X, int Z)> SeenDungeons(string world) =>
+            _seenInstead ?? DungeonMarks.Seen(world, DungeonKinds.All, SeenSpotsKeeper.Of);
+
+        /// <summary>Entrances the self-test has seen in place of the sight's, or none for the sight's own; the marks listed again either way.</summary>
+        [ForTest]
+        public static void SeenInsteadForTest(List<(string Id, string Location, int X, int Z)> seen)
+        {
+            _seenInstead = seen;
+            _keptStamp = (-1, (-1, -1), -1, -1);
+        }
+
+        private static List<(string Id, string Location, int X, int Z)> _seenInstead;
 
         /// <summary>The mark last opened: its dungeon, how it looked and whether its own rooms were opened; for the self-test.</summary>
         [Diagnostic]

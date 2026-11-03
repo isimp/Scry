@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.UI;
@@ -178,18 +179,70 @@ namespace Scry
             return SpotWords.SquaresNote(CompendiumMap.Counts.Heard(SquaresGround));
         }
 
-        /// <summary>A page's kind shown on the map: its spots in the world played, by its name, in its list colour.</summary>
-        public static void Show(Entry entry)
+        /// <summary>The page shown on the map, and the kinds of its place met, two or more where it can show them all (<see cref="AllKinds"/>); none.</summary>
+        private static Entry _shownEntry;
+        private static IReadOnlyList<Entry> _shownKinds = System.Array.Empty<Entry>();
+        private static string _shownFamily;
+
+        /// <summary>Whether a place of several kinds shows them all rather than the page's alone, kept for the session; the strip's button.</summary>
+        public static bool AllKinds { get; private set; }
+
+        /// <summary>How many kinds the strip offers to show at once: those of the place shown met, none for one of a kind alone.</summary>
+        public static int KindsOffered => Showing.Showing && _shownKinds.Count >= 2 ? _shownKinds.Count : 0;
+
+        /// <summary>
+        /// A page's kind shown on the map: its spots in the world played, by its name, in its list
+        /// colour; a place of several kinds (<paramref name="kinds"/>, those met, under its family's
+        /// name) all of them while <see cref="AllKinds"/>, their spots together and their squares
+        /// added up.
+        /// </summary>
+        public static void Show(Entry entry, IReadOnlyList<Entry> kinds = null, string family = null)
         {
             var kind = KindOf(entry);
             if (kind == null) return;
+            _shownEntry = entry;
+            _shownKinds = entry.Kind == Kind.Location && kinds != null && kinds.Count >= 2 ? kinds : System.Array.Empty<Entry>();
+            _shownFamily = family ?? entry.ShownName;
+            if (AllKinds && _shownKinds.Count >= 2)
+            {
+                ShowAll();
+                return;
+            }
             // A broken form's page shows the whole one's spots, by the whole one's name.
             var named = entry.Kind == Kind.Location ? entry : WorldCatalog.Find(kind) ?? entry;
-            var spots = SeenSpotsKeeper.Of(kind);
+            var spots = SpotsOf(kind);
             var squares = Settings.MapSquares ? SquaresOf(entry, spots) : NoSquares;
             var note = entry.Kind == Kind.Location && squares.Count == 0 && Settings.MapSquares ? SquaresNote() : null;
             Show(kind, named.ShownName, Skin.MapDot(entry.Kind), spots, squares, note);
         }
+
+        /// <summary>Every kind of the place shown at once: their spots together, their squares added up, less those seen.</summary>
+        private static void ShowAll()
+        {
+            var spots = new List<(int X, int Z)>();
+            foreach (var member in _shownKinds) spots.AddRange(SpotsOf(member.Key));
+            var squares = Settings.MapSquares && !_shownEntry.IsRoom
+                ? PlaceSquares.Shown(PlaceSquares.Merged(_shownKinds.Select(member => CompendiumMap.Counts.Squares(member.Name, SquaresGround))), spots)
+                : NoSquares;
+            var note = squares.Count == 0 && Settings.MapSquares ? SquaresNote() : null;
+            Show(MapShowing.AllKindsKey(_shownKinds.Select(member => member.Key)), SpotWords.AllKindsName(_shownFamily, _shownKinds.Count), Skin.MapDot(Kind.Location), spots, squares, note);
+        }
+
+        /// <summary>The strip's button: all the place's kinds shown, or the page's alone again, kept for the session.</summary>
+        public static void ShowAllKinds(bool all)
+        {
+            AllKinds = all;
+            if (_shownEntry != null && Showing.Showing) Show(_shownEntry, _shownKinds, _shownFamily);
+        }
+
+        /// <summary>The spots of a kind, or the self-test's in their place.</summary>
+        private static IReadOnlyList<(int X, int Z)> SpotsOf(string kind) => _spotsInstead?.Invoke(kind) ?? SeenSpotsKeeper.Of(kind);
+
+        /// <summary>Spots of the self-test's for each kind in place of the sight's, or none for the sight's own.</summary>
+        [ForTest]
+        public static void SpotsInsteadForTest(System.Func<string, IReadOnlyList<(int X, int Z)>> spots) => _spotsInstead = spots;
+
+        private static System.Func<string, IReadOnlyList<(int X, int Z)>> _spotsInstead;
 
         /// <summary>
         /// A kind's spots shown on the map, and a place's squares with them, as the button shows
@@ -265,6 +318,8 @@ namespace Scry
         public static void Hide()
         {
             Showing.Hide();
+            _shownEntry = null;
+            _shownKinds = System.Array.Empty<Entry>();
             MapSquares.Show(NoSquares);
             PutAway();
         }
@@ -274,6 +329,9 @@ namespace Scry
             Showing.Hide();
             ForgetDots();
             _strip = null;
+            _shownEntry = null;
+            _shownKinds = System.Array.Empty<Entry>();
+            _shownFamily = null;
             _kindFor = null;
             _kindOf = null;
             _countedFor = default;

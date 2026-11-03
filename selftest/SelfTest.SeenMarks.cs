@@ -5,40 +5,34 @@ using UnityEngine;
 
 namespace Scry
 {
-    /// <summary>The self-test's case for a ground's pin, marking the dungeons lying in it on Valheim's big map, and for With insides dimmed where nothing has insides.</summary>
+    /// <summary>The self-test's cases for the dungeons marked on Valheim's big map where walked or seen, and for With insides dimmed where nothing has insides.</summary>
     internal static partial class SelfTest
     {
-        /// <summary>How the ground explored showed, and whether its pin was on, before the test chose otherwise; put back after it.</summary>
-        private static (SourceLevel Shows, bool Pin)? _pinBefore;
-
-        /// <summary>The lines of the character's book file that keep which grounds' pins are on.</summary>
-        private static string KeptPins(string path) =>
-            path != null && System.IO.File.Exists(path) ? string.Join("\n", System.IO.File.ReadAllLines(path).Where(l => l.StartsWith("marks\t", System.StringComparison.Ordinal))) : "";
+        /// <summary>How the ground explored showed before the test chose otherwise; put back after it.</summary>
+        private static SourceLevel? _exploredBefore;
 
         /// <summary>Whether a mark's words stand on a dark plate, the legend and the days told elsewhere.</summary>
         private static bool OnPlateAlone(string said) => said != null && said.StartsWith("<mark=", System.StringComparison.Ordinal) && !said.Contains("solid") && !said.Contains(" day ");
 
         /// <summary>
-        /// The explored ground's pin at its row's end in the compendium's box, kept with the
-        /// character as it is turned on, With insides dimmed on each row none of whose places has
-        /// insides; with the row at Known, the game running the world names the dungeons lying in
-        /// the ground, those whose rooms it keeps standing inside with their rooms, the others by
-        /// their entrance, each in explored ground. Made-up dungeons where the player stands, one
-        /// walked by you, one walked on this server and one known by its entrance alone: at Known,
-        /// the one walked by you is marked filled and the others by their entrances, the one walked
-        /// on this server saying With insides shows it, a click on it opening its own rooms tagged In
-        /// your world; at With insides, that one hollow, saying how far it was walked. A click on the
-        /// entrance whose area never loaded shows an example tagged as one, its note saying it
-        /// stands in; on the hollow one its rooms on the stage. What the character chose is put back.
+        /// The dungeons marked where Show on map would show their places: With insides dimmed on
+        /// each row of the compendium's box none of whose places has insides, and no pin on any
+        /// row. Made-up dungeons where the player stands: one walked by you, one whose entrance was
+        /// seen and that others on this server walked, one seen that nobody walked. At Known the one
+        /// walked by you is marked filled and the seen ones by their entrances, the one walked on
+        /// this server saying With insides shows it; at With insides that one hollow, saying how far
+        /// it was walked, the game running the world naming what lies in the explored ground. A
+        /// click on the entrance nobody walked shows an example tagged as one, its note saying it
+        /// stands in; on the hollow one its rooms on the stage. Put back as it was.
         /// </summary>
-        private static IEnumerator DungeonPins(Probe p)
+        private static IEnumerator SeenEntrancesMarked(Probe p)
         {
             yield return Until(() => CompendiumKeeper.Book != null, 10);
             var book = CompendiumKeeper.Book;
             if (!p.Check(book != null, "the character's book is read")) yield break;
             if (book.Rule == CompendiumRule.Off)
             {
-                p.Skip("the character plays with the compendium off, so no ground shows anything");
+                p.Skip("the character plays with the compendium off, so no ground shows others' walks");
                 yield break;
             }
             var entry = Crypt();
@@ -49,49 +43,11 @@ namespace Scry
                 p.Skip("there is no crypt, or no map in this world");
                 yield break;
             }
-            _pinBefore = (book.Shows(WorldSource.Explored), book.MarksDungeons(WorldSource.Explored));
+            _exploredBefore = book.Shows(WorldSource.Explored);
 
-            // The pin at the end of the explored ground's row, kept with the character as it is turned on at Known.
-            Session.ShowKnownInstead(null);
-            if (!Session.IsOpen) Session.Show(null);
-            KeepView();
-            ScryPanel.Compact = false;
-            var pins = ScryPanel.Drawn(PanelPart.DungeonPins);
-            var dimmed = ScryPanel.Drawn(PanelPart.InsidesDimmed);
-            ScryPanel.HoldCompendiumBox(true);
-            ScryPanel.ShowSource(WorldSource.Explored, SourceLevel.Known);
-            var answers = DungeonsInGround.Answers;
-            ScryPanel.MarkDungeons(WorldSource.Explored, true);
-            yield return Until(() => ScryPanel.Drawn(PanelPart.DungeonPins) > pins + 1 && KeptPins(CompendiumKeeper.FilePath).Contains("marks\tExplored"), 3);
-            p.Check(ScryPanel.Drawn(PanelPart.DungeonPins) > pins, "the box draws a pin at the end of each ground's row");
-            p.Check(KeptPins(CompendiumKeeper.FilePath).Contains("marks\tExplored"), "the explored ground's pin, turned on at Known, is kept in the character's book");
+            yield return BoxSourcesAtKnown(p, book, world);
 
-            // With insides dimmed on each row none of whose places found in this world has insides.
-            var without = WorldSources.All.Where(s => book.Shows(s) != SourceLevel.WithInsides && DungeonKinds.All.Count > 0 && !WorldSources.HasInsides(book.Found(world, s), DungeonKinds.Is)).ToList();
-            p.Note($"{Numbers.Count(DungeonKinds.All.Count)} kinds of dungeon lie inside; rows with none of them found: "
-                + (without.Count == 0 ? "none" : string.Join(", ", without.Select(CompendiumWords.SourceName))));
-            p.Check(without.Count > 0 == ScryPanel.Drawn(PanelPart.InsidesDimmed) > dimmed, "With insides is dimmed on exactly the rows none of whose places has insides",
-                $"{Numbers.Count(without.Count)} such rows, dimmed drawn {Numbers.Count(ScryPanel.Drawn(PanelPart.InsidesDimmed) - dimmed)} times");
-            yield return Picture(p, "compendium box pins");
-            ScryPanel.HoldCompendiumBox(false);
-
-            // The game running the world names the dungeons lying in the ground, with their rooms or by their entrance.
-            yield return Until(() => DungeonsInGround.Answers > answers, 20);
-            if (DungeonsInGround.Answers == answers) p.Note("no answer came on the dungeons in the explored ground: the server runs no Scry, or one older than this");
-            else
-            {
-                var named = DungeonsInGround.Of(WorldSource.Explored).ToList();
-                var grid = ExploredGrid.Unpack(CompendiumMap.PackedMap());
-                var withRooms = named.Where(m => m.Map.Rooms.Count > 0).ToList();
-                var walkedThere = withRooms.Count(m => m.Map.Walked.Count > 0);
-                p.Note($"{Numbers.Count(named.Count)} dungeons lie in the explored ground, {Numbers.Count(withRooms.Count)} with their rooms kept, {Numbers.Count(walkedThere)} of them walked on this server: "
-                    + string.Join(", ", named.GroupBy(m => m.Map.Location).OrderBy(g => g.Key, System.StringComparer.Ordinal).Select(g => $"{g.Key} {Numbers.Count(g.Count())}")));
-                p.Check(grid != null && named.All(m => grid.Explored(m.Map.Entrance.X, m.Map.Entrance.Z)), "each one's entrance lies in explored ground");
-                p.Check(withRooms.All(m => m.Map.Generator.Y > 3000f), "each whose rooms are kept stands inside with them");
-                p.Check(named.All(m => DungeonKinds.Is(m.Map.Location) || m.Map.Rooms.Count > 0), "each known by its entrance alone is of a kind of dungeon lying inside");
-            }
-
-            // Made-up dungeons where the player stands: walked by you, walked on this server, and known by the entrance alone.
+            // Made-up dungeons where the player stands: walked by you, seen and walked on this server, seen and walked by nobody.
             var noCompendium = new CompendiumView(X.Entries);
             noCompendium.Tell(new CompendiumBook(), CompendiumRule.Off);
             Session.ShowKnownInstead(noCompendium);
@@ -100,54 +56,46 @@ namespace Scry
             yield return Until(() => ReferenceEquals(X.Compendium, noCompendium) && ExampleLayouts.Of(entry) && ExampleLayouts.Example != null && Stage.ExampleRoomsTotal > 0 && Stage.ExampleRoomsShown == Stage.ExampleRoomsTotal, 150);
             var rolled = ExampleLayouts.Of(entry) ? ExampleLayouts.Example : null;
             if (!p.Check(rolled != null, "an example has been laid out")) yield break;
+            Session.ShowKnownInstead(null);
             var here = player.transform.position;
             var prefab = PlaceOf(entry).Prefab;
             var yours = new DungeonMaps();
             var yoursId = DungeonMaps.IdOf(world, 1L, 30u);
             yours.Keep(yoursId, prefab, SavedAsTheGameSaves(rolled), new Vec3(here.x, here.y, here.z), rolled.Site.Generator, rolled.Site.Turn);
             yours.Walk(yoursId, 0);
-            var ground = new DungeonMaps();
-            var serverId = DungeonMaps.IdOf(world, 1L, 31u);
-            ground.Keep(serverId, prefab, SavedAsTheGameSaves(rolled), new Vec3(here.x + 200f, here.y, here.z), rolled.Site.Generator, rolled.Site.Turn);
-            ground.Walk(serverId, 0);
-            ground.Walk(serverId, 1);
-            var entranceId = DungeonMaps.EntranceIdOf(world, here.x - 200f, here.z);
-            ground.Keep(entranceId, prefab, new List<(int, Vec3, Vec3)>(), new Vec3(here.x - 200f, here.y, here.z), default, Quat.Identity);
+            var (serverX, serverZ) = ((int)Mathf.Round(here.x + 200f), (int)Mathf.Round(here.z));
+            var (aloneX, aloneZ) = ((int)Mathf.Round(here.x - 200f), (int)Mathf.Round(here.z));
+            var serverId = DungeonMaps.EntranceIdOf(world, serverX, serverZ);
+            var aloneId = DungeonMaps.EntranceIdOf(world, aloneX, aloneZ);
+            var group = new DungeonMaps();
+            group.Keep(serverId, prefab, SavedAsTheGameSaves(rolled), default, rolled.Site.Generator, rolled.Site.Turn);
+            group.Walk(serverId, 0);
+            group.Walk(serverId, 1);
             DungeonWalks.MapsInsteadForTest(yours);
-            DungeonsInGround.InsteadForTest(WorldSource.Explored, ground);
+            GroupMapsLink.GroupInsteadForTest(group);
+            MapMarkButtons.SeenInsteadForTest(new List<(string, string, int, int)> { (serverId, prefab, serverX, serverZ), (aloneId, prefab, aloneX, aloneZ) });
             Session.Hide();
             Minimap.instance.SetMapMode(Minimap.MapMode.Large);
             yield return Until(() => MapMarkButtons.MarksShown == 3, 5);
             p.Check(MapMarkButtons.MarksShown == 3 && MapMarkButtons.EntrancesShown == 2 && MapMarkButtons.HollowShown == 0,
-                "at Known the large map marks the one walked by you filled, the others by their entrances",
+                "at Known the large map marks the one walked by you filled, the seen ones by their entrances",
                 $"{Numbers.Count(MapMarkButtons.MarksShown)} marks, {Numbers.Count(MapMarkButtons.EntrancesShown)} entrances, {Numbers.Count(MapMarkButtons.HollowShown)} hollow");
             var saidBelow = MapMarkButtons.SaidForTest(1);
-            p.Check(saidBelow != null && saidBelow.Contains("With insides shows what was walked"), "the one walked on this server says With insides shows it", saidBelow);
+            p.Check(saidBelow != null && saidBelow.Contains("With insides shows what was walked"), "the seen one walked on this server says With insides shows it", saidBelow);
             var saidEntrance = MapMarkButtons.SaidForTest(2);
-            p.Check(saidEntrance != null && saidEntrance.Contains("Nobody on this server walked it"), "the entrance alone says nobody on this server walked it", saidEntrance);
+            p.Check(saidEntrance != null && saidEntrance.Contains("Nobody on this server walked it"), "the seen one nobody walked says so", saidEntrance);
 
-            // An entrance whose rooms the world keeps opens as itself, tagged as the world's own.
-            var atKnown = MapMarkButtons.MarkCenterForTest(1);
-            if (atKnown != null && MapMarkButtons.MarkAtForTest(atKnown.Value) == 1 && MapMarkButtons.ClickAtForTest(atKnown.Value))
-            {
-                yield return Until(() => ExampleLayouts.ShownMap == serverId && ScryPanel.TrailTaggedForTest, 60);
-                var opened = MapMarkButtons.OpenedForTest;
-                p.Check(ExampleLayouts.ShownMap == serverId && opened.Look == MarkLook.Entrance && opened.Rooms && ScryPanel.TrailTaggedForTest,
-                    "an entrance whose rooms the world keeps opens its own rooms, tagged In your world", $"shown {ExampleLayouts.ShownMap ?? "an example"}, {opened.Look}");
-                Session.Hide();
-                Minimap.instance.SetMapMode(Minimap.MapMode.Large);
-                yield return Until(() => MapMarkButtons.MarksShown == 3, 5);
-            }
-            else p.Note("the entrance whose rooms the world keeps stands under another mark at this zoom: its click is left out");
-
+            // With insides, the seen one walked on this server hollow; the game running the world names what lies in the explored ground.
+            var answers = DungeonsInGround.Answers;
             ScryPanel.ShowSource(WorldSource.Explored, SourceLevel.WithInsides);
             yield return Until(() => MapMarkButtons.MarksShown == 3 && MapMarkButtons.HollowShown == 1 && MapMarkButtons.EntrancesShown == 1, 5);
-            p.Check(MapMarkButtons.MarksShown == 3 && MapMarkButtons.HollowShown == 1 && MapMarkButtons.EntrancesShown == 1, "with insides the one walked on this server is marked hollow",
+            p.Check(MapMarkButtons.MarksShown == 3 && MapMarkButtons.HollowShown == 1 && MapMarkButtons.EntrancesShown == 1, "with insides the seen one walked on this server is marked hollow",
                 $"{Numbers.Count(MapMarkButtons.MarksShown)} marks, {Numbers.Count(MapMarkButtons.EntrancesShown)} entrances, {Numbers.Count(MapMarkButtons.HollowShown)} hollow");
             var saidHollow = MapMarkButtons.SaidForTest(1);
             p.Check(saidHollow != null && saidHollow.Contains("Walked on this server: 2 of"), "its words say how far anyone on this server walked it", saidHollow);
             p.Check((MapMarkButtons.SaidForTest(0) ?? "").Contains("Walked by you: 1 of"), "the one walked by you says how far you walked it", MapMarkButtons.SaidForTest(0));
             p.Check(OnPlateAlone(MapMarkButtons.SaidForTest(0)), "its words stand on a dark plate, the name and how far it was walked alone", MapMarkButtons.SaidForTest(0));
+            yield return GroundAnswered(p, answers);
 
             var hollowAt = MapMarkButtons.MarkCenterForTest(1);
             var entranceAt = MapMarkButtons.MarkCenterForTest(2);
@@ -166,20 +114,20 @@ namespace Scry
             if (MapMarkButtons.MarkAtForTest(entranceAt.Value) != 2 || MapMarkButtons.MarkAtForTest(hollowAt.Value) != 1)
             {
                 p.Note("the marks stand over one another at this zoom: the clicks are left out");
-                PinsAsTheyWere();
+                SeenMarksAsTheyWere();
                 yield break;
             }
 
-            // A click on the entrance whose area never loaded shows an example standing in, tagged as one.
+            // A click on the entrance nobody walked shows an example standing in, tagged as one.
             p.Check(MapMarkButtons.ClickAtForTest(entranceAt.Value), "a click on the map at the entrance goes to its mark");
             yield return Until(() => Session.IsOpen && X.Selected == entry && ExampleLayouts.Example != null && ScryPanel.ExampleTaggedForTest && (ScryPanel.DungeonNoteForTest ?? "").Contains("stands in for the one"), 30);
             p.Check(Minimap.instance.m_mode != Minimap.MapMode.Large && X.Selected == entry && ExampleLayouts.ShownMap == null && !MapMarkButtons.OpenedForTest.Rooms,
-                "a click on the entrance whose area never loaded opens its page with an example", $"map {Minimap.instance.m_mode}, selected {X.Selected?.Name}, shown {ExampleLayouts.ShownMap ?? "an example"}");
+                "a click on the entrance nobody walked opens its page with an example", $"map {Minimap.instance.m_mode}, selected {X.Selected?.Name}, shown {ExampleLayouts.ShownMap ?? "an example"}");
             p.Check(ScryPanel.ExampleTaggedForTest, "the example is tagged as one");
             p.Check((ScryPanel.DungeonNoteForTest ?? "").Contains("This example stands in for the one in your world, whose area has not loaded yet"), "its note says it stands in, and why", ScryPanel.DungeonNoteForTest);
-            yield return Picture(p, $"an example standing in for a {entry.Name} whose area never loaded");
+            yield return Picture(p, $"an example standing in for a {entry.Name} seen by its entrance");
 
-            // A click on the hollow one shows its rooms on the stage.
+            // A click on the hollow one shows the rooms walked on this server on the stage.
             Session.Hide();
             Minimap.instance.SetMapMode(Minimap.MapMode.Large);
             yield return Until(() => MapMarkButtons.MarksShown == 3, 5);
@@ -188,45 +136,72 @@ namespace Scry
             yield return Until(() => ExampleLayouts.ShownMap == serverId && Stage.ExampleRoomsTotal == rolled.Rooms.Count, 60);
             p.Check(Minimap.instance.m_mode != Minimap.MapMode.Large && Session.IsOpen && X.Selected == entry && ExampleLayouts.ShownMap == serverId,
                 "a click on it closes the map and shows that crypt's own rooms on the stage", $"map {Minimap.instance.m_mode}, selected {X.Selected?.Name}, shown {ExampleLayouts.ShownMap ?? "an example"}");
-            PinsAsTheyWere();
+            SeenMarksAsTheyWere();
+        }
+
+        /// <summary>With the explored ground shown with insides, the game running the world names the dungeons lying in it, each in it, for what the row shows.</summary>
+        private static IEnumerator GroundAnswered(Probe p, int answers)
+        {
+            yield return Until(() => DungeonsInGround.Answers > answers, 20);
+            if (DungeonsInGround.Answers == answers) p.Note("no answer came on the dungeons in the explored ground: the server runs no Scry, or one older than this");
+            else
+            {
+                var named = DungeonsInGround.Of(WorldSource.Explored).ToList();
+                var grid = ExploredGrid.Unpack(CompendiumMap.PackedMap());
+                p.Note($"{Numbers.Count(named.Count)} dungeons lie in the explored ground, {Numbers.Count(named.Count(m => m.Map.Walked.Count > 0))} of them walked on this server, for what the row shows");
+                p.Check(grid != null && named.All(m => grid.Explored(m.Map.Entrance.X, m.Map.Entrance.Z)), "each one the explored ground is asked about lies in it");
+            }
+        }
+
+        /// <summary>The box's source rows with the explored ground at Known: no pin after any of them, With insides dimmed where nothing found has insides. Pictured.</summary>
+        private static IEnumerator BoxSourcesAtKnown(Probe p, CompendiumBook book, string world)
+        {
+            Session.ShowKnownInstead(null);
+            if (!Session.IsOpen) Session.Show(null);
+            KeepView();
+            ScryPanel.Compact = false;
+            var dimmed = ScryPanel.Drawn(PanelPart.InsidesDimmed);
+            var sources = ScryPanel.Drawn(PanelPart.SourcesControl);
+            ScryPanel.HoldCompendiumBox(true);
+            ScryPanel.ShowSource(WorldSource.Explored, SourceLevel.Known);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.SourcesControl) > sources + 2, 3);
+            var without = WorldSources.All.Where(s => book.Shows(s) != SourceLevel.WithInsides && DungeonKinds.All.Count > 0 && !WorldSources.HasInsides(book.Found(world, s), DungeonKinds.Is)).ToList();
+            p.Note($"{Numbers.Count(DungeonKinds.All.Count)} kinds of dungeon lie inside; rows with none of them found: "
+                + (without.Count == 0 ? "none" : string.Join(", ", without.Select(CompendiumWords.SourceName))));
+            p.Check(without.Count > 0 == ScryPanel.Drawn(PanelPart.InsidesDimmed) > dimmed, "With insides is dimmed on exactly the rows none of whose places has insides",
+                $"{Numbers.Count(without.Count)} such rows, dimmed drawn {Numbers.Count(ScryPanel.Drawn(PanelPart.InsidesDimmed) - dimmed)} times");
+            var pins = ScryPanel.BookCellsForTest.Where(c => c.Label == "pin").Select(c => c.Row).ToList();
+            p.Check(pins.Count == 0, "no row of the box has a pin: dungeons are marked where walked or seen", string.Join(", ", pins));
+            yield return Picture(p, "compendium box sources");
+            ScryPanel.HoldCompendiumBox(false);
         }
 
         /// <summary>
-        /// A ground of hundreds of dungeons on Valheim's large map: made-up entrances all round the
-        /// player, every one in view, all come to stand within a few seconds, and making them and
-        /// telling their words holds no frame long, as making them all in one frame held one for
-        /// most of a second.
+        /// Hundreds of entrances seen on Valheim's large map: made-up ones all round the player,
+        /// every one in view, all come to stand within a few seconds, and making them and telling
+        /// their words holds no frame long, as making them all in one frame held one for most of a
+        /// second.
         /// </summary>
         private static IEnumerator ManyMarks(Probe p)
         {
-            yield return Until(() => CompendiumKeeper.Book != null, 10);
-            var book = CompendiumKeeper.Book;
             var entry = Crypt();
             var world = CompendiumMap.World;
             var player = Player.m_localPlayer;
-            if (book == null || book.Rule == CompendiumRule.Off)
-            {
-                p.Skip("the character plays with the compendium off, so no ground shows anything");
-                yield break;
-            }
             if (entry == null || world == null || player == null || Minimap.instance == null || Game.m_noMap)
             {
                 p.Skip("there is no crypt, or no map in this world");
                 yield break;
             }
-            _pinBefore = (book.Shows(WorldSource.Explored), book.MarksDungeons(WorldSource.Explored));
-            ScryPanel.ShowSource(WorldSource.Explored, SourceLevel.Known);
-            ScryPanel.MarkDungeons(WorldSource.Explored, true);
             const int many = 400;
             var here = player.transform.position;
             var prefab = PlaceOf(entry).Prefab;
-            var ground = new DungeonMaps();
+            var seen = new List<(string, string, int, int)>();
             for (var i = 0; i < many; i++)
             {
-                var (x, z) = (here.x + (i % 20 - 10) * 8f, here.z + (i / 20 - 10) * 8f);
-                ground.Keep(DungeonMaps.EntranceIdOf(world, x, z), prefab, new List<(int, Vec3, Vec3)>(), new Vec3(x, here.y, z), default, Quat.Identity);
+                var (x, z) = ((int)Mathf.Round(here.x + (i % 20 - 10) * 8f), (int)Mathf.Round(here.z + (i / 20 - 10) * 8f));
+                seen.Add((DungeonMaps.EntranceIdOf(world, x, z), prefab, x, z));
             }
-            DungeonsInGround.InsteadForTest(WorldSource.Explored, ground);
+            MapMarkButtons.SeenInsteadForTest(seen);
             Session.Hide();
             var first = Timing.Measuring?.Frames ?? 0;
             Timing.ForgetBytesByPart();
@@ -247,27 +222,23 @@ namespace Scry
             // What they are listed from changed, their words are told anew a few a frame: none goes from the map meanwhile.
             var standing = MapMarkButtons.MarksShown;
             var fewest = standing;
-            DungeonsInGround.InsteadForTest(WorldSource.Explored, ground);
+            MapMarkButtons.SeenInsteadForTest(seen);
             for (var frame = 0; frame < 30; frame++)
             {
                 yield return null;
                 fewest = System.Math.Min(fewest, MapMarkButtons.MarksShown);
             }
             p.Check(fewest >= standing, "their words told anew, every one stays on the map meanwhile", $"{Numbers.Count(fewest)} of {Numbers.Count(standing)} at the fewest");
-            PinsAsTheyWere();
+            SeenMarksAsTheyWere();
         }
 
-        /// <summary>Puts back how the explored ground showed and its pin, the made-up dungeons, the large map and the pointer, should the part have stopped before it did.</summary>
-        private static void PinsAsTheyWere()
+        /// <summary>Puts back how the explored ground showed, the made-up dungeons, seen entrances and records, the large map and the pointer, should the part have stopped before it did.</summary>
+        private static void SeenMarksAsTheyWere()
         {
             MarksAsTheyWere();
             ScryPanel.HoldCompendiumBox(false);
-            if (_pinBefore is (SourceLevel shows, bool pin))
-            {
-                ScryPanel.ShowSource(WorldSource.Explored, shows);
-                ScryPanel.MarkDungeons(WorldSource.Explored, pin);
-            }
-            _pinBefore = null;
+            if (_exploredBefore is SourceLevel shows) ScryPanel.ShowSource(WorldSource.Explored, shows);
+            _exploredBefore = null;
             Session.ShowKnownInstead(null);
         }
 

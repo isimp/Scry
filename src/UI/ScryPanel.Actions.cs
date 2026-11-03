@@ -210,7 +210,14 @@ namespace Scry
         private static void ShowOnMap(Entry entry)
         {
             AskClose();
-            MapSpots.Show(entry);
+            MapSpots.Show(entry, KindsMet(entry), entry.Family?.Name);
+        }
+
+        /// <summary>The kinds of a page's place the strip may show at once: those met, or every one with the compendium off; none for one of a kind alone.</summary>
+        private static IReadOnlyList<Entry> KindsMet(Entry entry)
+        {
+            if (entry?.Family == null) return System.Array.Empty<Entry>();
+            return _explorer != null && _explorer.CompendiumSet ? _explorer.MembersMet(entry) : entry.Family.Kinds;
         }
 
         /// <summary>

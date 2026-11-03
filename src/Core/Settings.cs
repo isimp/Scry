@@ -34,7 +34,7 @@ namespace Scry
         private static ConfigEntry<NewsShown> _news;
         private static ConfigEntry<bool> _markNames;
         private static ConfigEntry<float> _markSize;
-        private static ConfigEntry<bool> _marksWalkedByYou, _marksOnMinimap;
+        private static ConfigEntry<bool> _marksOnMinimap;
         private static ConfigEntry<bool> _recordSeenSpots;
         private static ConfigEntry<OtherPinsShown> _mapOtherPins;
         private static ConfigEntry<MapDarkening> _mapDarken;
@@ -161,9 +161,6 @@ namespace Scry
 
         /// <summary>How big each dungeon mark on the map is, as a share of a map pin.</summary>
         public static float DungeonMarkSize { get => Mathf.Clamp(_markSize?.Value ?? 1f, SettingsWords.SmallestMarkSize, SettingsWords.LargestMarkSize); set => Set(_markSize, Mathf.Clamp(value, SettingsWords.SmallestMarkSize, SettingsWords.LargestMarkSize)); }
-
-        /// <summary>Which dungeon marks the map shows: those of dungeons you walked, those others on this server walked, and entrances alone.</summary>
-        public static bool DungeonMarksWalkedByYou { get => _marksWalkedByYou?.Value ?? true; set => Set(_marksWalkedByYou, value); }
 
         /// <summary>Whether the minimap shows the marks of dungeons you walked too.</summary>
         public static bool DungeonMarksOnMinimap { get => _marksOnMinimap?.Value ?? false; set => Set(_marksOnMinimap, value); }
@@ -320,10 +317,8 @@ namespace Scry
                     new AcceptableValueRange<float>(SettingsWords.SmallestMarkSize, SettingsWords.LargestMarkSize)));
             // A size kept from before the three goes to the nearest of them.
             _markSize.Value = MapLook.NearestMarkScale(_markSize.Value);
-            _marksWalkedByYou = config.Bind("1 - General", "DungeonMarksWalkedByYou", true,
-                "Marks the dungeons you walked on the map. Off, they are left out; those of a ground whose pin is on still show.");
-            // Which marks show by how they were walked: now by where they are known from alone.
-            Retire(config, "DungeonMarksWalkedOnServer", "DungeonMarkEntrances");
+            // Which marks show, by how they were walked or which grounds: now every dungeon walked or seen, as Show on map shows places.
+            Retire(config, "DungeonMarksWalkedOnServer", "DungeonMarkEntrances", "DungeonMarksWalkedByYou");
             _marksOnMinimap = config.Bind("1 - General", "DungeonMarksOnMinimap", false,
                 "Shows the marks of dungeons you walked on the minimap too, at its pins' size, without names.");
             _recordSeenSpots = config.Bind("1 - General", "RecordSeenSpots", true,

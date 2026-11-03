@@ -23,8 +23,6 @@ namespace Scry
         KnownUpTo,
         Source,
 
-        /// <summary>Which dungeons the map marks: a config tick for those you walked, then a pin of the book's for each ground.</summary>
-        DungeonPins,
     }
 
     /// <summary>One of a setting's values offered on the card, as the config file writes it, and its name.</summary>
@@ -135,7 +133,6 @@ namespace Scry
 
             new SettingSection("Map",
                 In("Dungeon marks", Switch("DungeonMarksOnMap", "Dungeon marks", SettingsWords.DungeonMarksWhy)),
-                In("Dungeon marks", DungeonPins()),
                 In("Dungeon marks", Choices("DungeonMarkNamesAlways", "Names", "Whether a mark's name shows under it always, as the game names its pins, or while you point at it.",
                     ("false", "When pointed at"), ("true", "Always"))),
                 In("Dungeon marks", Choices("DungeonMarkSize", "Size", "How big a dungeon mark stands beside the game's pins; its name grows with it.",
@@ -172,7 +169,7 @@ namespace Scry
         {
             Key("OpenKey", "Open Scry with", "The key that opens and closes the panel; /scry in the chat does the same."),
             Ticks(new[] { "WalkWhileOpen", "LookWithRightMouse" }, "While the panel is open", "Each on its own; both stay under the gear.", "Walk with your keys", "Look with the right mouse"),
-            Ticks(new[] { "DungeonMarksOnMap", "RecordSeenSpots" }, "On Valheim's map", "Marks for the dungeons you walked, and where you saw ore, berries and places, for a page's Show on map.", "Mark dungeons", "Remember what you see"),
+            Ticks(new[] { "DungeonMarksOnMap", "RecordSeenSpots" }, "On Valheim's map", "Marks for the dungeons you walked or saw, and where you saw ore, berries and places, for a page's Show on map; the dungeons you only see stay unmarked without remembering what you see.", "Mark dungeons", "Remember what you see"),
         };
 
         /// <summary>Every row, with what the server allows of a row standing under it; for the tests.</summary>
@@ -207,23 +204,6 @@ namespace Scry
 
         /// <summary>The words of a size chosen one of three, for the marks and the dots alike.</summary>
         private static string[] SizeNames => new[] { "Small", "Normal", "Large" };
-
-        /// <summary>The grounds a pin of the compendium's marks the dungeons of, as ticks of the Map section's row.</summary>
-        public static WorldSource[] PinnedGrounds => WorldSources.All.Where(WorldSources.HasGround).ToArray();
-
-        /// <summary>
-        /// Which dungeons the map marks, by where they are known from: those you walked, a setting
-        /// of the config file's, then those lying in each ground, the compendium's pins for it.
-        /// </summary>
-        private static SettingRow DungeonPins() => new SettingRow
-        {
-            Keys = new[] { "DungeonMarksWalkedByYou" },
-            Label = "Mark the dungeons",
-            Why = "Solid where you walked it, in outline where others on this server did, faint where nobody did yet. The two grounds are your character's, the same switches as the pins on their rows in the compendium, and mark while that row shows anything.",
-            Control = SettingControl.Book,
-            Book = BookPart.DungeonPins,
-            TickNames = PinnedGrounds.Select(SettingsWords.PinnedGroundTick).Prepend("You walked").ToArray(),
-        };
 
         /// <summary>The line under a group's heading saying what its rows share, their own words on their labels' tips; none.</summary>
         public static string GroupIntro(string group) =>

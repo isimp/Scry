@@ -7,18 +7,17 @@ using UnityEngine;
 namespace Scry
 {
     /// <summary>
-    /// The dungeons lying in each ground whose pin is on (<see cref="CompendiumBook.MarksDungeonsNow"/>)
-    /// or whose row shows With insides, for their marks on Valheim's big map (<see cref="DungeonMarks"/>)
-    /// and what the row shows (<see cref="SourceWalks"/>): worked out by the game running the world
+    /// The dungeons lying in each ground whose row shows With insides, for what the row shows
+    /// (<see cref="SourceWalks"/>): worked out by the game running the world
     /// (<see cref="WorldDungeons.InGround"/>), here where it is this game, else asked of a dedicated
     /// server's Scry, the ground packed as for the explored map and the kinds of dungeon named
     /// (<see cref="DungeonKinds"/>), the ask by the player's own connection at the server's pace
     /// (<see cref="GroundAsks"/>) and the answer by a routed message of its own. Each comes with its rooms where the world keeps
     /// them and the server's walks on it, anyone's (<see cref="GroupMapsLink.RecordOf"/>), else by
-    /// its entrance alone. Asked as a pin goes on and again every ten minutes while it is, as the
-    /// ground grows; for the single places a row shows with insides, the server's records of their
-    /// kinds of dungeon are asked for. A server without Scry never answers, and only dungeons walked
-    /// by you are marked. Held for the session only.
+    /// its entrance alone. Asked as the row comes to show With insides and again every ten minutes
+    /// while it does, as the ground grows; for the single places a row shows with insides, the
+    /// server's records of their kinds of dungeon are asked for. A server without Scry never
+    /// answers. Held for the session only.
     /// </summary>
     internal static class DungeonsInGround
     {
@@ -27,7 +26,7 @@ namespace Scry
         public const string AskRpc = "Scry_DungeonsAsk";
         public const string AnswerRpc = "Scry_DungeonsAnswer";
 
-        /// <summary>How often a ground is asked about again while its pin is on, in seconds.</summary>
+        /// <summary>How often a ground is asked about again while its row shows With insides, in seconds.</summary>
         private const float AskEvery = 600f;
 
         private static readonly Dictionary<WorldSource, DungeonMaps> Held = new Dictionary<WorldSource, DungeonMaps>();
@@ -90,9 +89,6 @@ namespace Scry
             Stamp++;
         }
 
-        /// <summary>Asks about a ground at the next frame, as its pin goes on.</summary>
-        public static void AskNow(WorldSource source) => AskedAt.Remove(source);
-
         /// <summary>Registers the messages on each new connection, on a dedicated server too, and asks about each ground marked as it is due.</summary>
         public static void Update()
         {
@@ -122,7 +118,7 @@ namespace Scry
                     if (insides) foreach (var kind in book.Found(world, source)) if (DungeonKinds.Is(kind)) GroupMapsLink.Ask(kind);
                     continue;
                 }
-                if (!book.MarksDungeonsNow(source) && !insides) continue;
+                if (!insides) continue;
                 if (AskedAt.TryGetValue(source, out var at) && Time.unscaledTime - at < AskEvery) continue;
                 Ask(rpc, world, source);
             }

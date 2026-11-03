@@ -36,6 +36,12 @@ namespace Scry
         /// <summary>The strip's button taking the dots away.</summary>
         public const string Hide = "Hide";
 
+        /// <summary>A place of several kinds shown all at once, as the strip names it.</summary>
+        public static string AllKindsName(string family, int kinds) => $"{family}, all {Numbers.Count(kinds)} kinds";
+
+        /// <summary>The strip's button showing all of a place's kinds, lit while they are shown, or the page's kind alone again.</summary>
+        public static string AllKindsChip(int kinds) => $"All {Numbers.Count(kinds)} kinds";
+
         /// <summary>How near the nearest stands to be beside you rather than at a distance.</summary>
         private const float Beside = 5f;
 
@@ -141,6 +147,9 @@ namespace Scry
         public IReadOnlyList<(int X, int Z)> Spots { get; private set; } = None;
 
         public bool Showing => Kind != null;
+
+        /// <summary>The key several kinds shown at once go by, each kind's key in it.</summary>
+        public static string AllKindsKey(IEnumerable<string> kinds) => string.Join("+", kinds);
 
         /// <summary>A kind's spots shown in a world, in place of any shown before.</summary>
         public void Show(string world, string kind, string name, IReadOnlyList<(int X, int Z)> spots)

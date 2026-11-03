@@ -93,7 +93,7 @@ namespace Scry
         /// <summary>A value shown, not a control: sunken into the panel rather than raised, as a value read is told apart from a button pressed.</summary>
         public static GUIStyle Value;
 
-        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize, Roof, Speed, Repeat, Steps, Eye, Up, Down, Compass, Doorway, FoldedMap, Lock;
+        public static Texture2D Rounded, Pill, Circle, Star, StarHollow, Clock, ListMark, Speaker, Resize, Roof, Speed, Repeat, Steps, Eye, Up, Down, Compass, FoldedMap, Lock;
 
         /// <summary>A plain square, for the pieces between a joined group's ends; a gear, for the settings box.</summary>
         public static Texture2D Square, Gear;
@@ -835,7 +835,6 @@ namespace Scry
             Steps = Shape(32, 32, StepsCoverage);
             Eye = Shape(32, 32, EyeCoverage);
             Compass = Shape(32, 32, CompassCoverage);
-            Doorway = Shape(32, 32, DoorwayCoverage);
             FoldedMap = Shape(32, 32, FoldedMapCoverage);
             Lock = Shape(32, 32, LockCoverage);
             Square = Shape(32, 32, (x, y) => true);
@@ -939,16 +938,6 @@ namespace Scry
             if (t <= -1f || t >= 1f) return false;
             var outer = 10f * (1f - t * t);
             return dy <= outer && dy >= outer - 2.8f;
-        }
-
-        /// <summary>A disc with a rounded doorway in it, as Scry marks a dungeon on Valheim's big map: the pin marking a ground's dungeons.</summary>
-        private static bool DoorwayCoverage(float x, float y)
-        {
-            var dx = x - 16f;
-            var dy = y - 16f;
-            if (dx * dx + dy * dy > 15f * 15f) return false;
-            var doorway = dy > 2f ? Mathf.Sqrt(dx * dx + (dy - 2f) * (dy - 2f)) <= 6f : Mathf.Abs(dx) <= 6f && dy >= -8f;
-            return !doorway;
         }
 
         /// <summary>A padlock: its body, and the shackle over it, the mark of what the world's server sets.</summary>

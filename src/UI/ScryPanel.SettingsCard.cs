@@ -147,7 +147,7 @@ namespace Scry
         private static int SettingCount(SettingSection section)
         {
             var count = 0;
-            foreach (var row in section.Rows) count += row.Control == SettingControl.Book ? Mathf.Max(1, row.TickNames.Count) : row.Keys.Count;
+            foreach (var row in section.Rows) count += row.Control == SettingControl.Book ? 1 : row.Keys.Count;
             return count;
         }
 
@@ -238,7 +238,7 @@ namespace Scry
         /// <summary>Whether a section holds the character's compendium: its rules, Known up to and sources.</summary>
         private static bool HasCompendiumRows(SettingSection section)
         {
-            foreach (var row in section.Rows) if (row.Control == SettingControl.Book && row.Book != BookPart.DungeonPins) return true;
+            foreach (var row in section.Rows) if (row.Control == SettingControl.Book) return true;
             return false;
         }
 

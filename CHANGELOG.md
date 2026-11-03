@@ -16,6 +16,10 @@ What a page links stands in the topic it belongs to, a dungeon room says whether
 
 The settings under the gear are one card in sections, each setting explained where it stands, every one in one place: the panel, the preview, your character's compendium, the map, reading in the background and what the server decides. The compendium's section holds the same rows as its box, with what the server allows standing under each; the box now opens on a click. New settings choose how a page's marks stand out on the map, how loud a preview plays, whether news of what you learn tells all of it or new pages only, and Shift, Ctrl or Alt with the key opening Scry. A new player is told that key once in a world, and the first time Scry opens it offers a short setup.
 
+Dungeon marks on the map follow what you know, as a page's Show on map does: a dungeon you walked, and one whose entrance you saw, hollow where others on the server walked it while *Ground you explored* shows *With insides*. The pins on the compendium's ground rows are gone, with the settings that chose which marks show; a dungeon you never came near shows by its square on its page's Show on map.
+
+A place of several kinds, as the Burial Chambers, shows one kind on the map from its page, or all of them at once with the map strip's "All 3 kinds".
+
 On a new install the panel opens with the keys still walking your character; *Search ready* under *On opening* in the settings brings the old behaviour back.
 
 ## 0.3.2

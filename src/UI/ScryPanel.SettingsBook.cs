@@ -7,9 +7,10 @@ namespace Scry
     /// <summary>
     /// The settings' Compendium rows of the character's own: its rules, Known up to and what each
     /// source of the world shows, read from its book and set as the compendium's box sets them
-    /// (<see cref="SetBookRow"/>, <see cref="MarkDungeons"/>), so the two never differ, the card
-    /// standing as they change; what the world's server keeps from a row dimmed as the box dims it. Under each, what the world allows of it: set there while you
-    /// play alone or host, while a server decides it a line saying what it keeps from the row.
+    /// (<see cref="SetBookRow"/>), so the two never differ, the card standing as they change; what
+    /// the world's server keeps from a row dimmed as the box dims it. Under each, what the world
+    /// allows of it: set there while you play alone or host, while a server decides it the lock
+    /// beside the row saying what it keeps.
     /// </summary>
     internal static partial class ScryPanel
     {
@@ -46,17 +47,11 @@ namespace Scry
         /// <summary>
         /// A row of the character's compendium, as the box draws it, none before its book is read;
         /// with the rules Off, Known up to and the sources shown but not set; while a server keeps
-        /// something from it, the lock beside it saying what, short. The Map section's row of which
-        /// dungeons are marked, its ticks. How tall it stood.
+        /// something from it, the lock beside it saying what, short. How tall it stood.
         /// </summary>
         private static float BookControl(SettingRow row, Rect at)
         {
             var book = CompendiumKeeper.Book;
-            if (row.Book == BookPart.DungeonPins)
-            {
-                DungeonPinTicks(row, book, at);
-                return at.height;
-            }
             if (book == null) return at.height;
             float end;
             if (row.Book == BookPart.Rules) end = RulesSegments(row, book, at);
@@ -99,46 +94,6 @@ namespace Scry
             DimSegment(at, text, style);
             var w = Skin.Width(style, text) - U(10f);
             Skin.Fill(new Rect(at.center.x - w / 2f, at.center.y, w, Mathf.Max(1f, U(1f))), Skin.Alpha(Skin.Faint, 0.8f));
-        }
-
-        /// <summary>
-        /// Which dungeons the map marks: a tick for those you walked, kept in the config file, then
-        /// one for each ground, the character's pin for it, set as the pin sets it; the grounds'
-        /// shown but not set before the character's book is read.
-        /// </summary>
-        private static void DungeonPinTicks(SettingRow row, CompendiumBook book, Rect at)
-        {
-            var x = at.x;
-            var box = U(16f);
-            for (var i = 0; i < row.TickNames.Count; i++)
-            {
-                var ground = i > 0;
-                var on = ground ? book != null && book.MarksDungeons(SettingsCatalog.PinnedGrounds[i - 1]) : SettingValue(row.Keys[0]) == SettingsCatalog.True;
-                var was = GUI.enabled;
-                GUI.enabled = was && (!ground || book != null);
-                var square = new Rect(x, at.y + (at.height - box) / 2f, box, box);
-                Skin.Box(square, on ? Skin.Accent : Skin.Raised);
-                if (on) Skin.Icon(square, Skin.Tick, Skin.OnAccent);
-                var nameW = Skin.Width(Skin.DimLabel, row.TickNames[i]);
-                GUI.Label(new Rect(square.xMax + U(7f), at.y, nameW + U(4f), at.height), row.TickNames[i], Skin.DimLabel);
-                if (GUI.Button(new Rect(x, at.y, box + U(11f) + nameW, at.height), GUIContent.none, GUIStyle.none)) SetDungeonTick(row, i, !on);
-                GUI.enabled = was;
-                NoteSettingsBook(row.Label, row.TickNames[i], on);
-                x += box + U(11f) + nameW + U(20f);
-            }
-        }
-
-        /// <summary>A tick of which dungeons the map marks set on or off, as a click sets it: the first in the config file, a ground's as its pin. The self-test sets them this way.</summary>
-        public static void SetDungeonTick(SettingRow row, int tick, bool on)
-        {
-            if (tick == 0)
-            {
-                SetSetting(row, row.Keys[0], on ? SettingsCatalog.True : SettingsCatalog.False);
-                return;
-            }
-            var book = CompendiumKeeper.Book;
-            var source = SettingsCatalog.PinnedGrounds[tick - 1];
-            if (book != null && book.MarksDungeons(source) != on) MarkDungeons(source, on);
         }
 
         /// <summary>
@@ -226,8 +181,8 @@ namespace Scry
 
         /// <summary>
         /// A source's levels joined into one piece, the one it shows lit; above what the server
-        /// allows dimmed, With insides dimmed where nothing found has insides, each saying why; a
-        /// ground's pin after them, marking its dungeons on the big map. Where they end.
+        /// allows dimmed, With insides dimmed where nothing found has insides, each saying why.
+        /// Where they end.
         /// </summary>
         private static float SourceLevels(SettingRow row, CompendiumBook book, Rect at)
         {
@@ -252,16 +207,7 @@ namespace Scry
                 NoteSettingsBook(sourceName, name, shows == level);
                 x = segment.xMax;
             }
-            if (!WorldSources.HasGround(source)) return x;
-            var pin = new Rect(x + U(10f), at.y, at.height, at.height);
-            var marks = book.MarksDungeons(source);
-            if (GUI.enabled && pin.Contains(mouse)) Skin.Box(pin, Skin.Hover);
-            var inset = U(4f);
-            Skin.Icon(new Rect(pin.x + inset, pin.y + inset, pin.width - inset * 2f, pin.height - inset * 2f), Skin.Doorway, marks ? Skin.Accent : Skin.Alpha(Skin.Faint, 0.45f));
-            if (GUI.Button(pin, GUIContent.none, GUIStyle.none)) MarkDungeons(source, !marks);
-            if (pin.Contains(mouse)) AskTip("settings-pin-" + source, Naming.Lines(CompendiumWords.PinName, CompendiumWords.PinTip(marks, Settings.DungeonMarksOnMap)));
-            NoteSettingsBook(sourceName, "pin", marks);
-            return pin.xMax;
+            return x;
         }
 
         private static void NoteSettingsBook(string row, string choice, bool lit, bool isLock = false)

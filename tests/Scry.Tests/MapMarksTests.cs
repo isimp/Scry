@@ -64,19 +64,6 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void TheDungeonsYouWalkedShowAsTheirTickSaysAndAGroundsShowWhileItsTickIsOn()
-        {
-            // Which ground's dungeons show is its own tick (the compendium's pin); walked by others or by nobody, its look tells it.
-            Assert.True(MapMarks.Shown(MarkLook.Yours, walkedByYou: true));
-            Assert.True(MapMarks.Shown(MarkLook.Whole, walkedByYou: true));
-            Assert.False(MapMarks.Shown(MarkLook.Yours, walkedByYou: false));
-            Assert.False(MapMarks.Shown(MarkLook.Whole, walkedByYou: false));
-            Assert.True(MapMarks.Shown(MarkLook.Server, walkedByYou: false));
-            Assert.True(MapMarks.Shown(MarkLook.ServerWhole, walkedByYou: false));
-            Assert.True(MapMarks.Shown(MarkLook.Entrance, walkedByYou: false));
-        }
-
-        [Fact]
         public void AnEntranceMarkIsFaintUntilThePointerRestsOnIt()
         {
             Assert.Equal(MapMarks.FaintAlpha, MapMarks.Alpha(MarkLook.Entrance, pointedAt: false), 3);

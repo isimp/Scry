@@ -5,6 +5,22 @@ namespace Scry.Tests
 {
     public class ShowOnMapTests
     {
+        [Fact]
+        public void AllOfAPlacesKindsShowTogetherTheirSquaresAddedUp()
+        {
+            // A place of several kinds, as the Burial Chambers, shows one kind or all on the strip's word; squares two kinds share count both.
+            var a = new Dictionary<(int X, int Z), int> { [(0, 0)] = 1, [(1, 0)] = 2 };
+            var b = new Dictionary<(int X, int Z), int> { [(1, 0)] = 1, [(5, 5)] = 1 };
+            var merged = PlaceSquares.Merged(new IReadOnlyDictionary<(int X, int Z), int>[] { a, b });
+            Assert.Equal(3, merged.Count);
+            Assert.Equal(1, merged[(0, 0)]);
+            Assert.Equal(3, merged[(1, 0)]);
+            Assert.Equal(1, merged[(5, 5)]);
+            Assert.Empty(PlaceSquares.Merged(new IReadOnlyDictionary<(int X, int Z), int>[0]));
+            Assert.Equal("Burial Chambers, all 3 kinds", SpotWords.AllKindsName("Burial Chambers", 3));
+            Assert.Equal("All 3 kinds", SpotWords.AllKindsChip(3));
+        }
+
         // A page's Show on map opens Valheim's large map with a dot on every spot of its kind the
         // character saw in the world played, a strip naming the kind, how many and the nearest,
         // until Hide or the map closes.

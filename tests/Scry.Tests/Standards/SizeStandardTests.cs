@@ -26,7 +26,6 @@ namespace Scry.Tests
             ["selftest/SelfTest.Focus.cs SelfTest.GoesIntoRooms"] = 123,
             ["selftest/SelfTest.Layouts.cs SelfTest.Layout"] = 155,
             ["selftest/SelfTest.LevelsTried.cs SelfTest.LevelsTried"] = 222,
-            ["selftest/SelfTest.Pins.cs SelfTest.DungeonPins"] = 159,
             ["selftest/SelfTest.PlanBox.cs SelfTest.PlanBoxShows"] = 493,
             ["selftest/SelfTest.Stage.cs SelfTest.GroundBackdrop"] = 133,
             ["src/Preview/Stage.Framing.cs Stage.Frame"] = 127,
@@ -37,7 +36,7 @@ namespace Scry.Tests
         private static readonly Dictionary<string, int> LongFiles = new Dictionary<string, int>
         {
             ["selftest/SelfTest.Details.cs"] = 1017,
-            ["src/UI/Skin.cs"] = 1230,
+            ["src/UI/Skin.cs"] = 1219,
         };
 
         /// <summary>Every method, constructor and property accessor with a body, by file and name, its longest where a name is overloaded.</summary>

@@ -160,6 +160,8 @@ namespace Scry
             _standIn = null;
             _opened = null;
             _openedWorld = null;
+            _given = null;
+            _givenId = null;
             _byHash = null;
             _byHashOf = -1;
             ForgetWhole();
@@ -173,6 +175,13 @@ namespace Scry
             _wantExample = false;
             _lookAgain = 0f;
         }
+
+        /// <summary>The map a mark handed over as it opened, the server's rooms of a dungeon seen with insides; none.</summary>
+        private static DungeonMap _given;
+        private static string _givenId;
+
+        /// <summary>The map handed over, where it is the one asked for and has rooms laid out.</summary>
+        private static DungeonMap Given(string id) => id != null && _given != null && _given.Rooms.Count > 0 && id == _givenId ? _given : null;
 
         /// <summary>A map to open once its location is shown, as a click on its mark on Valheim's map asks; none waiting.</summary>
         private static (string Location, string Id)? _openWhenShown;
@@ -198,8 +207,10 @@ namespace Scry
         public static bool StandsIn(string location) => location != null && location == _standsInFor && !ShowsWorlds;
 
         /// <summary>Opens a kept map once its location is shown: at once where it is, else as it is selected.</summary>
-        public static void OpenMapWhenShown(string location, string id)
+        public static void OpenMapWhenShown(string location, string id, DungeonMap given = null)
         {
+            _given = given;
+            _givenId = given != null ? id : null;
             if (_entry?.Source is PlaceSource shown && shown.Prefab == location)
             {
                 OpenMap(id);
@@ -211,7 +222,7 @@ namespace Scry
         /// <summary>The map opened as a dungeon of the world, the same each time; none where it is not of the location shown or was forgotten.</summary>
         private static WorldDungeon Opened(string location)
         {
-            var map = DungeonWalks.Maps.Of(_opened) ?? (_groupOpen ? GroupMapsLink.Group.Of(_opened) : null) ?? DungeonsInGround.MapOf(_opened);
+            var map = DungeonWalks.Maps.Of(_opened) ?? (_groupOpen ? GroupMapsLink.Group.Of(_opened) : null) ?? DungeonsInGround.MapOf(_opened) ?? Given(_opened);
             if (map == null || map.Location != location) return null;
             return _openedWorld ?? (_openedWorld = new WorldDungeon { Saved = map.Rooms, Generator = map.Generator, Turn = map.Turn, Id = _opened, Location = map.Location, Entrance = map.Entrance });
         }
@@ -316,7 +327,7 @@ namespace Scry
             // Its map forgotten, or an example asked to stand in for another of its kind, and the
             // dungeon not at hand: an example stands in its place.
             else if (Example != null && found == null && ShowsWorlds && (_standsInFor == place.Prefab
-                || DungeonWalks.Maps.Of(_wholeId) == null && GroupMapsLink.Group.Of(_wholeId) == null && DungeonsInGround.MapOf(_wholeId) == null)) Build();
+                || DungeonWalks.Maps.Of(_wholeId) == null && GroupMapsLink.Group.Of(_wholeId) == null && DungeonsInGround.MapOf(_wholeId) == null && Given(_wholeId) == null)) Build();
         }
 
         /// <summary>Loads and reads the rooms not read yet, a few milliseconds a frame, one bundle at a time, and lays out the example once all are in.</summary>

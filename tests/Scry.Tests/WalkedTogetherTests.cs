@@ -12,6 +12,7 @@ namespace Scry.Tests
     public class WalkedTogetherTests
     {
         private static readonly IEnumerable<(string, DungeonMap)> None = new (string, DungeonMap)[0];
+        private static readonly IEnumerable<(string, string, int, int)> NoneSeen = new (string, string, int, int)[0];
 
         /// <summary>A dungeon of nine rooms, a hash each, those given walked.</summary>
         private static DungeonMap Map(params int[] walked)
@@ -41,19 +42,19 @@ namespace Scry.Tests
         {
             var walked = new[] { ("w:1", Map(0, 1, 2, 3, 4)) };
             var records = new Dictionary<string, DungeonMap> { ["w:1"] = Map(5, 6, 7, 8) };
-            var marks = DungeonMarks.Of(new CompendiumBook(), walked, _ => None, _ => null, id => records.TryGetValue(id, out var map) ? map : null);
+            var marks = DungeonMarks.Of(new CompendiumBook(), walked, NoneSeen, _ => null, id => records.TryGetValue(id, out var map) ? map : null);
             Assert.Equal(MarkLook.Whole, marks[0].Look);
             Assert.Same(records["w:1"], marks[0].Server);
             // Not yet whole between you: yours, as before.
             records["w:1"] = Map(5, 6);
-            Assert.Equal(MarkLook.Yours, DungeonMarks.Of(new CompendiumBook(), walked, _ => None, _ => null, id => records[id])[0].Look);
+            Assert.Equal(MarkLook.Yours, DungeonMarks.Of(new CompendiumBook(), walked, NoneSeen, _ => null, id => records[id])[0].Look);
 
-            // One only others walked, shown with insides by a ground's pin: hollow, ticked once whole.
+            // One only others walked, its entrance seen and your ground shown with insides: hollow, ticked once whole.
             var book = new CompendiumBook();
-            book.MarkDungeons(WorldSource.Explored, true);
             book.Show(WorldSource.Explored, SourceLevel.WithInsides);
-            var inGround = new[] { ("g:1", Map(0, 1, 2, 3, 4, 5, 6, 7, 8)), ("g:2", Map(0, 1)) };
-            var ground = DungeonMarks.Of(book, None, s => s == WorldSource.Explored ? inGround : None, _ => null);
+            var others = new Dictionary<string, DungeonMap> { ["g:1"] = Map(0, 1, 2, 3, 4, 5, 6, 7, 8), ["g:2"] = Map(0, 1) };
+            var seen = new[] { ("g:1", "Crypt2", 5, 5), ("g:2", "Crypt2", 9, 9) };
+            var ground = DungeonMarks.Of(book, None, seen, _ => null, id => others[id]);
             Assert.Equal(new[] { MarkLook.ServerWhole, MarkLook.Server }, ground.Select(m => m.Look));
         }
 
