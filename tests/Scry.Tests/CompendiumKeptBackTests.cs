@@ -241,12 +241,14 @@ namespace Scry.Tests
             var two = EntryKeys.Landed(2);
             Assert.True(EntryKeys.IsLanded(two, out var stars) && stars == 2);
             Assert.False(EntryKeys.IsLanded(EntryKeys.StarsFell(2), out _));
-            Assert.Equal("shows once you have landed one with 2 stars", CompendiumWords.ShowsOnce(two));
-            Assert.Equal("shows once you have landed one with no stars", CompendiumWords.ShowsOnce(EntryKeys.Landed(0)));
+            // The key holds the level less one, as books keep it; the words number a fish's stars
+            // as the game numbers a fish caught, its level from 1 to 5.
+            Assert.Equal("shows once you have landed one with 3 stars", CompendiumWords.ShowsOnce(two));
+            Assert.Equal("shows once you have landed one with 1 star", CompendiumWords.ShowsOnce(EntryKeys.Landed(0)));
             var rows = CompendiumWords.StillToFindOut(new[] { EntryKeys.Landed(0), two }, new string[0], attacks: 0, spots: 0, new Tally[0]);
-            Assert.Equal(new[] { ("Catch one with no stars", "shows how one with no stars fights"), ("Catch one with 2 stars", "shows how one with 2 stars fights") }, rows.ToArray());
-            Assert.Equal("how it fights with 2 stars found out", CompendiumWords.FoundOutNote(two));
-            Assert.Equal("how Perch fights with 2 stars", JournalWords.FoundOutOf(two, "Perch"));
+            Assert.Equal(new[] { ("Catch one with 1 star", "shows how one with 1 star fights"), ("Catch one with 3 stars", "shows how one with 3 stars fights") }, rows.ToArray());
+            Assert.Equal("how it fights with 3 stars found out", CompendiumWords.FoundOutNote(two));
+            Assert.Equal("how Perch fights with 3 stars", JournalWords.FoundOutOf(two, "Perch"));
         }
 
         [Fact]

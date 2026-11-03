@@ -85,7 +85,7 @@ namespace Scry
             Add(FishWords.Swims, FishWords.SwimsTile(fish.MinDepth, fish.MaxDepth));
             if (any) Add(FishWords.GroupsOf, Numbers.CountRange(spawns.Min(s => s.GroupMin), spawns.Max(s => s.GroupMax)));
             var most = any ? spawns.Max(s => s.MaxLevel) : 1;
-            if (any) Add(FishWords.Stars, FishWords.StarsTile(most - 1));
+            if (any) Add(FishWords.Stars, FishWords.StarsTile(most));
 
             Add(FishWords.Water, Joined(spawns.Select(s => FishWords.WaterLine(s, fish))));
             if (!any) Add(FishWords.Water, FishWords.SwimsLine(fish));
@@ -118,7 +118,7 @@ namespace Scry
         private static (string[], List<string[]>) FightTable(FishTraits fish, int least, int most, float levelUp)
         {
             var levels = Enumerable.Range(least, most - least + 1).ToList();
-            var columns = levels.Select(l => FishWords.StarColumn(l - 1)).Prepend("").ToArray();
+            var columns = levels.Select(FishWords.StarColumn).Prepend("").ToArray();
             var lines = new List<string[]>();
             void Line(string label, Func<int, string> cell) => lines.Add(levels.Select(cell).Prepend(label).ToArray());
 

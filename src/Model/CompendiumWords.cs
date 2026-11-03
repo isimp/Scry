@@ -471,7 +471,7 @@ namespace Scry
             Pending(Deed.Sprang, "See one spring", "shows how it hurts and rearms");
             Pending(Deed.Raided, "See its raiders up close", "shows how likely it is to start");
             Pending(Deed.Guarded, "See its creatures up close", "shows the stars its spawn points give");
-            foreach (var landed in landedPending) rows.Add(($"Catch one with {StarsWords(landed)}", $"shows how one with {StarsWords(landed)} fights"));
+            foreach (var landed in landedPending) rows.Add(($"Catch one with {FishWords.LandedStars(landed)}", $"shows how one with {FishWords.LandedStars(landed)} fights"));
             if (raiders > 0) rows.Add(("See them up close", Naming.Count(raiders, "kind of raider", "kinds of raider") + ": how many come, how often, how strong"));
             Pending(Deed.Tamed, "Tame one", "shows how long taming and a meal take");
             Pending(Deed.Fed, "See one eat", "shows how long a meal lasts");
@@ -514,7 +514,7 @@ namespace Scry
             if (proof == EntryKeys.OnMap) return "seen in ground you explored";
             if (EntryKeys.IsStarsFell(proof, out var fell)) return $"what {StarsChange(fell)} found out";
             if (EntryKeys.IsRaider(proof, out _)) return "a raider's numbers found out";
-            if (EntryKeys.IsLanded(proof, out var landed)) return $"how it fights with {StarsWords(landed)} found out";
+            if (EntryKeys.IsLanded(proof, out var landed)) return $"how it fights with {FishWords.LandedStars(landed)} found out";
             if (EntryKeys.IsDeed(proof, out var deed))
             {
                 switch (deed)
@@ -665,7 +665,7 @@ namespace Scry
         {
             if (EntryKeys.IsStarsFell(proof, out var fell)) return $"seen one with {Naming.Count(fell, "star", "stars")} fall";
             if (EntryKeys.IsRaider(proof, out _)) return "seen one of these raiders up close";
-            if (EntryKeys.IsLanded(proof, out var landed)) return $"landed one with {StarsWords(landed)}";
+            if (EntryKeys.IsLanded(proof, out var landed)) return $"landed one with {FishWords.LandedStars(landed)}";
             EntryKeys.IsDeed(proof, out var deed);
             switch (deed)
             {

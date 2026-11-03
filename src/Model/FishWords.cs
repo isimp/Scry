@@ -57,8 +57,8 @@ namespace Scry
         /// <summary>Its swimming depth as a tile: "1.5–3 m down".</summary>
         public static string SwimsTile(float least, float most) => Range(least, most) + " m down";
 
-        /// <summary>The most stars it comes with, as a tile.</summary>
-        public static string StarsTile(int stars) => stars > 0 ? "up to " + Numbers.Count(stars) : "none";
+        /// <summary>The most stars it comes with, its highest level, as a tile.</summary>
+        public static string StarsTile(int level) => level > 1 ? "up to " + Numbers.Count(level) : Numbers.Count(1);
 
         /// <summary>Where it swims, by its own figures: "it swims 1.5 to 3 m down, within 10 m of where it came".</summary>
         public static string SwimsLine(FishTraits fish) =>
@@ -114,7 +114,8 @@ namespace Scry
         {
             if (chance <= 0f) return NeverLeaps;
             var line = "most at dawn and dusk, least at noon and midnight";
-            var stars = (int)Math.Floor(maxLevel);
+            // It leaps up to its highest leaping level, so the first level above that never does.
+            var stars = (int)Math.Floor(maxLevel) + 1;
             return maxLevel < 50f ? line + $"; one with {Numbers.Count(stars)} or more stars never leaps" : line;
         }
 
@@ -134,8 +135,14 @@ namespace Scry
 
         public static string LineLine(float past, float most) => $"breaks when the float is {Numbers.Metres(past, 0)} beyond the line's length, or more than {Numbers.Metres(most, 0)} from you";
 
-        /// <summary>A column of the fight's table by its stars.</summary>
-        public static string StarColumn(int stars) => stars <= 0 ? "no star" : Numbers.Count(stars);
+        /// <summary>A column of the fight's table by its level, numbered as the game numbers a fish caught, 1 to 5.</summary>
+        public static string StarColumn(int level) => Numbers.Count(Math.Max(1, level));
+
+        /// <summary>
+        /// A fish's stars in words by a landed key's count (<see cref="EntryKeys.Landed"/>), which
+        /// books keep as the level less one: numbered as the game numbers a fish caught, 1 to 5.
+        /// </summary>
+        public static string LandedStars(int landed) => Naming.Count(Math.Max(0, landed) + 1, "star", "stars");
 
         /// <summary>A share of fish, to a tenth where small: "16%", "3.2%".</summary>
         public static string Odds(float share) => Numbers.Percent(share, share >= 0.1f ? 0 : 1);
