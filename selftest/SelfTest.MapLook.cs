@@ -18,6 +18,7 @@ namespace Scry
         /// </summary>
         private static IEnumerator ShowOnMapFollowsItsSettings(Probe p)
         {
+            MapKept.SetAsideForTest(true);
             var player = Player.m_localPlayer;
             var map = Minimap.instance;
             if (player == null || map == null || Game.m_noMap || CompendiumMap.World == null) p.Skip("there is no character, or no map in this world");

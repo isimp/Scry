@@ -15,8 +15,8 @@ namespace Scry
     /// the screen however near the map is zoomed. The squares stand on the pins'
     /// layer under the dots and every pin, clipped to the map's window (<see cref="RectMask2D"/>);
     /// one holding more than one place carries their count on a dark tab inside its top right
-    /// corner, in the game's pin-name writing, standing with the squares so it moves and is clipped
-    /// with its square, and left off a square drawn too small to hold it. Made a few a frame, as
+    /// corner, in the game's pin-name writing, part of the square so it moves with it and is cut
+    /// to explored ground with it, and left off a square drawn too small to hold it. Made a few a frame, as
     /// the dots are, and placed again only as the map moves.
     /// </summary>
     internal static class MapSquares
@@ -49,7 +49,7 @@ namespace Scry
         private const float TabHeight = 16f, TabDigit = 7f, TabPad = 4f, TabWriting = 13f;
 
         private static IReadOnlyList<(int X, int Z, int Left)> _shown = new List<(int, int, int)>();
-        private static RectTransform _layer, _holder, _tabs;
+        private static RectTransform _layer, _holder;
         private static readonly List<Square> Made = new List<Square>();
 
         /// <summary>The square each made one stands for, kept while the kind is shown so its mask is made once, and those standing for none.</summary>
@@ -76,9 +76,8 @@ namespace Scry
             }
         }
 
-        /// <summary>What holds the squares, and what holds their counts, kept at the map's brightness while the other pins dim (<see cref="MapDim"/>).</summary>
+        /// <summary>What holds the squares, their counts in them, kept at the map's brightness while the other pins dim (<see cref="MapDim"/>).</summary>
         public static RectTransform Holder => _holder;
-        public static RectTransform CountsHolder => _tabs;
 
         /// <summary>Whether every square stands first on the pins' layer under the dots, clipped to the map's window, for the self-test.</summary>
         [Diagnostic]
@@ -244,7 +243,7 @@ namespace Scry
                     square.Tab.sizeDelta = tab;
                     square.Said = left;
                 }
-                square.Tab.anchoredPosition = new Vector2(at.X + at.W - edge, at.Y + at.H - edge);
+                square.Tab.anchoredPosition = new Vector2(-edge, -edge);
             }
             if (square.Tab.gameObject.activeSelf != shows) square.Tab.gameObject.SetActive(shows);
         }
@@ -278,20 +277,18 @@ namespace Scry
             Assigned.Clear();
             Free.Clear();
             _holder = null;
-            _tabs = null;
             _layer = null;
             _standing = 0;
             _placedFor = default;
             _allMade = false;
         }
 
-        /// <summary>What holds the squares, first on the pins' layer and as big as it, clipped to it; and in it, over every square, what holds their counts' tabs.</summary>
+        /// <summary>What holds the squares, first on the pins' layer and as big as it, clipped to it.</summary>
         private static void MakeHolders()
         {
             _holder = Stretched("Scry place squares", _layer);
             _holder.SetAsFirstSibling();
             _holder.gameObject.AddComponent<RectMask2D>();
-            _tabs = Stretched("Scry place square counts", _holder);
         }
 
         private static RectTransform Stretched(string name, Transform parent)
@@ -319,16 +316,14 @@ namespace Scry
             // Halos first, so each light edge stands over its dark halo.
             square.Halos = Sides("Scry place square halo", square.Rect, Skin.Alpha(Skin.OnAccent, 0.7f));
             square.Edges = Sides("Scry place square edge", square.Rect, Skin.Text);
-            // The tabs over every square, those made later too.
-            _tabs.SetAsLastSibling();
             Made.Add(square);
             return square;
         }
 
-        /// <summary>A square's count's tab, made the first time it holds more than one: a dark plate with the count written on it in the game's pin names' writing, filling it.</summary>
+        /// <summary>A square's count's tab, made the first time it holds more than one: a dark plate in its top right corner, over its edges and cut to explored ground with it, with the count written on it in the game's pin names' writing, filling it.</summary>
         private static void MakeTab(Square square, Minimap map)
         {
-            square.Tab = Child("Scry place square count", _tabs, Vector2.zero, Vector2.zero);
+            square.Tab = Child("Scry place square count", square.Rect, Vector2.one, Vector2.one);
             square.Tab.pivot = Vector2.one;
             var plate = square.Tab.gameObject.AddComponent<RawImage>();
             plate.texture = Texture2D.whiteTexture;

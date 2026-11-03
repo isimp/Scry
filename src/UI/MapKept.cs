@@ -92,6 +92,17 @@ namespace Scry
             return null;
         }
 
+        /// <summary>Whether what is kept is set aside while a self-test part shows only its own on the map.</summary>
+        private static bool AsideForTest { get; set; }
+
+        /// <summary>Sets what is kept aside while a self-test part shows only its own on the map, or brings it back.</summary>
+        [ForTest]
+        public static void SetAsideForTest(bool aside)
+        {
+            AsideForTest = aside;
+            Forget();
+        }
+
         /// <summary>Whether what the character's sight kept may stand on the map: a map in this world, and its server remembering what is seen; else only the dungeons walked stand.</summary>
         public static bool Remembered => SeenOnMap.Remembers(Game.m_noMap, Settings.SeenOnMapReach);
 
@@ -125,7 +136,7 @@ namespace Scry
             NamesByKind.Clear();
             Counted.Clear();
             AllDots = 0;
-            if (book == null || world == null) return;
+            if (book == null || world == null || AsideForTest) return;
             var counted = new HashSet<string>(System.StringComparer.Ordinal);
             foreach (var kept in book.Kept) Count(kept, kept == CompendiumBook.Dungeons ? DungeonKinds.All.Select(k => EntryKeys.For(Kind.Location, k)).ToArray() : KindsIn(kept), world, remembered, counted);
             AllDots = _dots.Count;

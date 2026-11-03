@@ -477,7 +477,7 @@ namespace Scry
             // The squares under the dots, placed as the map moves, as the dots are; the other pins dimmed while a kind is shown on demand.
             MergeSquares();
             MapSquares.Update(map);
-            if (Showing.Showing) MapDim.Hold(map, _holder, MapSquares.Holder, MapSquares.CountsHolder);
+            if (Showing.Showing) MapDim.Hold(map, _holder, MapSquares.Holder);
             else MapDim.Restore();
             WorkOutDots();
             var image = map.m_mapImageLarge;

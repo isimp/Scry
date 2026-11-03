@@ -19,6 +19,7 @@ namespace Scry
         /// </summary>
         private static IEnumerator ShowOnMapAllKinds(Probe p)
         {
+            MapKept.SetAsideForTest(true);
             var player = Player.m_localPlayer;
             var family = X.Catalog.Where(e => e.Kind == Kind.Location && !e.IsRoom && e.Family != null && e.Family.Kinds.Count >= 2).Select(e => e.Family).FirstOrDefault();
             if (player == null || Minimap.instance == null || Game.m_noMap || family == null)
@@ -61,6 +62,7 @@ namespace Scry
         private static void AllKindsAsTheyWere()
         {
             MapSpots.SpotsInsteadForTest(null);
+            MapKept.SetAsideForTest(false);
             if (_allKindsBefore is bool all) MapSpots.ShowAllKinds(all);
             _allKindsBefore = null;
             ShowOnMapAsItWas();

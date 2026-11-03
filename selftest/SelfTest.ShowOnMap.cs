@@ -27,6 +27,8 @@ namespace Scry
 
         private static IEnumerator ShowOnMapDots(Probe p)
         {
+            // What the character keeps on the map set aside, so only the part's own stands.
+            MapKept.SetAsideForTest(true);
             var player = Player.m_localPlayer;
             var map = Minimap.instance;
             if (player == null || map == null || Game.m_noMap || CompendiumMap.World == null) p.Skip("there is no character, or no map in this world");
@@ -145,6 +147,7 @@ namespace Scry
         /// </summary>
         private static IEnumerator ShowOnMapSquares(Probe p)
         {
+            MapKept.SetAsideForTest(true);
             var player = Player.m_localPlayer;
             var map = Minimap.instance;
             if (player == null || map == null || Game.m_noMap || CompendiumMap.World == null) p.Skip("there is no character, or no map in this world");
@@ -176,10 +179,9 @@ namespace Scry
                 edges.HasValue ? $"edge {Shown(edges.Value.Edge)} {Numbers.Fixed(edges.Value.EdgeThick, 1)} thick, halo {Shown(edges.Value.Halo)} {Numbers.Fixed(edges.Value.HaloThick, 1)} thick, under the edge {edges.Value.HaloUnder}" : "no square");
             var plain = MapDim.BrightnessForTest(null);
             var squaresLit = MapDim.BrightnessForTest(MapSquares.Holder).Dots;
-            var countsLit = MapDim.BrightnessForTest(MapSquares.CountsHolder).Dots;
-            p.Check(MapDim.Dimming && Mathf.Abs(squaresLit - plain.Pins * 3f) < 0.01f && Mathf.Abs(countsLit - plain.Pins * 3f) < 0.01f,
-                "the squares and their counts stand at the map's own brightness while your pins dim",
-                $"squares {Numbers.Fixed(squaresLit, 2)}, counts {Numbers.Fixed(countsLit, 2)}, pins {Numbers.Fixed(plain.Pins, 2)}");
+            p.Check(MapDim.Dimming && Mathf.Abs(squaresLit - plain.Pins * 3f) < 0.01f,
+                "the squares, their counts in them, stand at the map's own brightness while your pins dim",
+                $"squares {Numbers.Fixed(squaresLit, 2)}, pins {Numbers.Fixed(plain.Pins, 2)}");
             var (read, wrong, fog) = MapSquares.MaskAgainstMapForTest();
             p.Check(read > 0 && wrong == 0, "each square is cut to explored ground, pixel for pixel as the map's fog lies", $"{Numbers.Count(wrong)} of {Numbers.Count(read)} pixels otherwise");
             if (fog == 0) p.Untried("a square cut where the fog starts", "stand within 500 m of unexplored ground", "fog");
@@ -313,6 +315,7 @@ namespace Scry
         private static void ShowOnMapAsItWas()
         {
             MapSpots.Hide();
+            MapKept.SetAsideForTest(false);
             if (_mapLookBefore is (OtherPinsShown pins, MapDarkening darken, DotSizeChoice size, bool zoomOut, bool squares))
             {
                 Settings.MapOtherPins = pins;
