@@ -44,6 +44,13 @@ namespace Scry
         private const float IconsEvery = 30f;
         private static float _iconsAt = float.NegativeInfinity;
         private static readonly Dictionary<Vector3, string> Icons = new Dictionary<Vector3, string>();
+
+        /// <summary>The places with a map icon as last looked at, every half minute, as the game finds them by going through every place in the world.</summary>
+        public static IReadOnlyDictionary<Vector3, string> IconsSeen => Icons;
+
+        /// <summary>Counts up each time the places with a map icon are looked at, for what follows them to be worked out again.</summary>
+        public static int IconsRead { get; private set; }
+
         private static Task<(ExploredGrid Grid, GroundTold Told)> _reading;
         private static string _readingFor;
 
@@ -345,6 +352,7 @@ namespace Scry
             _iconsAt = Time.unscaledTime;
             Icons.Clear();
             zones.GetLocationIcons(Icons);
+            IconsRead++;
             book.FoundIn(world, WorldSource.OnEveryMap, Icons.Values);
         }
 
@@ -506,6 +514,7 @@ namespace Scry
             _sharingFor = null;
             _iconsAt = float.NegativeInfinity;
             Icons.Clear();
+            IconsRead++;
             _reading = null;
             _readingFor = null;
             _askedGrid = null;

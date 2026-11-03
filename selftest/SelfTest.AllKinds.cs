@@ -59,10 +59,10 @@ namespace Scry
             AllKindsAsTheyWere();
         }
 
-        /// <summary>The sight's own spots and the choice of all kinds put back, the map shut, should the part have stopped before it did.</summary>
         /// <summary>The dots standing of spots seen, those a server told of left out.</summary>
         private static int SeenDots => MapSpots.DotsShown - MapSpots.ToldDotsShownForTest;
 
+        /// <summary>The sight's own spots and the choice of all kinds put back, the map shut, should the part have stopped before it did.</summary>
         private static void AllKindsAsTheyWere()
         {
             MapSpots.SpotsInsteadForTest(null);

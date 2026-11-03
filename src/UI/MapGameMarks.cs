@@ -6,7 +6,9 @@ namespace Scry
 {
     /// <summary>
     /// Where Valheim's map marks places itself (<see cref="GameMarks"/>), read from the game: the
-    /// places it gives an icon (<c>ZoneSystem.GetLocationIcons</c>) and the character's pins a
+    /// places it gives an icon, as the compendium looks at them every half minute
+    /// (<see cref="CompendiumMap.IconsSeen"/>, the game going through every place to find them),
+    /// and the character's pins a
     /// Vegvisir set (<c>Minimap.m_pins</c>), known by the pins the places read say their Vegvisirs
     /// set (<see cref="PlaceContents.VegvisirPins"/>). Worked out again as the pins or the places
     /// read change, at most every few seconds; a place's squares leave out where it is marked.
@@ -19,7 +21,6 @@ namespace Scry
         private const float Again = 2f;
 
         private static readonly Dictionary<string, List<(int X, int Z)>> ByPlace = new Dictionary<string, List<(int X, int Z)>>(System.StringComparer.Ordinal);
-        private static readonly Dictionary<Vector3, string> Icons = new Dictionary<Vector3, string>();
         private static readonly IReadOnlyList<(int X, int Z)> None = System.Array.Empty<(int, int)>();
         private static AccessTools.FieldRef<Minimap, List<Minimap.PinData>> _pins;
         private static (int Pins, int Records, int Icons) _readFor = (-1, -1, -1);
@@ -50,15 +51,12 @@ namespace Scry
         public static void Refresh()
         {
             var map = Minimap.instance;
-            var zones = ZoneSystem.instance;
-            if (map == null || zones == null || Time.unscaledTime - _readAt < Again) return;
+            if (map == null || Time.unscaledTime - _readAt < Again) return;
             _readAt = Time.unscaledTime;
             if (_pins == null) _pins = AccessTools.FieldRefAccess<Minimap, List<Minimap.PinData>>("m_pins");
             var pins = _pins(map);
             var records = PlaceRecords.Kept?.Records;
-            Icons.Clear();
-            zones.GetLocationIcons(Icons);
-            var readFor = (pins?.Count ?? 0, records?.Count ?? 0, Icons.Count);
+            var readFor = (pins?.Count ?? 0, records?.Count ?? 0, CompendiumMap.IconsRead);
             if (readFor == _readFor) return;
             _readFor = readFor;
             var vegvisirPins = new List<(string, string, int)>();
@@ -67,7 +65,7 @@ namespace Scry
             var gamePins = new List<(float X, float Z, string Pin, int Type)>();
             if (pins != null) foreach (var pin in pins) if (pin != null) gamePins.Add((pin.m_pos.x, pin.m_pos.z, pin.m_name, (int)pin.m_type));
             var icons = new List<(float X, float Z, string Place)>();
-            foreach (var icon in Icons) icons.Add((icon.Key.x, icon.Key.z, icon.Value));
+            foreach (var icon in CompendiumMap.IconsSeen) icons.Add((icon.Key.x, icon.Key.z, icon.Value));
             // Each place the game marks, worked out once.
             var places = new HashSet<string>(System.StringComparer.Ordinal);
             foreach (var icon in icons) places.Add(icon.Place);
@@ -85,13 +83,23 @@ namespace Scry
             var said = new System.Text.StringBuilder("the game's map marks itself: ");
             if (ByPlace.Count == 0) said.Append("nothing");
             foreach (var pair in ByPlace) said.Append(pair.Key).Append(' ').Append(Numbers.Count(pair.Value.Count)).Append("; ");
+            // The game's own pins as it keeps them, the bosses' and Hildir's, and how many pins the places read name, so a pin not matched shows why.
+            said.Append(" the game's pins: ");
+            var map = Minimap.instance;
+            var pins = map != null && _pins != null ? _pins(map) : null;
+            if (pins != null)
+                foreach (var pin in pins)
+                    if (pin != null && (pin.m_type == Minimap.PinType.Boss || pin.m_type >= Minimap.PinType.Hildir1 && pin.m_type <= Minimap.PinType.Hildir3))
+                        said.Append(pin.m_name).Append(' ').Append(pin.m_type.ToString()).Append("; ");
+            var named = 0;
+            if (PlaceRecords.Kept?.Records is IReadOnlyList<PlaceRecord> records) foreach (var record in records) named += record.Contents.VegvisirPins.Count;
+            said.Append(" pins the places read name: ").Append(Numbers.Count(named));
             return said.ToString();
         }
 
         public static void Forget()
         {
             ByPlace.Clear();
-            Icons.Clear();
             _readFor = (-1, -1, -1);
             _readAt = float.MinValue;
             Version++;
