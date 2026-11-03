@@ -27,7 +27,7 @@ namespace Scry
 
         /// <summary>What was kept and in which world as last worked out, worked out again at once as it changes; what was seen and told, and where the player stands where too many are kept, worked out again as it changes, at most every few seconds.</summary>
         private static (CompendiumBook Book, int Kept, bool Squares, bool Remembered, long World) _keptFor;
-        private static (int Sources, (int, int) Spots, int Counts, int Walks, int Kinds, (int, int) Cell) _seenFor;
+        private static (int Sources, (int, int) Spots, int Counts, int Walks, int Kinds, (int, int) Cell, int Marks) _seenFor;
         private static float _workedAt = float.MinValue;
 
         /// <summary>How long, in seconds, what is kept waits before it is worked out again for what was seen or told since, as the sight keeps spots while exploring.</summary>
@@ -98,12 +98,14 @@ namespace Scry
         /// <summary>Each frame a map shows what is kept: worked out anew where what is kept, seen or told changed.</summary>
         public static void Refresh()
         {
+            // Where the game marks places read first, so a Vegvisir read takes its square away.
+            MapGameMarks.Refresh();
             var book = CompendiumKeeper.Book;
             var worldId = ZNet.instance != null && ZNet.instance.GetWorld() != null ? ZNet.instance.GetWorldUID() : 0L;
             var kept = (book, book?.KeptVersion ?? -1, Settings.MapSquares, Remembered, worldId);
             var player = Player.m_localPlayer;
             var cell = AllDots > SeenOnMap.MostKept && player != null ? ((int)player.transform.position.x / NearestCell, (int)player.transform.position.z / NearestCell) : (0, 0);
-            var seen = (book?.SourcesVersion ?? -1, SeenSpotsKeeper.Stamp, CompendiumMap.Counts.Version, DungeonWalks.Maps.Stamp, DungeonKinds.All.Count, cell);
+            var seen = (book?.SourcesVersion ?? -1, SeenSpotsKeeper.Stamp, CompendiumMap.Counts.Version, DungeonWalks.Maps.Stamp, DungeonKinds.All.Count, cell, MapGameMarks.Version);
             if (kept == _keptFor && (seen == _seenFor || Time.unscaledTime - _workedAt < Again)) return;
             _keptFor = kept;
             _seenFor = seen;
@@ -160,7 +162,7 @@ namespace Scry
                     foreach (var (x, z) in spots) _dots.Add((x, z, picture, name, kind));
                 }
                 if (!(PlaceOf(kind) is string place) || !Settings.MapSquares) continue;
-                var shown = PlaceSquares.Shown(CompendiumMap.Counts.Squares(place, MapSpots.SquaresGround), spots);
+                var shown = PlaceSquares.Shown(CompendiumMap.Counts.Squares(place, MapSpots.SquaresGround), MapGameMarks.With(place, spots));
                 if (shown.Count == 0) continue;
                 var left = new Dictionary<(int X, int Z), int>();
                 foreach (var (x, z, many) in shown) left[(x, z)] = many;

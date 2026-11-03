@@ -285,7 +285,10 @@ namespace Scry
                 if (vegvisir.OrNull()?.m_locations == null) continue;
                 foreach (var to in vegvisir.m_locations)
                 {
-                    if (to != null && !string.IsNullOrEmpty(to.m_locationName) && !contents.Vegvisirs.Contains(to.m_locationName)) contents.Vegvisirs.Add(to.m_locationName);
+                    if (to == null || string.IsNullOrEmpty(to.m_locationName)) continue;
+                    if (!contents.Vegvisirs.Contains(to.m_locationName)) contents.Vegvisirs.Add(to.m_locationName);
+                    var pin = (to.m_locationName, to.m_pinName ?? "", (int)to.m_pinType);
+                    if (!contents.VegvisirPins.Contains(pin)) contents.VegvisirPins.Add(pin);
                 }
             }
         }

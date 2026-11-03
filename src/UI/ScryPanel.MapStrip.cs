@@ -5,12 +5,17 @@ namespace Scry
     /// <summary>
     /// Show on map's strip over Valheim's large map (<see cref="MapSpots"/>): a notice as the
     /// panel's look it, on the panel's own colour, at the map's top left, naming the kind, how many
-    /// the character saw and the nearest, with Hide; for a place of several kinds met, a button
-    /// after it showing all of them, lit while they are. Drawn over everything while the map shows
-    /// a kind, the panel open or not, as the resource monitor is.
+    /// the character saw and the nearest; under the words its buttons, Hide, for a place of several
+    /// kinds met one showing all of them, lit while they are, and Keep on the map. No wider than
+    /// its words or its buttons, and short of the map's top middle, where other mods put their
+    /// own, the words scrolling where they do not fit. Drawn over everything while the map shows a
+    /// kind, the panel open or not, as the resource monitor is.
     /// </summary>
     internal static partial class ScryPanel
     {
+        /// <summary>How much of the map's width the strip takes at most, so it stays short of the map's top middle.</summary>
+        private const float StripShare = 0.38f;
+
         /// <summary>What the pointer rests on on the map: a ring round a dot, and its words beside the pointer, kept on the screen.</summary>
         private static void PointedWords()
         {
@@ -61,20 +66,33 @@ namespace Scry
                 GUI.skin = Skin.Gui;
                 PointedWords();
                 if (line == null) return;
-                var chipW = Skin.Width(Skin.Chip, SpotWords.Hide) + U(12f);
+                var hideW = Skin.Width(Skin.Chip, SpotWords.Hide) + U(12f);
                 var kinds = MapSpots.KindsOffered;
-                var allW = kinds >= 2 ? Skin.Width(Skin.ChipOn, SpotWords.AllKindsChip(kinds)) + U(12f) + U(6f) : 0f;
+                var allW = kinds >= 2 ? Skin.Width(Skin.ChipOn, SpotWords.AllKindsChip(kinds)) + U(12f) : 0f;
                 var key = MapSpots.ShownKey;
-                var keepW = key != null && CompendiumKeeper.Book != null ? Skin.Width(Skin.ChipOn, SpotWords.Keep) + U(12f) + U(6f) : 0f;
-                allW += keepW;
-                var width = Mathf.Min(map.Value.width - U(24f), U(14f) + Skin.Width(Skin.Small, line) + U(8f) + allW + chipW + U(8f));
-                var rect = new Rect(map.Value.x + U(12f), map.Value.y + U(12f), width, U(32f));
+                var keepW = key != null && CompendiumKeeper.Book != null ? Skin.Width(Skin.ChipOn, SpotWords.Keep) + U(12f) : 0f;
+                var gap = U(6f);
+                var buttonsW = hideW + (allW > 0f ? gap + allW : 0f) + (keepW > 0f ? gap + keepW : 0f);
+                var wordsW = Skin.Width(Skin.Small, line);
+                var most = Mathf.Max(U(14f) + buttonsW + U(10f), map.Value.width * StripShare);
+                var width = Mathf.Min(map.Value.width - U(24f), most, U(14f) + Mathf.Max(wordsW, buttonsW) + U(12f));
+                var rowH = U(28f);
+                var rect = new Rect(map.Value.x + U(12f), map.Value.y + U(12f), width, rowH * 2f + U(2f));
+                // The notices' look over both rows: the panel under a tint of the accent, its bar at the left.
                 Skin.Box(rect, Skin.Panel, Skin.Outline);
-                // The words and Hide in the strip's own way, the button for all kinds after Hide.
-                var strip = new Rect(rect.x, rect.y, rect.width - allW, rect.height);
-                if (NoticeStrip(strip, Skin.Accent, line, Skin.Small, false, SpotWords.Hide, false, false) == StripClick.Chip) MapSpots.Hide();
-                if (kinds >= 2) AllKindsButton(new Rect(strip.xMax - U(4f), rect.y + (rect.height - U(22f)) / 2f, allW - keepW - U(6f), U(22f)), kinds);
-                if (keepW > 0f) KeepButton(new Rect(rect.xMax - keepW - U(4f) + U(6f), rect.y + (rect.height - U(22f)) / 2f, keepW - U(6f), U(22f)), key);
+                Skin.Fill(rect, Skin.Alpha(Skin.Accent, 0.13f));
+                Skin.Fill(new Rect(rect.x, rect.y, U(3f), rect.height), Skin.Accent);
+                var left = rect.x + U(14f);
+                Ticker(new Rect(left, rect.y + U(2f), rect.xMax - left - U(10f), rowH), line, Skin.Small);
+                var y = rect.y + rowH + (rowH - U(22f)) / 2f - U(2f);
+                if (GUI.Button(new Rect(left, y, hideW, U(22f)), SpotWords.Hide, Skin.Chip)) MapSpots.Hide();
+                var x = left + hideW + gap;
+                if (allW > 0f)
+                {
+                    AllKindsButton(new Rect(x, y, allW, U(22f)), kinds);
+                    x += allW + gap;
+                }
+                if (keepW > 0f) KeepButton(new Rect(x, y, keepW, U(22f)), key);
                 MapSpots.StripDrawn(rect);
                 CountDrawn(PanelPart.MapStrip);
             }

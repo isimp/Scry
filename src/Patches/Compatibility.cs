@@ -530,6 +530,7 @@ namespace Scry
             Each("Player.m_knownTexts", () => Member(list, "Player", "m_knownTexts", Feature.CompendiumTextsRead));
             Each("Minimap.m_pinNamePrefab", () => Member(list, "Minimap", "m_pinNamePrefab", Feature.DungeonMarksOnMap));
             Each("Minimap.m_mapOffset", () => Member(list, "Minimap", "m_mapOffset", Feature.ShowOnMap));
+            Each("Minimap.m_pins", () => Member(list, "Minimap", "m_pins", Feature.ShowOnMap));
             Each("Minimap.m_pinNameRootSmall", () => Member(list, "Minimap", "m_pinNameRootSmall", Feature.DungeonMarksOnMap));
             Each("Minimap.m_mapImageSmall", () => Member(list, "Minimap", "m_mapImageSmall", Feature.DungeonMarksOnMap));
             Each("Minimap.m_pinSizeSmall", () => Member(list, "Minimap", "m_pinSizeSmall", Feature.DungeonMarksOnMap));

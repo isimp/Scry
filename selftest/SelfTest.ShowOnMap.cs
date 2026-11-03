@@ -177,7 +177,7 @@ namespace Scry
             var plain = MapDim.BrightnessForTest(null);
             var squaresLit = MapDim.BrightnessForTest(MapSquares.Holder).Dots;
             var countsLit = MapDim.BrightnessForTest(MapSquares.CountsHolder).Dots;
-            p.Check(MapDim.Dimming && Mathf.Abs(squaresLit - plain.Pins * 3f) < 0.01f && Mathf.Abs(countsLit - plain.Names * 3f) < 0.01f,
+            p.Check(MapDim.Dimming && Mathf.Abs(squaresLit - plain.Pins * 3f) < 0.01f && Mathf.Abs(countsLit - plain.Pins * 3f) < 0.01f,
                 "the squares and their counts stand at the map's own brightness while your pins dim",
                 $"squares {Numbers.Fixed(squaresLit, 2)}, counts {Numbers.Fixed(countsLit, 2)}, pins {Numbers.Fixed(plain.Pins, 2)}");
             var (read, wrong, fog) = MapSquares.MaskAgainstMapForTest();

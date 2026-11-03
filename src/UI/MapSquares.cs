@@ -14,16 +14,17 @@ namespace Scry
     /// never seen and the edge stops where the fog starts. The hatch repeats at a fixed size on
     /// the screen however near the map is zoomed. The squares stand on the pins'
     /// layer under the dots and every pin, clipped to the map's window (<see cref="RectMask2D"/>);
-    /// one holding more than one place carries their count at its corner in the game's pin-name
-    /// writing, on the names' layer. Made a few a frame, as the dots are, and placed again only as
-    /// the map moves.
+    /// one holding more than one place carries their count on a dark tab inside its top right
+    /// corner, in the game's pin-name writing, standing with the squares so it moves and is clipped
+    /// with its square, and left off a square drawn too small to hold it. Made a few a frame, as
+    /// the dots are, and placed again only as the map moves.
     /// </summary>
     internal static class MapSquares
     {
         /// <summary>Leaving a world lets go of the squares (<see cref="WorldCaches"/>).</summary>
         static MapSquares() => WorldCaches.Register(nameof(MapSquares), Forget);
 
-        /// <summary>A square made: its stencil of explored ground, its hatch, four edges inside it each over a dark halo, and its count's name.</summary>
+        /// <summary>A square made: its stencil of explored ground, its hatch, four edges inside it each over a dark halo, and its count's tab with the count written on it.</summary>
         private sealed class Square
         {
             public RectTransform Rect;
@@ -31,8 +32,8 @@ namespace Scry
             public RawImage Hatch;
             public RawImage[] Halos;
             public RawImage[] Edges;
-            public GameObject Badge;
-            public RectTransform BadgeRect;
+            public RectTransform Tab;
+            public GameObject Count;
             public (int X, int Z) MaskedFor = (int.MinValue, int.MinValue);
             public int Said;
         }
@@ -44,8 +45,11 @@ namespace Scry
         /// </summary>
         private const float HatchEvery = 7f, EdgeWidth = 2f, HaloWidth = 5f, EdgeShare = 0.1f, HaloShare = 0.22f;
 
+        /// <summary>A count's tab in the screen's points: how tall, how wide each digit and the room either side, and its writing's size.</summary>
+        private const float TabHeight = 16f, TabDigit = 7f, TabPad = 4f, TabWriting = 13f;
+
         private static IReadOnlyList<(int X, int Z, int Left)> _shown = new List<(int, int, int)>();
-        private static RectTransform _layer, _holder, _names, _badges;
+        private static RectTransform _layer, _holder, _tabs;
         private static readonly List<Square> Made = new List<Square>();
 
         /// <summary>The square each made one stands for, kept while the kind is shown so its mask is made once, and those standing for none.</summary>
@@ -67,14 +71,14 @@ namespace Scry
             get
             {
                 var shown = 0;
-                foreach (var square in Assigned.Values) if (square.Rect.gameObject.activeSelf && square.Badge != null && square.Badge.activeSelf) shown++;
+                foreach (var square in Assigned.Values) if (square.Rect.gameObject.activeSelf && square.Tab != null && square.Tab.gameObject.activeSelf) shown++;
                 return shown;
             }
         }
 
         /// <summary>What holds the squares, and what holds their counts, kept at the map's brightness while the other pins dim (<see cref="MapDim"/>).</summary>
         public static RectTransform Holder => _holder;
-        public static RectTransform CountsHolder => _badges;
+        public static RectTransform CountsHolder => _tabs;
 
         /// <summary>Whether every square stands first on the pins' layer under the dots, clipped to the map's window, for the self-test.</summary>
         [Diagnostic]
@@ -156,7 +160,6 @@ namespace Scry
             {
                 ForgetMade();
                 _layer = layer;
-                _names = map.m_pinNameRootLarge;
                 if (_layer != null) MakeHolders();
             }
             if (_holder == null) return;
@@ -166,7 +169,6 @@ namespace Scry
                 return;
             }
             if (!_holder.gameObject.activeSelf) _holder.gameObject.SetActive(true);
-            if (_badges != null && !_badges.gameObject.activeSelf) _badges.gameObject.SetActive(true);
             // Under the dots, which stand first on the layer as they are made: first again.
             if (_holder.GetSiblingIndex() != 0) _holder.SetAsFirstSibling();
             var image = map.m_mapImageLarge;
@@ -202,7 +204,7 @@ namespace Scry
                     Share.Took(Since(started) - pieceFrom);
                     made++;
                 }
-                Stand(square, at, left, area.size);
+                Stand(square, at, left);
                 standing++;
             }
             _standing = standing;
@@ -211,8 +213,8 @@ namespace Scry
             Version++;
         }
 
-        /// <summary>A square stood where the map shows it: its hatch, edges and halos at their size on the screen, its count at its upper right corner where it holds more than one.</summary>
-        private static void Stand(Square square, (float X, float Y, float W, float H) at, int left, Vector2 area)
+        /// <summary>A square stood where the map shows it: its hatch, edges and halos at their size on the screen, its count's tab inside its upper right corner where it holds more than one and is drawn big enough.</summary>
+        private static void Stand(Square square, (float X, float Y, float W, float H) at, int left)
         {
             var size = new Vector2(at.W, at.H);
             square.Rect.anchoredPosition = new Vector2(at.X, at.Y);
@@ -228,34 +230,34 @@ namespace Scry
                 square.Edges[e].rectTransform.sizeDelta = across ? new Vector2(at.W, edge) : new Vector2(edge, at.H);
             }
             if (!square.Rect.gameObject.activeSelf) square.Rect.gameObject.SetActive(true);
-            if (square.Badge == null) return;
-            if (left > 1)
+            if (square.Tab == null) return;
+            var said = Numbers.Count(left);
+            var tab = new Vector2(TabPad * 2f + TabDigit * said.Length, TabHeight);
+            // Inside the corner, under the edge, only where the square has room for it twice over.
+            var shows = left > 1 && at.W >= tab.x * 2f && at.H >= tab.y * 2f;
+            if (shows)
             {
                 if (square.Said != left)
                 {
-                    PinNames.SetText(square.Badge, DungeonMapWords.OnPlate(Numbers.Count(left), ColorUtility.ToHtmlStringRGBA(Skin.Alpha(Skin.TipFill, 0.92f))));
+                    PinNames.SetText(square.Count, said);
+                    square.Tab.sizeDelta = tab;
                     square.Said = left;
                 }
-                // At the square's corner, only while that corner is in the map's window: the names' layer clips nothing.
-                var corner = new Vector2(at.X + at.W - 10f, at.Y + at.H - 10f);
-                var inWindow = corner.x >= 0f && corner.y >= 0f && corner.x <= area.x && corner.y <= area.y;
-                square.BadgeRect.anchoredPosition = corner;
-                if (square.Badge.activeSelf != inWindow) square.Badge.SetActive(inWindow);
+                square.Tab.anchoredPosition = new Vector2(at.X + at.W - edge, at.Y + at.H - edge);
             }
-            else if (square.Badge.activeSelf) square.Badge.SetActive(false);
+            if (square.Tab.gameObject.activeSelf != shows) square.Tab.gameObject.SetActive(shows);
         }
 
         private static void Away(Square square)
         {
             if (square.Rect.gameObject.activeSelf) square.Rect.gameObject.SetActive(false);
-            if (square.Badge != null && square.Badge.activeSelf) square.Badge.SetActive(false);
+            if (square.Tab != null && square.Tab.gameObject.activeSelf) square.Tab.gameObject.SetActive(false);
         }
 
         /// <summary>Puts every square away at once, by what holds them.</summary>
         public static void PutAway()
         {
             if (_holder != null && _holder.gameObject.activeSelf) _holder.gameObject.SetActive(false);
-            if (_badges != null && _badges.gameObject.activeSelf) _badges.gameObject.SetActive(false);
             _standing = 0;
             _placedFor = default;
         }
@@ -271,28 +273,24 @@ namespace Scry
         {
             foreach (var square in Made) if (square.Mask != null && square.Mask.texture != null) Object.Destroy(square.Mask.texture);
             if (_holder != null) Object.Destroy(_holder.gameObject);
-            if (_badges != null) Object.Destroy(_badges.gameObject);
             Made.Clear();
             Assigned.Clear();
             Free.Clear();
             _holder = null;
-            _badges = null;
+            _tabs = null;
             _layer = null;
-            _names = null;
             _standing = 0;
             _placedFor = default;
             _allMade = false;
         }
 
-        /// <summary>What holds the squares, first on the pins' layer and as big as it, clipped to it; and what holds their counts, first on the names' layer.</summary>
+        /// <summary>What holds the squares, first on the pins' layer and as big as it, clipped to it; and in it, over every square, what holds their counts' tabs.</summary>
         private static void MakeHolders()
         {
             _holder = Stretched("Scry place squares", _layer);
             _holder.SetAsFirstSibling();
             _holder.gameObject.AddComponent<RectMask2D>();
-            if (_names == null) return;
-            _badges = Stretched("Scry place square counts", _names);
-            _badges.SetAsFirstSibling();
+            _tabs = Stretched("Scry place square counts", _holder);
         }
 
         private static RectTransform Stretched(string name, Transform parent)
@@ -320,11 +318,22 @@ namespace Scry
             // Halos first, so each light edge stands over its dark halo.
             square.Halos = Sides("Scry place square halo", square.Rect, Skin.Alpha(Skin.OnAccent, 0.7f));
             square.Edges = Sides("Scry place square edge", square.Rect, Skin.Text);
-            if (_badges != null)
+            // Its count's tab, a dark plate with the count written on it in the game's pin names' writing.
+            square.Tab = Child("Scry place square count", _tabs, Vector2.zero, Vector2.zero);
+            square.Tab.pivot = Vector2.one;
+            var plate = square.Tab.gameObject.AddComponent<RawImage>();
+            plate.texture = Texture2D.whiteTexture;
+            plate.color = Skin.Alpha(Skin.TipFill, 0.88f);
+            plate.raycastTarget = false;
+            square.Count = PinNames.Make(map, square.Tab, "Scry place square count words");
+            if (square.Count != null)
             {
-                square.Badge = PinNames.Make(map, _badges, "Scry place square count");
-                square.BadgeRect = square.Badge != null ? square.Badge.transform as RectTransform : null;
+                PinNames.Centred(square.Count, TabWriting);
+                square.Count.SetActive(true);
             }
+            square.Tab.gameObject.SetActive(false);
+            // The tabs over every square, those made later too.
+            _tabs.SetAsLastSibling();
             Made.Add(square);
             return square;
         }

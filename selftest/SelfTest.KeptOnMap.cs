@@ -43,6 +43,7 @@ namespace Scry
             ScryPanel.TakeAllOffMap();
             ScryPanel.KeepOnMap(kind, true);
             p.Check(book.Keeps(kind) && !book.Keeps(CompendiumBook.Dungeons), "a kind kept, the rest taken off, is kept with the character", string.Join(", ", book.Kept));
+            p.Note(MapGameMarks.SaidForTest());
 
             // Kept, it stands as the large map opens, nothing shown on demand, nothing dimmed.
             Session.Hide();
@@ -94,6 +95,7 @@ namespace Scry
             yield return Until(() => ScryPanel.Drawn(PanelPart.KeptList) > lists + 1, 3);
             p.Check(ScryPanel.KeptListOpenForTest && ScryPanel.Drawn(PanelPart.KeptList) > lists && MapKept.CountOf(kind).Seen == spots.Count, "the title row's list holds the kind kept, counting the ones you saw",
                 $"{Numbers.Count(MapKept.CountOf(kind).Seen)} counted");
+            p.Check(ScryPanel.KeptDungeonsOffForTest, "every kind of dungeon taken off stays first in the list, to be kept again");
             yield return Picture(p, "kept on the map, the list");
             ScryPanel.OpenKeptListForTest(false);
             ScryPanel.KeepOnMap(kind, false);
@@ -101,6 +103,9 @@ namespace Scry
             Minimap.instance.SetMapMode(Minimap.MapMode.Large);
             yield return Until(() => MapSpots.DotsShown == 0, 5);
             p.Check(!book.Keeps(kind) && MapSpots.DotsShown == 0, "taken off, the kind's dots go from the map");
+            // Its line's Keep on the map, by what its click calls.
+            ScryPanel.KeepOnMap(CompendiumBook.Dungeons, true);
+            p.Check(book.Keeps(CompendiumBook.Dungeons), "the dungeons' line keeps every kind of dungeon again");
             KeptOnMapAsItWas();
         }
 

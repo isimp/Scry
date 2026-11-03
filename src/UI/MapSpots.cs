@@ -141,7 +141,8 @@ namespace Scry
         public static IReadOnlyList<(int X, int Z, int Left)> SquaresOf(Entry entry, IReadOnlyList<(int X, int Z)> seen)
         {
             if (entry == null || entry.Kind != Kind.Location || entry.IsRoom) return NoSquares;
-            return PlaceSquares.Shown(CompendiumMap.Counts.Squares(entry.Name, SquaresGround), seen);
+            // Less those seen, and those the game's map marks itself.
+            return PlaceSquares.Shown(CompendiumMap.Counts.Squares(entry.Name, SquaresGround), MapGameMarks.With(entry.Name, seen));
         }
 
         /// <summary>How many squares a place's page would shade, worked out again only as the answers or its spots change, as the page asks each time it is drawn.</summary>
@@ -221,8 +222,10 @@ namespace Scry
         {
             var spots = new List<(int X, int Z)>();
             foreach (var member in _shownKinds) spots.AddRange(SpotsOf(member.Key));
+            IReadOnlyList<(int X, int Z)> marked = spots;
+            foreach (var member in _shownKinds) marked = MapGameMarks.With(member.Name, marked);
             var squares = Settings.MapSquares && !_shownEntry.IsRoom
-                ? PlaceSquares.Shown(PlaceSquares.Merged(_shownKinds.Select(member => CompendiumMap.Counts.Squares(member.Name, SquaresGround))), spots)
+                ? PlaceSquares.Shown(PlaceSquares.Merged(_shownKinds.Select(member => CompendiumMap.Counts.Squares(member.Name, SquaresGround))), marked)
                 : NoSquares;
             var note = squares.Count == 0 && Settings.MapSquares ? SquaresNote() : null;
             Show(MapShowing.AllKindsKey(_shownKinds.Select(member => member.Key)), SpotWords.AllKindsName(_shownFamily, _shownKinds.Count), Skin.MapDot(Kind.Location), spots, squares, note);

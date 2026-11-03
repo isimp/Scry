@@ -37,6 +37,27 @@ namespace Scry
             text.GetType().GetProperty("text")?.SetValue(text, said);
         }
 
+        /// <summary>A name's words filling what holds it, centred on one line at a size, as a count on a tab is written.</summary>
+        public static void Centred(GameObject label, float size)
+        {
+            if (label.transform is RectTransform rect)
+            {
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.one;
+                rect.pivot = new Vector2(0.5f, 0.5f);
+                rect.offsetMin = Vector2.zero;
+                rect.offsetMax = Vector2.zero;
+            }
+            var text = Text(label);
+            if (text == null) return;
+            var type = text.GetType();
+            type.GetProperty("fontSize")?.SetValue(text, size);
+            type.GetProperty("enableWordWrapping")?.SetValue(text, false);
+            // TextAlignmentOptions.Center, by its number, as Scry does not build against TextMeshPro.
+            if (type.GetProperty("alignment") is System.Reflection.PropertyInfo alignment && alignment.PropertyType.IsEnum)
+                alignment.SetValue(text, System.Enum.ToObject(alignment.PropertyType, 514));
+        }
+
         /// <summary>Whether a component writes with TextMeshPro (<c>TMP_Text</c> or what derives from it).</summary>
         private static bool IsText(System.Type type)
         {

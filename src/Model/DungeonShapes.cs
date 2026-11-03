@@ -233,6 +233,9 @@ namespace Scry
         /// <summary>The locations its vegvisirs point to, by prefab name.</summary>
         public List<string> Vegvisirs = new List<string>();
 
+        /// <summary>The pin its vegvisirs set for each place they point to, by the place's prefab name, the pin's name and its kind (<c>Minimap.PinType</c>).</summary>
+        public List<(string Location, string Pin, int Type)> VegvisirPins = new List<(string, string, int)>();
+
         public DungeonPlan Dungeon;
         public RoomShape Room;
 

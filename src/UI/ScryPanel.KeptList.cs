@@ -8,7 +8,8 @@ namespace Scry
     /// the title row's "On the map" button, as Clear previews lists what is in the world: the
     /// list opens on a click and a click outside puts it away (<see cref="ClickBox"/>); each line
     /// its kind's mark, its name and how many stand, a click on the name opening its page and its
-    /// × taking it off the map; "Take all off" at its foot.
+    /// × taking it off the map; "Take all off" at its foot. Every kind of dungeon taken off stays
+    /// at its top, faint, with Keep on the map to put it back.
     /// </summary>
     internal static partial class ScryPanel
     {
@@ -19,6 +20,9 @@ namespace Scry
         /// <summary>How many kept lines fit under the button, the rest told by the last line.</summary>
         private static int _keptFits;
 
+        /// <summary>Whether every kind of dungeon is taken off, its line standing first to keep them again.</summary>
+        private static bool _dungeonsOff;
+
         private static float KeptRowH => U(26f);
         private static float KeptTop => U(30f);
         private static float KeptFootH => U(30f);
@@ -26,6 +30,10 @@ namespace Scry
         /// <summary>Whether the list stands open, for the self-test.</summary>
         [Diagnostic]
         public static bool KeptListOpenForTest => KeptClick.Open;
+
+        /// <summary>Whether the list stands every kind of dungeon first, taken off, to be kept again, for the self-test.</summary>
+        [Diagnostic]
+        public static bool KeptDungeonsOffForTest => KeptClick.Open && _dungeonsOff && KeptRows.Count > 0 && KeptRows[0] == CompendiumBook.Dungeons;
 
         /// <summary>Opens the list or puts it away, as a click on its button does; for the self-test.</summary>
         [ForTest]
@@ -76,12 +84,14 @@ namespace Scry
             if (!KeptClick.Open) return;
             MapKept.Refresh();
             KeptRows.Clear();
+            _dungeonsOff = !book.Keeps(CompendiumBook.Dungeons);
+            if (_dungeonsOff) KeptRows.Add(CompendiumBook.Dungeons);
             KeptRows.AddRange(book.Kept);
             var top = button.yMax + U(4f);
-            var capped = MapKept.AllDots > SeenOnMap.MostKept ? 1 : 0;
+            var capped = (MapKept.AllDots > SeenOnMap.MostKept ? 1 : 0) + (book.Kept.Count == 0 ? 1 : 0);
             var fit = Mathf.Max(1, Mathf.FloorToInt((room.yMax - top - KeptTop - KeptFootH - U(6f)) / KeptRowH) - capped);
             _keptFits = KeptRows.Count > fit ? fit - 1 : KeptRows.Count;
-            var lines = Mathf.Max(1, KeptRows.Count > fit ? fit : KeptRows.Count) + capped;
+            var lines = (KeptRows.Count > fit ? fit : KeptRows.Count) + capped;
             var width = Mathf.Min(U(400f), room.width);
             var x = Mathf.Clamp(button.xMax - width, room.x, room.xMax - width);
             _keptRect = new Rect(x, button.yMax + U(4f), width, KeptTop + lines * KeptRowH + KeptFootH);
@@ -97,11 +107,16 @@ namespace Scry
                 var index = Mathf.FloorToInt((e.mousePosition.y - _keptRect.y - KeptTop) / KeptRowH);
                 if (e.mousePosition.y >= _keptRect.yMax - KeptFootH)
                 {
-                    if (KeptRows.Count > 0) TakeAllOffMap();
+                    // Only on Take all off itself, not on the words beside it.
+                    if (book.Kept.Count > 0 && e.mousePosition.x >= _keptRect.xMax - U(120f)) TakeAllOffMap();
                 }
                 else if (index >= 0 && index < _keptFits)
                 {
-                    if (e.mousePosition.x >= _keptRect.xMax - U(34f)) KeepOnMap(KeptRows[index], false);
+                    if (_dungeonsOff && index == 0)
+                    {
+                        if (KeepAgain(_keptRect).Contains(e.mousePosition)) KeepOnMap(CompendiumBook.Dungeons, true);
+                    }
+                    else if (e.mousePosition.x >= _keptRect.xMax - U(34f)) KeepOnMap(KeptRows[index], false);
                     else if (KeptRows[index] != CompendiumBook.Dungeons)
                     {
                         KeptClick.Close();
@@ -130,6 +145,13 @@ namespace Scry
             CompendiumKeeper.Save(now: true);
         }
 
+        /// <summary>Where the first line's Keep on the map stands while every kind of dungeon is taken off.</summary>
+        private static Rect KeepAgain(Rect list)
+        {
+            var width = Skin.Width(Skin.Chip, SpotWords.Keep) + U(12f);
+            return new Rect(list.xMax - U(10f) - width, list.y + KeptTop + (KeptRowH - U(22f)) / 2f, width, U(22f));
+        }
+
         /// <summary>A kept line's name: every kind of dungeon, a place's kinds shown at once, or a kind's own.</summary>
         private static string KeptName(string kept)
         {
@@ -151,16 +173,24 @@ namespace Scry
             GUI.Label(new Rect(r.x + U(12f), r.y + U(6f), r.width - U(24f), U(20f)), SpotWords.KeptHeading, Skin.FaintLabel);
             var mouse = Event.current.mousePosition;
             var y = r.y + KeptTop;
-            if (KeptRows.Count == 0)
-            {
-                GUI.Label(new Rect(r.x + U(12f), y, r.width - U(24f), KeptRowH), SpotWords.NothingKept, Skin.DimLabel);
-                y += KeptRowH;
-            }
             for (var row = 0; row < _keptFits; row++)
             {
                 var kept = KeptRows[row];
                 var line = new Rect(r.x + U(4f), y, r.width - U(8f), KeptRowH);
-                if (line.Contains(mouse)) Skin.Box(line, Skin.Hover);
+                if (_dungeonsOff && row == 0)
+                {
+                    // Taken off: faint, no count, Keep on the map putting it back.
+                    var again = KeepAgain(r);
+                    Skin.Icon(new Rect(r.x + U(12f), y + (KeptRowH - U(12f)) / 2f, U(12f), U(12f)), Skin.Circle, Skin.Alpha(Skin.Accent, 0.3f));
+                    GUI.Label(new Rect(r.x + U(34f), y, again.x - r.x - U(40f), KeptRowH), SpotWords.DungeonsRow, Skin.DimLabel);
+                    Skin.Chip.Draw(again, new GUIContent(SpotWords.Keep), again.Contains(mouse), false, false, false);
+                    y += KeptRowH;
+                    continue;
+                }
+                // The line lit under the pointer, or its × alone where the pointer is on it, as Clear previews lights them.
+                var cross = new Rect(r.xMax - U(34f), y, U(30f), KeptRowH);
+                var onCross = line.Contains(mouse) && mouse.x >= cross.x;
+                if (line.Contains(mouse) && !onCross) Skin.Box(line, Skin.Hover);
                 var dungeons = kept == CompendiumBook.Dungeons;
                 var mark = new Rect(r.x + U(12f), y + (KeptRowH - U(12f)) / 2f, U(12f), U(12f));
                 var colour = dungeons || MapKept.IsDungeon(MapKept.KindsIn(kept)[0]) ? Skin.Accent : Skin.MapDot(MapKept.PlaceOf(MapKept.KindsIn(kept)[0]) != null ? Kind.Location : WorldCatalog.Find(kept)?.Kind ?? Kind.Resource);
@@ -170,12 +200,18 @@ namespace Scry
                 var countW = Skin.Width(Skin.DimRight, count) + U(4f);
                 GUI.Label(new Rect(mark.xMax + U(10f), y, r.width - U(70f) - countW, KeptRowH), Skin.Fit(Skin.Label, KeptName(kept), r.width - U(70f) - countW), Skin.Label);
                 GUI.Label(new Rect(r.xMax - U(40f) - countW, y, countW, KeptRowH), count, Skin.DimRight);
-                GUI.Label(new Rect(r.xMax - U(34f), y, U(26f), KeptRowH), "×", Skin.CenterDim);
+                if (onCross) Skin.Box(cross, Skin.Hover);
+                GUI.Label(cross, "×", onCross ? Skin.Center : Skin.CenterDim);
                 y += KeptRowH;
             }
             if (KeptRows.Count > _keptFits)
             {
                 GUI.Label(new Rect(r.x + U(12f), y, r.width - U(24f), KeptRowH), SpotWords.KeptMore(KeptRows.Count - _keptFits), Skin.DimLabel);
+                y += KeptRowH;
+            }
+            if (CompendiumKeeper.Book is CompendiumBook book && book.Kept.Count == 0)
+            {
+                GUI.Label(new Rect(r.x + U(12f), y, r.width - U(24f), KeptRowH), SpotWords.NothingKept, Skin.DimLabel);
                 y += KeptRowH;
             }
             if (MapKept.AllDots > SeenOnMap.MostKept)
@@ -185,7 +221,13 @@ namespace Scry
             }
             Skin.Fill(new Rect(r.x + U(8f), y + U(2f), r.width - U(16f), 1f), Skin.Alpha(Skin.Text, 0.06f));
             GUI.Label(new Rect(r.x + U(12f), y + U(6f), r.width - U(120f), U(20f)), SpotWords.KeptFoot, Skin.FaintLabel);
-            if (KeptRows.Count > 0) GUI.Label(new Rect(r.xMax - U(110f), y + U(6f), U(98f), U(20f)), SpotWords.TakeAllOff, Skin.DimRight);
+            if (CompendiumKeeper.Book?.Kept.Count is null or 0) return;
+            // Take all off lit under the pointer, as a line's × is.
+            var all = new Rect(r.xMax - U(120f), y + U(4f), U(116f), U(24f));
+            var onAll = all.Contains(mouse);
+            if (onAll) Skin.Box(all, Skin.Hover);
+            var allW = Skin.Width(Skin.Label, SpotWords.TakeAllOff);
+            GUI.Label(new Rect(all.xMax - U(8f) - allW, all.y + U(2f), allW, U(20f)), SpotWords.TakeAllOff, onAll ? Skin.Label : Skin.DimLabel);
         }
     }
 }

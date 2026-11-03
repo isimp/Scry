@@ -104,6 +104,7 @@ namespace Scry
             foreach (var part in c.Parts) Line(text, "part", part.Prefab, Stored.Count(part.Count), Stored.Exact(part.Chance));
             foreach (var creature in c.Creatures) Line(text, "creature", creature.Prefab, Stored.Count(creature.Count), Stored.Exact(creature.Chance));
             foreach (var vegvisir in c.Vegvisirs) Line(text, "vegvisir", vegvisir);
+            foreach (var (location, pin, type) in c.VegvisirPins) Line(text, "vegvisirpin", location, pin, Stored.Count(type));
             Line(text, "levels", Stored.Count(c.EnemyMinLevel), Stored.Count(c.EnemyMaxLevel), Stored.Exact(c.EnemyLevelUpChance), Stored.Flag(c.LevelOverrideExceptions));
             foreach (var group in c.LevelGroupsLeftOut) Line(text, "leftout", Stored.Count(group));
             foreach (var spawn in c.SpawnLevels) Line(text, "spawnlevel", spawn.Creature, Stored.Count(spawn.Group), Stored.Count(spawn.Min), Stored.Count(spawn.Max));
@@ -230,6 +231,12 @@ namespace Scry
             {
                 if (f.Length != 1) return false;
                 c.Vegvisirs.Add(f[0]);
+                return true;
+            },
+            ["vegvisirpin"] = (record, c, f) =>
+            {
+                if (f.Length != 3 || !Stored.TryCount(f[2], out var type)) return false;
+                c.VegvisirPins.Add((f[0], f[1], type));
                 return true;
             },
             ["levels"] = (record, c, f) =>

@@ -18,6 +18,7 @@ namespace Scry.Tests
             {
                 GameNameKey = "$location_crypt", TraderKey = "", BossPrefab = "Bonemass",
                 Vegvisirs = { "Bonemass", "Vendor_BlackForest" },
+                VegvisirPins = { ("Bonemass", "$enemy_bonemass", 9) },
                 EnemyMinLevel = 2, EnemyMaxLevel = 3, EnemyLevelUpChance = 12.5f, LevelOverrideExceptions = true,
                 NoBuild = true, NoBuildRadius = 24.75f,
                 PartsRolled = true, StarsRolled = false, GroupsRolled = true,
@@ -89,6 +90,8 @@ namespace Scry.Tests
             Assert.Equal(3, crypt.Contents.Parts[0].Count);
             Assert.Equal("Skeleton", Assert.Single(crypt.Contents.Creatures).Prefab);
             Assert.Equal(new[] { "Bonemass", "Vendor_BlackForest" }, crypt.Contents.Vegvisirs);
+            // The pin each Vegvisir sets for a place, by its name and kind, so a pin on the map is known for the place it marks.
+            Assert.Equal(("Bonemass", "$enemy_bonemass", 9), Assert.Single(crypt.Contents.VegvisirPins));
             Assert.Equal((2, 3, 12.5f, true), (crypt.Contents.EnemyMinLevel, crypt.Contents.EnemyMaxLevel, crypt.Contents.EnemyLevelUpChance, crypt.Contents.LevelOverrideExceptions));
             Assert.Equal((true, 24.75f), (crypt.Contents.NoBuild, crypt.Contents.NoBuildRadius));
             // Its spawn points' groups and levels, and the groups it leaves out of its own levels, for the stars its creatures can come with.
