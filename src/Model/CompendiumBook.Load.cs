@@ -98,9 +98,14 @@ namespace Scry
             },
             ["kept"] = (book, parts, name) =>
             {
-                // Its mark beside it; an older book's kept none, and one is given once the book is read.
+                // Its mark comes on a line of its own; a kind with none, as an older book keeps it, is given one once the book is read.
                 if (name == Dungeons || parts.Length < 2 || parts.Length > 3) return;
-                book._kept[name] = parts.Length == 3 && Stored.TryCount(parts[2], out var mark) && mark >= 0 ? mark : -1;
+                if (!book._kept.ContainsKey(name)) book._kept[name] = parts.Length == 3 && Stored.TryCount(parts[2], out var mark) && mark >= 0 ? mark : -1;
+            },
+            ["keptmark"] = (book, parts, name) =>
+            {
+                if (name == Dungeons || parts.Length != 3 || !Stored.TryCount(parts[2], out var mark) || mark < 0) return;
+                book._kept[name] = mark;
             },
             ["unkept"] = (book, parts, name) =>
             {

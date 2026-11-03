@@ -16,9 +16,9 @@ namespace Scry
         public const float SamePlace = 8f;
 
         /// <summary>
-        /// The places each pin a Vegvisir sets marks, by the pin's name and kind: the name the
-        /// Vegvisir gives it, and the name it shows (<paramref name="shown"/>), as the game keeps a
-        /// pin set so by the name it shows.
+        /// The places each pin a Vegvisir or a rune stone sets marks, by the pin's name and kind:
+        /// the name it gives the pin, as the game keeps it, and the name the pin shows
+        /// (<paramref name="shown"/>), as some maps hold such a pin.
         /// </summary>
         public static Dictionary<(string Pin, int Type), HashSet<string>> PlacesOfPins(IEnumerable<(string Location, string Pin, int Type)> vegvisirPins, Func<string, string> shown = null)
         {

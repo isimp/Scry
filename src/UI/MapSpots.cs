@@ -258,9 +258,10 @@ namespace Scry
             return told.Count == 0 ? None : PlacesToldBy.Besides(told, MapGameMarks.With(place, seen));
         }
 
-        /// <summary>The mark a kind shown on demand stands in: the one of the line that keeps it, else the lowest no kept kind stands in.</summary>
+        /// <summary>The mark a kind shown on demand stands in: a dungeon's the dungeons' amber, another the one of the line that keeps it, else the lowest no kept kind stands in.</summary>
         private static int DemandMark(string key)
         {
+            if (MapKept.KindsIn(key).All(MapKept.IsDungeon)) return KeptMarks.Dungeons;
             var book = CompendiumKeeper.Book;
             if (book == null) return 0;
             return MapKept.KeptBy(book, key) is string line && book.MarkOf(line) is int kept ? kept : book.FreeMark();

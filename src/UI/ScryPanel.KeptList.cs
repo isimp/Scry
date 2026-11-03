@@ -194,7 +194,7 @@ namespace Scry
                 var dungeons = kept == CompendiumBook.Dungeons;
                 var mark = new Rect(r.x + U(12f), y + (KeptRowH - U(12f)) / 2f, U(12f), U(12f));
                 // Its mark as it stands on the map, as a legend; every kind of dungeon by the accent of its discs.
-                var shown = CompendiumKeeper.Book?.MarkOf(kept) ?? KeptMarks.Dungeons;
+                var shown = MapKept.MarkOf(CompendiumKeeper.Book, kept);
                 if (shown == KeptMarks.Dungeons) Skin.Icon(mark, Skin.Circle, Skin.Accent);
                 else GUI.DrawTexture(new Rect(mark.x - U(2f), mark.y - U(2f), mark.width + U(4f), mark.height + U(4f)), MapSpots.Picture(Skin.MarkColour(shown), KeptMarks.ShapeOf(shown)).texture);
                 var (seen, squares, told) = MapKept.CountOf(kept);

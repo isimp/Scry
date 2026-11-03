@@ -24,6 +24,14 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheGuideTellsWhatEachLookOfDungeonMarkMeans()
+        {
+            // The marks' words and the dungeon records' docs send the player here for it.
+            var marks = GuideWords.Sections.Single(s => s.Caption == "Dungeon marks");
+            foreach (var look in new[] { "solid", "ticked", "faint", "hollow", "glyph" }) Assert.Contains(look, marks.Words);
+        }
+
+        [Fact]
         public void TheThreeRulesStandSideBySideACellForEach()
         {
             var rules = GuideWords.Sections.First();

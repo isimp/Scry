@@ -74,8 +74,10 @@ namespace Scry
                 var gap = U(6f);
                 var buttonsW = hideW + (allW > 0f ? gap + allW : 0f) + (keepW > 0f ? gap + keepW : 0f);
                 var wordsW = Skin.Width(Skin.Small, line);
-                var most = Mathf.Max(U(14f) + buttonsW + U(10f), map.Value.width * StripShare);
-                var width = Mathf.Min(map.Value.width - U(24f), most, U(14f) + Mathf.Max(wordsW + U(18f), buttonsW) + U(12f));
+                // Both rows start past the kind's mark, where one is drawn.
+                var lead = U(14f) + (MapSpots.ShownPicture != null ? U(18f) : 0f);
+                var most = Mathf.Max(lead + buttonsW + U(10f), map.Value.width * StripShare);
+                var width = Mathf.Min(map.Value.width - U(24f), most, lead + Mathf.Max(wordsW, buttonsW) + U(12f));
                 var rowH = U(28f);
                 var rect = new Rect(map.Value.x + U(12f), map.Value.y + U(12f), width, rowH * 2f + U(2f));
                 // The notices' look over both rows: the panel under a tint of the accent, its bar at the left.

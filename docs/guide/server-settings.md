@@ -14,7 +14,7 @@ A server with Scry, a dedicated one or a game hosting, can set what the compendi
 
 `SeenOnMapReach` (50 by default) is how far away, in metres, a player's sight remembers where an ore deposit, a pickable or a place stands, for *Show on map*, things smaller than a person seen nearer. At 0 nothing is remembered, and nothing stands on the map, shown or kept, but the dungeons a player walked.
 
-`PlacesOnMap` (`Squares` by default) is how the server tells players the places lying in ground they explored or saw on a shared map but never came near: `Off`, not at all, players seeing only what they saw themselves; `Squares`, the 128 m square each stands in, so they know one stands somewhere inside, never where; `Dots`, where each stands, as a hollow dot. A player whose Scry is older than this setting is told squares on `Dots`. It replaces the earlier `SquaresOnMap` switch: one left off reads as `Off`.
+`PlacesOnMap` (`Squares` by default) is how the server tells players the places lying in ground they explored or saw on a shared map but never came near: `Off`, not at all, players seeing only what they saw themselves; `Squares`, the 128 m square each stands in, so they know one stands somewhere inside, never where; `Dots`, where each stands, as a hollow dot. A player whose Scry is older than this setting is told squares on `Dots`. The ground is what the player's game says it explored, so on `Dots` a changed game can learn where every place of the world stands; leave it at `Squares` where that matters. It replaces the earlier `SquaresOnMap` switch: one left off reads as `Off`.
 
 The rest cap how far each source of the world may show in the compendium's box; a player choosing above the cap gets the cap.
 

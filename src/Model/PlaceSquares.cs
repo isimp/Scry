@@ -61,7 +61,8 @@ namespace Scry
     /// Show on map's squares (B): for each kind of place, the 128 m squares of the world's own grid
     /// that hold one in ground the character explored or saw on a shared map, as only the server
     /// knows where places stand; worked out with the counts of each kind in a ground
-    /// (<see cref="MapCatchUp.Counted"/>) and sent with them, never a place's position. The map
+    /// (<see cref="MapCatchUp.Counted"/>) and sent with them, never a place's position (which
+    /// the server sends apart, only where it tells places as dots, <see cref="PlacesToldBy"/>). The map
     /// shades a square to say one stands somewhere inside, leaving out those whose places the
     /// character all saw itself, which its dots show.
     /// </summary>

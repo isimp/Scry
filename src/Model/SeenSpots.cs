@@ -383,18 +383,18 @@ namespace Scry
         /// How far a point of a dot lies from its middle as a share of the way to its edge, by its
         /// mark's shape (<see cref="KeptMarks"/>), x and y from -1 to 1 across the dot, y up: the
         /// circle by its radius, the diamond, the square and the point-up triangle each reaching
-        /// the whole at its own edge, sized to stand about as big as the circle.
+        /// the whole at its own edge, every one of them, ring and halo, inside the picture.
         /// </summary>
         public static float ShapeShare(MarkShape shape, float x, float y)
         {
             switch (shape)
             {
-                case MarkShape.Diamond: return (System.Math.Abs(x) + System.Math.Abs(y)) * 0.8f;
+                case MarkShape.Diamond: return System.Math.Abs(x) + System.Math.Abs(y);
                 case MarkShape.Square: return System.Math.Max(System.Math.Abs(x), System.Math.Abs(y)) * 1.12f;
                 case MarkShape.Triangle:
                     // Its three sides, the bottom and the two rising to the point at the top.
                     var lean = 1.7320508f * System.Math.Abs(x);
-                    return System.Math.Max(-2f * y, y + lean) * 0.88f;
+                    return System.Math.Max(-2f * y, y + lean);
                 default: return (float)System.Math.Sqrt(x * x + y * y);
             }
         }

@@ -805,7 +805,12 @@ namespace Scry
                     text.Append("place\t").Append(Stored.Escaped(world)).Append('\t').Append(source).Append('\t').Append(Stored.Escaped(kind)).Append('\n');
                 }
                 foreach (var pair in shows.OrderBy(p => p.Key)) text.Append("shows\t").Append(pair.Key).Append('\t').Append(pair.Value).Append('\n');
-                foreach (var pair in keptOnMap.OrderBy(k => k.Key, StringComparer.Ordinal)) text.Append("kept\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(Stored.Count(pair.Value)).Append('\n');
+                // Each kind kept as an older Scry reads it, its mark on a line of its own that an older Scry passes over.
+                foreach (var pair in keptOnMap.OrderBy(k => k.Key, StringComparer.Ordinal))
+                {
+                    text.Append("kept\t").Append(Stored.Escaped(pair.Key)).Append('\n');
+                    text.Append("keptmark\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(Stored.Count(pair.Value)).Append('\n');
+                }
                 if (dungeonsUnkept) text.Append("unkept\t").Append(Dungeons).Append('\n');
                 if (rule != CompendiumRule.Off) text.Append("rule\t").Append(rule).Append('\n');
                 if (floor > 0) text.Append("floor\t").Append(Stored.Count(floor)).Append('\n');

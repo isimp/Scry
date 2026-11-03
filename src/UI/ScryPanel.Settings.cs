@@ -62,7 +62,7 @@ namespace Scry
         private static float Wrapped(string words, GUIStyle style, float x, float y, float width)
         {
             if (string.IsNullOrEmpty(words)) return y;
-            var h = style.CalcHeight(new GUIContent(words), width);
+            var h = Skin.Height(style, words, width);
             GUI.Label(new Rect(x, y, width, h), words, style);
             return y + h;
         }
@@ -77,8 +77,8 @@ namespace Scry
             foreach (var (row, cells) in table.Rows)
             {
                 Skin.Fill(new Rect(x, y, width, 1f), Skin.Alpha(Skin.Text, 0.06f));
-                var h = Skin.SmallWrap.CalcHeight(new GUIContent(row), first - U(6f));
-                for (var c = 0; c < cells.Length; c++) h = Mathf.Max(h, Skin.SmallWrap.CalcHeight(new GUIContent(cells[c]), cell - U(4f)));
+                var h = Skin.Height(Skin.SmallWrap, row, first - U(6f));
+                for (var c = 0; c < cells.Length; c++) h = Mathf.Max(h, Skin.Height(Skin.SmallWrap, cells[c], cell - U(4f)));
                 GUI.Label(new Rect(x, y + U(3f), first - U(6f), h), row, Skin.SmallWrap);
                 for (var c = 0; c < cells.Length; c++) GUI.Label(new Rect(x + first + c * cell, y + U(3f), cell - U(4f), h), cells[c], Skin.SmallWrap);
                 y += h + U(6f);
@@ -94,7 +94,7 @@ namespace Scry
             // Measured first, for the plate to stand under all of it.
             var height = U(22f);
             foreach (var (name, said) in example.Lines) height += LineHeight(name, said, inner, label) + U(2f);
-            if (!string.IsNullOrEmpty(example.Foot)) height += Skin.DimWrap.CalcHeight(new GUIContent(example.Foot), inner) + U(2f);
+            if (!string.IsNullOrEmpty(example.Foot)) height += Skin.Height(Skin.DimWrap, example.Foot, inner) + U(2f);
             height += U(6f);
             var plate = new Rect(x, y, width, height);
             Skin.Fill(plate, Skin.Alpha(Skin.Text, 0.035f));
@@ -119,6 +119,6 @@ namespace Scry
 
         /// <summary>How tall an example's line stands: what it says wrapped beside its label, or across the plate with none.</summary>
         private static float LineHeight(string name, string said, float inner, float label) =>
-            Mathf.Max(U(18f), Skin.SmallWrap.CalcHeight(new GUIContent(said), string.IsNullOrEmpty(name) ? inner : inner - label));
+            Mathf.Max(U(18f), Skin.Height(Skin.SmallWrap, said, string.IsNullOrEmpty(name) ? inner : inner - label));
     }
 }

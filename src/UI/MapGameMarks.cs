@@ -24,7 +24,7 @@ namespace Scry
         private static readonly Dictionary<string, List<(int X, int Z)>> ByPlace = new Dictionary<string, List<(int X, int Z)>>(System.StringComparer.Ordinal);
         private static readonly IReadOnlyList<(int X, int Z)> None = System.Array.Empty<(int, int)>();
         private static AccessTools.FieldRef<Minimap, List<Minimap.PinData>> _pins;
-        private static (int Pins, int Records, int Icons) _readFor = (-1, -1, -1);
+        private static (int Pins, int Records, int Icons, int PinsSaid, string Language) _readFor = (-1, -1, -1, 0, null);
         private static float _readAt = float.MinValue;
 
         /// <summary>Counts up as where the game marks places changes, for what is shown of them to be worked out again.</summary>
@@ -57,12 +57,15 @@ namespace Scry
             if (_pins == null) _pins = AccessTools.FieldRefAccess<Minimap, List<Minimap.PinData>>("m_pins");
             var pins = _pins(map);
             var records = PlaceRecords.Kept?.Records;
-            var readFor = (pins?.Count ?? 0, records?.Count ?? 0, CompendiumMap.IconsRead);
+            // A pin swapped for another, or the game's language changed, is seen as well as one more or fewer.
+            var pinsSaid = 17;
+            if (pins != null) foreach (var pin in pins) if (pin != null) pinsSaid = pinsSaid * 31 + (int)pin.m_type * 7919 + Mathf.RoundToInt(pin.m_pos.x) * 131 + Mathf.RoundToInt(pin.m_pos.z);
+            var readFor = (pins?.Count ?? 0, records?.Count ?? 0, CompendiumMap.IconsRead, pinsSaid, Localization.instance?.GetSelectedLanguage());
             if (readFor == _readFor) return;
             _readFor = readFor;
             var vegvisirPins = new List<(string, string, int)>();
             if (records != null) foreach (var record in records) vegvisirPins.AddRange(record.Contents.VegvisirPins);
-            // The game keeps a pin a Vegvisir set by the name it shows, in the game's language.
+            // The game keeps a pin a Vegvisir set by the name the Vegvisir gives it; some maps hold it by the name it shows, in the game's language.
             var language = Localization.instance;
             var placesOfPins = GameMarks.PlacesOfPins(vegvisirPins, language != null ? (System.Func<string, string>)language.Localize : null);
             var gamePins = new List<(float X, float Z, string Pin, int Type)>();
@@ -119,7 +122,7 @@ namespace Scry
         public static void Forget()
         {
             ByPlace.Clear();
-            _readFor = (-1, -1, -1);
+            _readFor = (-1, -1, -1, 0, null);
             _readAt = float.MinValue;
             Version++;
         }

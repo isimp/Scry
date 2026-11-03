@@ -8,7 +8,8 @@ namespace Scry
     /// Scry's own messages between a game and its world's server, for the map catch-up
     /// (<see cref="CompendiumMap"/>): a client of a dedicated server sends its explored map packed
     /// (<see cref="ExploredGrid"/>), and the server's Scry answers with the kinds of place lying in
-    /// it (<see cref="MapCatchUp.Kinds"/>), never where they are; asked again with the ground new
+    /// it (<see cref="MapCatchUp.Kinds"/>), never where they are unless its setting tells places as
+    /// dots (<see cref="PlacesToldBy"/>); asked again with the ground new
     /// since as the map grows (<see cref="AskMore"/>). The asks go by the player's own connection,
     /// answered at the server's pace (<see cref="GroundAsks"/>); the answers and the census are
     /// routed messages, registered on each new connection, as the game makes its routed messages

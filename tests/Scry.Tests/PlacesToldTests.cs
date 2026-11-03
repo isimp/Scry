@@ -57,6 +57,9 @@ namespace Scry.Tests
             // The explored ground's squares give way to its spots; the shared maps', told as squares, stay.
             Assert.Equal(new[] { (5, 5) }, counts.Squares("Crypt2", _ => true).Keys);
             Assert.Empty(counts.Spots("Crypt2", s => s == WorldSource.SharedMaps));
+            // Which grounds were told as dots, for an answer told otherwise to ask the ground whole again.
+            Assert.True(counts.SpotsTold(WorldSource.Explored));
+            Assert.False(counts.SpotsTold(WorldSource.SharedMaps));
             // An answer telling squares again takes the spots away.
             counts.SpotsNot(WorldSource.Explored);
             Assert.Empty(counts.Spots("Crypt2", _ => true));

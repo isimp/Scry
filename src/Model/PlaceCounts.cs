@@ -121,6 +121,9 @@ namespace Scry
             Version++;
         }
 
+        /// <summary>Whether a ground was told by where its places stand, for an answer told otherwise to have the ground asked about whole again.</summary>
+        public bool SpotsTold(WorldSource source) => _spots.ContainsKey(source);
+
         /// <summary>An answer on a ground told no spots: its squares show again.</summary>
         public void SpotsNot(WorldSource source)
         {

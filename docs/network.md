@@ -20,7 +20,7 @@ A routed message names its sender as the sending game wrote it, and the server p
 - Of every walk a game sends, the server keeps one only of a location the world places where the walk's id says, of that location, with the rooms its map holds and no day later than today (`DungeonMaps.HeldBy`).
 - Every handler runs inside `Guard.Run`, so a message that fails costs only itself.
 
-What a game with a changed Scry can still do, and the game itself allows as much: send events that make others' books count what they never saw (an event cannot be checked against what really ran); claim a ground it never explored and learn which kinds of place, and which dungeons with their entrances, lie in it, at the pace above; light rooms of a real dungeon nobody walked.
+What a game with a changed Scry can still do, and the game itself allows as much: send events that make others' books count what they never saw (an event cannot be checked against what really ran); claim a ground it never explored and learn which kinds of place, and which dungeons with their entrances, lie in it, at the pace above, and, where the server's `PlacesOnMap` is `Dots`, where each of those places stands, so claiming the whole world learns where every place of it is; light rooms of a real dungeon nobody walked.
 
 ## The messages
 

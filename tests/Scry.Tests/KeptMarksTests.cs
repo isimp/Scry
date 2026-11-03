@@ -36,6 +36,26 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AnOlderScryReadingTheBookKeepsItsKeptKindsTheMarksBesideThem()
+        {
+            // The kept line stays as an older Scry reads it, the mark on a line of its own, which an older Scry passes over.
+            var book = new CompendiumBook();
+            book.Keep("rock4_copper", true);
+            var saved = book.Save();
+            Assert.Contains("kept\trock4_copper\n", saved);
+            Assert.Equal(0, CompendiumBook.Load(saved).MarkOf("rock4_copper"));
+        }
+
+        [Fact]
+        public void EachShapeStandsWholeInsideItsPictureItsRingAndHaloUncut()
+        {
+            // The picture spans -1 to 1 each way: at its edge every shape has reached past its own, so nothing of it is cut off.
+            foreach (MarkShape shape in System.Enum.GetValues(typeof(MarkShape)))
+                foreach (var (x, y) in new[] { (1f, 0f), (-1f, 0f), (0f, 1f), (0f, -1f) })
+                    Assert.True(SeenOnMap.ShapeShare(shape, x, y) >= 1f, $"{shape} reaches its edge only at {SeenOnMap.ShapeShare(shape, x, y)} at ({x}, {y})");
+        }
+
+        [Fact]
         public void AnOlderBooksKeptKindsAreGivenMarksInTheirOrder()
         {
             var book = CompendiumBook.Load("kept\trock4_tin\nkept\trock4_copper\n");

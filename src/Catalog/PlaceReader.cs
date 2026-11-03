@@ -291,6 +291,13 @@ namespace Scry
                     if (!contents.VegvisirPins.Contains(pin)) contents.VegvisirPins.Add(pin);
                 }
             }
+            // A rune stone pins a place through the same call (Game.DiscoverClosestLocation).
+            foreach (var stone in prefab.GetComponentsInChildren<RuneStone>(false))
+            {
+                if (stone.OrNull() == null || string.IsNullOrEmpty(stone.m_locationName)) continue;
+                var pin = (stone.m_locationName, stone.m_pinName ?? "", (int)stone.m_pinType);
+                if (!contents.VegvisirPins.Contains(pin)) contents.VegvisirPins.Add(pin);
+            }
         }
 
         /// <summary>How the dungeon or camp in it is built, when there is one (<c>DungeonGenerator</c>).</summary>

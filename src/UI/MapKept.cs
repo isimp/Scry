@@ -92,6 +92,13 @@ namespace Scry
         /// <summary>A kind's name as the list and the pointer say it.</summary>
         public static string NameOf(string kind) => WorldCatalog.Find(kind)?.ShownName ?? Naming.Readable(PlaceOf(kind) ?? kind);
 
+        /// <summary>The mark a kept line stands in: every kind of dungeon, and a line of dungeon kinds alone, in the dungeons' amber, as their discs stand; another its own.</summary>
+        public static int MarkOf(CompendiumBook book, string kept)
+        {
+            if (kept == CompendiumBook.Dungeons || KindsIn(kept).All(IsDungeon)) return KeptMarks.Dungeons;
+            return book?.MarkOf(kept) ?? 0;
+        }
+
         /// <summary>The kept line that keeps a kind: its own, every kind of dungeon for a dungeon, or several kinds of a place shown at once; none.</summary>
         public static string KeptBy(CompendiumBook book, string kind)
         {
@@ -147,7 +154,7 @@ namespace Scry
             AllDots = 0;
             if (book == null || world == null || AsideForTest) return;
             var counted = new HashSet<string>(System.StringComparer.Ordinal);
-            foreach (var kept in book.Kept) Count(kept, kept == CompendiumBook.Dungeons ? DungeonKinds.All.Select(k => EntryKeys.For(Kind.Location, k)).ToArray() : KindsIn(kept), book.MarkOf(kept) ?? 0, world, remembered, counted);
+            foreach (var kept in book.Kept) Count(kept, kept == CompendiumBook.Dungeons ? DungeonKinds.All.Select(k => EntryKeys.For(Kind.Location, k)).ToArray() : KindsIn(kept), MarkOf(book, kept), world, remembered, counted);
             AllDots = _dots.Count;
             var player = Player.m_localPlayer;
             if (_dots.Count > SeenOnMap.MostKept && player != null)

@@ -276,7 +276,7 @@ namespace Scry
         /// <summary>How far, in metres, a player's sight records where a thing worth finding again stands, as the world sets it; none at 0.</summary>
         public static float SeenOnMapReach => _worldSeenOnMapReach?.Value ?? SeenOnMap.DefaultReach;
 
-        /// <summary>Whether the world's server tells players the squares their explored ground holds places in (<see cref="PlaceSquares"/>); read by the server as it answers.</summary>
+        /// <summary>How the world's server tells players the places in their explored ground: not at all, as squares (<see cref="PlaceSquares"/>) or as dots (<see cref="PlacesToldBy"/>); read by the server as it answers.</summary>
         public static PlacesTold PlacesOnMap => _worldPlaces?.Value ?? PlacesTold.Squares;
         private static readonly Dictionary<WorldSource, ConfigEntry<SourceLevel>> WorldUpTo = new Dictionary<WorldSource, ConfigEntry<SourceLevel>>();
         private static ServerSync.ConfigSync _sync;
@@ -346,7 +346,7 @@ namespace Scry
             _mapZoomOut = config.Bind("1 - General", "ShowOnMapZoomOut", true,
                 "Opens the map zoomed out just far enough to hold the nearest marks of the kind shown; your own zoom comes back as it closes. Off, the map keeps your zoom.");
             _mapSquares = config.Bind("1 - General", "ShowOnMapSquares", true,
-                "Shows the squares the world's server tells, each holding a place you never came near somewhere inside. Off, only what you saw is shown. Whether the server tells any is its own setting, SquaresOnMap.");
+                "Shows what the world's server tells of places you never came near: the squares each stands somewhere in, or hollow dots where each stands. Off, only what you saw is shown. Whether and how the server tells them is its own setting, PlacesOnMap.");
             _autoSpin = config.Bind("2 - Preview", "AutoSpin", true,
                 "Turns the model in the preview slowly while you are not dragging it. The View box's Spin switches it.");
             _spinSpeed = config.Bind("2 - Preview", "SpinSpeed", 14f,
@@ -399,7 +399,7 @@ namespace Scry
                 new ConfigDescription(SettingsWords.Synced("How far away, in metres, a player's own sight remembers where an ore deposit, a pickable or a place stands, for showing it on the map; things smaller than a person are seen nearer. At 0 nothing is remembered."),
                     new AcceptableValueRange<float>(0f, 150f)));
             _worldPlaces = config.Bind("4 - World", "PlacesOnMap", PlacesTold.Squares,
-                "How Show on map tells players the places in ground they explored or saw on a shared map but never came near: Off, not at all, players seeing only the places they saw themselves; Squares, the 128 m square each stands in, so they know one stands somewhere inside, never where; Dots, where each stands, as a hollow dot. A player's older Scry is told squares. Only the server's own setting counts.");
+                "How Show on map tells players the places in ground they explored or saw on a shared map but never came near: Off, not at all, players seeing only the places they saw themselves; Squares, the 128 m square each stands in, so they know one stands somewhere inside, never where; Dots, where each stands, as a hollow dot. A player's older Scry is told squares. The ground is the player's game's own word, so on Dots a changed game can learn where every place of the world stands. Only the server's own setting counts.");
             // The squares' on-and-off switch became this setting: one left off reads as Off, once, and goes from the file.
             var oldSquares = config.Bind(new ConfigDefinition("4 - World", "SquaresOnMap"), true);
             _worldPlaces.Value = PlacesToldBy.FromOld(oldSquares.Value, _worldPlaces.Value);

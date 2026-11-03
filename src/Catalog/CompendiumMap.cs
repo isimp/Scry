@@ -291,6 +291,8 @@ namespace Scry
         /// <summary>Keeps the squares an answer on a ground told for Show on map, or why it told none.</summary>
         private static void TookSquares(WorldSource source, GroundTold told, bool whole)
         {
+            // A server set to tell otherwise since the ground's whole answer: the ground is asked about whole again, so it stands one way.
+            if (!whole && (told.Spots != null) != Counts.SpotsTold(source) && CompendiumKeeper.Book is CompendiumBook book) Again(book);
             if (told.Heard == SquaresHeard.Told) Counts.TookSquares(source, told.Squares, whole);
             else Counts.SquaresNot(source, told.Heard);
             // Where places stand, where the server told that; a whole answer telling squares alone shows squares again.
