@@ -184,7 +184,8 @@ namespace Scry
         /// <summary>
         /// A creature's attack begun, as its animation's trigger reaches every player's game
         /// (<c>ZSyncAnimation.RPC_SetTrigger</c>): seen up close, within the world's seen reach (a
-        /// boss's as much farther as its health bar shows, <see cref="Sighting.AttackReach"/>), in
+        /// boss's as much farther as its health bar shows, any as far as its creature uses it
+        /// from, <see cref="Sighting.AttackReach"/>), in
         /// view with nothing solid between, the attack is found out, as taking its hit finds it
         /// out (<see cref="CompendiumKeeper.HitBy"/>). A player's own swings, a trigger that is no
         /// attack's or that two of the creature's items share, and a creature whose book is not
@@ -195,13 +196,14 @@ namespace Scry
             var player = Player.m_localPlayer;
             var book = CompendiumKeeper.Book;
             if (creature == null || player == null || book == null || creature.IsPlayer() || string.IsNullOrEmpty(trigger)) return;
-            var centre = creature.GetCenterPoint();
-            var hud = EnemyHud.instance;
-            var reach = Sighting.AttackReach(creature.IsBoss(), book.World.SeenReach, hud != null ? hud.m_maxShowDistance : 0f, hud != null ? hud.m_maxShowDistanceBoss : 0f);
-            if (Vector3.Distance(player.transform.position, centre) > reach) return;
             var key = Utils.GetPrefabName(creature.gameObject);
             var item = AttackTriggers.ItemFor(TriggersOf(key), trigger);
             if (item == null) return;
+            var centre = creature.GetCenterPoint();
+            var hud = EnemyHud.instance;
+            var range = GamePrefabs.Named(item).OrNull()?.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared?.m_aiAttackRange ?? 0f;
+            var reach = Sighting.AttackReach(creature.IsBoss(), book.World.SeenReach, hud != null ? hud.m_maxShowDistance : 0f, hud != null ? hud.m_maxShowDistanceBoss : 0f, range);
+            if (Vector3.Distance(player.transform.position, centre) > reach) return;
             Bind();
             var view = GameCamera.instance != null ? GameCamera.instance.transform : player.transform;
             if (!InView(view, centre) || !Clear(view.position, centre, creature.transform)) return;

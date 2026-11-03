@@ -84,5 +84,21 @@ namespace Scry.Tests
             // Without the game's hud to read, a boss's attack is seen as near as any.
             Assert.Equal(10f, Sighting.AttackReach(true, 10f, 0f, 100f));
         }
+
+        [Fact]
+        public void AnAttackIsSeenBegunFromAsFarAsItsCreatureUsesIt()
+        {
+            // A Seeker soldier taunts from up to 20 m (its taunt's m_aiAttackRange), and a taunt
+            // hurts no one, so it is seen begun from there, not only within the 10 m seen reach.
+            Assert.Equal(20f, Sighting.AttackReach(false, 10f, 10f, 100f, attackRange: 20f), 3);
+            // A Gjall's taunt from up to 50 m.
+            Assert.Equal(50f, Sighting.AttackReach(false, 10f, 10f, 100f, attackRange: 50f), 3);
+            // A bite used from 4 m is still seen within the seen reach.
+            Assert.Equal(10f, Sighting.AttackReach(false, 10f, 10f, 100f, attackRange: 4f), 3);
+            // A boss's attack used from nearer than its health bar shows keeps the health bar's reach.
+            Assert.Equal(100f, Sighting.AttackReach(true, 10f, 10f, 100f, attackRange: 30f), 3);
+            // A world keeping no attacks seen keeps none from afar either.
+            Assert.Equal(0f, Sighting.AttackReach(false, 0f, 10f, 100f, attackRange: 20f));
+        }
     }
 }

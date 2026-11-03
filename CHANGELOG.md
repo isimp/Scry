@@ -4,6 +4,8 @@
 
 Hitting something the world built, such as the crates, lanterns, beams and walls in Dvergr camps, a goblin village's fences or the black marble of the Mistlands' ruins, now makes it known, as hitting a rock or a tree does. What a player built is still learned by its recipe.
 
+A creature's attack counts as seen from as far as the creature uses it, so a Seeker soldier's taunt from 20 m or a Gjall's spit and taunt from afar are found out, not only attacks begun within 10 m.
+
 A fish's stars are numbered as the game numbers a caught fish, 1 to 5: its fight table, its page and what is left to find out on it. A fish you landed now opens the column it was caught at.
 
 ## 0.4.0

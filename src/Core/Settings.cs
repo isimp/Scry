@@ -390,7 +390,7 @@ namespace Scry
             _worldFloor = config.Bind("4 - World", "KnownUpTo", true,
                 SettingsWords.Synced("Whether players may raise Known up to, showing everything of the tiers below as known."));
             _worldSeenReach = config.Bind("4 - World", "SeenReach", WorldRules.SeenReachSetting.Default,
-                new ConfigDescription(SettingsWords.Synced("How near, in metres, you must be to a creature to see its stars, what it carries and its attacks begin, and to an item, piece or resource to see it; 10 is as far as the game names a creature and marks its stars. At 0 no stars, gear or attacks are kept, and things are seen by their size alone."),
+                new ConfigDescription(SettingsWords.Synced("How near, in metres, you must be to a creature to see its stars, what it carries and its attacks begin, and to an item, piece or resource to see it; 10 is as far as the game names a creature and marks its stars. An attack is also seen begun as far as its creature uses it from. At 0 no stars, gear or attacks are kept, and things are seen by their size alone."),
                     new AcceptableValueRange<float>(0f, 150f)));
             Sync(_worldRules);
             Sync(_worldPeeking);
