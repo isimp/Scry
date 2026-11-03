@@ -452,6 +452,8 @@ namespace Scry
             var map = Minimap.instance;
             var large = LargeOpen;
             if (!large) PutZoomBack(map);
+            // A server ceasing to remember what is seen while a kind is shown takes it away, as it does what is kept.
+            if (Showing.Showing && !MapKept.Remembered) Hide();
             if (Showing.Showing) Showing.Tick(large, CompendiumMap.World);
             if (large) MapKept.Refresh();
             if (!large || !Showing.Showing && !MapKept.Any)

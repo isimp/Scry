@@ -309,17 +309,18 @@ namespace Scry
         public static bool Remembers(bool noMap, float reach) => !noMap && reach > 0f;
 
         /// <summary>
-        /// Why Show on map shows nothing now: a world with no map, or a server keeping no spots,
-        /// shows none at all; spots kept show while any are kept, recording on or off; with none,
-        /// recording off, an unreadable file, or none seen yet says why. The server's squares of a
-        /// place stand apart from what the character keeps, and show whatever it keeps.
+        /// Why Show on map shows nothing now: a world with no map, or a server remembering nothing
+        /// seen (<see cref="Remembers"/>), shows none at all, neither spots kept before nor
+        /// squares, as nothing kept on the map stands then; spots kept show while any are kept,
+        /// recording on or off; with none, recording off, an unreadable file, or none seen yet says
+        /// why. The server's squares of a place stand apart from what the character keeps, and show
+        /// whatever it keeps.
         /// </summary>
         public static MapBlock Block(bool noMap, float reach, bool recording, bool unreadable, int count, int squares = 0)
         {
             if (noMap) return MapBlock.NoMap;
-            if (squares > 0) return MapBlock.None;
             if (reach <= 0f) return MapBlock.NoReach;
-            if (count > 0) return MapBlock.None;
+            if (squares > 0 || count > 0) return MapBlock.None;
             if (!recording) return MapBlock.RecordingOff;
             return unreadable ? MapBlock.Unreadable : MapBlock.NoneSeen;
         }

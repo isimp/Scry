@@ -227,8 +227,10 @@ namespace Scry.Tests
         public void APlaceWithSquaresAloneCanBeShownWhereNoneWasSeen()
         {
             Assert.Equal(MapBlock.None, SeenOnMap.Block(false, 50f, true, false, count: 0, squares: 3));
-            // Squares come from the server, not from what the character keeps: the map reach and recording do not stop them.
-            Assert.Equal(MapBlock.None, SeenOnMap.Block(false, 0f, false, false, count: 0, squares: 1));
+            // Squares come from the server, not from what the character keeps: recording off does not stop them.
+            Assert.Equal(MapBlock.None, SeenOnMap.Block(false, 50f, false, false, count: 0, squares: 1));
+            // A server remembering nothing seen shows nothing, squares and spots kept before alike, as nothing kept stands then.
+            Assert.Equal(MapBlock.NoReach, SeenOnMap.Block(false, 0f, true, false, count: 4, squares: 3));
             Assert.Equal(MapBlock.NoMap, SeenOnMap.Block(true, 50f, true, false, count: 4, squares: 3));
             Assert.Equal(MapBlock.NoneSeen, SeenOnMap.Block(false, 50f, true, false, count: 0, squares: 0));
             Assert.Equal("Open Valheim's map with the 3 squares one of these stands somewhere in", SpotWords.Tip(0, 3));
