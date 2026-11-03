@@ -144,7 +144,7 @@ namespace Scry
                 In("Show on map", Choices("ShowOnMapDotSize", "Dot size", "How big the dots stand beside the game's pins.",
                     ("XSmall", SizeNames[0]), ("Small", SizeNames[1]), ("Normal", SizeNames[2]), ("Large", SizeNames[3]))),
                 In("Show on map", Switch("ShowOnMapZoomOut", "Zoom out to the marks", "The map opens just far enough out to hold the nearest marks, and your own zoom comes back when it closes.")),
-                In("Show on map", Switch("ShowOnMapSquares", "Squares on your map", "Where a place you never came near stands somewhere inside, as the world's server tells it. Off, only what you saw is shown.")),
+                In("Show on map", Switch("ShowOnMapSquares", "Told by the server", "The places you never came near that the world's server tells of, as squares or hollow dots as it tells them. Off, only what you saw is shown.")),
                 In("Show on map", Switch("DungeonMarksOnMinimap", "Kept on the minimap", "What is kept on the map stands on the minimap too, at its pins' size: the kinds' dots and the dungeons' marks, without names or squares."))),
 
             new SettingSection("Background",
@@ -221,7 +221,8 @@ namespace Scry
                 0f, 150f, 1f, Metres));
             yield return Server(Slider("SeenOnMapReach", "Remembered within", "How far away a player's sight on this server remembers where ore, pickables and places stand, for Show on map. At none, nothing is remembered.",
                 0f, 150f, 1f, Metres));
-            yield return Server(Switch("SquaresOnMap", "Squares on the map", "Whether this server tells players the squares that hold a place in ground they explored but never came near."));
+            yield return Server(Choices("PlacesOnMap", "Places in explored ground", "How this server tells players the places in ground they explored or saw on a shared map but never came near: not at all, the 128 m square each stands in, or where it stands, as a hollow dot.",
+                ("Off", "Off"), ("Squares", "Squares"), ("Dots", "Dots")));
             yield return In(RunningTheWorld, Server(Switch("ReadTracesOnStart", "Read dungeon traces", "On the game that runs the world, reads what was left inside its dungeons once its records are read, so rooms emptied before anyone's walk was kept count as walked on this server.")));
             yield return In(RunningTheWorld, Server(Switch("TakeWalks", "Keep players' walks", "The server keeps the dungeon walks players' games send and tells them to everyone as walked on this server.")));
         }

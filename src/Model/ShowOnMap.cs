@@ -62,17 +62,18 @@ namespace Scry
         public static string KeptMore(int more) => $"and {Numbers.Count(more)} more kept; take some off to see them";
 
         /// <summary>How many of a kept kind stand: those seen, and the squares of a place.</summary>
-        public static string KeptCount(int seen, int squares)
+        public static string KeptCount(int seen, int squares, int told = 0)
         {
-            if (seen == 0 && squares == 0) return "none seen yet";
+            if (seen == 0 && squares == 0 && told == 0) return "none seen yet";
             var said = seen > 0 ? Numbers.Count(seen) + " you saw" : null;
             if (squares > 0) said = (said != null ? said + " · " : "") + Naming.Count(squares, "square", "squares");
+            if (told > 0) said = (said != null ? said + " · " : "") + Numbers.Count(told) + " told";
             return said;
         }
 
-        /// <summary>How many dungeons are marked, walked or seen, and the squares of those never come near.</summary>
-        public static string DungeonsCount(int marked, int squares) =>
-            Numbers.Count(marked) + " marked" + (squares > 0 ? " · " + Naming.Count(squares, "square", "squares") : "");
+        /// <summary>How many dungeons are marked, walked or seen, and the squares or the spots the server told of those never come near.</summary>
+        public static string DungeonsCount(int marked, int squares, int told = 0) =>
+            Numbers.Count(marked) + " marked" + (squares > 0 ? " · " + Naming.Count(squares, "square", "squares") : "") + (told > 0 ? " · " + Numbers.Count(told) + " told" : "");
 
         /// <summary>The list's line where more marks are kept than stand at once.</summary>
         public static string Capped(int shown, int all) => $"The nearest {Numbers.Count(shown)} of {Numbers.Count(all)} stand; the farthest are left out";
@@ -80,6 +81,10 @@ namespace Scry
         /// <summary>A dot pointed at: its kind, then how far and which way it is from you.</summary>
         public static string DotHover(string name, float metres, string direction) =>
             name + "\n" + (metres < Beside ? "you saw it here, beside you" : $"you saw it here · {Distance(metres)} {direction}");
+
+        /// <summary>A hollow dot pointed at, one the server told of: its kind, then how far and which way it is from you.</summary>
+        public static string ToldHover(string name, float metres, string direction) =>
+            name + "\n" + (metres < Beside ? "the server says one stands here, beside you" : $"the server says one stands here · {Distance(metres)} {direction}");
 
         /// <summary>A square pointed at: what stands somewhere inside it, how many of each, and in which ground.</summary>
         public static string SquareHover(IEnumerable<(string Name, int Count)> inside, bool explored, bool shared)
@@ -100,18 +105,21 @@ namespace Scry
 
         /// <summary>
         /// The strip over the map: the kind, how many the character saw, how far and which way the
-        /// nearest is, and how many more stand somewhere in the squares shaded, or why there are
-        /// none (<see cref="SquaresNote"/>); with none seen, the squares alone.
+        /// nearest is, and how many more stand somewhere in the squares shaded, or where the server told them, or
+        /// why there are none (<see cref="SquaresNote"/>); with none seen, the squares or those
+        /// told alone.
         /// </summary>
-        public static string Strip(string name, int count, float? nearest, string direction, int more = 0, string note = null)
+        public static string Strip(string name, int count, float? nearest, string direction, int more = 0, string note = null, int told = 0)
         {
             string said;
-            if (count == 0 && more > 0) said = more == 1 ? $"{name} · 1 in a square, somewhere inside it" : $"{name} · {Numbers.Count(more)} in squares, somewhere inside each";
+            if (count == 0 && told > 0 && more == 0) said = $"{name} · {Numbers.Count(told)} the server told of";
+            else if (count == 0 && more > 0 && told == 0) said = more == 1 ? $"{name} · 1 in a square, somewhere inside it" : $"{name} · {Numbers.Count(more)} in squares, somewhere inside each";
             else
             {
                 said = $"{name} · {Numbers.Count(count)} you saw";
                 if (nearest is float metres) said += metres < Beside ? " · nearest beside you" : $" · nearest {Distance(metres)} {direction}";
                 if (more > 0) said += $" · {Numbers.Count(more)} more in squares";
+                if (told > 0) said += $" · {Numbers.Count(told)} more the server told of";
             }
             return note != null ? said + " · " + note : said;
         }
@@ -151,8 +159,13 @@ namespace Scry
         public static string YouLine(int count) => $"{Numbers.Count(count)} in this world";
 
         /// <summary>The button's tip where it can show the character's dots, the server's squares, or both.</summary>
-        public static string Tip(int count, int squares)
+        public static string Tip(int count, int squares, int told = 0)
         {
+            if (told > 0)
+            {
+                if (count <= 0) return told == 1 ? "Open Valheim's map with a hollow dot where the server told one stands" : $"Open Valheim's map with a hollow dot on each of the {Numbers.Count(told)} the server told of";
+                return Tip(count) + (told == 1 ? ", and a hollow dot on 1 more the server told of" : $", and a hollow dot on each of {Numbers.Count(told)} more the server told of");
+            }
             if (squares <= 0) return Tip(count);
             var shaded = squares == 1 ? "the square one of these stands somewhere in" : $"the {Numbers.Count(squares)} squares one of these stands somewhere in";
             if (count <= 0) return "Open Valheim's map with " + shaded;

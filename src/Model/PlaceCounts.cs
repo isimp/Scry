@@ -17,6 +17,10 @@ namespace Scry
         private readonly Dictionary<WorldSource, Dictionary<string, Dictionary<(int X, int Z), int>>> _squares = new Dictionary<WorldSource, Dictionary<string, Dictionary<(int X, int Z), int>>>();
         private readonly Dictionary<WorldSource, SquaresHeard> _heard = new Dictionary<WorldSource, SquaresHeard>();
 
+        /// <summary>Where each place stands, by ground and kind, for the grounds the server tells so (<see cref="PlacesTold.Dots"/>); a ground here shows its spots in place of its squares.</summary>
+        private readonly Dictionary<WorldSource, Dictionary<string, List<(int X, int Z)>>> _spots = new Dictionary<WorldSource, Dictionary<string, List<(int X, int Z)>>>();
+        private static readonly IReadOnlyList<(int X, int Z)> NoSpots = Array.Empty<(int, int)>();
+
         private static readonly IReadOnlyDictionary<(int X, int Z), int> NoSquares = new Dictionary<(int X, int Z), int>();
 
         /// <summary>Counts up each time anything here changes.</summary>
@@ -96,11 +100,44 @@ namespace Scry
             Dictionary<(int X, int Z), int> squares = null;
             foreach (var pair in _squares)
             {
-                if (kind == null || !shown(pair.Key) || !pair.Value.TryGetValue(kind, out var of)) continue;
+                // A ground told by where its places stand shows them so, not its squares.
+                if (kind == null || !shown(pair.Key) || _spots.ContainsKey(pair.Key) || !pair.Value.TryGetValue(kind, out var of)) continue;
                 if (squares == null) squares = new Dictionary<(int X, int Z), int>();
                 foreach (var square in of) squares[square.Key] = squares.TryGetValue(square.Key, out var n) ? Math.Max(n, square.Value) : square.Value;
             }
             return squares ?? NoSquares;
+        }
+
+        /// <summary>Takes in where a ground's places stand, as an answer told on <see cref="PlacesTold.Dots"/>: a whole answer in place of those before, one on the ground new since on top of them.</summary>
+        public void TookSpots(WorldSource source, IEnumerable<(string Kind, int X, int Z)> spots, bool whole)
+        {
+            if (whole || !_spots.TryGetValue(source, out var kinds)) _spots[source] = kinds = new Dictionary<string, List<(int X, int Z)>>(StringComparer.Ordinal);
+            foreach (var (kind, x, z) in spots)
+            {
+                if (string.IsNullOrEmpty(kind)) continue;
+                if (!kinds.TryGetValue(kind, out var of)) kinds[kind] = of = new List<(int X, int Z)>();
+                if (!of.Contains((x, z))) of.Add((x, z));
+            }
+            Version++;
+        }
+
+        /// <summary>An answer on a ground told no spots: its squares show again.</summary>
+        public void SpotsNot(WorldSource source)
+        {
+            if (_spots.Remove(source)) Version++;
+        }
+
+        /// <summary>Where the places of a kind stand in the grounds shown, as told, each once; none where no ground told spots.</summary>
+        public IReadOnlyList<(int X, int Z)> Spots(string kind, Func<WorldSource, bool> shown)
+        {
+            List<(int X, int Z)> spots = null;
+            foreach (var pair in _spots)
+            {
+                if (kind == null || !shown(pair.Key) || !pair.Value.TryGetValue(kind, out var of)) continue;
+                if (spots == null) spots = new List<(int X, int Z)>();
+                foreach (var spot in of) if (!spots.Contains(spot)) spots.Add(spot);
+            }
+            return spots ?? NoSpots;
         }
 
         /// <summary>What the server said of squares for the grounds shown: told where any told them, else why not, nothing yet before an answer.</summary>
@@ -123,6 +160,7 @@ namespace Scry
             _in.Clear();
             _squares.Clear();
             _heard.Clear();
+            _spots.Clear();
             Version++;
         }
     }

@@ -202,8 +202,10 @@ namespace Scry
             if (kind == null) return;
             var count = SeenSpotsKeeper.CountOf(kind);
             var squares = MapSpots.SquareCount(entry);
-            var block = MapSpots.BlockOf(count, squares);
-            if (ActionShown(SpotWords.ShowOnMap, ActionLook.Plain, block == MapBlock.None, block == MapBlock.None ? SpotWords.Tip(count, squares) : SpotWords.WhyNot(block))) ShowOnMap(entry);
+            var told = MapSpots.ToldCount(entry);
+            // What the server tells stands apart from what the character keeps, as its squares do.
+            var block = MapSpots.BlockOf(count, squares + told);
+            if (ActionShown(SpotWords.ShowOnMap, ActionLook.Plain, block == MapBlock.None, block == MapBlock.None ? SpotWords.Tip(count, squares, told) : SpotWords.WhyNot(block))) ShowOnMap(entry);
             // Kept without showing it now: it stands every time the map opens, as the strip's own button keeps it.
             var book = CompendiumKeeper.Book;
             if (book == null) return;

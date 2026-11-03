@@ -20,13 +20,13 @@ namespace Scry
     {
         static MapKept() => WorldCaches.Register(nameof(MapKept), Forget);
 
-        private static List<(int X, int Z, Sprite Picture, string Name, string Kind)> _dots = new List<(int, int, Sprite, string, string)>();
+        private static List<(int X, int Z, Sprite Picture, string Name, string Kind, bool Told)> _dots = new List<(int, int, Sprite, string, string, bool)>();
         private static Dictionary<string, Dictionary<(int X, int Z), int>> _squaresByKind = new Dictionary<string, Dictionary<(int X, int Z), int>>(System.StringComparer.Ordinal);
         private static readonly Dictionary<string, string> NamesByKind = new Dictionary<string, string>(System.StringComparer.Ordinal);
 
         /// <summary>The mark each kind kept stands in, its kept line's.</summary>
         private static readonly Dictionary<string, int> MarkByKind = new Dictionary<string, int>(System.StringComparer.Ordinal);
-        private static readonly Dictionary<string, (int Seen, int Squares)> Counted = new Dictionary<string, (int, int)>(System.StringComparer.Ordinal);
+        private static readonly Dictionary<string, (int Seen, int Squares, int Told)> Counted = new Dictionary<string, (int, int, int)>(System.StringComparer.Ordinal);
 
         /// <summary>What was kept and in which world as last worked out, worked out again at once as it changes; what was seen and told, and where the player stands where too many are kept, worked out again as it changes, at most every few seconds.</summary>
         private static (CompendiumBook Book, int Kept, bool Squares, bool Remembered, long World) _keptFor;
@@ -42,8 +42,8 @@ namespace Scry
         /// <summary>Counts up as what stands changes, for the maps to be placed again; not where the same stands after being worked out again.</summary>
         public static int Version { get; private set; }
 
-        /// <summary>The dots standing, each with its picture, its kind's name and its key.</summary>
-        public static IReadOnlyList<(int X, int Z, Sprite Picture, string Name, string Kind)> Dots => _dots;
+        /// <summary>The dots standing, each with its picture, its kind's name, its key, and whether the server told of it rather than the character seeing it.</summary>
+        public static IReadOnlyList<(int X, int Z, Sprite Picture, string Name, string Kind, bool Told)> Dots => _dots;
 
         /// <summary>How many dots the kept kinds hold in all, the nearest <see cref="SeenOnMap.MostKept"/> standing.</summary>
         public static int AllDots { get; private set; }
@@ -77,8 +77,8 @@ namespace Scry
                 if (!except.Contains(pair.Key) && pair.Value.TryGetValue((x, z), out var many)) yield return (NamesByKind.TryGetValue(pair.Key, out var name) ? name : pair.Key, many);
         }
 
-        /// <summary>How many of a kept kind stand: those seen, or for the dungeons those marked, and the squares; none worked out yet.</summary>
-        public static (int Seen, int Squares) CountOf(string kept) => Counted.TryGetValue(kept, out var counted) ? counted : default;
+        /// <summary>How many of a kept kind stand: those seen, or for the dungeons those marked, the squares, and those the server told of; none worked out yet.</summary>
+        public static (int Seen, int Squares, int Told) CountOf(string kept) => Counted.TryGetValue(kept, out var counted) ? counted : default;
 
         /// <summary>The kinds a kept key holds: one, or several of a place shown at once (<see cref="MapShowing.AllKindsKey"/>).</summary>
         public static string[] KindsIn(string kept) => kept.Split('+');
@@ -141,7 +141,7 @@ namespace Scry
 
         private static void Work(CompendiumBook book, string world, bool remembered)
         {
-            _dots = new List<(int, int, Sprite, string, string)>();
+            _dots = new List<(int, int, Sprite, string, string, bool)>();
             _squaresByKind = new Dictionary<string, Dictionary<(int X, int Z), int>>(System.StringComparer.Ordinal);
             NamesByKind.Clear();
             MarkByKind.Clear();
@@ -168,6 +168,7 @@ namespace Scry
         {
             var seen = 0;
             var square = 0;
+            var toldOf = 0;
             var dungeons = new HashSet<string>(System.StringComparer.Ordinal);
             foreach (var kind in kinds)
             {
@@ -182,9 +183,17 @@ namespace Scry
                 if (!IsDungeon(kind))
                 {
                     var picture = MapSpots.Picture(Skin.MarkColour(mark), KeptMarks.ShapeOf(mark));
-                    foreach (var (x, z) in spots) _dots.Add((x, z, picture, name, kind));
+                    foreach (var (x, z) in spots) _dots.Add((x, z, picture, name, kind, false));
                 }
                 if (!(PlaceOf(kind) is string place) || !Settings.MapSquares) continue;
+                // Where the server told one stands, a dungeon's too, hollow, but where a mark stands already.
+                var told = MapSpots.ToldOf(place, spots);
+                if (told.Count > 0)
+                {
+                    var hollow = MapSpots.Picture(Skin.MarkColour(mark), KeptMarks.ShapeOf(mark), hollow: true);
+                    foreach (var (x, z) in told) _dots.Add((x, z, hollow, name, kind, true));
+                    toldOf += told.Count;
+                }
                 var shown = PlaceSquares.Shown(CompendiumMap.Counts.Squares(place, MapSpots.SquaresGround), MapGameMarks.With(place, spots));
                 if (shown.Count == 0) continue;
                 var left = new Dictionary<(int X, int Z), int>();
@@ -196,10 +205,10 @@ namespace Scry
             if (dungeons.Count > 0)
                 seen += DungeonWalks.Maps.OfWorld(world).Where(m => dungeons.Contains(m.Map.Location)).Select(m => m.Id)
                     .Concat(DungeonMarks.Seen(world, dungeons, SeenSpotsKeeper.Of, remembered).Select(s => s.Id)).Distinct().Count();
-            Counted[kept] = (seen, square);
+            Counted[kept] = (seen, square, toldOf);
         }
 
-        private static bool SameDots(List<(int X, int Z, Sprite Picture, string Name, string Kind)> a, List<(int X, int Z, Sprite Picture, string Name, string Kind)> b)
+        private static bool SameDots(List<(int X, int Z, Sprite Picture, string Name, string Kind, bool Told)> a, List<(int X, int Z, Sprite Picture, string Name, string Kind, bool Told)> b)
         {
             if (a.Count != b.Count) return false;
             for (var i = 0; i < a.Count; i++) if (a[i].X != b[i].X || a[i].Z != b[i].Z || a[i].Kind != b[i].Kind || a[i].Picture != b[i].Picture) return false;
@@ -219,7 +228,7 @@ namespace Scry
 
         public static void Forget()
         {
-            _dots = new List<(int, int, Sprite, string, string)>();
+            _dots = new List<(int, int, Sprite, string, string, bool)>();
             _squaresByKind = new Dictionary<string, Dictionary<(int X, int Z), int>>(System.StringComparer.Ordinal);
             NamesByKind.Clear();
             MarkByKind.Clear();

@@ -12,6 +12,10 @@ A server with Scry, a dedicated one or a game hosting, can set what the compendi
 
 `SeenReach` (10 by default) is how near, in metres, a creature, an item, a piece or a resource in view counts as seen, a creature's stars, what it carries and its attacks begun kept for the compendium: as far as the game names a creature and marks its stars over it. At 0 no stars, gear or attacks are kept, and things are seen by their size alone. Under *Strict* the stage shows a creature only with the stars and gear it was seen with so; 0 keeps none.
 
+`SeenOnMapReach` (50 by default) is how far away, in metres, a player's sight remembers where an ore deposit, a pickable or a place stands, for *Show on map*, things smaller than a person seen nearer. At 0 nothing is remembered, and nothing stands on the map, shown or kept, but the dungeons a player walked.
+
+`PlacesOnMap` (`Squares` by default) is how the server tells players the places lying in ground they explored or saw on a shared map but never came near: `Off`, not at all, players seeing only what they saw themselves; `Squares`, the 128 m square each stands in, so they know one stands somewhere inside, never where; `Dots`, where each stands, as a hollow dot. A player whose Scry is older than this setting is told squares on `Dots`. It replaces the earlier `SquaresOnMap` switch: one left off reads as `Off`.
+
 The rest cap how far each source of the world may show in the compendium's box; a player choosing above the cap gets the cap.
 
 `ExploredUpTo`, for *Ground you explored*: `Off`, `Seen`, `Known` or `WithInsides` (the default). `MarkedUpTo`, for *Places marked for you*: `Off`, `Seen`, `Known` or `WithInsides` (the default).

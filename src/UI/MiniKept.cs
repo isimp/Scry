@@ -65,7 +65,7 @@ namespace Scry
             var dots = MapKept.Dots;
             for (var i = 0; i < dots.Count; i++)
             {
-                var (x, z, picture, _, _) = dots[i];
+                var (x, z, picture, _, _, _) = dots[i];
                 if (player != null && (Mathf.Abs(x - px) > reach || Mathf.Abs(z - pz) > reach)) continue;
                 if (!MapMarks.Place(new Vec3(x, 0f, z), map.m_pixelSize, map.m_textureSize, (window.xMin, window.yMin, window.width, window.height), (area.width, area.height), out var at)) continue;
                 if (standing == Dots.Count)

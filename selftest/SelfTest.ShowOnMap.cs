@@ -195,6 +195,22 @@ namespace Scry
             MapSpots.Hide();
             yield return null;
             p.Check(MapSquares.SquaresShown == 0 && MapSpots.Strip == null, "Hide takes the squares away with the dots");
+
+            // A server telling where places stand: the spots it told stand as hollow dots beside those seen, and say so.
+            var toldSpots = new List<(int X, int Z)> { ((int)Mathf.Round(here.x) - 40, (int)Mathf.Round(here.z) + 30) };
+            MapSpots.Show(MadeUpSpots, "Self-test places", 1, spots, null, null, toldSpots);
+            yield return Until(() => MapSpots.DotsShown == spots.Count + toldSpots.Count, 5);
+            p.Check(MapSpots.ToldDotsShownForTest == toldSpots.Count && MapSpots.DotsShown == spots.Count + toldSpots.Count && (MapSpots.Strip ?? "").Contains("1 more the server told of"),
+                "a place the server told of stands as a hollow dot beside those seen, the strip counting it", $"{Numbers.Count(MapSpots.ToldDotsShownForTest)} hollow of {Numbers.Count(MapSpots.DotsShown)}; {MapSpots.Strip}");
+            if (MapSpots.ToldDotCenterForTest() is Vector2 hollowAt)
+            {
+                PointerTo(hollowAt);
+                yield return Until(() => MapSpots.Pointed != null, 3);
+                p.Check((MapSpots.Pointed?.Words ?? "").Contains("the server says one stands here"), "the pointer on a hollow dot says the server told of it", MapSpots.Pointed?.Words);
+                yield return Picture(p, "show on map, a place the server told of");
+            }
+            MapSpots.Hide();
+            yield return null;
             map.LargeZoom = SpotsZoom;
             map.SetMapMode(Minimap.MapMode.Small);
             yield return null;

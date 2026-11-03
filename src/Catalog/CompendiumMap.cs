@@ -249,9 +249,9 @@ namespace Scry
                 if (ZNet.instance.IsServer())
                 {
                     var places = Places();
-                    var squares = Settings.SquaresOnMap;
+                    var told = Settings.PlacesOnMap;
                     _growingKindsFor = world;
-                    _growingKinds = Task.Run(() => GroundTold.Worked(fresh, places, squares));
+                    _growingKinds = Task.Run(() => GroundTold.Worked(fresh, places, told));
                 }
                 else CompendiumLink.AskMore(world, packed);
                 return;
@@ -286,6 +286,9 @@ namespace Scry
         {
             if (told.Heard == SquaresHeard.Told) Counts.TookSquares(source, told.Squares, whole);
             else Counts.SquaresNot(source, told.Heard);
+            // Where places stand, where the server told that; a whole answer telling squares alone shows squares again.
+            if (told.Spots != null) Counts.TookSpots(source, told.Spots, whole);
+            else if (whole) Counts.SpotsNot(source);
         }
 
         /// <summary>A map read at a cartography table: the shared ground is asked about again.</summary>
@@ -327,9 +330,9 @@ namespace Scry
                 _sharedFor = world;
                 if (words == null) return;
                 var places = Places();
-                var squares = Settings.SquaresOnMap;
+                var told = Settings.PlacesOnMap;
                 _sharingFor = world;
-                _sharing = Task.Run(() => GroundTold.Worked(Grid(size, pixel, words), places, squares));
+                _sharing = Task.Run(() => GroundTold.Worked(Grid(size, pixel, words), places, told));
             }
             else if (CompendiumLink.AskShared(world)) _sharedFor = world;
         }
@@ -404,12 +407,12 @@ namespace Scry
         {
             var (size, pixel, words) = Copy();
             if (words == null) return;
-            var squares = Settings.SquaresOnMap;
+            var told = Settings.PlacesOnMap;
             _readingFor = world;
             _reading = Task.Run(() =>
             {
                 var grid = Grid(size, pixel, words);
-                return (grid, GroundTold.Worked(grid, places, squares));
+                return (grid, GroundTold.Worked(grid, places, told));
             });
         }
 

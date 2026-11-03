@@ -53,7 +53,11 @@ namespace Scry.Tests
             Assert.All(compendium.Rows.Where(r => r.Limit != null), r => Assert.True(r.Limit.ServerDecides, r.Label + ": what it allows is the server's"));
             // This server's section keeps what is no choice of the player's.
             var server = Section("This server").Rows.SelectMany(r => r.Keys).ToList();
-            Assert.Equal(new[] { "Peeking", "SeenReach", "SeenOnMapReach", "SquaresOnMap", "ReadTracesOnStart", "TakeWalks" }, server);
+            Assert.Equal(new[] { "Peeking", "SeenReach", "SeenOnMapReach", "PlacesOnMap", "ReadTracesOnStart", "TakeWalks" }, server);
+            // How the server tells places in ground explored: not at all, as squares, or as dots, one of three.
+            var places = Rows.Single(r => r.Keys.FirstOrDefault() == "PlacesOnMap");
+            Assert.Equal(SettingControl.Choices, places.Control);
+            Assert.Equal(new[] { "Off", "Squares", "Dots" }, places.Choices.Select(c => c.Value));
         }
 
         [Fact]
@@ -277,7 +281,7 @@ namespace Scry.Tests
             var types = new Dictionary<string, Type>
             {
                 ["StageQuality"] = typeof(StageQuality), ["Rules"] = typeof(WorldRule),
-                ["ShowOnMapOtherPins"] = typeof(OtherPinsShown), ["ShowOnMapDarken"] = typeof(MapDarkening), ["ShowOnMapDotSize"] = typeof(DotSizeChoice), ["News"] = typeof(NewsShown),
+                ["ShowOnMapOtherPins"] = typeof(OtherPinsShown), ["ShowOnMapDarken"] = typeof(MapDarkening), ["ShowOnMapDotSize"] = typeof(DotSizeChoice), ["News"] = typeof(NewsShown), ["PlacesOnMap"] = typeof(PlacesTold),
             };
             foreach (var each in WorldSources.All) types[each + "UpTo"] = typeof(SourceLevel);
             foreach (var row in Rows.Where(r => r.Control == SettingControl.Choices))

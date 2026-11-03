@@ -269,14 +269,15 @@ namespace Scry
 
         /// <summary>What the world's server allows the compendium, synced to every player by ServerSync (see src/ServerSync/README.md).</summary>
         private static ConfigEntry<WorldRule> _worldRules;
-        private static ConfigEntry<bool> _worldPeeking, _worldFloor, _worldSquares;
+        private static ConfigEntry<bool> _worldPeeking, _worldFloor;
+        private static ConfigEntry<PlacesTold> _worldPlaces;
         private static ConfigEntry<float> _worldSeenReach, _worldSeenOnMapReach;
 
         /// <summary>How far, in metres, a player's sight records where a thing worth finding again stands, as the world sets it; none at 0.</summary>
         public static float SeenOnMapReach => _worldSeenOnMapReach?.Value ?? SeenOnMap.DefaultReach;
 
         /// <summary>Whether the world's server tells players the squares their explored ground holds places in (<see cref="PlaceSquares"/>); read by the server as it answers.</summary>
-        public static bool SquaresOnMap => _worldSquares?.Value ?? true;
+        public static PlacesTold PlacesOnMap => _worldPlaces?.Value ?? PlacesTold.Squares;
         private static readonly Dictionary<WorldSource, ConfigEntry<SourceLevel>> WorldUpTo = new Dictionary<WorldSource, ConfigEntry<SourceLevel>>();
         private static ServerSync.ConfigSync _sync;
 
@@ -397,11 +398,16 @@ namespace Scry
             _worldSeenOnMapReach = config.Bind("4 - World", "SeenOnMapReach", SeenOnMap.DefaultReach,
                 new ConfigDescription(SettingsWords.Synced("How far away, in metres, a player's own sight remembers where an ore deposit, a pickable or a place stands, for showing it on the map; things smaller than a person are seen nearer. At 0 nothing is remembered."),
                     new AcceptableValueRange<float>(0f, 150f)));
-            _worldSquares = config.Bind("4 - World", "SquaresOnMap", true,
-                "Whether Show on map shades the 128 m squares that hold a place in ground a player explored or saw on a shared map but never came near, so they know one stands somewhere inside; the server works them out and never tells where. Off, the server tells no squares, and players see only the places they saw themselves. Only the server's own setting counts.");
+            _worldPlaces = config.Bind("4 - World", "PlacesOnMap", PlacesTold.Squares,
+                "How Show on map tells players the places in ground they explored or saw on a shared map but never came near: Off, not at all, players seeing only the places they saw themselves; Squares, the 128 m square each stands in, so they know one stands somewhere inside, never where; Dots, where each stands, as a hollow dot. A player's older Scry is told squares. Only the server's own setting counts.");
+            // The squares' on-and-off switch became this setting: one left off reads as Off, once, and goes from the file.
+            var oldSquares = config.Bind(new ConfigDefinition("4 - World", "SquaresOnMap"), true);
+            _worldPlaces.Value = PlacesToldBy.FromOld(oldSquares.Value, _worldPlaces.Value);
+            config.Remove(oldSquares.Definition);
+            config.Save();
             Sync(_worldSeenReach);
             Sync(_worldSeenOnMapReach);
-            Sync(_worldSquares);
+            Sync(_worldPlaces);
             foreach (var source in WorldSources.All)
             {
                 var offered = WorldSources.Offered(source);

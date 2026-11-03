@@ -197,8 +197,8 @@ namespace Scry
                 var shown = CompendiumKeeper.Book?.MarkOf(kept) ?? KeptMarks.Dungeons;
                 if (shown == KeptMarks.Dungeons) Skin.Icon(mark, Skin.Circle, Skin.Accent);
                 else GUI.DrawTexture(new Rect(mark.x - U(2f), mark.y - U(2f), mark.width + U(4f), mark.height + U(4f)), MapSpots.Picture(Skin.MarkColour(shown), KeptMarks.ShapeOf(shown)).texture);
-                var (seen, squares) = MapKept.CountOf(kept);
-                var count = dungeons ? SpotWords.DungeonsCount(seen, squares) : SpotWords.KeptCount(seen, squares);
+                var (seen, squares, told) = MapKept.CountOf(kept);
+                var count = dungeons ? SpotWords.DungeonsCount(seen, squares, told) : SpotWords.KeptCount(seen, squares, told);
                 var countW = Skin.Width(Skin.DimRight, count) + U(4f);
                 GUI.Label(new Rect(mark.xMax + U(10f), y, r.width - U(70f) - countW, KeptRowH), Skin.Fit(Skin.Label, KeptName(kept), r.width - U(70f) - countW), Skin.Label);
                 GUI.Label(new Rect(r.xMax - U(40f) - countW, y, countW, KeptRowH), count, Skin.DimRight);

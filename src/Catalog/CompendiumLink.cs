@@ -195,9 +195,13 @@ namespace Scry
             reply.Write(counted.Count);
             foreach (var (kind, _) in counted) reply.Write(kind);
             // How many of each, after the kinds, so a client's older Scry reads the kinds as before;
-            // then the squares, by the server's own switch, which an older Scry leaves unread too.
+            // then the squares, by the server's own setting, which an older Scry leaves unread too;
+            // then, where it tells where places stand, their spots, which a Scry before them leaves unread, keeping to the squares.
             foreach (var (_, count) in counted) reply.Write(count);
-            reply.Write(allowed && Settings.SquaresOnMap ? PlaceSquares.Pack(counted.ConvertAll(c => c.Kind), PlaceSquares.Of(grid, places)) : PlaceSquares.PackOff());
+            var told = allowed ? Settings.PlacesOnMap : PlacesTold.Off;
+            var kinds = counted.ConvertAll(c => c.Kind);
+            reply.Write(told != PlacesTold.Off ? PlaceSquares.Pack(kinds, PlaceSquares.Of(grid, places)) : PlaceSquares.PackOff());
+            if (told == PlacesTold.Dots) reply.Write(PlacesToldBy.PackSpots(kinds, PlacesToldBy.SpotsOf(grid, places)));
             ZRoutedRpc.instance.InvokeRoutedRPC(to, answerRpc, reply);
             Answered++;
             LastAnswered = counted.Count;
@@ -217,8 +221,11 @@ namespace Scry
             if (package.GetPos() >= package.Size()) return new GroundTold(counted, SquaresHeard.OtherScry, null);
             for (var i = 0; i < count; i++) counted[i] = (counted[i].Kind, package.ReadInt());
             if (package.GetPos() >= package.Size()) return new GroundTold(counted, SquaresHeard.OtherScry, null);
-            var (heard, squares) = PlaceSquares.Unpack(package.ReadByteArray(), counted.ConvertAll(c => c.Kind));
-            return new GroundTold(counted, heard, squares);
+            var kinds = counted.ConvertAll(c => c.Kind);
+            var (heard, squares) = PlaceSquares.Unpack(package.ReadByteArray(), kinds);
+            // Where places stand, where the server tells that; none from one that tells squares alone.
+            var spots = package.GetPos() < package.Size() ? PlacesToldBy.UnpackSpots(package.ReadByteArray(), kinds) : null;
+            return new GroundTold(counted, heard, squares, spots);
         }
 
         /// <summary>The most kinds of place an answer may name.</summary>

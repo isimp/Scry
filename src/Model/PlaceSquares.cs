@@ -23,23 +23,28 @@ namespace Scry
         public int Count { get; }
     }
 
-    /// <summary>What an answer on a ground told: the kinds of place lying in it with how many of each, and the squares they stand in, or why there are none.</summary>
+    /// <summary>What an answer on a ground told: the kinds of place lying in it with how many of each, the squares they stand in, or why there are none, and where each stands where the server tells that (<see cref="PlacesTold.Dots"/>).</summary>
     internal sealed class GroundTold
     {
-        public GroundTold(List<(string Kind, int Count)> counted, SquaresHeard heard, List<PlaceSquare> squares)
+        public GroundTold(List<(string Kind, int Count)> counted, SquaresHeard heard, List<PlaceSquare> squares, List<(string Kind, int X, int Z)> spots = null)
         {
             Counted = counted;
             Heard = heard;
             Squares = squares ?? new List<PlaceSquare>();
+            Spots = spots;
         }
 
         public List<(string Kind, int Count)> Counted { get; }
         public SquaresHeard Heard { get; }
         public List<PlaceSquare> Squares { get; }
 
-        /// <summary>Worked out where this game knows where places stand: the counts, and the squares where it gives them.</summary>
-        public static GroundTold Worked(ExploredGrid grid, IReadOnlyCollection<(string Kind, float X, float Z)> places, bool squares) =>
-            new GroundTold(MapCatchUp.Counted(grid, places), squares ? SquaresHeard.Told : SquaresHeard.Off, squares ? PlaceSquares.Of(grid, places) : null);
+        /// <summary>Where each place stands, as told on <see cref="PlacesTold.Dots"/>; none where the squares alone were told.</summary>
+        public List<(string Kind, int X, int Z)> Spots { get; }
+
+        /// <summary>Worked out where this game knows where places stand: the counts, the squares where it gives them, and on <see cref="PlacesTold.Dots"/> the spots.</summary>
+        public static GroundTold Worked(ExploredGrid grid, IReadOnlyCollection<(string Kind, float X, float Z)> places, PlacesTold told) =>
+            new GroundTold(MapCatchUp.Counted(grid, places), told != PlacesTold.Off ? SquaresHeard.Told : SquaresHeard.Off, told != PlacesTold.Off ? PlaceSquares.Of(grid, places) : null,
+                told == PlacesTold.Dots ? PlacesToldBy.SpotsOf(grid, places) : null);
     }
 
     /// <summary>What the server said of squares for a ground: nothing yet this session, that it runs no Scry, or a version that tells none or tells them otherwise than this one reads, that it gives none, or the squares.</summary>
