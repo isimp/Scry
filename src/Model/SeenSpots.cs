@@ -305,6 +305,9 @@ namespace Scry
             return nearest;
         }
 
+        /// <summary>Whether what a character's sight kept may stand on the map at all: a world keeping a map, its server remembering what is seen.</summary>
+        public static bool Remembers(bool noMap, float reach) => !noMap && reach > 0f;
+
         /// <summary>
         /// Why Show on map shows nothing now: a world with no map, or a server keeping no spots,
         /// shows none at all; spots kept show while any are kept, recording on or off; with none,

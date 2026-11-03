@@ -46,7 +46,8 @@ namespace Scry
     /// The dungeons marked on Valheim's big map, where their places stand as Show on map shows
     /// them: every one walked by you in the world played, ticked where every room of it was
     /// walked, by you or by you and others on this server together, whatever the compendium shows
-    /// of the server's rooms; then every one whose entrance your character saw, each once:
+    /// of the server's rooms; then every one whose entrance your character saw, where the world
+    /// remembers what is seen, each once:
     /// hollow where anyone on this server walked a room of it and Ground you explored, the ground
     /// it was seen in, shows With insides, ticked where every room was, else by its entrance
     /// alone. One lying in ground never come near gets no mark: its page's Show on map shades
@@ -88,10 +89,13 @@ namespace Scry
         /// <summary>
         /// The dungeons whose entrances a character's sight kept in a world, each by its id, its
         /// kind and where it stands: the spots of each kind of dungeon (<paramref name="spotsOf"/>,
-        /// by the place's entry key), so an entrance seen is the same dungeon as one walked there.
+        /// by the place's entry key), so an entrance seen is the same dungeon as one walked there;
+        /// none where the world keeps no map or its server remembers nothing seen
+        /// (<see cref="SeenOnMap.Remembers"/>), as no other kind's spots stand then.
         /// </summary>
-        public static IEnumerable<(string Id, string Location, int X, int Z)> Seen(string world, IEnumerable<string> dungeonKinds, Func<string, IReadOnlyList<(int X, int Z)>> spotsOf)
+        public static IEnumerable<(string Id, string Location, int X, int Z)> Seen(string world, IEnumerable<string> dungeonKinds, Func<string, IReadOnlyList<(int X, int Z)>> spotsOf, bool remembered)
         {
+            if (!remembered) yield break;
             foreach (var kind in dungeonKinds)
                 foreach (var (x, z) in spotsOf(EntryKeys.For(Kind.Location, kind)))
                     yield return (DungeonMaps.EntranceIdOf(world, x, z), kind, x, z);

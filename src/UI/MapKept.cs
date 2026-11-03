@@ -26,7 +26,7 @@ namespace Scry
         private static readonly Dictionary<string, (int Seen, int Squares)> Counted = new Dictionary<string, (int, int)>(System.StringComparer.Ordinal);
 
         /// <summary>What was kept and in which world as last worked out, worked out again at once as it changes; what was seen and told, and where the player stands where too many are kept, worked out again as it changes, at most every few seconds.</summary>
-        private static (CompendiumBook Book, int Kept, bool Squares, bool Blocked, long World) _keptFor;
+        private static (CompendiumBook Book, int Kept, bool Squares, bool Remembered, long World) _keptFor;
         private static (int Sources, (int, int) Spots, int Counts, int Walks, int Kinds, (int, int) Cell) _seenFor;
         private static float _workedAt = float.MinValue;
 
@@ -92,15 +92,15 @@ namespace Scry
             return null;
         }
 
-        /// <summary>Whether the rules keep Show on map from showing anything: no map in this world, or nothing remembered.</summary>
-        private static bool Blocked => Game.m_noMap || Settings.SeenOnMapReach <= 0f;
+        /// <summary>Whether what the character's sight kept may stand on the map: a map in this world, and its server remembering what is seen; else only the dungeons walked stand.</summary>
+        public static bool Remembered => SeenOnMap.Remembers(Game.m_noMap, Settings.SeenOnMapReach);
 
         /// <summary>Each frame a map shows what is kept: worked out anew where what is kept, seen or told changed.</summary>
         public static void Refresh()
         {
             var book = CompendiumKeeper.Book;
             var worldId = ZNet.instance != null && ZNet.instance.GetWorld() != null ? ZNet.instance.GetWorldUID() : 0L;
-            var kept = (book, book?.KeptVersion ?? -1, Settings.MapSquares, Blocked, worldId);
+            var kept = (book, book?.KeptVersion ?? -1, Settings.MapSquares, Remembered, worldId);
             var player = Player.m_localPlayer;
             var cell = AllDots > SeenOnMap.MostKept && player != null ? ((int)player.transform.position.x / NearestCell, (int)player.transform.position.z / NearestCell) : (0, 0);
             var seen = (book?.SourcesVersion ?? -1, SeenSpotsKeeper.Stamp, CompendiumMap.Counts.Version, DungeonWalks.Maps.Stamp, DungeonKinds.All.Count, cell);
@@ -111,12 +111,12 @@ namespace Scry
             var started = Timing.Start();
             var dotsBefore = _dots;
             var squaresBefore = _squaresByKind;
-            Work(book, kept.Blocked ? null : CompendiumMap.World);
+            Work(book, CompendiumMap.World, kept.Remembered);
             if (!SameDots(dotsBefore, _dots) || !SameSquares(squaresBefore, _squaresByKind)) Version++;
             Timing.Add("map kept", started);
         }
 
-        private static void Work(CompendiumBook book, string world)
+        private static void Work(CompendiumBook book, string world, bool remembered)
         {
             _dots = new List<(int, int, Sprite, string, string)>();
             _squaresByKind = new Dictionary<string, Dictionary<(int X, int Z), int>>(System.StringComparer.Ordinal);
@@ -125,7 +125,7 @@ namespace Scry
             AllDots = 0;
             if (book == null || world == null) return;
             var counted = new HashSet<string>(System.StringComparer.Ordinal);
-            foreach (var kept in book.Kept) Count(kept, kept == CompendiumBook.Dungeons ? DungeonKinds.All.Select(k => EntryKeys.For(Kind.Location, k)).ToArray() : KindsIn(kept), world, counted);
+            foreach (var kept in book.Kept) Count(kept, kept == CompendiumBook.Dungeons ? DungeonKinds.All.Select(k => EntryKeys.For(Kind.Location, k)).ToArray() : KindsIn(kept), world, remembered, counted);
             AllDots = _dots.Count;
             var player = Player.m_localPlayer;
             if (_dots.Count > SeenOnMap.MostKept && player != null)
@@ -135,15 +135,22 @@ namespace Scry
             }
         }
 
-        /// <summary>A kept key's kinds, each once over every key: their dots, but a dungeon's, and their squares less those seen; how many of each stand.</summary>
-        private static void Count(string kept, string[] kinds, string world, HashSet<string> counted)
+        /// <summary>
+        /// A kept key's kinds, each once over every key: their dots, but a dungeon's, and their
+        /// squares less those seen; how many of each stand, a dungeon's by its marks. Where nothing
+        /// seen is remembered, none of them but the dungeons walked.
+        /// </summary>
+        private static void Count(string kept, string[] kinds, string world, bool remembered, HashSet<string> counted)
         {
             var seen = 0;
             var square = 0;
+            var dungeons = new HashSet<string>(System.StringComparer.Ordinal);
             foreach (var kind in kinds)
             {
+                if (IsDungeon(kind)) dungeons.Add(PlaceOf(kind));
+                if (!remembered) continue;
                 var spots = MapSpots.SpotsOf(kind);
-                seen += spots.Count;
+                if (!IsDungeon(kind)) seen += spots.Count;
                 if (!counted.Add(kind)) continue;
                 var name = NameOf(kind);
                 NamesByKind[kind] = name;
@@ -161,7 +168,9 @@ namespace Scry
                 square += shown.Count;
             }
             // The dungeons count those marked, walked or seen, each once.
-            if (kept == CompendiumBook.Dungeons) seen = DungeonWalks.Maps.OfWorld(world).Select(m => m.Id).Concat(DungeonMarks.Seen(world, DungeonKinds.All, SeenSpotsKeeper.Of).Select(s => s.Id)).Distinct().Count();
+            if (dungeons.Count > 0)
+                seen += DungeonWalks.Maps.OfWorld(world).Where(m => dungeons.Contains(m.Map.Location)).Select(m => m.Id)
+                    .Concat(DungeonMarks.Seen(world, dungeons, SeenSpotsKeeper.Of, remembered).Select(s => s.Id)).Distinct().Count();
             Counted[kept] = (seen, square);
         }
 

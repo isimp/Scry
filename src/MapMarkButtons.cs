@@ -77,7 +77,7 @@ namespace Scry
 
         /// <summary>The layer the marks stand on, and the stamps of what they were last listed from.</summary>
         private static RectTransform _layer;
-        private static (int Walked, (int, int) Seen, int Sources, int Server, int Kept) _keptStamp = (-1, (-1, -1), -1, -1, -1);
+        private static (int Walked, (int, int) Seen, int Sources, int Server, int Kept, bool Remembered) _keptStamp = (-1, (-1, -1), -1, -1, -1, false);
 
         /// <summary>Whether the server was asked for the marked dungeons' records since the map last opened.</summary>
         private static bool _askedServer;
@@ -201,7 +201,7 @@ namespace Scry
             Marks.Clear();
             Kept.Clear();
             _layer = null;
-            _keptStamp = (-1, (-1, -1), -1, -1, -1);
+            _keptStamp = (-1, (-1, -1), -1, -1, -1, false);
             _keptWorld = null;
             _askedServer = false;
             MarksShown = 0;
@@ -238,7 +238,7 @@ namespace Scry
             }
             var maps = DungeonWalks.Maps;
             var book = CompendiumKeeper.Book;
-            var stamp = (maps.Stamp, SeenSpotsKeeper.Stamp, book != null ? book.SourcesVersion : -1, GroupMapsLink.Group.Stamp, book != null ? book.KeptVersion : -1);
+            var stamp = (maps.Stamp, SeenSpotsKeeper.Stamp, book != null ? book.SourcesVersion : -1, GroupMapsLink.Group.Stamp, book != null ? book.KeptVersion : -1, MapKept.Remembered);
             if (_keptStamp != stamp || _keptWorld != world)
             {
                 var listing = Timing.Start();
@@ -619,16 +619,19 @@ namespace Scry
             return book.Kept.Any(kept => MapKept.KindsIn(kept).Contains(key));
         }
 
-        /// <summary>The dungeons whose entrances the character's sight kept in a world, or the self-test's in their place.</summary>
-        private static IEnumerable<(string Id, string Location, int X, int Z)> SeenDungeons(string world) =>
-            _seenInstead ?? DungeonMarks.Seen(world, DungeonKinds.All, SeenSpotsKeeper.Of);
+        /// <summary>The dungeons whose entrances the character's sight kept in a world, or the self-test's in their place; none where the world remembers nothing seen.</summary>
+        private static IEnumerable<(string Id, string Location, int X, int Z)> SeenDungeons(string world)
+        {
+            if (_seenInstead == null) return DungeonMarks.Seen(world, DungeonKinds.All, SeenSpotsKeeper.Of, MapKept.Remembered);
+            return MapKept.Remembered ? _seenInstead : Enumerable.Empty<(string, string, int, int)>();
+        }
 
         /// <summary>Entrances the self-test has seen in place of the sight's, or none for the sight's own; the marks listed again either way.</summary>
         [ForTest]
         public static void SeenInsteadForTest(List<(string Id, string Location, int X, int Z)> seen)
         {
             _seenInstead = seen;
-            _keptStamp = (-1, (-1, -1), -1, -1, -1);
+            _keptStamp = (-1, (-1, -1), -1, -1, -1, false);
         }
 
         private static List<(string Id, string Location, int X, int Z)> _seenInstead;

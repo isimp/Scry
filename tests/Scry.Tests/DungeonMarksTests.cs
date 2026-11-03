@@ -111,10 +111,24 @@ namespace Scry.Tests
                 ["loc:TrollCave02"] = new[] { (100, 100) },
                 ["loc:Runestone_Meadows"] = new[] { (1, 1) },
             };
-            var seen = DungeonMarks.Seen("w", new[] { "Crypt2", "TrollCave02" }, kind => spots.TryGetValue(kind, out var at) ? at : new (int, int)[0]).ToList();
+            var seen = DungeonMarks.Seen("w", new[] { "Crypt2", "TrollCave02" }, kind => spots.TryGetValue(kind, out var at) ? at : new (int, int)[0], remembered: true).ToList();
             Assert.Equal(new[] { "Crypt2", "Crypt2", "TrollCave02" }, seen.Select(s => s.Location));
             Assert.Equal(DungeonMaps.EntranceIdOf("w", 10f, 20f), seen[0].Id);
             Assert.Equal((-5, 7), (seen[1].X, seen[1].Z));
+        }
+
+        [Fact]
+        public void NoEntranceSeenIsMarkedWhereTheWorldKeepsNoMapOrRemembersNothingOnlyThoseWalked()
+        {
+            var spots = new Dictionary<string, (int, int)[]> { ["loc:Crypt2"] = new[] { (10, 20) } };
+            IReadOnlyList<(int, int)> SpotsOf(string kind) => spots.TryGetValue(kind, out var at) ? at : new (int, int)[0];
+            Assert.Single(DungeonMarks.Seen("w", new[] { "Crypt2" }, SpotsOf, SeenOnMap.Remembers(noMap: false, reach: 50f)));
+            Assert.Empty(DungeonMarks.Seen("w", new[] { "Crypt2" }, SpotsOf, SeenOnMap.Remembers(noMap: false, reach: 0f)));
+            Assert.Empty(DungeonMarks.Seen("w", new[] { "Crypt2" }, SpotsOf, SeenOnMap.Remembers(noMap: true, reach: 50f)));
+            // One walked keeps its mark all the same.
+            var seen = DungeonMarks.Seen("w", new[] { "Crypt2" }, SpotsOf, remembered: false);
+            var marks = DungeonMarks.Of(new CompendiumBook(), new[] { ("w:1", OneRoom("Crypt2")) }, seen);
+            Assert.Equal("w:1", Assert.Single(marks).Id);
         }
 
         [Fact]
