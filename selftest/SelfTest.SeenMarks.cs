@@ -30,6 +30,7 @@ namespace Scry
             yield return Until(() => CompendiumKeeper.Book != null, 10);
             var book = CompendiumKeeper.Book;
             if (!p.Check(book != null, "the character's book is read")) yield break;
+            KeepDungeonsForPart();
             if (book.Rule == CompendiumRule.Off)
             {
                 p.Skip("the character plays with the compendium off, so no ground shows others' walks");
@@ -184,6 +185,7 @@ namespace Scry
         /// </summary>
         private static IEnumerator ManyMarks(Probe p)
         {
+            KeepDungeonsForPart();
             var entry = Crypt();
             var world = CompendiumMap.World;
             var player = Player.m_localPlayer;

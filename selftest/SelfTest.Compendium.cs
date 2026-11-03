@@ -185,8 +185,13 @@ namespace Scry
 
             var other = chosen == CompendiumRule.Strict ? CompendiumRule.Loose : CompendiumRule.Strict;
             ScryPanel.Choose(other);
-            yield return Until(() => X.Compendium?.Rule == other && KeptRule(path) == other, 3);
-            p.Check(X.Compendium?.Rule == other && KeptRule(path) == other, $"choosing {other} shows the list by it and keeps it in the character's book", $"shown {X.Compendium?.Rule}, kept {KeptRule(path)}");
+            // Where the world's server sets the rules, the list stands by them, the character's choice kept beneath for elsewhere.
+            var serverRule = Settings.World().Rule;
+            var shownAs = serverRule ?? other;
+            yield return Until(() => X.Compendium?.Rule == shownAs && KeptRule(path) == other, 3);
+            p.Check(X.Compendium?.Rule == shownAs && KeptRule(path) == other,
+                serverRule != null ? $"choosing {other} keeps it in the character's book, the list standing by the server's {serverRule}" : $"choosing {other} shows the list by it and keeps it in the character's book",
+                $"shown {X.Compendium?.Rule}, kept {KeptRule(path)}");
             // On, the floor stands in the box under the rules, once a boss fell for the character or a floor is set.
             if (CompendiumKeeper.Ceiling > 0 || book.Floor > 0)
             {
@@ -198,8 +203,8 @@ namespace Scry
             ScryPanel.HoldCompendiumBox(false);
 
             ScryPanel.Choose(chosen);
-            yield return Until(() => X.Compendium?.Rule == chosen && KeptRule(path) == chosen, 3);
-            p.Check(X.Compendium?.Rule == chosen && KeptRule(path) == chosen, $"choosing {chosen} again puts it back", $"shown {X.Compendium?.Rule}, kept {KeptRule(path)}");
+            yield return Until(() => X.Compendium?.Rule == (serverRule ?? chosen) && KeptRule(path) == chosen, 3);
+            p.Check(X.Compendium?.Rule == (serverRule ?? chosen) && KeptRule(path) == chosen, $"choosing {chosen} again puts it back", $"shown {X.Compendium?.Rule}, kept {KeptRule(path)}");
             _ruleBefore = null;
         }
 

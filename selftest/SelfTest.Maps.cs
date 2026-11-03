@@ -304,6 +304,7 @@ namespace Scry
         /// </summary>
         private static IEnumerator MarksOnTheMap(Probe p)
         {
+            KeepDungeonsForPart();
             var entry = Crypt();
             if (entry == null) p.Skip("there is no such location");
             var world = CompendiumMap.World;
@@ -535,9 +536,23 @@ namespace Scry
             ZInput.SetMousePosition(at);
         }
 
-        /// <summary>Closes the large map the self-test opened, puts the player's pointer back where it stood and ends the fog's stand-ins.</summary>
+        /// <summary>Whether the character kept every kind of dungeon on the map before a part of the marks kept them for itself; put back after it.</summary>
+        private static bool? _dungeonsKeptBefore;
+
+        /// <summary>Every kind of dungeon kept on the map while a part looks at their marks, as a character may have taken them off; what was kept is put back after.</summary>
+        private static void KeepDungeonsForPart()
+        {
+            var book = CompendiumKeeper.Book;
+            if (book == null) return;
+            if (_dungeonsKeptBefore == null) _dungeonsKeptBefore = book.Keeps(CompendiumBook.Dungeons);
+            ScryPanel.KeepOnMap(CompendiumBook.Dungeons, true);
+        }
+
+        /// <summary>Closes the large map the self-test opened, puts the player's pointer back where it stood and ends the fog's stand-ins, and every kind of dungeon kept as the character had it.</summary>
         private static void MarksAsTheyWere()
         {
+            if (_dungeonsKeptBefore is bool kept) ScryPanel.KeepOnMap(CompendiumBook.Dungeons, kept);
+            _dungeonsKeptBefore = null;
             if (Minimap.instance != null && Minimap.instance.m_mode == Minimap.MapMode.Large) Minimap.instance.SetMapMode(Minimap.MapMode.Small);
             DungeonsInGround.WorldAgainForTest();
             MapMarkButtons.SeenInsteadForTest(null);
