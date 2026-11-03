@@ -37,16 +37,17 @@ namespace Scry
             text.GetType().GetProperty("text")?.SetValue(text, said);
         }
 
-        /// <summary>A name's words filling what holds it, centred on one line at a size, as a count on a tab is written.</summary>
+        /// <summary>A name's words filling what holds it, centred on one line at a size, as a count on a tab is written: the name and every part of it under it stretched over it, as the words stand on a part of their own.</summary>
         public static void Centred(GameObject label, float size)
         {
-            if (label.transform is RectTransform rect)
+            foreach (var rect in label.GetComponentsInChildren<RectTransform>(true))
             {
                 rect.anchorMin = Vector2.zero;
                 rect.anchorMax = Vector2.one;
                 rect.pivot = new Vector2(0.5f, 0.5f);
                 rect.offsetMin = Vector2.zero;
                 rect.offsetMax = Vector2.zero;
+                rect.localScale = Vector3.one;
             }
             var text = Text(label);
             if (text == null) return;

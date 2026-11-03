@@ -35,11 +35,15 @@ namespace Scry
             return place != null && ByPlace.TryGetValue(place, out var marks) ? marks : None;
         }
 
-        /// <summary>The spots seen of a place with where the game marks one besides them, each once: what its squares leave out.</summary>
+        /// <summary>The spots seen of a place with where the game marks one, and the entrances of its dungeons walked, besides them, each once: what its squares leave out, as each stands marked on the map.</summary>
         public static IReadOnlyList<(int X, int Z)> With(string place, IReadOnlyList<(int X, int Z)> seen)
         {
+            seen = seen ?? None;
             var marks = Of(place);
-            return marks.Count == 0 ? seen : GameMarks.With(seen ?? None, marks);
+            var walked = DungeonKinds.Is(place) ? GameMarks.WalkedNotSeen(CompendiumMap.World, place, DungeonWalks.Maps.OfWorld(CompendiumMap.World), seen) : null;
+            if (marks.Count == 0 && (walked == null || walked.Count == 0)) return seen;
+            if (walked != null) walked.AddRange(marks);
+            return GameMarks.With(seen, walked ?? (IReadOnlyList<(int X, int Z)>)marks);
         }
 
         /// <summary>Reads the pins and icons again where a few seconds have gone by, working out where the game marks places where they changed.</summary>

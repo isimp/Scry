@@ -45,6 +45,24 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ADungeonWalkedIsNoSquareOfItsKindThoughItsEntranceWasNeverSeen()
+        {
+            // A Frost Cave walked before the sight kept spots: its mark stands on the map, so its square goes.
+            var walked = new[]
+            {
+                (DungeonMaps.EntranceIdOf("w", 40f, 60f), new DungeonMap { Location = "MountainCave02", Entrance = new Vec3(40f, 0f, 60f) }),
+                (DungeonMaps.EntranceIdOf("w", 300f, 300f), new DungeonMap { Location = "Crypt2", Entrance = new Vec3(300f, 0f, 300f) }),
+            };
+            var squares = new Dictionary<(int X, int Z), int> { [(0, 0)] = 1, [(3, 3)] = 1 };
+            var entrances = GameMarks.WalkedNotSeen("w", "MountainCave02", walked, new (int, int)[0]);
+            Assert.Equal(new[] { (40, 60) }, entrances);
+            Assert.Equal((3, 3, 1), Assert.Single(PlaceSquares.Shown(squares, GameMarks.With(new (int, int)[0], entrances))));
+            // Walked and seen, the same dungeon by its entrance's id, counted once with the spot seen.
+            var seen = new[] { (40, 60) };
+            Assert.Empty(GameMarks.WalkedNotSeen("w", "MountainCave02", walked, seen));
+        }
+
+        [Fact]
         public void APlaceBothSeenAndMarkedByTheGameIsCountedOnce()
         {
             // A square holding two: one seen, its spot where the game's pin stands too; the other still somewhere inside.

@@ -204,7 +204,7 @@ namespace Scry
                     Share.Took(Since(started) - pieceFrom);
                     made++;
                 }
-                Stand(square, at, left);
+                Stand(square, at, left, map);
                 standing++;
             }
             _standing = standing;
@@ -214,7 +214,7 @@ namespace Scry
         }
 
         /// <summary>A square stood where the map shows it: its hatch, edges and halos at their size on the screen, its count's tab inside its upper right corner where it holds more than one and is drawn big enough.</summary>
-        private static void Stand(Square square, (float X, float Y, float W, float H) at, int left)
+        private static void Stand(Square square, (float X, float Y, float W, float H) at, int left, Minimap map)
         {
             var size = new Vector2(at.W, at.H);
             square.Rect.anchoredPosition = new Vector2(at.X, at.Y);
@@ -230,16 +230,17 @@ namespace Scry
                 square.Edges[e].rectTransform.sizeDelta = across ? new Vector2(at.W, edge) : new Vector2(edge, at.H);
             }
             if (!square.Rect.gameObject.activeSelf) square.Rect.gameObject.SetActive(true);
-            if (square.Tab == null) return;
-            var said = Numbers.Count(left);
-            var tab = new Vector2(TabPad * 2f + TabDigit * said.Length, TabHeight);
-            // Inside the corner, under the edge, only where the square has room for it twice over.
+            var digits = left < 10 ? 1 : left < 100 ? 2 : left < 1000 ? 3 : 4;
+            var tab = new Vector2(TabPad * 2f + TabDigit * digits, TabHeight);
+            // Inside the corner, under the edge, only where the square has room for it twice over; its tab made the first time it is wanted.
             var shows = left > 1 && at.W >= tab.x * 2f && at.H >= tab.y * 2f;
+            if (shows && square.Tab == null) MakeTab(square, map);
+            if (square.Tab == null) return;
             if (shows)
             {
                 if (square.Said != left)
                 {
-                    PinNames.SetText(square.Count, said);
+                    PinNames.SetText(square.Count, Numbers.Count(left));
                     square.Tab.sizeDelta = tab;
                     square.Said = left;
                 }
@@ -318,7 +319,15 @@ namespace Scry
             // Halos first, so each light edge stands over its dark halo.
             square.Halos = Sides("Scry place square halo", square.Rect, Skin.Alpha(Skin.OnAccent, 0.7f));
             square.Edges = Sides("Scry place square edge", square.Rect, Skin.Text);
-            // Its count's tab, a dark plate with the count written on it in the game's pin names' writing.
+            // The tabs over every square, those made later too.
+            _tabs.SetAsLastSibling();
+            Made.Add(square);
+            return square;
+        }
+
+        /// <summary>A square's count's tab, made the first time it holds more than one: a dark plate with the count written on it in the game's pin names' writing, filling it.</summary>
+        private static void MakeTab(Square square, Minimap map)
+        {
             square.Tab = Child("Scry place square count", _tabs, Vector2.zero, Vector2.zero);
             square.Tab.pivot = Vector2.one;
             var plate = square.Tab.gameObject.AddComponent<RawImage>();
@@ -326,16 +335,10 @@ namespace Scry
             plate.color = Skin.Alpha(Skin.TipFill, 0.88f);
             plate.raycastTarget = false;
             square.Count = PinNames.Make(map, square.Tab, "Scry place square count words");
-            if (square.Count != null)
-            {
-                PinNames.Centred(square.Count, TabWriting);
-                square.Count.SetActive(true);
-            }
-            square.Tab.gameObject.SetActive(false);
-            // The tabs over every square, those made later too.
-            _tabs.SetAsLastSibling();
-            Made.Add(square);
-            return square;
+            square.Said = 0;
+            if (square.Count == null) return;
+            PinNames.Centred(square.Count, TabWriting);
+            square.Count.SetActive(true);
         }
 
         /// <summary>Four plain strips in a colour, each lying inside the square along a side: bottom, top, left, right.</summary>

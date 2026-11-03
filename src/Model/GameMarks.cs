@@ -41,6 +41,22 @@ namespace Scry
             return marks;
         }
 
+        /// <summary>
+        /// The entrances of a place's dungeons walked in a world whose entrance was not seen, each
+        /// marked on the map as a dungeon walked (<see cref="DungeonMarks"/>): one seen too is the
+        /// same dungeon by its entrance's id (<see cref="DungeonMaps.EntranceIdOf"/>), counted with the spot seen.
+        /// </summary>
+        public static List<(int X, int Z)> WalkedNotSeen(string world, string place, IEnumerable<(string Id, DungeonMap Map)> walked, IReadOnlyList<(int X, int Z)> seen)
+        {
+            var entrances = new List<(int X, int Z)>();
+            if (place == null) return entrances;
+            var seenIds = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var (x, z) in seen) seenIds.Add(DungeonMaps.EntranceIdOf(world, x, z));
+            foreach (var (id, map) in walked)
+                if (map != null && string.Equals(map.Location, place, StringComparison.Ordinal) && !seenIds.Contains(id)) entrances.Add(At(map.Entrance.X, map.Entrance.Z));
+            return entrances;
+        }
+
         /// <summary>The spots seen with the places the game marks besides them, each once: one marked where a spot was seen is that spot.</summary>
         public static List<(int X, int Z)> With(IReadOnlyList<(int X, int Z)> seen, IReadOnlyList<(int X, int Z)> marks)
         {
