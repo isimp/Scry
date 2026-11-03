@@ -27,12 +27,6 @@ namespace Scry.Tests
             Assert.Equal(1.25f, SettingsCatalog.Stepped(size, 1.26f), 3);
             Assert.Equal(0.6f, SettingsCatalog.Stepped(size, 0.1f), 3);
             Assert.Equal(2f, SettingsCatalog.Stepped(size, 5f), 3);
-            // The dungeon marks' size goes in tenths of a pin, from half to twice one.
-            var marks = Slider("DungeonMarkSize");
-            Assert.Equal(1f, SettingsCatalog.Stepped(marks, 1.04f), 3);
-            Assert.Equal(1.3f, SettingsCatalog.Stepped(marks, 1.26f), 3);
-            Assert.Equal(0.5f, SettingsCatalog.Stepped(marks, 0.1f), 3);
-            Assert.Equal(2f, SettingsCatalog.Stepped(marks, 5f), 3);
             // The recent list in whole entries; a tip's wait any value, in twentieths of a second.
             Assert.Equal(31f, SettingsCatalog.Stepped(Slider("RecentCount"), 30.6f), 3);
             Assert.Equal(2f, SettingsCatalog.Stepped(Slider("TooltipDelay"), 2.01f), 3);

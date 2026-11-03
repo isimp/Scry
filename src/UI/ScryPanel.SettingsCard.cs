@@ -147,7 +147,7 @@ namespace Scry
         private static int SettingCount(SettingSection section)
         {
             var count = 0;
-            foreach (var row in section.Rows) count += row.Control == SettingControl.Book ? 1 : row.Keys.Count;
+            foreach (var row in section.Rows) count += row.Control == SettingControl.Book ? Mathf.Max(1, row.TickNames.Count) : row.Keys.Count;
             return count;
         }
 
@@ -156,13 +156,22 @@ namespace Scry
         {
             var y = U(6f);
             GUI.Label(new Rect(0f, y, width * 0.6f, U(28f)), section.Name, Skin.Big);
-            var resetW = Skin.Width(Skin.Button, SettingsWords.Reset) + U(16f);
             // Where a server decides every row, a reset would set nothing: none offered.
-            if (!AllLocked(section) && GUI.Button(new Rect(width - resetW, y, resetW, U(26f)), SettingsWords.Reset, Skin.Button)) ResetSettings(section);
+            var resetW = AllLocked(section) ? 0f : Skin.Width(Skin.Button, SettingsWords.Reset) + U(16f);
+            if (resetW > 0f && GUI.Button(new Rect(width - resetW, y, resetW, U(26f)), SettingsWords.Reset, Skin.Button)) ResetSettings(section);
+            // The compendium's guide one click away, as the box's ? opens it: beside the reset where the title leaves room, else under the section's lines.
+            var guideW = Skin.Width(Skin.Button, SettingsWords.HowItWorks) + U(16f);
+            var guideAtHead = width - resetW - U(8f) - guideW >= Skin.Width(Skin.Big, section.Name) + U(16f);
+            if (HasCompendiumRows(section) && guideAtHead) GuideButtonAt(new Rect(width - resetW - (resetW > 0f ? U(8f) : 0f) - guideW, y, guideW, U(26f)));
             y += U(38f);
-            if (HasBookRows(section)) y = BookIntro(width, y);
+            if (HasCompendiumRows(section)) y = BookIntro(width, y);
+            if (HasCompendiumRows(section) && !guideAtHead)
+            {
+                GuideButtonAt(new Rect(0f, y, Mathf.Min(guideW, width), U(26f)));
+                y += U(34f);
+            }
             if (HasServerRows(section)) y = LockedLine(Settings.WorldFromServer ? SettingsWords.ServerDecides : SettingsWords.ServerYours, 0f, width, y) + U(10f);
-            else if (HasBookRows(section)) y = LockedLine(Settings.WorldFromServer ? SettingsWords.LimitsServer(CompendiumKeeper.Book?.World ?? Settings.World()) : SettingsWords.LimitsYours, 0f, width, y) + U(10f);
+            else if (HasCompendiumRows(section)) y = LockedLine(Settings.WorldFromServer ? SettingsWords.LimitsServer(CompendiumKeeper.Book?.World ?? Settings.World()) : SettingsWords.LimitsYours, 0f, width, y) + U(10f);
             var labelW = Mathf.Min(U(220f), width * 0.34f);
             string group = null;
             var drawn = 0;
@@ -176,19 +185,30 @@ namespace Scry
                     {
                         GUI.Label(new Rect(0f, y + U(6f), width, U(20f)), group, Skin.FaintLabel);
                         y += U(28f);
+                        // What the group's rows share, as the box's line under its sources says it.
+                        var intro = SettingsCatalog.GroupIntro(group);
+                        if (intro != null)
+                        {
+                            var introH = Skin.DimWrap.CalcHeight(new GUIContent(intro), width - U(30f));
+                            BoxHint(new Rect(0f, y, width, introH), intro, Skin.FoldedMap);
+                            y += introH + U(8f);
+                        }
                     }
                 }
                 Skin.Fill(new Rect(0f, y, width, 1f), Skin.Alpha(Skin.Text, 0.05f));
                 y += U(9f);
-                GUI.Label(new Rect(0f, y, labelW - U(10f), U(26f)), row.Label, Skin.Label);
+                var label = new Rect(0f, y, labelW - U(10f), U(26f));
+                GUI.Label(label, row.Label, Skin.Label);
+                if (row.WhyAsTip && label.Contains(Event.current.mousePosition)) AskTip("settings-why-" + row.Label, row.Why);
                 var controlW = width - labelW;
                 var enabled = GUI.enabled;
                 GUI.enabled = enabled && !SettingLocked(row);
                 y += DrawSettingControl(row, new Rect(labelW, y, controlW, U(26f))) + U(5f);
                 GUI.enabled = enabled;
-                var whyH = Skin.DimWrap.CalcHeight(new GUIContent(row.Why), controlW);
-                GUI.Label(new Rect(labelW, y, controlW, whyH), row.Why, Skin.DimWrap);
-                y += whyH + U(10f);
+                // A row whose words are its label's tip stands short.
+                var whyH = row.WhyAsTip ? 0f : Skin.DimWrap.CalcHeight(new GUIContent(row.Why), controlW);
+                if (!row.WhyAsTip) GUI.Label(new Rect(labelW, y, controlW, whyH), row.Why, Skin.DimWrap);
+                y += whyH + U(row.WhyAsTip ? 4f : 10f);
                 if (row.Limit != null) y = LimitLine(row, labelW, width, y);
                 drawn++;
             }
@@ -208,9 +228,17 @@ namespace Scry
             return false;
         }
 
-        private static bool HasBookRows(SettingSection section)
+        /// <summary>The section's button opening the compendium's guide.</summary>
+        private static void GuideButtonAt(Rect at)
         {
-            foreach (var row in section.Rows) if (row.Control == SettingControl.Book) return true;
+            if (GUI.Button(at, SettingsWords.HowItWorks, Skin.Button)) ShowGuide(true);
+            CountDrawn(PanelPart.SettingsGuideButton);
+        }
+
+        /// <summary>Whether a section holds the character's compendium: its rules, Known up to and sources.</summary>
+        private static bool HasCompendiumRows(SettingSection section)
+        {
+            foreach (var row in section.Rows) if (row.Control == SettingControl.Book && row.Book != BookPart.DungeonPins) return true;
             return false;
         }
 
@@ -279,7 +307,7 @@ namespace Scry
             for (var i = 0; i < row.Choices.Count; i++)
             {
                 var choice = row.Choices[i];
-                var on = string.Equals(choice.Value, value, StringComparison.OrdinalIgnoreCase);
+                var on = SettingsCatalog.SameValue(choice.Value, value);
                 var style = Skin.Choice(i, row.Choices.Count, on);
                 var w = Skin.Width(style, choice.Name) + U(20f);
                 if (GUI.Button(new Rect(x, at.y, w, at.height), choice.Name, style) && !on) SetSetting(row, key, choice.Value);

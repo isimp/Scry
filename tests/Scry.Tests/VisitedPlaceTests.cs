@@ -61,8 +61,8 @@ namespace Scry.Tests
             var marks = DungeonMarks.Of(new CompendiumBook(), maps.OfWorld("w"), _ => new (string, DungeonMap)[0], _ => null);
             Assert.Equal(MarkLook.Visited, marks.Single().Look);
             // Shown as yours, whole, on the small map too.
-            Assert.True(MapMarks.Shown(MarkLook.Visited, walkedByYou: true, walkedOnServer: false, entrances: false));
-            Assert.False(MapMarks.Shown(MarkLook.Visited, walkedByYou: false, walkedOnServer: true, entrances: true));
+            Assert.True(MapMarks.Shown(MarkLook.Visited, walkedByYou: true));
+            Assert.False(MapMarks.Shown(MarkLook.Visited, walkedByYou: false));
             Assert.Equal(1f, MapMarks.Alpha(MarkLook.Visited, pointedAt: false), 3);
             Assert.True(MapMarks.OnSmallMap(MarkLook.Visited));
         }

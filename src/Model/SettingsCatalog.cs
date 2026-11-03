@@ -22,6 +22,9 @@ namespace Scry
         Rules,
         KnownUpTo,
         Source,
+
+        /// <summary>Which dungeons the map marks: a config tick for those you walked, then a pin of the book's for each ground.</summary>
+        DungeonPins,
     }
 
     /// <summary>One of a setting's values offered on the card, as the config file writes it, and its name.</summary>
@@ -48,6 +51,9 @@ namespace Scry
         public string Label { get; set; }
         public string Why { get; set; }
         public SettingControl Control { get; set; }
+
+        /// <summary>Whether its explanation is its label's tip rather than a line under it, its group's intro saying what its rows share.</summary>
+        public bool WhyAsTip { get; set; }
 
         /// <summary>A heading the row stands under within its section; none.</summary>
         public string Group { get; set; }
@@ -129,13 +135,11 @@ namespace Scry
 
             new SettingSection("Map",
                 In("Dungeon marks", Switch("DungeonMarksOnMap", "Dungeon marks", SettingsWords.DungeonMarksWhy)),
-                In("Dungeon marks", Ticks(new[] { "DungeonMarksWalkedByYou", "DungeonMarksWalkedOnServer", "DungeonMarkEntrances" }, "Marks shown",
-                    "Each on its own. Others' walks show where a source shows them with insides; an entrance nobody walked stays faint until you point at it.",
-                    "Walked by you", "Walked by others on this server", "Entrances nobody walked")),
+                In("Dungeon marks", DungeonPins()),
                 In("Dungeon marks", Choices("DungeonMarkNamesAlways", "Names", "Whether a mark's name shows under it always, as the game names its pins, or while you point at it.",
                     ("false", "When pointed at"), ("true", "Always"))),
-                In("Dungeon marks", Slider("DungeonMarkSize", "Size", "How big a dungeon mark is beside the game's pins; its name grows with it.",
-                    SettingsWords.SmallestMarkSize, SettingsWords.LargestMarkSize, 0.1f, MarkSize)),
+                In("Dungeon marks", Choices("DungeonMarkSize", "Size", "How big a dungeon mark stands beside the game's pins; its name grows with it.",
+                    MapLook.MarkScales.Select((s, i) => (Stored.Exact(s), SizeNames[i])).ToArray())),
                 In("Dungeon marks", Switch("DungeonMarksOnMinimap", "On the minimap", "The dungeons you walked are marked on the minimap too, at its pins' size, without names.")),
                 In("Show on map", Switch("RecordSeenSpots", "Remember what you see", "Keeps where your character saw ore, berries, flint and places, so a page's Show on map can mark them. /scry forget spots clears what is kept.")),
                 In("Show on map", Choices("ShowOnMapOtherPins", "Your other pins", "While a page's kind is shown, so its marks stand out. Back to full when you hide it or close the map.",
@@ -143,7 +147,7 @@ namespace Scry
                 In("Show on map", Choices("ShowOnMapDarken", "Darken the map", "The map's picture under the marks while a kind is shown, so they stand out on any ground.",
                     ("Off", "Off"), ("Half", "Half"), ("Strong", "Strong"))),
                 In("Show on map", Choices("ShowOnMapDotSize", "Dot size", "How big the dots stand beside the game's pins.",
-                    ("Small", "Small"), ("Normal", "Normal"), ("Large", "Large"))),
+                    ("Small", SizeNames[0]), ("Normal", SizeNames[1]), ("Large", SizeNames[2]))),
                 In("Show on map", Switch("ShowOnMapZoomOut", "Zoom out to the marks", "The map opens just far enough out to hold the nearest marks, and your own zoom comes back when it closes.")),
                 In("Show on map", Switch("ShowOnMapSquares", "Squares on your map", "Where a place you never came near stands somewhere inside, as the world's server tells it. Off, only what you saw is shown."))),
 
@@ -183,10 +187,10 @@ namespace Scry
         /// </summary>
         private static IEnumerable<SettingRow> CompendiumRows()
         {
-            yield return Book(BookPart.Rules, CompendiumWords.RulesCaption, "Off shows every page whole, as a lookup. Loose shows whole the pages of what your character met. Strict also keeps back what the game never shows, until your character found it out. Each character keeps its own.",
+            yield return Book(BookPart.Rules, CompendiumWords.RulesCaption, "Off shows every page whole. Loose shows the pages you met. Strict also keeps back what the game never shows, until you find it out.",
                 Server(Choices("Rules", SettingsWords.WorldPlays, "The compendium's rules everyone joining your world plays by, or each player's own choice. A server you join sets its own.",
                     ("PlayersChoose", "Each player's"), ("Off", "Off"), ("Loose", "Loose"), ("Strict", "Strict"))));
-            yield return Book(BookPart.KnownUpTo, CompendiumWords.FloorCaption, "Shows everything of the biomes whose bosses your character has beaten as known, tier by tier, marked with stairs. You can lower it again.",
+            yield return Book(BookPart.KnownUpTo, CompendiumWords.FloorCaption, "Shows everything of the tiers whose bosses you beat as known, marked with stairs. You can lower it again.",
                 Server(Switch("KnownUpTo", SettingsWords.WorldAllowsIt, "Whether players joining your world may show everything of the tiers whose bosses they beat as known. A server you join sets its own.")));
             foreach (var source in WorldSources.All)
             {
@@ -194,11 +198,36 @@ namespace Scry
                     Server(Choices(source + "UpTo", SettingsWords.WorldAllowsUpTo, "How much this source may show as known to players joining your world, at most. A server you join sets its own.",
                         WorldSources.Offered(source).Select(l => (l.ToString(), CompendiumWords.LevelName(l))).ToArray())));
                 row.Source = source;
+                row.WhyAsTip = true;
                 yield return In(CompendiumWords.SourcesCaption, row);
             }
             yield return In(SettingsWords.NewsGroup, Choices("News", "News of what you learn", "What a notice under the header tells as your character learns it: all of it, new pages only, leaving out what was found out about one met before, or nothing, the Learned tab alone telling it.",
                 ("All", "All of it"), ("NewPages", "New pages only"), ("Off", "Learned tab only")));
         }
+
+        /// <summary>The words of a size chosen one of three, for the marks and the dots alike.</summary>
+        private static string[] SizeNames => new[] { "Small", "Normal", "Large" };
+
+        /// <summary>The grounds a pin of the compendium's marks the dungeons of, as ticks of the Map section's row.</summary>
+        public static WorldSource[] PinnedGrounds => WorldSources.All.Where(WorldSources.HasGround).ToArray();
+
+        /// <summary>
+        /// Which dungeons the map marks, by where they are known from: those you walked, a setting
+        /// of the config file's, then those lying in each ground, the compendium's pins for it.
+        /// </summary>
+        private static SettingRow DungeonPins() => new SettingRow
+        {
+            Keys = new[] { "DungeonMarksWalkedByYou" },
+            Label = "Mark the dungeons",
+            Why = "Solid where you walked it, in outline where others on this server did, faint where nobody did yet. The two grounds are your character's, the same switches as the pins on their rows in the compendium, and mark while that row shows anything.",
+            Control = SettingControl.Book,
+            Book = BookPart.DungeonPins,
+            TickNames = PinnedGrounds.Select(SettingsWords.PinnedGroundTick).Prepend("You walked").ToArray(),
+        };
+
+        /// <summary>The line under a group's heading saying what its rows share, their own words on their labels' tips; none.</summary>
+        public static string GroupIntro(string group) =>
+            group == CompendiumWords.SourcesCaption ? CompendiumWords.SourcesHint + " " + SettingsWords.PointAtAName : null;
 
         /// <summary>What the world's server decides beside the compendium's rows, each saying so: what players may do and see, and what the server itself keeps.</summary>
         private static IEnumerable<SettingRow> ServerRows()
@@ -223,15 +252,16 @@ namespace Scry
             return Math.Max(row.Min, Math.Min(row.Max, row.Min + steps * row.Step));
         }
 
+        /// <summary>Whether a choice's value is the one set: alike as words, or as numbers however each is written.</summary>
+        public static bool SameValue(string choice, string set) =>
+            set != null && (string.Equals(choice, set, StringComparison.OrdinalIgnoreCase)
+                || Stored.TryExact(choice, out var a) && Stored.TryExact(set, out var b) && Math.Abs(a - b) < 0.001f);
+
         /// <summary>A switch's or a tick's value the other way, as the config file writes it.</summary>
         public static string Flipped(string value) => value == True ? False : True;
 
         /// <summary>How the config file writes a switch on and off.</summary>
         public const string True = "true", False = "false";
-
-        /// <summary>A mark's size as the slider says it, beside the game's pins.</summary>
-        private static string MarkSize(float v) =>
-            Math.Abs(v - 1f) < 0.001f ? "a pin's size" : v < 1f ? Numbers.Amount(v) + " of a pin" : Numbers.Amount(v) + " pins' size";
 
         private static string Metres(float v) => v <= 0f ? "none" : Numbers.Count((long)Math.Round(v)) + " m";
 

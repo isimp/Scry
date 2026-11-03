@@ -387,7 +387,7 @@ namespace Scry
         public const string PinName = "Mark dungeons on the big map";
 
         /// <summary>What the pin does.</summary>
-        private const string PinDoes = "Marks every dungeon entrance in this ground on Valheim's big map. Under With insides, a dungeon walked on this server shows the rooms walked. Clicking a mark opens that dungeon in Scry. Dungeons you walked are marked anyway.";
+        private const string PinDoes = "Marks every dungeon entrance in this ground on Valheim's big map, the same switch as Mark the dungeons in the settings' Map section. Under With insides, a dungeon walked on this server shows the rooms walked. Clicking a mark opens that dungeon in Scry.";
 
         /// <summary>The pin's tip: what it does, then whether it is on, and whether the big map shows Scry's marks at all.</summary>
         public static string PinTip(bool on, bool marksShown = true) =>

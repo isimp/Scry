@@ -13,9 +13,9 @@ namespace Scry
     /// </summary>
     internal static partial class ScryPanel
     {
-        /// <summary>The compendium's rows as last drawn on the card, by row and choice, and whether each is lit; for the self-test.</summary>
+        /// <summary>The compendium's rows as last drawn on the card, by row and choice, whether each is lit, and whether it is the lock beside the row; for the self-test.</summary>
         [Diagnostic]
-        public static List<(string Row, string Choice, bool Lit)> SettingsBookCellsForTest { get; } = new List<(string, string, bool)>();
+        public static List<(string Row, string Choice, bool Lit, bool Lock)> SettingsBookCellsForTest { get; } = new List<(string, string, bool, bool)>();
 
         /// <summary>The settings shown at the section of the character's compendium; the box's gear, and the self-test.</summary>
         public static void OpenCompendiumSettings()
@@ -23,7 +23,7 @@ namespace Scry
             ShowSettings(true);
             for (var i = 0; i < SettingsCatalog.Sections.Count; i++)
             {
-                if (HasBookRows(SettingsCatalog.Sections[i])) ShownSettingsSection = i;
+                if (HasCompendiumRows(SettingsCatalog.Sections[i])) ShownSettingsSection = i;
             }
         }
 
@@ -43,22 +43,102 @@ namespace Scry
             return y + U(2f);
         }
 
-        /// <summary>A row of the character's compendium, as the box draws it, none before its book is read; with the rules Off, Known up to and the sources shown but not set. How tall it stood.</summary>
+        /// <summary>
+        /// A row of the character's compendium, as the box draws it, none before its book is read;
+        /// with the rules Off, Known up to and the sources shown but not set; while a server keeps
+        /// something from it, the lock beside it saying what, short. The Map section's row of which
+        /// dungeons are marked, its ticks. How tall it stood.
+        /// </summary>
         private static float BookControl(SettingRow row, Rect at)
         {
             var book = CompendiumKeeper.Book;
-            if (book == null) return at.height;
-            if (row.Book == BookPart.Rules)
+            if (row.Book == BookPart.DungeonPins)
             {
-                RulesSegments(row, book, at);
+                DungeonPinTicks(row, book, at);
                 return at.height;
             }
-            var was = GUI.enabled;
-            GUI.enabled = was && book.Rule != CompendiumRule.Off;
-            if (row.Book == BookPart.KnownUpTo) FloorStepper(row, book, at);
-            else SourceLevels(row, book, at);
-            GUI.enabled = was;
-            return at.height;
+            if (book == null) return at.height;
+            float end;
+            if (row.Book == BookPart.Rules) end = RulesSegments(row, book, at);
+            else
+            {
+                var was = GUI.enabled;
+                GUI.enabled = was && book.Rule != CompendiumRule.Off;
+                end = row.Book == BookPart.KnownUpTo ? FloorStepper(row, book, at) : SourceLevels(row, book, at);
+                GUI.enabled = was;
+            }
+            return Settings.WorldFromServer ? at.height + LockBeside(row, book, end, at) : at.height;
+        }
+
+        /// <summary>
+        /// After a row's control, while a server keeps something from it: the lock and what it
+        /// keeps, short, the whole sentence on its tip; under the control where it would run past
+        /// the column. How much lower the row stands for it.
+        /// </summary>
+        private static float LockBeside(SettingRow row, CompendiumBook book, float end, Rect at)
+        {
+            var said = WorldRulesWords.OnRowShort(row.Book, row.Source, book.World);
+            if (said == null) return 0f;
+            CountDrawn(PanelPart.WorldLocked);
+            var size = U(12f);
+            var wordsW = Skin.Width(Skin.DimLabel, said) + U(4f);
+            var beside = end + U(12f) + size + U(5f) + wordsW <= at.xMax;
+            var x = beside ? end + U(12f) : at.x;
+            var y = beside ? at.y : at.yMax + U(4f);
+            Skin.Icon(new Rect(x, y + (at.height - size) / 2f, size, size), Skin.Lock, Skin.Faint);
+            var words = new Rect(x + size + U(5f), y, wordsW, at.height);
+            GUI.Label(words, said, Skin.DimLabel);
+            if (new Rect(x, y, words.xMax - x, at.height).Contains(Event.current.mousePosition)) AskTip("settings-lock-" + row.Label, WorldRulesWords.OnRow(row.Book, row.Source, book.World));
+            NoteSettingsBook(row.Label, said, false, isLock: true);
+            return beside ? 0f : at.height + U(4f);
+        }
+
+        /// <summary>A segment the server keeps from the player: dimmed, and struck through.</summary>
+        private static void StruckSegment(Rect at, string text, GUIStyle style)
+        {
+            DimSegment(at, text, style);
+            var w = Skin.Width(style, text) - U(10f);
+            Skin.Fill(new Rect(at.center.x - w / 2f, at.center.y, w, Mathf.Max(1f, U(1f))), Skin.Alpha(Skin.Faint, 0.8f));
+        }
+
+        /// <summary>
+        /// Which dungeons the map marks: a tick for those you walked, kept in the config file, then
+        /// one for each ground, the character's pin for it, set as the pin sets it; the grounds'
+        /// shown but not set before the character's book is read.
+        /// </summary>
+        private static void DungeonPinTicks(SettingRow row, CompendiumBook book, Rect at)
+        {
+            var x = at.x;
+            var box = U(16f);
+            for (var i = 0; i < row.TickNames.Count; i++)
+            {
+                var ground = i > 0;
+                var on = ground ? book != null && book.MarksDungeons(SettingsCatalog.PinnedGrounds[i - 1]) : SettingValue(row.Keys[0]) == SettingsCatalog.True;
+                var was = GUI.enabled;
+                GUI.enabled = was && (!ground || book != null);
+                var square = new Rect(x, at.y + (at.height - box) / 2f, box, box);
+                Skin.Box(square, on ? Skin.Accent : Skin.Raised);
+                if (on) Skin.Icon(square, Skin.Tick, Skin.OnAccent);
+                var nameW = Skin.Width(Skin.DimLabel, row.TickNames[i]);
+                GUI.Label(new Rect(square.xMax + U(7f), at.y, nameW + U(4f), at.height), row.TickNames[i], Skin.DimLabel);
+                if (GUI.Button(new Rect(x, at.y, box + U(11f) + nameW, at.height), GUIContent.none, GUIStyle.none)) SetDungeonTick(row, i, !on);
+                GUI.enabled = was;
+                NoteSettingsBook(row.Label, row.TickNames[i], on);
+                x += box + U(11f) + nameW + U(20f);
+            }
+        }
+
+        /// <summary>A tick of which dungeons the map marks set on or off, as a click sets it: the first in the config file, a ground's as its pin. The self-test sets them this way.</summary>
+        public static void SetDungeonTick(SettingRow row, int tick, bool on)
+        {
+            if (tick == 0)
+            {
+                SetSetting(row, row.Keys[0], on ? SettingsCatalog.True : SettingsCatalog.False);
+                return;
+            }
+            var book = CompendiumKeeper.Book;
+            var source = SettingsCatalog.PinnedGrounds[tick - 1];
+            if (book != null && book.MarksDungeons(source) != on) MarkDungeons(source, on);
         }
 
         /// <summary>
@@ -103,7 +183,7 @@ namespace Scry
                 var on = book.Rule == rule;
                 var style = Skin.Choice(i, CompendiumWords.Rules.Count, on);
                 var segment = new Rect(x, at.y, Skin.Width(style, name) + U(20f), at.height);
-                if (set && !on) DimSegment(segment, name, style);
+                if (set && !on) StruckSegment(segment, name, style);
                 else if (GUI.Button(segment, name, style) && !on) SetBookRow(row, (int)rule);
                 if (segment.Contains(mouse)) AskTip("settings-rule-" + name, set ? WorldRulesWords.RulesSet(book.Rule) : CompendiumWords.StepTip(rule));
                 NoteSettingsBook(CompendiumWords.RulesCaption, name, on);
@@ -165,7 +245,8 @@ namespace Scry
                 var dimmed = capped || level == SourceLevel.WithInsides && shows != level && !OffersInsides(book, source);
                 var style = Skin.Choice(o, offered.Length, shows == level);
                 var segment = new Rect(x, at.y, Skin.Width(style, name) + U(20f), at.height);
-                if (dimmed) DimSegment(segment, name, style);
+                if (capped) StruckSegment(segment, name, style);
+                else if (dimmed) DimSegment(segment, name, style);
                 else if (GUI.Button(segment, name, style) && shows != level) SetBookRow(row, (int)level);
                 if (segment.Contains(mouse)) AskTip("settings-level-" + source + level, capped ? WorldRulesWords.UpTo(source, book.World.Highest(source)) : dimmed ? CompendiumWords.NoInsides(source) : CompendiumWords.LevelTip(level));
                 NoteSettingsBook(sourceName, name, shows == level);
@@ -183,25 +264,22 @@ namespace Scry
             return pin.xMax;
         }
 
-        private static void NoteSettingsBook(string row, string choice, bool lit)
+        private static void NoteSettingsBook(string row, string choice, bool lit, bool isLock = false)
         {
-            if (Event.current.type == EventType.Repaint) SettingsBookCellsForTest.Add((row, choice, lit));
+            if (Event.current.type == EventType.Repaint) SettingsBookCellsForTest.Add((row, choice, lit, isLock));
         }
 
         /// <summary>
         /// Under a row of the compendium's, what the world allows of it: while you play alone or
         /// host, its lock and name in the labels' column and its control under the row's own, set
-        /// for players joining your world; while a server decides it, a line under the row's
-        /// explanation saying what the server keeps from it, none where it keeps nothing. Where it ends.
+        /// for players joining your world; while a server decides it, nothing here, the lock
+        /// standing beside the row's control instead. Where it ends.
         /// </summary>
         private static float LimitLine(SettingRow row, float labelW, float width, float y)
         {
             var limit = row.Limit;
-            if (Settings.WorldFromServer)
-            {
-                var said = WorldRulesWords.OnRow(row.Book, row.Source, CompendiumKeeper.Book?.World ?? Settings.World());
-                return said == null ? y : LockedLine(said, labelW, width - labelW, y) + U(10f);
-            }
+            // While a server decides it, what it keeps from the row stands beside the row's control (LockBeside).
+            if (Settings.WorldFromServer) return y;
             Skin.Icon(new Rect(0f, y + U(5f), U(14f), U(14f)), Skin.Lock, Skin.Faint);
             var label = new Rect(U(20f), y, labelW - U(30f), U(24f));
             GUI.Label(label, Skin.Fit(Skin.DimLabel, limit.Label, label.width), Skin.DimLabel);

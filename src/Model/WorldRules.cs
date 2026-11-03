@@ -179,6 +179,18 @@ namespace Scry
             }
         }
 
+        /// <summary>The same, short, as it stands after the lock beside a row's control; none where the server keeps nothing from it.</summary>
+        public static string OnRowShort(BookPart part, WorldSource source, WorldRules rules)
+        {
+            if (OnRow(part, source, rules) == null) return null;
+            switch (part)
+            {
+                case BookPart.Rules: return "this server sets them";
+                case BookPart.KnownUpTo: return "off on this server";
+                default: return "up to " + CompendiumWords.LevelName(rules.Highest(source)) + " here";
+            }
+        }
+
         /// <summary>The tip of a level above what the server allows a source.</summary>
         public static string UpTo(WorldSource source, SourceLevel highest) => $"This server allows {CompendiumWords.SourceName(source)} up to {CompendiumWords.LevelName(highest)}.";
     }

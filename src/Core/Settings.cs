@@ -34,7 +34,7 @@ namespace Scry
         private static ConfigEntry<NewsShown> _news;
         private static ConfigEntry<bool> _markNames;
         private static ConfigEntry<float> _markSize;
-        private static ConfigEntry<bool> _marksWalkedByYou, _marksWalkedOnServer, _markEntrances, _marksOnMinimap;
+        private static ConfigEntry<bool> _marksWalkedByYou, _marksOnMinimap;
         private static ConfigEntry<bool> _recordSeenSpots;
         private static ConfigEntry<OtherPinsShown> _mapOtherPins;
         private static ConfigEntry<MapDarkening> _mapDarken;
@@ -164,8 +164,6 @@ namespace Scry
 
         /// <summary>Which dungeon marks the map shows: those of dungeons you walked, those others on this server walked, and entrances alone.</summary>
         public static bool DungeonMarksWalkedByYou { get => _marksWalkedByYou?.Value ?? true; set => Set(_marksWalkedByYou, value); }
-        public static bool DungeonMarksWalkedOnServer { get => _marksWalkedOnServer?.Value ?? true; set => Set(_marksWalkedOnServer, value); }
-        public static bool DungeonMarkEntrances { get => _markEntrances?.Value ?? true; set => Set(_markEntrances, value); }
 
         /// <summary>Whether the minimap shows the marks of dungeons you walked too.</summary>
         public static bool DungeonMarksOnMinimap { get => _marksOnMinimap?.Value ?? false; set => Set(_marksOnMinimap, value); }
@@ -209,6 +207,13 @@ namespace Scry
             var before = config.Bind(new ConfigDefinition("1 - General", "NewsNotice"), true);
             if (!before.Value) _news.Value = NewsChoices.From(false);
             config.Remove(before.Definition);
+            config.Save();
+        }
+
+        /// <summary>Settings no longer kept, taken out of the config file.</summary>
+        private static void Retire(ConfigFile config, params string[] keys)
+        {
+            foreach (var key in keys) config.Remove(config.Bind(new ConfigDefinition("1 - General", key), true).Definition);
             config.Save();
         }
 
@@ -311,14 +316,14 @@ namespace Scry
             _markNames = config.Bind("1 - General", "DungeonMarkNamesAlways", false,
                 "Each dungeon mark on Valheim's large map shows its name under it, as the game names its pins. Off, a mark shows its name while the pointer rests on it. Resting on one tells how far it was walked either way.");
             _markSize = config.Bind("1 - General", "DungeonMarkSize", 1f,
-                new ConfigDescription("How big each dungeon mark on the map is, as a share of a map pin: 1 is a pin's size. A mark's name grows with it.",
+                new ConfigDescription("How big each dungeon mark on the map is, as a share of a map pin: 0.7 small, 1 a pin's size, 1.4 large. A mark's name grows with it.",
                     new AcceptableValueRange<float>(SettingsWords.SmallestMarkSize, SettingsWords.LargestMarkSize)));
+            // A size kept from before the three goes to the nearest of them.
+            _markSize.Value = MapLook.NearestMarkScale(_markSize.Value);
             _marksWalkedByYou = config.Bind("1 - General", "DungeonMarksWalkedByYou", true,
-                "Marks the dungeons you walked on the map. Off, they are left out.");
-            _marksWalkedOnServer = config.Bind("1 - General", "DungeonMarksWalkedOnServer", true,
-                "Marks the dungeons others on this server walked, where a source shows them with insides. Off, they are left out.");
-            _markEntrances = config.Bind("1 - General", "DungeonMarkEntrances", true,
-                "Marks the entrances of dungeons nobody walked, where a source's pin shows them, faint until the pointer rests on one. Off, they are left out.");
+                "Marks the dungeons you walked on the map. Off, they are left out; those of a ground whose pin is on still show.");
+            // Which marks show by how they were walked: now by where they are known from alone.
+            Retire(config, "DungeonMarksWalkedOnServer", "DungeonMarkEntrances");
             _marksOnMinimap = config.Bind("1 - General", "DungeonMarksOnMinimap", false,
                 "Shows the marks of dungeons you walked on the minimap too, at its pins' size, without names.");
             _recordSeenSpots = config.Bind("1 - General", "RecordSeenSpots", true,

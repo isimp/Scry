@@ -64,17 +64,16 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void WhichMarksShowFollowsThreeSwitches()
+        public void TheDungeonsYouWalkedShowAsTheirTickSaysAndAGroundsShowWhileItsTickIsOn()
         {
-            // Walked by you, walked on this server, and entrances alone, each shown or not as its switch says.
-            Assert.True(MapMarks.Shown(MarkLook.Yours, walkedByYou: true, walkedOnServer: false, entrances: false));
-            Assert.True(MapMarks.Shown(MarkLook.Whole, walkedByYou: true, walkedOnServer: false, entrances: false));
-            Assert.False(MapMarks.Shown(MarkLook.Yours, walkedByYou: false, walkedOnServer: true, entrances: true));
-            Assert.True(MapMarks.Shown(MarkLook.Server, walkedByYou: false, walkedOnServer: true, entrances: false));
-            Assert.True(MapMarks.Shown(MarkLook.ServerWhole, walkedByYou: false, walkedOnServer: true, entrances: false));
-            Assert.False(MapMarks.Shown(MarkLook.Server, walkedByYou: true, walkedOnServer: false, entrances: true));
-            Assert.True(MapMarks.Shown(MarkLook.Entrance, walkedByYou: false, walkedOnServer: false, entrances: true));
-            Assert.False(MapMarks.Shown(MarkLook.Entrance, walkedByYou: true, walkedOnServer: true, entrances: false));
+            // Which ground's dungeons show is its own tick (the compendium's pin); walked by others or by nobody, its look tells it.
+            Assert.True(MapMarks.Shown(MarkLook.Yours, walkedByYou: true));
+            Assert.True(MapMarks.Shown(MarkLook.Whole, walkedByYou: true));
+            Assert.False(MapMarks.Shown(MarkLook.Yours, walkedByYou: false));
+            Assert.False(MapMarks.Shown(MarkLook.Whole, walkedByYou: false));
+            Assert.True(MapMarks.Shown(MarkLook.Server, walkedByYou: false));
+            Assert.True(MapMarks.Shown(MarkLook.ServerWhole, walkedByYou: false));
+            Assert.True(MapMarks.Shown(MarkLook.Entrance, walkedByYou: false));
         }
 
         [Fact]

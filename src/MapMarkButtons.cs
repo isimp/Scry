@@ -76,7 +76,7 @@ namespace Scry
 
         /// <summary>The layer the marks stand on, and the stamps of what they were last listed from.</summary>
         private static RectTransform _layer;
-        private static (int Walked, int InGround, int Sources, int Server) _keptStamp = (-1, -1, -1, -1);
+        private static (int Walked, int InGround, int Sources, int Server, bool WalkedShown) _keptStamp = (-1, -1, -1, -1, true);
 
         /// <summary>Whether the server was asked for the marked dungeons' records since the map last opened.</summary>
         private static bool _askedServer;
@@ -200,7 +200,7 @@ namespace Scry
             Marks.Clear();
             Kept.Clear();
             _layer = null;
-            _keptStamp = (-1, -1, -1, -1);
+            _keptStamp = (-1, -1, -1, -1, true);
             _keptWorld = null;
             _askedServer = false;
             MarksShown = 0;
@@ -236,12 +236,13 @@ namespace Scry
             }
             var maps = DungeonWalks.Maps;
             var book = CompendiumKeeper.Book;
-            var stamp = (maps.Stamp, DungeonsInGround.Stamp, book != null ? book.SourcesVersion : -1, GroupMapsLink.Group.Stamp);
+            var walkedShown = Settings.DungeonMarksWalkedByYou;
+            var stamp = (maps.Stamp, DungeonsInGround.Stamp, book != null ? book.SourcesVersion : -1, GroupMapsLink.Group.Stamp, walkedShown);
             if (_keptStamp != stamp || _keptWorld != world)
             {
                 var listing = Timing.Start();
                 Kept.Clear();
-                Kept.AddRange(DungeonMarks.Of(book, maps.OfWorld(world), DungeonsInGround.Of, RoomKinds.Of, GroupMapsLink.Group.Of));
+                Kept.AddRange(DungeonMarks.Of(book, maps.OfWorld(world), DungeonsInGround.Of, RoomKinds.Of, GroupMapsLink.Group.Of, walkedShown));
                 Timing.Add("marks listed", listing);
                 _keptStamp = stamp;
                 _keptWorld = world;
@@ -347,7 +348,7 @@ namespace Scry
             InViewIds.Clear();
             foreach (var kept in Kept)
             {
-                if (!MapMarks.Shown(kept.Look, Settings.DungeonMarksWalkedByYou, Settings.DungeonMarksWalkedOnServer, Settings.DungeonMarkEntrances)) continue;
+                if (!MapMarks.Shown(kept.Look, Settings.DungeonMarksWalkedByYou)) continue;
                 if (small && !MapMarks.OnSmallMap(kept.Look)) continue;
                 if (!MapMarks.Place(kept.Map.Entrance, map.m_pixelSize, map.m_textureSize, (window.xMin, window.yMin, window.width, window.height), (area.width, area.height), out var at)) continue;
                 InView.Add((kept, at));

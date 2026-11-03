@@ -28,7 +28,7 @@ namespace Scry
     /// What the settings' Map section chooses of Show on map's look: how bright the player's
     /// other pins stand (<see cref="SeenOnMap.Dimmed"/>), how dark a veil lies over the map
     /// (<see cref="SeenOnMap.MapDarkened"/>), and how big the dots are drawn
-    /// (<see cref="SeenOnMap.DotSize"/>).
+    /// (<see cref="SeenOnMap.DotSize"/>); and the dungeon marks' size, chosen as the dots' is.
     /// </summary>
     internal static class MapLook
     {
@@ -49,5 +49,11 @@ namespace Scry
         /// <summary>How much bigger or smaller than normal the dots are drawn.</summary>
         public static float DotScale(DotSizeChoice size) =>
             size == DotSizeChoice.Small ? 0.7f : size == DotSizeChoice.Large ? 1.4f : 1f;
+
+        /// <summary>The dungeon marks' sizes, as a share of a map pin: small, normal and large as the dots'.</summary>
+        public static readonly float[] MarkScales = { DotScale(DotSizeChoice.Small), DotScale(DotSizeChoice.Normal), DotScale(DotSizeChoice.Large) };
+
+        /// <summary>The mark size nearest one kept from before the three, the smaller where two are as near.</summary>
+        public static float NearestMarkScale(float kept) => MarkScales[SettingsWords.Nearest(MarkScales, kept)];
     }
 }

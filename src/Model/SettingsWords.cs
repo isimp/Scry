@@ -34,6 +34,12 @@ namespace Scry
         /// <summary>What the dungeon marks' switch does, on the card and in the config file alike.</summary>
         public const string DungeonMarksWhy = "Marks dungeons on Valheim's large map and, where you ask for it, the minimap, telling how much of each was walked; a click on a mark opens its map in Scry. Off, no dungeon mark shows on either map, yours or others', entrances neither; a page's Show on map still marks what it shows.";
 
+        /// <summary>A ground's tick in the Map section's row of which dungeons are marked.</summary>
+        public static string PinnedGroundTick(WorldSource source) => source == WorldSource.SharedMaps ? "On shared maps" : "In ground you explored";
+
+        public const string PointAtAName = "Point at a name for what it covers.";
+        public const string HowItWorks = "How the compendium works";
+
         public const string NoBook = "Your character's compendium is read once you stand in a world.";
         public const string RulesOff = "With the rules Off, Known up to and what this world shows wait for Loose or Strict.";
         public const string NewsGroup = "News";

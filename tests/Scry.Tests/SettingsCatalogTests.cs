@@ -38,7 +38,8 @@ namespace Scry.Tests
             Assert.Equal(new[] { BookPart.Rules, BookPart.KnownUpTo }.Concat(WorldSources.All.Select(_ => BookPart.Source)), book.Select(r => r.Book));
             Assert.Equal(WorldSources.All, book.Where(r => r.Book == BookPart.Source).Select(r => r.Source));
             Assert.Equal(new[] { "Rules", "Known up to" }.Concat(WorldSources.All.Select(CompendiumWords.SourceName)), book.Select(r => r.Label));
-            Assert.All(SettingsCatalog.Sections.Where(s => s != compendium).SelectMany(s => s.Rows), r => Assert.Equal(BookPart.None, r.Book));
+            // Elsewhere only the Map section's row of which dungeons are marked, the pins among its ticks.
+            Assert.All(SettingsCatalog.Sections.Where(s => s != compendium).SelectMany(s => s.Rows), r => Assert.True(r.Book == BookPart.None || r.Book == BookPart.DungeonPins, r.Label));
             Assert.All(book, r => Assert.Empty(r.Keys));
         }
 
@@ -78,6 +79,73 @@ namespace Scry.Tests
             Assert.Contains("Show on map", why);
             Assert.Equal(why, SettingsWords.DungeonMarksWhy);
             Assert.Contains("SettingsWords.DungeonMarksWhy", File.ReadAllText(Path.Combine(ScrySource.Root(), "src", "Core", "Settings.cs")));
+        }
+
+        [Fact]
+        public void WhichDungeonsAreMarkedIsOneRowByWhereYouKnowThemFrom()
+        {
+            // You walked it, it lies in ground you explored, or on a map you read: the last two the compendium's pins.
+            var map = Section("Map");
+            var row = map.Rows.Single(r => r.Book == BookPart.DungeonPins);
+            Assert.Equal("Mark the dungeons", row.Label);
+            Assert.Equal(new[] { "DungeonMarksWalkedByYou" }, row.Keys);
+            Assert.Equal(new[] { "You walked", "In ground you explored", "On shared maps" }, row.TickNames);
+            Assert.Equal(new[] { WorldSource.Explored, WorldSource.SharedMaps }, SettingsCatalog.PinnedGrounds);
+            Assert.All(SettingsCatalog.PinnedGrounds, s => Assert.True(WorldSources.HasGround(s)));
+            Assert.Contains("compendium", row.Why);
+            // The filter by how a mark was walked is gone.
+            Assert.DoesNotContain("DungeonMarksWalkedOnServer", Bound().Keys);
+            Assert.DoesNotContain("DungeonMarkEntrances", Bound().Keys);
+            Assert.Contains("Retire(config, \"DungeonMarksWalkedOnServer\", \"DungeonMarkEntrances\")", File.ReadAllText(Path.Combine(ScrySource.Root(), "src", "Core", "Settings.cs")));
+        }
+
+        [Fact]
+        public void SizesAreChosenOneOfThreeAndSlidersKeepToValuesWithAUnit()
+        {
+            var marks = Rows.Single(r => r.Keys.FirstOrDefault() == "DungeonMarkSize");
+            var dots = Rows.Single(r => r.Keys.FirstOrDefault() == "ShowOnMapDotSize");
+            Assert.Equal(SettingControl.Choices, marks.Control);
+            Assert.Equal(dots.Choices.Select(c => c.Name), marks.Choices.Select(c => c.Name));
+            Assert.Equal(MapLook.MarkScales.Select(Stored.Exact), marks.Choices.Select(c => c.Value));
+            // A slider stands only for seconds, metres, a loudness, a speed, a count or the panel's own size.
+            var sliders = Rows.Where(r => r.Control == SettingControl.Slider).Select(r => r.Keys[0]).OrderBy(k => k).ToArray();
+            Assert.Equal(new[] { "CatalogDelay", "LighterFilmFromMs", "PanelScale", "PreviewLoudness", "RecentCount", "SeenOnMapReach", "SeenReach", "SpinSpeed", "TooltipDelay" }, sliders);
+        }
+
+        [Fact]
+        public void AChoiceStandsLitForTheValueSetHoweverTheConfigFileWritesItsNumber()
+        {
+            // The config file writes 0.7 where a choice was worded 0.699999988: the same value, lit.
+            Assert.True(SettingsCatalog.SameValue(Stored.Exact(0.7f), "0.7"));
+            Assert.True(SettingsCatalog.SameValue(Stored.Exact(1.4f), "1.4"));
+            Assert.True(SettingsCatalog.SameValue("Small", "small"));
+            Assert.False(SettingsCatalog.SameValue("0.7", "1"));
+            Assert.False(SettingsCatalog.SameValue("Small", "Large"));
+            Assert.False(SettingsCatalog.SameValue("0.7", null));
+        }
+
+        [Fact]
+        public void TheCompendiumsSourcesAreShortRowsTheirWordsAShownLineAndTheirTips()
+        {
+            // As the box: what the sources share once under their heading, what each covers on its name's tip.
+            var sources = Section("Compendium").Rows.Where(r => r.Book == BookPart.Source).ToList();
+            Assert.All(sources, r => Assert.True(r.WhyAsTip, r.Label));
+            Assert.All(Rows.Where(r => r.Book != BookPart.Source), r => Assert.False(r.WhyAsTip, r.Label));
+            Assert.StartsWith(CompendiumWords.SourcesHint, SettingsCatalog.GroupIntro(CompendiumWords.SourcesCaption));
+            Assert.Null(SettingsCatalog.GroupIntro("Dungeon marks"));
+        }
+
+        [Fact]
+        public void ALockStandsBesideTheRowShortTheWholeSentenceOnItsTip()
+        {
+            Assert.Null(WorldRulesWords.OnRowShort(BookPart.Rules, default, WorldRules.Open));
+            var set = WorldRules.From(WorldRule.Strict, true, false, s => s == WorldSource.SharedMaps ? SourceLevel.Known : SourceLevel.WithInsides);
+            Assert.Equal("this server sets them", WorldRulesWords.OnRowShort(BookPart.Rules, default, set));
+            Assert.Equal("off on this server", WorldRulesWords.OnRowShort(BookPart.KnownUpTo, default, set));
+            Assert.Equal("up to Known here", WorldRulesWords.OnRowShort(BookPart.Source, WorldSource.SharedMaps, set));
+            Assert.Null(WorldRulesWords.OnRowShort(BookPart.Source, WorldSource.Explored, set));
+            foreach (BookPart part in Enum.GetValues(typeof(BookPart)))
+                Assert.Equal(WorldRulesWords.OnRow(part, WorldSource.SharedMaps, set) == null, WorldRulesWords.OnRowShort(part, WorldSource.SharedMaps, set) == null);
         }
 
         [Fact]
@@ -239,8 +307,6 @@ namespace Scry.Tests
             Assert.Equal("0.35 s", Slider("TooltipDelay").Shown(0.35f));
             Assert.Equal("at once", Slider("TooltipDelay").Shown(0f));
             Assert.Equal("30 entries", Slider("RecentCount").Shown(30f));
-            Assert.Equal("a pin's size", Slider("DungeonMarkSize").Shown(1f));
-            Assert.Equal("0.8 of a pin", Slider("DungeonMarkSize").Shown(0.8f));
             Assert.Equal("14° a second", Slider("SpinSpeed").Shown(14f));
             Assert.Equal("50 m", Slider("SeenOnMapReach").Shown(50f));
             Assert.Equal("none", Slider("SeenOnMapReach").Shown(0f));
@@ -256,8 +322,7 @@ namespace Scry.Tests
             // Walking and looking while open, each on its own, and which dungeon marks show.
             Assert.Equal(SettingControl.Switch, Row("WalkWhileOpen").Control);
             Assert.Equal(SettingControl.Switch, Row("LookWithRightMouse").Control);
-            Assert.Equal(SettingControl.Ticks, Row("DungeonMarksWalkedByYou").Control);
-            Assert.Equal(new[] { "DungeonMarksWalkedByYou", "DungeonMarksWalkedOnServer", "DungeonMarkEntrances" }, Row("DungeonMarksWalkedByYou").Keys);
+            Assert.Equal(SettingControl.Book, Row("DungeonMarksWalkedByYou").Control);
             Assert.Equal(SettingControl.Choices, Row("StageQuality").Control);
             // The tip's wait keeps any value the config holds.
             Assert.Equal(SettingControl.Slider, Row("TooltipDelay").Control);

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Scry
 {
@@ -58,13 +59,15 @@ namespace Scry
         /// The marks, from the dungeons walked by you and those each ground holds; walked whole told
         /// by the kinds of room <paramref name="roomOf"/> reads, none where it is not given, the
         /// server's record of one walked by you (<paramref name="serverOf"/>) counted with yours.
+        /// Where those walked by you are not shown (<paramref name="walkedShown"/>), one lying in a
+        /// ticked ground stands as that ground's mark, as its others do.
         /// </summary>
         public static List<DungeonMark> Of(CompendiumBook book, IEnumerable<(string Id, DungeonMap Map)> walked, Func<WorldSource, IEnumerable<(string Id, DungeonMap Map)>> inGround,
-            Func<int, RoomShape> roomOf = null, Func<string, DungeonMap> serverOf = null)
+            Func<int, RoomShape> roomOf = null, Func<string, DungeonMap> serverOf = null, bool walkedShown = true)
         {
             var marks = new List<DungeonMark>();
             var marked = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var (id, map) in walked)
+            foreach (var (id, map) in walkedShown ? walked : Enumerable.Empty<(string Id, DungeonMap Map)>())
             {
                 if (id == null || map == null || !marked.Add(id)) continue;
                 var server = serverOf?.Invoke(id);

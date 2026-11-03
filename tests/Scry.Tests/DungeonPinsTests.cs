@@ -164,6 +164,21 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WithYouWalkedOffADungeonYouWalkedInATickedGroundStandsAsThatGroundsMark()
+        {
+            // Unticking You walked leaves a ticked ground's dungeons all marked, yours among them, as its others are.
+            var book = Pinned(SourceLevel.WithInsides, WorldSource.Explored);
+            var walked = new[] { ("w:1", Map("Crypt2", 0)) };
+            var inGround = new[] { ("w:1", Map("Crypt2", 0, 1)), ("w:2", Map("Crypt2")) };
+            var marks = DungeonMarks.Of(book, walked, s => s == WorldSource.Explored ? inGround : None, walkedShown: false);
+            Assert.Equal(new[] { "w:1", "w:2" }, marks.Select(m => m.Id));
+            Assert.Equal(new WorldSource?[] { WorldSource.Explored, WorldSource.Explored }, marks.Select(m => m.From));
+            Assert.Equal(new[] { MarkLook.Server, MarkLook.Entrance }, marks.Select(m => m.Look));
+            // Lying in no ticked ground, it is not marked at all.
+            Assert.Empty(DungeonMarks.Of(new CompendiumBook(), walked, _ => None, walkedShown: false));
+        }
+
+        [Fact]
         public void EachDungeonIsMarkedOnceWalkedByYouFirstThenByTheFirstGround()
         {
             var book = Pinned(SourceLevel.WithInsides, WorldSource.Explored, WorldSource.SharedMaps);
@@ -195,7 +210,7 @@ namespace Scry.Tests
         public void ThePinsTipSaysItMarksEveryEntranceAndWhatWithInsidesAdds()
         {
             Assert.Equal("Mark dungeons on the big map", CompendiumWords.PinName);
-            Assert.Equal("Marks every dungeon entrance in this ground on Valheim's big map. Under With insides, a dungeon walked on this server shows the rooms walked. Clicking a mark opens that dungeon in Scry. Dungeons you walked are marked anyway.\nOff.",
+            Assert.Equal("Marks every dungeon entrance in this ground on Valheim's big map, the same switch as Mark the dungeons in the settings' Map section. Under With insides, a dungeon walked on this server shows the rooms walked. Clicking a mark opens that dungeon in Scry.\nOff.",
                 CompendiumWords.PinTip(on: false));
             Assert.EndsWith("\nOn.", CompendiumWords.PinTip(on: true));
             // With the map's marks off in the settings, a pin on marks nothing, and says so.

@@ -153,6 +153,9 @@ namespace Scry
         /// <summary>The ? in the compendium's box opening its guide.</summary>
         GuideButton,
 
+        /// <summary>The settings' Compendium section's button opening the guide.</summary>
+        SettingsGuideButton,
+
         /// <summary>The question asked once of a character whose compendium is off, in the list's place.</summary>
         SetupCard,
 
