@@ -30,6 +30,9 @@ namespace Scry
                 yield break;
             }
             _keptBefore = (book.Kept.ToList(), Settings.DungeonMarksOnMinimap);
+            // Timed as play shows the map: once Scry's code is compiled ahead, its first use compiling none in a measured frame.
+            yield return MapCodeCompiled(p);
+
             // The kind's own page offers Keep on the map beside Show on map.
             if (!Session.IsOpen) Session.Show(null);
             KeepView();

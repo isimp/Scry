@@ -25,6 +25,15 @@ namespace Scry
         /// <summary>The zoom the thousand spots are shown at: the game's own first zoom, a window some 2.5 km tall, holding them all.</summary>
         private const float SpotsZoom = 0.1f;
 
+        /// <summary>Waits for Scry's code to be compiled ahead (<see cref="Session.Warmup"/>), a slower machine given as much longer, and notes how long it waited.</summary>
+        private static IEnumerator MapCodeCompiled(Probe p)
+        {
+            var waited = Time.unscaledTime;
+            yield return Until(() => Session.Warmup?.Done == true, 50 * System.Math.Max(1.0, Slowdown()));
+            if (Session.Warmup?.Done != true) p.Note("timed before Scry's code was compiled ahead: its first use compiles some in the frames measured");
+            else if (Time.unscaledTime - waited > 0.5f) p.Note($"waited {Numbers.Amount(Time.unscaledTime - waited, 1)} s for Scry's code to be compiled ahead");
+        }
+
         /// <summary>The most each piece of the map's work took in one frame since the part began counting, so a slow one shows where its time went.</summary>
         private static string MapPartsTimed()
         {
@@ -36,6 +45,9 @@ namespace Scry
         {
             // What the character keeps on the map set aside, so only the part's own stands.
             MapKept.SetAsideForTest(true);
+            // Timed as play shows the map: once Scry's code is compiled ahead, its first use compiling none in a measured frame.
+            yield return MapCodeCompiled(p);
+
             var player = Player.m_localPlayer;
             var map = Minimap.instance;
             if (player == null || map == null || Game.m_noMap || CompendiumMap.World == null) p.Skip("there is no character, or no map in this world");
@@ -156,6 +168,9 @@ namespace Scry
         private static IEnumerator ShowOnMapSquares(Probe p)
         {
             MapKept.SetAsideForTest(true);
+            // Timed as play shows the map: once Scry's code is compiled ahead, its first use compiling none in a measured frame.
+            yield return MapCodeCompiled(p);
+
             var player = Player.m_localPlayer;
             var map = Minimap.instance;
             if (player == null || map == null || Game.m_noMap || CompendiumMap.World == null) p.Skip("there is no character, or no map in this world");

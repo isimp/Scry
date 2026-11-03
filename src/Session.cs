@@ -280,7 +280,10 @@ namespace Scry
         private static void Warm()
         {
             if (Explorer == null || Warmup?.Done == true) return;
-            if (Warmup == null) Warmup = new CodeWarmup(CodeWarmup.WithWhatTheyCall(CodeWarmup.MethodsOf(typeof(Session).Assembly.GetTypes(), typeof(ScryPanel), typeof(Skin), typeof(Facts)), ModHooks.On));
+            // The panel's code first, then what Valheim's map shows, as a player opens either soon after the world.
+            if (Warmup == null)
+                Warmup = new CodeWarmup(CodeWarmup.WithWhatTheyCall(CodeWarmup.MethodsOf(typeof(Session).Assembly.GetTypes(), typeof(ScryPanel), typeof(Skin), typeof(Facts),
+                    typeof(MapSpots), typeof(MapSquares), typeof(MapKept), typeof(MiniKept), typeof(MapGameMarks), typeof(MapMarkButtons)), ModHooks.On));
             var watch = System.Diagnostics.Stopwatch.StartNew();
             Warmup.Step(() => watch.Elapsed.TotalMilliseconds, WarmupShareMs, method => Steps.Run(() => method.MethodHandle.GetFunctionPointer(), null) == null);
             if (Warmup.Done) Log.Note($"Scry compiled its code ahead: {Numbers.Count(Warmup.Compiled)} methods, {Numbers.Count(Warmup.Failed)} could not be.");
