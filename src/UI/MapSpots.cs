@@ -330,7 +330,8 @@ namespace Scry
             _mark = mark;
             _colour = Skin.MarkColour(mark);
             _sprite = Picture(_colour, KeptMarks.ShapeOf(mark));
-            _toldSprite = Picture(_colour, KeptMarks.ShapeOf(mark), hollow: true);
+            // The hollow picture drawn only where the server told of some, as drawing a picture holds its frame a while.
+            _toldSprite = _demandTold.Count > 0 ? Picture(_colour, KeptMarks.ShapeOf(mark), hollow: true) : null;
             var player = Player.m_localPlayer;
             var nearest = player != null ? SeenOnMap.Nearest(spots, player.transform.position.x, player.transform.position.z) : null;
             var more = PlaceSquares.More(squares);
