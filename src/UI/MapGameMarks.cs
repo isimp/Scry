@@ -11,7 +11,8 @@ namespace Scry
     /// and the character's pins a
     /// Vegvisir set (<c>Minimap.m_pins</c>), known by the pins the places read say their Vegvisirs
     /// set (<see cref="PlaceContents.VegvisirPins"/>). Worked out again as the pins or the places
-    /// read change, at most every few seconds; a place's squares leave out where it is marked.
+    /// read change, at most every few seconds, each frame's own update rather than the map's, so
+    /// opening the map does no more for it; a place's squares leave out where it is marked.
     /// </summary>
     internal static class MapGameMarks
     {
@@ -30,11 +31,7 @@ namespace Scry
         public static int Version { get; private set; }
 
         /// <summary>Where the game's map marks places of a kind, by the place's prefab name; none where it marks none.</summary>
-        public static IReadOnlyList<(int X, int Z)> Of(string place)
-        {
-            Refresh();
-            return place != null && ByPlace.TryGetValue(place, out var marks) ? marks : None;
-        }
+        public static IReadOnlyList<(int X, int Z)> Of(string place) => place != null && ByPlace.TryGetValue(place, out var marks) ? marks : None;
 
         /// <summary>The spots seen of a place with where the game marks one, and the entrances of its dungeons walked, besides them, each once: what its squares leave out, as each stands marked on the map.</summary>
         public static IReadOnlyList<(int X, int Z)> With(string place, IReadOnlyList<(int X, int Z)> seen)
@@ -47,7 +44,11 @@ namespace Scry
             return GameMarks.With(seen, walked ?? (IReadOnlyList<(int X, int Z)>)marks);
         }
 
-        /// <summary>Reads the pins and icons again where a few seconds have gone by, working out where the game marks places where they changed.</summary>
+        /// <summary>
+        /// Each frame, in its own update: the pins and icons read again where a few seconds have
+        /// gone by, where the game marks places worked out again where they changed, and
+        /// <see cref="Version"/> counted up only where that changed what stands.
+        /// </summary>
         public static void Refresh()
         {
             var map = Minimap.instance;
@@ -61,7 +62,9 @@ namespace Scry
             _readFor = readFor;
             var vegvisirPins = new List<(string, string, int)>();
             if (records != null) foreach (var record in records) vegvisirPins.AddRange(record.Contents.VegvisirPins);
-            var placesOfPins = GameMarks.PlacesOfPins(vegvisirPins);
+            // The game keeps a pin a Vegvisir set by the name it shows, in the game's language.
+            var language = Localization.instance;
+            var placesOfPins = GameMarks.PlacesOfPins(vegvisirPins, language != null ? (System.Func<string, string>)language.Localize : null);
             var gamePins = new List<(float X, float Z, string Pin, int Type)>();
             if (pins != null) foreach (var pin in pins) if (pin != null) gamePins.Add((pin.m_pos.x, pin.m_pos.z, pin.m_name, (int)pin.m_type));
             var icons = new List<(float X, float Z, string Place)>();
@@ -70,9 +73,25 @@ namespace Scry
             var places = new HashSet<string>(System.StringComparer.Ordinal);
             foreach (var icon in icons) places.Add(icon.Place);
             foreach (var pin in gamePins) if (pin.Pin != null && placesOfPins.TryGetValue((pin.Pin, pin.Type), out var of)) places.UnionWith(of);
+            var worked = new Dictionary<string, List<(int X, int Z)>>(System.StringComparer.Ordinal);
+            foreach (var place in places) worked[place] = GameMarks.MarksOf(place, icons, gamePins, placesOfPins);
+            // The places being read in the background change the count each few seconds; what stands changes far seldomer.
+            if (Same(worked)) return;
             ByPlace.Clear();
-            foreach (var place in places) ByPlace[place] = GameMarks.MarksOf(place, icons, gamePins, placesOfPins);
+            foreach (var pair in worked) ByPlace[pair.Key] = pair.Value;
             Version++;
+        }
+
+        /// <summary>Whether marks worked out are those standing, place by place.</summary>
+        private static bool Same(Dictionary<string, List<(int X, int Z)>> worked)
+        {
+            if (worked.Count != ByPlace.Count) return false;
+            foreach (var pair in worked)
+            {
+                if (!ByPlace.TryGetValue(pair.Key, out var standing) || standing.Count != pair.Value.Count) return false;
+                for (var i = 0; i < standing.Count; i++) if (standing[i] != pair.Value[i]) return false;
+            }
+            return true;
         }
 
         /// <summary>Which places the game's map marks itself and how many of each, for the self-test's note.</summary>

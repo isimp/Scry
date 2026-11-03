@@ -552,20 +552,28 @@ namespace Scry
             if (_holder == null) return;
             if (!_holder.gameObject.activeSelf) _holder.gameObject.SetActive(true);
             // The squares under the dots, placed as the map moves, as the dots are; the other pins dimmed while a kind is shown on demand.
+            var squaring = Timing.Start();
             MergeSquares();
             MapSquares.Update(map);
+            Timing.Add("spots squares", squaring);
             if (Showing.Showing) MapDim.Hold(map, _holder, MapSquares.Holder);
             else MapDim.Restore();
+            var working = Timing.Start();
             WorkOutDots();
+            Timing.Add("spots worked out", working);
             var image = map.m_mapImageLarge;
             var window = image.uvRect;
             var area = image.rectTransform.rect;
             var size = SeenOnMap.DotSize(map.m_pinSizeLarge, window.height) * MapLook.DotScale(Settings.MapDotSize);
             // A map standing still with every dot made costs nothing more: nothing moved; the pointer is read all the same.
             var placing = (window, area.size, _dotsFor, size);
+            var placingDots = Timing.Start();
             if (!_allMade || placing != _placedFor) PlaceDots(map, window, area, size, placing);
+            Timing.Add("spots placed", placingDots);
+            var reading = Timing.Start();
             if (onMark) Pointed = null;
             else ReadPointer();
+            Timing.Add("spots pointer", reading);
         }
 
         /// <summary>The dots inside the map's window stood where it shows them, a couple of milliseconds' making a frame.</summary>

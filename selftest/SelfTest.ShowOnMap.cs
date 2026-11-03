@@ -25,6 +25,13 @@ namespace Scry
         /// <summary>The zoom the thousand spots are shown at: the game's own first zoom, a window some 2.5 km tall, holding them all.</summary>
         private const float SpotsZoom = 0.1f;
 
+        /// <summary>The most each piece of the map's work took in one frame since the part began counting, so a slow one shows where its time went.</summary>
+        private static string MapPartsTimed()
+        {
+            var parts = new[] { "spots", "spots squares", "spots worked out", "spots placed", "spots pointer", "map kept", "map game marks", "marks" };
+            return "the most a frame, by piece: " + string.Join(", ", parts.Select(part => $"{part} {Numbers.Amount(Timing.MostMs(part), 2)} ms"));
+        }
+
         private static IEnumerator ShowOnMapDots(Probe p)
         {
             // What the character keeps on the map set aside, so only the part's own stands.
@@ -59,6 +66,7 @@ namespace Scry
             p.Check(MapSpots.DotsShown >= many, $"all {Numbers.Count(many)} spots in view come to stand as dots", $"{Numbers.Count(MapSpots.DotsShown)} after {Numbers.Amount(took, 1)} s");
             p.Note($"{Numbers.Count(MapSpots.DotsShown)} dots stood after {Numbers.Amount(took, 1)} s; they took {Numbers.Fixed(ownMs / frames, 2)} ms a frame on average, {Numbers.Amount(mostMs, 1)} ms at the most");
             p.Within(mostMs, 16, "making and placing them holds no frame a sixtieth of a second", $"{Numbers.Amount(mostMs, 1)} ms at the most");
+            p.Note(MapPartsTimed());
             p.Check(MapSpots.Strip == "Self-test spots · 1,000 you saw · nearest beside you", "the strip names them, how many, and the nearest", MapSpots.Strip);
             p.Check(MapSpots.DotsUnderPinsForTest, "the dots stand first on the pins' layer, under every pin");
             var look = MapSpots.DotLookForTest();

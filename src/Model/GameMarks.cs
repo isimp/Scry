@@ -15,17 +15,28 @@ namespace Scry
         /// <summary>How near, in metres, a place's spot seen stands to where the game marks one for them to be the same place.</summary>
         public const float SamePlace = 8f;
 
-        /// <summary>The places each pin a Vegvisir sets marks, by the pin's name and kind.</summary>
-        public static Dictionary<(string Pin, int Type), HashSet<string>> PlacesOfPins(IEnumerable<(string Location, string Pin, int Type)> vegvisirPins)
+        /// <summary>
+        /// The places each pin a Vegvisir sets marks, by the pin's name and kind: the name the
+        /// Vegvisir gives it, and the name it shows (<paramref name="shown"/>), as the game keeps a
+        /// pin set so by the name it shows.
+        /// </summary>
+        public static Dictionary<(string Pin, int Type), HashSet<string>> PlacesOfPins(IEnumerable<(string Location, string Pin, int Type)> vegvisirPins, Func<string, string> shown = null)
         {
             var places = new Dictionary<(string, int), HashSet<string>>();
             foreach (var (location, pin, type) in vegvisirPins)
             {
                 if (string.IsNullOrEmpty(location) || string.IsNullOrEmpty(pin)) continue;
-                if (!places.TryGetValue((pin, type), out var set)) places[(pin, type)] = set = new HashSet<string>(StringComparer.Ordinal);
-                set.Add(location);
+                Add(places, pin, type, location);
+                var named = shown?.Invoke(pin);
+                if (!string.IsNullOrEmpty(named) && named != pin) Add(places, named, type, location);
             }
             return places;
+        }
+
+        private static void Add(Dictionary<(string, int), HashSet<string>> places, string pin, int type, string location)
+        {
+            if (!places.TryGetValue((pin, type), out var set)) places[(pin, type)] = set = new HashSet<string>(StringComparer.Ordinal);
+            set.Add(location);
         }
 
         /// <summary>Where the game's map marks a place of a kind: its icons, and the pins whose name and kind a Vegvisir sets for it.</summary>

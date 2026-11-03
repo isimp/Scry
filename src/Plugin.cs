@@ -168,6 +168,8 @@ namespace Scry
             FrameWork.Begin();
             var started = Timing.Start();
             Guard.Run(Feature.World, "the frame", Session.Update);
+            // Where the game's map marks places itself, read here rather than as the map is drawn.
+            Guard.Run(Feature.ShowOnMap, "the places Valheim's map marks itself", MapGameMarks.Refresh, "map game marks");
             var drops = Timing.Start();
             DropWatch.Save();
             WornWatch.Save();

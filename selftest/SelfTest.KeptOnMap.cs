@@ -88,6 +88,7 @@ namespace Scry
             p.Within(Timing.MostMs("minimap kept"), 2, "placing them on the minimap holds no frame long", $"{Numbers.Amount(Timing.MostMs("minimap kept"), 2)} ms at the most");
             p.Within(Timing.MostMs("map kept"), 8, "working out what is kept holds no frame long", $"{Numbers.Amount(Timing.MostMs("map kept"), 2)} ms at the most");
             p.Within(Timing.MostMs("spots"), 4, "the large map's dots and the pointer's words hold no frame long", $"{Numbers.Amount(Timing.MostMs("spots"), 2)} ms at the most");
+            p.Note(MapPartsTimed());
 
             // The title row's list holds it with how many stand; its × takes it off.
             Minimap.instance.SetMapMode(Minimap.MapMode.Small);

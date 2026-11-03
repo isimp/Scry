@@ -119,8 +119,6 @@ namespace Scry
         /// <summary>Each frame a map shows what is kept: worked out anew where what is kept, seen or told changed.</summary>
         public static void Refresh()
         {
-            // Where the game marks places read first, so a Vegvisir read takes its square away.
-            MapGameMarks.Refresh();
             var book = CompendiumKeeper.Book;
             var worldId = ZNet.instance != null && ZNet.instance.GetWorld() != null ? ZNet.instance.GetWorldUID() : 0L;
             var kept = (book, book?.KeptVersion ?? -1, Settings.MapSquares, Remembered, worldId);

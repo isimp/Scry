@@ -28,6 +28,16 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APinKeptByTheNameItShowsMatchesAsTheVegvisirSetIt()
+        {
+            // The game keeps a pin from a Vegvisir by the name it shows, "Eikthyr", not the key the Vegvisir gives it.
+            var shown = new Dictionary<string, string> { ["$enemy_eikthyr"] = "Eikthyr" };
+            var pins = GameMarks.PlacesOfPins(new[] { ("Eikthyrnir", "$enemy_eikthyr", 9) }, key => shown.TryGetValue(key, out var name) ? name : key);
+            var onMap = new[] { (10f, 20f, "Eikthyr", 9), (30f, 40f, "$enemy_eikthyr", 9), (50f, 60f, "Eikthyr", 0) };
+            Assert.Equal(new[] { (10, 20), (30, 40) }, GameMarks.MarksOf("Eikthyrnir", new (float, float, string)[0], onMap, pins));
+        }
+
+        [Fact]
         public void APlaceTheGameGivesAnIconIsMarkedWhereTheIconStands()
         {
             var icons = new[] { (100.4f, -50.6f, "Vendor_BlackForest"), (7f, 7f, "StartTemple") };
