@@ -142,7 +142,8 @@ namespace Scry
             if (button.Contains(Event.current.mousePosition)) AskTip("list-button", ListWords.ListButtonTip(ListHidden));
         }
 
-        private static int _steppedFrame = -1;
+        /// <summary>The steps back and forward taken, so one press arriving both as a key and as a panel event counts once (<see cref="StepPress"/>).</summary>
+        private static readonly StepPress Steps = new StepPress();
 
         private const string BackTip = "Back out of the room you went into, or to the page shown before (Alt+\u2190 or the mouse's back button)";
         private const string ForwardTip = "Forward again: back into the room you came out of, or to the page you went back from (Alt+\u2192 or the mouse's forward button)";
@@ -163,9 +164,8 @@ namespace Scry
         /// <summary>Goes back or forward, and shows where it lands.</summary>
         public static void Step(Explorer explorer, bool back)
         {
-            // The same press can arrive both as a key and as a panel event; it counts once.
-            if (explorer == null || _steppedFrame == Time.frameCount) return;
-            _steppedFrame = Time.frameCount;
+            // The same press can arrive both as a key and as a panel event, at times a frame apart; it counts once.
+            if (explorer == null || !Steps.Take(back, Time.unscaledTime)) return;
             // Inside a dungeon's example, out of and between the rooms gone into first.
             if (back ? Stage.StepBack() : Stage.StepForward()) return;
             if (!(back ? explorer.Back() : explorer.Forward())) return;

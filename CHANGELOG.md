@@ -24,6 +24,8 @@ The compendium's guide opens each heading with a line saying what it is for, set
 
 A place of several kinds, as the Burial Chambers, shows one kind on the map from its page, or all of them at once with the map strip's "All 3 kinds".
 
+The mouse's back button steps back one page, where it at times stepped back two.
+
 On a new install the panel opens with the keys still walking your character; *Search ready* under *On opening* in the settings brings the old behaviour back.
 
 ## 0.3.2

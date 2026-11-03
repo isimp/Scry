@@ -248,6 +248,17 @@ namespace Scry
             p.Check(X.Back() && X.Selected == b, "Back goes to the one before");
             p.Check(X.Back() && X.Selected == a, "and again to the one before that");
             p.Check(X.Forward() && X.Selected == b, "Forward goes on again");
+
+            // The mouse's back button reaches the panel as a key and as a panel event, at times a frame apart: one press steps once.
+            p.Check(X.Forward() && X.Selected == c, "Forward to the last one again");
+            yield return new Wait(StepPress.SamePress + 0.1f);
+            ScryPanel.Step(X, true);
+            yield return null;
+            ScryPanel.Step(X, true);
+            p.Check(X.Selected == b, "one press of the back button arriving twice a frame apart steps back once", X.Selected?.Name);
+            yield return new Wait(StepPress.SamePress + 0.1f);
+            ScryPanel.Step(X, true);
+            p.Check(X.Selected == a, "a second press steps back again", X.Selected?.Name);
         }
 
         /// <summary>The most Scry's work may take in a frame while a page is laid out over frames, the stage's copy and film of it included.</summary>
