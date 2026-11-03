@@ -2,31 +2,15 @@
 
 ## 0.4.0
 
-Pages open faster: a page answers the click at once and fills in over the next frames, and the stage stays smooth while its camera moves over a big dungeon.
+*Show on map* on a page marks where your character saw its kind, each kind in a colour and shape of its own. A place in ground you explored but never came near stands as the 128 m square it lies in, or as a hollow dot where the server sets *Places in explored ground* to *Dots*. *Keep on the map* keeps a kind there every time the map opens, on the minimap too, and the title row's *On the map* list holds what is kept and takes it off. Dungeons you walked or whose entrance you saw keep their amber marks, kept from the start in that list, which replaces the *Dungeon marks* switch and the pins on the compendium box's rows. Pointing at any mark says what it is.
 
-The stage's sea holds what lives in it: a Serpent swims at its depth, slows to bite and rear up to roar, and opens showing its side across the picture, a Leviathan rides the surface. Drakes, Moder and a raid's flyers show in flight. Gjall's tentacles, a Wolf's body, the Ulv's and Neck's tails, Hildir's skirt, a ship's sail and the capes, dresses, hair and beards creatures wear move as their cloth does in the world.
+The settings under the gear are one card in sections, each setting explained where it stands, with the compendium's rows and what the server allows under each. A new player is told the key once, and the first time Scry opens it offers a short setup. The compendium's guide reads at a glance, with examples. On a new install the keys keep walking your character while the panel is open; *Search ready* under *On opening* brings the old behaviour back.
 
-Under *Strict* every section ends saying what to do about what it left out, as "Meet 55 more sources of Copper" or "See it drop 6 items you've met", and `is:left` finds the pages with more to find out. Under *Loose* the title row reads like "3 of 6 met".
+The stage's sea holds what lives in it, flyers show in flight, and cloth, tails and hair move as they do in the world. Pages open at once and fill in over the next frames.
 
-More is linked once you have seen it, such as what a boss's fall opens, a summoning altar's offering, a nest's creatures and the attacks that put an effect on you.
+Under *Strict* every section says what to do about what it left out, as "Meet 55 more sources of Copper", and `is:left` finds the pages with more to find out; under *Loose* the title row reads like "3 of 6 met". Pages count only what you really do, each number the game never shows waits for what really shows it, and more is linked once you have seen it.
 
-Pages count what you really do, and only that. Watching a plant grow, cooking on any station, reading a Vegvisir or living through a raid all count, as do a character's picks, honey and catches from before Scry. Each number the game never shows waits for what really shows it, as an attack's reach waits for its damage, and killing one skeleton no longer shows every skeleton's health.
-
-What a page links stands in the topic it belongs to, a dungeon room says whether it is a dead end, a passage or a junction, and grass no longer hides a small item on the stage. The panel's words say what they count, the Clear world button is now *Clear previews*, and rules checked against the game again were corrected, among them how far creatures keep from fire and that a death takes all progress toward the next skill level. Smaller fixes throughout.
-
-The settings under the gear are one card in sections, each setting explained where it stands, every one in one place: the panel, the preview, your character's compendium, the map, reading in the background and what the server decides. The compendium's section holds the same rows as its box, with what the server allows standing under each; the box now opens on a click. New settings choose how a page's marks stand out on the map, how loud a preview plays, whether news of what you learn tells all of it or new pages only, and Shift, Ctrl or Alt with the key opening Scry. A new player is told that key once in a world, and the first time Scry opens it offers a short setup.
-
-Dungeon marks on the map follow what you know, as a page's Show on map does: a dungeon you walked, and one whose entrance you saw, hollow where others on the server walked it while *Ground you explored* shows *With insides*. The pins on the compendium's ground rows are gone, with the settings that chose which marks show; a dungeon you never came near shows by its square on its page's Show on map.
-
-Any kind a page shows on the map can be kept there with *Keep on the map*, on its page or on the map's strip, standing every time the map opens. The title row's *On the map* list holds what is kept, the dungeons among it from the start, and takes each off, replacing the *Dungeon marks* switch; *Kept on the minimap* shows it all on the minimap too. Pointing at a dot or a square on the map says what it is. The marks and dots come in an *X-small* size too. Every kind of dungeon taken off stays at the list's top with *Keep on the map* to put it back. A place the game's map marks itself, by its own icon or a Vegvisir's pin, and a dungeon you walked get no square, and a square's count stands on a tab in its corner, moving with it. Each kind on the map stands in a colour and shape of its own, its squares too, with the list and the strip as its legend. A server, or your own world, can tell where places in explored ground stand as hollow dots instead of squares, with *Places in explored ground* set to *Dots*.
-
-The compendium's guide opens each heading with a line saying what it is for, sets the three rules side by side, shows examples in the lines a page itself shows, and tells what each look of dungeon mark means.
-
-A place of several kinds, as the Burial Chambers, shows one kind on the map from its page, or all of them at once with the map strip's "All 3 kinds".
-
-The mouse's back button steps back one page, where it at times stepped back two.
-
-On a new install the panel opens with the keys still walking your character; *Search ready* under *On opening* in the settings brings the old behaviour back.
+Smaller fixes throughout, among them the mouse's back button at times stepping back two pages, rules checked against the game again, and the Clear world button renamed *Clear previews*.
 
 ## 0.3.2
 
