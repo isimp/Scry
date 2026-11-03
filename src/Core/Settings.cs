@@ -29,7 +29,6 @@ namespace Scry
         private static ConfigEntry<int> _recentCount;
         private static ConfigEntry<float> _spinSpeed, _lighterFilmFrom;
         private static ConfigEntry<bool> _readLocations;
-        private static ConfigEntry<bool> _dungeonMarks;
         private static ConfigEntry<StageQuality> _stageQuality;
         private static ConfigEntry<NewsShown> _news;
         private static ConfigEntry<bool> _markNames;
@@ -144,8 +143,19 @@ namespace Scry
 
         private static ConfigEntry<bool> _readTracesOnStart, _takeWalks;
 
-        /// <summary>Whether each dungeon been in is marked on Valheim's large map.</summary>
-        public static bool DungeonMarksOnMap { get => _dungeonMarks?.Value ?? true; set => Set(_dungeonMarks, value); }
+        /// <summary>An older config's dungeon marks switch, left off, until a character's book takes it (<see cref="KeptMigration"/>); none once taken or where it was on.</summary>
+        private static ConfigEntry<bool> _oldDungeonMarks;
+
+        public static bool DungeonMarksWereOff => _oldDungeonMarks != null && !_oldDungeonMarks.Value;
+
+        /// <summary>The old switch taken out of the config file, a character's book having kept the dungeons off.</summary>
+        public static void DungeonMarksTaken()
+        {
+            if (_oldDungeonMarks == null || _config == null) return;
+            _config.Remove(_oldDungeonMarks.Definition);
+            _config.Save();
+            _oldDungeonMarks = null;
+        }
 
         /// <summary>How the stage is filmed: whole, or faster for a weaker machine (<see cref="Scry.StageQuality"/>).</summary>
         public static StageQuality StageQuality { get => _stageQuality?.Value ?? StageQuality.Full; set => Set(_stageQuality, value); }
@@ -162,7 +172,7 @@ namespace Scry
         /// <summary>How big each dungeon mark on the map is, as a share of a map pin.</summary>
         public static float DungeonMarkSize { get => Mathf.Clamp(_markSize?.Value ?? 1f, SettingsWords.SmallestMarkSize, SettingsWords.LargestMarkSize); set => Set(_markSize, Mathf.Clamp(value, SettingsWords.SmallestMarkSize, SettingsWords.LargestMarkSize)); }
 
-        /// <summary>Whether the minimap shows the marks of dungeons you walked too.</summary>
+        /// <summary>Whether the minimap shows what is kept on the map too: the kinds' dots and the dungeons' marks.</summary>
         public static bool DungeonMarksOnMinimap { get => _marksOnMinimap?.Value ?? false; set => Set(_marksOnMinimap, value); }
 
         /// <summary>Whether the character's sight remembers where it saw things worth finding again, for the map.</summary>
@@ -306,21 +316,24 @@ namespace Scry
                     new AcceptableValueRange<float>(0f, 120f)));
             _readLocations = config.Bind("1 - General", "ReadLocationsAutomatically", true,
                 "Reads where things are found in each world's locations and dungeons by itself, in the background once the prefabs are read, taking a few minutes the first time in a world and kept for the next. Off, they are read only when asked, with Find where things are or /scry locations.");
-            _dungeonMarks = config.Bind("1 - General", "DungeonMarksOnMap", true, SettingsWords.DungeonMarksWhy);
+            // The dungeon marks' switch became the dungeons' line in the list of what is kept on the map: one left off stays in the file until the first character read takes it.
+            var oldDungeonMarks = config.Bind(new ConfigDefinition("1 - General", "DungeonMarksOnMap"), true);
+            if (oldDungeonMarks.Value) Retire(config, "DungeonMarksOnMap");
+            else _oldDungeonMarks = oldDungeonMarks;
             _news = config.Bind("1 - General", "News", NewsShown.All,
                 "What the notice under the header tells of what the character learned, as it learns it: All of it; NewPages, pages newly met only, leaving out what was found out about one met before; Off, the Learned tab alone tells it.");
             KeepNewsOff(config);
             _markNames = config.Bind("1 - General", "DungeonMarkNamesAlways", false,
                 "Each dungeon mark on Valheim's large map shows its name under it, as the game names its pins. Off, a mark shows its name while the pointer rests on it. Resting on one tells how far it was walked either way.");
             _markSize = config.Bind("1 - General", "DungeonMarkSize", 1f,
-                new ConfigDescription("How big each dungeon mark on the map is, as a share of a map pin: 0.7 small, 1 a pin's size, 1.4 large. A mark's name grows with it.",
+                new ConfigDescription("How big each dungeon mark on the map is, as a share of a map pin: 0.5 x-small, 0.7 small, 1 a pin's size, 1.4 large. A mark's name grows with it.",
                     new AcceptableValueRange<float>(SettingsWords.SmallestMarkSize, SettingsWords.LargestMarkSize)));
-            // A size kept from before the three goes to the nearest of them.
+            // A size kept from before the sizes offered goes to the nearest of them.
             _markSize.Value = MapLook.NearestMarkScale(_markSize.Value);
             // Which marks show, by how they were walked or which grounds: now every dungeon walked or seen, as Show on map shows places.
             Retire(config, "DungeonMarksWalkedOnServer", "DungeonMarkEntrances", "DungeonMarksWalkedByYou");
             _marksOnMinimap = config.Bind("1 - General", "DungeonMarksOnMinimap", false,
-                "Shows the marks of dungeons you walked on the minimap too, at its pins' size, without names.");
+                "Shows what is kept on the map on the minimap too, at its pins' size: the kinds' dots and the dungeons' marks, without names or squares.");
             _recordSeenSpots = config.Bind("1 - General", "RecordSeenSpots", true,
                 "Remembers where your character saw ore deposits, berries, flint and the like, and places, for showing them on Valheim's map. Off, nothing new is remembered; what is remembered stays until /scry forget spots.");
             _mapOtherPins = config.Bind("1 - General", "ShowOnMapOtherPins", OtherPinsShown.Third,
@@ -328,7 +341,7 @@ namespace Scry
             _mapDarken = config.Bind("1 - General", "ShowOnMapDarken", MapDarkening.Half,
                 "While a kind is shown, the map's picture under its marks is not darkened, darkened by half, or strongly.");
             _mapDotSize = config.Bind("1 - General", "ShowOnMapDotSize", DotSizeChoice.Normal,
-                "How big Show on map's dots are drawn beside the game's pins.");
+                "How big the dots of a kind shown or kept on the map are drawn beside the game's pins: XSmall, Small, Normal or Large.");
             _mapZoomOut = config.Bind("1 - General", "ShowOnMapZoomOut", true,
                 "Opens the map zoomed out just far enough to hold the nearest marks of the kind shown; your own zoom comes back as it closes. Off, the map keeps your zoom.");
             _mapSquares = config.Bind("1 - General", "ShowOnMapSquares", true,

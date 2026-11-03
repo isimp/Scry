@@ -70,27 +70,30 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void DungeonMarksSaysWhatItPutsAwayAndWhatStays()
+        public void WhatStandsOnTheMapIsKeptInTheTitleRowsListAndTheMapSectionSaysSo()
         {
-            // Off, no dungeon mark shows on either map, others' and entrances too; a page's Show on map is its own.
-            var why = Section("Map").Rows.Single(r => r.Keys.Contains("DungeonMarksOnMap")).Why;
-            Assert.Contains("Off, no dungeon mark shows", why);
-            Assert.Contains("Show on map", why);
-            Assert.Equal(why, SettingsWords.DungeonMarksWhy);
-            Assert.Contains("SettingsWords.DungeonMarksWhy", File.ReadAllText(Path.Combine(ScrySource.Root(), "src", "Core", "Settings.cs")));
+            // The switch turning the dungeon marks on or off is the list's Dungeons line now; both groups say where it is.
+            Assert.DoesNotContain("DungeonMarksOnMap", Bound().Keys);
+            Assert.Contains(SpotWords.KeptButton(0), SettingsCatalog.GroupIntro("Dungeon marks"));
+            Assert.Contains(SpotWords.Keep, SettingsCatalog.GroupIntro("Show on map"));
+            Assert.Contains(SpotWords.KeptButton(0), SettingsCatalog.GroupIntro("Show on map"));
+            // The setup no longer sets the dungeon marks, the list keeping them from the start.
+            Assert.DoesNotContain("DungeonMarksOnMap", SettingsCatalog.Setup.SelectMany(r => r.Keys));
         }
 
         [Fact]
         public void WhichDungeonsAreMarkedIsNoSettingOfItsOwn()
         {
-            // Walked or seen marks them, as Show on map would show their places: nothing left to choose but whether marks show at all.
+            // Walked or seen marks them, as Show on map would show their places; whether they stand is the kept list's Dungeons line, the card sets how they look.
             var marks = Section("Map").Rows.Where(r => r.Group == "Dungeon marks").Select(r => r.Label).ToArray();
-            Assert.Equal(new[] { "Dungeon marks", "Names", "Size", "On the minimap" }, marks);
-            foreach (var retired in new[] { "DungeonMarksWalkedByYou", "DungeonMarksWalkedOnServer", "DungeonMarkEntrances" }) Assert.DoesNotContain(retired, Bound().Keys);
+            Assert.Equal(new[] { "Names", "Size" }, marks);
+            // Whether the minimap shows what is kept stands with Show on map, the dungeons among what is kept.
+            var mini = Section("Map").Rows.Single(r => r.Keys.Contains("DungeonMarksOnMinimap"));
+            Assert.Equal("Show on map", mini.Group);
+            Assert.Equal("Kept on the minimap", mini.Label);
+            Assert.Contains("dungeons", mini.Why);
+            foreach (var retired in new[] { "DungeonMarksWalkedByYou", "DungeonMarksWalkedOnServer", "DungeonMarkEntrances", "DungeonMarksOnMap" }) Assert.DoesNotContain(retired, Bound().Keys);
             Assert.Contains("Retire(config, \"DungeonMarksWalkedOnServer\", \"DungeonMarkEntrances\", \"DungeonMarksWalkedByYou\")", File.ReadAllText(Path.Combine(ScrySource.Root(), "src", "Core", "Settings.cs")));
-            // What the switch marks says so, the seen beside the walked.
-            Assert.Contains("saw", SettingsWords.DungeonMarksWhy);
-            Assert.DoesNotContain("pin on", SettingsWords.DungeonMarksWhy);
         }
 
         [Fact]
@@ -100,6 +103,7 @@ namespace Scry.Tests
             var dots = Rows.Single(r => r.Keys.FirstOrDefault() == "ShowOnMapDotSize");
             Assert.Equal(SettingControl.Choices, marks.Control);
             Assert.Equal(dots.Choices.Select(c => c.Name), marks.Choices.Select(c => c.Name));
+            Assert.Equal(new[] { "X-small", "Small", "Normal", "Large" }, dots.Choices.Select(c => c.Name));
             Assert.Equal(MapLook.MarkScales.Select(Stored.Exact), marks.Choices.Select(c => c.Value));
             // A slider stands only for seconds, metres, a loudness, a speed, a count or the panel's own size.
             var sliders = Rows.Where(r => r.Control == SettingControl.Slider).Select(r => r.Keys[0]).OrderBy(k => k).ToArray();
@@ -126,7 +130,7 @@ namespace Scry.Tests
             Assert.All(sources, r => Assert.True(r.WhyAsTip, r.Label));
             Assert.All(Rows.Where(r => r.Book != BookPart.Source), r => Assert.False(r.WhyAsTip, r.Label));
             Assert.StartsWith(CompendiumWords.SourcesHint, SettingsCatalog.GroupIntro(CompendiumWords.SourcesCaption));
-            Assert.Null(SettingsCatalog.GroupIntro("Dungeon marks"));
+            Assert.Null(SettingsCatalog.GroupIntro("Panel"));
         }
 
         [Fact]
@@ -313,7 +317,7 @@ namespace Scry.Tests
         [Fact]
         public void SeveralThingsAtOnceAreTicksAndOneOfAFewAreChoices()
         {
-            // Walking and looking while open, each on its own, and which dungeon marks show.
+            // Walking and looking while open, each on its own.
             Assert.Equal(SettingControl.Switch, Row("WalkWhileOpen").Control);
             Assert.Equal(SettingControl.Switch, Row("LookWithRightMouse").Control);
             Assert.Equal(SettingControl.Choices, Row("StageQuality").Control);

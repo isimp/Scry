@@ -33,7 +33,7 @@ namespace Scry.Tests
         public void TheSetupSetsOnlyWhatTheSettingsCardHolds()
         {
             var keys = SettingsCatalog.Sections.SelectMany(s => s.Rows).SelectMany(r => r.Keys).ToList();
-            Assert.Equal(new[] { "OpenKey", "WalkWhileOpen", "LookWithRightMouse", "DungeonMarksOnMap", "RecordSeenSpots" },
+            Assert.Equal(new[] { "OpenKey", "WalkWhileOpen", "LookWithRightMouse", "RecordSeenSpots" },
                 SettingsCatalog.Setup.SelectMany(r => r.Keys));
             Assert.All(SettingsCatalog.Setup.SelectMany(r => r.Keys), key => Assert.Contains(key, keys));
         }

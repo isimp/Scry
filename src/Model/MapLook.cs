@@ -19,6 +19,7 @@ namespace Scry
     /// <summary>How big Show on map's dots are drawn, beside their normal size.</summary>
     internal enum DotSizeChoice
     {
+        XSmall,
         Small,
         Normal,
         Large,
@@ -48,12 +49,12 @@ namespace Scry
 
         /// <summary>How much bigger or smaller than normal the dots are drawn.</summary>
         public static float DotScale(DotSizeChoice size) =>
-            size == DotSizeChoice.Small ? 0.7f : size == DotSizeChoice.Large ? 1.4f : 1f;
+            size == DotSizeChoice.XSmall ? 0.5f : size == DotSizeChoice.Small ? 0.7f : size == DotSizeChoice.Large ? 1.4f : 1f;
 
-        /// <summary>The dungeon marks' sizes, as a share of a map pin: small, normal and large as the dots'.</summary>
-        public static readonly float[] MarkScales = { DotScale(DotSizeChoice.Small), DotScale(DotSizeChoice.Normal), DotScale(DotSizeChoice.Large) };
+        /// <summary>The dungeon marks' sizes, as a share of a map pin: x-small, small, normal and large as the dots'.</summary>
+        public static readonly float[] MarkScales = { DotScale(DotSizeChoice.XSmall), DotScale(DotSizeChoice.Small), DotScale(DotSizeChoice.Normal), DotScale(DotSizeChoice.Large) };
 
-        /// <summary>The mark size nearest one kept from before the three, the smaller where two are as near.</summary>
+        /// <summary>The mark size nearest one kept from before the sizes offered, the smaller where two are as near.</summary>
         public static float NearestMarkScale(float kept) => MarkScales[SettingsWords.Nearest(MarkScales, kept)];
     }
 }

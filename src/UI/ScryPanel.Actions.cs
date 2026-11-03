@@ -195,7 +195,7 @@ namespace Scry
             return note;
         }
 
-        /// <summary>Show on map, after a page's other actions, where its kind's spots are kept: greyed, its tip saying why, where it can show nothing now.</summary>
+        /// <summary>Show on map, after a page's other actions, where its kind's spots are kept: greyed, its tip saying why, where it can show nothing now; and Keep on the map beside it, lit while the kind is kept.</summary>
         private static void ShowOnMapAction(Entry entry)
         {
             var kind = MapSpots.KindOf(entry);
@@ -204,6 +204,15 @@ namespace Scry
             var squares = MapSpots.SquareCount(entry);
             var block = MapSpots.BlockOf(count, squares);
             if (ActionShown(SpotWords.ShowOnMap, ActionLook.Plain, block == MapBlock.None, block == MapBlock.None ? SpotWords.Tip(count, squares) : SpotWords.WhyNot(block))) ShowOnMap(entry);
+            // Kept without showing it now: it stands every time the map opens, as the strip's own button keeps it.
+            var book = CompendiumKeeper.Book;
+            if (book == null) return;
+            // Kept with others, as a dungeon with every kind of dungeon, it stands lit and says by which line, its own button taking nothing off.
+            CountDrawn(PanelPart.PageKeep);
+            var keptBy = MapKept.KeptBy(book, kind);
+            var own = keptBy == kind;
+            var tip = keptBy != null && !own ? SpotWords.KeptWith(KeptName(keptBy)) : SpotWords.KeepTip(own);
+            if (ActionShown(SpotWords.Keep, keptBy != null ? ActionLook.On : ActionLook.Plain, keptBy == null || own, tip)) KeepOnMap(kind, !own);
         }
 
         /// <summary>Closes Scry and opens Valheim's map with a dot on each of the page's kind the character saw, and a place's squares (<see cref="MapSpots"/>).</summary>

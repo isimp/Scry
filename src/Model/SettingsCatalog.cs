@@ -132,21 +132,20 @@ namespace Scry
             new SettingSection("Compendium", CompendiumRows().ToArray()),
 
             new SettingSection("Map",
-                In("Dungeon marks", Switch("DungeonMarksOnMap", "Dungeon marks", SettingsWords.DungeonMarksWhy)),
                 In("Dungeon marks", Choices("DungeonMarkNamesAlways", "Names", "Whether a mark's name shows under it always, as the game names its pins, or while you point at it.",
                     ("false", "When pointed at"), ("true", "Always"))),
                 In("Dungeon marks", Choices("DungeonMarkSize", "Size", "How big a dungeon mark stands beside the game's pins; its name grows with it.",
                     MapLook.MarkScales.Select((s, i) => (Stored.Exact(s), SizeNames[i])).ToArray())),
-                In("Dungeon marks", Switch("DungeonMarksOnMinimap", "On the minimap", "The dungeons you walked are marked on the minimap too, at its pins' size, without names.")),
                 In("Show on map", Switch("RecordSeenSpots", "Remember what you see", "Keeps where your character saw ore, berries, flint and places, so a page's Show on map can mark them. /scry forget spots clears what is kept.")),
                 In("Show on map", Choices("ShowOnMapOtherPins", "Your other pins", "While a page's kind is shown, so its marks stand out. Back to full when you hide it or close the map.",
                     ("Full", "Full"), ("Third", "A third"), ("Hidden", "Hidden"))),
                 In("Show on map", Choices("ShowOnMapDarken", "Darken the map", "The map's picture under the marks while a kind is shown, so they stand out on any ground.",
                     ("Off", "Off"), ("Half", "Half"), ("Strong", "Strong"))),
                 In("Show on map", Choices("ShowOnMapDotSize", "Dot size", "How big the dots stand beside the game's pins.",
-                    ("Small", SizeNames[0]), ("Normal", SizeNames[1]), ("Large", SizeNames[2]))),
+                    ("XSmall", SizeNames[0]), ("Small", SizeNames[1]), ("Normal", SizeNames[2]), ("Large", SizeNames[3]))),
                 In("Show on map", Switch("ShowOnMapZoomOut", "Zoom out to the marks", "The map opens just far enough out to hold the nearest marks, and your own zoom comes back when it closes.")),
-                In("Show on map", Switch("ShowOnMapSquares", "Squares on your map", "Where a place you never came near stands somewhere inside, as the world's server tells it. Off, only what you saw is shown."))),
+                In("Show on map", Switch("ShowOnMapSquares", "Squares on your map", "Where a place you never came near stands somewhere inside, as the world's server tells it. Off, only what you saw is shown.")),
+                In("Show on map", Switch("DungeonMarksOnMinimap", "Kept on the minimap", "What is kept on the map stands on the minimap too, at its pins' size: the kinds' dots and the dungeons' marks, without names or squares."))),
 
             new SettingSection("Background",
                 Switch("ReadLocationsAutomatically", "Read every world's places", "Reads where things are found in each world's places and dungeons by itself once the catalog is read: a few minutes the first time in a world, kept for the next. Off, only when you press Find where things are."),
@@ -169,7 +168,7 @@ namespace Scry
         {
             Key("OpenKey", "Open Scry with", "The key that opens and closes the panel; /scry in the chat does the same."),
             Ticks(new[] { "WalkWhileOpen", "LookWithRightMouse" }, "While the panel is open", "Each on its own; both stay under the gear.", "Walk with your keys", "Look with the right mouse"),
-            Ticks(new[] { "DungeonMarksOnMap", "RecordSeenSpots" }, "On Valheim's map", "Marks for the dungeons you walked or saw, and where you saw ore, berries and places, for a page's Show on map; the dungeons you only see stay unmarked without remembering what you see.", "Mark dungeons", "Remember what you see"),
+            Switch("RecordSeenSpots", "Remember what you see", "Where you saw ore, berries, places and dungeon entrances, for a page's Show on map and the dungeons' marks. The dungeons stand on the map from the start; the title row's On the map list takes them off."),
         };
 
         /// <summary>Every row, with what the server allows of a row standing under it; for the tests.</summary>
@@ -202,12 +201,17 @@ namespace Scry
                 ("All", "All of it"), ("NewPages", "New pages only"), ("Off", "Learned tab only")));
         }
 
-        /// <summary>The words of a size chosen one of three, for the marks and the dots alike.</summary>
-        private static string[] SizeNames => new[] { "Small", "Normal", "Large" };
+        /// <summary>The words of a size chosen one of a few, for the marks and the dots alike.</summary>
+        private static string[] SizeNames => new[] { "X-small", "Small", "Normal", "Large" };
 
         /// <summary>The line under a group's heading saying what its rows share, their own words on their labels' tips; none.</summary>
-        public static string GroupIntro(string group) =>
-            group == CompendiumWords.SourcesCaption ? CompendiumWords.SourcesHint + " " + SettingsWords.PointAtAName : null;
+        public static string GroupIntro(string group)
+        {
+            if (group == CompendiumWords.SourcesCaption) return CompendiumWords.SourcesHint + " " + SettingsWords.PointAtAName;
+            if (group == "Dungeon marks") return SettingsWords.DungeonMarksIntro;
+            if (group == "Show on map") return SettingsWords.ShowOnMapIntro;
+            return null;
+        }
 
         /// <summary>What the world's server decides beside the compendium's rows, each saying so: what players may do and see, and what the server itself keeps.</summary>
         private static IEnumerable<SettingRow> ServerRows()

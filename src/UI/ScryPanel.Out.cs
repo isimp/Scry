@@ -58,8 +58,8 @@ namespace Scry
                 zone = new Rect(left, button.y - U(6f), right - left, _outRect.yMax - button.y + U(12f));
             }
             var wasOpen = _outOpen;
-            // The compendium's box stands open until a click puts it away; the list would open under it and take its clicks.
-            _outOpen = !_bookOpen && zone.Contains(e.mousePosition);
+            // The compendium's box and the kept list stand open until a click puts them away; the list would open under them and take their clicks.
+            _outOpen = !_bookOpen && !KeptClick.Open && zone.Contains(e.mousePosition);
             if (!_outOpen) return;
 
             // Once a frame while open, as things end and come: the panel has no layout events

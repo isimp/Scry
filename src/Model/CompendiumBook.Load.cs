@@ -96,6 +96,14 @@ namespace Scry
                 if (parts.Length == 3 && Enum.TryParse(name, out WorldSource shown) && Enum.IsDefined(typeof(WorldSource), shown)
                     && Enum.TryParse(parts[2], out SourceLevel level) && Enum.IsDefined(typeof(SourceLevel), level) && WorldSources.Allows(shown, level)) book._shows[shown] = level;
             },
+            ["kept"] = (book, parts, name) =>
+            {
+                if (parts.Length == 2 && name != Dungeons) book._kept.Add(name);
+            },
+            ["unkept"] = (book, parts, name) =>
+            {
+                if (parts.Length == 2 && name == Dungeons) book._dungeonsUnkept = true;
+            },
             ["welcomed"] = (book, parts, name) =>
             {
                 if (parts.Length == 2) book._welcomed = true;

@@ -10,5 +10,14 @@ namespace Scry
 
         /// <summary>The colour a kind's dots stand in on Valheim's map: its list colour, a place's sky blue.</summary>
         public static Color MapDot(Kind kind) => kind == Kind.Location ? MapPlace : KindColor(kind);
+
+        private static Texture2D _pointedRing;
+
+        /// <summary>A thin ring round the mark the pointer rests on, on Valheim's map.</summary>
+        public static Texture2D PointedRing => _pointedRing != null ? _pointedRing : _pointedRing = Shape(32, 32, (x, y) =>
+        {
+            var r = Mathf.Sqrt((x - 16f) * (x - 16f) + (y - 16f) * (y - 16f));
+            return r <= 15.5f && r >= 13.5f;
+        });
     }
 }

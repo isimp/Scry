@@ -16,8 +16,8 @@ namespace Scry
     /// Where a dungeon been in is marked on Valheim's map: its entrance placed as the game
     /// places its pins (<c>Minimap.WorldToMapPoint</c> turns a world point into one of the map's
     /// texture, <c>Minimap.MapPointToLocalGuiPos</c> into the window of it the map shows), the
-    /// mark on the entrance, as big as a pin scaled as the settings say; which marks show, how an
-    /// entrance alone stands faint, and which the small map shows.
+    /// mark on the entrance, as big as a pin scaled as the settings say, and how an entrance alone
+    /// stands faint.
     /// </summary>
     internal static class MapMarks
     {
@@ -48,9 +48,6 @@ namespace Scry
 
         /// <summary>A mark's opacity: an entrance alone faint until pointed at, every other whole.</summary>
         public static float Alpha(MarkLook look, bool pointedAt) => look == MarkLook.Entrance && !pointedAt ? FaintAlpha : 1f;
-
-        /// <summary>Whether the small map shows a mark, by its look: those of dungeons you walked and places you stood in alone.</summary>
-        public static bool OnSmallMap(MarkLook look) => look == MarkLook.Yours || look == MarkLook.Whole || look == MarkLook.Visited;
 
         /// <summary>
         /// Whether a press let go is a click of a mark: the pointer moved no more than half a mark

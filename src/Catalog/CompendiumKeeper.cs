@@ -786,6 +786,11 @@ namespace Scry
             }
             _reading = null;
             _book.Now = Now;
+            if (KeptMigration.TakeDungeonsOff(Settings.DungeonMarksWereOff, !_unreadable))
+            {
+                _book.Keep(CompendiumBook.Dungeons, false);
+                Settings.DungeonMarksTaken();
+            }
             return true;
         }
 

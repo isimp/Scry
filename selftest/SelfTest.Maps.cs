@@ -347,11 +347,11 @@ namespace Scry
             p.Check(Mathf.Approximately(MapMarkButtons.SizeForTest(0), pinSize * 2f), "the marks' size setting scales the mark from a pin's size", $"{Numbers.Fixed(MapMarkButtons.SizeForTest(0), 0)} against a pin's {Numbers.Fixed(pinSize, 0)}");
             Settings.DungeonMarkSize = sizeWas;
             yield return Until(() => Mathf.Approximately(MapMarkButtons.SizeForTest(0), pinSize * sizeWas), 3);
-            var marksWas = Settings.DungeonMarksOnMap;
-            Settings.DungeonMarksOnMap = false;
+            var keptWas = CompendiumKeeper.Book?.Keeps(CompendiumBook.Dungeons) ?? true;
+            ScryPanel.KeepOnMap(CompendiumBook.Dungeons, false);
             yield return Until(() => MapMarkButtons.MarksShown == 0, 3);
-            p.Check(MapMarkButtons.MarksShown == 0, "switched off, the dungeon marks go from the map", $"{Numbers.Count(MapMarkButtons.MarksShown)} marks");
-            Settings.DungeonMarksOnMap = marksWas;
+            p.Check(CompendiumKeeper.Book == null || MapMarkButtons.MarksShown == 0, "taken off in the list of what is kept on the map, the dungeon marks go from it", $"{Numbers.Count(MapMarkButtons.MarksShown)} marks");
+            ScryPanel.KeepOnMap(CompendiumBook.Dungeons, keptWas);
             yield return Until(() => MapMarkButtons.MarksShown == 1, 3);
             // A dungeon's end caps and dividers are no rooms to walk, so its words count without them.
             var walkable = rolled.Rooms.Count(r => !r.Room.EndCap && !r.Room.Divider);

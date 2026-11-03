@@ -284,6 +284,8 @@ namespace Scry
             var gearRect = new Rect(viewRect.x - U(6f) - viewRect.height, viewRect.y, viewRect.height, viewRect.height);
             // The compendium's button beside the gear, its box under it, what else the row holds to their left.
             var front = CompendiumFront(explorer, gearRect.x, viewRect.y, viewRect.height, pad + U(98f), new Rect(pad, 0f, w - pad * 2f, h - pad));
+            // What is kept on Valheim's map, beside the compendium's button.
+            front = KeptFront(front, viewRect.y, viewRect.height, pad + U(98f), new Rect(pad, 0f, w - pad * 2f, h - pad), e);
             var clearRect = new Rect(front - (outCount > 0 ? U(8f) + clearW : 0f), viewRect.y, clearW, viewRect.height);
 
             // Reading the locations completes what the search and the details know, so it is
@@ -321,6 +323,7 @@ namespace Scry
             if (outCount > 0 && GUI.Button(clearRect, clearText, Skin.Primary)) ClearWorld();
             OutHover(clearRect, outCount, e, new Rect(pad, 0f, w - pad * 2f, h - pad));
             OutClicks(explorer, e);
+            KeptClicks(explorer, e);
             CompendiumBoxClicks(e);
 
             SettingsGear(gearRect);
@@ -438,6 +441,7 @@ namespace Scry
             // Over everything below the search box; its clicks were taken before any of it drew.
             Assist.Draw();
             DrawOutList(explorer);
+            DrawKeptList();
             DrawCompendiumBox(explorer);
 
             // Resize grip in the corner.

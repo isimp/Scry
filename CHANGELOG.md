@@ -18,6 +18,8 @@ The settings under the gear are one card in sections, each setting explained whe
 
 Dungeon marks on the map follow what you know, as a page's Show on map does: a dungeon you walked, and one whose entrance you saw, hollow where others on the server walked it while *Ground you explored* shows *With insides*. The pins on the compendium's ground rows are gone, with the settings that chose which marks show; a dungeon you never came near shows by its square on its page's Show on map.
 
+Any kind a page shows on the map can be kept there with *Keep on the map*, on its page or on the map's strip, standing every time the map opens. The title row's *On the map* list holds what is kept, the dungeons among it from the start, and takes each off, replacing the *Dungeon marks* switch; *Kept on the minimap* shows it all on the minimap too. Pointing at a dot or a square on the map says what it is. The marks and dots come in an *X-small* size too.
+
 A place of several kinds, as the Burial Chambers, shows one kind on the map from its page, or all of them at once with the map strip's "All 3 kinds".
 
 On a new install the panel opens with the keys still walking your character; *Search ready* under *On opening* in the settings brings the old behaviour back.

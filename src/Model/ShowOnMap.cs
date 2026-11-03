@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Scry
 {
@@ -35,6 +36,58 @@ namespace Scry
 
         /// <summary>The strip's button taking the dots away.</summary>
         public const string Hide = "Hide";
+
+        /// <summary>The strip's button keeping the kind shown on the map, every time it opens; lit while it is kept.</summary>
+        public const string Keep = "Keep on the map";
+
+        /// <summary>The tip of the page's own Keep on the map, keeping its kind without showing it.</summary>
+        public static string KeepTip(bool kept) => kept
+            ? "Kept on Valheim's map: a click takes it off, as the title row's On the map list does"
+            : "Keeps this kind on Valheim's map, standing every time it opens, without opening it now";
+
+        /// <summary>The title row's button listing what is kept on the map, with how many.</summary>
+        public static string KeptButton(int kept) => kept <= 0 ? "On the map" : "On the map  " + Numbers.Count(kept);
+
+        /// <summary>The list's heading and foot, and its row of every kind of dungeon.</summary>
+        public const string KeptHeading = "Kept on Valheim's map, every time it opens";
+        public const string KeptFoot = "A name opens its page · × takes it off the map";
+        public const string TakeAllOff = "Take all off";
+        public const string DungeonsRow = "Dungeons, every kind";
+        public const string NothingKept = "Nothing is kept on the map. Keep on the map, on a page or on the map's strip, keeps a kind there.";
+
+        /// <summary>The tip of a page's Keep on the map for a kind kept with others, by the list's line that keeps it.</summary>
+        public static string KeptWith(string line) => $"Kept on the map with {line}; the title row's On the map list takes it off";
+
+        /// <summary>The list's last line where more are kept than fit.</summary>
+        public static string KeptMore(int more) => $"and {Numbers.Count(more)} more kept; take some off to see them";
+
+        /// <summary>How many of a kept kind stand: those seen, and the squares of a place.</summary>
+        public static string KeptCount(int seen, int squares)
+        {
+            if (seen == 0 && squares == 0) return "none seen yet";
+            var said = seen > 0 ? Numbers.Count(seen) + " you saw" : null;
+            if (squares > 0) said = (said != null ? said + " · " : "") + Naming.Count(squares, "square", "squares");
+            return said;
+        }
+
+        /// <summary>How many dungeons are marked, walked or seen, and the squares of those never come near.</summary>
+        public static string DungeonsCount(int marked, int squares) =>
+            Numbers.Count(marked) + " marked" + (squares > 0 ? " · " + Naming.Count(squares, "square", "squares") : "");
+
+        /// <summary>The list's line where more marks are kept than stand at once.</summary>
+        public static string Capped(int shown, int all) => $"The nearest {Numbers.Count(shown)} of {Numbers.Count(all)} stand; the farthest are left out";
+
+        /// <summary>A dot pointed at: its kind, then how far and which way it is from you.</summary>
+        public static string DotHover(string name, float metres, string direction) =>
+            name + "\n" + (metres < Beside ? "you saw it here, beside you" : $"you saw it here · {Distance(metres)} {direction}");
+
+        /// <summary>A square pointed at: what stands somewhere inside it, how many of each, and in which ground.</summary>
+        public static string SquareHover(IEnumerable<(string Name, int Count)> inside, bool explored, bool shared)
+        {
+            var kinds = string.Join(", ", inside.Select(k => Numbers.Count(k.Count) + " " + k.Name));
+            var ground = explored && shared ? "in ground you explored or read on a map" : shared ? "on a map you read" : "in ground you explored";
+            return "Somewhere in this square\n" + kinds + " you never came near\n" + ground;
+        }
 
         /// <summary>A place of several kinds shown all at once, as the strip names it.</summary>
         public static string AllKindsName(string family, int kinds) => $"{family}, all {Numbers.Count(kinds)} kinds";

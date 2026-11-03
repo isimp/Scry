@@ -120,9 +120,22 @@ namespace Scry
             return (read, wrong, fog);
         }
 
+        /// <summary>The square standing under a point of the screen, by where it lies; none.</summary>
+        public static (int X, int Z)? SquareAt(Vector2 screen)
+        {
+            if (_holder == null || !_holder.gameObject.activeInHierarchy) return null;
+            foreach (var pair in Assigned)
+                if (pair.Value.Rect.gameObject.activeSelf && RectTransformUtility.RectangleContainsScreenPoint(pair.Value.Rect, screen, null)) return pair.Key;
+            return null;
+        }
+
+        /// <summary>Counts up as the squares shown or where they stand change, for what the pointer rests on to be read again.</summary>
+        public static int Version { get; private set; }
+
         /// <summary>The squares to shade for the kind shown, in place of those before; none takes them all away.</summary>
         public static void Show(IReadOnlyList<(int X, int Z, int Left)> squares)
         {
+            Version++;
             _shown = squares ?? new List<(int, int, int)>();
             _placedFor = default;
             // Each made square free for the squares now shown, its mask made again, as explored ground may have grown since.
@@ -195,6 +208,7 @@ namespace Scry
             _standing = standing;
             _placedFor = placing;
             _allMade = allMade;
+            Version++;
         }
 
         /// <summary>A square stood where the map shows it: its hatch, edges and halos at their size on the screen, its count at its upper right corner where it holds more than one.</summary>

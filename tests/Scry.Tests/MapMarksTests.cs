@@ -74,13 +74,12 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void TheSmallMapShowsOnlyTheMarksYouWalked()
+        public void TheSmallMapShowsEveryDungeonKeptAsTheLargeOneDoes()
         {
-            Assert.True(MapMarks.OnSmallMap(MarkLook.Yours));
-            Assert.True(MapMarks.OnSmallMap(MarkLook.Whole));
-            Assert.False(MapMarks.OnSmallMap(MarkLook.Server));
-            Assert.False(MapMarks.OnSmallMap(MarkLook.ServerWhole));
-            Assert.False(MapMarks.OnSmallMap(MarkLook.Entrance));
+            // What is kept on the map stands on the minimap too: dungeons walked, seen, or walked by others.
+            // A kept kind's dots at the minimap's pins' size, as the dungeons' marks are.
+            Assert.Equal(32f * SeenOnMap.MiniDot, SeenOnMap.MiniDotSize(32f, 1f), 3);
+            Assert.True(SeenOnMap.MiniDotSize(32f, 1.4f) > SeenOnMap.MiniDotSize(32f, 1f));
         }
 
         [Fact]

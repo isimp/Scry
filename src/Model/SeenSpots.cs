@@ -272,6 +272,22 @@ namespace Scry
 
         private static bool TurnedAway(Degree degree) => degree == Degree.Immune || degree == Degree.Ignore;
 
+        /// <summary>A kept kind's dot on the minimap as a share of its pins' size, before the dots' size setting.</summary>
+        public const float MiniDot = 0.8f;
+
+        /// <summary>How big a kept kind's dot stands on the minimap: a share of its pins' size, scaled as the settings ask.</summary>
+        public static float MiniDotSize(float pinSizeSmall, float scale) => pinSizeSmall * MiniDot * scale;
+
+        /// <summary>How many marks of the kinds kept stand on the map at once, the nearest, so the map stays quick.</summary>
+        public const int MostKept = 2000;
+
+        /// <summary>The marks nearest x and z, at most <paramref name="most"/>, nearest first; all where they are fewer.</summary>
+        public static List<(int X, int Z)> NearestOf(IReadOnlyList<(int X, int Z)> marks, float x, float z, int most)
+        {
+            if (marks.Count <= most) return marks.ToList();
+            return marks.OrderBy(m => (m.X - x) * (m.X - x) + (m.Z - z) * (m.Z - z)).Take(most).ToList();
+        }
+
         /// <summary>The spot nearest a point: how far, and how far east and north of the point; none where there is no spot.</summary>
         public static (float Distance, float Dx, float Dz)? Nearest(IReadOnlyList<(int X, int Z)> spots, float x, float z)
         {

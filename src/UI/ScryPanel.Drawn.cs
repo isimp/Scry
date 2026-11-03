@@ -61,6 +61,17 @@ namespace Scry
         /// <summary>The mark of what a source of the world shows, a folded map, on a row, under a title or after a chip or link.</summary>
         SourceMark,
 
+        /// <summary>The title row's button listing what is kept on Valheim's map, and its list.</summary>
+        KeptButton,
+        KeptList,
+
+        /// <summary>Show on map's strip's button keeping the kind shown on the map, and the page's own beside its Show on map.</summary>
+        MapKeep,
+        PageKeep,
+
+        /// <summary>The words of a dot or square the pointer rests on, on Valheim's map.</summary>
+        MapPointed,
+
         /// <summary>Show on map's strip's button showing all of a place's kinds at once.</summary>
         MapAllKinds,
 

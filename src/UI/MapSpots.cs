@@ -45,7 +45,7 @@ namespace Scry
         private static int _live;
 
         /// <summary>What the dots were last placed for: the map's window, its size, the spots, their size; placed again only as one changes, or while dots are still being made.</summary>
-        private static (Rect Window, Vector2 Area, IReadOnlyList<(int X, int Z)> Spots, float Size) _placedFor;
+        private static (Rect Window, Vector2 Area, (IReadOnlyList<(int X, int Z)> Spots, Sprite Picture, int Kept) Dots, float Size) _placedFor;
         private static bool _allMade;
 
         /// <summary>The page whose kind was last worked out, and its kind, as the page asks each time it is drawn.</summary>
@@ -165,7 +165,7 @@ namespace Scry
         private static readonly IReadOnlyList<(int X, int Z, int Left)> NoSquares = new List<(int, int, int)>();
 
         /// <summary>The grounds whose squares a page shows: the explored ground and shared maps, as the book shows them above Off (none under the rules' Off, never the whole world).</summary>
-        private static bool SquaresGround(WorldSource source)
+        public static bool SquaresGround(WorldSource source)
         {
             if (source != WorldSource.Explored && source != WorldSource.SharedMaps) return false;
             var book = CompendiumKeeper.Book;
@@ -228,6 +228,9 @@ namespace Scry
             Show(MapShowing.AllKindsKey(_shownKinds.Select(member => member.Key)), SpotWords.AllKindsName(_shownFamily, _shownKinds.Count), Skin.MapDot(Kind.Location), spots, squares, note);
         }
 
+        /// <summary>The key the kind shown on demand is kept by; none while none is shown.</summary>
+        public static string ShownKey => Showing.Showing ? Showing.Kind : null;
+
         /// <summary>The strip's button: all the place's kinds shown, or the page's alone again, kept for the session.</summary>
         public static void ShowAllKinds(bool all)
         {
@@ -236,11 +239,24 @@ namespace Scry
         }
 
         /// <summary>The spots of a kind, or the self-test's in their place.</summary>
-        private static IReadOnlyList<(int X, int Z)> SpotsOf(string kind) => _spotsInstead?.Invoke(kind) ?? SeenSpotsKeeper.Of(kind);
+        public static IReadOnlyList<(int X, int Z)> SpotsOf(string kind) => _spotsInstead?.Invoke(kind) ?? SeenSpotsKeeper.Of(kind);
 
         /// <summary>Spots of the self-test's for each kind in place of the sight's, or none for the sight's own.</summary>
         [ForTest]
-        public static void SpotsInsteadForTest(System.Func<string, IReadOnlyList<(int X, int Z)>> spots) => _spotsInstead = spots;
+        public static void SpotsInsteadForTest(System.Func<string, IReadOnlyList<(int X, int Z)>> spots)
+        {
+            _spotsInstead = spots;
+            // What is kept is worked out again from them.
+            MapKept.Forget();
+        }
+
+        /// <summary>Where a dot standing on the large map stands on the screen, by its place among them; none, for the self-test.</summary>
+        [Diagnostic]
+        public static Vector2? DotCenterForTest(int dot)
+        {
+            if (dot < 0 || dot >= _standing) return null;
+            return Dots[dot].Rect.position;
+        }
 
         private static System.Func<string, IReadOnlyList<(int X, int Z)>> _spotsInstead;
 
@@ -253,7 +269,7 @@ namespace Scry
         {
             Showing.Show(CompendiumMap.World, kind, name, spots);
             squares = squares ?? NoSquares;
-            MapSquares.Show(squares);
+            _demandSquares = squares;
             _colour = colour;
             _sprite = Picture(colour);
             var player = Player.m_localPlayer;
@@ -320,7 +336,7 @@ namespace Scry
             Showing.Hide();
             _shownEntry = null;
             _shownKinds = System.Array.Empty<Entry>();
-            MapSquares.Show(NoSquares);
+            _demandSquares = NoSquares;
             PutAway();
         }
 
@@ -337,6 +353,13 @@ namespace Scry
             _countedFor = default;
             _counted = 0;
             _zoomBefore = null;
+            _demandSquares = NoSquares;
+            _dotsFor = default;
+            _mergedFor = default;
+            StandingDots.Clear();
+            PlacedFrom.Clear();
+            _shownKindsOf = null;
+            ShownKinds.Clear();
             MapSquares.Forget();
         }
 
@@ -353,14 +376,85 @@ namespace Scry
             _allMade = false;
         }
 
-        /// <summary>Each frame, once the map has moved: the dots placed where the large map shows them while a kind is shown; put away otherwise.</summary>
-        public static void Update()
+        /// <summary>The squares of the kind shown on demand, shaded with those of the kinds kept.</summary>
+        private static IReadOnlyList<(int X, int Z, int Left)> _demandSquares = NoSquares;
+
+        /// <summary>The dots standing: the kind shown on demand in its picture, then those kept, each in its kind's; and what they were worked out for.</summary>
+        private static readonly List<(int X, int Z, Sprite Picture, string Name)> StandingDots = new List<(int, int, Sprite, string)>();
+
+        /// <summary>Which of the dots worked out each dot placed stands for, as only those in the map's window are placed.</summary>
+        private static readonly List<int> PlacedFrom = new List<int>();
+
+        /// <summary>The kinds the kind shown on demand holds, by key, left out of those kept as they stand shown; and the kind they were worked out for.</summary>
+        private static readonly HashSet<string> ShownKinds = new HashSet<string>(System.StringComparer.Ordinal);
+        private static string _shownKindsOf;
+
+        private static HashSet<string> KindsShownNow()
+        {
+            var kind = Showing.Showing ? Showing.Kind : null;
+            if (kind == _shownKindsOf) return ShownKinds;
+            _shownKindsOf = kind;
+            ShownKinds.Clear();
+            if (kind != null) foreach (var each in MapKept.KindsIn(kind)) ShownKinds.Add(each);
+            return ShownKinds;
+        }
+        private static (IReadOnlyList<(int X, int Z)> Spots, Sprite Picture, int Kept) _dotsFor;
+        private static (IReadOnlyList<(int X, int Z, int Left)> Demand, int Kept) _mergedFor;
+
+        /// <summary>What stands somewhere inside a square shaded, by name and how many, the kind shown on demand among those kept; none.</summary>
+        public static IReadOnlyList<(string Name, int Count)> InsideSquare(int x, int z)
+        {
+            var inside = new List<(string Name, int Count)>();
+            if (Showing.Showing) foreach (var (sx, sz, left) in _demandSquares) if (sx == x && sz == z) inside.Add((Showing.Name, left));
+            inside.AddRange(MapKept.Inside(x, z, KindsShownNow()));
+            return inside;
+        }
+
+        /// <summary>The dots to stand, worked out again only as the kind shown or what is kept changes.</summary>
+        private static void WorkOutDots()
+        {
+            var demand = Showing.Showing ? Showing.Spots : None;
+            var now = (demand, _sprite, MapKept.Version);
+            if (now == _dotsFor) return;
+            _dotsFor = now;
+            StandingDots.Clear();
+            foreach (var (x, z) in demand) StandingDots.Add((x, z, _sprite, Showing.Name));
+            // A kind kept and shown on demand stands once, as shown.
+            var shown = KindsShownNow();
+            foreach (var (x, z, picture, name, kind) in MapKept.Dots) if (!shown.Contains(kind)) StandingDots.Add((x, z, picture, name));
+        }
+
+        /// <summary>The squares shaded: the kind shown on demand's with the kinds kept, a square both share counting each, given again only as either changes.</summary>
+        private static void MergeSquares()
+        {
+            var demand = Showing.Showing ? _demandSquares : NoSquares;
+            var now = (demand, MapKept.Version);
+            if (now == _mergedFor) return;
+            _mergedFor = now;
+            // The kept squares of a kind shown on demand are its own already.
+            var merged = MapKept.Squares(KindsShownNow());
+            foreach (var (x, z, left) in demand) merged[(x, z)] = (merged.TryGetValue((x, z), out var held) ? held : 0) + left;
+            MapSquares.Show(merged.Select(s => (s.Key.X, s.Key.Z, s.Value)).ToList());
+        }
+
+        private static readonly IReadOnlyList<(int X, int Z)> None = System.Array.Empty<(int, int)>();
+
+        /// <summary>
+        /// Each frame, once the map has moved: the dots and squares placed where the large map
+        /// shows them, those of a kind shown on demand and those kept; put away otherwise. Only a
+        /// kind shown on demand dims the other pins and darkens the map.
+        /// </summary>
+        public static void Update() => Update(false);
+
+        /// <summary>Each frame, as above; <paramref name="onMark"/> the pointer resting on a dungeon's mark, whose words it tells itself.</summary>
+        public static void Update(bool onMark)
         {
             var map = Minimap.instance;
             var large = LargeOpen;
             if (!large) PutZoomBack(map);
             if (Showing.Showing) Showing.Tick(large, CompendiumMap.World);
-            if (!Showing.Showing || !large)
+            if (large) MapKept.Refresh();
+            if (!large || !Showing.Showing && !MapKept.Any)
             {
                 PutAway();
                 return;
@@ -375,23 +469,34 @@ namespace Scry
             }
             if (_holder == null) return;
             if (!_holder.gameObject.activeSelf) _holder.gameObject.SetActive(true);
-            // The squares under the dots, placed as the map moves, as the dots are; the other pins dimmed.
+            // The squares under the dots, placed as the map moves, as the dots are; the other pins dimmed while a kind is shown on demand.
+            MergeSquares();
             MapSquares.Update(map);
-            MapDim.Hold(map, _holder, MapSquares.Holder, MapSquares.CountsHolder);
+            if (Showing.Showing) MapDim.Hold(map, _holder, MapSquares.Holder, MapSquares.CountsHolder);
+            else MapDim.Restore();
+            WorkOutDots();
             var image = map.m_mapImageLarge;
             var window = image.uvRect;
             var area = image.rectTransform.rect;
             var size = SeenOnMap.DotSize(map.m_pinSizeLarge, window.height) * MapLook.DotScale(Settings.MapDotSize);
-            // A map standing still with every dot made costs nothing more: nothing moved.
-            var placing = (window, area.size, Showing.Spots, size);
-            if (_allMade && placing == _placedFor) return;
+            // A map standing still with every dot made costs nothing more: nothing moved; the pointer is read all the same.
+            var placing = (window, area.size, _dotsFor, size);
+            if (!_allMade || placing != _placedFor) PlaceDots(map, window, area, size, placing);
+            if (onMark) Pointed = null;
+            else ReadPointer();
+        }
+
+        /// <summary>The dots inside the map's window stood where it shows them, a couple of milliseconds' making a frame.</summary>
+        private static void PlaceDots(Minimap map, Rect window, Rect area, float size, (Rect, Vector2, (IReadOnlyList<(int X, int Z)>, Sprite, int), float) placing)
+        {
             var started = System.Diagnostics.Stopwatch.GetTimestamp();
+            PlacedFrom.Clear();
             var made = 0;
             var standing = 0;
             var allMade = true;
-            for (var i = 0; i < Showing.Spots.Count; i++)
+            for (var i = 0; i < StandingDots.Count; i++)
             {
-                var (x, z) = Showing.Spots[i];
+                var (x, z, picture, _) = StandingDots[i];
                 if (!MapMarks.Place(new Vec3(x, 0f, z), map.m_pixelSize, map.m_textureSize, (window.xMin, window.yMin, window.width, window.height), (area.width, area.height), out var at)) continue;
                 if (standing == Dots.Count)
                 {
@@ -405,7 +510,8 @@ namespace Scry
                     Share.Took(Since(started) - pieceFrom);
                     made++;
                 }
-                Stand(Dots[standing++], new Vector2(at.X, at.Y), size);
+                Stand(Dots[standing++], new Vector2(at.X, at.Y), size, picture);
+                PlacedFrom.Add(i);
             }
             // Those no spot holds now put away, only as fewer stand than before.
             for (var i = standing; i < _live && i < Dots.Count; i++) Away(Dots[i].Picture);
@@ -415,13 +521,60 @@ namespace Scry
             _allMade = allMade;
         }
 
+        private static (Vector2 Pointer, (Rect Window, Vector2 Area, (IReadOnlyList<(int X, int Z)> Spots, Sprite Picture, int Kept) Dots, float Size) Placed, int Squares) _readFor;
+
+        /// <summary>What the pointer rests on, its words and, for a dot, where it stands on the screen to be ringed; none.</summary>
+        public static (string Words, Rect? Ring)? Pointed { get; private set; }
+
+        /// <summary>
+        /// The dot or square the pointer rests on, as the map stands: a dot named, and how far and
+        /// which way from the character; a square, what stands somewhere inside and in which ground.
+        /// Nothing while a mouse button is held, as the map is dragged.
+        /// </summary>
+        private static void ReadPointer()
+        {
+            var pointer = (Vector2)ZInput.pointerPosition;
+            // Read again only as the pointer or the map moves.
+            var reading = (pointer, _placedFor, MapSquares.Version);
+            if (reading == _readFor) return;
+            _readFor = reading;
+            Pointed = null;
+            if (Input.GetMouseButton(0) || PointerOnStrip()) return;
+            var player = Player.m_localPlayer;
+            // Every dot is as big and in one holder: its half on the screen read once.
+            var half = _standing > 0 ? Dots[0].Rect.rect.width * Dots[0].Rect.lossyScale.x / 2f : 0f;
+            for (var i = _standing - 1; i >= 0; i--)
+            {
+                var rect = Dots[i].Rect;
+                // A dot is round and centred on its place: how far the pointer stands from its middle, on the screen.
+                if (((Vector2)rect.position - pointer).sqrMagnitude > half * half || i >= PlacedFrom.Count) continue;
+                var (x, z, _, name) = StandingDots[PlacedFrom[i]];
+                var corners = new Vector3[4];
+                rect.GetWorldCorners(corners);
+                var ring = Rect.MinMaxRect(corners[0].x, Screen.height - corners[2].y, corners[2].x, Screen.height - corners[0].y);
+                if (player == null)
+                {
+                    Pointed = (name, ring);
+                    return;
+                }
+                var (dx, dz) = (x - player.transform.position.x, z - player.transform.position.z);
+                Pointed = (SpotWords.DotHover(name, Mathf.Sqrt(dx * dx + dz * dz), SpotWords.Direction(dx, dz)), ring);
+                return;
+            }
+            if (MapSquares.SquareAt(pointer) is (int sx, int sz))
+            {
+                var inside = InsideSquare(sx, sz);
+                if (inside.Count > 0) Pointed = (SpotWords.SquareHover(inside, SquaresGround(WorldSource.Explored), SquaresGround(WorldSource.SharedMaps)), null);
+            }
+        }
+
         /// <summary>A dot stood where the map shows its spot, as big and in the picture of the colour asked, each set only as it changes.</summary>
-        private static void Stand((Image Picture, RectTransform Rect) dot, Vector2 at, float size)
+        private static void Stand((Image Picture, RectTransform Rect) dot, Vector2 at, float size, Sprite picture)
         {
             if (dot.Rect.anchoredPosition != at) dot.Rect.anchoredPosition = at;
             var sized = new Vector2(size, size);
             if (dot.Rect.sizeDelta != sized) dot.Rect.sizeDelta = sized;
-            if (dot.Picture.sprite != _sprite) dot.Picture.sprite = _sprite;
+            if (dot.Picture.sprite != picture) dot.Picture.sprite = picture;
             if (!dot.Picture.gameObject.activeSelf) dot.Picture.gameObject.SetActive(true);
         }
 
@@ -433,6 +586,8 @@ namespace Scry
         /// <summary>Puts every dot away at once, by what holds them, each left as it is inside; placed afresh as a kind is shown again.</summary>
         private static void PutAway()
         {
+            Pointed = null;
+            _readFor = default;
             MapSquares.PutAway();
             MapDim.Restore();
             if (_holder != null && _holder.gameObject.activeSelf) _holder.gameObject.SetActive(false);
@@ -479,7 +634,7 @@ namespace Scry
         /// outlined in, the ring in Scry's writing colour. Each pixel is the mean of four by four
         /// points in it, so the circles stay round when the dot is drawn small.
         /// </summary>
-        private static Sprite Picture(Color colour)
+        public static Sprite Picture(Color colour)
         {
             var key = (Color32)colour;
             if (Pictures.TryGetValue(key, out var made) && made != null) return made;

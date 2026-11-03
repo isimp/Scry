@@ -32,13 +32,15 @@ namespace Scry.Tests
         [Fact]
         public void AMarksSizeIsOneOfTheDotsThreeAndAValueBetweenGoesToTheNearest()
         {
-            // The dungeon marks' size is chosen as the dots' is; a size kept from before snaps to the nearest of the three.
-            Assert.Equal(new[] { 0.7f, 1f, 1.4f }, MapLook.MarkScales);
+            // The dungeon marks' size is chosen as the dots' is; a size kept from before snaps to the nearest of those offered.
+            Assert.Equal(new[] { 0.5f, 0.7f, 1f, 1.4f }, MapLook.MarkScales);
             Assert.Equal(0.7f, MapLook.NearestMarkScale(0.8f));
-            Assert.Equal(0.7f, MapLook.NearestMarkScale(0.5f));
+            Assert.Equal(0.5f, MapLook.NearestMarkScale(0.5f));
             Assert.Equal(1f, MapLook.NearestMarkScale(1.1f));
             Assert.Equal(1.4f, MapLook.NearestMarkScale(2f));
-            Assert.Equal(MapLook.MarkScales, new[] { DotSizeChoice.Small, DotSizeChoice.Normal, DotSizeChoice.Large }.Select(MapLook.DotScale));
+            Assert.Equal(MapLook.MarkScales, new[] { DotSizeChoice.XSmall, DotSizeChoice.Small, DotSizeChoice.Normal, DotSizeChoice.Large }.Select(MapLook.DotScale));
+            // X-small is the smallest, still a ringed dot to see: half a normal one.
+            Assert.True(MapLook.DotScale(DotSizeChoice.XSmall) < MapLook.DotScale(DotSizeChoice.Small));
         }
 
         [Fact]

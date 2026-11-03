@@ -25,7 +25,8 @@ namespace Scry
     /// above every other name on the map, and
     /// its name alone at all times where <c>DungeonMarkNamesAlways</c> is on. It is no pin of the game's: nothing is added to
     /// the player's pins, saved with the world or shared. No rooms are drawn on the map.
-    /// <c>DungeonMarksOnMap</c> turns the marks off.
+    /// They stand while the dungeons are kept on the map (<see cref="CompendiumBook.Kept"/>), every
+    /// kind or a kind kept from its page; taken off in the title row's list, they go.
     /// </summary>
     internal static class MapMarkButtons
     {
@@ -76,7 +77,7 @@ namespace Scry
 
         /// <summary>The layer the marks stand on, and the stamps of what they were last listed from.</summary>
         private static RectTransform _layer;
-        private static (int Walked, (int, int) Seen, int Sources, int Server) _keptStamp = (-1, (-1, -1), -1, -1);
+        private static (int Walked, (int, int) Seen, int Sources, int Server, int Kept) _keptStamp = (-1, (-1, -1), -1, -1, -1);
 
         /// <summary>Whether the server was asked for the marked dungeons' records since the map last opened.</summary>
         private static bool _askedServer;
@@ -200,7 +201,7 @@ namespace Scry
             Marks.Clear();
             Kept.Clear();
             _layer = null;
-            _keptStamp = (-1, (-1, -1), -1, -1);
+            _keptStamp = (-1, (-1, -1), -1, -1, -1);
             _keptWorld = null;
             _askedServer = false;
             MarksShown = 0;
@@ -220,8 +221,9 @@ namespace Scry
             var map = Minimap.instance;
             var large = map != null && map.m_mode == Minimap.MapMode.Large;
             var small = map != null && map.m_mode == Minimap.MapMode.Small && Settings.DungeonMarksOnMinimap;
-            if (map != null && Settings.DungeonMarksOnMap) Ahead(map);
-            if (map == null || !(large || small) || !Settings.DungeonMarksOnMap)
+            var marked = DungeonsKept(CompendiumKeeper.Book);
+            if (map != null && marked) Ahead(map);
+            if (map == null || !(large || small) || !marked)
             {
                 PutAway();
                 return;
@@ -236,12 +238,12 @@ namespace Scry
             }
             var maps = DungeonWalks.Maps;
             var book = CompendiumKeeper.Book;
-            var stamp = (maps.Stamp, SeenSpotsKeeper.Stamp, book != null ? book.SourcesVersion : -1, GroupMapsLink.Group.Stamp);
+            var stamp = (maps.Stamp, SeenSpotsKeeper.Stamp, book != null ? book.SourcesVersion : -1, GroupMapsLink.Group.Stamp, book != null ? book.KeptVersion : -1);
             if (_keptStamp != stamp || _keptWorld != world)
             {
                 var listing = Timing.Start();
                 Kept.Clear();
-                Kept.AddRange(DungeonMarks.Of(book, maps.OfWorld(world), SeenDungeons(world), RoomKinds.Of, GroupMapsLink.Group.Of));
+                Kept.AddRange(DungeonMarks.Of(book, maps.OfWorld(world), SeenDungeons(world), RoomKinds.Of, GroupMapsLink.Group.Of).Where(m => KeptOnMap(book, m.Map.Location)));
                 Timing.Add("marks listed", listing);
                 _keptStamp = stamp;
                 _keptWorld = world;
@@ -347,7 +349,6 @@ namespace Scry
             InViewIds.Clear();
             foreach (var kept in Kept)
             {
-                if (small && !MapMarks.OnSmallMap(kept.Look)) continue;
                 if (!MapMarks.Place(kept.Map.Entrance, map.m_pixelSize, map.m_textureSize, (window.xMin, window.yMin, window.width, window.height), (area.width, area.height), out var at)) continue;
                 InView.Add((kept, at));
                 InViewIds.Add(kept.Id);
@@ -599,6 +600,25 @@ namespace Scry
             OpenedForTest = (id, look, laidOut);
         }
 
+        /// <summary>Whether any dungeon is kept on the map: every kind, or one kept from its page; all of them before a character's book is read.</summary>
+        private static bool DungeonsKept(CompendiumBook book)
+        {
+            if (book == null || book.Keeps(CompendiumBook.Dungeons)) return true;
+            // Worked out again only as what is kept changes, as this is asked each frame.
+            if (_keptAsked.Book != book || _keptAsked.Version != book.KeptVersion) _keptAsked = (book, book.KeptVersion, book.Kept.Any(kept => MapKept.KindsIn(kept).Any(MapKept.IsDungeon)));
+            return _keptAsked.Any;
+        }
+
+        private static (CompendiumBook Book, int Version, bool Any) _keptAsked;
+
+        /// <summary>Whether a dungeon's mark is kept: every kind kept, or its own kind.</summary>
+        private static bool KeptOnMap(CompendiumBook book, string location)
+        {
+            if (book == null || book.Keeps(CompendiumBook.Dungeons)) return true;
+            var key = EntryKeys.For(Kind.Location, location);
+            return book.Kept.Any(kept => MapKept.KindsIn(kept).Contains(key));
+        }
+
         /// <summary>The dungeons whose entrances the character's sight kept in a world, or the self-test's in their place.</summary>
         private static IEnumerable<(string Id, string Location, int X, int Z)> SeenDungeons(string world) =>
             _seenInstead ?? DungeonMarks.Seen(world, DungeonKinds.All, SeenSpotsKeeper.Of);
@@ -608,7 +628,7 @@ namespace Scry
         public static void SeenInsteadForTest(List<(string Id, string Location, int X, int Z)> seen)
         {
             _seenInstead = seen;
-            _keptStamp = (-1, (-1, -1), -1, -1);
+            _keptStamp = (-1, (-1, -1), -1, -1, -1);
         }
 
         private static List<(string Id, string Location, int X, int Z)> _seenInstead;
