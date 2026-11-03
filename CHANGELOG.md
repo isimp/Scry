@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1
+
+Hitting something the world built, such as the crates, lanterns, beams and walls in Dvergr camps, a goblin village's fences or the black marble of the Mistlands' ruins, now makes it known, as hitting a rock or a tree does. What a player built is still learned by its recipe.
+
 ## 0.4.0
 
 *Show on map* on a page marks where your character saw its kind, each kind in a colour and shape of its own. A place in ground you explored but never came near stands as the 128 m square it lies in, or as a hollow dot where the server sets *Places in explored ground* to *Dots*. *Keep on the map* keeps a kind there every time the map opens, on the minimap too, and the title row's *On the map* list holds what is kept and takes it off. Dungeons you walked or whose entrance you saw keep their amber marks, kept from the start in that list, which replaces the *Dungeon marks* switch and the pins on the compendium box's rows. Pointing at any mark says what it is.

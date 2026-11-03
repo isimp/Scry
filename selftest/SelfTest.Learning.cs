@@ -295,7 +295,7 @@ namespace Scry
             p.Untried("a place's spawn stars", "stand in a camp or village with its creatures about", "place");
         }
 
-        /// <summary>A trap's numbers wait for one seen springing; a hit of the character's on a piece near by tells how its damage landed, the piece's grid following its own hits.</summary>
+        /// <summary>A trap's numbers wait for one seen springing; a hit of the character's on a piece near by tells how its damage landed, the piece's grid following its own hits; one a player built is not made known by it, one the world placed is.</summary>
         private static void BuiltThingsTell(Probe p, System.Func<CompendiumBook> fresh)
         {
             var trap = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Piece && GamePrefabs.Named(e.Name).OrNull()?.GetComponent<Trap>() != null);
@@ -317,6 +317,44 @@ namespace Scry
             var key = Utils.GetPrefabName(piece.gameObject);
             if (piece.m_minToolTier > 0) p.Note($"{key} needs a stronger tool than a bare hit: its grid untried");
             else p.Check(ResistWords.Types.Any(t => book.Proved(key, EntryKeys.Damage(t))), $"a hit on {key} tells how its damage landed");
+            // A piece a player built is learned by its recipe, never by hitting it.
+            var built = piece.GetComponent<Piece>();
+            if (built != null && built.GetCreator() != 0L) p.Check(book.Level(key) < KnownLevel.Known || book.Came(key)?.Way != CameBy.Hit, $"hitting {key}, which a player built, does not make it known");
+            WorldPieceHitTells(p, fresh);
+        }
+
+        /// <summary>
+        /// A piece the world placed, as a Dvergr crate, is known by the character's hit, as a rock
+        /// is, the hit kept as how it came to be known. One loaded near by is hit where there is
+        /// one; else the game's own crate, never spawned, stands in for it.
+        /// </summary>
+        private static void WorldPieceHitTells(Probe p, System.Func<CompendiumBook> fresh)
+        {
+            var player = Player.m_localPlayer;
+            var piece = Object.FindObjectsByType<WearNTear>(FindObjectsSortMode.None)
+                .Where(w => w != null && PlacedByTheWorld(w))
+                .OrderBy(w => (w.transform.position - player.transform.position).sqrMagnitude).FirstOrDefault();
+            if (piece == null) piece = GamePrefabs.Named("dvergrprops_crate").OrNull()?.GetComponent<WearNTear>();
+            if (piece == null)
+            {
+                p.Untried("a piece the world placed, hit", "stand by a Dvergr camp or a goblin village", "piece");
+                return;
+            }
+            var key = Utils.GetPrefabName(piece.gameObject);
+            if (!p.Check(X.Find(key) != null, $"{key} is in the catalog")) return;
+            var book = fresh();
+            var hit = new HitData();
+            hit.m_damage.m_blunt = 10f;
+            hit.SetAttacker(player);
+            PieceHitWatch.Hit(piece, hit);
+            p.Check(book.Level(key) == KnownLevel.Known && book.Came(key)?.Way == CameBy.Hit, $"hitting {key}, which the world placed, makes it known by the hit", $"{book.Level(key)}, {book.Came(key)?.Way}");
+        }
+
+        /// <summary>Whether a piece stands from the world, not from a player (<see cref="WorldPiece"/>).</summary>
+        private static bool PlacedByTheWorld(WearNTear piece)
+        {
+            var built = piece.GetComponent<Piece>();
+            return WorldPiece.LearnedByHit(built != null ? built.GetCreator() : 0L);
         }
 
         /// <summary>A burn's and a poison's own numbers wait for the effect to be on the character: each told pair and table line keeps back for it.</summary>

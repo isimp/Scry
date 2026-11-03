@@ -31,7 +31,9 @@ namespace Scry
     /// A building piece the character hits tells how it took the hit, as the popup shows it, by its
     /// own modifiers, where the tool was strong enough (<c>HitData.CheckToolTier</c>, a piece always
     /// letting the lowest tier through, as the game checks a hit on one); <c>WearNTear.Damage</c>
-    /// is called on the client dealing the hit, before it is sent to the piece's owner.
+    /// is called on the client dealing the hit, before it is sent to the piece's owner. One the
+    /// world placed (<see cref="WorldPiece"/>) becomes known by the hit, as a resource does, with
+    /// what broke it and where it stands.
     /// </summary>
     internal static class PieceHitWatch
     {
@@ -41,7 +43,15 @@ namespace Scry
             Guard.Run(Feature.CompendiumHit, "noting a piece hit", () =>
             {
                 if (hit.GetAttacker() != Player.m_localPlayer) return;
-                if (hit.CheckToolTier(piece.m_minToolTier, alwaysAllowTierZero: true) && TogetherWatch.PopupSeen(piece)) TogetherWatch.Told(Utils.GetPrefabName(piece.gameObject), hit, piece.m_damages);
+                var strongEnough = hit.CheckToolTier(piece.m_minToolTier, alwaysAllowTierZero: true);
+                var built = piece.GetComponent<Piece>();
+                if (WorldPiece.LearnedByHit(built != null ? built.GetCreator() : 0L))
+                {
+                    // The tool in hand broke it only where the hit was its own swing, by its skill, and strong enough.
+                    var weapon = Player.m_localPlayer.GetCurrentWeapon();
+                    CompendiumKeeper.Hit(piece, weapon != null && hit.m_skill == weapon.m_shared.m_skillType && strongEnough);
+                }
+                if (strongEnough && TogetherWatch.PopupSeen(piece)) TogetherWatch.Told(Utils.GetPrefabName(piece.gameObject), hit, piece.m_damages);
             });
         }
     }

@@ -356,7 +356,7 @@ namespace Scry
         }
 
         /// <summary>
-        /// Learns of a resource the character hit, as news, what it hit it with where the hit was
+        /// Learns of a resource or a piece the world placed that the character hit, as news, what it hit it with where the hit was
         /// the tool's own swing strong enough to break it (<paramref name="breaksWith"/>), and where
         /// it stands; the pieces a rock breaks into bring the rock along where it alone breaks into
         /// them (<see cref="CompendiumCatchUp.Hit"/>).
