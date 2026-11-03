@@ -6,6 +6,8 @@ Hitting something the world built, such as the crates, lanterns, beams and walls
 
 A creature's attack counts as seen from as far as the creature uses it, so a Seeker soldier's taunt from 20 m or a Gjall's spit and taunt from afar are found out, not only attacks begun within 10 m.
 
+Attacks that start alike are told apart by the weapon the creature holds, or by what they make beside it, so a Dvergr mage's shield and its Mistile summon, a Dvergr's two crossbow shots, a goblin's club, sword and torch and the Fader's and Jotun warrior's twin attacks all count when seen. A mage's fireball counts when seen, and a Dvergr mage on the stage wears each robe you saw it in.
+
 A fish's stars are numbered as the game numbers a caught fish, 1 to 5: its fight table, its page and what is left to find out on it. A fish you landed now opens the column it was caught at.
 
 ## 0.4.0

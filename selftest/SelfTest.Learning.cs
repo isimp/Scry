@@ -130,6 +130,7 @@ namespace Scry
             NothingToSeeTells(p);
             EffectOnYouTells(p);
             BuiltThingsTell(p, Fresh);
+            AttacksToldApartTell(p);
             RaidsAndPlacesTell(p, Fresh);
             AltarTells(p, Fresh);
             FedThenHeldTells(p, Fresh);
@@ -348,6 +349,46 @@ namespace Scry
             hit.SetAttacker(player);
             PieceHitWatch.Hit(piece, hit);
             p.Check(book.Level(key) == KnownLevel.Known && book.Came(key)?.Way == CameBy.Hit, $"hitting {key}, which the world placed, makes it known by the hit", $"{book.Level(key)}, {book.Came(key)?.Way}");
+        }
+
+        /// <summary>
+        /// A Dvergr mage's attacks, as the game data gives them: only weapons take part in its
+        /// triggers, so its fire staff, a utility item, leaves the fireball's trigger to the fireball;
+        /// its shield and its Mistile summon share one trigger and are told apart by the weapon in
+        /// hand or by what each puts beside the mage, its shield's area and the Mistiles; each of
+        /// its looks waits only for its robe, the one item of a set that shows on it. Every trigger
+        /// two weapons of a creature still share is named, as the hand tells them apart.
+        /// </summary>
+        private static void AttacksToldApartTell(Probe p)
+        {
+            const string mage = "DvergerMage";
+            if (GamePrefabs.Named(mage) == null)
+            {
+                p.Note("no Dvergr mage in the game: its attacks untried");
+                return;
+            }
+            var cast = CompendiumSight.TriggerCandidates(mage, "attack_cast");
+            p.Check(cast.Count == 1 && cast[0] == "DvergerStaffFire_fireball", "the mage's cast is its fireball alone, its staffs being no weapons", string.Join(", ", cast));
+            var protect = CompendiumSight.TriggerCandidates(mage, "attack_protect");
+            p.Check(protect.Count == 2 && protect.Contains("DvergerStaffSupport_buff") && protect.Contains("DvergerMistile"), "the mage's shield and Mistile summon share one trigger", string.Join(", ", protect));
+            var made = CompendiumSight.MadeBy(mage);
+            p.Check(made.Any(m => m.Item == "DvergerStaffSupport_buff" && m.Made == "DvergerStaffSupport_aoe") && made.Any(m => m.Item == "DvergerMistile" && m.Made == "Mistile" && m.Near > 3f),
+                "what the shield and the summon put beside the mage is read from the game: its area, its Mistiles within the summon's radius", string.Join(", ", made.Select(m => $"{m.Item}>{m.Made}@{Numbers.Amount(m.Near, 1)}")));
+            var gear = GamePrefabs.Named(mage);
+            var looks = gear.GetComponent<Humanoid>().OrNull()?.m_randomSets?.Length ?? 0;
+            var drawn = Enumerable.Range(1, looks).Select(look => PrefabGear.SetItems(gear, look).Where(i => GamePrefabs.Item(i) is GameObject item && PrefabGear.Shows(item)).ToList()).ToList();
+            p.Check(looks > 0 && drawn.All(d => d.Count == 1 && d[0].StartsWith("DvergerSuit", System.StringComparison.Ordinal)), "each of the mage's looks shows only its robe, so it waits for nothing else",
+                string.Join("; ", drawn.Select(d => string.Join(", ", d))));
+            // Every creature's triggers two weapons still share, told apart by the hand.
+            var shared = new List<string>();
+            foreach (var creature in X.Catalog.Where(e => e.Kind == Kind.Creature))
+            {
+                foreach (var each in CompendiumSight.TriggerMap(creature.Name))
+                {
+                    if (each.Value.Length > 1) shared.Add($"{creature.Name} {each.Key}: {string.Join("/", each.Value)}");
+                }
+            }
+            p.Note($"{Numbers.Count(shared.Count)} triggers two weapons share, told by the hand: {string.Join("; ", shared.Take(24))}");
         }
 
         /// <summary>Whether a piece stands from the world, not from a player (<see cref="WorldPiece"/>).</summary>

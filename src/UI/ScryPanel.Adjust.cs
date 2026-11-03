@@ -137,9 +137,16 @@ namespace Scry
             _looksStamp = stamp;
             _looksCount = count;
             var gear = entry.Source is GameObject creature && PrefabLooks.IsGear(creature) ? creature : null;
-            _looksShown = _explorer != null && gear != null ? _explorer.LooksShown(count, look => PrefabGear.SetItems(gear, look)) : Enumerable.Range(0, count).ToList();
+            _looksShown = _explorer != null && gear != null ? _explorer.LooksShown(count, look => PrefabGear.SetItems(gear, look), ShowsWorn) : Enumerable.Range(0, count).ToList();
             return _looksShown;
         }
+
+        /// <summary>Whether an item shows on a creature wearing it (<see cref="PrefabGear.Shows"/>), so a look waits only for what it shows.</summary>
+        private static readonly Func<string, bool> ShowsWorn = name =>
+        {
+            var item = GamePrefabs.Item(name);
+            return item != null && PrefabGear.Shows(item);
+        };
 
         private static Entry _looksOf;
         private static int _looksStamp = -1, _looksCount = -1;

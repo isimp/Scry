@@ -156,7 +156,7 @@ namespace Scry
         /// is read from what that game keeps in the creature's data for every game to dress it by
         /// (its right hand's item, else its left's but a torch); on the game running it, from its hands.
         /// </summary>
-        private static GameObject WeaponOf(Humanoid creature)
+        internal static GameObject WeaponOf(Humanoid creature)
         {
             if (creature == null) return null;
             var view = creature.GetComponent<ZNetView>().OrNull();

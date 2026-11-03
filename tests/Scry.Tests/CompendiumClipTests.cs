@@ -68,6 +68,31 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AnItemTheGameNeverAttacksWithTakesNoTrigger()
+        {
+            // The game attacks only with weapons (Humanoid.EquipBestWeapon skips the rest): a Dvergr
+            // mage's fire staff is a utility item going by the fireball's trigger, and tells nothing.
+            var mage = AttackTriggers.Map(new[] { ("DvergerStaffFire_fireball", "attack_cast", 0, true), ("DvergerStaffFire", "attack_cast", 0, false), ("DvergerStaffIce", "attack_cast", 0, false) });
+            Assert.Equal("DvergerStaffFire_fireball", AttackTriggers.ItemFor(mage, "attack_cast"));
+        }
+
+        [Fact]
+        public void ATriggerTwoWeaponsShareNamesTheOneInHand()
+        {
+            // The game equips the weapon it attacks with before the attack begins, and every game
+            // reads it from the creature's data: the shield and the Mistile summon share one trigger.
+            var mage = AttackTriggers.Map(new[] { ("DvergerStaffSupport_buff", "attack_protect", 0, true), ("DvergerMistile", "attack_protect", 0, true), ("DvergerStaffHeal_heal", "attack_heal", 0, true) });
+            Assert.Null(AttackTriggers.ItemFor(mage, "attack_protect"));
+            Assert.Equal("DvergerMistile", AttackTriggers.ItemFor(mage, "attack_protect", held: "DvergerMistile"));
+            Assert.Equal("DvergerStaffSupport_buff", AttackTriggers.ItemFor(mage, "attack_protect", held: "DvergerStaffSupport_buff"));
+            // A hand holding none of them tells nothing; a trigger one weapon plays names it whatever the hand.
+            Assert.Null(AttackTriggers.ItemFor(mage, "attack_protect", held: "DvergerStaffHeal_heal"));
+            Assert.Equal("DvergerStaffHeal_heal", AttackTriggers.ItemFor(mage, "attack_heal", held: "DvergerMistile"));
+            Assert.Equal(new[] { "DvergerStaffSupport_buff", "DvergerMistile" }, AttackTriggers.Candidates(mage, "attack_protect"));
+            Assert.Empty(AttackTriggers.Candidates(mage, "walk"));
+        }
+
+        [Fact]
         public void ATriggerNamesTheAttackItemItStartsUnlessTwoItemsShareIt()
         {
             // The game starts an attack by the trigger its item names, a chain's later steps by

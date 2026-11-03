@@ -188,6 +188,24 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ALookWaitsOnlyForTheItemsItShowsOnTheBody()
+        {
+            // A Dvergr mage's Fire set is its robe, which shows, and staffs and spells, which draw
+            // nothing on it: seen wearing the robe, the look is offered under the strict rules.
+            var world = new World().Rule(CompendiumRule.Strict);
+            world.Explorer.Select(world.Draugr);
+            string[][] looks = { new string[0], new[] { "draugr_axe", "draugr_bow" } };
+            bool Shows(string item) => item != "draugr_bow";
+            Assert.Equal(new[] { 0 }, world.Explorer.LooksShown(looks.Length, look => looks[look], Shows));
+
+            world.Book.Sighted(world.Draugr.Key, 0, new[] { "draugr_axe" });
+            world.Rule(CompendiumRule.Strict);
+            Assert.Equal(new[] { 0, 1 }, world.Explorer.LooksShown(looks.Length, look => looks[look], Shows));
+            // Every item counts where nothing says what shows, as before.
+            Assert.Equal(new[] { 0 }, world.Explorer.LooksShown(looks.Length, look => looks[look]));
+        }
+
+        [Fact]
         public void AnAttackTakenOrSeenBegunCountsAsItsWeaponSeenCarried()
         {
             // The clip of an attack taken plays once the attack is proved; the stage dresses the

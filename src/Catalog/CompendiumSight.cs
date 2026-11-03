@@ -40,6 +40,7 @@ namespace Scry
             Meshes.Clear();
             Skins.Clear();
             Triggers.Clear();
+            ForgetSwings();
         });
 
         /// <summary>How far beyond its own reach a place in view is seen, as far as a creature of a person's size.</summary>
@@ -108,10 +109,12 @@ namespace Scry
         [ForTest]
         public static bool Keeps(ZNetView thing) => Things.Contains(thing);
 
-        /// <summary>A thing the game keeps in the world woke: kept to be looked at.</summary>
+        /// <summary>A thing the game keeps in the world woke: kept to be looked at, and, while attacks wait to be told, looked at as what one of them made (<see cref="SwingsPending.Woke"/>).</summary>
         public static void Woke(ZNetView thing)
         {
-            if (thing != null && thing.GetZDO() != null) Things.Add(thing);
+            if (thing == null || thing.GetZDO() == null) return;
+            if (Swings.Count > 0) SwingMade(thing);
+            Things.Add(thing);
         }
 
         /// <summary>Looks around the character once a second: the creatures in view, the places, and an open container.</summary>
@@ -179,7 +182,7 @@ namespace Scry
         }
 
         /// <summary>Each creature prefab's attack items by the triggers that start them (<see cref="AttackTriggers"/>), worked out once each.</summary>
-        private static readonly Dictionary<string, Dictionary<string, string>> Triggers = new Dictionary<string, Dictionary<string, string>>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, Dictionary<string, string[]>> Triggers = new Dictionary<string, Dictionary<string, string[]>>(StringComparer.Ordinal);
 
         /// <summary>
         /// A creature's attack begun, as its animation's trigger reaches every player's game
@@ -187,9 +190,11 @@ namespace Scry
         /// boss's as much farther as its health bar shows, any as far as its creature uses it
         /// from, <see cref="Sighting.AttackReach"/>), in
         /// view with nothing solid between, the attack is found out, as taking its hit finds it
-        /// out (<see cref="CompendiumKeeper.HitBy"/>). A player's own swings, a trigger that is no
-        /// attack's or that two of the creature's items share, and a creature whose book is not
-        /// open give nothing.
+        /// out (<see cref="CompendiumKeeper.HitBy"/>). A trigger several of its weapons share is
+        /// told by the weapon in its hand: at once on the game running the creature, else once the
+        /// creature's data caught up or by what the attack put into the world beside it
+        /// (<see cref="SwingsPending"/>). A player's own swings, a trigger that is no attack's, and
+        /// a creature whose book is not open give nothing.
         /// </summary>
         public static void SwingSeen(Character creature, string trigger)
         {
@@ -197,32 +202,65 @@ namespace Scry
             var book = CompendiumKeeper.Book;
             if (creature == null || player == null || book == null || creature.IsPlayer() || string.IsNullOrEmpty(trigger)) return;
             var key = Utils.GetPrefabName(creature.gameObject);
-            var item = AttackTriggers.ItemFor(TriggersOf(key), trigger);
-            if (item == null) return;
+            var candidates = AttackTriggers.Candidates(TriggersOf(key), trigger);
+            if (candidates.Count == 0) return;
             var centre = creature.GetCenterPoint();
-            var hud = EnemyHud.instance;
-            var range = GamePrefabs.Named(item).OrNull()?.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared?.m_aiAttackRange ?? 0f;
-            var reach = Sighting.AttackReach(creature.IsBoss(), book.World.SeenReach, hud != null ? hud.m_maxShowDistance : 0f, hud != null ? hud.m_maxShowDistanceBoss : 0f, range);
-            if (Vector3.Distance(player.transform.position, centre) > reach) return;
+            var away = Vector3.Distance(player.transform.position, centre);
+            var boss = creature.IsBoss();
+            var farthest = 0f;
+            foreach (var each in candidates) farthest = Mathf.Max(farthest, AttackReachOf(each, boss, book));
+            if (away > farthest) return;
             Bind();
             var view = GameCamera.instance != null ? GameCamera.instance.transform : player.transform;
             if (!InView(view, centre) || !Clear(view.position, centre, creature.transform)) return;
-            CompendiumKeeper.FoundOut(key, EntryKeys.Attack(item));
+            if (candidates.Count == 1)
+            {
+                SwingTold(key, candidates[0], away, boss);
+                return;
+            }
+            var net = creature.GetComponent<ZNetView>().OrNull();
+            var hand = CompendiumKeeper.WeaponOf(creature as Humanoid).OrNull()?.name;
+            // The game running it attacks with the very weapon in its hand; another game waits for its data.
+            if (net == null || !net.IsValid() || net.IsOwner()) SwingTold(key, AttackTriggers.Resolve(candidates, hand), away, boss);
+            else BeginSwing(creature, key, candidates, away);
         }
 
-        /// <summary>A creature prefab's attack items by trigger, from the attacks of what it carries, kept once worked out.</summary>
-        private static Dictionary<string, string> TriggersOf(string prefabName)
+        /// <summary>How far an attack item's attack is seen begun (<see cref="Sighting.AttackReach"/>), by its own AI range.</summary>
+        private static float AttackReachOf(string item, bool boss, CompendiumBook book)
+        {
+            var hud = EnemyHud.instance;
+            var range = GamePrefabs.Named(item).OrNull()?.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared?.m_aiAttackRange ?? 0f;
+            return Sighting.AttackReach(boss, book.World.SeenReach, hud != null ? hud.m_maxShowDistance : 0f, hud != null ? hud.m_maxShowDistanceBoss : 0f, range);
+        }
+
+        /// <summary>An attack told: found out, where it was begun within its own reach.</summary>
+        private static void SwingTold(string creature, string item, float away, bool boss)
+        {
+            var book = CompendiumKeeper.Book;
+            if (item == null || book == null || away > AttackReachOf(item, boss, book)) return;
+            CompendiumKeeper.FoundOut(creature, EntryKeys.Attack(item));
+        }
+
+        /// <summary>
+        /// A creature prefab's weapons by trigger, from the attacks of what it carries, kept once
+        /// worked out. Only weapons take part, as the game attacks with nothing else
+        /// (<c>Humanoid.EquipBestWeapon</c> skips an item for which <c>IsWeapon</c> is false).
+        /// </summary>
+        private static Dictionary<string, string[]> TriggersOf(string prefabName)
         {
             if (Triggers.TryGetValue(prefabName, out var map)) return map;
-            var attacks = new List<(string, string, int)>();
+            var attacks = new List<(string, string, int, bool)>();
             var prefab = GamePrefabs.Named(prefabName);
             if (prefab != null)
             {
                 foreach (var item in Relations.CarriedItems(prefab))
                 {
-                    var shared = item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
-                    if (shared?.m_attack != null) attacks.Add((item.name, shared.m_attack.m_attackAnimation, shared.m_attack.m_attackChainLevels));
-                    if (shared?.m_secondaryAttack != null) attacks.Add((item.name, shared.m_secondaryAttack.m_attackAnimation, shared.m_secondaryAttack.m_attackChainLevels));
+                    var data = item.GetComponent<ItemDrop>().OrNull()?.m_itemData;
+                    var shared = data?.m_shared;
+                    if (shared == null) continue;
+                    var weapon = data.IsWeapon();
+                    if (shared.m_attack != null) attacks.Add((item.name, shared.m_attack.m_attackAnimation, shared.m_attack.m_attackChainLevels, weapon));
+                    if (shared.m_secondaryAttack != null) attacks.Add((item.name, shared.m_secondaryAttack.m_attackAnimation, shared.m_secondaryAttack.m_attackChainLevels, weapon));
                 }
             }
             return Triggers[prefabName] = AttackTriggers.Map(attacks);
@@ -261,6 +299,7 @@ namespace Scry
         public static void Sweep(Player player, CompendiumCatchUp catchUp, CompendiumBook book, float seconds)
         {
             if (!Ready(player, catchUp, book, letGo: true)) return;
+            if (Swings.Count > 0) TickSwings();
             if (Eye.Moved(V(_from), V(_eye), V(_forward))) Things.Wake();
             _sweepStarted = Stopwatch.GetTimestamp();
             Things.Look(seconds, LookAtThing, Spent);

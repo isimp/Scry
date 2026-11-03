@@ -355,15 +355,20 @@ namespace Scry
         /// whose items, by their keys (<paramref name="itemsOf"/>), were all met, as a set's look
         /// shows them and its name tells their attacks; under the strict rules each the creature
         /// shown was seen carrying every item of (<see cref="WearsShown"/>); every look with the
-        /// compendium off.
+        /// compendium off. Where <paramref name="shows"/> tells which items show on the body, only
+        /// those count, as what draws nothing cannot be seen worn and its attacks wait on their own rows.
         /// </summary>
-        public List<int> LooksShown(int looks, Func<int, IReadOnlyList<string>> itemsOf)
+        public List<int> LooksShown(int looks, Func<int, IReadOnlyList<string>> itemsOf, Func<string, bool> shows = null)
         {
             var shown = new List<int>();
             for (var look = 0; look < looks; look++)
             {
                 var hidden = false;
-                foreach (var item in itemsOf(look)) hidden |= HidesHinged(item) || (Find(item) != null && !WearsShown(_selected?.Key, item));
+                foreach (var item in itemsOf(look))
+                {
+                    if (shows != null && !shows(item)) continue;
+                    hidden |= HidesHinged(item) || (Find(item) != null && !WearsShown(_selected?.Key, item));
+                }
                 if (!hidden) shown.Add(look);
             }
             return shown;
