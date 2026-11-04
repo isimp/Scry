@@ -10,7 +10,8 @@ namespace Scry
         /// <summary>
         /// A Dvergr fire mage in its gear holds its staff in its right hand, as the game hangs it:
         /// the staff is a utility item, hung by its "attach_r.hand" part on that bone, not held as
-        /// a weapon. Shown peeking, so the stage puts on all the mage carries; it is pictured.
+        /// a weapon. Shown peeking, so the stage puts on all the mage carries; it is pictured. The
+        /// staff is not offered to try on the person, whose hand bone has another name.
         /// </summary>
         private static IEnumerator MageHoldsItsStaff(Probe p)
         {
@@ -28,6 +29,9 @@ namespace Scry
             var hand = copy != null ? copy.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "r.hand") : null;
             p.Check(StaffIn(copy) != null, "a Dvergr fire mage in its gear holds its staff in its right hand, the utility item hung there by its attach_r.hand part",
                 hand == null ? "no right hand on the copy" : $"under the right hand: {string.Join(", ", hand.Cast<Transform>().Select(t => t.name))}");
+            // The person's hand bone is named otherwise, so the staff would show nothing on it.
+            var staff = GamePrefabs.Item("DvergerStaffFire");
+            p.Check(staff != null && !PrefabGear.IsWearable(staff), "the staff is not offered to try on the person, whose right hand bone is not the mage's r.hand", staff == null ? "no staff" : "offered");
             yield return Settled();
             yield return Picture(p, "a Dvergr fire mage holding its staff");
             MageAsItWas();

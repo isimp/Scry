@@ -194,6 +194,76 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AMageSeenInItsRobeWasSeenHoldingTheStaffItsSetPutsOnWithIt()
+        {
+            // The game hands a mage its set and puts on all of it but the weapons: a mage seen in
+            // the fire robe held the fire staff, its utility item, whether or not that was kept
+            // with the sighting. Its fire kind too, which goes by its name; the ice look stays shut.
+            Entry Mage(string name)
+            {
+                var e = E(name, Kind.Creature, "Dvergr Mage");
+                e.Tokens = new[] { "$enemy_dvergr_mage" };
+                return e;
+            }
+            var mage = Mage("DvergerMage");
+            var fire = Mage("DvergerMageFire");
+            var items = new[] { "DvergerSuitFire", "DvergerStaffFire", "DvergerSuitIce", "DvergerStaffIce" }.Select(i => E(i, Kind.Item)).ToList();
+            var explorer = new Explorer(new List<Entry> { mage, fire }.Concat(items).ToList(), new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+            var fireSet = new[] { ("DvergerStaffFire", Slot.Utility), ("DvergerSuitFire", Slot.Chest) };
+            var iceSet = new[] { ("DvergerStaffIce", Slot.Utility), ("DvergerSuitIce", Slot.Chest) };
+            explorer.WornSetsOf = creature => creature == mage.Key ? WornTogether.Of(new[] { fireSet, iceSet }, new string[0], new Slot[0])
+                : creature == fire.Key ? WornTogether.Of(new[] { fireSet }, new string[0], new Slot[0]) : null;
+            var view = new CompendiumView(explorer.Entries);
+            var book = new CompendiumBook();
+            book.Raise(mage.Key, KnownLevel.Known);
+            book.Raise(fire.Key, KnownLevel.Known);
+            foreach (var item in items) book.Raise(item.Key, KnownLevel.Known);
+            book.Sighted(mage.Key, 0, new[] { "DvergerSuitFire", "DvergerHairMale" });
+            view.Tell(book, CompendiumRule.Strict);
+            explorer.Know(view);
+            explorer.Select(mage);
+
+            Assert.True(explorer.WearsShown(mage.Key, "DvergerStaffFire"));
+            Assert.True(explorer.WearsShown(fire.Key, "DvergerStaffFire"));
+            Assert.False(explorer.WearsShown(mage.Key, "DvergerStaffIce"));
+            string[][] looks = { new string[0], new[] { "DvergerStaffFire", "DvergerSuitFire" }, new[] { "DvergerStaffIce", "DvergerSuitIce" } };
+            Assert.Equal(new[] { 0, 1 }, explorer.LooksShown(looks.Length, look => looks[look]));
+        }
+
+        [Fact]
+        public void EachKindIsJudgedByItsOwnSetsWhatOneWoreSharedWithTheFamily()
+        {
+            // Two kinds share a robe but roll it with different staffs: the robe seen on the second
+            // tells its own set, so it held its own staff, which the family shares; not the first's.
+            Entry Kind(string name)
+            {
+                var e = E(name, Scry.Kind.Creature, "Robed One");
+                e.Tokens = new[] { "$enemy_robed" };
+                return e;
+            }
+            var a = Kind("RobedA");
+            var b = Kind("RobedB");
+            var items = new[] { "RobeX", "StaffA", "StaffB" }.Select(i => E(i, Scry.Kind.Item)).ToList();
+            var explorer = new Explorer(new List<Entry> { a, b }.Concat(items).ToList(), new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+            explorer.WornSetsOf = creature => creature == a.Key ? WornTogether.Of(new[] { new[] { ("RobeX", Slot.Chest), ("StaffA", Slot.Utility) } }, new string[0], new Slot[0])
+                : creature == b.Key ? WornTogether.Of(new[] { new[] { ("RobeX", Slot.Chest), ("StaffB", Slot.Utility) } }, new string[0], new Slot[0]) : null;
+            var view = new CompendiumView(explorer.Entries);
+            var book = new CompendiumBook();
+            book.Raise(a.Key, KnownLevel.Known);
+            book.Raise(b.Key, KnownLevel.Known);
+            foreach (var item in items) book.Raise(item.Key, KnownLevel.Known);
+            book.Sighted(b.Key, 0, new[] { "RobeX" });
+            view.Tell(book, CompendiumRule.Strict);
+            explorer.Know(view);
+            Assert.NotNull(a.Family);
+            explorer.Select(a);
+
+            Assert.False(explorer.WearsShown(a.Key, "StaffA"));
+            Assert.True(explorer.WearsShown(a.Key, "StaffB"));
+            Assert.True(explorer.WearsShown(b.Key, "StaffB"));
+        }
+
+        [Fact]
         public void UnderStrictALookShowsOnlyWithEveryItemSeenCarried()
         {
             // Under the loose rules a look of met items is offered, as before; under the strict

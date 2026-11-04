@@ -63,22 +63,57 @@ namespace Scry
         /// <summary>
         /// Whether the stage may show a creature, by its key, carrying an item, by its prefab: with
         /// the compendium off, peeking, under the loose rules or on a page shown whole, any; under
-        /// the strict rules one it was seen carrying up close (<see cref="CompendiumBook.WornSeen"/>)
-        /// or seen attack with, the attack taken or begun up close (<see cref="CompendiumBook.Proved"/>),
+        /// the strict rules one it or a kind of its family was seen carrying up close
+        /// (<see cref="CompendiumBook.WornSeen"/>), one its set puts on with what was seen
+        /// (<see cref="WornTogether"/>), or one it was seen attack with, the attack taken or begun up close (<see cref="CompendiumBook.Proved"/>),
         /// so the clip of an attack that plays shows the weapon it is made with.
         /// </summary>
         public bool WearsShown(string creature, string item)
         {
             if (!StageFollowsSightings(creature)) return true;
-            // The kinds of a family go by one name and look alike in the game, so what one of them
-            // was seen wearing is seen of the kind: a Dvergr mage in the fire robe is its fire kind's.
+            if (SeenOnKind(creature, item)) return true;
+            if (SetPutOn(creature, item)) return true;
+            return _view.Book.Proved(creature, EntryKeys.Attack(item));
+        }
+
+        /// <summary>
+        /// Whether a creature, by key, or a kind of its family was seen up close in something only one
+        /// of its sets puts on, and that set puts the item on too (<see cref="WornTogether"/>): a mage
+        /// seen in its fire robe held its fire staff. Each kind is judged by its own sets and what
+        /// was seen on it, as kinds may roll an item in different sets, and what one wore is the family's.
+        /// </summary>
+        private bool SetPutOn(string creature, string item)
+        {
+            if (WornSetsOf == null) return false;
+            if (WornTogether.Seen(item, WornSetsOf(creature), worn => SeenWearing(creature, worn))) return true;
+            var family = Find(creature)?.Family;
+            if (family == null) return false;
+            foreach (var kind in family.Kinds)
+            {
+                if (kind.Key != creature && WornTogether.Seen(item, WornSetsOf(kind.Key), worn => SeenWearing(kind.Key, worn))) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// What each creature's sets surely put on it, by its key (<see cref="WornTogether.Of"/>),
+        /// as the catalog reads its gear; none for a creature with no sets. Told by the session;
+        /// none leaves what was seen worn alone to count.
+        /// </summary>
+        public Func<string, IReadOnlyList<WornSet>> WornSetsOf { get; set; }
+
+        /// <summary>
+        /// Whether a creature, by key, or a kind of its family was seen up close wearing an item:
+        /// the kinds of a family go by one name and look alike in the game, so what one of them was
+        /// seen wearing is seen of the kind, a Dvergr mage in the fire robe its fire kind's.
+        /// </summary>
+        private bool SeenOnKind(string creature, string item)
+        {
             if (SeenWearing(creature, item)) return true;
             var family = Find(creature)?.Family;
-            if (family != null)
-            {
-                foreach (var kind in family.Kinds) if (kind.Key != creature && SeenWearing(kind.Key, item)) return true;
-            }
-            return _view.Book.Proved(creature, EntryKeys.Attack(item));
+            if (family == null) return false;
+            foreach (var kind in family.Kinds) if (kind.Key != creature && SeenWearing(kind.Key, item)) return true;
+            return false;
         }
 
         /// <summary>Whether a creature, by key, was seen up close wearing an item (<see cref="CompendiumBook.WornSeen"/>).</summary>

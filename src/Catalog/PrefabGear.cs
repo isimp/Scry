@@ -13,6 +13,53 @@ namespace Scry
     /// </summary>
     internal static class PrefabGear
     {
+        /// <summary>Leaving a world forgets what is kept here of it (<see cref="WorldCaches"/>).</summary>
+        static PrefabGear() => WorldCaches.Register(nameof(PrefabGear), Forget);
+
+        /// <summary>Lets go of the sets worn read for each creature and the person's bones asked for, for a world that was left.</summary>
+        public static void Forget()
+        {
+            WornSetsRead.Clear();
+            PersonBones.Clear();
+        }
+
+        private static readonly Dictionary<string, List<WornSet>> WornSetsRead = new Dictionary<string, List<WornSet>>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// What each of a creature's sets surely puts on it (<see cref="WornTogether.Of"/>), read as
+        /// <c>Humanoid.GiveDefaultItems</c> hands them out: each set's items in order with their
+        /// slots, the items of its other lists, and the slots its chance items may fill after the
+        /// set. Kept by the prefab's name; none for a creature with no sets.
+        /// </summary>
+        public static List<WornSet> WornSets(GameObject prefab)
+        {
+            if (prefab == null) return null;
+            if (WornSetsRead.TryGetValue(prefab.name, out var kept)) return kept;
+            var humanoid = prefab.GetComponent<Humanoid>();
+            List<WornSet> sets = null;
+            if (humanoid != null && humanoid.m_randomSets != null && humanoid.m_randomSets.Length > 0)
+            {
+                var given = humanoid.m_randomSets.Where(s => s?.m_items != null)
+                    .Select(s => (IReadOnlyList<(string, Slot)>)s.m_items.Where(i => i != null).Select(i => (i.name, Equips(i) ? SlotOf(i) : Slot.None)).ToList()).ToList();
+                var chance = humanoid.m_randomItems == null ? new List<GameObject>() : humanoid.m_randomItems.Select(r => r?.m_prefab).Where(i => i != null).ToList();
+                var elsewhere = new[] { humanoid.m_defaultItems, humanoid.m_randomWeapon, humanoid.m_randomArmor, humanoid.m_randomShield }
+                    .SelectMany(list => list ?? Array.Empty<GameObject>()).Concat(chance).Where(i => i != null).Select(i => i.name);
+                sets = WornTogether.Of(given, elsewhere, chance.Select(SlotOf));
+            }
+            WornSetsRead[prefab.name] = sets;
+            return sets;
+        }
+
+        /// <summary>
+        /// Whether <c>Humanoid.EquipItem</c> puts an item on whatever game hands it out: not one
+        /// that needs a DLC, which a game without it refuses, nor one that wears out and starts worn out.
+        /// </summary>
+        private static bool Equips(GameObject item)
+        {
+            var data = item.GetComponent<ItemDrop>().OrNull()?.m_itemData;
+            var shared = data?.m_shared;
+            return shared != null && string.IsNullOrEmpty(shared.m_dlc) && !(shared.m_useDurability && data.m_durability <= 0f);
+        }
         /// <summary>
         /// The gear choices a creature has: "Gear" when it always carries the same things, or one
         /// entry per set when it is given one of several.
@@ -151,18 +198,35 @@ namespace Scry
 
         /// <summary>
         /// Whether an item can be shown worn: one the game equips (held, or worn on the head or
-        /// body) that has something to show when it is. Materials and trophies also carry an
-        /// attach part, for item stands, but have no slot.
+        /// body) that has something to show on the person when it is. Materials and trophies also
+        /// carry an attach part, for item stands, but have no slot; a part for a bone the person
+        /// lacks shows nothing on it, as a Dvergr mage's staff hangs on "r.hand" and the person's
+        /// hand is "RightHand".
         /// </summary>
         public static bool IsWearable(GameObject item)
         {
             if (SlotOf(item) == Slot.None) return false;
             var shared = item.GetComponent<ItemDrop>().m_itemData.m_shared;
-            if (Draws(item)) return true;
+            if (Parts(item).Any(part => part.On == null || part.On == WornParts.Body || PersonHas(part.On))) return true;
             var type = shared.m_itemType;
             return shared.m_armorMaterial != null
                    && (type == ItemDrop.ItemData.ItemType.Chest || type == ItemDrop.ItemData.ItemType.Legs);
         }
+
+        /// <summary>Whether the person's body has a bone of that name, found under its visual as <c>VisEquipment.AttachArmor</c> finds a part's bone; kept by name.</summary>
+        private static bool PersonHas(string bone)
+        {
+            if (PersonBones.TryGetValue(bone, out var has)) return has;
+            var person = GamePrefabs.Person;
+            var vis = person != null ? person.GetComponentInChildren<VisEquipment>(true) : null;
+            var visual = vis != null ? vis.transform.Find("Visual").OrNull() ?? vis.transform : null;
+            has = visual != null && Utils.FindChild(visual, bone) != null;
+            // Without the person yet, nothing is kept, so it is asked again once it is there.
+            if (person != null) PersonBones[bone] = has;
+            return has;
+        }
+
+        private static readonly Dictionary<string, bool> PersonBones = new Dictionary<string, bool>(StringComparer.Ordinal);
 
         /// <summary>Where the game equips an item, by its type.</summary>
         public static Slot SlotOf(GameObject item)

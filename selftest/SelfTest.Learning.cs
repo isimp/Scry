@@ -352,13 +352,18 @@ namespace Scry
             p.Check(book.Level(key) == KnownLevel.Known && book.Came(key)?.Way == CameBy.Hit, $"hitting {key}, which the world placed, makes it known by the hit", $"{book.Level(key)}, {book.Came(key)?.Way}");
         }
 
+        /// <summary>A creature's sets as worn, each with the items telling it, for a check's detail.</summary>
+        private static string Told(List<WornSet> sets) => sets == null ? "no sets" : string.Join("; ", sets.Select(s => $"{string.Join(", ", s.Worn)} told by {string.Join(", ", s.Tells)}"));
+
         /// <summary>
         /// A Dvergr mage's attacks, as the game data gives them: only weapons take part in its
         /// triggers, so its fire staff, a utility item, leaves the fireball's trigger to the fireball;
         /// its shield and its Mistile summon share one trigger and are told apart by the weapon in
         /// hand or by what each puts beside the mage, its shield's area and the Mistiles; each of
         /// its looks waits for its robe and its staff, the items of a set that show on it, and a
-        /// mage seen up close is seen with both, the staff read from its utility slot. Every trigger
+        /// mage seen up close is seen with both, the staff read from its utility slot, and one seen
+        /// in its robe held the staff its set puts on with it, as a Fuling shaman by its headdress
+        /// held its staff (<see cref="PrefabGear.WornSets"/>). Every trigger
         /// two weapons of a creature still share is named, as the hand tells them apart.
         /// </summary>
         private static void AttacksToldApartTell(Probe p)
@@ -385,6 +390,17 @@ namespace Scry
             // slot every game draws it by, with its robe from the chest's.
             var carried = CompendiumSight.CarriedForTest(slot => slot == ZDOVars.s_utilityItem ? "DvergerStaffFire".GetStableHashCode() : slot == ZDOVars.s_chestItem ? "DvergerSuitFire".GetStableHashCode() : 0);
             p.Check(carried.Contains("DvergerStaffFire") && carried.Contains("DvergerSuitFire"), "a mage seen up close is seen holding its staff, its utility item, and wearing its robe", string.Join(", ", carried));
+            // A mage seen in its robe held the staff its set puts on with it, as the game hands the
+            // set out; so does a Fuling shaman by its headdress. Read from the game's prefabs.
+            var mageSets = PrefabGear.WornSets(gear);
+            p.Check(mageSets != null && WornTogether.Seen("DvergerStaffFire", mageSets, worn => worn == "DvergerSuitFire") && !WornTogether.Seen("DvergerStaffIce", mageSets, worn => worn == "DvergerSuitFire")
+                    && !WornTogether.Seen("DvergerStaffFire", mageSets, worn => worn == "DvergerHairMale"),
+                "a mage seen in its fire robe held its fire staff, not its ice staff, and its hair tells no set", Told(mageSets));
+            var shaman = GamePrefabs.Named("GoblinShaman");
+            var shamanSets = shaman != null ? PrefabGear.WornSets(shaman) : null;
+            if (shaman == null) p.Note("no Fuling shaman in the game: its staffs untried");
+            else p.Check(shamanSets != null && shamanSets.Count == 2 && shamanSets.All(s => s.Worn.Any(i => i.StartsWith("GoblinShaman_Staff", System.StringComparison.Ordinal)) && s.Tells.Count > 0),
+                "each of a Fuling shaman's sets puts on its staff, a utility item, with a headdress telling the set", Told(shamanSets));
             // Every creature's triggers two weapons still share, told apart by the hand.
             var shared = new List<string>();
             foreach (var creature in X.Catalog.Where(e => e.Kind == Kind.Creature))

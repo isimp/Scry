@@ -173,6 +173,9 @@ namespace Scry
         /// <summary>Whether a creature's copy may wear an item: under the strict rules one it was seen carrying up close or attack with (<see cref="Explorer.WearsShown"/>).</summary>
         private static readonly Func<string, string, bool> WearsShown = (creature, item) => Explorer == null || Explorer.WearsShown(creature, item);
 
+        /// <summary>What a creature's sets surely put on it, by its key, read from its prefab (<see cref="PrefabGear.WornSets"/>).</summary>
+        private static readonly Func<string, IReadOnlyList<WornSet>> WornSetsOf = key => Explorer?.Find(key)?.Source is GameObject prefab && prefab != null ? PrefabGear.WornSets(prefab) : null;
+
         /// <summary>What the character knows of the explorer's catalog, for the compendium; made with the explorer.</summary>
         private static CompendiumView _known;
 
@@ -385,6 +388,8 @@ namespace Scry
             Stage.StarLevelFor = StarLevelFor;
             RaidCrowd.StarLevelFor = StarLevelFor;
             Gear.WearsShown = WearsShown;
+            // What a creature's set puts on with what was seen of it counts as seen (WornTogether).
+            Explorer.WornSetsOf = WornSetsOf;
             if (_carried.HasValue)
             {
                 var carried = _carried.Value;
