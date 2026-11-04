@@ -100,6 +100,24 @@ namespace Scry
     /// <summary>Finds the families among the catalog's entries (<see cref="Family"/>), each member told of its own.</summary>
     internal static class Families
     {
+        /// <summary>
+        /// The other kinds of each creature's family, by key, as the catalog's families stand
+        /// (<see cref="Of"/>): what the book holds of one kind's attacks holds for each
+        /// (<see cref="CompendiumBook.KindsOf"/>). Read once into a map that is only read after, so
+        /// any thread may ask; none for a key of no family.
+        /// </summary>
+        public static Func<string, IReadOnlyList<string>> KindsOf(EntryCatalog catalog)
+        {
+            var kinds = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
+            foreach (var entry in catalog?.All ?? (IEnumerable<Entry>)Array.Empty<Entry>())
+            {
+                var family = entry.Family;
+                if (entry.Kind != Kind.Creature || family == null || family.Kinds.Count < 2 || !family.Kinds.Contains(entry)) continue;
+                kinds[entry.Key] = family.Kinds.Where(k => k != entry).Select(k => k.Key).ToArray();
+            }
+            return key => key != null && kinds.TryGetValue(key, out var others) ? others : Array.Empty<string>();
+        }
+
         /// <summary>The families the entries make; every entry's own family set, none where it is in none.</summary>
         public static List<Family> Of(IReadOnlyList<Entry> entries)
         {

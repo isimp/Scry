@@ -47,6 +47,10 @@ namespace Scry
         private static bool _caughtUp;
         private static CompendiumCatchUp _catchUp;
         private static EntryCatalog _catchUpOf;
+
+        /// <summary>The other kinds of each creature's family (<see cref="Families.KindsOf"/>), and the catalog they were read for.</summary>
+        private static System.Func<string, IReadOnlyList<string>> _kinds;
+        private static EntryCatalog _kindsOf;
         private static int _recordsSize = -1;
         private static string _recordsPower;
         private static float _lookedAt;
@@ -126,6 +130,13 @@ namespace Scry
             if (catalog == null) return;
             // Variants of one name and the same values share what was found out of each.
             _book.TwinsOf = ResourceTwins.For(catalog);
+            // The kinds of a creature's family share the attacks seen of each, read once per catalog.
+            if (!ReferenceEquals(catalog, _kindsOf))
+            {
+                _kinds = Families.KindsOf(catalog);
+                _kindsOf = catalog;
+            }
+            _book.KindsOf = _kinds;
             if (!ReferenceEquals(catalog, _catchUpOf))
             {
                 _catchUp = CatchUpFor(catalog);
@@ -953,6 +964,8 @@ namespace Scry
             TameableNear.Clear();
             _catchUp = null;
             _catchUpOf = null;
+            _kinds = null;
+            _kindsOf = null;
             _filledBook = null;
             _filledBy = null;
             _recordsSize = -1;

@@ -396,6 +396,11 @@ namespace Scry
             p.Check(mageSets != null && WornTogether.Seen("DvergerStaffFire", mageSets, worn => worn == "DvergerSuitFire") && !WornTogether.Seen("DvergerStaffIce", mageSets, worn => worn == "DvergerSuitFire")
                     && !WornTogether.Seen("DvergerStaffFire", mageSets, worn => worn == "DvergerHairMale"),
                 "a mage seen in its fire robe held its fire staff, not its ice staff, and its hair tells no set", Told(mageSets));
+            // The kinds share the attacks seen of each: the keeper's book is told the mage's family.
+            var kindsOfIce = CompendiumKeeper.Book?.KindsOf?.Invoke("DvergerMageIce");
+            if (CompendiumKeeper.Book == null) p.Note("no compendium book: the mage's family untried");
+            else p.Check(kindsOfIce != null && kindsOfIce.Contains(mage) && !kindsOfIce.Contains("DvergerMageIce"),
+                "the book counts an attack seen of the Dvergr mage for its ice kind, the kinds of one family", kindsOfIce == null ? "not told" : string.Join(", ", kindsOfIce));
             var shaman = GamePrefabs.Named("GoblinShaman");
             var shamanSets = shaman != null ? PrefabGear.WornSets(shaman) : null;
             if (shaman == null) p.Note("no Fuling shaman in the game: its staffs untried");

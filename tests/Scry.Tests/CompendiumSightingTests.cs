@@ -194,6 +194,45 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AKindShowsEachAttackOfItsOwnSeenOfAnyKindOfItsFamily()
+        {
+            // The mage and its ice kind go by one name and look alike: an ice bolt seen of the mage
+            // is the ice kind's too, on its page and its clips, under the strict rules. What it
+            // never showed stays back, a kill stays the mage's alone, and so does its death's blast.
+            Entry Mage(string name, params string[] attacks)
+            {
+                var e = E(name, Kind.Creature, "Dvergr Mage");
+                e.Tokens = new[] { "$enemy_dvergr_mage" };
+                e.Attacks = attacks.Select(a => (a, new[] { "frost" })).ToArray();
+                return e;
+            }
+            var mage = Mage("DvergerMage", "Dverger_melee", "DvergerStaffIce_icebolt", "DvergerStaffFire_fireball");
+            var ice = Mage("DvergerMageIce", "Dverger_melee", "DvergerStaffIce_icebolt", "DvergerStaffNova");
+            var explorer = new Explorer(new List<Entry> { mage, ice }, new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+            var view = new CompendiumView(explorer.Entries);
+            var book = new CompendiumBook { KindsOf = Families.KindsOf(explorer.Entries) };
+            book.Raise(mage.Key, KnownLevel.Known);
+            book.Raise(ice.Key, KnownLevel.Known);
+            book.FoundOut(mage.Key, EntryKeys.Attack("DvergerStaffIce_icebolt"));
+            book.FoundOut(mage.Key, EntryKeys.Did(Deed.Killed));
+            book.FoundOut(mage.Key, EntryKeys.Attack(EntryKeys.DeathAttack));
+            view.Tell(book, CompendiumRule.Strict);
+            explorer.Know(view);
+            Assert.NotNull(ice.Family);
+            explorer.Select(ice);
+
+            Assert.False(explorer.HidesAttack(EntryKeys.PlayAttack("DvergerStaffIce_icebolt")));
+            Assert.False(explorer.KeepsBackAttackClip("DvergerStaffIce_icebolt"));
+            Assert.True(explorer.HidesAttack(EntryKeys.PlayAttack("DvergerStaffNova")));
+            Assert.True(book.Proved(ice.Key, EntryKeys.Attack("DvergerStaffIce_icebolt")));
+            Assert.False(book.Proved(ice.Key, EntryKeys.Did(Deed.Killed)));
+            Assert.False(book.Proved(ice.Key, EntryKeys.Attack(EntryKeys.DeathAttack)));
+            // And back: what the kind showed is the mage's.
+            book.FoundOut(ice.Key, EntryKeys.Attack("DvergerStaffNova"));
+            Assert.True(book.Proved(mage.Key, EntryKeys.Attack("DvergerStaffNova")));
+        }
+
+        [Fact]
         public void AMageSeenInItsRobeWasSeenHoldingTheStaffItsSetPutsOnWithIt()
         {
             // The game hands a mage its set and puts on all of it but the weapons: a mage seen in

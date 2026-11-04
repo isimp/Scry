@@ -58,8 +58,25 @@ namespace Scry
             {
                 foreach (var twin in TwinsOf(key)) if (_proofs.Contains((twin, proof))) return true;
             }
-            return _attacksAsPairs && EntryKeys.IsAttack(proof, out var item) && _pairs.ContainsKey(Pair(key, item));
+            var attack = EntryKeys.IsAttack(proof, out var item);
+            if (_attacksAsPairs && attack && _pairs.ContainsKey(Pair(key, item))) return true;
+            // An attack seen of one kind of a family is each kind's that makes it: they go by one
+            // name and look alike, so a Dvergr mage's ice bolt is its ice kind's. Its death's blast
+            // is no item, and may differ from kind to kind.
+            if (!attack || KindsOf == null || EntryKeys.IsDeathAttack(item)) return false;
+            foreach (var kind in KindsOf(key))
+            {
+                if (_proofs.Contains((kind, proof)) || (_attacksAsPairs && _pairs.ContainsKey(Pair(kind, item)))) return true;
+            }
+            return false;
         }
+
+        /// <summary>
+        /// The other kinds of a creature's family, by key (<see cref="Families.KindsOf"/>): an
+        /// attack seen of one is each one's (<see cref="Proved"/>). Not kept; none where not told,
+        /// and none for a key of no family.
+        /// </summary>
+        public Func<string, IReadOnlyList<string>> KindsOf { get; set; }
 
         private static readonly string CaughtProof = EntryKeys.Did(Deed.Caught);
 
