@@ -363,7 +363,8 @@ namespace Scry
         /// its looks waits for its robe and its staff, the items of a set that show on it, and a
         /// mage seen up close is seen with both, the staff read from its utility slot, and one seen
         /// in its robe held the staff its set puts on with it, as a Fuling shaman by its headdress
-        /// held its staff (<see cref="PrefabGear.WornSets"/>). Every trigger
+        /// held its staff (<see cref="PrefabGear.WornSets"/>); its summon's line in its attacks
+        /// table names and links the Mistiles it places. Every trigger
         /// two weapons of a creature still share is named, as the hand tells them apart.
         /// </summary>
         private static void AttacksToldApartTell(Probe p)
@@ -401,6 +402,12 @@ namespace Scry
             if (CompendiumKeeper.Book == null) p.Note("no compendium book: the mage's family untried");
             else p.Check(kindsOfIce != null && kindsOfIce.Contains(mage) && !kindsOfIce.Contains("DvergerMageIce"),
                 "the book counts an attack seen of the Dvergr mage for its ice kind, the kinds of one family", kindsOfIce == null ? "not told" : string.Join(", ", kindsOfIce));
+            // Its summon's line names and links the Mistiles it places, not the spawn it fires.
+            var magePage = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Creature && e.Name == mage);
+            var table = magePage != null ? Facts.For(magePage).Rows.FirstOrDefault(r => r.Title == CombatWords.AttacksTitle) : null;
+            var summonLine = table == null ? -1 : table.Lines.FindIndex(l => l.Cells.Length > 2 && l.Cells[2].StartsWith("summons ", System.StringComparison.Ordinal));
+            p.Check(summonLine >= 0 && table.Lines[summonLine].Cells[2].Contains("Mistile") && table.CellLinks.TryGetValue((summonLine, 2), out var linked) && linked == "Mistile",
+                "the mage's attacks table says its summon summons Mistiles and links them", table == null ? "no attacks table" : string.Join("; ", table.Lines.Select(l => l.Cells.Length > 2 ? l.Cells[2] : "")));
             var shaman = GamePrefabs.Named("GoblinShaman");
             var shamanSets = shaman != null ? PrefabGear.WornSets(shaman) : null;
             if (shaman == null) p.Note("no Fuling shaman in the game: its staffs untried");

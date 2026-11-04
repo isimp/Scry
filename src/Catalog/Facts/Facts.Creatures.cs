@@ -190,6 +190,14 @@ namespace Scry
             if (stars.Lines.Count > 0) Rows.Add(stars);
         }
 
+        /// <summary>The creatures a fired spawn places, as <c>SpawnAbility.Spawn</c> places its <c>m_spawnPrefab</c>, each once; none for what places none.</summary>
+        private static List<GameObject> Summoned(GameObject fires)
+        {
+            var spawn = fires != null ? fires.GetComponent<SpawnAbility>() : null;
+            if (spawn == null || spawn.m_spawnPrefab == null) return new List<GameObject>();
+            return spawn.m_spawnPrefab.Where(p => p != null && p.GetComponent<Character>() != null).Distinct().ToList();
+        }
+
         /// <summary>
         /// Each attack it has, from the items it may carry (a creature fights with items of its
         /// own, as a person does): what a hit deals as it is rolled each hit, how, and from how near and far and how often
@@ -198,8 +206,8 @@ namespace Scry
         /// </summary>
         private void Attacks(GameObject prefab)
         {
-            // Each attack with the projectile it fires and what it puts on you, each a link.
-            var attacks = new List<(string[] Cells, string Item, GameObject Fires, StatusEffect OnHit, (string Type, float Amount)[] Damage)>();
+            // Each attack with what its How cell links, the projectile it fires or the first creature its summon places, and what it puts on you.
+            var attacks = new List<(string[] Cells, string Item, GameObject Linked, StatusEffect OnHit, (string Type, float Amount)[] Damage)>();
             var rolls = prefab.GetComponent<Player>() == null;
             foreach (var item in Relations.CarriedItems(prefab))
             {
@@ -218,9 +226,12 @@ namespace Scry
                 if (attacks.Any(a => a.Cells[0] == name)) continue;
                 // Rolled each hit as anything but a player rolls one (Character.GetRandomSkillFactor); a player rolls by its skill.
                 var dealt = rolls ? CombatWords.CreatureDamage(DamageFigures(shared.m_damages)) ?? "" : Damages(shared.m_damages);
+                // A summon fires a spawn that places creatures (SpawnAbility.m_spawnPrefab): it is
+                // told by them, the first linked, as a Dvergr mage's summon by its Mistiles.
+                var placed = Summoned(fires);
                 var cells = CombatWords.AttackCells(name, dealt, attack.m_attackType.ToString(), shared.m_aiAttackRangeMin, shared.m_aiAttackRange, shared.m_aiAttackInterval,
-                    fires != null ? AnyName(fires, fires.name) : null);
-                attacks.Add((cells, item.name, fires, shared.m_attackStatusEffect, DamageFigures(shared.m_damages)));
+                    fires != null ? AnyName(fires, fires.name) : null, placed.Select(c => AnyName(c, c.name)).Distinct().ToList());
+                attacks.Add((cells, item.name, placed.Count > 0 ? placed[0] : fires, shared.m_attackStatusEffect, DamageFigures(shared.m_damages)));
             }
             // Its death, where it hurts what stands near: a line of its own, its name playing the clip it dies in.
             var death = DeathAttackOf(prefab, out var blast);
@@ -237,7 +248,7 @@ namespace Scry
             // but a player rolls a hit (Character.GetRandomSkillFactor): faint, as summoned at the character's level.
             var summoned = SkillReading.SummonedBy(prefab.name);
             var summoner = summoned != null ? YourAt(summoned.Value.Skill) : null;
-            foreach (var (cells, item, fires, effect, damage) in attacks)
+            foreach (var (cells, item, linked, effect, damage) in attacks)
             {
                 var line = table.Lines.Count;
                 table.Lines.Add((onHit ? CombatWords.OnHitCells(cells, effect != null ? EffectName(effect) : null) : cells, EntryKeys.PlayAttack(item)));
@@ -247,7 +258,7 @@ namespace Scry
                     var strength = SkillMath.SummonStrength(summoner.Value.Level, summoned.Value.PerLevel);
                     table.Yours[line] = new List<(string[], string, string)> { YourLine(SkillWords.SummonedLine(SkillWords.SummonedAt(summoner.Value.At), damage, strength), summoner.Value) };
                 }
-                if (fires != null) table.CellLinks[(line, 2)] = fires.name;
+                if (linked != null) table.CellLinks[(line, 2)] = linked.name;
                 if (effect != null) table.CellLinks[(line, 3)] = EntryKeys.For(Kind.StatusEffect, effect.name);
             }
             if (table.Lines.Count > 0) Rows.Add(table);

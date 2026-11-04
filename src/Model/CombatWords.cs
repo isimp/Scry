@@ -218,10 +218,11 @@ namespace Scry
 
         /// <summary>
         /// An attack as a line of its table: the item it is made with, what it does, how (a
-        /// swing, a shot, around it, or the projectile it fires), from how near to how far its
-        /// AI uses it, and how often; a dash where it tells none.
+        /// swing, a shot, around it, the projectile it fires, or the creatures a summon it fires
+        /// places, <paramref name="summons"/>), from how near to how far its AI uses it, and how
+        /// often; a dash where it tells none.
         /// </summary>
-        public static string[] AttackCells(string name, string damage, string attackType, float rangeMin, float range, float interval, string fires = null)
+        public static string[] AttackCells(string name, string damage, string attackType, float rangeMin, float range, float interval, string fires = null, IReadOnlyList<string> summons = null)
         {
             string how;
             switch (attackType)
@@ -242,6 +243,7 @@ namespace Scry
                     break;
             }
             if (!string.IsNullOrEmpty(fires)) how = "fires " + fires;
+            if (summons != null && summons.Count > 0) how = "summons " + string.Join(", ", summons);
             var reach = range <= 0f ? None : rangeMin > 0f ? $"{Numbers.Amount(rangeMin)}–{Numbers.Amount(range)} m" : $"{Numbers.Amount(range)} m";
             var every = interval > 0f ? $"{Numbers.Amount(interval)} s" : None;
             return new[] { name, string.IsNullOrEmpty(damage) ? None : damage, how, reach, every };

@@ -113,6 +113,12 @@ namespace Scry.Tests
             // An attack that fires a projectile names it, whatever kind of attack it is.
             Assert.Equal(new[] { "Throw", "–", "fires Troll rock", "5–30 m", "10 s" }, CombatWords.AttackCells("Throw", null, "Projectile", 5f, 30f, 10f, fires: "Troll rock"));
             Assert.Equal("fires Spit", CombatWords.AttackCells("Spit", null, "Horizontal", 0f, 3f, 2f, fires: "Spit")[2]);
+            // One that fires a summon names the creatures it places, not the spawn it fires.
+            Assert.Equal(new[] { "Mistile summon", "–", "summons Mistile", "1–15 m", "35 s" },
+                CombatWords.AttackCells("Mistile summon", null, "Projectile", 1f, 15f, 35f, fires: "Dverger Mistile spawn", summons: new[] { "Mistile" }));
+            Assert.Equal("summons Skeleton, Blob", CombatWords.AttackCells("Summon", null, "Projectile", 0f, 20f, 30f, fires: "Bonemass spawn", summons: new[] { "Skeleton", "Blob" })[2]);
+            // A spawn that places no creature, as a boss's meteors, is what it fires.
+            Assert.Equal("fires Meteors", CombatWords.AttackCells("Meteors", null, "Projectile", 0f, 30f, 20f, fires: "Meteors", summons: new string[0])[2]);
 
             // The table has a column of what each puts on you only where one does.
             Assert.Equal(CombatWords.AttackColumns, CombatWords.AttackColumnsFor(onHit: false));
