@@ -79,6 +79,14 @@ namespace Scry
 
         private static readonly Dictionary<(Type, string), FieldInfo> ByName = new Dictionary<(Type, string), FieldInfo>();
 
+        /// <summary>
+        /// A static field a type declares, by its name, of any visibility, or null where it has none:
+        /// for a mod's own state Scry reads by name, as TargetPortal's flag of its map of portals.
+        /// Read with <see cref="Value"/>, its owner none.
+        /// </summary>
+        public static FieldInfo StaticNamed(Type type, string name) =>
+            type?.GetField(name, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
+
         private sealed class FieldRead
         {
             public FieldInfo Field;

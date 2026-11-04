@@ -128,8 +128,8 @@ namespace Scry
             }
         }
 
-        /// <summary>The strip's words while the large map shows a kind; none otherwise.</summary>
-        public static string Strip => Showing.Showing && LargeOpen ? _strip : null;
+        /// <summary>The strip's words while the large map shows a kind; none otherwise, nor on TargetPortal's map of portals hiding pins (<see cref="TargetPortalMap.MarksAside"/>).</summary>
+        public static string Strip => Showing.Showing && LargeOpen && !TargetPortalMap.MarksAside ? _strip : null;
 
         private static bool LargeOpen => Minimap.instance != null && Minimap.instance.m_mode == Minimap.MapMode.Large;
 
@@ -537,7 +537,9 @@ namespace Scry
             if (Showing.Showing && !MapKept.Remembered) Hide();
             if (Showing.Showing) Showing.Tick(large, CompendiumMap.World);
             if (large) MapKept.Refresh();
-            if (!large || !Showing.Showing && !MapKept.Any)
+            // On TargetPortal's map of portals, hiding the map's pins, the dots, squares and dimming
+            // step aside; a kind shown on demand is still told the map is open, so it ends as before.
+            if (!large || !Showing.Showing && !MapKept.Any || TargetPortalMap.MarksAside)
             {
                 PutAway();
                 return;

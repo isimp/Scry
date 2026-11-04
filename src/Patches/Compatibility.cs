@@ -539,6 +539,14 @@ namespace Scry
             Each("Minimap.m_pinNamePrefab", () => Member(list, "Minimap", "m_pinNamePrefab", Feature.DungeonMarksOnMap));
             Each("Minimap.m_mapOffset", () => Member(list, "Minimap", "m_mapOffset", Feature.ShowOnMap));
             Each("Minimap.m_pins", () => Member(list, "Minimap", "m_pins", Feature.ShowOnMap));
+            // TargetPortal's map of portals, asked after only where the mod is loaded.
+            if (TargetPortalMap.Loaded)
+            {
+                Each($"{TargetPortalMap.MapType}.{TargetPortalMap.ChoosingField}", () => list.Add($"{TargetPortalMap.MapType}.{TargetPortalMap.ChoosingField}", Feature.MarksAsideOnPortalMap,
+                    TargetPortalMap.Member(TargetPortalMap.MapType, TargetPortalMap.ChoosingField)?.FieldType == typeof(bool) ? Found.Present : Found.Missing));
+                Each($"{TargetPortalMap.PluginType}.{TargetPortalMap.HidesPinsField}", () => list.Add($"{TargetPortalMap.PluginType}.{TargetPortalMap.HidesPinsField}", Feature.MarksAsideOnPortalMap,
+                    TargetPortalMap.Member(TargetPortalMap.PluginType, TargetPortalMap.HidesPinsField) != null ? Found.Present : Found.Missing));
+            }
             Each("Minimap.m_pinNameRootSmall", () => Member(list, "Minimap", "m_pinNameRootSmall", Feature.DungeonMarksOnMap));
             Each("Minimap.m_mapImageSmall", () => Member(list, "Minimap", "m_mapImageSmall", Feature.DungeonMarksOnMap));
             Each("Minimap.m_pinSizeSmall", () => Member(list, "Minimap", "m_pinSizeSmall", Feature.DungeonMarksOnMap));

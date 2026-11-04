@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.2
+
+On TargetPortal's map of portals, Scry's marks step aside with the map's pins while its Hide map pins setting is on.
+
 ## 0.4.1
 
 The compendium now learns things it used to miss: world pieces you hit, such as Dvergr crates and goblin fences; beds, chairs, ship helms, portals and ladders you use; loot a backpack mod stores outside your inventory; tall trees, landmarks and far-off creatures such as a Gjall; and attacks seen from as far as a creature uses them, taunts among them.
