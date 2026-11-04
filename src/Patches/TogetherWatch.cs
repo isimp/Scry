@@ -32,6 +32,8 @@ namespace Scry
             {
                 CompendiumKeeper.MetIn(item.Key, item.At);
                 CompendiumKeeper.Arrived(item.Key, item.At);
+                // Held from the taking, as a mod may store it in an inventory of its own the look at what the character carries never sees.
+                CompendiumKeeper.Took(item.Key);
             });
         }
 

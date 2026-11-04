@@ -131,6 +131,7 @@ namespace Scry
             EffectOnYouTells(p);
             BuiltThingsTell(p, Fresh);
             AttacksToldApartTell(p);
+            UsesTakesAndHitsTell(p, Fresh);
             RaidsAndPlacesTell(p, Fresh);
             AltarTells(p, Fresh);
             FedThenHeldTells(p, Fresh);
@@ -389,6 +390,62 @@ namespace Scry
                 }
             }
             p.Note($"{Numbers.Count(shared.Count)} triggers two weapons share, told by the hand: {string.Join("; ", shared.Take(24))}");
+        }
+
+        /// <summary>
+        /// The uses the game answers false to, fed where the game does them: lying in a bed and
+        /// sitting in a chair attach the character (<c>Player.AttachStart</c>), each then known as
+        /// used. What the character takes is held wherever a mod then puts it: an item gone out of a
+        /// container towards its inventory, and one picked up. A hit taken names its weapon by its
+        /// own marks: a Gjall's spit, a projectile with blunt and poison damage, whatever the Gjall
+        /// holds. All on the game's own prefabs, nothing spawned.
+        /// </summary>
+        private static void UsesTakesAndHitsTell(Probe p, System.Func<CompendiumBook> fresh)
+        {
+            var player = Player.m_localPlayer;
+            foreach (var (name, attach) in new (string, System.Func<GameObject, (Transform, GameObject)>)[]
+            {
+                ("bed", g => (g.GetComponent<Bed>().OrNull()?.m_spawnPoint, g)),
+                ("piece_chair", g => (g.GetComponent<Chair>().OrNull()?.m_attachPoint, null)),
+            })
+            {
+                var prefab = GamePrefabs.Named(name);
+                var (point, root) = prefab != null ? attach(prefab) : (null, null);
+                if (point == null || X.Find(name) == null)
+                {
+                    p.Note($"no {name} with an attach point in the game: its use untried");
+                    continue;
+                }
+                var book = fresh();
+                UseWatch.Attached(player, point, root);
+                p.Check(book.Level(name) == KnownLevel.Known && book.Came(name)?.Way == CameBy.Used, $"lying or sitting in a {name} makes it known as used, though the game answers its use with false", $"{book.Level(name)}, {book.Came(name)?.Way}");
+            }
+
+            var trophy = GamePrefabs.Item("TrophySeeker");
+            if (trophy == null) trophy = GamePrefabs.Item("TrophyBoar");
+            var item = trophy.OrNull()?.GetComponent<ItemDrop>().OrNull()?.m_itemData;
+            if (item != null && X.Find(trophy.name) != null)
+            {
+                var taken = fresh();
+                var chest = new Inventory("selftest", null, 2, 1);
+                TakeWatch.Moved(player.GetInventory(), chest, TakeWatch.Before(new[] { item }));
+                p.Check(taken.Level(trophy.name) == KnownLevel.Known && taken.Came(trophy.name)?.Way == CameBy.Held, $"{trophy.name} gone out of a container towards the character is held, wherever a mod then puts it");
+                var picked = fresh();
+                TogetherWatch.PickedUp(true, (trophy.name, player.transform.position));
+                p.Check(picked.Level(trophy.name) == KnownLevel.Known, $"{trophy.name} picked up is held, wherever a mod then puts it");
+            }
+            else p.Note("no trophy item in the game: taking untried");
+
+            var gjall = GamePrefabs.Named("Gjall").OrNull()?.GetComponent<Character>();
+            var spit = GamePrefabs.Item("gjall_attack_spit").OrNull()?.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
+            if (gjall != null && spit != null && X.Find("Gjall") != null)
+            {
+                var book = fresh();
+                var hit = new HitData { m_damage = spit.m_damages, m_ranged = true };
+                CompendiumKeeper.HitBy(gjall, hit);
+                p.Check(book.Proved("Gjall", EntryKeys.Attack("gjall_attack_spit")), "a Gjall's spit taken is found out by the hit's own marks, whatever the Gjall holds");
+            }
+            else p.Note("no Gjall or its spit in the game: hit marks untried");
         }
 
         /// <summary>Whether a piece stands from the world, not from a player (<see cref="WorldPiece"/>).</summary>

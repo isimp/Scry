@@ -39,11 +39,13 @@ namespace Scry
         /// <param name="bitesOn">Whether a fish bites on an item as its bait, by their prefabs; where not told, no pairing counts as a catch.</param>
         /// <param name="biomesShown">Each biome's name as the game shows it in the player's language, by the biome's entry name.</param>
         /// <param name="biomesInEveryLanguage">Each biome's names in every language the game ships, by the biome's entry name; asked for once, only when an area names no biome in the player's language.</param>
+        /// <param name="brokenFrom">The wholes that break into a kind of pieces, by the pieces' prefab (<c>Destructible.m_spawnWhenDestroyed</c>).</param>
         public CompendiumCatchUp(EntryCatalog catalog, Func<string, IReadOnlyList<string>> toolsOf = null, Func<string, bool> soldByTrader = null,
             IReadOnlyDictionary<string, string> biomesShown = null, Func<IReadOnlyDictionary<string, IReadOnlyList<string>>> biomesInEveryLanguage = null,
-            Func<string, string, bool> bitesOn = null)
+            Func<string, string, bool> bitesOn = null, Func<string, IReadOnlyList<string>> brokenFrom = null)
         {
             _catalog = catalog;
+            _brokenFrom = brokenFrom;
             _bitesOn = bitesOn;
             _toolsOf = toolsOf;
             _soldByTrader = soldByTrader;
@@ -143,7 +145,7 @@ namespace Scry
             // only where it grows in a biome the character entered, as Wood picked up in the Meadows
             // says nothing of the Ashlands' logs.
             var growing = items.SelectMany(item => ResourcesGiving(item, entered)).Distinct().ToList();
-            Add(Named(records.Placed, Kind.Piece), CameBy.Built);
+            Add(PlacedPieces(records.Placed), CameBy.Built);
             // The game's record of stations (Player.m_knownStations) fills by being near one, not by using it.
             Add(Named(records.Stations, Kind.Piece), CameBy.Near);
             Add(Named(records.Recipes, Kind.Piece), CameBy.Recipe);
@@ -198,6 +200,8 @@ namespace Scry
             }
             // A book kept before catches were noted holds them as fish paired with their bait.
             if (firstLoad) book.ProveCaughtByBaits(_bitesOn);
+            // A book kept before a whole was known by its pieces knows the whole they alone come from.
+            if (firstLoad) raised += WholesOfPieces(book);
             // A stray kill is told by every kill the records hold, not only those read now.
             var told = ReferenceEquals(all, records) ? known.Select(k => k.Entry) : known.Select(k => k.Entry).Concat(Killed(all, entered));
             foreach (var stray in Unkilled(all, book, told)) book.TakeBack(stray.Key, EntryKeys.Did(Deed.Killed));
@@ -575,6 +579,44 @@ namespace Scry
                 if (token == null || !_byToken.TryGetValue(token, out var entries)) continue;
                 foreach (var entry in entries) if (entry.Kind == kind) yield return entry;
             }
+        }
+
+        /// <summary>
+        /// The pieces placed, by the names the game counts them by, a piece's own name: the pieces
+        /// going by each name, and where none of that kind does, what else goes by it but an item
+        /// or a creature, which are never placed, as a stone placed as a piece is also a pickable
+        /// the catalog keeps among resources.
+        /// </summary>
+        private IEnumerable<Entry> PlacedPieces(IEnumerable<string> tokens)
+        {
+            foreach (var token in tokens)
+            {
+                if (token == null || !_byToken.TryGetValue(token, out var entries)) continue;
+                var pieces = entries.Where(e => e.Kind == Kind.Piece).ToList();
+                foreach (var entry in pieces.Count > 0 ? pieces : entries.Where(e => e.Kind != Kind.Item && e.Kind != Kind.Creature)) yield return entry;
+            }
+        }
+
+        /// <summary>The wholes that break into a kind of pieces, as the catalog's game tells it; none where not told.</summary>
+        private readonly Func<string, IReadOnlyList<string>> _brokenFrom;
+
+        /// <summary>
+        /// The wholes known by their pieces in a book kept before that rule (<see cref="Hit"/>):
+        /// each resource known whose pieces it alone breaks into the book knows, known quietly, as
+        /// caught up. Pieces several wholes break into tell none. How many were raised.
+        /// </summary>
+        private int WholesOfPieces(CompendiumBook book)
+        {
+            if (_brokenFrom == null) return 0;
+            var raised = 0;
+            foreach (var pieces in _catalog.All)
+            {
+                if (pieces.Kind != Kind.Resource || book.Level(pieces.Key) < KnownLevel.Known) continue;
+                var wholes = _brokenFrom(pieces.Name);
+                if (wholes == null || wholes.Count != 1 || !Lists(wholes[0])) continue;
+                if (book.Raise(wholes[0], KnownLevel.Known, quietly: true)) raised++;
+            }
+            return raised;
         }
 
         /// <summary>The entries of a kind made from these prefabs.</summary>

@@ -7,20 +7,23 @@ using UnityEngine;
 namespace Scry
 {
     /// <summary>
-    /// What the character sees, for the compendium, by one rule for everything in the world: a
-    /// thing is seen once it is in the camera's view, nothing solid between, within the reach its
-    /// size gives (<see cref="Sighting.Reach"/>, 30 m for one of a person's size or smaller), a
-    /// creature or a thing within the world's seen reach besides, a place not
-    /// (<see cref="Sighting.ThingReach"/>), and it is paired with the biome and the place it stands in. Creatures are looked at once a
-    /// second; everything else the game keeps in the world (trees, logs, rocks, deposits,
-    /// buildings, pickables, nests, items on the ground) is kept as it wakes and looked at in
-    /// rounds, a share each frame and all once a second (<see cref="Rounds{T}"/>), and let go once
-    /// seen or once nothing more is to be learned of it there. One that stands still rests while
-    /// out of reach, out of view or hidden by more than a move of the character or the eye could
-    /// change, passed over without a look until either moves (<see cref="Viewpoint"/>), so standing
-    /// still costs only what can move. A place is seen with its centre in
-    /// view within its own reach and <see cref="CreatureReach"/> beyond it. A container opened
-    /// shows what it holds, seen, and the container itself is known.
+    /// What the character sees, for the compendium. A creature is seen once it is in the camera's
+    /// view, nothing solid between, as far as its size makes it out (<see cref="Sighting.CreatureReach"/>,
+    /// 30 m for one of a person's size or smaller), its stars, gear and attacks begun only up close,
+    /// within the world's seen reach; any other thing within the world's seen reach of the eye by
+    /// its nearest part (<see cref="Sighting.ThingReach"/>, <see cref="Sighting.NearestSq"/>), as
+    /// the game names a thing where the eye's ray meets it, looked at on its upright at the eye's
+    /// height; and each is paired with the biome and the place it stands in. Creatures are looked
+    /// at once a second; everything else the game keeps in the world (trees, logs, rocks,
+    /// deposits, buildings, pickables, nests, items on the ground) is kept as it wakes and looked
+    /// at in rounds, a share each frame and all once a second (<see cref="Rounds{T}"/>), and let go
+    /// once seen or once nothing more is to be learned of it there. One that stands still rests
+    /// while out of reach, out of view or hidden by more than a move of the character or the eye
+    /// could change, passed over without a look until either moves (<see cref="Viewpoint"/>), so
+    /// standing still costs only what can move. A place is seen with its centre in view within its
+    /// radius and a person's reach beyond, or as far as its height makes it out
+    /// (<see cref="Sighting.PlaceReach"/>). A container opened shows what it holds, seen, and the
+    /// container itself is known.
     /// </summary>
     internal static partial class CompendiumSight
     {
@@ -41,10 +44,8 @@ namespace Scry
             Skins.Clear();
             Triggers.Clear();
             ForgetSwings();
+            ForgetHeights();
         });
-
-        /// <summary>How far beyond its own reach a place in view is seen, as far as a creature of a person's size.</summary>
-        private const float CreatureReach = Sighting.PersonReach;
 
         /// <summary>Half the angle of the view taken as seen, about the width the game's camera shows.</summary>
         private const float HalfView = 50f;
@@ -80,6 +81,11 @@ namespace Scry
             public bool Regrows;
             public CompendiumCatchUp ListedBy;
             public bool Listed;
+
+            /// <summary>Its box over and round where it stands: from its lowest to its highest part, and how far it reaches across the ground, for how near its nearest part is (<see cref="Sighting.NearestSq"/>).</summary>
+            public float Bottom;
+            public float Top;
+            public float Radius;
 
             /// <summary>Its widest side, for how far it is seen for the map, and the kind it is kept by as a spot there (<see cref="SpotKinds"/>); none for one not worth finding again.</summary>
             public float Size;
@@ -127,9 +133,10 @@ namespace Scry
                 if (creature == null || creature.IsPlayer()) continue;
                 var centre = creature.GetCenterPoint();
                 var away = Vector3.Distance(player.transform.position, centre);
-                // Within its size's reach and the world's seen reach, where the game names a creature and marks its stars.
+                // Seen as far as its size makes it out; up close, within the world's seen reach, where
+                // the game names a creature and marks its stars, its stars and gear are seen too.
                 var upClose = away <= book.World.SeenReach;
-                if (away <= Sighting.ThingReach(Sighting.Reach(creature.GetHeight()), book.World.SeenReach) && InView(view, centre) && Clear(view.position, centre, null))
+                if (away <= Sighting.CreatureReach(creature.GetHeight(), book.World.SeenReach) && InView(view, centre) && Clear(view.position, centre, null))
                 {
                     var key = Utils.GetPrefabName(creature.gameObject);
                     // Its level less one is its stars, as the game shows them over it, up close alone.
@@ -156,7 +163,9 @@ namespace Scry
             {
                 if (place == null) continue;
                 var centre = place.transform.position;
-                if (Vector3.Distance(player.transform.position, centre) <= place.m_exteriorRadius + CreatureReach && InView(view, centre) && InSight(view.position, centre, place.m_exteriorRadius))
+                // Within its radius and a person's reach beyond, or as far as its height makes it out.
+                var height = PlaceHeight(place);
+                if (Vector3.Distance(player.transform.position, centre) <= Sighting.PlaceReach(place.m_exteriorRadius, height) && InView(view, centre) && InSight(view.position, centre, place.m_exteriorRadius, height))
                 {
                     var key = EntryKeys.For(Kind.Location, Utils.GetPrefabName(place.gameObject));
                     catchUp.Met(key, KnownLevel.Seen, book);
@@ -374,15 +383,19 @@ namespace Scry
             var at = thing.transform.position;
             var middle = at + Vector3.up * shape.Height;
             var away = (middle - _from).sqrMagnitude;
-            // Within its size's reach and the world's seen reach, as the game names a thing only on
-            // hover; one worth finding again whose spot is not kept yet, within the map's reach too.
+            // Within its size's reach and the world's seen reach of the eye, by its nearest part, as
+            // the game names a thing where the eye's ray meets it, not by its middle, which a tree
+            // carries far overhead; one worth finding again whose spot is not kept yet, within the
+            // map's reach too, by its middle.
+            var foot = V(at);
+            var nearest = Sighting.NearestSq(V(_eye), foot, shape.Bottom, shape.Top, shape.Radius);
             var reach = Sighting.ThingReach(shape.Reach, _book.World.SeenReach);
             var spotReach = SpotsWanted(shape) ? SeenOnMap.Reach(shape.Size, Settings.SeenOnMapReach) : 0f;
-            var farthest = Mathf.Max(reach, spotReach);
-            if (away > farthest * farthest)
+            if (nearest > reach * reach && away > spotReach * spotReach)
             {
-                var beyond = farthest + Viewpoint.Step;
-                return Unchanged(shape, away > beyond * beyond);
+                var beyond = reach + Viewpoint.Step;
+                var beyondSpot = spotReach + Viewpoint.Step;
+                return Unchanged(shape, nearest > beyond * beyond && away > beyondSpot * beyondSpot);
             }
             var spot = spotReach > 0f ? SpotToKeep(shape, at) : null;
             // A pickable whose growing back is not yet found out is kept, as the usual way to meet
@@ -391,7 +404,10 @@ namespace Scry
             // Seen and paired before: let go, or, while its spot is to be kept, only the map's line looked along.
             var known = _letGo && !regrowth && _book.Level(shape.Key) >= KnownLevel.Seen && CompendiumKeeper.PairedIn(shape.Key, at);
             if (known && spot == null) return Looked.LetGo;
-            var toward = middle - _eye;
+            // Looked at on its upright at the eye's height, within its own height.
+            var aimed = Sighting.Aim(V(_eye), foot, shape.Bottom, shape.Top);
+            var aim = new Vector3(aimed.X, aimed.Y, aimed.Z);
+            var toward = aim - _eye;
             var angle = Vector3.Angle(_forward, toward);
             if (angle > HalfView)
             {
@@ -402,7 +418,7 @@ namespace Scry
             // The map keeps its spot where its own line reaches it, leaves stopping it as they stop a creature's eye.
             var spotted = spot != null && away <= spotReach * spotReach && SpotInSight(_eye, middle, thing.transform) && SeenSpotsKeeper.Saw(spot, at.x, at.z);
             if (known) return spotted ? Looked.LetGo : SpotUnseen(shape, away, spotReach);
-            if (away > reach * reach || !Clear(_eye, middle, thing.transform)) return Unchanged(shape, true);
+            if (nearest > reach * reach || !Clear(_eye, aim, thing.transform)) return Unchanged(shape, true);
             _catchUp.Met(shape.Key, KnownLevel.Seen, _book);
             CompendiumKeeper.MetIn(shape.Key, at);
             if (regrowth) DeedWatch.SeenBearingAgain(thing.GetComponent<Pickable>());
@@ -436,7 +452,11 @@ namespace Scry
                 shape.Reach = Sighting.Reach(shape.Size);
                 shape.Spot = SpotKinds.Of(prefab);
                 shape.Garden = shape.Spot != null && SpotKinds.GrowsInGardens(prefab);
-                shape.Height = Mathf.Max(LeastHeight, bounds.center.y - thing.transform.position.y);
+                var foot = thing.transform.position;
+                shape.Height = Mathf.Max(LeastHeight, bounds.center.y - foot.y);
+                shape.Bottom = bounds.min.y - foot.y;
+                shape.Top = Mathf.Max(shape.Bottom + LeastHeight, bounds.max.y - foot.y);
+                shape.Radius = Mathf.Max(Mathf.Abs(bounds.center.x - foot.x) + bounds.extents.x, Mathf.Abs(bounds.center.z - foot.z) + bounds.extents.z);
             }
             Shapes[prefab] = shape;
             return shape;
@@ -515,9 +535,9 @@ namespace Scry
         private static bool InView(Transform view, Vector3 point) => Vector3.Angle(view.forward, point - view.position) <= HalfView;
 
         /// <summary>Whether any of the points a place is looked for at (<see cref="Sighting.PlacePoints"/>) is in sight from the eye (<see cref="Sighting.PlaceInSight"/>).</summary>
-        private static bool InSight(Vector3 eye, Vector3 centre, float radius)
+        private static bool InSight(Vector3 eye, Vector3 centre, float radius, float height)
         {
-            foreach (var (x, y, z) in Sighting.PlacePoints(radius))
+            foreach (var (x, y, z) in Sighting.PlacePoints(radius, height))
             {
                 var blocked = Physics.Linecast(eye, centre + new Vector3(x, y, z), out var hit, _solid);
                 if (Sighting.PlaceInSight(blocked, hit.point.x - centre.x, hit.point.z - centre.z, radius)) return true;

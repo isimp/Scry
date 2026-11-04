@@ -42,6 +42,10 @@ namespace Scry
             });
         }
 
+        /// <summary>The character attached to something (<c>Player.AttachStart</c>): the thing it attached to used, the collider root it names or else what holds its attach point.</summary>
+        public static void Attached(Player who, Transform attachPoint, GameObject colliderRoot) =>
+            Used(who, colliderRoot != null ? colliderRoot : attachPoint != null ? attachPoint.gameObject : null);
+
         public static void Used(Humanoid who, GameObject go)
         {
             if (who == null || who != Player.m_localPlayer || go == null) return;
@@ -79,6 +83,62 @@ namespace Scry
     internal static class UsingWatched
     {
         private static void Postfix(Humanoid __instance, GameObject obj) => UseWatch.Used(__instance, obj);
+    }
+
+    /// <summary>
+    /// The uses the game answers false to, so they never reach <c>DoInteractAnimation</c>, watched
+    /// where the game does them: sitting, lying down to sleep or taking a ship's helm attaches the
+    /// character (<c>Player.AttachStart</c>, the attach point standing under the piece used);
+    /// steering anything (<c>Player.StartDoodadControl</c>); a bed claimed, the character's spawn
+    /// point now at it (<c>Bed.IsCurrent</c> after <c>Bed.Interact</c>); a portal gone through,
+    /// the character now teleporting (<c>TeleportWorld.Teleport</c>, <c>Player.IsTeleporting</c>);
+    /// a ladder climbed, the character moved to its top (<c>Ladder.Interact</c>).
+    /// </summary>
+    [HarmonyPatch(typeof(Player), nameof(Player.AttachStart))]
+    internal static class AttachWatched
+    {
+        private static void Postfix(Player __instance, Transform attachPoint, GameObject colliderRoot) => UseWatch.Attached(__instance, attachPoint, colliderRoot);
+    }
+
+    [HarmonyPatch(typeof(Player), nameof(Player.StartDoodadControl))]
+    internal static class SteerWatched
+    {
+        private static void Postfix(Player __instance, IDoodadController shipControl) => UseWatch.Used(__instance, (shipControl as Component).OrNull()?.gameObject);
+    }
+
+    [HarmonyPatch(typeof(Bed), nameof(Bed.Interact))]
+    internal static class BedClaimWatched
+    {
+        private static void Postfix(Bed __instance, Humanoid human, bool repeat)
+        {
+            if (repeat || __instance == null) return;
+            Guard.Run(Feature.CompendiumUse, "noting a bed claimed", () =>
+            {
+                if (__instance.IsCurrent()) UseWatch.Used(human, __instance.gameObject);
+            });
+        }
+    }
+
+    [HarmonyPatch(typeof(TeleportWorld), nameof(TeleportWorld.Teleport))]
+    internal static class PortalWatched
+    {
+        private static void Postfix(TeleportWorld __instance, Player player)
+        {
+            if (__instance == null || player == null || !player.IsTeleporting()) return;
+            UseWatch.Used(player, __instance.gameObject);
+        }
+    }
+
+    [HarmonyPatch(typeof(Ladder), nameof(Ladder.Interact))]
+    internal static class LadderWatched
+    {
+        private static void Prefix(Humanoid character, out Vector3 __state) => __state = character != null ? character.transform.position : Vector3.zero;
+
+        private static void Postfix(Ladder __instance, Humanoid character, bool hold, Vector3 __state)
+        {
+            if (hold || __instance == null || character == null) return;
+            if ((character.transform.position - __state).sqrMagnitude > 0.01f) UseWatch.Used(character, __instance.gameObject);
+        }
     }
 
     [HarmonyPatch(typeof(UITooltip), nameof(UITooltip.OnHoverStart))]

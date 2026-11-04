@@ -341,5 +341,14 @@ namespace Scry.Tests
             Assert.False(CombatWords.IsCreatureAttack("Shoulder", "swing_longsword"));
             Assert.False(CombatWords.IsCreatureAttack("Shield", "swing_longsword"));
         }
+
+        [Fact]
+        public void ACreatureOnTheAnimalsMindHasNoAttacks()
+        {
+            // The game's animal mind never attacks (AnimalAI has no attack of its own, unlike
+            // MonsterAI): a moose calf carries hooves and horns it never uses.
+            Assert.True(CombatWords.IsCreatureAttack("OneHandedWeapon", "attack", fights: true));
+            Assert.False(CombatWords.IsCreatureAttack("OneHandedWeapon", "attack", fights: false));
+        }
     }
 }

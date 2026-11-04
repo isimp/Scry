@@ -59,6 +59,18 @@ namespace Scry
             HeldBefore.UnionWith(held);
         }
 
+        /// <summary>
+        /// An item the character took, picked up or moved out of a container towards its own
+        /// inventory, by its prefab, as news: known as held, as the look at what it carries makes
+        /// it, wherever the item was put then, an inventory a mod keeps apart from the character's
+        /// own among them (<see cref="TakeWatch"/>).
+        /// </summary>
+        public static void Took(string item)
+        {
+            if (Into == null || _catchUp == null || string.IsNullOrEmpty(item)) return;
+            _catchUp.Met(item, KnownLevel.Known, Into, CameBy.Held);
+        }
+
         /// <summary>The character holding these things at a look, as play's own look tells it (<see cref="HeldProducts"/>); for the self-test.</summary>
         [ForTest]
         public static void Holding(IEnumerable<string> held) => HeldProducts(new HashSet<string>(held, StringComparer.Ordinal));

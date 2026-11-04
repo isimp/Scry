@@ -17,6 +17,58 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AThingIsSeenByItsNearestPartNotItsMiddle()
+        {
+            // The game names a thing where the eye's ray meets it (Player.FindHoverObject), so a
+            // beech 29.5 m tall, whose middle stands 14 m up, is near for one standing 8 m from its
+            // trunk (a 3 m crown round it): its nearest part 5 m off at the eye's height.
+            var eye = new Vec3(8f, 1.7f, 0f);
+            var foot = new Vec3(0f, 0f, 0f);
+            Assert.Equal(25f, Sighting.NearestSq(eye, foot, bottom: 0f, top: 29.5f, radius: 3f), 3);
+            // Under its crown, nothing between.
+            Assert.Equal(0f, Sighting.NearestSq(new Vec3(1f, 1.7f, 0f), foot, 0f, 29.5f, 3f), 3);
+            // Above a low stone, the height between counts.
+            Assert.Equal(1f + 16f, Sighting.NearestSq(new Vec3(1.5f, 4.5f, 0f), foot, 0f, 0.5f, 0.5f), 3);
+            // A thing whose box starts below its foot, as a rock half in the ground.
+            Assert.Equal(0f, Sighting.NearestSq(new Vec3(0f, -0.5f, 0f), foot, -1f, 2f, 1f), 3);
+        }
+
+        [Fact]
+        public void AThingIsLookedAtOnItsOwnUprightAtTheEyesHeight()
+        {
+            // The line of sight goes to the trunk at the eye's height, within the thing's own height.
+            var foot = new Vec3(4f, 10f, 2f);
+            var aim = Sighting.Aim(new Vec3(0f, 11.7f, 0f), foot, bottom: 0f, top: 29.5f);
+            Assert.Equal(4f, aim.X);
+            Assert.Equal(11.7f, aim.Y, 3);
+            Assert.Equal(2f, aim.Z);
+            // Looking down on a small stone, the line goes to its top; from below a cliff, to its foot.
+            Assert.Equal(10.5f, Sighting.Aim(new Vec3(0f, 20f, 0f), foot, 0f, 0.5f).Y, 3);
+            Assert.Equal(9f, Sighting.Aim(new Vec3(0f, 0f, 0f), foot, -1f, 40f).Y, 3);
+        }
+
+        [Fact]
+        public void ACreatureIsSeenAsFarAsItsSizeMakesItOutItsStarsAndGearUpClose()
+        {
+            // A creature in view is seen by its size whatever the world's seen reach, which keeps
+            // only its stars, gear and attacks begun near: a Gjall 4 m tall makes out at about 67 m.
+            Assert.Equal(Sighting.Reach(4f), Sighting.CreatureReach(4f, seenReach: 10f), 3);
+            Assert.Equal(30f, Sighting.CreatureReach(1.8f, seenReach: 10f), 3);
+            // A world seeing up close farther than a creature's size reach sees it that far.
+            Assert.Equal(40f, Sighting.CreatureReach(1.8f, seenReach: 40f), 3);
+        }
+
+        [Fact]
+        public void APlaceStandingTallIsSeenAsFarAsItsHeightMakesItOut()
+        {
+            // A place is seen within its radius and 30 m beyond, or as far as its height makes it
+            // out: the Mistlands' rock spire, 4 m round and some 40 m tall, from 150 m.
+            Assert.Equal(34f, Sighting.PlaceReach(radius: 4f, height: 1.8f), 3);
+            Assert.Equal(150f, Sighting.PlaceReach(radius: 4f, height: 40f), 3);
+            Assert.Equal(54f, Sighting.PlaceReach(radius: 24f, height: 3f), 3);
+        }
+
+        [Fact]
         public void AThingThatIsNoCreatureIsSeenOnlyWithinTheWorldsSeenReach()
         {
             // The game names an item, a piece or a resource only on hover, so sight makes one out
@@ -68,6 +120,17 @@ namespace Scry.Tests
                 Assert.Equal(1.8f, y);
                 Assert.Equal(6f, System.MathF.Sqrt(x * x + z * z), 3);
             }
+        }
+
+        [Fact]
+        public void APlaceStandingTallIsLookedForHighUpToo()
+        {
+            // A rock spire 40 m tall shows over a hill that hides its foot: looked for three
+            // quarters of the way up as well; a low place is looked for as before.
+            var tall = Sighting.PlacePoints(4f, height: 40f);
+            Assert.Equal(6, tall.Length);
+            Assert.Equal((0f, 30f, 0f), tall[5]);
+            Assert.Equal(5, Sighting.PlacePoints(12f, height: 3f).Length);
         }
 
         [Fact]

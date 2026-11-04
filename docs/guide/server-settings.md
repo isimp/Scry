@@ -10,7 +10,7 @@ A server with Scry, a dedicated one or a game hosting, can set what the compendi
 
 `KnownUpTo` (true by default) is whether players may raise *Known up to*, showing everything of the tiers below the bosses they beat as known.
 
-`SeenReach` (10 by default) is how near, in metres, a creature, an item, a piece or a resource in view counts as seen, a creature's stars, what it carries and its attacks begun kept for the compendium: as far as the game names a creature and marks its stars over it. An attack begun is seen as far as its creature uses it from where that is farther. At 0 no stars, gear or attacks are kept, and things are seen by their size alone. Under *Strict* the stage shows a creature only with the stars and gear it was seen with so; 0 keeps none.
+`SeenReach` (10 by default) is how near, in metres, an item, a piece or a resource in view counts as seen, by its nearest part, and a creature's stars, what it carries and its attacks begun are kept for the compendium (a creature itself is seen as far as its size makes it out): as far as the game names a creature and marks its stars over it. An attack begun is seen as far as its creature uses it from where that is farther. At 0 no stars, gear or attacks are kept, and things are seen by their size alone. Under *Strict* the stage shows a creature only with the stars and gear it was seen with so; 0 keeps none.
 
 `SeenOnMapReach` (50 by default) is how far away, in metres, a player's sight remembers where an ore deposit, a pickable or a place stands, for *Show on map*, things smaller than a person seen nearer. At 0 nothing is remembered, and nothing stands on the map, shown or kept, but the dungeons a player walked.
 

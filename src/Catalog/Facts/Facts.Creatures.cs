@@ -206,7 +206,7 @@ namespace Scry
                 var shared = item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
                 var attack = shared?.m_attack;
                 // What it wears, its armor and shield, is no attack of its.
-                if (attack == null || !CombatWords.IsCreatureAttack(shared.m_itemType.ToString(), attack.m_attackAnimation)) continue;
+                if (attack == null || !CombatWords.IsCreatureAttack(shared.m_itemType.ToString(), attack.m_attackAnimation, Fights(prefab))) continue;
                 // The game names some attacks in its own shorthand ("slap", "LOG"), not by a name to show,
                 // and some by the creature's own name; one of those that fires something goes by what it
                 // fires ("fireballattack" is a troll's rock throw, a greydwarf's "Greydwarf" its stone throw).
@@ -268,6 +268,9 @@ namespace Scry
             if (row.Items.Count > 0) Rows.Add(row);
         }
 
+        /// <summary>Whether a creature ever fights: none on the game's animal mind does (<c>AnimalAI</c>, which never attacks), unless it has the monsters' mind too.</summary>
+        private static bool Fights(GameObject prefab) => prefab.GetComponent<AnimalAI>() == null || prefab.GetComponent<MonsterAI>() != null;
+
         /// <summary>A creature's attacks, each by its item and the damage types it deals (<see cref="Entry.Attacks"/>): what it carries that is an attack, not what it wears.</summary>
         internal static (string Item, string[] Types)[] AttacksOf(GameObject prefab)
         {
@@ -275,7 +278,7 @@ namespace Scry
             foreach (var item in Relations.CarriedItems(prefab))
             {
                 var shared = item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
-                if (shared?.m_attack == null || !CombatWords.IsCreatureAttack(shared.m_itemType.ToString(), shared.m_attack.m_attackAnimation)) continue;
+                if (shared?.m_attack == null || !CombatWords.IsCreatureAttack(shared.m_itemType.ToString(), shared.m_attack.m_attackAnimation, Fights(prefab))) continue;
                 attacks.Add((item.name, SearchFight.Dealt(DamageFigures(shared.m_damages))));
             }
             var death = DeathAttackOf(prefab, out _);

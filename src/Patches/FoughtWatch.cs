@@ -34,7 +34,7 @@ namespace Scry
             Guard.Run(Feature.CompendiumFought, "noting a creature fought", () =>
             {
                 CompendiumKeeper.Fought(hit.GetAttacker());
-                CompendiumKeeper.HitBy(hit.GetAttacker());
+                CompendiumKeeper.HitBy(hit.GetAttacker(), hit);
             });
         }
     }

@@ -8,6 +8,16 @@ A creature's attack counts as seen from as far as the creature uses it, so a See
 
 Attacks that start alike are told apart by the weapon the creature holds, or by what they make beside it, so a Dvergr mage's shield and its Mistile summon, a Dvergr's two crossbow shots, a goblin's club, sword and torch and the Fader's and Jotun warrior's twin attacks all count when seen. A mage's fireball counts when seen, and a Dvergr mage on the stage wears each robe you saw it in.
 
+Sitting in a chair, sleeping in or claiming a bed, taking a ship's helm, going through a portal and climbing a ladder now count as using them, so a friend's bed, ship or portal is known by using it.
+
+Loot counts as held as you take it, picked up or taken out of a chest, also where a mod such as a backpack stores it outside your inventory.
+
+A hit taken is told by the attack it came from, as its damage, its status effect and whether it flew show, so a slow projectile no longer counts as whatever the creature holds when it lands.
+
+Trees, tall rocks and other big things count as seen by their nearest part, as the game names them, not by their middle far overhead. A creature counts as seen as far as its size makes it out, a Gjall too, its stars, gear and attacks still only up close. A tall place such as a rock spire counts as seen as far as it stands out.
+
+A creature that never fights, as a moose calf, lists no attacks. A stone placed as a piece counts as placed, and an older book knows a whole rock or vein from the pieces it mined.
+
 A fish's stars are numbered as the game numbers a caught fish, 1 to 5: its fight table, its page and what is left to find out on it. A fish you landed now opens the column it was caught at.
 
 ## 0.4.0

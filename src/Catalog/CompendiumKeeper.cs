@@ -203,7 +203,7 @@ namespace Scry
             }
             return new CompendiumCatchUp(catalog, piece => Knowledge.Tools.ToolsOf(piece).Select(u => u.Tool).Distinct().ToList(),
                 item => Knowledge.SourceLines(item).Any(line => line.Record?.Way == SourceWay.Sold), shown, () => BiomesInEveryLanguage(catalog),
-                (fish, bait) => Knowledge.Catches(bait).Any(c => c.Fish == fish));
+                (fish, bait) => Knowledge.Catches(bait).Any(c => c.Fish == fish), pieces => BrokenFrom(pieces));
         }
 
         /// <summary>
@@ -345,14 +345,68 @@ namespace Scry
             if (_catchUp.Lists(key)) Into.Died(key);
         }
 
-        /// <summary>A creature's attack hit the character: the two seen together, for the strict rules' attack table.</summary>
-        public static void HitBy(Character creature)
+        /// <summary>
+        /// A creature's attack hit the character: the attack found out, for the strict rules' attack
+        /// table, named by the hit's own marks among the creature's weapons, else by the weapon it
+        /// holds (<see cref="AttackOfHit"/>), as a projectile may land after the creature took up another.
+        /// </summary>
+        public static void HitBy(Character creature, HitData hit = null)
         {
             if (Into == null || creature == null || creature.IsPlayer()) return;
-            var weapon = WeaponOf((creature as Humanoid).OrNull());
+            var key = Utils.GetPrefabName(creature.gameObject);
+            var held = WeaponOf((creature as Humanoid).OrNull()).OrNull()?.name;
+            var weapon = hit != null ? AttackOfHit.Pick(WeaponMarks(key), MarksOf(hit), held) : held;
             if (weapon == null) return;
-            Into.FoundOut(Utils.GetPrefabName(creature.gameObject), EntryKeys.Attack(weapon.name));
+            Into.FoundOut(key, EntryKeys.Attack(weapon));
             Noted(PlayEvent.HitTaken);
+        }
+
+        /// <summary>Each creature prefab's weapons with the marks their hits carry, worked out once each.</summary>
+        private static readonly Dictionary<string, (string Item, AttackMarks[] Attacks)[]> Marks = new Dictionary<string, (string, AttackMarks[])[]>(System.StringComparer.Ordinal);
+
+        /// <summary>
+        /// A creature prefab's weapons, the items the game attacks with (<c>IsWeapon</c>), each with
+        /// the marks its hits carry: its damage types and status effect, flown where its attack
+        /// fires a projectile, and flown too for an area its swing leaves (<c>m_spawnOnTrigger</c>).
+        /// </summary>
+        private static (string Item, AttackMarks[] Attacks)[] WeaponMarks(string prefabName)
+        {
+            if (Marks.TryGetValue(prefabName, out var known)) return known;
+            var found = new List<(string, AttackMarks[])>();
+            var prefab = GamePrefabs.Named(prefabName);
+            if (prefab != null)
+            {
+                foreach (var item in Relations.CarriedItems(prefab))
+                {
+                    var data = item.GetComponent<ItemDrop>().OrNull()?.m_itemData;
+                    var shared = data?.m_shared;
+                    if (shared == null || !data.IsWeapon()) continue;
+                    var types = TypesOf(shared.m_damages);
+                    var status = shared.m_attackStatusEffect != null ? shared.m_attackStatusEffect.NameHash() : 0;
+                    var attacks = new List<AttackMarks>();
+                    foreach (var attack in new[] { shared.m_attack, shared.m_secondaryAttack })
+                    {
+                        if (attack == null || string.IsNullOrEmpty(attack.m_attackAnimation)) continue;
+                        var flies = attack.m_attackType == Attack.AttackType.Projectile || attack.m_attackType == Attack.AttackType.TriggerProjectile;
+                        attacks.Add(new AttackMarks(types, flies, status));
+                        if (!flies && attack.m_spawnOnTrigger != null) attacks.Add(new AttackMarks(types, true, status));
+                    }
+                    if (attacks.Count > 0) found.Add((item.name, attacks.ToArray()));
+                }
+            }
+            return Marks[prefabName] = found.ToArray();
+        }
+
+        /// <summary>The marks a hit carries (<see cref="AttackMarks"/>).</summary>
+        private static AttackMarks MarksOf(HitData hit) => new AttackMarks(TypesOf(hit.m_damage), hit.m_ranged, hit.m_statusEffectHash);
+
+        /// <summary>The damage types a set of damage holds any of, by name (<see cref="ResistWords.Types"/>).</summary>
+        private static string[] TypesOf(HitData.DamageTypes d)
+        {
+            var amounts = new[] { d.m_blunt, d.m_slash, d.m_pierce, d.m_chop, d.m_pickaxe, d.m_fire, d.m_frost, d.m_lightning, d.m_poison, d.m_spirit };
+            var types = new List<string>();
+            for (var i = 0; i < amounts.Length; i++) if (amounts[i] > 0f) types.Add(ResistWords.Types[i]);
+            return types.ToArray();
         }
 
         /// <summary>
@@ -889,6 +943,7 @@ namespace Scry
         private static void LetGo()
         {
             _weatherSeen = default;
+            Marks.Clear();
             ForgetDeeds();
             WildNear.Forget();
             Credits.Forget();

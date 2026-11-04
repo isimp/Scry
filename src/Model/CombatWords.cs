@@ -155,10 +155,12 @@ namespace Scry
         /// <summary>
         /// Whether an item a creature may carry is one of its attacks: one with an attack
         /// animation (<c>Attack.Start</c> pulls its trigger), and no armor or shield, which a
-        /// creature wears (a draugr's shield, a goblin's armband, a dverger's suit).
+        /// creature wears (a draugr's shield, a goblin's armband, a dverger's suit); none at all for
+        /// a creature that never fights (<paramref name="fights"/> false), as one on the game's
+        /// animal mind, which has no attack of its own (<c>AnimalAI</c>).
         /// </summary>
-        public static bool IsCreatureAttack(string itemType, string animation) =>
-            !string.IsNullOrEmpty(animation) && Array.IndexOf(Worn, itemType) < 0;
+        public static bool IsCreatureAttack(string itemType, string animation, bool fights = true) =>
+            fights && !string.IsNullOrEmpty(animation) && Array.IndexOf(Worn, itemType) < 0;
 
         /// <summary>The kinds of item a creature wears rather than attacks with, by the game's item type names.</summary>
         private static readonly string[] Worn = { "Shield", "Helmet", "Chest", "Legs", "Shoulder", "Hands", "Utility", "Trinket", "Customization" };

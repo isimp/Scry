@@ -198,6 +198,8 @@ namespace Scry
             ("Humanoid", "EquipBestWeapon", 4, 0xB07DC48A, Feature.CompendiumSeen),
             ("VisEquipment", "SetRightItem", 2, 0x1885E76C, Feature.CompendiumSeen),
             ("ZDOMan", "SendZDOToPeers2", 1, 0xDAC6CE3B, Feature.CompendiumSeen),
+            ("Player", "FindHoverObject", 2, 0x789E8B4A, Feature.CompendiumSeen),
+            ("Player", "OnInventoryChanged", 0, 0xD9EB50F5, Feature.CompendiumUse),
             ("InventoryGui", "DoCrafting", 1, 0xB23B2021, Feature.YourSkillFigures),
             ("CookingStation", "OnInteract", 1, 0xB79AADAA, Feature.YourSkillFigures),
             ("Pickable", "Interact", 3, 0x5ECB8AAD, Feature.YourSkillFigures),

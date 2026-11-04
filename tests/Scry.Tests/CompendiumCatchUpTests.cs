@@ -386,6 +386,66 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APlacedPieceTheCatalogKeepsAsAnotherKindIsKnownButNotTheItemOfItsName()
+        {
+            // A stone placed as a piece is also a pickable, kept among resources, and goes by the
+            // stone's own name, as the game counts pieces placed by the name they show.
+            var placeable = E(Kind.Resource, "Placeable_Stone", "$item_stone");
+            var stone = E(Kind.Item, "Stone", "$item_stone");
+            var (catchUp, book) = Fresh(placeable, stone);
+            var records = new CompendiumRecords();
+            records.Placed.Add("$item_stone");
+
+            catchUp.Fill(records, book, firstLoad: false);
+
+            Assert.Equal(KnownLevel.Known, book.Level(placeable.Key));
+            Assert.Equal(CameBy.Built, book.Came(placeable.Key)?.Way);
+            // An item is never placed, so placing says nothing of the stone itself.
+            Assert.Equal(KnownLevel.Unknown, book.Level(stone.Key));
+        }
+
+        [Fact]
+        public void ABookKeptBeforeWholesWereKnownByTheirPiecesKnowsTheWholeOnLoading()
+        {
+            // A silver vein breaks into its pieces alone at its first hit; pieces mined before the
+            // whole was known by them make it known as the character loads, quietly, as caught up.
+            var vein = E(Kind.Resource, "silvervein");
+            var pieces = E(Kind.Resource, "silvervein_frac");
+            var rock = E(Kind.Resource, "rock4_forest");
+            var shared = E(Kind.Resource, "rock4_forest_frac");
+            var skull = E(Kind.Resource, "ancient_skull");
+            var catchUp = new CompendiumCatchUp(new EntryCatalog(new[] { vein, pieces, rock, shared, skull }),
+                brokenFrom: key => key == "silvervein_frac" ? new[] { "silvervein" } : key == "rock4_forest_frac" ? new[] { "rock4_forest", "ancient_skull" } : new string[0]);
+            var book = new CompendiumBook();
+            book.Raise(pieces.Key, KnownLevel.Known, way: CameBy.Hit);
+            book.Raise(shared.Key, KnownLevel.Known, way: CameBy.Hit);
+
+            catchUp.Fill(new CompendiumRecords(), book, firstLoad: true);
+
+            Assert.Equal(KnownLevel.Known, book.Level(vein.Key));
+            Assert.Null(book.Came(vein.Key));
+            // Pieces several wholes break into tell neither.
+            Assert.Equal(KnownLevel.Unknown, book.Level(rock.Key));
+            Assert.Equal(KnownLevel.Unknown, book.Level(skull.Key));
+        }
+
+        [Fact]
+        public void APlacedPieceOfItsOwnKindIsTheOnePlaced()
+        {
+            // Where a piece goes by the name, another kind going by it too is not taken for it.
+            var wall = E(Kind.Piece, "wood_wall", "$piece_woodwall");
+            var other = E(Kind.Resource, "wood_wall_ruin", "$piece_woodwall");
+            var (catchUp, book) = Fresh(wall, other);
+            var records = new CompendiumRecords();
+            records.Placed.Add("$piece_woodwall");
+
+            catchUp.Fill(records, book, firstLoad: false);
+
+            Assert.Equal(KnownLevel.Known, book.Level(wall.Key));
+            Assert.Equal(KnownLevel.Unknown, book.Level(other.Key));
+        }
+
+        [Fact]
         public void AnEntryWithoutANameOfItsOwnIsPassedOver()
         {
             var odd = E(Kind.Item, "ModThing", null, "");
