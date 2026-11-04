@@ -351,6 +351,8 @@ namespace Scry
             foreach (var kept in Kept)
             {
                 if (!MapMarks.Place(kept.Map.Entrance, map.m_pixelSize, map.m_textureSize, (window.xMin, window.yMin, window.width, window.height), (area.width, area.height), out var at)) continue;
+                // Only where the map shows the ground: an entrance seen farther than it explores waits under its fog.
+                if (!CompendiumMap.ShownAt(map, kept.Map.Entrance.X, kept.Map.Entrance.Z)) continue;
                 InView.Add((kept, at));
                 InViewIds.Add(kept.Id);
             }

@@ -33,6 +33,8 @@ namespace Scry
         {
             ("VisEquipment", "AttachItem", 6, 0xD7DAC228, Feature.GearOnCreaturesAndPerson),
             ("VisEquipment", "AttachArmor", 3, 0x7618F46A, Feature.GearOnCreaturesAndPerson),
+            ("Minimap", "IsExplored", 1, 0x6CAB14AF, Feature.ShowOnMap),
+            ("Minimap", "WorldToPixel", 3, 0x81BF5BE4, Feature.ShowOnMap),
             ("Humanoid", "GiveDefaultItems", 0, 0x308C20BE, Feature.WhatCreaturesCarry),
             ("Humanoid", "EquipItem", 2, 0xB6B9953E, Feature.WhichGearTakesPlaceOfWhich),
             ("Humanoid", "SetupVisEquipment", 2, 0x17BDBBAE, Feature.ArmourOnRagdolls),

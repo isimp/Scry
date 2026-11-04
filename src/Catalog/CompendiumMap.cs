@@ -497,6 +497,26 @@ namespace Scry
             return Array.TrueForAll(words, w => w == 0) ? (0, 0f, null) : (size, map.m_pixelSize, words);
         }
 
+        /// <summary>
+        /// Whether Valheim's map shows the ground at a world position now, as the game tells it
+        /// (<see cref="ExploredGrid.ShownAt"/>): where Scry's marks and dots may stand on it. None
+        /// without a map.
+        /// </summary>
+        public static bool ShownAt(Minimap map, float x, float z)
+        {
+            if (map == null) return false;
+            var (own, shared) = ExploredBits(map);
+            // Worked out all the same with every ground counted shown, so what it costs is still timed.
+            return ExploredGrid.ShownAt(x, z, map.m_textureSize, map.m_pixelSize, own, shared) || _shownEverywhere;
+        }
+
+        /// <summary>Whether every ground counts as shown, for the self-test's made-up spots far round the character; reset with the world.</summary>
+        private static bool _shownEverywhere;
+
+        /// <summary>Counts every ground as shown, or the map's own again, for the self-test's parts that stand made-up spots far round the character.</summary>
+        [ForTest]
+        public static void ShownEverywhereForTest(bool everywhere) => _shownEverywhere = everywhere;
+
         /// <summary>The map's explored bits as the game keeps them, the character's own and those from shared maps, a bit a pixel at y times the side plus x; none where the map has none.</summary>
         public static (BitArray Own, BitArray Shared) ExploredBits(Minimap map)
         {
@@ -511,6 +531,7 @@ namespace Scry
 
         private static void Forget()
         {
+            _shownEverywhere = false;
             _sharedFor = null;
             _sharing = null;
             _sharingFor = null;

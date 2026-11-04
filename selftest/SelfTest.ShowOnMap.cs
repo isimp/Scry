@@ -43,8 +43,9 @@ namespace Scry
 
         private static IEnumerator ShowOnMapDots(Probe p)
         {
-            // What the character keeps on the map set aside, so only the part's own stands.
+            // Only the part's own spots stand, a kilometre across, shown or not on the map, until its end asks after the map's own ground.
             MapKept.SetAsideForTest(true);
+            CompendiumMap.ShownEverywhereForTest(true);
             // Timed as play shows the map: once Scry's code is compiled ahead, its first use compiling none in a measured frame.
             yield return MapCodeCompiled(p);
 
@@ -136,6 +137,8 @@ namespace Scry
             p.Check(MapSpots.DotsShown == 0 && MapSpots.Strip == null, "and the map opened again shows none");
             map.SetMapMode(Minimap.MapMode.Small);
             yield return null;
+
+            yield return NoDotInFog(p, map, here);
 
             yield return FitsTheZoom(p, map, here);
 
@@ -351,9 +354,49 @@ namespace Scry
             map.LargeZoom = SpotsZoom;
         }
 
+        /// <summary>
+        /// On the map's own ground: a spot where it shows none, out past what it explored round the
+        /// character, stands no dot until that ground is explored, the one at its feet standing.
+        /// </summary>
+        private static IEnumerator NoDotInFog(Probe p, Minimap map, Vector3 here)
+        {
+            CompendiumMap.ShownEverywhereForTest(false);
+            var fog = FogNear(map, here);
+            if (fog == null) p.Untried("a spot in ground the map shows none of", "stand where unexplored ground lies within two kilometres", "fog");
+            else
+            {
+                map.SetMapMode(Minimap.MapMode.Large);
+                MapSpots.Show(MadeUpSpots, "Self-test spots", 0, new List<(int X, int Z)> { ((int)Mathf.Round(here.x), (int)Mathf.Round(here.z)), fog.Value });
+                yield return Until(() => MapSpots.DotsShown > 0, 10);
+                yield return null;
+                p.Check(MapSpots.DotsShown == 1, "a spot in ground the map shows none of stands no dot, the one where you stand does",
+                    $"{Numbers.Count(MapSpots.DotsShown)} dots, the fogged spot {Numbers.Count((int)Vector3.Distance(here, new Vector3(fog.Value.X, here.y, fog.Value.Z)))} m off");
+                MapSpots.Hide();
+                map.SetMapMode(Minimap.MapMode.Small);
+                yield return null;
+            }
+        }
+
+        /// <summary>The nearest spot round the character, ring by ring out to two kilometres, in ground the map shows none of; none where it shows all of it.</summary>
+        private static (int X, int Z)? FogNear(Minimap map, Vector3 here)
+        {
+            for (var distance = 150; distance <= 2000; distance += 50)
+            {
+                for (var step = 0; step < 16; step++)
+                {
+                    var angle = step * Mathf.PI / 8f;
+                    var x = (int)Mathf.Round(here.x + Mathf.Cos(angle) * distance);
+                    var z = (int)Mathf.Round(here.z + Mathf.Sin(angle) * distance);
+                    if (!CompendiumMap.ShownAt(map, x, z) && ExploredGrid.PixelAt(x, z, map.m_textureSize, map.m_pixelSize) >= 0) return (x, z);
+                }
+            }
+            return null;
+        }
+
         /// <summary>Takes the dots away and puts the map and its zoom back, should the part have stopped before it did.</summary>
         private static void ShowOnMapAsItWas()
         {
+            CompendiumMap.ShownEverywhereForTest(false);
             MapSpots.Hide();
             MapKept.SetAsideForTest(false);
             if (_mapLookBefore is (OtherPinsShown pins, MapDarkening darken, DotSizeChoice size, bool zoomOut, bool squares))

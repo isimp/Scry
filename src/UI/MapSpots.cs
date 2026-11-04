@@ -591,6 +591,8 @@ namespace Scry
             {
                 var (x, z, picture, _, _) = StandingDots[i];
                 if (!MapMarks.Place(new Vec3(x, 0f, z), map.m_pixelSize, map.m_textureSize, (window.xMin, window.yMin, window.width, window.height), (area.width, area.height), out var at)) continue;
+                // Only where the map shows the ground: a place seen farther than it explores waits under its fog.
+                if (!CompendiumMap.ShownAt(map, x, z)) continue;
                 if (standing == Dots.Count)
                 {
                     // Making a dot is a piece of the frame's share; the rest wait for the frames after.

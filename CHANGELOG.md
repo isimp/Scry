@@ -2,7 +2,7 @@
 
 ## 0.4.2
 
-On TargetPortal's map of portals, Scry's marks step aside with the map's pins while its Hide map pins setting is on.
+On TargetPortal's map of portals, Scry's marks step aside with the map's pins while its Hide map pins setting is on. Scry's marks and dots stand only on ground your map shows, so a dungeon entrance seen from afar no longer shows through the map's fog.
 
 ## 0.4.1
 

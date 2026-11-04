@@ -160,7 +160,7 @@ namespace Scry
             yield return S("show on map checks: the map's sizes, the resources the world's rules place and how deep, what a Wishbone finds, sight lines to deposits near you, and squares over your ground and fog", MapChecks, 30, MapChecksAsTheyWere, full: true);
             yield return S("the sight keeps where things worth finding again stand, a deposit by the whole it was, a thing destroyed taking its spot away, at little cost a frame", SpotsKept, 30, SpotPutBack);
             yield return S("hundreds of entrances seen stand on Valheim's large map within a few seconds, holding no frame long", ManyMarks, 60, SeenMarksAsTheyWere);
-            yield return S("Show on map stands a thousand dots on Valheim's map within a few seconds, under the pins, smaller zoomed out, named in a strip, gone with Hide or the map closed", ShowOnMapDots, 60, ShowOnMapAsItWas);
+            yield return S("Show on map stands a thousand dots on Valheim's map within a few seconds, under the pins, smaller zoomed out, named in a strip, gone with Hide or the map closed, none where the map shows no ground", ShowOnMapDots, 60, ShowOnMapAsItWas);
             yield return S("Show on map shades the server's squares round places never come near, under the dots, cut to explored ground, counted in the strip", ShowOnMapSquares, 60, ShowOnMapAsItWas);
             yield return S("Show on map shows a place of several kinds one kind at a time, or all at once by the strip's button", ShowOnMapAllKinds, 30, AllKindsAsTheyWere);
             yield return S("a kind kept on the map stands every time it opens, named where the pointer rests, listed in the title row, on the minimap too, holding no frame long", KeptOnMapShown, 40, KeptOnMapAsItWas);

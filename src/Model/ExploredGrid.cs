@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -83,10 +84,33 @@ namespace Scry
         /// <summary>Whether the ground at a world position was explored, by the pixel the game maps it to; nothing off the map was.</summary>
         public bool Explored(float x, float z)
         {
-            var px = (int)Math.Round(x / PixelSize + MapSize / 2);
-            var py = (int)Math.Round(z / PixelSize + MapSize / 2);
-            if (px < 0 || px >= MapSize || py < 0 || py >= MapSize) return false;
+            if (!Pixel(x, z, MapSize, PixelSize, out var px, out var py)) return false;
             return Cell(py / Factor * Side + px / Factor);
+        }
+
+        /// <summary>The pixel of the game's map a world position falls in, as <c>Minimap.WorldToPixel</c> rounds it; false off the map.</summary>
+        private static bool Pixel(float x, float z, int mapSize, float pixelSize, out int px, out int py)
+        {
+            px = (int)Math.Round(x / pixelSize + mapSize / 2);
+            py = (int)Math.Round(z / pixelSize + mapSize / 2);
+            return px >= 0 && px < mapSize && py >= 0 && py < mapSize;
+        }
+
+        /// <summary>The index of the game map's pixel a world position falls in, y times the side plus x, as the map keeps its bits; -1 off the map.</summary>
+        public static int PixelAt(float x, float z, int mapSize, float pixelSize) =>
+            Pixel(x, z, mapSize, pixelSize, out var px, out var py) ? py * mapSize + px : -1;
+
+        /// <summary>
+        /// Whether Valheim's map shows the ground at a world position, as <c>Minimap.IsExplored</c>
+        /// tells it: the pixel it falls in explored by the character (<paramref name="own"/>) or on a
+        /// map shared with it (<paramref name="shared"/>). Scry's marks and dots stand only there,
+        /// as a place seen farther than the map explores lies under its fog.
+        /// </summary>
+        public static bool ShownAt(float x, float z, int mapSize, float pixelSize, BitArray own, BitArray shared)
+        {
+            var i = PixelAt(x, z, mapSize, pixelSize);
+            if (i < 0) return false;
+            return (own != null && i < own.Length && own[i]) || (shared != null && i < shared.Length && shared[i]);
         }
 
         /// <summary>The ground explored here and not in an earlier grid of the same map, as a grid of its own; all of it against none, or one of another map or cells.</summary>

@@ -68,6 +68,8 @@ namespace Scry
                 var (x, z, picture, _, _, _) = dots[i];
                 if (player != null && (Mathf.Abs(x - px) > reach || Mathf.Abs(z - pz) > reach)) continue;
                 if (!MapMarks.Place(new Vec3(x, 0f, z), map.m_pixelSize, map.m_textureSize, (window.xMin, window.yMin, window.width, window.height), (area.width, area.height), out var at)) continue;
+                // Only where the map shows the ground, as on the large map.
+                if (!CompendiumMap.ShownAt(map, x, z)) continue;
                 if (standing == Dots.Count)
                 {
                     if (made >= MostMadeAFrame || !MakeDot(map))
