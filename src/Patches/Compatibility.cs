@@ -32,6 +32,7 @@ namespace Scry
         private static readonly (string Type, string Method, int Params, uint Shape, Feature Feature)[] Watched =
         {
             ("VisEquipment", "AttachItem", 6, 0xD7DAC228, Feature.GearOnCreaturesAndPerson),
+            ("VisEquipment", "AttachArmor", 3, 0x7618F46A, Feature.GearOnCreaturesAndPerson),
             ("Humanoid", "GiveDefaultItems", 0, 0x308C20BE, Feature.WhatCreaturesCarry),
             ("Humanoid", "EquipItem", 2, 0xB6B9953E, Feature.WhichGearTakesPlaceOfWhich),
             ("Humanoid", "SetupVisEquipment", 2, 0x17BDBBAE, Feature.ArmourOnRagdolls),
@@ -197,6 +198,7 @@ namespace Scry
             ("ZSyncAnimation", "SetTrigger", 1, 0x5BD1AB6D, Feature.CompendiumSeen),
             ("Humanoid", "EquipBestWeapon", 4, 0xB07DC48A, Feature.CompendiumSeen),
             ("VisEquipment", "SetRightItem", 2, 0x1885E76C, Feature.CompendiumSeen),
+            ("VisEquipment", "UpdateEquipmentVisuals", 0, 0x12DD34B6, Feature.CompendiumSeen),
             ("ZDOMan", "SendZDOToPeers2", 1, 0xDAC6CE3B, Feature.CompendiumSeen),
             ("Player", "FindHoverObject", 2, 0x789E8B4A, Feature.CompendiumSeen),
             ("Player", "OnInventoryChanged", 0, 0xD9EB50F5, Feature.CompendiumUse),

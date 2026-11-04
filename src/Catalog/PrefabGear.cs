@@ -8,8 +8,8 @@ namespace Scry
     /// <summary>
     /// A creature's gear and an item's wearing, as read from the game: the sets a humanoid rolls
     /// one of, the weapons, shield, armour and extras it may be given, where the game equips an
-    /// item and whether it shows when worn (its "attach" part, as <c>VisEquipment.AttachItem</c>
-    /// finds it, or armour that paints the body). The previews put it on copies (<see cref="Gear"/>).
+    /// item and whether it shows when worn (the parts <c>VisEquipment</c> hangs, <see cref="Parts"/>,
+    /// or armour that paints the body). The previews put it on copies (<see cref="Gear"/>).
     /// </summary>
     internal static class PrefabGear
     {
@@ -81,7 +81,7 @@ namespace Scry
         public static string SetName(Humanoid.ItemSet set, int index)
         {
             if (!string.IsNullOrEmpty(set.m_name)) return Naming.FieldLabel(set.m_name);
-            return GearWords.Set(set.m_items.Where(i => i != null && AttachPart(i, out _) != null).Select(CatalogBuilder.AttackName).Distinct().ToList(), index);
+            return GearWords.Set(set.m_items.Where(i => i != null && Draws(i)).Select(CatalogBuilder.AttackName).Distinct().ToList(), index);
         }
 
         private static readonly HashSet<string> ToldSets = new HashSet<string>();
@@ -91,7 +91,7 @@ namespace Scry
         private static void Tell(GameObject prefab, List<Humanoid.ItemSet> sets)
         {
             if (!ToldSets.Add(prefab.name)) return;
-            var told = sets.Select((set, i) => $"{SetName(set, i)} ({string.Join(", ", set.m_items.Where(x => x != null).Select(x => x.name + (AttachPart(x, out _) != null ? "" : " not drawn")))})");
+            var told = sets.Select((set, i) => $"{SetName(set, i)} ({string.Join(", ", set.m_items.Where(x => x != null).Select(x => x.name + (Draws(x) ? "" : " not drawn")))})");
             Log.Note($"Scry: {prefab.name} rolls one of {Numbers.Count(sets.Count)} gear sets: {string.Join("; ", told)}.");
         }
 
@@ -142,11 +142,11 @@ namespace Scry
             return names;
         }
 
-        /// <summary>Whether an item shows when worn: it has a part to hang, or armour that paints the body.</summary>
+        /// <summary>Whether an item shows when worn: it has a part to hang (<see cref="Parts"/>), or armour that paints the body.</summary>
         public static bool Shows(GameObject item)
         {
             var shared = item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
-            return AttachPart(item, out _) != null || shared?.m_armorMaterial != null;
+            return Draws(item) || shared?.m_armorMaterial != null;
         }
 
         /// <summary>
@@ -158,7 +158,7 @@ namespace Scry
         {
             if (SlotOf(item) == Slot.None) return false;
             var shared = item.GetComponent<ItemDrop>().m_itemData.m_shared;
-            if (AttachPart(item, out _) != null) return true;
+            if (Draws(item)) return true;
             var type = shared.m_itemType;
             return shared.m_armorMaterial != null
                    && (type == ItemDrop.ItemData.ItemType.Chest || type == ItemDrop.ItemData.ItemType.Legs);
@@ -190,7 +190,26 @@ namespace Scry
             }
         }
 
-        /// <summary>The part of an item worn on the body, found as <c>VisEquipment.AttachItem</c> finds it.</summary>
+        /// <summary>
+        /// The parts an item hangs on a character wearing it, each with where it goes
+        /// (<see cref="WornParts.Of"/>): every "attach_" part of armour and utility items, as
+        /// <c>VisEquipment.AttachArmor</c> hangs them, the first "attach" part of the rest.
+        /// </summary>
+        public static List<(GameObject Part, string On)> Parts(GameObject item)
+        {
+            var parts = new List<(GameObject, string)>();
+            if (item == null) return parts;
+            var t = item.transform;
+            var children = new string[t.childCount];
+            for (var i = 0; i < children.Length; i++) children[i] = t.GetChild(i).name;
+            foreach (var (child, on) in WornParts.Of(SlotOf(item), children)) parts.Add((t.GetChild(child).gameObject, on));
+            return parts;
+        }
+
+        /// <summary>Whether an item hangs anything on a character wearing it (<see cref="Parts"/>).</summary>
+        public static bool Draws(GameObject item) => Parts(item).Count > 0;
+
+        /// <summary>The part of an item held in a hand or worn on the head, found as <c>VisEquipment.AttachItem</c> finds it.</summary>
         public static GameObject AttachPart(GameObject item, out bool skin)
         {
             skin = false;
@@ -213,7 +232,7 @@ namespace Scry
             if (items == null) return false;
             foreach (var item in items)
             {
-                if (item != null && AttachPart(item, out _) != null) return true;
+                if (item != null && Draws(item)) return true;
             }
             return false;
         }

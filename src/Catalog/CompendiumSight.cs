@@ -275,8 +275,13 @@ namespace Scry
             return Triggers[prefabName] = AttackTriggers.Map(attacks);
         }
 
-        /// <summary>The slots of what a creature wears that every client sees (<c>VisEquipment</c> keeps each as the item's hash in the creature's data).</summary>
-        private static readonly int[] WornSlots = { ZDOVars.s_rightItem, ZDOVars.s_leftItem, ZDOVars.s_chestItem, ZDOVars.s_legItem, ZDOVars.s_helmetItem, ZDOVars.s_shoulderItem };
+        /// <summary>
+        /// The slots of what a creature wears that every client sees, each kept as the item's hash
+        /// in the creature's data and drawn from it (<c>VisEquipment.UpdateEquipmentVisuals</c>):
+        /// the hands, chest, legs, head, shoulders, utility and trinket. A Dvergr mage's staff is
+        /// its utility item.
+        /// </summary>
+        private static readonly int[] WornSlots = { ZDOVars.s_rightItem, ZDOVars.s_leftItem, ZDOVars.s_chestItem, ZDOVars.s_legItem, ZDOVars.s_helmetItem, ZDOVars.s_shoulderItem, ZDOVars.s_utilityItem, ZDOVars.s_trinketItem };
 
         private static readonly List<string> CarriedNow = new List<string>();
 
@@ -287,12 +292,22 @@ namespace Scry
         /// </summary>
         private static List<string> Carried(Character creature)
         {
-            CarriedNow.Clear();
             var zdo = creature.GetComponent<ZNetView>().OrNull()?.GetZDO();
-            if (zdo == null) return CarriedNow;
-            foreach (var slot in WornSlots)
+            return CarriedIn(zdo == null ? (Func<int, int>)null : hash => zdo.GetInt(hash));
+        }
+
+        /// <summary>What a creature's data, read slot by slot, says it carries (<see cref="Carried"/>), for the self-test to hand in a creature's slots.</summary>
+        [ForTest]
+        public static List<string> CarriedForTest(Func<int, int> slot) => new List<string>(CarriedIn(slot));
+
+        /// <summary>The items a creature's data names in its worn slots, read by <paramref name="slot"/>; none without data.</summary>
+        private static List<string> CarriedIn(Func<int, int> slot)
+        {
+            CarriedNow.Clear();
+            if (slot == null) return CarriedNow;
+            foreach (var worn in WornSlots)
             {
-                var hash = zdo.GetInt(slot);
+                var hash = slot(worn);
                 if (hash == 0) continue;
                 var item = GamePrefabs.Hashed(hash);
                 if (item != null && !CarriedNow.Contains(item.name)) CarriedNow.Add(item.name);

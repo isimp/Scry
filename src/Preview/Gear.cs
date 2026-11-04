@@ -204,54 +204,73 @@ namespace Scry
 
                 if (body != null && shared.m_armorMaterial != null) Paint(body, shared, copy);
 
-                var part = PrefabGear.AttachPart(item, out var skin);
-                if (part == null) continue;
-
-                GameObject worn = null;
-                if (skin)
+                foreach (var (part, on) in PrefabGear.Parts(item))
                 {
-                    if (body != null)
+                    GameObject worn = null;
+                    if (on == WornParts.Body)
                     {
-                        if (clothColliders == null && !Guard.Run(Feature.WornClothMoving, "worn cloth's shapes", () => Cloth.WearerColliders(vis, root, copy.transform), out clothColliders)) clothColliders = new List<Component>();
-                        worn = Skin(item, part, body, copy.layer, clothColliders);
+                        if (body != null)
+                        {
+                            if (clothColliders == null && !Guard.Run(Feature.WornClothMoving, "worn cloth's shapes", () => Cloth.WearerColliders(vis, root, copy.transform), out clothColliders)) clothColliders = new List<Component>();
+                            worn = Skin(item, part, body, copy.layer, clothColliders);
+                        }
                     }
-                }
-                else
-                {
-                    Transform joint = null;
-                    switch (shared.m_itemType)
+                    else if (on != null)
                     {
-                        case ItemDrop.ItemData.ItemType.Shield:
-                        case ItemDrop.ItemData.ItemType.Bow:
-                        case ItemDrop.ItemData.ItemType.TwoHandedWeaponLeft:
-                            if (!usedLeft) { joint = left; usedLeft = true; }
-                            break;
-                        case ItemDrop.ItemData.ItemType.Helmet:
-                            joint = head;
-                            break;
-                        case ItemDrop.ItemData.ItemType.OneHandedWeapon:
-                        case ItemDrop.ItemData.ItemType.TwoHandedWeapon:
-                        case ItemDrop.ItemData.ItemType.Torch:
-                        case ItemDrop.ItemData.ItemType.Tool:
-                            if (!usedRight) { joint = right; usedRight = true; }
-                            break;
+                        // Armour's part for a bone hangs on that bone of the body, found by name
+                        // under its visual as AttachArmor finds it, the item's equip offset not applied.
+                        var bone = BoneOf(vis, root, copy.transform, on);
+                        if (bone != null) worn = Hang(item, part, bone, copy.layer, offset: false);
                     }
-                    if (joint == null) continue;
-
-                    worn = Hang(item, part, joint, copy.layer);
-                }
-
-                if (worn != null && style >= 0 && (styled == null || styled == item) && MaterialMan.instance != null)
-                {
-                    foreach (var itemStyle in part.GetComponentsInChildren<ItemStyle>(true))
+                    else
                     {
-                        var twin = Looks.Twin(part.transform, worn.transform, itemStyle.transform);
-                        if (twin != null) MaterialMan.instance.SetValue(twin.gameObject, ShaderProps._Style, style, true);
+                        Transform joint = null;
+                        switch (shared.m_itemType)
+                        {
+                            case ItemDrop.ItemData.ItemType.Shield:
+                            case ItemDrop.ItemData.ItemType.Bow:
+                            case ItemDrop.ItemData.ItemType.TwoHandedWeaponLeft:
+                                if (!usedLeft) { joint = left; usedLeft = true; }
+                                break;
+                            case ItemDrop.ItemData.ItemType.Helmet:
+                                joint = head;
+                                break;
+                            case ItemDrop.ItemData.ItemType.OneHandedWeapon:
+                            case ItemDrop.ItemData.ItemType.TwoHandedWeapon:
+                            case ItemDrop.ItemData.ItemType.Torch:
+                            case ItemDrop.ItemData.ItemType.Tool:
+                                if (!usedRight) { joint = right; usedRight = true; }
+                                break;
+                        }
+                        if (joint == null) continue;
+
+                        worn = Hang(item, part, joint, copy.layer);
+                    }
+
+                    if (worn != null && style >= 0 && (styled == null || styled == item) && MaterialMan.instance != null)
+                    {
+                        foreach (var itemStyle in part.GetComponentsInChildren<ItemStyle>(true))
+                        {
+                            var twin = Looks.Twin(part.transform, worn.transform, itemStyle.transform);
+                            if (twin != null) MaterialMan.instance.SetValue(twin.gameObject, ShaderProps._Style, style, true);
+                        }
                     }
                 }
             }
 
             Stance(prefab, copy, items);
+        }
+
+        /// <summary>
+        /// The copy's bone a part of armour hangs on, by its name: found under the prefab's
+        /// visual, its "Visual" child or else the character itself, as <c>VisEquipment</c> finds
+        /// it, and its twin on the copy. None where the body has no bone so named.
+        /// </summary>
+        private static Transform BoneOf(VisEquipment vis, Transform root, Transform copy, string name)
+        {
+            var visual = vis.transform.Find("Visual").OrNull() ?? vis.transform;
+            var bone = Utils.FindChild(visual, name);
+            return bone != null ? Looks.Twin(root, copy, bone) : null;
         }
 
         /// <summary>Each prefab and what it holds that a dressing was noted for in the log, each once.</summary>
@@ -299,7 +318,7 @@ namespace Scry
         private static void TellDressed(GameObject prefab, IList<GameObject> items, ItemDrop.ItemData.AnimationState state, bool stood)
         {
             if (!Told.Add($"{prefab.name}|{string.Join(",", items.Where(i => i != null).Select(i => i.name))}")) return;
-            var hands = string.Join(", ", items.Where(i => i != null && PrefabGear.SlotOf(i) != Slot.None && PrefabGear.SlotOf(i) != Slot.Head && PrefabGear.SlotOf(i) != Slot.Chest && PrefabGear.SlotOf(i) != Slot.Legs).Select(i => i.name + (PrefabGear.AttachPart(i, out _) != null ? "" : " (not drawn)")));
+            var hands = string.Join(", ", items.Where(i => i != null && PrefabGear.SlotOf(i) != Slot.None && PrefabGear.SlotOf(i) != Slot.Head && PrefabGear.SlotOf(i) != Slot.Chest && PrefabGear.SlotOf(i) != Slot.Legs).Select(i => i.name + (PrefabGear.Draws(i) ? "" : " (not drawn)")));
             Log.Note($"Scry dressed {prefab.name}: in hand {(hands.Length > 0 ? hands : "nothing")}; stance {state}{(stood ? "" : ", which its animator does not take")}.");
         }
 
@@ -381,10 +400,11 @@ namespace Scry
         /// <summary>
         /// Hangs a copy of an item's part on a bone the way <c>VisEquipment.AttachItem</c> does:
         /// made on its own and then parented keeping its size in the world, so it is as big on a
-        /// creature whose bones are scaled up as in a hand. The item's <c>equipoffset</c> shifts it,
-        /// and its <c>equiped</c> child, the glow or flame it has while held, is switched on.
+        /// creature whose bones are scaled up as in a hand. The item's <c>equipoffset</c> shifts it
+        /// where <paramref name="offset"/> asks, as AttachItem does and AttachArmor does not, and
+        /// its <c>equiped</c> child, the glow or flame it has while held, is switched on.
         /// </summary>
-        private static GameObject Hang(GameObject item, GameObject part, Transform parent, int layer, bool skinned = false)
+        private static GameObject Hang(GameObject item, GameObject part, Transform parent, int layer, bool skinned = false, bool offset = true)
         {
             var worn = Ghost.MakeOn(part, parent, parent.position, parent.rotation, layer, skinned);
             if (worn == null) return null;
@@ -392,11 +412,11 @@ namespace Scry
             var t = worn.transform;
             t.localPosition = Vector3.zero;
             t.localRotation = Quaternion.identity;
-            var offset = item.transform.Find("equipoffset");
-            if (offset != null)
+            var shift = offset ? item.transform.Find("equipoffset") : null;
+            if (shift != null)
             {
-                t.localPosition += offset.position;
-                t.localRotation *= offset.rotation;
+                t.localPosition += shift.position;
+                t.localRotation *= shift.rotation;
             }
 
             var equipped = t.Find("equiped");

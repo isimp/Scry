@@ -357,7 +357,8 @@ namespace Scry
         /// triggers, so its fire staff, a utility item, leaves the fireball's trigger to the fireball;
         /// its shield and its Mistile summon share one trigger and are told apart by the weapon in
         /// hand or by what each puts beside the mage, its shield's area and the Mistiles; each of
-        /// its looks waits only for its robe, the one item of a set that shows on it. Every trigger
+        /// its looks waits for its robe and its staff, the items of a set that show on it, and a
+        /// mage seen up close is seen with both, the staff read from its utility slot. Every trigger
         /// two weapons of a creature still share is named, as the hand tells them apart.
         /// </summary>
         private static void AttacksToldApartTell(Probe p)
@@ -378,8 +379,12 @@ namespace Scry
             var gear = GamePrefabs.Named(mage);
             var looks = gear.GetComponent<Humanoid>().OrNull()?.m_randomSets?.Length ?? 0;
             var drawn = Enumerable.Range(1, looks).Select(look => PrefabGear.SetItems(gear, look).Where(i => GamePrefabs.Item(i) is GameObject item && PrefabGear.Shows(item)).ToList()).ToList();
-            p.Check(looks > 0 && drawn.All(d => d.Count == 1 && d[0].StartsWith("DvergerSuit", System.StringComparison.Ordinal)), "each of the mage's looks shows only its robe, so it waits for nothing else",
-                string.Join("; ", drawn.Select(d => string.Join(", ", d))));
+            p.Check(looks > 0 && drawn.All(d => d.Count == 2 && d.Count(i => i.StartsWith("DvergerSuit", System.StringComparison.Ordinal)) == 1 && d.Count(i => i.StartsWith("DvergerStaff", System.StringComparison.Ordinal)) == 1),
+                "each of the mage's looks shows its robe and its staff, its attacks drawing nothing, so it waits for those two", string.Join("; ", drawn.Select(d => string.Join(", ", d))));
+            // The staff is its utility item: a mage seen up close is seen holding it, read from the
+            // slot every game draws it by, with its robe from the chest's.
+            var carried = CompendiumSight.CarriedForTest(slot => slot == ZDOVars.s_utilityItem ? "DvergerStaffFire".GetStableHashCode() : slot == ZDOVars.s_chestItem ? "DvergerSuitFire".GetStableHashCode() : 0);
+            p.Check(carried.Contains("DvergerStaffFire") && carried.Contains("DvergerSuitFire"), "a mage seen up close is seen holding its staff, its utility item, and wearing its robe", string.Join(", ", carried));
             // Every creature's triggers two weapons still share, told apart by the hand.
             var shared = new List<string>();
             foreach (var creature in X.Catalog.Where(e => e.Kind == Kind.Creature))
