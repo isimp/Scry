@@ -352,6 +352,9 @@ namespace Scry
             p.Check(book.Level(key) == KnownLevel.Known && book.Came(key)?.Way == CameBy.Hit, $"hitting {key}, which the world placed, makes it known by the hit", $"{book.Level(key)}, {book.Came(key)?.Way}");
         }
 
+        /// <summary>A Dvergr mage's summon, shield and fireball, which another game reads from its data as it holds them.</summary>
+        private static readonly string[] MageHeld = { "DvergerMistile", "DvergerStaffSupport_buff", "DvergerStaffFire_fireball" };
+
         /// <summary>A creature's sets as worn, each with the items telling it, for a check's detail.</summary>
         private static string Told(List<WornSet> sets) => sets == null ? "no sets" : string.Join("; ", sets.Select(s => $"{string.Join(", ", s.Worn)} told by {string.Join(", ", s.Tells)}"));
 
@@ -397,6 +400,12 @@ namespace Scry
             p.Check(mageSets != null && WornTogether.Seen("DvergerStaffFire", mageSets, worn => worn == "DvergerSuitFire") && !WornTogether.Seen("DvergerStaffIce", mageSets, worn => worn == "DvergerSuitFire")
                     && !WornTogether.Seen("DvergerStaffFire", mageSets, worn => worn == "DvergerHairMale"),
                 "a mage seen in its fire robe held its fire staff, not its ice staff, and its hair tells no set", Told(mageSets));
+            // Where a friend's game runs the mage, the weapon in its hand is read from its data by the
+            // hash of its name, found as the game draws it: its summon and its shield are in the item
+            // database alone, not among the scene's prefabs.
+            var heldRead = MageHeld.Select(n => (n, GamePrefabs.ItemHashed(n.GetStableHashCode()).OrNull()?.name)).ToList();
+            p.Check(heldRead.All(h => h.Item1 == h.Item2), "a mage's summon, shield and fireball in hand are read from its data where another game runs it, as the game draws them",
+                string.Join(", ", heldRead.Select(h => $"{h.Item1}: {h.Item2 ?? "not found"}{(GamePrefabs.Hashed(h.Item1.GetStableHashCode()) == null ? " (not among the scene's prefabs)" : "")}")));
             // The kinds share the attacks seen of each: the keeper's book is told the mage's family.
             var kindsOfIce = CompendiumKeeper.Book?.KindsOf?.Invoke("DvergerMageIce");
             if (CompendiumKeeper.Book == null) p.Note("no compendium book: the mage's family untried");

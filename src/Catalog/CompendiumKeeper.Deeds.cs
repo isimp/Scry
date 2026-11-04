@@ -177,7 +177,8 @@ namespace Scry
             {
                 foreach (var slot in new[] { ZDOVars.s_rightItem, ZDOVars.s_leftItem })
                 {
-                    var item = GamePrefabs.Hashed(zdo.GetInt(slot));
+                    // Looked up as the game draws it: a creature's own attack items are in the item database alone.
+                    var item = GamePrefabs.ItemHashed(zdo.GetInt(slot));
                     var shared = item != null ? item.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared : null;
                     if (shared != null && shared.m_itemType != ItemDrop.ItemData.ItemType.Torch) return item;
                 }
