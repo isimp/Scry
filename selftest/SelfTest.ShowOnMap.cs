@@ -375,6 +375,8 @@ namespace Scry
                 map.SetMapMode(Minimap.MapMode.Small);
                 yield return null;
             }
+            // The part's own made-up spots after it, as the zoom's 3 km off, stand wherever again.
+            CompendiumMap.ShownEverywhereForTest(true);
         }
 
         /// <summary>The nearest spot round the character, ring by ring out to two kilometres, in ground the map shows none of; none where it shows all of it.</summary>

@@ -521,11 +521,11 @@ namespace Scry
             // A frame above a millisecond while idling is one to account for: every part of it.
             if (idle != null && idle.Max >= 1.0 && idle.PartsOfSlowest(1)[0] is string slowest) p.Note("its slowest idle frame: " + slowest);
             p.Note("it keeps: " + KeptTold());
-            // Between runs the self-test looks for one thing near the character a second: each look holds no frame.
+            // Between runs the self-test looks for one thing near the character a second, a share of it a frame: no share holds a frame.
             if (Player.m_localPlayer != null)
             {
                 var (need, ms) = SlowestNearLook(Player.m_localPlayer.transform.position);
-                p.Within(ms, 2, "between runs, a look for something near you takes under 2 ms", $"slowest {need}, {Numbers.Fixed(ms, 2)} ms");
+                p.Within(ms, 2, "between runs, each frame's share of a look for something near you takes under 2 ms", $"slowest {need}, {Numbers.Fixed(ms, 2)} ms");
             }
             if (idle != null) p.Within(idle.Mean, 0.25, "idling, Scry's own work is a quarter of a millisecond a frame at the most on average", $"{Numbers.Fixed(idle.Mean, 3)} ms");
             // Told by every thread's memory, Scry's share cannot be told from other threads allocating much meanwhile.
