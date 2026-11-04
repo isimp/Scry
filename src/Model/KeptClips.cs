@@ -43,6 +43,13 @@ namespace Scry
             return true;
         }
 
+        /// <summary>The keys of the probes kept with everything else as it is now (<paramref name="seenWith"/>, a stamp's part before its animator), on whatever animator each was seen.</summary>
+        public IEnumerable<string> KeysSeenWith(string seenWith)
+        {
+            var prefix = (seenWith ?? "") + " ";
+            return _probes.Where(p => p.Value.Stamp.StartsWith(prefix, StringComparison.Ordinal)).Select(p => p.Key).ToList();
+        }
+
         public void Clear() => _probes.Clear();
 
         /// <summary>A copy of all that is kept, for writing it on another thread.</summary>

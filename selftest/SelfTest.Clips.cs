@@ -127,13 +127,19 @@ namespace Scry
                 yield return null;
             }
             var probes = TriggerProbe.DoneForTest.Count;
+            // What was kept with another set of mods or another Scry is watched again by design, as
+            // on the first run after an update: only a probe kept as everything is now counts.
+            var keptAsNow = ClipStore.KeptAsNow();
             var again = UnityEngine.Time.unscaledTime;
             Previews.ForgetClipsInMemory();
             yield return null;
             yield return Until(() => !Previews.ClipsSorting && !Previews.ClipsProvisional, 30);
-            p.Check(!Previews.ClipsSorting && TriggerProbe.DoneForTest.Count == probes && Previews.ClipsOtherGear()?.ContainsKey("Run New Pickaxe") == true,
-                "opened again, the sword's clips are taken from what was kept, no animator watched anew",
-                $"after {Numbers.Amount(UnityEngine.Time.unscaledTime - again, 1)} s, {Numbers.Count(TriggerProbe.DoneForTest.Count - probes)} watched anew: {string.Join(", ", TriggerProbe.DoneForTest.Skip(probes).Select(d => d.Key))}");
+            var anew = TriggerProbe.DoneForTest.Skip(probes).Select(d => d.Key).ToList();
+            var wrongly = anew.Where(keptAsNow.Contains).ToList();
+            if (anew.Count > wrongly.Count) p.Note($"watched again as kept with other mods or another Scry: {string.Join(", ", anew.Where(k => !keptAsNow.Contains(k)))}");
+            p.Check(!Previews.ClipsSorting && wrongly.Count == 0 && Previews.ClipsOtherGear()?.ContainsKey("Run New Pickaxe") == true,
+                "opened again, the sword's clips are taken from what was kept, no animator kept as now watched anew",
+                $"after {Numbers.Amount(UnityEngine.Time.unscaledTime - again, 1)} s, {Numbers.Count(wrongly.Count)} watched anew: {string.Join(", ", wrongly)}");
             p.Note("left in Other: " + (groups != null ? string.Join(", ", groups.Where(g => g.Value == ClipGroup.Other && !(other?.ContainsKey(g.Key) ?? false)).Select(g => g.Key)) : "none"));
             yield return PictureOf(p, "animations", "the person's clips holding a sword");
 

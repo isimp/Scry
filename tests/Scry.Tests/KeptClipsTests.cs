@@ -116,5 +116,17 @@ namespace Scry.Tests
             Assert.Equal(0, kept.Count);
             Assert.False(kept.TryGet("Troll", "s", out _));
         }
+
+        [Fact]
+        public void TheProbesKeptWithEverythingAsNowAreTold()
+        {
+            // A probe kept with another set of mods, or another Scry, is seen again: only those kept
+            // with what everything is now count as kept, whatever animator each was seen on.
+            var kept = new KeptClips();
+            kept.Put("Player|statei=0", KeptClips.StampWith("code mods-now 1.0.21", "Player_animator"), new Probed());
+            kept.Put("Player|statei=1", KeptClips.StampWith("code mods-before 1.0.21", "Player_animator"), new Probed());
+            kept.Put("Troll", KeptClips.StampWith("code mods-now 1.0.21", "Troll_animator"), new Probed());
+            Assert.Equal(new[] { "Player|statei=0", "Troll" }, kept.KeysSeenWith("code mods-now 1.0.21").OrderBy(k => k));
+        }
     }
 }

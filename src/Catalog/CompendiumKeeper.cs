@@ -609,7 +609,8 @@ namespace Scry
         public static void Used(GameObject used)
         {
             if (Into == null || _catchUp == null || used == null) return;
-            var thing = used.GetComponentInParent<ZNetView>();
+            // Looked for among inactive parents too, as a prefab not standing in the scene is none of them active.
+            var thing = used.GetComponentInParent<ZNetView>(true);
             if (thing == null) return;
             var key = Utils.GetPrefabName(thing.gameObject);
             ActedOnThing(key, thing.transform.position);

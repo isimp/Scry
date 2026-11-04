@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -112,6 +114,10 @@ namespace Scry
         /// <summary>Whether a probe of this key is kept, whatever it was seen with; for the self-test.</summary>
         [ForTest]
         public static bool Holds(string key) => _kept != null && _kept.Keys.Contains(key);
+
+        /// <summary>The keys of the probes kept with the mods, the game and the probe's code as they are now, so taken up without watching again; for the self-test.</summary>
+        [ForTest]
+        public static HashSet<string> KeptAsNow() => Ready ? new HashSet<string>(_kept.KeysSeenWith(Stamp), StringComparer.Ordinal) : new HashSet<string>(StringComparer.Ordinal);
 
         /// <summary>Tells any reading or writing that failed; called each frame.</summary>
         public static void Update() => Faults.TellEach(Feature.Animations, Files.Failures());
