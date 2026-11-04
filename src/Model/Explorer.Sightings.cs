@@ -70,8 +70,22 @@ namespace Scry
         public bool WearsShown(string creature, string item)
         {
             if (!StageFollowsSightings(creature)) return true;
-            foreach (var worn in _view.Book.WornSeen(creature)) if (worn == item) return true;
+            // The kinds of a family go by one name and look alike in the game, so what one of them
+            // was seen wearing is seen of the kind: a Dvergr mage in the fire robe is its fire kind's.
+            if (SeenWearing(creature, item)) return true;
+            var family = Find(creature)?.Family;
+            if (family != null)
+            {
+                foreach (var kind in family.Kinds) if (kind.Key != creature && SeenWearing(kind.Key, item)) return true;
+            }
             return _view.Book.Proved(creature, EntryKeys.Attack(item));
+        }
+
+        /// <summary>Whether a creature, by key, was seen up close wearing an item (<see cref="CompendiumBook.WornSeen"/>).</summary>
+        private bool SeenWearing(string creature, string item)
+        {
+            foreach (var worn in _view.Book.WornSeen(creature)) if (worn == item) return true;
+            return false;
         }
 
         /// <summary>

@@ -4,7 +4,7 @@
 
 The compendium now learns things it used to miss: world pieces you hit, such as Dvergr crates and goblin fences; beds, chairs, ship helms, portals and ladders you use; loot a backpack mod stores outside your inventory; tall trees, landmarks and far-off creatures such as a Gjall; and attacks seen from as far as a creature uses them, taunts among them.
 
-Attacks that start alike, or a projectile landing late, are now told by the attack that made them, and a Dvergr mage on the stage wears the robes you saw it in. Fish stars are numbered 1 to 5 as in the game.
+Attacks that start alike, or a projectile landing late, are now told by the attack that made them, and a Dvergr mage and its fire, ice and support kinds, now named apart, wear the robes you saw and stand on Mistlands ground. Fish stars are numbered 1 to 5 as in the game.
 
 ## 0.4.0
 

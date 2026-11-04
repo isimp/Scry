@@ -415,6 +415,23 @@ namespace Scry
         }
 
         /// <summary>
+        /// The biome whose ground a kind of a family stands on: its own (<see cref="HomeOf"/>), and
+        /// where it has none, the first of its family's kinds that has one, as a kind that goes by
+        /// the family's name and looks stands where they do (a Dvergr mage's fire kind, placed
+        /// nowhere, where the mage's camps are).
+        /// </summary>
+        public static string HomeOfKind(Home home, IEnumerable<Home> kinds)
+        {
+            if (HasGround(home)) return HomeOf(home);
+            foreach (var kind in kinds ?? Array.Empty<Home>()) if (HasGround(kind)) return HomeOf(kind);
+            return HomeOf(home);
+        }
+
+        /// <summary>Whether a thing has a ground of its own: a ship's sea, a raid's, or biomes it spawns, grows or is held or given in.</summary>
+        private static bool HasGround(Home home) =>
+            home.Floats || home.Raid || new[] { home.Own, home.Places, home.Givers }.Any(b => b != null && b.Any(x => !string.IsNullOrEmpty(x)));
+
+        /// <summary>
         /// The biome whose ground a thing stands on, where the game has it: a ship on the sea; a
         /// raid where its creatures live, of the biomes it may come in, else the first it may come
         /// in; anything else where it spawns or grows, else in the places that hold it, else where

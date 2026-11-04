@@ -38,6 +38,19 @@ namespace Scry.Tests
         private static Entry Place(string name, string shown) => E(name, Kind.Location, shown);
 
         [Fact]
+        public void ACreaturesKindsAreToldApartByTheirOwnWordsShortOnesToo()
+        {
+            // A Dvergr mage's kinds are the mage and its fire, ice and support kinds; "Ice" is a
+            // short word but the only one telling that kind apart.
+            var mage = Creature("DvergerMage", "$enemy_dvergr_mage", "Dverger_melee", "DvergerStaffFire_fireball", "DvergerStaffIce_icebolt");
+            var fire = Creature("DvergerMageFire", "$enemy_dvergr_mage", "Dverger_melee", "DvergerStaffFire_fireball");
+            var ice = Creature("DvergerMageIce", "$enemy_dvergr_mage", "Dverger_melee", "DvergerStaffIce_icebolt");
+            var support = Creature("DvergerMageSupport", "$enemy_dvergr_mage", "Dverger_melee", "DvergerStaffHeal_heal");
+            var family = Assert.Single(Families.Of(new[] { mage, fire, ice, support }));
+            Assert.Equal(new[] { "Draugr", "Fire", "Ice", "Support" }, new[] { mage, fire, ice, support }.Select(family.Label));
+        }
+
+        [Fact]
         public void AnItemsCopiesForCreaturesFoldIntoIt()
         {
             var shield = Item("ShieldBlackmetalTower", "$item_shield_blackmetal_tower", crafted: true);

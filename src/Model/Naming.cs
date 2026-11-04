@@ -105,10 +105,14 @@ namespace Scry
         /// one's words the others' all lack, readable ("wooden" for rae_WoodenArcheryTarget beside
         /// piece_ArcheryTarget, "summoned" for Troll_Summoned beside Troll), nothing for the one
         /// with no word of its own. Short words, numbers and words telling how a prefab is built
-        /// tell nothing. Null where these words cannot tell them all apart: two alike, or more than
-        /// one with none.
+        /// tell nothing, but where that leaves them not told apart a word of three letters does, as
+        /// "Ice" for DvergerMageIce beside DvergerMage. Null where these words cannot tell them all
+        /// apart: two alike, or more than one with none.
         /// </summary>
-        public static List<string> Apart(IReadOnlyList<string> prefabs)
+        public static List<string> Apart(IReadOnlyList<string> prefabs) => ApartBy(prefabs, 4) ?? ApartBy(prefabs, 3);
+
+        /// <summary>The words telling things apart (<see cref="Apart"/>), keeping words of at least <paramref name="shortest"/> letters.</summary>
+        private static List<string> ApartBy(IReadOnlyList<string> prefabs, int shortest)
         {
             if (prefabs == null || prefabs.Count < 2) return null;
             var words = new List<List<string>>(prefabs.Count);
@@ -117,7 +121,7 @@ namespace Scry
                 var kept = new List<string>();
                 foreach (var word in PrefabWords(prefab ?? ""))
                 {
-                    if (word.Length > 3 && !IsNumber(word) && !BuildTags.Contains(word) && !ApartTags.Contains(word) && !kept.Contains(word)) kept.Add(word);
+                    if (word.Length >= shortest && !IsNumber(word) && !BuildTags.Contains(word) && !ApartTags.Contains(word) && !kept.Contains(word)) kept.Add(word);
                 }
                 words.Add(kept);
             }

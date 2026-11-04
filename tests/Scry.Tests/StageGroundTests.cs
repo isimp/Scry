@@ -442,6 +442,26 @@ namespace Scry.Tests
         private static StageGround.Home Nothing => new StageGround.Home { Tier = Tiers.None };
 
         [Fact]
+        public void AKindWithNoGroundOfItsOwnStandsWhereItsFamilyDoes()
+        {
+            // A Dvergr mage's fire kind stands in no place and lives in no biome of its own; it
+            // goes by the mage's name and looks, so it stands where the mage's camps are.
+            var mage = Nothing;
+            mage.Places = new[] { "Mistlands" };
+            var fire = Nothing;
+            Assert.Equal("Meadows", StageGround.HomeOf(fire));
+            Assert.Equal("Mistlands", StageGround.HomeOfKind(fire, new[] { mage }));
+            // One with a ground of its own keeps it.
+            var own = Nothing;
+            own.Own = new[] { "Plains" };
+            Assert.Equal("Plains", StageGround.HomeOfKind(own, new[] { mage }));
+            // A family none of whose kinds has a ground goes by the kind's own tier.
+            var tiered = Nothing;
+            tiered.Tier = 2;
+            Assert.Equal(StageGround.HomeOf(tiered), StageGround.HomeOfKind(tiered, new[] { Nothing }));
+        }
+
+        [Fact]
         public void WhatSpawnsOrGrowsStandsWhereItDoesFirst()
         {
             var home = Nothing;

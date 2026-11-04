@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Xunit;
@@ -160,6 +161,36 @@ namespace Scry.Tests
             var again = world.Explorer.StarsOffered(world.Draugr);
             Assert.NotSame(offered, again);
             Assert.Equal(new[] { 1, 3 }, again);
+        }
+
+        [Fact]
+        public void AKindWearsWhatAnyKindOfItsFamilyWasSeenWearing()
+        {
+            // A Dvergr mage and its fire kind go by one name and look alike in the game: the mage
+            // seen in the fire robe is what the fire kind wears, under the strict rules too.
+            Entry Mage(string name, params string[] attacks)
+            {
+                var e = E(name, Kind.Creature, "Dvergr Mage");
+                e.Tokens = new[] { "$enemy_dvergr_mage" };
+                e.Attacks = attacks.Select(a => (a, new[] { "fire" })).ToArray();
+                return e;
+            }
+            var mage = Mage("DvergerMage", "Dverger_melee", "DvergerStaffFire_fireball", "DvergerStaffIce_icebolt");
+            var fire = Mage("DvergerMageFire", "Dverger_melee", "DvergerStaffFire_fireball");
+            var suit = E("DvergerSuitFire", Kind.Item);
+            var explorer = new Explorer(new List<Entry> { mage, fire, suit }, new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+            var view = new CompendiumView(explorer.Entries);
+            var book = new CompendiumBook();
+            book.Raise(mage.Key, KnownLevel.Known);
+            book.Raise(fire.Key, KnownLevel.Known);
+            book.Sighted(mage.Key, 0, new[] { "DvergerSuitFire" });
+            view.Tell(book, CompendiumRule.Strict);
+            explorer.Know(view);
+            Assert.NotNull(fire.Family);
+            explorer.Select(fire);
+
+            Assert.True(explorer.WearsShown(fire.Key, "DvergerSuitFire"));
+            Assert.False(explorer.WearsShown(fire.Key, "DvergerSuitIce"));
         }
 
         [Fact]

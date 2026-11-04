@@ -14,12 +14,23 @@ namespace Scry
     /// </summary>
     internal static class GroundHomes
     {
-        /// <summary>The biome a thing stands in, in a catalog with its tiers as far as they are worked out; Meadows for nothing.</summary>
+        /// <summary>
+        /// The biome a thing stands in, in a catalog with its tiers as far as they are worked out;
+        /// a kind with no ground of its own where another kind of its family has one
+        /// (<see cref="StageGround.HomeOfKind"/>); Meadows for nothing.
+        /// </summary>
         public static string Of(Entry entry, EntryCatalog catalog)
         {
             if (entry == null) return "Meadows";
             var tiers = catalog != null ? CompendiumTiers.Of(catalog) : null;
-            var home = new StageGround.Home
+            var kinds = entry.Family?.Kinds.Where(k => k != entry).Select(k => HomeFor(k, catalog, tiers));
+            return StageGround.HomeOfKind(HomeFor(entry, catalog, tiers), kinds);
+        }
+
+        /// <summary>What a thing's ground is worked out from, by itself.</summary>
+        private static StageGround.Home HomeFor(Entry entry, EntryCatalog catalog, IReadOnlyDictionary<string, int> tiers)
+        {
+            return new StageGround.Home
             {
                 Own = entry.Biomes,
                 Places = catalog != null ? PlaceBiomes(entry, catalog) : null,
@@ -29,7 +40,6 @@ namespace Scry
                 Tier = tiers != null && tiers.TryGetValue(entry.Key, out var tier) ? tier : Tiers.None,
                 Floats = entry.Source is GameObject prefab && prefab != null && Floats(prefab),
             };
-            return StageGround.HomeOf(home);
         }
 
         /// <summary>The biomes of the places that hold it (<see cref="Places.LabelOf"/>), once the world's places are read.</summary>
