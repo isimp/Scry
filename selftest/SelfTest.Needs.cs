@@ -104,13 +104,38 @@ namespace Scry
             else NearNow.Remove(need);
         }
 
+        /// <summary>
+        /// Whether something of a kind stands within <see cref="NeedReach"/> of the character: found
+        /// by what touches a ball of that reach round it, as the physics keeps it, triggers among
+        /// them, not by a look through the whole scene, which in a big world held a frame for some
+        /// 30 ms every few seconds while the self-test waited between runs.
+        /// </summary>
         private static bool Near<T>(Vector3 at, Func<T, bool> fits = null) where T : Component
         {
-            foreach (var thing in UnityEngine.Object.FindObjectsByType<T>(FindObjectsSortMode.None))
+            var count = Physics.OverlapSphereNonAlloc(at, NeedReach, Touching, ~0, QueryTriggerInteraction.Collide);
+            for (var i = 0; i < count; i++)
             {
+                var thing = Touching[i] != null ? Touching[i].GetComponentInParent<T>() : null;
                 if (thing != null && (thing.transform.position - at).sqrMagnitude <= NeedReach * NeedReach && (fits == null || fits(thing))) return true;
             }
             return false;
         }
+
+        /// <summary>Every look for something near the character timed once where it stands, the slowest and how long it took, as the self-test looks one a second between runs.</summary>
+        private static (string Need, double Ms) SlowestNearLook(Vector3 at)
+        {
+            var slowest = (Need: "none", Ms: 0.0);
+            foreach (var need in Needs)
+            {
+                var started = System.Diagnostics.Stopwatch.GetTimestamp();
+                Steps.Run(() => need.Value(at), out var _, null);
+                var ms = (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                if (ms > slowest.Ms) slowest = (need.Key, ms);
+            }
+            return slowest;
+        }
+
+        /// <summary>What touches the ball looked through, kept for every look so none makes anything; a crowd past it is left out.</summary>
+        private static readonly Collider[] Touching = new Collider[4096];
     }
 }

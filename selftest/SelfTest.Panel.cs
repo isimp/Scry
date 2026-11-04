@@ -479,7 +479,8 @@ namespace Scry
         /// while Scry works too; as long a wait each frame as Scry's work took the frame before,
         /// doing nothing, tells how much of that is theirs (<see cref="OtherThreads"/>), and it is
         /// left out of what is checked. Where they allocated past <see cref="OthersTooBusy"/> in the
-        /// waits alone, Scry's share is not judged.
+        /// waits alone, Scry's share is not judged. Between runs, each of the self-test's looks for
+        /// something near the character holds no frame.
         /// </summary>
         private static IEnumerator IdleCost(Probe p)
         {
@@ -520,6 +521,12 @@ namespace Scry
             // A frame above a millisecond while idling is one to account for: every part of it.
             if (idle != null && idle.Max >= 1.0 && idle.PartsOfSlowest(1)[0] is string slowest) p.Note("its slowest idle frame: " + slowest);
             p.Note("it keeps: " + KeptTold());
+            // Between runs the self-test looks for one thing near the character a second: each look holds no frame.
+            if (Player.m_localPlayer != null)
+            {
+                var (need, ms) = SlowestNearLook(Player.m_localPlayer.transform.position);
+                p.Within(ms, 2, "between runs, a look for something near you takes under 2 ms", $"slowest {need}, {Numbers.Fixed(ms, 2)} ms");
+            }
             if (idle != null) p.Within(idle.Mean, 0.25, "idling, Scry's own work is a quarter of a millisecond a frame at the most on average", $"{Numbers.Fixed(idle.Mean, 3)} ms");
             // Told by every thread's memory, Scry's share cannot be told from other threads allocating much meanwhile.
             if (!Timing.CountsPerThread && others.Bytes > OthersTooBusy)
