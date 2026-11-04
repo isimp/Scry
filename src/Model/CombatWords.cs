@@ -180,13 +180,52 @@ namespace Scry
         /// <summary>The columns of a creature's attacks table, with what each puts on you where one does.</summary>
         public static string[] AttackColumnsFor(bool onHit) => onHit ? AttackColumnsOnHit : AttackColumns;
 
+        /// <summary>The column of an attacks table telling what each attack does to the character now (<see cref="HitTaken"/>).</summary>
+        public const string YouTakeColumn = "You take";
+
+        /// <summary>An attacks table's columns with what each attack does to the character last.</summary>
+        public static string[] WithYouTake(string[] columns) => columns.Concat(new[] { YouTakeColumn }).ToArray();
+
+        /// <summary>What an attack does to the character at the least and the most of its roll, whole: "23–31", one figure where both are one.</summary>
+        public static string YouTake(float least, float most)
+        {
+            var low = (int)Math.Round(least);
+            var high = (int)Math.Round(most);
+            return low == high ? Numbers.Count(high) : $"{Numbers.Count(low)}–{Numbers.Count(high)}";
+        }
+
+        /// <summary>A faint line's label under an attack: what it does with so many stars.</summary>
+        public static string WithStars(int stars) => stars == 1 ? "with 1 star" : $"with {Numbers.Count(stars)} stars";
+
+        /// <summary>The faint line under an attacks table saying what its last column is reckoned at.</summary>
+        public static string YouTakeAt(float armour) => armour > 0f
+            ? $"You take: at your {Numbers.Count((int)Math.Round(armour))} armour and what you resist now"
+            : "You take: at no armour, with what you resist now";
+
+        /// <summary>That line's tip: how the game takes a hit.</summary>
+        public const string YouTakeTip = "As the game takes a hit: your resistances cut each damage type first, then your armour cuts all of the hit together. A hit more than twice your armour loses your armour; a smaller one is cut much harder. Each figure is the range of the creature's roll, at this world's damage and the players near you; blocking is not counted.";
+
+        /// <summary>
+        /// The faint line under an armour's Armour row: what the armour the character wears does to
+        /// a hit of 100 and one of 300 (<see cref="HitTaken.ArmourCut"/>).
+        /// </summary>
+        public static string ArmourYours(float armour)
+        {
+            if (armour <= 0f) return "you wear none: a hit does all of itself to you";
+            string Of(float hit) => Numbers.Count((int)Math.Round(HitTaken.ArmourCut(hit, armour)));
+            return $"you wear {Numbers.Count((int)Math.Round(armour))}: a hit of 100 does {Of(100f)} to you, one of 300 does {Of(300f)}";
+        }
+
+        /// <summary>That line's tip: what armour does.</summary>
+        public const string ArmourTip = "Armour is what your helmet, chest, legs and cape add up to. It comes off each hit after your resistances, from all its damage together: a hit more than twice your armour loses your armour; a smaller one is cut much harder, a small one to nearly nothing. A creature's page tells what each of its attacks does to you.";
+
         /// <summary>The columns of an attacks table an attack keeps back until it hit the character or was seen begun: its damage, what it puts on you, its reach and how often it comes, none of which the game shows.</summary>
         public static int[] AttackKeptCells(string[] columns)
         {
             var kept = new List<int>();
             for (var i = 0; i < columns.Length; i++)
             {
-                if (columns[i] == "Damage" || columns[i] == "On hit" || columns[i] == "Reach" || columns[i] == "Every") kept.Add(i);
+                if (columns[i] == "Damage" || columns[i] == "On hit" || columns[i] == "Reach" || columns[i] == "Every" || columns[i] == YouTakeColumn) kept.Add(i);
             }
             return kept.ToArray();
         }

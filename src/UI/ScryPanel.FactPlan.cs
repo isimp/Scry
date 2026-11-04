@@ -401,9 +401,19 @@ namespace Scry
                 y += height + underHeight + U(6f);
             }
             if (waiting > 0) y = AttacksWaitLine(waiting, width, y);
+            if (!string.IsNullOrEmpty(row.Foot)) y = FootLine(row, width, y);
             CountDrawn(PanelPart.FactTable);
             // What a a smudge waits for says so on its hover, and the You box lists it: no faint line repeats it.
             return y + U(4f);
+        }
+
+        /// <summary>One faint line under a table saying what a column of it is reckoned at (<see cref="Facts.Row.Foot"/>), its hover saying how.</summary>
+        private static float FootLine(Facts.Row row, float width, float y)
+        {
+            var line = new Rect(0f, y, width, U(20f));
+            GUI.Label(line, row.Foot, Skin.FaintLabel);
+            if (!string.IsNullOrEmpty(row.FootTip) && line.Contains(Event.current.mousePosition)) AskTip("table-foot:" + row.Title, row.FootTip);
+            return y + U(24f);
         }
 
         /// <summary>One faint line under an attacks table counting the attacks not yet seen begun or taken, its hover saying what shows them.</summary>

@@ -50,7 +50,7 @@ namespace Scry
         private static readonly Dictionary<Entry, bool> LeftByPages = new Dictionary<Entry, bool>();
         private static int _leftStamp = -1;
         private static Explorer _leftIn;
-        private static (int, int, int, int, int) _leftFresh;
+        private static (int, int, int, int, int, int) _leftFresh;
 
         /// <summary>
         /// Whether a page still has something to find out, as its title chip would count it, for

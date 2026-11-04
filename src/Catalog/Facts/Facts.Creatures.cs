@@ -242,8 +242,17 @@ namespace Scry
                 attacks.Add((cells, EntryKeys.DeathAttack, null, effect, death.Damage));
             }
             var onHit = attacks.Any(a => a.OnHit != null);
+            // What each does to the character now, at its armour and resistances, last: a creature's
+            // hits alone, as a player's page rolls by its skill and hits no one.
+            var guarded = rolls && YourGuard.Known;
             var columns = CombatWords.AttackColumnsFor(onHit);
+            if (guarded) columns = CombatWords.WithYouTake(columns);
             var table = new Row { Title = CombatWords.AttacksTitle, Columns = columns, AttackCells = CombatWords.AttackKeptCells(columns) };
+            if (guarded)
+            {
+                table.Foot = CombatWords.YouTakeAt(YourGuard.Armour);
+                table.FootTip = CombatWords.YouTakeTip;
+            }
             // A summon hits harder by its summoner's skill (SpawnAbility.Spawn), rolled as anything
             // but a player rolls a hit (Character.GetRandomSkillFactor): faint, as summoned at the character's level.
             var summoned = SkillReading.SummonedBy(prefab.name);
@@ -251,17 +260,43 @@ namespace Scry
             foreach (var (cells, item, linked, effect, damage) in attacks)
             {
                 var line = table.Lines.Count;
-                table.Lines.Add((onHit ? CombatWords.OnHitCells(cells, effect != null ? EffectName(effect) : null) : cells, EntryKeys.PlayAttack(item)));
+                var lineCells = onHit ? CombatWords.OnHitCells(cells, effect != null ? EffectName(effect) : null) : cells;
+                if (guarded) lineCells = lineCells.Concat(new[] { YouTake(damage, 0) }).ToArray();
+                table.Lines.Add((lineCells, EntryKeys.PlayAttack(item)));
                 // A death's blast has no owner to grow by a skill.
                 if (summoner != null && !EntryKeys.IsDeathAttack(item))
                 {
                     var strength = SkillMath.SummonStrength(summoner.Value.Level, summoned.Value.PerLevel);
                     table.Yours[line] = new List<(string[], string, string)> { YourLine(SkillWords.SummonedLine(SkillWords.SummonedAt(summoner.Value.At), damage, strength), summoner.Value) };
                 }
+                // Each count of stars it can come with, its hit half again harder a star (Attack.GetLevelDamageFactor): faint under the line, as what the hit and you take come to.
+                if (guarded && Stars > 0 && !EntryKeys.IsDeathAttack(item))
+                {
+                    if (!table.Yours.TryGetValue(line, out var under)) table.Yours[line] = under = new List<(string[], string, string)>();
+                    for (var stars = 1; stars <= Stars; stars++) under.Add((StarredLine(stars, damage, columns.Length), null, CombatWords.YouTakeTip));
+                }
                 if (linked != null) table.CellLinks[(line, 2)] = linked.name;
                 if (effect != null) table.CellLinks[(line, 3)] = EntryKeys.For(Kind.StatusEffect, effect.name);
             }
             if (table.Lines.Count > 0) Rows.Add(table);
+        }
+
+        /// <summary>What a hit does to the character now, at so many stars, as the range of its roll (<see cref="HitTaken.Range"/>, <see cref="YourGuard"/>).</summary>
+        private static string YouTake((string Type, float Amount)[] damage, int stars)
+        {
+            var (least, most) = HitTaken.Range(damage, YourGuard.Scale * HitTaken.StarScale(stars), YourGuard.Factor, YourGuard.Armour);
+            return CombatWords.YouTake(least, most);
+        }
+
+        /// <summary>A faint line under an attack: what it deals with so many stars, and what that does to the character, under the table's damage and its last column.</summary>
+        private static string[] StarredLine(int stars, (string Type, float Amount)[] damage, int columns)
+        {
+            var cells = Enumerable.Repeat("", columns).ToArray();
+            var scale = HitTaken.StarScale(stars);
+            cells[0] = CombatWords.WithStars(stars);
+            cells[1] = CombatWords.CreatureDamage(damage.Select(d => (d.Type, d.Amount * scale))) ?? "";
+            cells[columns - 1] = YouTake(damage, stars);
+            return cells;
         }
 
         /// <summary>

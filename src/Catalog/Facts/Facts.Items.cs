@@ -39,6 +39,12 @@ namespace Scry
                        || type == ItemDrop.ItemData.ItemType.Legs || type == ItemDrop.ItemData.ItemType.Shoulder;
             // What grows with quality is told in its table, each figure here at the first level.
             if (worn) Add("Armour", ItemWords.Armour(shared.m_armor));
+            // What the armour the character wears does to a hit, faint, its hover saying how armour works.
+            if (worn && YourGuard.Known)
+            {
+                Yours["Armour"] = CombatWords.ArmourYours(YourGuard.Armour);
+                YoursTips["Armour"] = CombatWords.ArmourTip;
+            }
             if (upgradable) Part(worn ? "gear" : "item stats", () => QualityTable(prefab, shared, worn));
             yield return true;
             Part("item stats", () => Combat(prefab, shared));

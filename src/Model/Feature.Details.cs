@@ -7,6 +7,7 @@ namespace Scry
         public static readonly Feature CreatureDrops = Listed("creature drop amounts, chances and stars in the details");
         public static readonly Feature DropTableAmounts = Listed("drop table amounts in the details");
         public static readonly Feature DropTableRolls = Listed("how drop tables pick, in the details");
+        public static readonly Feature WhatYouTake = Listed("what a creature's hit does to your character, at its armour and resistances, in the details");
         public static readonly Feature WhatCreaturesSee = Listed("what creatures see, in the details");
         public static readonly Feature HealthWithStars = Listed("health with stars in the details");
         public static readonly Feature WeakSpots = Listed("weak spots in the details");

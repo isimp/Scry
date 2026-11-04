@@ -296,6 +296,7 @@ namespace Scry
             ("EnvMan", "CalculateFreezing", 0, 0xFD3B55B3, Feature.CodeGiven),
             ("Player", "GetBodyArmor", 0, 0x03C09085, Feature.WhichArmourCounts),
             ("HitData", "ApplyResistance", 2, 0x8BB9A7D5, Feature.TrueDamage),
+            ("HitData", "ApplyArmor", 1, 0xA515F620, Feature.WhatYouTake),
             ("SE_Rested", "CalculateComfortLevel", 2, 0x71FEE0E8, Feature.ComfortGroups),
             ("SE_Stats", "GetTooltipString", 0, 0x8126FDA1, Feature.StatusEffectStats),
             ("Ship", "IsWindControllActive", 0, 0x75B0CD2D, Feature.StatusEffectStats),

@@ -123,6 +123,10 @@ namespace Scry
             /// </summary>
             public readonly Dictionary<int, List<(string[] Cells, string Skill, string Tip)>> Yours = new Dictionary<int, List<(string[], string, string)>>();
 
+            /// <summary>A faint line under a table saying what a column of it is reckoned at, and what it says on hover, as an attacks table's column of what each does to you; none for none.</summary>
+            public string Foot;
+            public string FootTip;
+
             /// <summary>What a table's cell past the first goes to, by its line and column: an attack's projectile and what it puts on you.</summary>
             public readonly Dictionary<(int Line, int Cell), string> CellLinks = new Dictionary<(int, int), string>();
             public readonly List<Ingredient> Items = new List<Ingredient>();
@@ -639,14 +643,14 @@ namespace Scry
             foreach (var row in facts.Rows.Concat(facts.UseRows)) row.TellApart();
         }
 
-        /// <summary>What had been seen in play, how the mods were set, the character's skill levels and the keys it held when these facts were told (<see cref="Freshness"/>).</summary>
-        private (int Drops, int Worn, int Settings, int Skills, int Keys) _toldWith;
+        /// <summary>What had been seen in play, how the mods were set, the character's skill levels, the keys it held and what guarded it when these facts were told (<see cref="Freshness"/>).</summary>
+        private (int Drops, int Worn, int Settings, int Skills, int Keys, int Guard) _toldWith;
 
         /// <summary>What the facts are fresh by now, for what keeps something worked out of them (<see cref="Freshness"/>).</summary>
-        internal static (int, int, int, int, int) FreshnessNow => Freshness;
+        internal static (int, int, int, int, int, int) FreshnessNow => Freshness;
 
-        /// <summary>What has been seen in play, how the mods are set, the character's skill levels and the keys it holds now, by their counts of changes.</summary>
-        private static (int Drops, int Worn, int Settings, int Skills, int Keys) Freshness => (DropWatch.Version, WornWatch.Version, ModConfigs.Version, YourSkills.Version, TraderStore.KeysHeld);
+        /// <summary>What has been seen in play, how the mods are set, the character's skill levels, the keys it holds and its armour, resistances and the world's scale of hits now (<see cref="YourGuard"/>), by their counts of changes.</summary>
+        private static (int Drops, int Worn, int Settings, int Skills, int Keys, int Guard) Freshness => (DropWatch.Version, WornWatch.Version, ModConfigs.Version, YourSkills.Version, TraderStore.KeysHeld, YourGuard.Version);
 
         /// <summary>What these facts link to: their values', their rows' and tables', and where it comes from; so Linked shows each link once.</summary>
         public HashSet<string> LinkedTargets()
