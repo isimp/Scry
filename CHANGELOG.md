@@ -8,7 +8,7 @@ A creature's attacks table tells what each attack does to you, at the armour and
 
 A Dvergr mage offers its robe once: its fire, ice and support kinds, which the world never places on their own, are no longer kinds to switch to but the looks of the mage they are, each one's own page saying so. A creature that rolls one of several sets, such as a Dvergr mage or a troll with or without its log, lists in its attacks table the attacks of the look on the stage, a faint line counting the rest, and every attack at No gear, which now comes last in the look row.
 
-A creature's gear rows on the stage no longer call a Dvergr's or Jotun's hair a shield, nor every hair and every goblin's armour piece Iron plate armor: the row its hair is rolled from is named by what it holds, and each choice by its own prefab where the game gives them all one name.
+A creature's gear rows on the stage no longer call a Dvergr's or Jotun's hair a shield, nor every hair and every goblin's armour piece Iron plate armor: the row its hair is rolled from is named by what it holds, and each choice by its own prefab where the game gives them all one name. Under the strict rules, hair and other gear seen worn are named in those rows, as they already counted for a creature's looks.
 
 ## 0.4.1
 

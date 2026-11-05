@@ -270,6 +270,33 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AGearChoiceSeenWornIsNamedThoughNeverMetAsAnItem()
+        {
+            // A Dvergr's hair is never met as an item, only seen on one: under the strict rules its
+            // choice in the gear rows is named once seen worn, as its looks show, and a smudge before.
+            var mage = E("DvergerMage", Kind.Creature, "Dvergr Mage");
+            var male = E("DvergerHairMale", Kind.Item, "Iron plate armor");
+            var female = E("DvergerHairFemale", Kind.Item, "Iron plate armor");
+            var explorer = new Explorer(new List<Entry> { mage, male, female }, new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+            var view = new CompendiumView(explorer.Entries);
+            var book = new CompendiumBook();
+            book.Raise(mage.Key, KnownLevel.Known);
+            book.Sighted(mage.Key, 0, new[] { "DvergerHairMale" });
+            view.Tell(book, CompendiumRule.Strict);
+            explorer.Know(view);
+            explorer.Select(mage);
+
+            Assert.True(explorer.NotMet(male.Key));
+            Assert.False(explorer.GearUnnamed(mage.Key, male.Name));
+            Assert.True(explorer.GearUnnamed(mage.Key, female.Name));
+            // Met as an item, it is named on any creature.
+            book.Raise(female.Key, KnownLevel.Known);
+            view.Tell(book, CompendiumRule.Strict);
+            explorer.Know(view);
+            Assert.False(explorer.GearUnnamed(mage.Key, female.Name));
+        }
+
+        [Fact]
         public void EachKindIsJudgedByItsOwnSetsWhatOneWoreSharedWithTheFamily()
         {
             // Two kinds share a robe but roll it with different staffs: the robe seen on the second

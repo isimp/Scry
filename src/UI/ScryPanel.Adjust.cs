@@ -242,7 +242,7 @@ namespace Scry
             {
                 if (ExtraLists.Count > 64) ExtraLists.Clear();
                 var shownNow = Enumerable.Range(0, loadout.Extras.Count).Where(i => _explorer == null || _explorer.WearsShown(creature.name, loadout.Extras[i].Name)).ToList();
-                var extrasNow = shownNow.Select(i => _explorer != null && _explorer.NotMet(loadout.Extras[i].Name) ? CompendiumWords.Hidden : ItemName(loadout.Extras[i].Name)).ToList();
+                var extrasNow = shownNow.Select(i => _explorer != null && _explorer.GearUnnamed(creature.name, loadout.Extras[i].Name) ? CompendiumWords.Hidden : ItemName(loadout.Extras[i].Name)).ToList();
                 extraLists = (shownNow, extrasNow);
                 ExtraLists[(creature.name, know)] = extraLists;
             }
@@ -272,7 +272,7 @@ namespace Scry
             var hidden = 0;
             for (var n = 0; n < names.Count; n++)
             {
-                if (row == Loadout.Row.Weapon || string.IsNullOrEmpty(options[shown[n]]) || _explorer == null || !_explorer.NotMet(options[shown[n]])) continue;
+                if (row == Loadout.Row.Weapon || string.IsNullOrEmpty(options[shown[n]]) || _explorer == null || !_explorer.GearUnnamed(creature, options[shown[n]])) continue;
                 names[n] = CompendiumWords.Hidden;
                 hidden++;
             }

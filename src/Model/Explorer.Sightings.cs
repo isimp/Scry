@@ -85,6 +85,13 @@ namespace Scry
             _view?.Book != null && !string.IsNullOrEmpty(creature) && (SeenOnKind(creature, item) || SetPutOn(creature, item));
 
         /// <summary>
+        /// Whether a creature's gear choice reads a smudge in its gear rows: an item never met
+        /// (<see cref="NotMet"/>) and never seen worn by it or a kind of its family (<see cref="SeenWorn"/>),
+        /// as a Dvergr's hair, which is never met as an item, is named once seen on one.
+        /// </summary>
+        public bool GearUnnamed(string creature, string item) => NotMet(item) && !SeenWorn(creature, item);
+
+        /// <summary>
         /// Whether a creature, by key, or a kind of its family was seen up close in something only one
         /// of its sets puts on, and that set puts the item on too (<see cref="WornTogether"/>): a mage
         /// seen in its fire robe held its fire staff. Each kind is judged by its own sets and what
