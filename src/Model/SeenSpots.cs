@@ -247,9 +247,9 @@ namespace Scry
         private static readonly HashSet<string> Everywhere = new HashSet<string>(StringComparer.Ordinal) { "Wood", "Stone" };
 
         /// <summary>
-        /// Whether a kind of thing is worth finding again on the map: a place; a thing picked or
-        /// mined (<paramref name="gatheredBy"/>) that gives something besides wood and stone, as a
-        /// berry bush, flint, a mushroom or an ore deposit. Not a branch, a stone, a plain rock, a
+        /// Whether a kind of thing is worth finding again on the map: a place; a thing picked, mined
+        /// or tapped (<paramref name="gatheredBy"/>) that gives something besides wood and stone, as a
+        /// berry bush, flint, a mushroom, an ore deposit or an ancient root. Not a branch, a stone, a plain rock, a
         /// tree, a shrub or a log, which stand everywhere, nor a crop only ever grown from planting
         /// (<paramref name="planted"/>: what a sapling or a seed grows into, <c>Plant.m_grownPrefabs</c>,
         /// that the world never places wild), which stands where the player planted it. A kind
@@ -439,11 +439,12 @@ namespace Scry
         Ring,
     }
 
-    /// <summary>How a thing is gathered, as far as finding it again goes: picked, mined (a deposit or its broken form), or neither.</summary>
+    /// <summary>How a thing is gathered, as far as finding it again goes: picked, mined (a deposit or its broken form), tapped (a root a tap built on it draws from), or none of these.</summary>
     internal enum Gathered
     {
         None,
         Picked,
         Mined,
+        Tapped,
     }
 }

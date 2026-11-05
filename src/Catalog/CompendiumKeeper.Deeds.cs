@@ -6,9 +6,32 @@ using UnityEngine;
 
 namespace Scry
 {
-    /// <summary>What the character did or saw done that the keeper learns from: raids lived through and their raiders, creatures seen in their places, catches, tamings told, the weapons that hit it, and weather on it.</summary>
+    /// <summary>What the character did or saw done that the keeper learns from: raids lived through and their raiders, creatures seen in their places, catches, tamings told, the weapons that hit it, weather on it, and the roots it tapped.</summary>
     internal static partial class CompendiumKeeper
     {
+        /// <summary>How near a tap a root's part stands for the tap to draw from it, as the game finds a tap's root (<c>SapCollector.UpdateTick</c>).</summary>
+        private const float TapReach = 0.2f;
+
+        /// <summary>
+        /// A tap built or collected from at a point: the root it draws from, found as the game finds
+        /// it (the first with a part within <see cref="TapReach"/>), known by the tapping, as an
+        /// ancient root takes no hit and no use.
+        /// </summary>
+        private static void TappedAt(Vector3 at)
+        {
+            if (Into == null || _catchUp == null) return;
+            foreach (var near in Physics.OverlapSphere(at, TapReach))
+            {
+                var root = near != null ? near.GetComponentInParent<ResourceRoot>() : null;
+                if (root == null) continue;
+                var view = root.GetComponentInParent<ZNetView>();
+                if (view == null) return;
+                var key = Utils.GetPrefabName(view.gameObject);
+                if (_catchUp.Tapped(key, Into)) MetIn(key, root.transform.position);
+                return;
+            }
+        }
+
         /// <summary>
         /// A raid the character is in, standing at a point: known, and seen together with the biome
         /// there where the raid counts that biome as its own, as the game does for its weather

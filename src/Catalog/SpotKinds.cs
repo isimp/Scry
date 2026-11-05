@@ -7,7 +7,7 @@ namespace Scry
     /// <summary>
     /// What each of the game's prefabs counts as for the spots a character's sight keeps
     /// (<see cref="SeenSpots"/>), worked out once a prefab from its parts: whether it is worth
-    /// finding again (<see cref="SeenOnMap.Findable"/>: picked or mined, giving something besides
+    /// finding again (<see cref="SeenOnMap.Findable"/>: picked, mined or tapped, giving something besides
     /// wood and stone, not a crop grown from planting), not while it carries a beacon a Wishbone finds; and the kind it is kept
     /// by, a deposit's broken form by the whole deposit that becomes it when first struck
     /// (<c>Destructible.m_spawnWhenDestroyed</c>), so a spot keeps its kind as the deposit breaks.
@@ -53,8 +53,19 @@ namespace Scry
             if (!SeenOnMap.Records(prefab.GetComponentInChildren<Beacon>(true) != null)) return false;
             var pickable = prefab.GetComponent<Pickable>();
             if (pickable != null) return SeenOnMap.Findable(false, Gathered.Picked, pickable.m_itemPrefab != null ? new[] { pickable.m_itemPrefab.name } : System.Array.Empty<string>(), Grown(prefab.name) && !Wild(prefab.name));
+            if (prefab.GetComponent<ResourceRoot>() != null) return SeenOnMap.Findable(false, Gathered.Tapped, TappedFrom(prefab.name));
             var deposit = DepositOf(prefab);
             return deposit != null && SeenOnMap.Findable(false, Gathered.Mined, deposit.m_drops.Where(d => d.m_item != null).Select(d => d.m_item.name));
+        }
+
+        /// <summary>What the taps built on a root make of it: each tap that must stand on that root (<c>SapCollector.m_mustConnectTo</c>), by what it makes (<c>SapCollector.m_spawnItem</c>).</summary>
+        private static IEnumerable<string> TappedFrom(string root)
+        {
+            foreach (var prefab in ZNetScene.instance != null ? ZNetScene.instance.m_prefabs : new List<GameObject>())
+            {
+                var tap = prefab != null ? prefab.GetComponent<SapCollector>() : null;
+                if (tap != null && tap.m_mustConnectTo != null && tap.m_mustConnectTo.name == root && tap.m_spawnItem != null) yield return tap.m_spawnItem.gameObject.name;
+            }
         }
 
         /// <summary>What a deposit gives when mined: its own drops, those of the broken form a whole deposit becomes, or what one only a pickaxe breaks drops; none for anything else.</summary>

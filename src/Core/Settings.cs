@@ -396,7 +396,7 @@ namespace Scry
             Sync(_worldPeeking);
             Sync(_worldFloor);
             _worldSeenOnMapReach = config.Bind("4 - World", "SeenOnMapReach", SeenOnMap.DefaultReach,
-                new ConfigDescription(SettingsWords.Synced("How far away, in metres, a player's own sight remembers where an ore deposit, a pickable or a place stands, for showing it on the map; things smaller than a person are seen nearer. At 0 nothing is remembered."),
+                new ConfigDescription(SettingsWords.Synced("How far away, in metres, a player's own sight remembers where an ore deposit, a pickable, an ancient root or a place stands, for showing it on the map; things smaller than a person are seen nearer. At 0 nothing is remembered."),
                     new AcceptableValueRange<float>(0f, 150f)));
             _worldPlaces = config.Bind("4 - World", "PlacesOnMap", PlacesTold.Squares,
                 "How Show on map tells players the places in ground they explored or saw on a shared map but never came near: Off, not at all, players seeing only the places they saw themselves; Squares, the 128 m square each stands in, so they know one stands somewhere inside, never where; Dots, where each stands, as a hollow dot. A player's older Scry is told squares. The ground is the player's game's own word, so on Dots a changed game can learn where every place of the world stands. Only the server's own setting counts.");

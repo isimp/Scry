@@ -139,6 +139,27 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AnAncientRootIsKnownByTappingIt()
+        {
+            // An ancient root can be neither hit nor used: a sap tap built on it, or sap taken from
+            // one standing on it, is how the character deals with it.
+            var root = new Entry { Kind = Kind.Resource, Name = "YggdrasilRoot" };
+            var catchUp = new CompendiumCatchUp(new EntryCatalog(new[] { root }));
+            var book = Book(472, "Mistlands");
+            book.Raise(root.Key, KnownLevel.Seen);
+
+            Assert.True(catchUp.Tapped(root.Key, book));
+            Assert.Equal(KnownLevel.Known, book.Level(root.Key));
+            Assert.Equal((CameBy.Tapped, new Moment(472, "Mistlands")), book.Came(root.Key));
+            Assert.Contains("tapping it", CompendiumWords.CameToKnow(CameBy.Tapped, 472, "Mistlands"));
+            Assert.Equal("tapped", JournalWords.LearnedNote(new BookNews(NewsHow.Known, null, CameBy.Tapped, 472)));
+
+            // Tapped again, nothing new; a root the catalog does not list is learned of not at all.
+            Assert.False(catchUp.Tapped(root.Key, book));
+            Assert.False(catchUp.Tapped("NoSuchRoot", new CompendiumBook()));
+        }
+
+        [Fact]
         public void EveryWayOfComingToKnowHasItsWords()
         {
             foreach (CameBy way in System.Enum.GetValues(typeof(CameBy)))

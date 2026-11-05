@@ -447,7 +447,8 @@ namespace Scry
         /// A piece the character placed, as news: known, and paired with the tool in hand that built
         /// it; an upgrade with the station it upgrades there, a station with the upgrades standing
         /// in reach of it, as the game counts them (<c>CraftingStation.FindClosestStationInRange</c>,
-        /// <c>StationExtension.FindExtensions</c>), for the strict rules.
+        /// <c>StationExtension.FindExtensions</c>), for the strict rules; a sap tap's root known
+        /// by the tapping (<see cref="TappedAt"/>).
         /// </summary>
         public static void Placed(Piece piece, Vector3 at, string tool)
         {
@@ -468,6 +469,7 @@ namespace Scry
                     break;
                 }
             }
+            if (piece.GetComponent<SapCollector>() != null) TappedAt(at);
             var upgrade = piece.GetComponent<StationExtension>();
             var upgrades = upgrade != null && upgrade.m_craftingStation != null ? CraftingStation.FindClosestStationInRange(upgrade.m_craftingStation.m_name, at, upgrade.m_maxStationDistance) : null;
             if (upgrades != null) _catchUp.Upgrades(Utils.GetPrefabName(upgrades.gameObject), new[] { key }, Into);
@@ -564,12 +566,13 @@ namespace Scry
             EventRule.Tell(told, ZNet.GetUID(), at.x, at.y, at.z, Told, Into, _into == null ? Play : null, inSight, Time.realtimeSinceStartup, Facts.HurtsAsItDies);
         }
 
-        /// <summary>A producer the character collected from shows its pace (<see cref="Deed.Collected"/>).</summary>
+        /// <summary>A producer the character collected from shows its pace (<see cref="Deed.Collected"/>); a sap tap's root is known by the tapping (<see cref="TappedAt"/>).</summary>
         public static void CollectedFrom(GameObject producer)
         {
             if (Into == null || producer == null) return;
             Into.FoundOut(Utils.GetPrefabName(producer), EntryKeys.Did(Deed.Collected));
             Noted(PlayEvent.Collected);
+            if (producer.GetComponent<SapCollector>() != null) TappedAt(producer.transform.position);
         }
 
         /// <summary>A creature seen up close, as the game shows one: its stars and what it carries kept with the book (<see cref="CompendiumBook.Sighted"/>).</summary>

@@ -300,6 +300,7 @@ namespace Scry
         /// <summary>A trap's numbers wait for one seen springing; a hit of the character's on a piece near by tells how its damage landed, the piece's grid following its own hits; one a player built is not made known by it, one the world placed is.</summary>
         private static void BuiltThingsTell(Probe p, System.Func<CompendiumBook> fresh)
         {
+            RootsTappedTell(p, fresh);
             var trap = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Piece && GamePrefabs.Named(e.Name).OrNull()?.GetComponent<Trap>() != null);
             if (trap == null) p.Note("no trap in the catalog: its numbers untried");
             else p.Check(Facts.For(trap).Proofs.TryGetValue("Damage", out var proof) && proof == EntryKeys.Did(Deed.Sprang), $"{trap.Name}'s damage waits for one seen springing");
@@ -350,6 +351,71 @@ namespace Scry
             hit.SetAttacker(player);
             PieceHitWatch.Hit(piece, hit);
             p.Check(book.Level(key) == KnownLevel.Known && book.Came(key)?.Way == CameBy.Hit, $"hitting {key}, which the world placed, makes it known by the hit", $"{book.Level(key)}, {book.Came(key)?.Way}");
+        }
+
+        /// <summary>
+        /// An ancient root, which takes no hit and no use, is known by tapping it: a sap tap built
+        /// on a root loaded near by, or sap taken from one standing on it, through the keeper's own
+        /// entries, the tap standing in for one is the game's own, never spawned; a tap standing
+        /// off the root tells of none.
+        /// </summary>
+        private static void RootsTappedTell(Probe p, System.Func<CompendiumBook> fresh)
+        {
+            var player = Player.m_localPlayer;
+            var tap = GamePrefabs.Named("piece_sapcollector").OrNull()?.GetComponent<Piece>();
+            var root = Object.FindObjectsByType<ResourceRoot>(FindObjectsSortMode.None).Where(r => r != null && r.GetComponentInParent<ZNetView>() != null)
+                .OrderBy(r => (r.transform.position - player.transform.position).sqrMagnitude).FirstOrDefault();
+            var on = root != null ? OnRoot(root) : null;
+            if (tap == null || on == null)
+            {
+                p.Untried("an ancient root tapped", "stand by an ancient root in the Mistlands", "root");
+                return;
+            }
+            var key = Utils.GetPrefabName(root.GetComponentInParent<ZNetView>().gameObject);
+            if (!p.Check(X.Find(key) != null, $"{key} is in the catalog")) return;
+
+            var built = fresh();
+            CompendiumKeeper.Placed(tap, on.Value, "Hammer");
+            p.Check(built.Level(key) == KnownLevel.Known && built.Came(key)?.Way == CameBy.Tapped, $"a sap tap built on {key} makes it known by the tapping", $"{built.Level(key)}, {built.Came(key)?.Way}");
+
+            // A stand-in tap, asleep so it never wakes as the game's, collected from where it stands on the root.
+            var stand = new GameObject("piece_sapcollector");
+            stand.SetActive(false);
+            try
+            {
+                stand.AddComponent<SapCollector>();
+                stand.transform.position = on.Value;
+                var collected = fresh();
+                CompendiumKeeper.CollectedFrom(stand);
+                p.Check(collected.Level(key) == KnownLevel.Known && collected.Came(key)?.Way == CameBy.Tapped, $"sap taken from a tap on {key} makes it known by the tapping", $"{collected.Level(key)}, {collected.Came(key)?.Way}");
+
+                stand.transform.position = on.Value + Vector3.up * 3f;
+                var off = fresh();
+                CompendiumKeeper.CollectedFrom(stand);
+                p.Check(off.Level(key) < KnownLevel.Known, $"a tap standing off {key} tells nothing of it", off.Level(key).ToString());
+            }
+            finally
+            {
+                Object.Destroy(stand);
+            }
+        }
+
+        /// <summary>A point on a root's top, where a tap would stand on it: the first a ray down over its parts meets; none when no ray meets it.</summary>
+        private static Vector3? OnRoot(ResourceRoot root)
+        {
+            foreach (var part in root.GetComponentsInChildren<Collider>())
+            {
+                var box = part.bounds;
+                for (var i = 0; i <= 4; i++)
+                {
+                    for (var j = 0; j <= 4; j++)
+                    {
+                        var from = new Vector3(Mathf.Lerp(box.min.x, box.max.x, i / 4f), box.max.y + 1f, Mathf.Lerp(box.min.z, box.max.z, j / 4f));
+                        if (part.Raycast(new Ray(from, Vector3.down), out var hit, box.size.y + 2f)) return hit.point;
+                    }
+                }
+            }
+            return null;
         }
 
         /// <summary>A Dvergr mage's summon, shield and fireball, which another game reads from its data as it holds them.</summary>

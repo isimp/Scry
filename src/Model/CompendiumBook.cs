@@ -63,6 +63,9 @@ namespace Scry
 
         /// <summary>A rock known by hitting the pieces it alone breaks into, broken whole by another hit than the character's.</summary>
         MinedPieces,
+
+        /// <summary>A root known by a tap built on it or sap taken from one standing on it, as it can be neither hit nor used.</summary>
+        Tapped,
     }
 
     /// <summary>

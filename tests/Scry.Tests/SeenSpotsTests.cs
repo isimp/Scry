@@ -205,6 +205,15 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AnAncientRootTappedForSapIsWorthFindingAgain()
+        {
+            // The sap a tap draws from it is the reason to come back to a root.
+            Assert.True(SeenOnMap.Findable(false, Gathered.Tapped, new[] { "Sap" }));
+            // A root no tap can stand on gives nothing.
+            Assert.False(SeenOnMap.Findable(false, Gathered.Tapped, new string[0]));
+        }
+
+        [Fact]
         public void AWildKindTheGardenGrowsTooIsKeptOnlyOffTilledGround()
         {
             // A seed carrot grows wild and from a planted carrot alike: the game grows a planted one only on tilled ground (Plant.m_needCultivatedGround).

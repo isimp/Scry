@@ -16,7 +16,7 @@ Every command is typed in the chat as shown, or in the game's console (F5) witho
 
 `/scry forget maps` forgets your character's own maps of the dungeons of this world: the rooms you walked, and the marks on the large map.
 
-`/scry forget spots` forgets where your character saw ore deposits, pickables and places worth finding again in this world. The setting *RecordSeenSpots* stops new ones being remembered.
+`/scry forget spots` forgets where your character saw ore deposits, pickables, ancient roots and places worth finding again in this world. The setting *RecordSeenSpots* stops new ones being remembered.
 
 ## Your compendium
 
