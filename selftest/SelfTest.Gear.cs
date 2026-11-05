@@ -42,7 +42,8 @@ namespace Scry
         /// wear one of the sets the mage rolls, are that look of the mage: its page switches to
         /// none of them, and each one's own page says it is met as the mage in that gear. The
         /// mage's attacks table follows the look staged: in its first set it lists that set's
-        /// attacks, a faint line counting the others, and at no gear every one. Pictured.
+        /// attacks, a faint line counting the others, and at no gear every one. The row its hair
+        /// is rolled from reads Rolled, each hair by its prefab. Pictured.
         /// </summary>
         private static IEnumerator MageRobesAreLooks(Probe p)
         {
@@ -72,6 +73,10 @@ namespace Scry
             p.Check(ScryPanel.Drawn(PanelPart.AttacksOtherGear) > others, "in its first set the mage's attacks table lists that set's attacks, a faint line counting the others");
             yield return Settled();
             yield return PictureOf(p, "adjust", "the Dvergr mage's looks, its robes first and no gear last");
+            // The game rolls its hair from its shield list, male hair a helmet, female hair legs, both named "Iron plate armor".
+            var hair = ScryPanel.LoadoutNamesForTest.FirstOrDefault(r => r.Names != null && r.Names.Contains("Dverger hair male"));
+            p.Check(hair.Row == LoadoutWords.Rolled && hair.Names.Contains("Dverger hair female"), "the row its hair is rolled from is named Rolled, each hair by its prefab, not its shield list or its game name",
+                string.Join("; ", ScryPanel.LoadoutNamesForTest.Select(r => r.Row + ": " + string.Join(", ", r.Names))));
             yield return PictureOf(p, "fight", "the Dvergr mage's attacks in its first set");
             X.Modifiers.Look = 0;
             yield return Settled();

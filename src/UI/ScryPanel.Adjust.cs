@@ -197,7 +197,6 @@ namespace Scry
             var loadout = Gear.LoadoutOf(creature);
             loadout.Carrying(PrefabGear.SetWeapons(creature, look));
             var rows = new[] { Loadout.Row.Holding, Loadout.Row.Weapon, Loadout.Row.Shield, Loadout.Row.Armour };
-            var labels = new[] { "Holding", "Weapon", "Shield", "Armour" };
             LoadoutNames.Clear();
             // The rows' lists are kept by creature, look and what is known, as the rows draw every frame.
             var know = _explorer?.KnowStamp ?? 0;
@@ -211,7 +210,7 @@ namespace Scry
                     lists = LoadoutRowLists(creature.name, rows[i], options);
                     LoadoutLists[(creature.name, look, know, i)] = lists;
                 }
-                var (shown, names, hidden, offered) = lists;
+                var (label, shown, names, hidden, offered) = lists;
                 // A row left with nothing to choose is left out.
                 if (shown.Count < options.Count && offered == 0) continue;
                 if (shown.Count < options.Count && !shown.Contains(loadout.Chosen(rows[i])))
@@ -220,14 +219,14 @@ namespace Scry
                     Previews.Rebuild();
                 }
                 if (hidden > 0 && hidden == offered) continue;
-                LoadoutNames.Add((labels[i], names));
+                LoadoutNames.Add((label, names));
 
                 // A shield the weapon leaves no hand for is shown put away, and still chosen for later.
                 var held = loadout.Held(rows[i]);
                 var was = GUI.color;
                 if (!held) GUI.color = Skin.Alpha(was, was.a * 0.4f);
                 var top = y;
-                var chosen = Segments(labels[i], names, shown.IndexOf(loadout.Chosen(rows[i])), width, labelW, ref y);
+                var chosen = Segments(label, names, shown.IndexOf(loadout.Chosen(rows[i])), width, labelW, ref y);
                 GUI.color = was;
                 if (!held && new Rect(0f, top, width, y - top).Contains(Event.current.mousePosition))
                 {
@@ -256,31 +255,42 @@ namespace Scry
         }
 
         /// <summary>
-        /// A loadout row's lists: which options are shown (under the strict rules those the creature was
-        /// seen carrying up close, as the stage would not put the others on), their names, how many
-        /// read as a smudge (an item never met, its prefab not told either, but a weapon, whose
-        /// attacks the creature's table names), and how many options there are besides none.
+        /// A loadout row's lists: its label (<see cref="LoadoutWords.RowLabel"/>), which options are
+        /// shown (under the strict rules those the creature was seen carrying up close, as the stage
+        /// would not put the others on), their names (<see cref="LoadoutWords.Choices"/>, told among
+        /// every option so a name stays as more are met), how many read as a smudge (an item never
+        /// met, its prefab not told either, but a weapon, whose attacks the creature's table names),
+        /// and how many options there are besides none.
         /// </summary>
-        private static (List<int> Shown, List<string> Names, int Hidden, int Offered) LoadoutRowLists(string creature, Loadout.Row row, IReadOnlyList<string> options)
+        private static (string Label, List<int> Shown, List<string> Names, int Hidden, int Offered) LoadoutRowLists(string creature, Loadout.Row row, IReadOnlyList<string> options)
         {
+            var read = options.Select(ItemNaming).ToList();
+            var label = LoadoutWords.RowLabel(row, read.Where(o => o.Type != null).Select(o => o.Type).ToList());
+            var told = LoadoutWords.Choices(read);
             var shown = Enumerable.Range(0, options.Count).Where(n => string.IsNullOrEmpty(options[n]) || _explorer == null || _explorer.WearsShown(creature, options[n])).ToList();
-            var names = shown.Select(n => ItemName(options[n])).ToList();
+            var names = shown.Select(n => told[n]).ToList();
             var hidden = 0;
             for (var n = 0; n < names.Count; n++)
             {
-                if (row != Loadout.Row.Weapon && !string.IsNullOrEmpty(options[shown[n]]) && _explorer != null && _explorer.NotMet(options[shown[n]]))
-                {
-                    names[n] = CompendiumWords.Hidden;
-                    hidden++;
-                }
-                else if (names.Count(other => other == names[n]) > 1) names[n] = Naming.WithPrefab(names[n], options[shown[n]]);
+                if (row == Loadout.Row.Weapon || string.IsNullOrEmpty(options[shown[n]]) || _explorer == null || !_explorer.NotMet(options[shown[n]])) continue;
+                names[n] = CompendiumWords.Hidden;
+                hidden++;
             }
-            return (shown, names, hidden, shown.Count(n => !string.IsNullOrEmpty(options[n])));
+            return (label, shown, names, hidden, shown.Count(n => !string.IsNullOrEmpty(options[n])));
+        }
+
+        /// <summary>An option's prefab, its game name, whether that name is one the game translates (a "$" token), and its item type; all but the prefab none for nothing chosen.</summary>
+        private static (string Prefab, string Shown, bool Translated, string Type) ItemNaming(string prefabName)
+        {
+            if (string.IsNullOrEmpty(prefabName)) return (null, null, false, null);
+            var shared = GamePrefabs.Item(prefabName).OrNull()?.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
+            if (shared == null) return (prefabName, "", false, null);
+            return (prefabName, CatalogBuilder.Localize(shared.m_name), shared.m_name != null && shared.m_name.StartsWith("$", StringComparison.Ordinal), shared.m_itemType.ToString());
         }
 
         /// <summary>The loadout rows' lists by creature, look, what is known and row, and the extras' by creature and what is known.</summary>
-        private static readonly Dictionary<(string Creature, int Look, int Know, int Row), (List<int> Shown, List<string> Names, int Hidden, int Offered)> LoadoutLists =
-            new Dictionary<(string, int, int, int), (List<int>, List<string>, int, int)>();
+        private static readonly Dictionary<(string Creature, int Look, int Know, int Row), (string Label, List<int> Shown, List<string> Names, int Hidden, int Offered)> LoadoutLists =
+            new Dictionary<(string, int, int, int), (string, List<int>, List<string>, int, int)>();
         private static readonly Dictionary<(string Creature, int Know), (List<int> Shown, List<string> Names)> ExtraLists = new Dictionary<(string, int), (List<int>, List<string>)>();
 
         /// <summary>The stars' names, and the list of stars offered they were made for.</summary>
@@ -296,7 +306,7 @@ namespace Scry
         /// <summary>An item's name as the game shows it, or "Nothing" for an empty choice.</summary>
         private static string ItemName(string prefabName)
         {
-            if (string.IsNullOrEmpty(prefabName)) return "Nothing";
+            if (string.IsNullOrEmpty(prefabName)) return LoadoutWords.Nothing;
             var shared = GamePrefabs.Item(prefabName).OrNull()?.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
             var shown = shared != null ? CatalogBuilder.Localize(shared.m_name) : "";
             return shown.Length > 0 ? shown : prefabName;
