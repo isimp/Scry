@@ -2,13 +2,9 @@
 
 ## 0.4.2
 
-On TargetPortal's map of portals, Scry's marks step aside with the map's pins while its Hide map pins setting is on. Scry's marks and dots stand only on ground your map shows, so a dungeon entrance seen from afar no longer shows through the map's fog. Playing together, attacks that start alike are told apart on a creature a friend's game runs too, as a Dvergr mage's shield and its Mistile summon.
+A creature's attacks table now tells what each attack does to you at your armour and resistances, with stars, and how much harder your world makes creatures hit; an armour's Armour row tells what it does to a hit. A Dvergr mage's robes are its looks rather than kinds to switch to, and a creature that rolls one of several sets lists the attacks of the look shown. Creatures stand in the gear you saw them in, and a Dvergr's hair is no longer called a shield.
 
-A creature's attacks table tells what each attack does to you, at the armour and resistances you have now and with each count of stars, as the game takes a hit, and says how much harder the world makes creatures hit. A Gjall's taunt and egg drop are seen begun from as far as it uses them. A Dvergr mage, and any creature that always wears a set, stands on the stage in its gear once seen in it, not bare. An armour's Armour row says what the armour you wear does to a hit, and pointing at it how armour works.
-
-A Dvergr mage offers its robe once: its fire, ice and support kinds, which the world never places on their own, are no longer kinds to switch to but the looks of the mage they are, each one's own page saying so. A creature that rolls one of several sets, such as a Dvergr mage or a troll with or without its log, lists in its attacks table the attacks of the look on the stage, a faint line counting the rest, and every attack at No gear, which now comes last in the look row.
-
-A creature's gear rows on the stage no longer call a Dvergr's or Jotun's hair a shield, nor every hair and every goblin's armour piece Iron plate armor: the row its hair is rolled from is named by what it holds, and each choice by its own prefab where the game gives them all one name. Under the strict rules, hair and other gear seen worn are named in those rows, as they already counted for a creature's looks.
+Scry's map marks hide with TargetPortal's pins and stay off ground you have not explored. A Gjall's taunt and egg drop are seen from as far as it uses them, and attacks that start alike are told apart on creatures a friend's game runs.
 
 ## 0.4.1
 
