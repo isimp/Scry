@@ -367,7 +367,9 @@ namespace Scry
                 foreach (var item in itemsOf(look))
                 {
                     if (shows != null && !shows(item)) continue;
-                    hidden |= HidesHinged(item) || (Find(item) != null && !WearsShown(_selected?.Key, item));
+                    // What the creature was seen wearing up close was seen, though never met as an
+                    // item, as a creature's own robe and staff can never be picked up.
+                    hidden |= (HidesHinged(item) && !SeenWorn(_selected?.Key, item)) || (Find(item) != null && !WearsShown(_selected?.Key, item));
                 }
                 if (!hidden) shown.Add(look);
             }

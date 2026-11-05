@@ -77,6 +77,14 @@ namespace Scry
         }
 
         /// <summary>
+        /// Whether a creature, by key, was seen up close wearing an item, under any rules: on it or
+        /// a kind of its family, or put on by its set with what was seen (<see cref="SetPutOn"/>).
+        /// What a creature was seen wearing was seen, though never met as an item.
+        /// </summary>
+        public bool SeenWorn(string creature, string item) =>
+            _view?.Book != null && !string.IsNullOrEmpty(creature) && (SeenOnKind(creature, item) || SetPutOn(creature, item));
+
+        /// <summary>
         /// Whether a creature, by key, or a kind of its family was seen up close in something only one
         /// of its sets puts on, and that set puts the item on too (<see cref="WornTogether"/>): a mage
         /// seen in its fire robe held its fire staff. Each kind is judged by its own sets and what

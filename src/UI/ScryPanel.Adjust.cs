@@ -50,9 +50,11 @@ namespace Scry
             var looksHidden = entry.Source is GameObject hinged && _explorer != null && _explorer.HidesHinged(PrefabLooks.HingeOf(hinged));
             _looksHidden = looksHidden;
             if (looksHidden && modifiers.Look != 0) modifiers.Look = 0;
-            // A gear look whose items were not all met is left out too, the first shown taking its place.
+            // A gear look whose items were not all met or seen worn is left out too, another taking its
+            // place: a gear look where one shows, as a creature that rolls a set is never seen bare (LookPick).
             var shown = LooksShown(entry, modifiers);
-            if (!looksHidden && shown.Count > 0 && !shown.Contains(modifiers.Look)) modifiers.Look = shown[0];
+            if (!looksHidden && shown.Count > 0 && !shown.Contains(modifiers.Look))
+                modifiers.Look = LookPick.Opening(shown, modifiers.Look, entry.Source is GameObject worn && PrefabLooks.IsGear(worn));
             // A look row with one look left gives nothing to choose, and the section none to show.
             var looks = model && modifiers.LookAvailable && !looksHidden && shown.Count > 1;
             if (!stars && !(model && modifiers.WearAvailable) && !looks && !projectile) return y;

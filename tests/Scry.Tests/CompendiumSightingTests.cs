@@ -328,6 +328,56 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void WhatACreatureWasSeenWearingIsMetForItsLooks()
+        {
+            // A creature's own robe and staff can never be picked up, so they are never met as
+            // items; seen on the creature up close, they were seen, under either rules.
+            var robe = E("DvergerSuitFire", Kind.Item);
+            var staff = E("DvergerStaffFire", Kind.Item);
+            var hair = E("DvergerHairMale", Kind.Item);
+            var mage = E("DvergerMage", Kind.Creature);
+            var explorer = new Explorer(new List<Entry> { mage, robe, staff, hair }, new Favourites(Path.Combine(TempDir(), "favourites.txt")));
+            explorer.WornSetsOf = creature => creature == mage.Key ? WornTogether.Of(new[] { new[] { ("DvergerStaffFire", Slot.Utility), ("DvergerSuitFire", Slot.Chest) } }, new string[0], new Slot[0]) : null;
+            var view = new CompendiumView(explorer.Entries);
+            var book = new CompendiumBook();
+            book.Raise(mage.Key, KnownLevel.Known);
+            string[][] looks = { new string[0], new[] { "DvergerStaffFire", "DvergerSuitFire" }, new[] { "DvergerHairMale" } };
+            foreach (var rule in new[] { CompendiumRule.Loose, CompendiumRule.Strict })
+            {
+                view.Tell(book, rule);
+                explorer.Know(view);
+                explorer.Select(mage);
+                Assert.Equal(new[] { 0 }, explorer.LooksShown(looks.Length, look => looks[look]));
+            }
+            // Seen in the robe: the staff its set puts on with it was seen too; its hair, which no
+            // set gives, was seen as itself.
+            book.Sighted(mage.Key, 0, new[] { "DvergerSuitFire", "DvergerHairMale" });
+            foreach (var rule in new[] { CompendiumRule.Loose, CompendiumRule.Strict })
+            {
+                view.Tell(book, rule);
+                explorer.Know(view);
+                explorer.Select(mage);
+                Assert.Equal(new[] { 0, 1, 2 }, explorer.LooksShown(looks.Length, look => looks[look]));
+            }
+        }
+
+        [Fact]
+        public void ACreatureThatAlwaysWearsGearOpensInAGearLookItCanShow()
+        {
+            // Every creature that rolls a set spawns in one: where the look it opens in cannot
+            // show, the first gear look that can stands, the bare one only where none can.
+            Assert.Equal(1, LookPick.Opening(new[] { 0, 1, 2 }, 1, gear: true));
+            // The look wanted, where it shows, whichever it is, the bare one too.
+            Assert.Equal(2, LookPick.Opening(new[] { 0, 1, 2 }, 2, gear: true));
+            Assert.Equal(0, LookPick.Opening(new[] { 0, 1, 2 }, 0, gear: true));
+            Assert.Equal(2, LookPick.Opening(new[] { 0, 2, 3 }, 1, gear: true));
+            Assert.Equal(0, LookPick.Opening(new[] { 0 }, 1, gear: true));
+            // Looks not of gear fall back to the first that shows, as before.
+            Assert.Equal(0, LookPick.Opening(new[] { 0, 2 }, 1, gear: false));
+            Assert.Equal(0, LookPick.Opening(new int[0], 1, gear: true));
+        }
+
+        [Fact]
         public void ALookWaitsOnlyForTheItemsItShowsOnTheBody()
         {
             // A Dvergr mage's Fire set is its robe, which shows, and staffs and spells, which draw
