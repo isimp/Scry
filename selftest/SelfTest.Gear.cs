@@ -62,7 +62,7 @@ namespace Scry
             var where = Facts.For(kinds[0]).Where;
             p.Check(where.Any(s => s.Prefab == mage.Name), "the fire kind's own page says it is met as the mage in that gear", string.Join(" | ", where.Select(s => s.Text)));
 
-            BigStage();
+            // The stage at its own size, so the page's fight stands in view under it.
             Select(mage);
             yield return Until(() => CopyOf(mage) != null, 20);
             X.Modifiers.Look = 1;
@@ -71,9 +71,11 @@ namespace Scry
             yield return Until(() => ScryPanel.Drawn(PanelPart.AttacksOtherGear) > others, 5);
             p.Check(ScryPanel.Drawn(PanelPart.AttacksOtherGear) > others, "in its first set the mage's attacks table lists that set's attacks, a faint line counting the others");
             yield return Settled();
-            yield return Picture(p, "the Dvergr mage's attacks in its first set");
+            yield return PictureOf(p, "adjust", "the Dvergr mage's looks, its robes first and no gear last");
+            yield return PictureOf(p, "fight", "the Dvergr mage's attacks in its first set");
             X.Modifiers.Look = 0;
-            for (var i = 0; i < 3; i++) yield return null;
+            yield return Settled();
+            yield return PictureOf(p, "fight", "the Dvergr mage's attacks at no gear");
             others = ScryPanel.Drawn(PanelPart.AttacksOtherGear);
             for (var i = 0; i < 10; i++) yield return null;
             p.Check(ScryPanel.Drawn(PanelPart.AttacksOtherGear) == others, "at no gear it lists every attack, no line counting others");
