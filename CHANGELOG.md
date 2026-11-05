@@ -4,7 +4,7 @@
 
 On TargetPortal's map of portals, Scry's marks step aside with the map's pins while its Hide map pins setting is on. Scry's marks and dots stand only on ground your map shows, so a dungeon entrance seen from afar no longer shows through the map's fog. Playing together, attacks that start alike are told apart on a creature a friend's game runs too, as a Dvergr mage's shield and its Mistile summon.
 
-A creature's attacks table tells what each attack does to you, at the armour and resistances you have now and with each count of stars, as the game takes a hit. An armour's Armour row says what the armour you wear does to a hit, and pointing at it how armour works.
+A creature's attacks table tells what each attack does to you, at the armour and resistances you have now and with each count of stars, as the game takes a hit, and says how much harder the world makes creatures hit. A Gjall's taunt and egg drop are seen begun from as far as it uses them. An armour's Armour row says what the armour you wear does to a hit, and pointing at it how armour works.
 
 ## 0.4.1
 

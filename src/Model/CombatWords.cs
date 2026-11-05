@@ -197,10 +197,19 @@ namespace Scry
         /// <summary>A faint line's label under an attack: what it does with so many stars.</summary>
         public static string WithStars(int stars) => stars == 1 ? "with 1 star" : $"with {Numbers.Count(stars)} stars";
 
-        /// <summary>The faint line under an attacks table saying what its last column is reckoned at.</summary>
-        public static string YouTakeAt(float armour) => armour > 0f
-            ? $"You take: at your {Numbers.Count((int)Math.Round(armour))} armour and what you resist now"
-            : "You take: at no armour, with what you resist now";
+        /// <summary>
+        /// The faint line under an attacks table saying what its last column is reckoned at: the
+        /// character's armour and resistances, and how much harder the world makes a hit where
+        /// that is not as it comes (<see cref="HitTaken"/>), as a hard combat setting makes what
+        /// you take more than the damage the table gives.
+        /// </summary>
+        public static string YouTakeAt(float armour, float scale)
+        {
+            var at = armour > 0f
+                ? $"You take: at your {Numbers.Count((int)Math.Round(armour))} armour and what you resist now"
+                : "You take: at no armour, with what you resist now";
+            return Math.Abs(scale - 1f) < 0.005f ? at : $"{at}, creatures hitting {Numbers.Times(scale)} as hard here";
+        }
 
         /// <summary>That line's tip: how the game takes a hit.</summary>
         public const string YouTakeTip = "As the game takes a hit: your resistances cut each damage type first, then your armour cuts all of the hit together. A hit more than twice your armour loses your armour; a smaller one is cut much harder. Each figure is the range of the creature's roll, at this world's damage and the players near you; blocking is not counted.";

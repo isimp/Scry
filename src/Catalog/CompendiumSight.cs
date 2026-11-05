@@ -234,11 +234,16 @@ namespace Scry
             else BeginSwing(creature, key, candidates, away);
         }
 
+        /// <summary>How far an attack item's attack, a creature's not a boss's, is seen begun in the book's world, for the self-test; none without a book.</summary>
+        [ForTest]
+        public static float AttackReachForTest(string item) => CompendiumKeeper.Book is CompendiumBook book ? AttackReachOf(item, false, book) : 0f;
+
         /// <summary>How far an attack item's attack is seen begun (<see cref="Sighting.AttackReach"/>), by its own AI range.</summary>
         private static float AttackReachOf(string item, bool boss, CompendiumBook book)
         {
             var hud = EnemyHud.instance;
-            var range = GamePrefabs.Named(item).OrNull()?.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared?.m_aiAttackRange ?? 0f;
+            // Looked up as the game finds it: a creature's own attack items are in the item database alone, a Gjall's taunt among them.
+            var range = GamePrefabs.Item(item).OrNull()?.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared?.m_aiAttackRange ?? 0f;
             return Sighting.AttackReach(boss, book.World.SeenReach, hud != null ? hud.m_maxShowDistance : 0f, hud != null ? hud.m_maxShowDistanceBoss : 0f, range);
         }
 

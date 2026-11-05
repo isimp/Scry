@@ -50,7 +50,7 @@ namespace Scry
             }
             var table = Facts.For(seeker).Rows.FirstOrDefault(r => r.Title == CombatWords.AttacksTitle);
             var column = table != null ? System.Array.IndexOf(table.Columns, CombatWords.YouTakeColumn) : -1;
-            p.Check(column == table?.Columns.Length - 1 && table.Lines.All(l => l.Cells.Length == table.Columns.Length && l.Cells[column].Length > 0) && table.Foot == CombatWords.YouTakeAt(YourGuard.Armour),
+            p.Check(column == table?.Columns.Length - 1 && table.Lines.All(l => l.Cells.Length == table.Columns.Length && l.Cells[column].Length > 0) && table.Foot == CombatWords.YouTakeAt(YourGuard.Armour, YourGuard.Scale),
                 "a Seeker's attacks table tells what each attack does to you, last, and says what at under it",
                 table == null ? "no attacks table" : $"{string.Join(", ", table.Columns)}; {string.Join("; ", table.Lines.Select(l => l.Cells.LastOrDefault()))}; {table.Foot}");
         }

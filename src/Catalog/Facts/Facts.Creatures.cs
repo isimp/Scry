@@ -250,7 +250,7 @@ namespace Scry
             var table = new Row { Title = CombatWords.AttacksTitle, Columns = columns, AttackCells = CombatWords.AttackKeptCells(columns) };
             if (guarded)
             {
-                table.Foot = CombatWords.YouTakeAt(YourGuard.Armour);
+                table.Foot = CombatWords.YouTakeAt(YourGuard.Armour, YourGuard.Scale);
                 table.FootTip = CombatWords.YouTakeTip;
             }
             // A summon hits harder by its summoner's skill (SpawnAbility.Spawn), rolled as anything

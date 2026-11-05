@@ -121,6 +121,16 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheLineUnderTheTableSaysHowMuchHarderTheWorldMakesAHit()
+        {
+            // A server on hard combat makes creatures hit half again as hard, so what you take can
+            // be more than the damage the table gives; the line says so.
+            Assert.Equal("You take: at your 6 armour and what you resist now, creatures hitting ×1.5 as hard here", CombatWords.YouTakeAt(6f, 1.5f));
+            Assert.Equal("You take: at your 118 armour and what you resist now", CombatWords.YouTakeAt(118f, 1f));
+            Assert.Equal("You take: at no armour, with what you resist now, creatures hitting ×0.75 as hard here", CombatWords.YouTakeAt(0f, 0.75f));
+        }
+
+        [Fact]
         public void TheArmourRowSaysWhatYourArmourDoesToAHit()
         {
             Assert.Equal("you wear 118: a hit of 100 does 21 to you, one of 300 does 182", CombatWords.ArmourYours(118f));

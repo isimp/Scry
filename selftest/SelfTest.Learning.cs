@@ -406,6 +406,15 @@ namespace Scry
             var heldRead = MageHeld.Select(n => (n, GamePrefabs.ItemHashed(n.GetStableHashCode()).OrNull()?.name)).ToList();
             p.Check(heldRead.All(h => h.Item1 == h.Item2), "a mage's summon, shield and fireball in hand are read from its data where another game runs it, as the game draws them",
                 string.Join(", ", heldRead.Select(h => $"{h.Item1}: {h.Item2 ?? "not found"}{(GamePrefabs.Hashed(h.Item1.GetStableHashCode()) == null ? " (not among the scene's prefabs)" : "")}")));
+            // A Gjall's taunt and its eggs are seen begun from as far as it uses them, read from its
+            // attack items, which are in the item database alone, not among the scene's prefabs.
+            if (CompendiumKeeper.Book != null)
+            {
+                var taunt = CompendiumSight.AttackReachForTest("gjall_attack_taunt");
+                var eggs = CompendiumSight.AttackReachForTest("gjall_attack_egg");
+                p.Check(Mathf.Approximately(taunt, 50f) && Mathf.Approximately(eggs, Mathf.Max(20f, CompendiumKeeper.Book.World.SeenReach)),
+                    "a Gjall's taunt is seen begun from 50 m and its eggs from 20 m, as far as it uses them", $"taunt {Numbers.Fixed(taunt, 1)} m, eggs {Numbers.Fixed(eggs, 1)} m");
+            }
             // The kinds share the attacks seen of each: the keeper's book is told the mage's family.
             var kindsOfIce = CompendiumKeeper.Book?.KindsOf?.Invoke("DvergerMageIce");
             if (CompendiumKeeper.Book == null) p.Note("no compendium book: the mage's family untried");
