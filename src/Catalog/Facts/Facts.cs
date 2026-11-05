@@ -76,6 +76,9 @@ namespace Scry
             /// <summary>The cells of a creature's attack line kept back until it hit the character (<see cref="Explorer.HidesAttack"/>): its damage and what it puts on you.</summary>
             public int[] AttackCells;
 
+            /// <summary>The looks an attack line comes with, by line, of a creature rolling one of several sets (<see cref="GearLooks.Of"/>): the table lists it only at those, and at "No gear"; a line not here at every look.</summary>
+            public readonly Dictionary<int, int[]> LineLooks = new Dictionary<int, int[]>();
+
             /// <summary>
             /// A table's cells kept back under the strict rules each until its own thing was seen
             /// done, by line and cell: a creature's health at one star until one with one star was
@@ -620,6 +623,14 @@ namespace Scry
                         && !entry.Links.Any(l => l.Group == Relations.SpawnedBy))
                     {
                         facts.Where.Add(new Source("Nothing loaded makes, drops or sells it. It may come from a location, a dungeon, an event or a mod.", null, UnsureWords.NothingFound));
+                    }
+
+                    // A kind no more than another's look is met as that one in that gear.
+                    var (wearer, look) = entry.Family?.WornAs(entry) ?? (null, 0);
+                    if (wearer != null && facts.Where.Count == 0)
+                    {
+                        var looks = wearer.Looks;
+                        facts.Where.Add(new Source(GearWords.WornAs(wearer.ShownName, look < looks.Length ? looks[look] : Numbers.Count(look)), wearer.Name));
                     }
 
                     // A creature nothing spawns where Scry can see, the same.

@@ -378,6 +378,16 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void TheLookRowOfACreatureInGearListsTheBareLookLast()
+        {
+            // Every creature rolling a set is met in one: its sets lead the row, "No gear" after them.
+            Assert.Equal(new[] { 1, 2, 3, 0 }, LookPick.InRow(new[] { 0, 1, 2, 3 }, gear: true));
+            Assert.Equal(new[] { 2, 0 }, LookPick.InRow(new[] { 0, 2 }, gear: true));
+            // Other looks stay in their order.
+            Assert.Equal(new[] { 0, 1, 2 }, LookPick.InRow(new[] { 0, 1, 2 }, gear: false));
+        }
+
+        [Fact]
         public void ALookWaitsOnlyForTheItemsItShowsOnTheBody()
         {
             // A Dvergr mage's Fire set is its robe, which shows, and staffs and spells, which draw

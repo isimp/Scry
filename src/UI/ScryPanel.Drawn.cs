@@ -122,6 +122,9 @@ namespace Scry
         /// <summary>The faint line under an attacks table counting the attacks not yet seen begun or taken.</summary>
         AttacksWait,
 
+        /// <summary>The faint line under an attacks table counting the attacks of the creature's other looks than the one staged.</summary>
+        AttacksOtherGear,
+
         /// <summary>A row or line counted over every character's play, drawn faint under the strict rules.</summary>
         AllPlayFaint,
 

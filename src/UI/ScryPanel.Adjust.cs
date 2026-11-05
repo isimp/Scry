@@ -57,6 +57,8 @@ namespace Scry
                 modifiers.Look = LookPick.Opening(shown, modifiers.Look, entry.Source is GameObject worn && PrefabLooks.IsGear(worn));
             // A look row with one look left gives nothing to choose, and the section none to show.
             var looks = model && modifiers.LookAvailable && !looksHidden && shown.Count > 1;
+            // The look the stage shows the creature in, which its attacks table follows (GearLooks).
+            _stagedLook = (entry, model && modifiers.LookAvailable && !looksHidden ? modifiers.Look : 0);
             if (!stars && !(model && modifiers.WearAvailable) && !looks && !projectile) return y;
 
             // Reset is offered only while the section is open and something differs from the prefab.
@@ -93,9 +95,9 @@ namespace Scry
             if (open && looks)
             {
                 LookNamesShown.Clear();
-                foreach (var look in shown) LookNamesShown.Add(modifiers.LookNames[look]);
-                var chosen = Segments("Look", LookNamesShown, shown.IndexOf(modifiers.Look), width, labelW, ref y);
-                if (chosen >= 0) modifiers.Look = shown[chosen];
+                foreach (var look in _looksInRow) LookNamesShown.Add(modifiers.LookNames[look]);
+                var chosen = Segments("Look", LookNamesShown, _looksInRow.IndexOf(modifiers.Look), width, labelW, ref y);
+                if (chosen >= 0) modifiers.Look = _looksInRow[chosen];
                 if (modifiers.Look > 0 && entry.Source is GameObject creature && PrefabLooks.IsGear(creature)) LoadoutRows(creature, modifiers.Look, width, labelW, ref y);
             }
 
@@ -127,6 +129,12 @@ namespace Scry
 
         private static bool _looksHidden;
 
+        /// <summary>The look the stage last showed an entry in, set as the adjust section is laid out; 0 for none or "No gear".</summary>
+        private static (Entry Entry, int Look) _stagedLook;
+
+        /// <summary>The look the stage shows an entry in now (<see cref="_stagedLook"/>), 0 where it is not the one staged: its attacks table then lists every attack.</summary>
+        private static int StagedLook(Entry entry) => entry != null && ReferenceEquals(_stagedLook.Entry, entry) ? _stagedLook.Look : 0;
+
         private static readonly List<string> LookNamesShown = new List<string>();
 
         /// <summary>The looks of what is shown the stage offers, worked out again only as what the character knows or the entry changes (<see cref="Explorer.LooksShown"/>).</summary>
@@ -140,6 +148,7 @@ namespace Scry
             _looksCount = count;
             var gear = entry.Source is GameObject creature && PrefabLooks.IsGear(creature) ? creature : null;
             _looksShown = _explorer != null && gear != null ? _explorer.LooksShown(count, look => PrefabGear.SetItems(gear, look), ShowsWorn) : Enumerable.Range(0, count).ToList();
+            _looksInRow = LookPick.InRow(_looksShown, gear != null);
             return _looksShown;
         }
 
@@ -154,6 +163,9 @@ namespace Scry
         private static int _looksStamp = -1, _looksCount = -1;
         private static List<int> _looksShown = new List<int>();
 
+        /// <summary>Those looks in the order the look row offers them (<see cref="LookPick.InRow"/>).</summary>
+        private static List<int> _looksInRow = new List<int>();
+
         /// <summary>Lets go of the entry the looks were last worked out for, with the world.</summary>
         private static void ForgetLooks()
         {
@@ -161,6 +173,8 @@ namespace Scry
             _looksStamp = -1;
             _looksCount = -1;
             _looksShown = new List<int>();
+            _looksInRow = new List<int>();
+            _stagedLook = (null, 0);
             LookNamesShown.Clear();
         }
 

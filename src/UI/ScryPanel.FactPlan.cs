@@ -342,11 +342,18 @@ namespace Scry
             y += U(24f);
 
             // Under the strict rules an attack not yet seen begun or taken is folded, as its clips
-            // are: the table lists the rest, and one faint line counts those that wait.
+            // are: the table lists the rest, and one faint line counts those that wait. One of
+            // another look than the stage shows is not listed either, a faint line counting those.
             var waiting = 0;
-            for (var l = 0; l < row.Lines.Count; l++) if (!LineLeftOut(explorer, row, row.Lines[l].Link) && AttackKept(explorer, row, l)) waiting++;
+            var others = 0;
+            for (var l = 0; l < row.Lines.Count; l++)
+            {
+                if (LineLeftOut(explorer, row, row.Lines[l].Link)) continue;
+                if (OtherLook(explorer, row, l)) others++;
+                else if (AttackKept(explorer, row, l)) waiting++;
+            }
             var gap = U(12f);
-            if (waiting < row.Lines.Count)
+            if (waiting + others < row.Lines.Count)
             {
                 MeasureColumns(explorer, row, width - gap * (row.Columns.Length - 1));
                 y = TableHeadings(row, gap, y);
@@ -361,6 +368,7 @@ namespace Scry
                     StrictLeft(explorer, link);
                     continue;
                 }
+                if (OtherLook(explorer, row, l)) continue;
                 var attackKept = AttackKept(explorer, row, l);
                 if (attackKept)
                 {
@@ -401,6 +409,7 @@ namespace Scry
                 y += height + underHeight + U(6f);
             }
             if (waiting > 0) y = AttacksWaitLine(waiting, width, y);
+            if (others > 0) y = OtherGearLine(others, width, y);
             if (!string.IsNullOrEmpty(row.Foot)) y = FootLine(row, width, y);
             CountDrawn(PanelPart.FactTable);
             // What a a smudge waits for says so on its hover, and the You box lists it: no faint line repeats it.
@@ -426,6 +435,16 @@ namespace Scry
             return y + U(24f);
         }
 
+        /// <summary>One faint line under an attacks table counting the attacks of the creature's other looks (<see cref="OtherLook"/>), its hover saying why.</summary>
+        private static float OtherGearLine(int others, float width, float y)
+        {
+            var line = new Rect(0f, y, width, U(20f));
+            GUI.Label(line, CombatWords.OtherGearAttacks(others), Skin.FaintLabel);
+            if (line.Contains(Event.current.mousePosition)) AskTip("attacks-other-gear", CombatWords.OtherGearAttacksTip);
+            CountDrawn(PanelPart.AttacksOtherGear);
+            return y + U(24f);
+        }
+
         /// <summary>
         /// The widths of a table's columns for the room given (<see cref="ColumnWidths"/>), each as
         /// wide as its heading and every cell drawn under it, a line left out taking no room and a
@@ -442,7 +461,7 @@ namespace Scry
                 HeadingWidths.Add(w + U(2f));
                 for (var l = 0; l < row.Lines.Count; l++)
                 {
-                    if (LineLeftOut(explorer, row, row.Lines[l].Link) || AttackKept(explorer, row, l)) continue;
+                    if (LineLeftOut(explorer, row, row.Lines[l].Link) || OtherLook(explorer, row, l) || AttackKept(explorer, row, l)) continue;
                     var drawn = CellDrawn(explorer, row, l, c);
                     if (drawn != null) w = Mathf.Max(w, (drawn == CompendiumWords.Hidden ? Mathf.Max(SmudgeWidth, Skin.Width(Skin.Small, drawn)) : Skin.Width(Skin.Small, drawn)) + (drawn != CompendiumWords.Hidden && explorer.ShownByChoice(CellLink(row, l, c)) ? FloorRoom : 0f));
                     if (!row.Yours.TryGetValue(l, out var yours) || LineKept(explorer, row, l, out _) || AttackKept(explorer, row, l)) continue;
@@ -662,6 +681,10 @@ namespace Scry
         /// attack never seen); of a table whose lines name what was met (a nest's spawns), only one never met.
         /// </summary>
         private static bool LineLeftOut(Explorer explorer, Facts.Row row, string link) => !string.IsNullOrEmpty(link) && explorer.LeavesOut(link, LinesOnceMet(explorer, row));
+
+        /// <summary>Whether an attack line comes with other looks than the one the stage shows the page's creature in (<see cref="GearLooks"/>), so the table lists it not.</summary>
+        private static bool OtherLook(Explorer explorer, Facts.Row row, int line) =>
+            row.LineLooks.Count > 0 && row.LineLooks.TryGetValue(line, out var looks) && !GearLooks.Shown(looks, StagedLook(explorer.Selected));
 
         /// <summary>Whether a table has lines and leaves every one out (<see cref="LineLeftOut"/>), so draws nothing; drawing and counting ask the same.</summary>
         private static bool AllLinesLeftOut(Explorer explorer, Facts.Row row)

@@ -256,6 +256,7 @@ namespace Scry
             yield return S("a Drake and Moder are told they fly and fly as high as the game keeps them, and so do a raid's flyers", FlyersFly, 60, StageAsItWas, bearsSkips: true);
             yield return S("Gjall's tentacles, a Wolf's body, the Ulv's tail, Hildir's skirt and a Karve's sail keep their cloth, and it runs; a worn hood's cloth runs on its wearer's bones", ClothMoves, 60, ClothAsItWas);
             yield return S("a Dvergr fire mage in its gear holds its staff in its right hand, a utility item hung there as the game hangs it", MageHoldsItsStaff, 40, MageAsItWas);
+            yield return S("the Dvergr mage's kinds the world never places are looks of the mage, and its attacks follow the look staged", MageRobesAreLooks, 60, MageAsItWas);
             yield return S("with its ground chosen automatically, a Karve floats on the sea, a Charred warlock stands in the Ashlands, an iron sword in the Swamp and a goblin raid on the Plains", ThingsStandWhereTheGameHasThem, 90, SeaAsItWas);
             _area = "Cost";
             yield return S("Scry costs next to nothing idling with the panel closed", IdleCost, 320);

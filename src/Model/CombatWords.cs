@@ -168,6 +168,13 @@ namespace Scry
         /// <summary>The title of a creature's attacks table.</summary>
         public const string AttacksTitle = "Attacks";
 
+        /// <summary>One faint line under the attacks table of a creature rolling one of several sets, counting the attacks the look chosen leaves out (<see cref="GearLooks"/>).</summary>
+        public static string OtherGearAttacks(int attacks) =>
+            Naming.Count(attacks, "more attack comes", "more attacks come") + " with its other gear  \u00B7  No gear lists every one";
+
+        /// <summary>That line's tip.</summary>
+        public const string OtherGearAttacksTip = "It fights with what the set it rolls gives it: the table lists the attacks of the look chosen, and every one at No gear.";
+
         /// <summary>One faint line under the attacks table counting the attacks not yet seen begun or taken under the strict rules, and what shows them.</summary>
         public static string AttacksWait(int attacks) => Naming.Count(attacks, "attack not shown yet", "attacks not shown yet") + "  \u00B7  " + ClipWords.SeeItAttack;
 

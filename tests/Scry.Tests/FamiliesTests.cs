@@ -50,6 +50,105 @@ namespace Scry.Tests
             Assert.Equal(new[] { "Draugr", "Fire", "Ice", "Support" }, new[] { mage, fire, ice, support }.Select(family.Label));
         }
 
+        /// <summary>The Dvergr mage as the game has it: the mage a spawner places rolls a fire, an ice or a healer's set; the three others are given one of those sets and placed by nothing.</summary>
+        private static (Entry Mage, Entry Fire, Entry Ice, Entry Support) Mages()
+        {
+            var fireSet = new[] { "Dverger_melee", "DvergerStaffFire_fireball", "DvergerStaffFire", "DvergerSuitFire", "DvergerStaffFire_clusterbomb" };
+            var iceSet = new[] { "Dverger_melee", "DvergerStaffIce_icebolt", "DvergerStaffIce", "DvergerStaffNova", "DvergerSuitIce" };
+            var healSet = new[] { "DvergerStaffSupport_buff", "DvergerStaffHeal_heal", "DvergerStaffHeal", "DvergerSuitSupport", "DvergerMistile" };
+            var mage = Creature("DvergerMage", "$enemy_dvergr_mage", "Dverger_melee", "DvergerStaffFire_fireball", "DvergerStaffIce_icebolt", "DvergerStaffHeal_heal");
+            mage.GearSets = new[] { fireSet, iceSet, healSet };
+            mage.Links.Add(new Link { Group = LinkWords.SpawnedBy, Target = "Spawner_DvergerMage" });
+            var fire = Creature("DvergerMageFire", "$enemy_dvergr_mage", "Dverger_melee", "DvergerStaffFire_fireball");
+            fire.GivenGear = fireSet.Reverse().ToArray();
+            var ice = Creature("DvergerMageIce", "$enemy_dvergr_mage", "Dverger_melee", "DvergerStaffIce_icebolt");
+            ice.GivenGear = iceSet;
+            var support = Creature("DvergerMageSupport", "$enemy_dvergr_mage", "DvergerStaffHeal_heal");
+            support.GivenGear = healSet;
+            return (mage, fire, ice, support);
+        }
+
+        [Fact]
+        public void AKindTheWorldNeverPlacesThatIsOneOfItsBasesSetsIsThatLookOfItNotAKindOfItsOwn()
+        {
+            var (mage, fire, ice, support) = Mages();
+            var family = Assert.Single(Families.Of(new[] { support, mage, ice, fire }));
+            // Each is the mage in that set's look, the looks after "No gear".
+            Assert.Equal((mage, 1), family.WornAs(fire));
+            Assert.Equal((mage, 2), family.WornAs(ice));
+            Assert.Equal((mage, 3), family.WornAs(support));
+            Assert.Equal(((Entry)null, 0), family.WornAs(mage));
+            // The page switches among no look of the mage, met or not, nor counts them as kinds met.
+            Assert.Equal(new[] { mage }, family.Met(null));
+            Assert.Equal(new[] { mage }, family.Met(e => KnownLevel.Known));
+            Assert.Equal(new[] { mage }, family.KindsShown);
+            Assert.Same(mage, family.Lead(e => KnownLevel.Known));
+            Assert.Same(mage, family.Lead(e => e == mage ? KnownLevel.Seen : KnownLevel.Known));
+            // Met as one of them alone, the list still shows it by that one.
+            Assert.Same(fire, family.Lead(e => e == fire ? KnownLevel.Seen : KnownLevel.Unknown));
+            // Still kinds of one family, so what the book holds of one's attacks holds for each.
+            Assert.Equal(new[] { mage, ice, fire, support }, family.Kinds);
+            Assert.Equal(new[] { ice, fire, support }.Select(k => k.Key), Families.KindsOf(new EntryCatalog(new[] { mage, fire, ice, support }))(mage.Key));
+        }
+
+        [Fact]
+        public void TheLookKindsOwnPageSaysWhereItIsMet()
+        {
+            Assert.Equal("The world places none of its own: it is met as the Dvergr Mage in its Fire gear, a look of that page", GearWords.WornAs("Dvergr Mage", "Fire"));
+        }
+
+        [Fact]
+        public void AKindTheWorldPlacesOrOfOtherGearStaysAKindOfItsOwn()
+        {
+            // Placed in a biome of its own: a kind to meet.
+            var (mage, fire, ice, support) = Mages();
+            fire.Biomes = new[] { "Mistlands" };
+            var family = Assert.Single(Families.Of(new[] { mage, fire, ice, support }));
+            Assert.Equal(((Entry)null, 0), family.WornAs(fire));
+            Assert.Equal(new[] { mage, fire }, family.Met(null));
+            // Found in a place, or spawned by something: the same.
+            (mage, fire, ice, support) = Mages();
+            ice.FoundIn = new[] { "Dvergr outpost" };
+            support.Links.Add(new Link { Group = LinkWords.SpawnedBy, Target = "Spawner_DvergerMageSupport" });
+            family = Assert.Single(Families.Of(new[] { mage, fire, ice, support }));
+            Assert.Equal(new[] { mage, ice, support }, family.Met(null));
+            Assert.Equal(new[] { mage, ice, support }, family.KindsShown);
+            // Given more or less than a set of the base's: no look of it.
+            (mage, fire, ice, support) = Mages();
+            fire.GivenGear = fire.GivenGear.Concat(new[] { "DvergerStaffNova" }).ToArray();
+            ice.GivenGear = ice.GivenGear.Skip(1).ToArray();
+            family = Assert.Single(Families.Of(new[] { mage, fire, ice, support }));
+            Assert.Equal(new[] { mage, ice, fire }, family.KindsShown);
+            // A base the world does not place, or one with a single set, has no looks to fold into.
+            (mage, fire, ice, support) = Mages();
+            mage.Links.Clear();
+            Assert.All(new[] { fire, ice, support }, k => Assert.Null(Assert.Single(Families.Of(new[] { mage, fire, ice, support })).WornAs(k).Base));
+            (mage, fire, ice, support) = Mages();
+            mage.GearSets = mage.GearSets.Take(1).ToArray();
+            Assert.Null(Assert.Single(Families.Of(new[] { mage, fire })).WornAs(fire).Base);
+        }
+
+        [Fact]
+        public void AKindRollingASingleSetOfItsOwnPlusWhatItIsGivenIsThatLookToo()
+        {
+            // A kind may roll one set and be given the rest: together they are what it wears.
+            var (mage, fire, _, _) = Mages();
+            fire.GivenGear = new[] { "Dverger_melee", "DvergerSuitFire" };
+            fire.GearSets = new[] { new[] { "DvergerStaffFire_fireball", "DvergerStaffFire", "DvergerStaffFire_clusterbomb" } };
+            Assert.Equal((mage, 1), Assert.Single(Families.Of(new[] { mage, fire })).WornAs(fire));
+            // One rolling two sets is no one look, whatever it is given besides.
+            fire.GearSets = new[] { fire.GearSets[0], mage.GearSets[1] };
+            Assert.Null(Assert.Single(Families.Of(new[] { mage, fire })).WornAs(fire).Base);
+            fire.GivenGear = mage.GearSets[0];
+            Assert.Null(Assert.Single(Families.Of(new[] { mage, fire })).WornAs(fire).Base);
+            // What the base is always given counts with each of its sets.
+            (mage, fire, _, _) = Mages();
+            mage.GivenGear = new[] { "Dverger_kick" };
+            Assert.Null(Assert.Single(Families.Of(new[] { mage, fire })).WornAs(fire).Base);
+            fire.GivenGear = fire.GivenGear.Concat(mage.GivenGear).ToArray();
+            Assert.Equal((mage, 1), Assert.Single(Families.Of(new[] { mage, fire })).WornAs(fire));
+        }
+
         [Fact]
         public void AnItemsCopiesForCreaturesFoldIntoIt()
         {

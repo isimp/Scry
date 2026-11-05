@@ -29,6 +29,10 @@ namespace Scry
         public static string Set(IReadOnlyList<string> drawn, int index) =>
             drawn.Count > 0 ? string.Join(" + ", drawn) : $"Set {Numbers.Count(index + 1)}, nothing drawn";
 
+        /// <summary>Where a creature no more than another's look lives (<see cref="Family.WornAs"/>): nowhere of its own, met as that one in that gear, which its look row shows.</summary>
+        public static string WornAs(string wearer, string look) =>
+            $"The world places none of its own: it is met as the {wearer} in its {look} gear, a look of that page";
+
         /// <summary>The meshes an item draws in the hand, by name, or null for none.</summary>
         public static string Meshes(IReadOnlyList<string> meshes) => meshes.Count > 0 ? string.Join(",", meshes) : null;
 

@@ -263,6 +263,8 @@ namespace Scry
                 var lineCells = onHit ? CombatWords.OnHitCells(cells, effect != null ? EffectName(effect) : null) : cells;
                 if (guarded) lineCells = lineCells.Concat(new[] { YouTake(damage, 0) }).ToArray();
                 table.Lines.Add((lineCells, EntryKeys.PlayAttack(item)));
+                // A creature rolling one of several sets fights with what its set gives it.
+                if (GearLooks.Of(item, _entry?.GearSets) is int[] looks) table.LineLooks[line] = looks;
                 // A death's blast has no owner to grow by a skill.
                 if (summoner != null && !EntryKeys.IsDeathAttack(item))
                 {

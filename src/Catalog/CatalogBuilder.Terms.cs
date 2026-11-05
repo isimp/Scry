@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Scry
@@ -95,6 +96,11 @@ namespace Scry
                 }
                 entry.SetTermWords("damage", SearchFight.Dealt(dealt));
                 entry.Attacks = Facts.AttacksOf(prefab);
+                if (character is Humanoid humanoid)
+                {
+                    entry.GearSets = PrefabGear.RolledSets(humanoid).Select(set => set.m_items.Where(i => i != null).Select(i => i.name).ToArray()).ToArray();
+                    entry.GivenGear = (humanoid.m_defaultItems ?? Array.Empty<GameObject>()).Where(i => i != null).Select(i => i.name).ToArray();
+                }
                 entry.DeathBlast = Facts.DeathAttackOf(prefab, out var blast) != null && blast != null ? blast.name : null;
             }
 

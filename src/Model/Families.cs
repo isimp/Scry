@@ -35,6 +35,20 @@ namespace Scry
         /// <summary>The kind a copy is of; none for a kind.</summary>
         public Entry CopyOf(Entry member) => member != null && _copyOf.TryGetValue(member, out var original) ? original : null;
 
+        private readonly Dictionary<Entry, (Entry Base, int Look)> _wornAs = new Dictionary<Entry, (Entry, int)>();
+
+        /// <summary>
+        /// The kind another kind is no more than a look of, and that look (<see cref="Families"/>):
+        /// a kind the world places nowhere, given one of the sets the other rolls, which is met only
+        /// as the other in that set. None for any other member.
+        /// </summary>
+        public (Entry Base, int Look) WornAs(Entry member) => member != null && _wornAs.TryGetValue(member, out var worn) ? worn : (null, 0);
+
+        /// <summary>Its kinds the page tells apart: every one but those no more than another's look (<see cref="WornAs"/>).</summary>
+        public IEnumerable<Entry> KindsShown => Kinds.Where(k => !_wornAs.ContainsKey(k));
+
+        internal void AddLook(Entry kind, Entry wornBy, int look) => _wornAs[kind] = (wornBy, look);
+
         /// <summary>A member's words on the page's switch.</summary>
         public string Label(Entry member) => member != null && _labels.TryGetValue(member, out var label) ? label : member?.ShownName ?? "";
 
@@ -68,17 +82,24 @@ namespace Scry
 
         /// <summary>
         /// The member the list shows the family by: the one the character knows best, a kind before
-        /// a copy and in the family's order among equals; none where it met none. With no
-        /// compendium (<paramref name="level"/> none), the head.
+        /// a copy and in the family's order among equals; none where it met none. A kind no more
+        /// than another's look (<see cref="WornAs"/>) only where the character met no other member.
+        /// With no compendium (<paramref name="level"/> none), the head.
         /// </summary>
         public Entry Lead(Func<Entry, KnownLevel> level)
         {
             if (level == null) return Head;
+            return Lead(level, false) ?? Lead(level, true);
+        }
+
+        private Entry Lead(Func<Entry, KnownLevel> level, bool looks)
+        {
             Entry best = null;
             var bestLevel = KnownLevel.Unknown;
             var bestIsCopy = true;
             foreach (var member in Members)
             {
+                if (_wornAs.ContainsKey(member) != looks) continue;
                 var known = level(member);
                 if (known < KnownLevel.Seen) continue;
                 var isCopy = _copyOf.ContainsKey(member);
@@ -92,9 +113,9 @@ namespace Scry
             return best;
         }
 
-        /// <summary>The members the page switches among: those the character met, seen or known; every one with no compendium.</summary>
+        /// <summary>The members the page switches among: those the character met, seen or known, every one with no compendium; none that is no more than another's look (<see cref="WornAs"/>), which that one's look row shows.</summary>
         public List<Entry> Met(Func<Entry, KnownLevel> level) =>
-            level == null ? new List<Entry>(Members) : Members.Where(m => level(m) >= KnownLevel.Seen).ToList();
+            Members.Where(m => !_wornAs.ContainsKey(m) && (level == null || level(m) >= KnownLevel.Seen)).ToList();
     }
 
     /// <summary>Finds the families among the catalog's entries (<see cref="Family"/>), each member told of its own.</summary>
@@ -204,8 +225,46 @@ namespace Scry
                     family.AddKind(kinds[i], words.Length > 0 ? Naming.Capital(words) : kinds[i].ShownName);
                 }
                 foreach (var (copy, original) in copies) family.AddCopy(copy, original, CopyLabel(copy, original, named), CopyWords(copy, original));
+                FoldLooks(family);
                 yield return family;
             }
+        }
+
+        /// <summary>
+        /// Tells the family which of its kinds are no more than another's look (<see cref="Family.WornAs"/>):
+        /// one the world places nowhere, wearing all it has as one set of a kind the world places
+        /// and that rolls several, as the Dvergr mage's fire, ice and support kinds are the mage in
+        /// each of its robes.
+        /// </summary>
+        private static void FoldLooks(Family family)
+        {
+            foreach (var kind in family.Kinds)
+            {
+                if (Placed(kind)) continue;
+                var worn = SoleGear(kind);
+                if (worn == null) continue;
+                foreach (var wearer in family.Kinds)
+                {
+                    if (wearer == kind || wearer.GearSets.Length < 2 || !Placed(wearer)) continue;
+                    var look = Array.FindIndex(wearer.GearSets, set => worn.SetEquals(set.Concat(wearer.GivenGear)));
+                    if (look < 0) continue;
+                    family.AddLook(kind, wearer, look + 1);
+                    break;
+                }
+            }
+        }
+
+        /// <summary>Whether the world places a creature where Scry sees: a biome spawns it, a place holds it, or something spawns it.</summary>
+        private static bool Placed(Entry creature) =>
+            creature.Biomes.Length > 0 || creature.FoundIn.Length > 0 || creature.Links.Any(l => l.Group == LinkWords.SpawnedBy);
+
+        /// <summary>All a creature wears when it rolls no set or a single one: that set with what it is always given; none where it rolls several, or wears nothing.</summary>
+        private static HashSet<string> SoleGear(Entry creature)
+        {
+            if (creature.GearSets.Length > 1) return null;
+            var worn = new HashSet<string>(creature.GivenGear, StringComparer.Ordinal);
+            if (creature.GearSets.Length == 1) worn.UnionWith(creature.GearSets[0]);
+            return worn.Count > 0 ? worn : null;
         }
 
         private static bool SameAttacks(Entry a, Entry b)

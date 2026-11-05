@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Scry
 {
-    /// <summary>The self-test's case for gear the game hangs on a creature as armour: a Dvergr mage's staff.</summary>
+    /// <summary>The self-test's cases for a creature's gear: a Dvergr mage's staff, hung on it as armour, and its robes, each a look of the mage.</summary>
     internal static partial class SelfTest
     {
         /// <summary>
@@ -36,6 +36,52 @@ namespace Scry
             yield return Picture(p, "a Dvergr fire mage holding its staff");
             MageAsItWas();
         }
+
+        /// <summary>
+        /// The Dvergr mage's fire, ice and support kinds, which the world places nowhere and which
+        /// wear one of the sets the mage rolls, are that look of the mage: its page switches to
+        /// none of them, and each one's own page says it is met as the mage in that gear. The
+        /// mage's attacks table follows the look staged: in its first set it lists that set's
+        /// attacks, a faint line counting the others, and at no gear every one. Pictured.
+        /// </summary>
+        private static IEnumerator MageRobesAreLooks(Probe p)
+        {
+            var mage = Pick(Kind.Creature, "DvergerMage");
+            var kinds = MageKinds.Select(n => Pick(Kind.Creature, n)).ToList();
+            if (mage == null || kinds.Any(k => k == null) || !(mage.Source is GameObject prefab) || prefab == null)
+            {
+                p.Skip("there is no Dvergr mage with its fire, ice and support kinds");
+                yield break;
+            }
+            var family = mage.Family;
+            var told = kinds.Select(k => family?.WornAs(k) ?? (null, 0)).ToList();
+            var asSets = kinds.Select((k, i) => told[i].Base == mage && new System.Collections.Generic.HashSet<string>(PrefabGear.SetItems(prefab, told[i].Look)).SetEquals(k.GivenGear)).ToList();
+            p.Check(asSets.All(b => b), "each of the mage's fire, ice and support kinds is the mage's look whose set it wears",
+                string.Join("; ", kinds.Select((k, i) => $"{k.Name}: {told[i].Base?.Name ?? "none"} look {Numbers.Count(told[i].Look)}")));
+            p.Check(family != null && family.Met(null).All(m => !kinds.Contains(m)), "the mage's page switches to none of them", family == null ? "no family" : string.Join(", ", family.Met(null).Select(m => m.Name)));
+            var where = Facts.For(kinds[0]).Where;
+            p.Check(where.Any(s => s.Prefab == mage.Name), "the fire kind's own page says it is met as the mage in that gear", string.Join(" | ", where.Select(s => s.Text)));
+
+            BigStage();
+            Select(mage);
+            yield return Until(() => CopyOf(mage) != null, 20);
+            X.Modifiers.Look = 1;
+            yield return GoTo("fight");
+            var others = ScryPanel.Drawn(PanelPart.AttacksOtherGear);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.AttacksOtherGear) > others, 5);
+            p.Check(ScryPanel.Drawn(PanelPart.AttacksOtherGear) > others, "in its first set the mage's attacks table lists that set's attacks, a faint line counting the others");
+            yield return Settled();
+            yield return Picture(p, "the Dvergr mage's attacks in its first set");
+            X.Modifiers.Look = 0;
+            for (var i = 0; i < 3; i++) yield return null;
+            others = ScryPanel.Drawn(PanelPart.AttacksOtherGear);
+            for (var i = 0; i < 10; i++) yield return null;
+            p.Check(ScryPanel.Drawn(PanelPart.AttacksOtherGear) == others, "at no gear it lists every attack, no line counting others");
+            MageAsItWas();
+        }
+
+        /// <summary>The Dvergr mage's kinds each given one of its robes.</summary>
+        private static readonly string[] MageKinds = { "DvergerMageFire", "DvergerMageIce", "DvergerMageSupport" };
 
         private static bool? _peekingWas;
 

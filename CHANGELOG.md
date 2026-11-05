@@ -6,6 +6,8 @@ On TargetPortal's map of portals, Scry's marks step aside with the map's pins wh
 
 A creature's attacks table tells what each attack does to you, at the armour and resistances you have now and with each count of stars, as the game takes a hit, and says how much harder the world makes creatures hit. A Gjall's taunt and egg drop are seen begun from as far as it uses them. A Dvergr mage, and any creature that always wears a set, stands on the stage in its gear once seen in it, not bare. An armour's Armour row says what the armour you wear does to a hit, and pointing at it how armour works.
 
+A Dvergr mage offers its robe once: its fire, ice and support kinds, which the world never places on their own, are no longer kinds to switch to but the looks of the mage they are, each one's own page saying so. A creature that rolls one of several sets, such as a Dvergr mage or a troll with or without its log, lists in its attacks table the attacks of the look on the stage, a faint line counting the rest, and every attack at No gear, which now comes last in the look row.
+
 ## 0.4.1
 
 The compendium now learns things it used to miss: world pieces you hit, such as Dvergr crates and goblin fences; beds, chairs, ship helms, portals and ladders you use; loot a backpack mod stores outside your inventory; tall trees, landmarks and far-off creatures such as a Gjall; and attacks seen from as far as a creature uses them, taunts among them.

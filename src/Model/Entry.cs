@@ -153,6 +153,16 @@ namespace Scry
         /// </summary>
         public (string Item, string[] Types)[] Attacks = Array.Empty<(string, string[])>();
 
+        /// <summary>
+        /// The sets a creature rolls one of when it spawns (<c>Humanoid.m_randomSets</c>), each by
+        /// its items' prefab names, one of each set listed twice, in the order its looks after
+        /// "No gear" show them (<see cref="GearLooks"/>); none for one rolling no set.
+        /// </summary>
+        public string[][] GearSets = Array.Empty<string[]>();
+
+        /// <summary>The items a creature is always given, whatever set it rolls (<c>Humanoid.m_defaultItems</c>), by their prefab names.</summary>
+        public string[] GivenGear = Array.Empty<string>();
+
         /// <summary>The prefab a creature's death makes that hurts what stands near (<see cref="EntryKeys.DeathAttack"/>), its blast; null for a death that hurts nothing.</summary>
         public string DeathBlast;
 

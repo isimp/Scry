@@ -41,7 +41,7 @@ namespace Scry
             if (_familyNotes.TryGetValue(entry.Family, out var told)) return told;
             var met = 0;
             var known = 0;
-            foreach (var kind in entry.Family.Kinds)
+            foreach (var kind in entry.Family.KindsShown)
             {
                 var level = _view.Of(kind);
                 if (level >= KnownLevel.Seen) met++;
