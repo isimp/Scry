@@ -47,6 +47,7 @@ namespace Scry
         public static readonly Feature BeehiveNeeds = Listed("what a beehive makes and needs, in the details");
         public static readonly Feature SapCollectorNeeds = Listed("what a sap collector makes and needs, in the details");
         public static readonly Feature RootSap = Listed("what an ancient root holds and what its lines mean, in the details");
+        public static readonly Feature PlacedItems = Listed("what placing an item with a build tool does, in the details");
         public static readonly Feature WhatArmourResists = Listed("what armour resists, in the details");
         public static readonly Feature ShieldResists = Listed("what a shield resists while blocking, in the details");
         public static readonly Feature WhatGearChangesWhileWorn = Listed("what gear changes while worn, in the details");

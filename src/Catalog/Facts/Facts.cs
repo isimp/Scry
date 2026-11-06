@@ -784,7 +784,9 @@ namespace Scry
             yield return true;
 
             var piece = prefab.GetComponent<Piece>();
-            if (piece != null && piece.enabled) foreach (var step in Parts("piece", Piece(piece, prefab.GetComponent<WearNTear>()))) yield return step;
+            // An item a build tool places as a piece of itself tells placing it, not a piece's facts.
+            if (piece != null && piece.enabled && shared != null) Part("placing", () => Placing(piece, prefab.GetComponent<WearNTear>(), shared, prefab.name));
+            else if (piece != null && piece.enabled) foreach (var step in Parts("piece", Piece(piece, prefab.GetComponent<WearNTear>()))) yield return step;
 
             Part("resource", () => Resource(prefab));
             Part("root", () => Root(prefab));

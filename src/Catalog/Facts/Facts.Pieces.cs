@@ -73,6 +73,35 @@ namespace Scry
         }
 
         /// <summary>
+        /// An item a build tool places as a piece of itself (<c>ItemDrop.MakePiece</c>), as the
+        /// Serving Tray places food: the tool and how many placing one uses up, a cost besides
+        /// itself as a row; what a placed one does; what it stands as and the weather on it; where
+        /// it may be placed. Nothing for one no build menu holds, which is never placed.
+        /// </summary>
+        private void Placing(Piece piece, WearNTear wear, ItemDrop.ItemData.SharedData shared, string item)
+        {
+            var tools = Knowledge.Tools.ToolsOf(item);
+            if (tools.Count == 0) return;
+            var costs = piece.m_resources?.Where(r => r != null && r.m_resItem != null).ToList() ?? new List<global::Piece.Requirement>();
+            var usesUp = costs.Count == 1 && costs[0].m_resItem.gameObject.name == item ? costs[0].m_amount : 0;
+            var by = Naming.Commas(tools.Select(t => t.ToolName).Distinct());
+            Add("Placed with", PlacingWords.With(by, usesUp), tools.Count == 1 ? tools[0].Tool : null);
+            // The tool's menu shows it, so the tool comes with it.
+            GameShown.Add("Placed with");
+            GameShownBy["Placed with"] = RecipeToken(GamePrefabs.Named(item));
+            if (usesUp == 0 && costs.Count > 0) Rows.Add(Requirements("Placing costs", piece.m_resources, false));
+            Add("Once placed", PlacingWords.Once(shared.m_itemType == ItemDrop.ItemData.ItemType.Consumable, shared.m_isDrink));
+            if (wear != null)
+            {
+                Add("Stands as", PlacingWords.StandsAs(wear.m_materialType.ToString(), wear.m_health));
+                Add("Rain", BuildWords.Rain(wear.m_noRoofWear));
+                Add("Ashlands", BuildWords.Ash(wear.m_ashDamageImmune, wear.m_ashDamageResist));
+                Add("Heavy snow", BuildWords.Snow(wear.m_snowDamageImmune));
+            }
+            Placement(piece);
+        }
+
+        /// <summary>
         /// Where it may be placed (<see cref="BuildWords.Placement"/>); the biomes it keeps to, the
         /// pieces it keeps apart from and the one it must stand near, each going to it.
         /// </summary>

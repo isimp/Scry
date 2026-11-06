@@ -165,7 +165,8 @@ namespace Scry
                 Topics = new[]
                 {
                     ("overview", (string)null), ("does", "What it does"), ("hatching", "Hatching"), ("fight", "Fight"), ("wearing", "Wearing"), ("food", "Food"),
-                    ("making", "Making"), ("from", "Where it comes from"), ("uses", "What it is used for"), ("mods", "Set by mods"), (More, "More"), ("hooks", null),
+                    ("making", "Making"), ("from", "Where it comes from"), ("uses", "What it is used for"), ("placing", PlacingWords.Title), ("mods", "Set by mods"),
+                    (More, "More"), ("hooks", null),
                 },
             };
             Tile(plan, "overview", "Damage", "Damage", "Weight", "Quality", "Durability");
@@ -189,6 +190,8 @@ namespace Scry
             Part(plan, "wearing", "gear", "resistances", "seen equipped");
             Part(plan, "making", "recipe", "made at stations");
             Part(plan, "mods", "mod settings");
+            // What a build tool placing it as a piece of itself does, as the Serving Tray does with food.
+            Part(plan, "placing", "placing");
             // A weapon's damage first, by attack and by quality, then what attacking costs; its blocking after.
             Lead(plan, "fight", CombatWords.WeaponAttacksTitle, ItemWords.ByQualityTitle, "Each attack costs", "Drawing costs", "Secondary attack");
             // Armour by quality first, then its set.
