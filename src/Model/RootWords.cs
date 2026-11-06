@@ -33,9 +33,10 @@ namespace Scry
         /// <summary>
         /// What a tap's slow line means (<c>SapCollector.GetStatusText</c>): the root under it is
         /// below its empty mark, and the tap, no slower itself, waits for the root to gain one back
-        /// for each sap; none for a root that never refills.
+        /// for each sap; none for a root that never refills. The word "root" is not said: it is
+        /// the name of an item, which the strict rules hide wherever it stands until met.
         /// </summary>
         public static string Slows(string slowLine, float empty, float perSecond) =>
-            perSecond <= 0f ? null : $"{slowLine} shows once the root has {Numbers.Amount(empty)} or less left, each sap then waiting the {Numbers.Duration(1.0 / perSecond)} the root takes to gain one back";
+            perSecond <= 0f ? null : $"{slowLine} shows once what it stands on has {Numbers.Amount(empty)} or less left, each sap then waiting the {Numbers.Duration(1.0 / perSecond)} that takes to gain one back";
     }
 }

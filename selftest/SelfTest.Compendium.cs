@@ -48,8 +48,8 @@ namespace Scry
                 p.Check(CompendiumKeeper.Book.Level(powerEntry.Key) == KnownLevel.Known, $"and {power} is known");
             }
 
-            // Everything they tell is in the book: the catch-up ran on this catalog.
-            var told = new CompendiumBook();
+            // Everything they tell is in the book: the catch-up, run on a copy of it with its play, finds nothing to add.
+            var told = CompendiumBook.Load(CompendiumKeeper.Book.ToSave()());
             var catchUp = CompendiumKeeper.CatchUpFor(X.Entries);
             catchUp.Fill(records, told, firstLoad: true);
             yield return Until(() => Short(told, CompendiumKeeper.Book).Count == 0, 5);

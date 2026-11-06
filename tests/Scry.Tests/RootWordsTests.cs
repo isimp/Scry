@@ -36,7 +36,8 @@ namespace Scry.Tests
         [Fact]
         public void ExtractingSlowlyIsToldAsTheRootRunningLowNotTheExtractorSlowing()
         {
-            Assert.Equal("Extracting slowly shows once the root has 5 or less left, each sap then waiting the 6.7 min the root takes to gain one back",
+            // Said without the word "root", which is the name of an item the strict rules hide until met.
+            Assert.Equal("Extracting slowly shows once what it stands on has 5 or less left, each sap then waiting the 6.7 min that takes to gain one back",
                 RootWords.Slows("Extracting slowly", Empty, PerSecond));
             Assert.Null(RootWords.Slows("Extracting slowly", Empty, 0f));
         }

@@ -15,8 +15,9 @@ namespace Scry
         /// </summary>
         private static IEnumerator RootSapTold(Probe p)
         {
-            var root = Pick(Kind.Resource, "YggdrasilRoot");
-            var tap = Pick(Kind.Piece, "piece_sapcollector");
+            // By name alone, whatever kind the catalog makes them, never another in their place.
+            var root = X.Catalog.FirstOrDefault(e => e.Name == "YggdrasilRoot");
+            var tap = X.Catalog.FirstOrDefault(e => e.Name == "piece_sapcollector");
             var game = GamePrefabs.Named("YggdrasilRoot").OrNull()?.GetComponent<ResourceRoot>();
             var gameTap = GamePrefabs.Named("piece_sapcollector").OrNull()?.GetComponent<SapCollector>();
             if (root == null || tap == null || game == null || gameTap == null)

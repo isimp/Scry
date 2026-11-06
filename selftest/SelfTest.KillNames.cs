@@ -13,8 +13,8 @@ namespace Scry
         /// </summary>
         private static void SharedKillNamesTell(Probe p)
         {
-            var rogue = Pick(Kind.Creature, "Dverger");
-            var ashRogue = Pick(Kind.Creature, "DvergerAshlands");
+            var rogue = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Creature && e.Name == "Dverger");
+            var ashRogue = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Creature && e.Name == "DvergerAshlands");
             var mist = X.Find(EntryKeys.For(Kind.Biome, "Mistlands"));
             var ash = X.Find(EntryKeys.For(Kind.Biome, "AshLands"));
             if (rogue == null || ashRogue == null || mist == null || ash == null)
