@@ -831,6 +831,16 @@ namespace Scry
         /// <summary>Said under that on a closed page under the strict rules, where a page known still keeps some back until found out.</summary>
         public const string ClosedStrict = "Under Strict, numbers and connections show as you see them.";
 
+        /// <summary>
+        /// What opens an entry's page: its kind's ways (<see cref="HowToKnow(Kind)"/>), but for a root a
+        /// tap draws from, which takes no hit, no picking and gives nothing to hold, tapping it.
+        /// </summary>
+        public static string HowToKnow(Entry entry) =>
+            entry != null && entry.Kind == Kind.Resource && entry.GroupOrder == (int)ResourceGroup.Tapped ? TapToKnow : HowToKnow(entry?.Kind ?? Kind.Other);
+
+        /// <summary>What opens a root's page (<see cref="HowToKnow(Entry)"/>).</summary>
+        public const string TapToKnow = "Build a sap extractor on it or take sap from one to come to know it.";
+
         /// <summary>What opens a page of this kind: every way that makes it known, by the one verb for a page.</summary>
         public static string HowToKnow(Kind kind)
         {

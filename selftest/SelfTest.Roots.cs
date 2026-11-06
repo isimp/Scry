@@ -57,23 +57,28 @@ namespace Scry
                 KeepView();
                 ScryPanel.Compact = false;
                 yield return Until(() => ReferenceEquals(X.Compendium, view), 3);
-                X.Select(root);
-                yield return null;
-                var kept = ScryPanel.Drawn(PanelPart.FactKeptBack);
-                yield return GoTo("sap");
-                yield return Until(() => ScryPanel.Drawn(PanelPart.FactKeptBack) > kept, 3);
-                p.Check(X.KeepsBack(tapped) && ScryPanel.Drawn(PanelPart.FactKeptBack) > kept, "a root only seen keeps its sap back, a smudge in its place");
-                yield return PictureOf(p, "sap", "strict ancient root, only seen, its sap kept back");
+                // Selected as a link does, clearing any search that would hide it.
+                Select(root);
+                yield return Until(() => X.Selected == root, 3);
+                // Only seen, its page is closed, and says the one way to come to know it.
+                p.Check(X.Selected == root && view.Of(root) == KnownLevel.Seen && CompendiumWords.HowToKnow(root) == CompendiumWords.TapToKnow,
+                    "a root only seen shows a closed page saying to tap it", $"{X.Selected?.Name}, {view.Of(root)}: {CompendiumWords.HowToKnow(root)}");
+                yield return Picture(p, "strict ancient root, only seen, saying to tap it");
 
                 book.Raise(root.Key, KnownLevel.Known, way: CameBy.Tapped);
                 book.FoundOut(root.Key, tapped);
                 view.Tell(book, CompendiumRule.Strict);
                 yield return Until(() => !X.KeepsBack(tapped), 3);
                 p.Check(!X.KeepsBack(tapped), "tapped, the root shows its sap");
+                // Its topics are drawn before the page can go to one.
+                yield return Settled();
+                yield return GoTo("sap");
+                p.Check(ScryPanel.StandsAt("sap"), "its page has a Sap topic to go to");
                 yield return PictureOf(p, "sap", "strict ancient root, tapped, its sap shown");
 
-                X.Select(tap);
-                yield return null;
+                Select(tap);
+                yield return Until(() => X.Selected == tap, 3);
+                yield return Settled();
                 yield return PictureOf(p, "does", "the sap extractor's needs, what its slow line means");
             }
             finally

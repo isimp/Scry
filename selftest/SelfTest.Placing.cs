@@ -8,7 +8,7 @@ namespace Scry
     internal static partial class SelfTest
     {
         /// <summary>
-        /// Royal Jelly, a material, and Queen's Jam, a food, which the game's Serving Tray places:
+        /// Royal Jelly and Queen's Jam, foods the game's Serving Tray places:
         /// each page tells the tray and what placing one uses up, what a placed one does and what
         /// it stands as, under a topic of its own, and none of a piece's build cost or support;
         /// Royal Jelly's topic pictured.
@@ -25,10 +25,12 @@ namespace Scry
                 yield break;
             }
             string Said(Facts f, string label) => f.Pairs.FirstOrDefault(x => x.Key == label).Value;
-            foreach (var (item, consumable) in new[] { (jelly, false), (jam, true) })
+            foreach (var item in new[] { jelly, jam })
             {
                 var facts = Facts.For(item);
                 var shared = GamePrefabs.Item(item.Name).OrNull()?.GetComponent<ItemDrop>().OrNull()?.m_itemData?.m_shared;
+                // A food is eaten where it stands, as the game holds it (ItemData.ItemType.Consumable); Royal Jelly is one.
+                var consumable = shared != null && shared.m_itemType == ItemDrop.ItemData.ItemType.Consumable;
                 var wear = GamePrefabs.Item(item.Name).OrNull()?.GetComponent<WearNTear>();
                 p.Check(Said(facts, "Placed with") == PlacingWords.With(tray.ToolName, 1) && facts.Links.TryGetValue("Placed with", out var link) && link == tray.Tool,
                     $"{item.Name}'s page says the {tray.ToolName} places it, using up one", $"{Said(facts, "Placed with")}, going to {(facts.Links.TryGetValue("Placed with", out var to) ? to : "nothing")}");
@@ -41,6 +43,8 @@ namespace Scry
 
             Select(jelly);
             yield return Until(() => X.Selected == jelly, 3);
+            // Its topics are drawn before the page can go to one.
+            yield return Settled();
             yield return PictureOf(p, "placing", "Royal Jelly's page, placing it with the Serving Tray");
         }
     }

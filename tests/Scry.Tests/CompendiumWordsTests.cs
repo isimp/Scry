@@ -226,6 +226,20 @@ namespace Scry.Tests
             // Under the strict rules a page known still keeps some back: said too.
             Assert.Equal("Under Strict, numbers and connections show as you see them.", CompendiumWords.ClosedStrict);
         }
+
+        [Fact]
+        public void AClosedRootsPageSaysToTapIt()
+        {
+            // An ancient root takes no hit, no picking and gives nothing to hold: tapping it is the one way to know it.
+            var root = new Entry { Kind = Kind.Resource, Name = "YggdrasilRoot", GroupOrder = (int)ResourceGroup.Tapped };
+            Assert.Equal("Build a sap extractor on it or take sap from one to come to know it.", CompendiumWords.HowToKnow(root));
+            // Any other resource keeps its kind's words.
+            var rock = new Entry { Kind = Kind.Resource, Name = "rock4_copper", GroupOrder = (int)ResourceGroup.RocksAndOre };
+            Assert.Equal(CompendiumWords.HowToKnow(Kind.Resource), CompendiumWords.HowToKnow(rock));
+            Assert.Equal(CompendiumWords.HowToKnow(Kind.Creature), CompendiumWords.HowToKnow(new Entry { Kind = Kind.Creature, Name = "Troll" }));
+            // Only a resource's group number names how it is gathered; another kind's list orders by its own.
+            Assert.Equal(CompendiumWords.HowToKnow(Kind.Item), CompendiumWords.HowToKnow(new Entry { Kind = Kind.Item, Name = "Sap", GroupOrder = (int)ResourceGroup.Tapped }));
+        }
     }
 
     /// <summary>The texts kept one at a time for the panel, which draws them each frame: checked with nothing else asking meanwhile.</summary>
