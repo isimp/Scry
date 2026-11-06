@@ -486,6 +486,7 @@ namespace Scry
             Pending(Deed.StarredFell, "See a starred one fall", "shows what stars change");
             Pending(Deed.Spawned, "See it spawn", "shows its pool and pace");
             Pending(Deed.Collected, "Collect from one", "shows its pace");
+            Pending(Deed.Tapped, "Tap one", "shows how much sap it holds and how fast it refills");
             Pending(Deed.Grew, "Grow one or see one grow", "shows how long that takes");
             Pending(Deed.Finished, "See one finish", "shows how long each takes and what it burns");
             if (types.Count > 0) rows.Add(("Hit it with", Naming.Commas(types) + (types.Count == 1 ? ": how it lands" : ": how they land")));
@@ -536,6 +537,7 @@ namespace Scry
                     case Deed.StarredFell: return "what stars change found out";
                     case Deed.Spawned: return "its spawning found out";
                     case Deed.Collected: return "its pace found out";
+                    case Deed.Tapped: return "its sap found out";
                     case Deed.Grew: return "its growing found out";
                     case Deed.Finished: return "its working found out";
                     default: return "its health found out";
@@ -687,6 +689,7 @@ namespace Scry
                 case Deed.StarredFell: return "seen a starred one fall";
                 case Deed.Spawned: return "seen it spawn";
                 case Deed.Collected: return "collected from one";
+                case Deed.Tapped: return "tapped one";
                 case Deed.Grew: return "grown or seen one grow";
                 case Deed.Finished: return "seen one finish";
                 default: return "killed one";

@@ -295,10 +295,16 @@ namespace Scry
 
         /// <summary>
         /// A root the character tapped, as news: known, by a sap tap built on it or sap taken from
-        /// one standing on it, the only ways to deal with a thing that takes no hit and no use.
-        /// True when it was learned more of.
+        /// one standing on it, the only ways to deal with a thing that takes no hit and no use, and
+        /// what it holds and how fast it refills found out (<see cref="Deed.Tapped"/>). True when it
+        /// was learned more of.
         /// </summary>
-        public bool Tapped(string root, CompendiumBook book) => Met(root, KnownLevel.Known, book, CameBy.Tapped);
+        public bool Tapped(string root, CompendiumBook book)
+        {
+            if (!Lists(root)) return false;
+            var known = Met(root, KnownLevel.Known, book, CameBy.Tapped);
+            return book.FoundOut(root, EntryKeys.Did(Deed.Tapped)) || known;
+        }
 
         /// <summary>Whether the catalog has an entry by a key, for anything to be learned of it at all.</summary>
         public bool Lists(string key) => _catalog.Find(key) != null;

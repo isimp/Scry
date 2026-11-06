@@ -171,6 +171,7 @@ namespace Scry
                     case Deed.StarredFell: return $"what stars change on {name}";
                     case Deed.Spawned: return $"how {name} spawns";
                     case Deed.Collected: return $"how fast {name} fills";
+                    case Deed.Tapped: return $"how much sap {name} holds";
                     case Deed.Grew: return $"how {name} grows";
                     case Deed.Finished: return $"how {name} works";
                     default: return $"the health of {name}";

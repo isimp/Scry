@@ -273,6 +273,8 @@ namespace Scry
             Label(plan, More, "Not shown");
             Part(plan, "building", "piece", "placement", "built with", "build cost");
             Part(plan, "standing", "support", "weather", "resistances");
+            // What a tap's slow working means, under what it needs.
+            plan.Notes[RootWords.SlowLabel] = "Needs";
             plan.Blocks[FactBlock.Where] = "from";
             plan.Blocks[FactBlock.FoundIn] = "from";
             plan.Blocks[FactBlock.Biomes] = "from";
@@ -286,9 +288,11 @@ namespace Scry
         {
             var plan = new KindPlan
             {
-                Topics = new[] { ("overview", (string)null), ("gathering", "Gathering"), ("growing", "Growing"), ("lives", "Where it lives"), (More, "More"), ("hooks", null) },
+                Topics = new[] { ("overview", (string)null), ("gathering", "Gathering"), ("growing", "Growing"), ("sap", "Sap"), ("lives", "Where it lives"), (More, "More"), ("hooks", null) },
             };
             Tile(plan, "overview", null, "Health", "Needs tool tier");
+            // A root a tap draws from: what it holds, how it refills and what each of its lines means.
+            Part(plan, "sap", "root");
             // A plant's growing, apart from what gathering it gives.
             Label(plan, "growing", "Grows in", "Needs", "Tolerates", GatherWords.GrowsInto(false), GatherWords.GrowsInto(true));
             Label(plan, More, "Not shown");

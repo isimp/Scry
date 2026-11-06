@@ -171,6 +171,9 @@ namespace Scry
             // SapCollector.UpdateTick: it makes only while on its root, and no more than the root has left.
             var root = tap.m_mustConnectTo != null ? tap.m_mustConnectTo.gameObject : null;
             if (root != null) Add("Needs", StationWords.BuiltOn(AnyName(root, root.name)), root.name);
+            // SapCollector.GetStatusText: its slow line tells of the root under it running low.
+            var drawn = root != null ? root.GetComponent<ResourceRoot>() : null;
+            if (drawn != null) Add(RootWords.SlowLabel, RootWords.Slows(CatalogBuilder.Localize(tap.m_drainingSlowText), drawn.m_emptyTreshold, drawn.m_regenPerSec));
             Hooked(HookedRule.Producing);
         }
 

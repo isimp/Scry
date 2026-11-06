@@ -65,6 +65,9 @@ namespace Scry
 
         /// <summary>Saw up close, standing in a place, a creature its spawn points place: the stars they give.</summary>
         Guarded,
+
+        /// <summary>Tapped a root, building a tap on it or taking sap from one: how much it holds and how fast it refills.</summary>
+        Tapped,
     }
 
     /// <summary>How two things were seen go together in play, the second shown on the first's page under the strict rules (<see cref="CompendiumBook.SawWith"/>).</summary>

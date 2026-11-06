@@ -58,13 +58,17 @@ namespace Scry
             return deposit != null && SeenOnMap.Findable(false, Gathered.Mined, deposit.m_drops.Where(d => d.m_item != null).Select(d => d.m_item.name));
         }
 
-        /// <summary>What the taps built on a root make of it: each tap that must stand on that root (<c>SapCollector.m_mustConnectTo</c>), by what it makes (<c>SapCollector.m_spawnItem</c>).</summary>
-        private static IEnumerable<string> TappedFrom(string root)
+        /// <summary>What the taps built on a root make of it (<see cref="TapsOn"/>), by what each makes (<c>SapCollector.m_spawnItem</c>).</summary>
+        private static IEnumerable<string> TappedFrom(string root) =>
+            TapsOn(root).Where(tap => tap.m_spawnItem != null).Select(tap => tap.m_spawnItem.gameObject.name);
+
+        /// <summary>The game's taps that must stand on a root to draw from it (<c>SapCollector.m_mustConnectTo</c>), by the root's prefab name.</summary>
+        public static IEnumerable<SapCollector> TapsOn(string root)
         {
             foreach (var prefab in ZNetScene.instance != null ? ZNetScene.instance.m_prefabs : new List<GameObject>())
             {
                 var tap = prefab != null ? prefab.GetComponent<SapCollector>() : null;
-                if (tap != null && tap.m_mustConnectTo != null && tap.m_mustConnectTo.name == root && tap.m_spawnItem != null) yield return tap.m_spawnItem.gameObject.name;
+                if (tap != null && tap.m_mustConnectTo != null && tap.m_mustConnectTo.name == root) yield return tap;
             }
         }
 

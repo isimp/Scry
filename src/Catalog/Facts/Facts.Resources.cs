@@ -10,6 +10,34 @@ namespace Scry
     {
         // ----- Resources -----
 
+        /// <summary>
+        /// A root a tap draws from (<c>ResourceRoot</c>): how much sap it holds, how fast it refills,
+        /// the tap built on it, and the sap each line the game shows on it stands for. Under the
+        /// strict rules the amounts wait for the root to be tapped; the lines show, as the game
+        /// shows them on a look.
+        /// </summary>
+        private void Root(GameObject prefab)
+        {
+            var root = prefab.GetComponent<ResourceRoot>();
+            if (root == null || root.m_maxLevel <= 0f) return;
+            var tapped = EntryKeys.Did(Deed.Tapped);
+            Add("Holds", RootWords.Holds(root.m_maxLevel));
+            Proofs["Holds"] = tapped;
+            Add("Refills", RootWords.Refills(root.m_regenPerSec, root.m_maxLevel));
+            Proofs["Refills"] = tapped;
+            var tap = SpotKinds.TapsOn(prefab.name).FirstOrDefault();
+            if (tap != null) Add("Tapped by", AnyName(tap.gameObject, tap.name), tap.name);
+            var row = new Row { Title = RootWords.LooksTitle, Columns = RootWords.Columns };
+            var bands = RootWords.Bands(root.m_highThreshold, root.m_emptyTreshold);
+            var lines = new[] { root.m_statusHigh, root.m_statusLow, root.m_statusEmpty };
+            for (var i = 0; i < lines.Length; i++)
+            {
+                row.Lines.Add((new[] { CatalogBuilder.Localize(lines[i]), bands[i] }, null));
+                row.LineProofs[i] = tapped;
+            }
+            Rows.Add(row);
+        }
+
         /// <summary>What a treasure lying in the world gives when picked: its own item, or one of its random items where the game draws from those (<see cref="TreasureRule"/>).</summary>
         private void Treasure(PickableItem found)
         {

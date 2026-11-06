@@ -787,6 +787,7 @@ namespace Scry
             if (piece != null && piece.enabled) foreach (var step in Parts("piece", Piece(piece, prefab.GetComponent<WearNTear>()))) yield return step;
 
             Part("resource", () => Resource(prefab));
+            Part("root", () => Root(prefab));
             yield return true;
             if (Knowledge.GivesLoot(prefab)) Hooked(HookedRule.Loot);
             // A switched-off piece a mod added is buildable only where a build tool's menu holds it.

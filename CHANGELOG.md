@@ -4,7 +4,7 @@
 
 A creature's attacks table now tells what each attack does to you at your armour and resistances, with stars, and how much harder your world makes creatures hit; an armour's Armour row tells what it does to a hit. A Dvergr mage's robes are its looks rather than kinds to switch to, and a creature that rolls one of several sets lists the attacks of the look shown. Creatures stand in the gear you saw them in, and a Dvergr's hair is no longer called a shield.
 
-Scry's map marks hide with TargetPortal's pins and stay off ground you have not explored. An ancient root becomes known once you build a sap extractor on it or take sap from one, and *Show on map* marks the roots your character saw. A Gjall's taunt and egg drop are seen from as far as it uses them, and attacks that start alike are told apart on creatures a friend's game runs.
+Scry's map marks hide with TargetPortal's pins and stay off ground you have not explored. An ancient root becomes known once you build a sap extractor on it or take sap from one, and *Show on map* marks the roots your character saw. Its page tells how much sap it holds, how fast it refills and how much sap each line it shows when you look at it stands for, and the extractor's page what *Extracting slowly* means. A Gjall's taunt and egg drop are seen from as far as it uses them, and attacks that start alike are told apart on creatures a friend's game runs.
 
 ## 0.4.1
 

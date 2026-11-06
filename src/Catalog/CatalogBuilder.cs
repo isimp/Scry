@@ -514,6 +514,7 @@ namespace Scry
                 case SapCollector _:
                     deeds.Add(Deed.Collected);
                     break;
+                case ResourceRoot _: deeds.Add(Deed.Tapped); break;
             }
         }
 
