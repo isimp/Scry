@@ -606,6 +606,13 @@ namespace Scry
                     traits.HasResource = true;
                     traits.HasPlant = true;
                     break;
+                // A root a tap draws from, named as the game names it when looked at (ResourceRoot.GetHoverName).
+                case ResourceRoot root:
+                    traits.HasResource = true;
+                    traits.IsTapped = true;
+                    found.Token = found.Token ?? root.m_name;
+                    Named(found, root.m_name);
+                    break;
                 case Destructible breaks:
                     traits.HasDestructible = true;
                     if (Knowledge.MinedInside(breaks.m_spawnWhenDestroyed) != null) traits.BreaksIntoResource = true;

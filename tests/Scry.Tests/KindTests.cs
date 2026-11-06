@@ -140,6 +140,18 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AnAncientRootIsAResourceTappedForSap()
+        {
+            // A root a tap draws from (ResourceRoot) is neither chopped, mined nor picked, yet gives sap: a resource of its own group.
+            var root = new PrefabTraits { HasResource = true, IsTapped = true, HasRenderer = true, HasSolidCollider = true };
+            Assert.Equal(Kind.Resource, Kinds.Of(root));
+            Assert.Equal(ResourceGroup.Tapped, Kinds.GroupOf(root));
+            Assert.Equal("Tapped for sap", Kinds.GroupLabel(ResourceGroup.Tapped));
+            // Listed after what is picked, before what is only broken for its drops.
+            Assert.True(ResourceGroup.Tapped > ResourceGroup.BushesAndPickables && ResourceGroup.Tapped < ResourceGroup.Other);
+        }
+
+        [Fact]
         public void OnlyResourcesHaveAGroup()
         {
             Assert.Equal(ResourceGroup.None, Kinds.GroupOf(new PrefabTraits { HasCharacter = true }));

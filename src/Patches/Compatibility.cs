@@ -323,6 +323,7 @@ namespace Scry
             ("SapCollector", "GetStatusText", 0, 0xD81FE148, Feature.SapCollectorNeeds),
             ("ResourceRoot", "GetHoverText", 0, 0xDAB8864D, Feature.RootSap),
             ("ResourceRoot", "GetLevel", 0, 0xDBE93209, Feature.RootSap),
+            ("ResourceRoot", "GetHoverName", 0, 0x962D60EC, Feature.RootSap),
             ("ItemDrop", "MakePiece", 1, 0x45E04458, Feature.PlacedItems),
             ("ItemDrop", "Interact", 3, 0x4C34226F, Feature.PlacedItems),
             ("ItemDrop", "SlowUpdate", 0, 0xAAC19C9B, Feature.PlacedItems),

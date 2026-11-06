@@ -26,6 +26,8 @@ namespace Scry
                 yield break;
             }
             var tapped = EntryKeys.Did(Deed.Tapped);
+            p.Check(root.Kind == Kind.Resource && root.ShownName == CatalogBuilder.Localize(game.m_name), "the root is a resource, named as the game names it when looked at",
+                $"{root.Kind}, {root.ShownName}");
             var facts = Facts.For(root);
             string Said(Facts f, string label) => f.Pairs.FirstOrDefault(x => x.Key == label).Value;
             p.Check(Said(facts, "Holds") == RootWords.Holds(game.m_maxLevel) && Said(facts, "Refills") == RootWords.Refills(game.m_regenPerSec, game.m_maxLevel),

@@ -2,7 +2,7 @@
 
 ## 0.4.3
 
-An ancient root becomes known once you build a sap extractor on it or take sap from one, and *Show on map* marks the roots your character saw. Its page tells how much sap it holds, how fast it refills and how much sap each line it shows when you look at it stands for, and the extractor's page what its slow line means. A kill the game counts under a name several creatures share, as both Dvergr rogues do, now counts only for the ones you met, so entering the Ashlands no longer makes the Ashlands rogue known. A food or Royal Jelly the Serving Tray places tells so under *Placing it*, with what a placed one does, in place of a build cost.
+An ancient root is listed with the resources, under *Tapped for sap*, and becomes known once you build a sap extractor on it or take sap from one, and *Show on map* marks the roots your character saw. Its page tells how much sap it holds, how fast it refills and how much sap each line it shows when you look at it stands for, and the extractor's page what its slow line means. A kill the game counts under a name several creatures share, as both Dvergr rogues do, now counts only for the ones you met, so entering the Ashlands no longer makes the Ashlands rogue known. A food or Royal Jelly the Serving Tray places tells so under *Placing it*, with what a placed one does, in place of a build cost.
 
 ## 0.4.2
 

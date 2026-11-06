@@ -48,6 +48,7 @@ namespace Scry
         RocksAndOre,
         Plants,
         BushesAndPickables,
+        Tapped,
         Other,
     }
 
@@ -85,11 +86,12 @@ namespace Scry
         /// <summary>Grows from being planted: a crop or sapling put in the ground with the cultivator.</summary>
         public bool HasPlant;
 
-        /// <summary>What kind of resource it is: a standing tree, a fallen log, a rock or vein mined a piece at a time, or something picked.</summary>
+        /// <summary>What kind of resource it is: a standing tree, a fallen log, a rock or vein mined a piece at a time, something picked, or a root a tap draws from (<c>ResourceRoot</c>).</summary>
         public bool IsTree;
         public bool IsLog;
         public bool IsMined;
         public bool IsPicked;
+        public bool IsTapped;
 
         /// <summary>Breaks when hit, and whether it then drops anything.</summary>
         public bool HasDestructible;
@@ -166,6 +168,7 @@ namespace Scry
             if (traits.IsMined || traits.BreaksIntoResource) return ResourceGroup.RocksAndOre;
             if (traits.HasPlant) return ResourceGroup.Plants;
             if (traits.IsPicked) return ResourceGroup.BushesAndPickables;
+            if (traits.IsTapped) return ResourceGroup.Tapped;
             return ResourceGroup.Other;
         }
 
@@ -179,6 +182,7 @@ namespace Scry
                 case ResourceGroup.RocksAndOre: return "Rocks and ore";
                 case ResourceGroup.Plants: return "Plants";
                 case ResourceGroup.BushesAndPickables: return "Bushes and pickables";
+                case ResourceGroup.Tapped: return "Tapped for sap";
                 case ResourceGroup.Other: return "Broken for what they drop";
                 default: return "";
             }
