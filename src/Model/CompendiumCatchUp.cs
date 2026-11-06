@@ -129,7 +129,7 @@ namespace Scry
             var known = new List<(Entry Entry, CameBy Way)>();
             void Add(IEnumerable<Entry> entries, CameBy way) => known.AddRange(entries.Select(e => (e, way)));
             var entered = Entered(all);
-            var killed = Killed(records, entered).ToList();
+            var killed = Killed(records, entered, book).ToList();
             Add(killed, CameBy.Killed);
             Add(Named(crafted, Kind.Item), CameBy.Made);
             Add(Named(records.Eaten, Kind.Item), CameBy.Eaten);
@@ -203,7 +203,7 @@ namespace Scry
             // A book kept before a whole was known by its pieces knows the whole they alone come from.
             if (firstLoad) raised += WholesOfPieces(book);
             // A stray kill is told by every kill the records hold, not only those read now.
-            var told = ReferenceEquals(all, records) ? known.Select(k => k.Entry) : known.Select(k => k.Entry).Concat(Killed(all, entered));
+            var told = ReferenceEquals(all, records) ? known.Select(k => k.Entry) : known.Select(k => k.Entry).Concat(Killed(all, entered, book));
             foreach (var stray in Unkilled(all, book, told)) book.TakeBack(stray.Key, EntryKeys.Did(Deed.Killed));
             foreach (var given in givers)
             {
@@ -496,16 +496,24 @@ namespace Scry
         /// <summary>
         /// The creatures the kills counted stand for. The game counts a kill by the name a creature
         /// shows, which several can share, as the frozen greydwarf, living only in the Deep North,
-        /// shows the greydwarf's: of those, the ones living in a biome the character entered;
-        /// where none does, the ones the world brings about (<see cref="Comes"/>), never the
-        /// bosses' aspects, which nothing in the game spawns though their roots go by the Elder's
-        /// roots' name; where none comes about either, a kill was still one of them, and all count.
+        /// shows the greydwarf's, and the Ashlands' Dvergr rogue the Mistlands' one: of those, the
+        /// ones the character met in play (<see cref="MetInPlay"/>), which tells which it fought;
+        /// where it met none, the ones living in a biome the character entered; where none does,
+        /// the ones the world brings about (<see cref="Comes"/>), never the bosses' aspects, which
+        /// nothing in the game spawns though their roots go by the Elder's roots' name; where none
+        /// comes about either, a kill was still one of them, and all count.
         /// </summary>
-        private IEnumerable<Entry> Killed(CompendiumRecords records, HashSet<string> entered)
+        private IEnumerable<Entry> Killed(CompendiumRecords records, HashSet<string> entered, CompendiumBook book)
         {
             foreach (var token in records.Killed)
             {
                 if (token == null || !_byToken.TryGetValue(token, out var entries)) continue;
+                var met = entries.Where(e => e.Kind == Kind.Creature && MetInPlay(e, book)).ToList();
+                if (met.Count > 0)
+                {
+                    foreach (var entry in met) yield return entry;
+                    continue;
+                }
                 var lived = false;
                 var comes = false;
                 foreach (var entry in entries)
@@ -558,13 +566,13 @@ namespace Scry
 
         /// <summary>
         /// The creatures a kill was once counted for that it does not stand for now (<see cref="Killed"/>),
-        /// known and killed in the book only by that: nothing in the records tells of them now, and the character never met them in play, which keeps the way it came to know one
-        /// or pairs it with the biome it stood in.
+        /// known in the book only by that, killed (read as the character loaded) or come to know by
+        /// killing (read later): nothing in the records tells of them now, which holds every one
+        /// the character met in play (<see cref="MetInPlay"/>).
         /// </summary>
         private List<Entry> Unkilled(CompendiumRecords records, CompendiumBook book, IEnumerable<Entry> known)
         {
             var told = new HashSet<Entry>(known);
-            var biomes = _catalog.All.Where(e => e.Kind == Kind.Biome).ToList();
             var stray = new List<Entry>();
             foreach (var token in records.Killed)
             {
@@ -572,12 +580,25 @@ namespace Scry
                 foreach (var entry in entries)
                 {
                     if (entry.Kind != Kind.Creature || told.Contains(entry) || stray.Contains(entry)) continue;
-                    if (!book.Proved(entry.Key, EntryKeys.Did(Deed.Killed)) || book.Came(entry.Key) != null) continue;
-                    if (biomes.Any(b => book.Witnessed(entry.Key, b.Key))) continue;
+                    var came = book.Came(entry.Key)?.Way;
+                    var counted = came == null ? book.Proved(entry.Key, EntryKeys.Did(Deed.Killed)) : came == CameBy.Killed;
+                    if (!counted) continue;
                     stray.Add(entry);
                 }
             }
             return stray;
+        }
+
+        /// <summary>
+        /// Whether the character met a creature in play: come to know it by any way but a kill the
+        /// game's records counted (fought, tamed, seen born), or paired with a biome it was seen or
+        /// fought in, as the records pair no creature with any.
+        /// </summary>
+        private bool MetInPlay(Entry creature, CompendiumBook book)
+        {
+            var came = book.Came(creature.Key)?.Way;
+            if (came != null && came != CameBy.Killed) return true;
+            return _biomes.Any(b => book.Witnessed(creature.Key, b.Key));
         }
 
         /// <summary>The creatures an item falls from that live in a biome the character entered.</summary>

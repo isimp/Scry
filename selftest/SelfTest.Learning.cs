@@ -160,6 +160,7 @@ namespace Scry
         /// </summary>
         private static void RecordsOfDeeds(Probe p, CompendiumRecords records, CompendiumBook told)
         {
+            SharedKillNamesTell(p);
             p.Note($"records of deeds: {Numbers.Count(records.PickedFrom.Count)} things picked from, {Numbers.Count(records.Collected.Count)} producers taken from, {Numbers.Count(records.Cooked.Count)} cooking stations cooked at, {Numbers.Count(records.Caught.Count)} fish caught");
             var odd = new List<string>();
             foreach (var name in records.PickedFrom)

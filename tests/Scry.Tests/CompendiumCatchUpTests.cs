@@ -263,6 +263,57 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AKillCountedUnderANameSeveralShareStandsForThoseMetInPlay()
+        {
+            // Both Dvergr rogues show one name. The character fought and killed the Mistlands one;
+            // entering the Ashlands, where the other lives, says nothing of a kill of it.
+            var killed = EntryKeys.Did(Deed.Killed);
+            var rogue = E(Kind.Creature, "Dverger", "$enemy_dvergr");
+            var ashRogue = E(Kind.Creature, "DvergerAshlands", "$enemy_dvergr");
+            var mist = E(Kind.Biome, "Mistlands", "$biome_mistlands");
+            var ash = E(Kind.Biome, "AshLands", "$biome_ashlands");
+            rogue.Biomes = mist.Biomes = new[] { "Mistlands" };
+            ashRogue.Biomes = ash.Biomes = new[] { "AshLands" };
+            var records = new CompendiumRecords();
+            records.Killed.Add("$enemy_dvergr");
+            records.Biomes.Add("$biome_mistlands");
+            records.Biomes.Add("$biome_ashlands");
+            CompendiumBook MetRogue(CompendiumBook book)
+            {
+                book.Raise(rogue.Key, KnownLevel.Known, way: CameBy.Fought);
+                book.Witness(rogue.Key, mist.Key);
+                return book;
+            }
+
+            var (catchUp, book) = Fresh(rogue, ashRogue, mist, ash);
+            catchUp.Fill(records, MetRogue(book), firstLoad: false);
+            Assert.Equal(KnownLevel.Unknown, book.Level(ashRogue.Key));
+            // The kills now tell one creature apart, so its health shows.
+            Assert.True(book.Proved(rogue.Key, killed));
+
+            // Counted before for the Ashlands one, which the character never met in play, the kill is taken back.
+            var (again, older) = Fresh(rogue, ashRogue, mist, ash);
+            MetRogue(older).Raise(ashRogue.Key, KnownLevel.Known, way: CameBy.Killed);
+            again.Fill(records, older, firstLoad: false);
+            Assert.Equal(KnownLevel.Unknown, older.Level(ashRogue.Key));
+            Assert.Null(older.Came(ashRogue.Key));
+
+            // Met in play as well, both stand for the kills, and neither is taken back.
+            var (both, bothBook) = Fresh(rogue, ashRogue, mist, ash);
+            MetRogue(bothBook).Raise(ashRogue.Key, KnownLevel.Known, way: CameBy.Killed);
+            bothBook.Witness(ashRogue.Key, ash.Key);
+            both.Fill(records, bothBook, firstLoad: false);
+            Assert.Equal(KnownLevel.Known, bothBook.Level(ashRogue.Key));
+            Assert.Equal(KnownLevel.Known, bothBook.Level(rogue.Key));
+
+            // Neither met in play, as kills from before Scry: they stand for each living where the character went.
+            var (none, noneBook) = Fresh(rogue, ashRogue, mist, ash);
+            none.Fill(records, noneBook, firstLoad: true);
+            Assert.Equal(KnownLevel.Known, noneBook.Level(rogue.Key));
+            Assert.Equal(KnownLevel.Known, noneBook.Level(ashRogue.Key));
+        }
+
+        [Fact]
         public void AKillOnceCountedForACreatureItNeverStoodForIsTakenBack()
         {
             // Read before kills counted under a shared name stood only for the creatures living
