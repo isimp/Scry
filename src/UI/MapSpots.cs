@@ -913,12 +913,23 @@ namespace Scry
             _stripFrame = Time.frameCount;
         }
 
-        /// <summary>Whether the pointer stands on the strip, drawn this frame or the one before (a Hide pressed takes it away before the map hears the click), so the map takes no click there.</summary>
+        /// <summary>Where a kept kind's mark picker opened from the strip stood as last drawn, in the GUI's own coordinates, and the frame.</summary>
+        private static Rect _pickerAt;
+        private static int _pickerFrame = -10;
+
+        /// <summary>Where the strip's mark picker was drawn, none while it is put away, for its clicks to be kept from the map under it.</summary>
+        public static void PickerDrawn(Rect at)
+        {
+            _pickerAt = at;
+            _pickerFrame = Time.frameCount;
+        }
+
+        /// <summary>Whether the pointer stands on the strip or its mark picker, drawn this frame or the one before (a Hide pressed takes it away before the map hears the click), so the map takes no click there.</summary>
         public static bool PointerOnStrip()
         {
-            if (Time.frameCount > _stripFrame + 1) return false;
             var pointer = ZInput.pointerPosition;
-            return _stripAt.Contains(new Vector2(pointer.x, Screen.height - pointer.y));
+            var at = new Vector2(pointer.x, Screen.height - pointer.y);
+            return (Time.frameCount <= _stripFrame + 1 && _stripAt.Contains(at)) || (Time.frameCount <= _pickerFrame + 1 && _pickerAt.Contains(at));
         }
 
         /// <summary>Where the large map's picture stands on the screen, in the GUI's own coordinates; none while it is shut.</summary>

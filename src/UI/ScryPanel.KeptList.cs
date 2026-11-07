@@ -79,11 +79,11 @@ namespace Scry
             if (e.rawType == EventType.MouseDown)
             {
                 var zone = KeptClick.Open ? Rect.MinMaxRect(Mathf.Min(button.x, _keptRect.x), button.y, Mathf.Max(button.xMax, _keptRect.xMax), Mathf.Max(button.yMax, _keptRect.yMax)) : button;
-                KeptClick.DownAt(zone.Contains(e.mousePosition) || (KeptClick.Open && _pickRect.Contains(e.mousePosition)));
+                KeptClick.DownAt(zone.Contains(e.mousePosition) || (KeptClick.Open && _pickFrom == PickFrom.List && _pickRect.Contains(e.mousePosition)));
             }
             if (!KeptClick.Open)
             {
-                PutPickerAway();
+                if (_pickFrom == PickFrom.List) PutPickerAway();
                 return;
             }
             MapKept.Refresh();
@@ -107,14 +107,14 @@ namespace Scry
         {
             var book = CompendiumKeeper.Book;
             if (!KeptClick.Open || book == null || e.type != EventType.MouseDown) return;
-            if (_pickRect.width > 0f && _pickRect.Contains(e.mousePosition))
+            if (_pickFrom == PickFrom.List && _pickRect.width > 0f && _pickRect.Contains(e.mousePosition))
             {
                 if (e.button == 0 && PickerChoiceAt(e.mousePosition) is int chosen) PickMark(_picking, chosen);
                 e.Use();
                 return;
             }
             if (!_keptRect.Contains(e.mousePosition)) return;
-            var picking = PutPickerAway();
+            var picking = _pickFrom == PickFrom.List ? PutPickerAway() : null;
             if (e.button == 0)
             {
                 var index = Mathf.FloorToInt((e.mousePosition.y - _keptRect.y - KeptTop) / KeptRowH);
@@ -218,7 +218,7 @@ namespace Scry
                 else
                 {
                     var around = MarkBox(r, y);
-                    if (_picking == kept) Skin.Box(around, Skin.Alpha(Skin.Accent, 0.16f), Skin.Accent);
+                    if (PickingFrom(kept, PickFrom.List)) Skin.Box(around, Skin.Alpha(Skin.Accent, 0.16f), Skin.Accent);
                     else if (around.Contains(mouse)) Skin.Box(around, Skin.Hover, Skin.Alpha(Skin.Text, 0.18f));
                     GUI.DrawTexture(new Rect(mark.x - U(2f), mark.y - U(2f), mark.width + U(4f), mark.height + U(4f)), MapSpots.MarkPicture(shown, kept).texture);
                 }
@@ -257,7 +257,7 @@ namespace Scry
             if (onAll) Skin.Box(all, Skin.Hover);
             var allW = Skin.Width(Skin.Label, SpotWords.TakeAllOff);
             GUI.Label(new Rect(all.xMax - U(8f) - allW, all.y + U(2f), allW, U(20f)), SpotWords.TakeAllOff, onAll ? Skin.Label : Skin.DimLabel);
-            DrawMarkPicker();
+            if (_pickFrom == PickFrom.List) DrawMarkPicker();
         }
     }
 }

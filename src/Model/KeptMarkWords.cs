@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace Scry
 {
-    /// <summary>The words of the picker a kept kind's mark is chosen in, opened from its line in the On the map list (<see cref="KeptMarks"/>).</summary>
+    /// <summary>The words of the picker a kept kind's mark is chosen in, opened from its line in the On the map list or from the mark beside a lit Keep on the map (<see cref="KeptMarks"/>).</summary>
     internal static class KeptMarkWords
     {
         /// <summary>The colours by name, in the marks' order.</summary>
@@ -24,6 +24,9 @@ namespace Scry
 
         /// <summary>The foot of the list while the pointer rests on a mark that can be picked.</summary>
         public const string MarkHint = "A click picks this mark's colour, shape or picture";
+
+        /// <summary>The tip of the mark beside a lit Keep on the map, on a kind's page or on the map's strip.</summary>
+        public static string PieceTip(string name) => $"How {name} stands on Valheim's map: a click picks its colour, shape or picture";
 
         /// <summary>The picker's heading.</summary>
         public static string Heading(string name) => $"Mark of {name}";

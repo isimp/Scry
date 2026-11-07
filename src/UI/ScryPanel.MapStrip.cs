@@ -64,6 +64,8 @@ namespace Scry
             try
             {
                 GUI.skin = Skin.Gui;
+                // A press in the mark's picker, or one putting it away, before the strip's buttons take it.
+                PickerClicks(Event.current, PickFrom.Strip);
                 PointedWords();
                 if (line == null) return;
                 var hideW = Skin.Width(Skin.Chip, SpotWords.Hide) + U(12f);
@@ -71,8 +73,11 @@ namespace Scry
                 var allW = kinds >= 2 ? Skin.Width(Skin.ChipOn, SpotWords.AllKindsChip(kinds)) + U(12f) : 0f;
                 var key = MapSpots.ShownKey;
                 var keepW = key != null && CompendiumKeeper.Book != null ? Skin.Width(Skin.ChipOn, SpotWords.Keep) + U(12f) : 0f;
+                // The kept kind's mark beside its Keep on the map, opening its picker.
+                var pickable = key != null ? CompendiumKeeper.Book?.PickableMark(key) : null;
+                var markW = keepW > 0f && pickable != null ? U(34f) : 0f;
                 var gap = U(6f);
-                var buttonsW = hideW + (allW > 0f ? gap + allW : 0f) + (keepW > 0f ? gap + keepW : 0f);
+                var buttonsW = hideW + (allW > 0f ? gap + allW : 0f) + (keepW > 0f ? gap + keepW : 0f) + (markW > 0f ? gap + markW : 0f);
                 var wordsW = Skin.Width(Skin.Small, line);
                 // Both rows start past the kind's mark, where one is drawn.
                 var lead = U(14f) + (MapSpots.ShownPicture != null ? U(18f) : 0f);
@@ -101,8 +106,19 @@ namespace Scry
                     x += allW + gap;
                 }
                 if (keepW > 0f) KeepButton(new Rect(x, y, keepW, U(22f)), key);
+                if (markW > 0f && pickable is int picked)
+                {
+                    var piece = new Rect(x + keepW + gap, y, markW, U(22f));
+                    var lit = PickingFrom(key, PickFrom.Strip) || piece.Contains(Event.current.mousePosition);
+                    Skin.Box(piece, lit ? Skin.RaisedHover : Skin.Raised, lit ? Skin.Accent : Skin.Alpha(Skin.Text, 0.12f));
+                    MarkPiece(piece, key, picked, PickFrom.Strip);
+                    CountDrawn(PanelPart.MapKeepMark);
+                }
                 MapSpots.StripDrawn(rect);
                 CountDrawn(PanelPart.MapStrip);
+                // Its picker under the mark, inside the map, its clicks kept from the map too.
+                AnchoredPicker(PickFrom.Strip, new Rect(map.Value.x + U(8f), map.Value.y + U(8f), map.Value.width - U(16f), map.Value.height - U(16f)));
+                MapSpots.PickerDrawn(MarkPickerShownForTest && _pickFrom == PickFrom.Strip ? _pickRect : Rect.zero);
             }
             finally
             {

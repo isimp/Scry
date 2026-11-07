@@ -164,5 +164,58 @@ namespace Scry.Tests
             book.Keep("loc:Grave1+loc:Grave2", true);
             Assert.Equal(picked, book.MarkOf("loc:Grave1+loc:Grave2"));
         }
+
+        // Beside the lit Keep on the map, on a kind's page and on the map's strip, a piece shows
+        // the mark its line stands in, and a click on it opens the same picker under it.
+
+        [Fact]
+        public void APageOffersTheMarkOfTheLineItKeepsItself()
+        {
+            var book = new CompendiumBook();
+            Assert.Null(book.PickableMark("rock4_copper"));
+            book.Keep("rock4_copper", true);
+            Assert.Equal(book.MarkOf("rock4_copper"), book.PickableMark("rock4_copper"));
+            var hammer = KeptMarks.Pictured(5, 2);
+            Assert.True(book.Pick("rock4_copper", hammer));
+            Assert.Equal(hammer, book.PickableMark("rock4_copper"));
+
+            // Every kind of dungeon keeps its amber discs, so its piece is never offered.
+            Assert.True(book.Keeps(CompendiumBook.Dungeons));
+            Assert.Null(book.PickableMark(CompendiumBook.Dungeons));
+
+            // Kept only as one of a place's kinds kept at once: the joined line's piece offers it, not the kind's own.
+            book.Keep("loc:Grave1+loc:Grave2", true);
+            Assert.Null(book.PickableMark("loc:Grave1"));
+            Assert.Equal(book.MarkOf("loc:Grave1+loc:Grave2"), book.PickableMark("loc:Grave1+loc:Grave2"));
+
+            // Taken off, it offers none again.
+            book.Keep("rock4_copper", false);
+            Assert.Null(book.PickableMark("rock4_copper"));
+            Assert.Null(book.PickableMark(null));
+        }
+
+        [Fact]
+        public void ThePickerStandsUnderWhatOpenedItOrOverItWhereTheRoomEnds()
+        {
+            // Room from 0 to 1,000 wide and from 0 to 800 high; a picker 340 by 300, 2 apart from what opened it.
+            Assert.Equal((100f, 132f), MarkPickerPlace.Of(100f, 100f, 130f, 340f, 300f, 0f, 0f, 1000f, 800f, 2f));
+            // Just room under it: under it.
+            Assert.Equal((100f, 500f), MarkPickerPlace.Of(100f, 468f, 498f, 340f, 300f, 0f, 0f, 1000f, 800f, 2f));
+            // No room under it: over it.
+            Assert.Equal((100f, 398f), MarkPickerPlace.Of(100f, 700f, 730f, 340f, 300f, 0f, 0f, 1000f, 800f, 2f));
+            // No room either way: from the room's top, never past it.
+            Assert.Equal((100f, 0f), MarkPickerPlace.Of(100f, 200f, 230f, 340f, 700f, 0f, 0f, 1000f, 800f, 2f));
+            // Near the room's right end: moved left to stay inside, and right of its left end.
+            Assert.Equal((660f, 132f), MarkPickerPlace.Of(900f, 100f, 130f, 340f, 300f, 0f, 0f, 1000f, 800f, 2f));
+            Assert.Equal((50f, 132f), MarkPickerPlace.Of(10f, 100f, 130f, 340f, 300f, 50f, 0f, 1000f, 800f, 2f));
+            // A room narrower than the picker starts it at the room's left.
+            Assert.Equal((50f, 132f), MarkPickerPlace.Of(200f, 100f, 130f, 340f, 300f, 50f, 0f, 300f, 800f, 2f));
+        }
+
+        [Fact]
+        public void TheMarkPieceSaysAClickPicksHowTheKindStands()
+        {
+            Assert.Equal("How Copper deposit stands on Valheim's map: a click picks its colour, shape or picture", KeptMarkWords.PieceTip("Copper deposit"));
+        }
     }
 }

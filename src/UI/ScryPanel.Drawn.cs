@@ -69,6 +69,10 @@ namespace Scry
         MapKeep,
         PageKeep,
 
+        /// <summary>The mark beside a lit Keep on the map, on a page and on Show on map's strip, opening its picker.</summary>
+        PageKeepMark,
+        MapKeepMark,
+
         /// <summary>A page's buttons showing and keeping all its kinds at once.</summary>
         PageShowAll,
         PageKeepAll,

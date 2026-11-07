@@ -102,18 +102,7 @@ namespace Scry
         /// </summary>
         private static bool ActionShown(string text, ActionLook look, bool can, string tip)
         {
-            var w = Skin.Width(Skin.SmallCenter, text) + U(22f);
-            if (!_actionsDrawn)
-            {
-                ActionWidths.Add(w);
-                return false;
-            }
-            var i = _actionIndex++;
-            if (i >= ActionPlaces.Count) return false;
-            var (x, line) = ActionPlaces[i];
-            var rect = new Rect(_toolbarAt.x + x, _toolbarAt.y + line * (ToolbarRow + ToolbarLineGap), w, ToolbarRow);
-            var first = i == 0 || ActionPlaces[i - 1].Line != line;
-            var last = i == ActionPlaces.Count - 1 || ActionPlaces[i + 1].Line != line;
+            if (!NextActionPlace(Skin.Width(Skin.SmallCenter, text) + U(22f), out var rect, out var first, out var last)) return false;
             var hover = can && rect.Contains(Event.current.mousePosition);
             var fill = look == ActionLook.Leading ? (hover ? Skin.Shade(Skin.Accent, 1.08f) : Skin.Accent)
                 : look == ActionLook.On ? Skin.Alpha(Skin.Accent, hover ? 0.28f : 0.2f)
@@ -124,6 +113,44 @@ namespace Scry
             if (rect.Contains(Event.current.mousePosition)) AskTip("action:" + text, tip);
             if (Event.current.type == EventType.Repaint) ToolbarPartsForTest.Add(("action", rect));
             return can && GUI.Button(rect, GUIContent.none, GUIStyle.none);
+        }
+
+        /// <summary>
+        /// The next action piece's box, of a width: noted while the buttons are measured, false
+        /// then; else where the toolbar put it and whether it starts or ends its line's group.
+        /// </summary>
+        private static bool NextActionPlace(float w, out Rect rect, out bool first, out bool last)
+        {
+            rect = default;
+            first = last = false;
+            if (!_actionsDrawn)
+            {
+                ActionWidths.Add(w);
+                return false;
+            }
+            var i = _actionIndex++;
+            if (i >= ActionPlaces.Count) return false;
+            var (x, line) = ActionPlaces[i];
+            rect = new Rect(_toolbarAt.x + x, _toolbarAt.y + line * (ToolbarRow + ToolbarLineGap), w, ToolbarRow);
+            first = i == 0 || ActionPlaces[i - 1].Line != line;
+            last = i == ActionPlaces.Count - 1 || ActionPlaces[i + 1].Line != line;
+            return true;
+        }
+
+        /// <summary>
+        /// The mark beside a lit Keep on the map or Keep all N kinds, joined to it, where its line
+        /// is kept by its own key and so can be given a look (<see cref="CompendiumBook.PickableMark"/>):
+        /// lit as the button is, more under the pointer or while its picker stands open.
+        /// </summary>
+        private static void PageMarkPiece(CompendiumBook book, string kept)
+        {
+            if (!(book.PickableMark(kept) is int mark)) return;
+            CountDrawn(PanelPart.PageKeepMark);
+            if (!NextActionPlace(U(34f), out var rect, out var first, out var last)) return;
+            var lit = PickingFrom(kept, PickFrom.Page) || rect.Contains(Event.current.mousePosition);
+            Skin.JoinedPiece(rect, Skin.Alpha(Skin.Accent, lit ? 0.32f : 0.2f), first, last);
+            if (Event.current.type == EventType.Repaint) ToolbarPartsForTest.Add(("action", rect));
+            MarkPiece(rect, kept, mark, PickFrom.Page);
         }
 
         /// <summary>A sound's actions: play it, pause it and stop it.</summary>
@@ -224,11 +251,13 @@ namespace Scry
             var itself = keptBy == kind;
             var tip = keptBy != null && !itself ? SpotWords.KeptWith(KeptName(keptBy)) : SpotWords.KeepTip(itself);
             if (ActionShown(SpotWords.Keep, keptBy != null ? ActionLook.On : ActionLook.Plain, keptBy == null || itself, tip)) KeepOnMap(kind, !itself);
+            PageMarkPiece(book, kind);
             if (keys.Count < 2) return;
             CountDrawn(PanelPart.PageKeepAll);
             var allKey = MapShowing.AllKindsKey(keys);
             var keptAll = book.Keeps(allKey);
             if (ActionShown(SpotWords.KeepAll(keys.Count), keptAll ? ActionLook.On : ActionLook.Plain, true, SpotWords.KeepAllTip(names, keptAll))) KeepOnMap(allKey, !keptAll);
+            PageMarkPiece(book, allKey);
         }
 
         /// <summary>

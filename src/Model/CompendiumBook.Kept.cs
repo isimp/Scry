@@ -33,6 +33,12 @@ namespace Scry
         /// <summary>The mark a kept kind stands in, the dungeons' for every kind of dungeon; none for one not kept.</summary>
         public int? MarkOf(string kind) => kind == Dungeons ? KeptMarks.Dungeons : kind != null && _kept.TryGetValue(kind, out var mark) ? mark : (int?)null;
 
+        /// <summary>
+        /// The mark a line kept by its own key stands in, for its picker; none for every kind of
+        /// dungeon, which keeps its amber discs, nor for a kind kept only with others as one line.
+        /// </summary>
+        public int? PickableMark(string kind) => kind != null && _kept.TryGetValue(kind, out var mark) ? mark : (int?)null;
+
         /// <summary>The lowest mark no kept kind stands in, for one shown and not kept.</summary>
         public int FreeMark() => KeptMarks.Lowest(_kept.Values);
 

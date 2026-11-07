@@ -322,6 +322,7 @@ namespace Scry
 
             if (outCount > 0 && GUI.Button(clearRect, clearText, Skin.Primary)) ClearWorld();
             OutHover(clearRect, outCount, e, new Rect(pad, 0f, w - pad * 2f, h - pad));
+            PickerClicks(e, PickFrom.Page);
             OutClicks(explorer, e);
             KeptClicks(explorer, e);
             CompendiumBoxClicks(e);
@@ -443,6 +444,8 @@ namespace Scry
             DrawOutList(explorer);
             DrawKeptList();
             DrawCompendiumBox(explorer);
+            // A kept kind's mark picker opened from its page, under the mark beside Keep on the map.
+            AnchoredPicker(PickFrom.Page, new Rect(pad, U(56f), w - pad * 2f, h - pad - U(56f)));
 
             // Resize grip in the corner.
             var grip = new Rect(w - U(22f), h - U(22f), U(20f), U(20f));
