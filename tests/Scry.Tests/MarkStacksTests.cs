@@ -36,6 +36,18 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void MarksStackOnlyOnceTheyHideAThirdOfEachOther()
+        {
+            // A mark 20 m wide on the map: 16 m apart the two still read apart, 12 m apart they stack.
+            const float width = 20f;
+            var touch = width * MarkStacks.Touching;
+            var apart = Gathered(touch, (0f, 0f), (width * 0.8f, 0f));
+            Assert.NotEqual(apart.AnchorOf(0), apart.AnchorOf(1));
+            var close = Gathered(touch, (0f, 0f), (width * 0.6f, 0f));
+            Assert.Equal(close.AnchorOf(0), close.AnchorOf(1));
+        }
+
+        [Fact]
         public void AStackGathersRoundItsFirstMarkSoARowOfMarksIsNotOneLongStack()
         {
             // Ten marks in a row, each touching the next: stacks round the first mark of each, never all ten as one.

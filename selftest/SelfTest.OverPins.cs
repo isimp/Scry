@@ -59,11 +59,11 @@ namespace Scry
         }
 
         /// <summary>
-        /// The lone copper dot clicked on the large map, through the map's own click as a player's
+        /// A lone dot clicked on the large map, through the map's own click as a player's
         /// is (<c>Minimap.OnMapLeftClick</c>): its kind's page opens in Scry and the map goes back to
         /// the minimap. Pictured, then the large map opened again where it stood.
         /// </summary>
-        private static IEnumerator DotClickOpensPage(Probe p, Minimap map, string kind)
+        private static IEnumerator DotClickOpensPage(Probe p, Minimap map, params string[] kinds)
         {
             var lone = MapSpots.LoneDotForTest();
             if (lone == null)
@@ -77,8 +77,10 @@ namespace Scry
             MapSpots.PressedForTest(lone.Value);
             map.OnMapLeftClick();
             yield return Until(() => Session.IsOpen && X.Selected != null, 3);
-            var wanted = X.Find(kind)?.Key;
-            p.Check(MapMarkButtons.DotOpenedForTest == wanted && map.m_mode == Minimap.MapMode.Small && Session.IsOpen && X.Selected?.Key == wanted,
+            // Whichever of the kinds the lone dot stands for, as the zoom decides which stand alone.
+            var opened = MapMarkButtons.DotOpenedForTest;
+            var wanted = System.Array.Exists(kinds, k => X.Find(k)?.Key == opened) ? opened : null;
+            p.Check(wanted != null && map.m_mode == Minimap.MapMode.Small && Session.IsOpen && X.Selected?.Key == wanted,
                 "a click on a dot opens its kind's page in Scry, the map going back to the minimap", $"{MapMarkButtons.DotOpenedForTest}, {map.m_mode}, {X.Selected?.Key}");
             yield return Settled();
             yield return Picture(p, "a dot clicked on the map, its page open");

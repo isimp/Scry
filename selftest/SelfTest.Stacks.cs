@@ -100,7 +100,7 @@ namespace Scry
             yield return Until(() => MapSpots.PipsShown == 0 && MapSpots.DotsShown >= 2, 5);
             if (MapSpots.TouchForTest < 20f) p.Check(MapSpots.PipsShown == 0, "zoomed in, the two part and their pips go", $"{Numbers.Count(MapSpots.PipsShown)} pips, touching within {Numbers.Amount(MapSpots.TouchForTest, 1)} m");
             else p.Note($"at the nearest zoom marks still touch within {Numbers.Amount(MapSpots.TouchForTest, 1)} m, so two 20 m apart never part");
-            yield return DotClickOpensPage(p, map, copper);
+            yield return DotClickOpensPage(p, map, copper, tin);
             p.Within(Timing.MostMs("spots stacked"), 2, "gathering the marks into stacks holds no frame long", $"{Numbers.Amount(Timing.MostMs("spots stacked"), 2)} ms at the most");
             // As many marks as the map keeps at most, gathered in the game's own runtime: the quickest of five.
             var random = new System.Random(7);

@@ -14,8 +14,8 @@ namespace Scry
     /// </summary>
     internal sealed class MarkStacks
     {
-        /// <summary>How near two marks stand to touch, as a share of a mark's width: the ring, not the halo round it.</summary>
-        public const float Touching = 0.9f;
+        /// <summary>How near two marks stand to stack, as a share of a mark's width: overlapping by more than a third, as two that overlap less still read apart.</summary>
+        public const float Touching = 0.7f;
 
         /// <summary>The most pips under a stack; more marks there still show this many.</summary>
         public const int MostPips = 4;

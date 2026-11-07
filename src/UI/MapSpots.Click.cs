@@ -40,9 +40,11 @@ namespace Scry
             if (from < 0 || from >= StandingKinds.Count) return null;
             if (!MapMarks.Clicked((_pressedAt.x, _pressedAt.y), (screen.x, screen.y), size)) return null;
             if (!MapLook.ClickIsMarks(Settings.MarksOverPins, PinUnder(map, screen, size))) return null;
+            // A kind is its page's key: the page opens at once where the catalog is read, else once
+            // it is, as a dungeon's does; a line of several kinds opens its first.
             var kind = StandingKinds[from];
-            var entry = kind == null ? null : WorldCatalog.Find(kind) ?? WorldCatalog.Find(MapKept.KindsIn(kind)[0]);
-            return entry?.Key;
+            if (string.IsNullOrEmpty(kind)) return null;
+            return WorldCatalog.Find(kind)?.Key ?? MapKept.KindsIn(kind)[0];
         }
 
         /// <summary>Whether the pointer stands on a dot a click would open, so a double-click there adds no pin.</summary>
