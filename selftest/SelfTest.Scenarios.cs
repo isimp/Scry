@@ -68,6 +68,7 @@ namespace Scry
             yield return S("a piece tells its support and what wears it", PieceFacts, 10);
             yield return S("every skill has a page telling what it changes at your level, and reading them leaves your save alone", SkillPages, 30);
             yield return S("pages tell, faint under the game's figures, what they come to at your skills", SkillLines, 30);
+            yield return S("a skill counts on its page as the game counts it, and a skill Kinsmen holds says so", SkillsCountedHere, 20);
             yield return S("with the compendium on, a skill not learned is named nowhere and nothing is told at it", SkillsUnlearned, 30);
             yield return S("a trader's page sells all its store does, and with the compendium on counts what waits for a boss not yet fallen", TraderPage, 30);
             yield return S("every trader stands facing the camera on the stage", TradersFaceCamera, 30);

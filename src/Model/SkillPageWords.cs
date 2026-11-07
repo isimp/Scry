@@ -34,8 +34,15 @@ namespace Scry
 
         public static string ToNextLabel(float level) => $"To level {Numbers.Count((long)Math.Floor(level) + 1)}";
 
-        /// <summary>The character's level on the skill's card on the stage.</summary>
-        public static string Card(float level, float fromEffects) => $"Your level {Level(level, fromEffects)}";
+        /// <summary>The character's level on the skill's card on the stage, with the level kept where the server counts it lower (<see cref="Level"/>).</summary>
+        public static string Card(float level, float fromEffects, float? kept = null) => $"Your level {Level(level, fromEffects, kept)}";
+
+        /// <summary>The You box's line of whose level holds a skill the server counts lower (<see cref="KinsmenLink"/>).</summary>
+        public const string HeldByLabel = "Held by";
+
+        /// <summary>Whose level holds a skill: "Ragna's 40, the best Swords of the group", or for a cap the server set by hand, no name: "the server's cap".</summary>
+        public static string HeldBy(string skill, string holder, float holderLevel) =>
+            holder == null ? "the server's cap" : $"{holder}'s {Numbers.Count((long)Math.Floor(holderLevel))}, the best {skill} of the group";
 
         /// <summary>How many levels an effect adds: "+20".</summary>
         public static string AddsLevels(float levels) => Numbers.Amount(levels, 0, signed: true);
@@ -43,9 +50,9 @@ namespace Scry
         /// <summary>How much faster an effect makes a skill rise: "+50%".</summary>
         public static string RisesFaster(float share) => Numbers.Percent(share, 0, signed: true);
 
-        /// <summary>The table's columns: what changes, then at no skill, at the character's level and at the top.</summary>
-        public static string[] ChangesColumns(float level) =>
-            new[] { "", "At 0", $"You, {Numbers.Count((long)Math.Floor(level))}", $"At {Numbers.Count((long)SkillMath.Top)}" };
+        /// <summary>The table's columns: what changes, then at no skill, at the character's level and at the top; a level the server counts lower says it counts here.</summary>
+        public static string[] ChangesColumns(float level, bool held = false) =>
+            new[] { "", "At 0", $"You, {Numbers.Count((long)Math.Floor(level))}{(held ? " here" : "")}", $"At {Numbers.Count((long)SkillMath.Top)}" };
 
         /// <summary>The weapon skills, whose rises come from hitting creatures; the first ones hit in melee, which rises half as much again.</summary>
         private static readonly HashSet<string> Melee = new HashSet<string>(StringComparer.Ordinal) { "Swords", "Knives", "Clubs", "Polearms", "Spears", "Axes", "Unarmed" };
@@ -155,10 +162,22 @@ namespace Scry
             return level >= 1f ? share + ", " + Numbers.Times(average / atNone, 1) : share;
         }
 
-        /// <summary>The character's level, with how much of it effects add: "54, 20 of it from effects"; "100, the top".</summary>
-        public static string Level(float level, float fromEffects)
+        /// <summary>
+        /// The character's level, with how much of it effects add: "54, 20 of it from effects";
+        /// "100, the top". Where the server counts the skill lower than the level kept
+        /// (<paramref name="kept"/>), the level is the one counted here, with the one kept after
+        /// it: "58 here, 100 kept".
+        /// </summary>
+        public static string Level(float level, float fromEffects, float? kept = null)
         {
             var whole = Numbers.Count((long)Math.Floor(level));
+            if (kept != null)
+            {
+                var keptWhole = Numbers.Count((long)Math.Floor(kept.Value));
+                return fromEffects >= 1f
+                    ? $"{whole} here, {Numbers.Count((long)Math.Floor(fromEffects))} of it from effects, {keptWhole} kept"
+                    : $"{whole} here, {keptWhole} kept";
+            }
             if (fromEffects >= 1f) return $"{whole}, {Numbers.Count((long)Math.Floor(fromEffects))} of it from effects";
             return level >= SkillMath.Top ? $"{whole}, the top" : whole;
         }

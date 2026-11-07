@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using BepInEx.Bootstrap;
 using UnityEngine;
 
 namespace Scry
@@ -11,7 +12,10 @@ namespace Scry
     /// The game's own <c>Skills.GetSkillLevel</c> is not asked, as it gives the character a skill
     /// it has never trained, which its save then keeps; the levels are worked out as it does from
     /// what the character has (<c>Skills.GetSkillList</c>) and its effects (<c>SEMan.ModifySkillLevel</c>),
-    /// every skill of the game's list too, as an effect can lift one never trained.
+    /// every skill of the game's list too, as an effect can lift one never trained. On a server
+    /// running Kinsmen a skill far ahead of the group counts lower than the level kept; the level
+    /// the game works with is then the one Kinsmen counts, with what effects add
+    /// (<see cref="KinsmenLink"/>), and without Kinsmen every skill counts as kept.
     /// </summary>
     internal static class YourSkills
     {
@@ -24,6 +28,7 @@ namespace Scry
             public float Progress;
             public float FromEffects;
             public float Level;
+            public SkillCount Count;
         }
 
         /// <summary>Every skill of the game's own list, which effects can lift though never trained.</summary>
@@ -83,6 +88,13 @@ namespace Scry
             return ByType.TryGetValue((int)skill, out var read) ? read.Level : 0f;
         }
 
+        /// <summary>What a skill counts as before effects add, and whose level holds it where the server counts it a whole level or more lower than kept (<see cref="KinsmenLink"/>).</summary>
+        public static SkillCount CountOf(Skills.SkillType skill)
+        {
+            ReadIfDue();
+            return ByType.TryGetValue((int)skill, out var read) ? read.Count : SkillCount.InFull(0f);
+        }
+
         /// <summary>The level the character keeps of a skill, what effects add to it now, and its progress to the next level.</summary>
         public static (float Kept, float FromEffects, float Progress) Detail(Skills.SkillType skill)
         {
@@ -93,8 +105,9 @@ namespace Scry
         /// <summary>
         /// The You box's lines on a skill's page: the character's level, with what effects add,
         /// and how far the next is, with about how much of what raises it is left, rested too
-        /// (<c>Player.RaiseSkill</c>: the Rested effect's share added to each rise). None
-        /// without a character.
+        /// (<c>Player.RaiseSkill</c>: the Rested effect's share added to each rise). A skill the
+        /// server counts lower tells the level counted here beside the one kept, and whose level
+        /// holds it. None without a character.
         /// </summary>
         public static List<(string Label, string Value)> Lines(SkillSource skill)
         {
@@ -103,7 +116,9 @@ namespace Scry
             var type = (Skills.SkillType)skill.Type;
             var (kept, fromEffects, progress) = Detail(type);
             var level = LevelOf(type);
-            lines.Add((SkillPageWords.LevelLabel, SkillPageWords.Level(level, fromEffects)));
+            var count = CountOf(type);
+            lines.Add((SkillPageWords.LevelLabel, SkillPageWords.Level(level, fromEffects, count.Held ? kept : (float?)null)));
+            if (count.Held) lines.Add((SkillPageWords.HeldByLabel, SkillPageWords.HeldBy(Facts.SkillName(type), count.Holder, count.HolderLevel)));
             var next = SkillPageWords.ToNext(skill.Name, kept, progress, skill.Step, 1f + RestedShare(), Held(type));
             if (next != null) lines.Add((SkillPageWords.ToNextLabel(kept), next));
             return lines;
@@ -115,7 +130,8 @@ namespace Scry
             var type = (Skills.SkillType)skill.Type;
             var (kept, fromEffects, progress) = Detail(type);
             if (!Known) return (SkillPageWords.Card(0f, 0f), null);
-            return (SkillPageWords.Card(LevelOf(type), fromEffects), SkillPageWords.ToNext(skill.Name, kept, progress, skill.Step, 1f + RestedShare(), Held(type)));
+            var count = CountOf(type);
+            return (SkillPageWords.Card(LevelOf(type), fromEffects, count.Held ? kept : (float?)null), SkillPageWords.ToNext(skill.Name, kept, progress, skill.Step, 1f + RestedShare(), Held(type)));
         }
 
         /// <summary>The weapon in the character's hand where it trains a skill, by name, with what a hit with its first attack rises the skill by (<see cref="SkillMath.RisePerHit"/>); none otherwise.</summary>
@@ -187,26 +203,94 @@ namespace Scry
             if (moved) _learnedVersion++;
         }
 
-        /// <summary>Keeps one skill as read, with what the character's effects add to it now; true when its level changed.</summary>
+        /// <summary>
+        /// Keeps one skill as read, with what it counts as here and what the character's effects
+        /// add to it now; true when its level or whose level holds it changed.
+        /// </summary>
         private static bool Note(Skills.SkillType type, float kept, float progress, SEMan effects)
         {
             var key = (int)type;
             Seen.Add(key);
             var fromEffects = 0f;
             effects?.ModifySkillLevel(type, ref fromEffects);
-            var level = SkillMath.Level(kept, fromEffects);
+            var count = Counted(key, kept);
+            var level = SkillMath.Level(count.Counted, fromEffects);
             var changed = false;
             if (!ByType.TryGetValue(key, out var read))
             {
                 ByType[key] = read = new Read();
                 changed = true;
             }
-            if (read.Level != level) changed = true;
+            if (read.Level != level || read.Count.Held != count.Held || read.Count.Holder != count.Holder
+                || Math.Floor(read.Count.HolderLevel) != Math.Floor(count.HolderLevel)) changed = true;
             read.Kept = kept;
             read.Progress = progress;
             read.FromEffects = fromEffects;
             read.Level = level;
+            read.Count = count;
             return changed;
+        }
+
+        /// <summary>Kinsmen's answers, found once a world; none without it or once asking it failed there.</summary>
+        private static KinsmenLink _kinsmen;
+        private static bool _kinsmenLooked;
+
+        /// <summary>The link to Kinsmen, looked for the first time a character's skills are read in a world.</summary>
+        private static KinsmenLink Kinsmen
+        {
+            get
+            {
+                if (_kinsmenLooked) return _kinsmen;
+                _kinsmenLooked = true;
+                Guard.Run(Feature.KinsmenCounting, "finding Kinsmen", FindKinsmen, out _kinsmen);
+                return _kinsmen;
+            }
+        }
+
+        /// <summary>
+        /// Kinsmen's type answering other mods, from the assembly of the Kinsmen loaded, with its
+        /// version; none where Kinsmen is not loaded or answers another way. Looks again each
+        /// time, for the startup check.
+        /// </summary>
+        public static readonly Func<KinsmenLink> FindKinsmen = () =>
+        {
+            if (!Chainloader.PluginInfos.TryGetValue(KinsmenLink.Guid, out var info) || info?.Instance == null) return null;
+            var api = info.Instance.GetType().Assembly.GetType(KinsmenLink.TypeName, false);
+            var version = TypeFields.StaticNamed(api, KinsmenLink.VersionField);
+            return version != null ? KinsmenLink.From(api, TypeFields.Value(version, null)) : null;
+        };
+
+        /// <summary>Whether Kinsmen is loaded, for the startup check to ask after its answers only then.</summary>
+        public static bool KinsmenLoaded => Chainloader.PluginInfos.ContainsKey(KinsmenLink.Guid);
+
+        /// <summary>Whether Scry asks Kinsmen what the character's skills count as, for the self-test.</summary>
+        [ForTest]
+        public static bool KinsmenLinkedForTest => Kinsmen != null;
+
+        /// <summary>The question put to Kinsmen, kept so asking makes nothing new.</summary>
+        private sealed class Asking
+        {
+            public KinsmenLink Link;
+            public int Skill;
+            public float Kept;
+            public SkillCount Count;
+        }
+
+        private static readonly Asking Ask = new Asking();
+        private static readonly Action<Asking> AskStep = ask => ask.Count = ask.Link.Count(ask.Skill, ask.Kept);
+
+        /// <summary>What a skill kept at a level counts as here: as kept without Kinsmen, and from then on once asking it failed.</summary>
+        private static SkillCount Counted(int skill, float kept)
+        {
+            var link = Kinsmen;
+            if (link == null) return SkillCount.InFull(kept);
+            Ask.Link = link;
+            Ask.Skill = skill;
+            Ask.Kept = kept;
+            Ask.Count = SkillCount.InFull(kept);
+            if (Guard.Run(Feature.KinsmenCounting, "asking Kinsmen what your skills count as", AskStep, Ask)) return Ask.Count;
+            _kinsmen = null;
+            return SkillCount.InFull(kept);
         }
 
         /// <summary>Forgets the character read, for another world.</summary>
@@ -218,6 +302,8 @@ namespace Scry
             Gone.Clear();
             _readAt = -1f;
             _known = false;
+            _kinsmen = null;
+            _kinsmenLooked = false;
             _version++;
             _learnedVersion++;
         }

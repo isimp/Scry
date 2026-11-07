@@ -6,6 +6,8 @@ An ancient root is listed with the resources, under *Tapped for sap*, and become
 
 A click on a kind's mark in the *On the map* list now picks how it stands on the map: any of the eight colours in any shape, one of the game's own map pictures in that colour, or the kind's own picture, such as a deposit's ore or a creature's trophy. Two kinds may share a look.
 
+On a server running Kinsmen, a skill it counts lower than you keep it shows the level it counts there, as "58 here, 100 kept" with whose level holds it, and every figure at your level follows it. Without Kinsmen nothing changes.
+
 ## 0.4.2
 
 A creature's attacks table now tells what each attack does to you at your armour and resistances, with stars, and how much harder your world makes creatures hit; an armour's Armour row tells what it does to a hit. A Dvergr mage's robes are its looks rather than kinds to switch to, and a creature that rolls one of several sets lists the attacks of the look shown. Creatures stand in the gear you saw them in, and a Dvergr's hair is no longer called a shield.

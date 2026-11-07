@@ -10,7 +10,7 @@ namespace Scry
 
         /// <summary>
         /// A skill's page: the game's description of it, a table of what it changes at no skill,
-        /// at the character's level and at the top (<see cref="SkillPageWords.Changes"/>, from
+        /// at the character's level as the server counts it and at the top (<see cref="SkillPageWords.Changes"/>, from
         /// what the world's prefabs use it for, <see cref="SkillReading"/>), what raises it, the
         /// effects adding levels or making it rise faster, what it works on, and what a death
         /// takes of it (<c>Skills.OnDeath</c>, <c>Player.OnDeath</c>), a world changing that or how
@@ -24,7 +24,7 @@ namespace Scry
             var type = (Skills.SkillType)skill.Type;
             var level = YourSkills.LevelOf(type);
             var inputs = SkillReading.Inputs(type);
-            Table(SkillPageWords.ChangesTitle, SkillPageWords.ChangesColumns(level), SkillPageWords.Changes(inputs, level));
+            Table(SkillPageWords.ChangesTitle, SkillPageWords.ChangesColumns(level, YourSkills.CountOf(type).Held), SkillPageWords.Changes(inputs, level));
             if (!skill.OfTheGame && !Rows.Any(r => r.Title == SkillPageWords.ChangesTitle)) AddUnsure(SkillPageWords.ChangesTitle, SkillPageWords.OnlyItsMod, UnsureWords.ModSkill);
             var left = SkillPageWords.NotChanged(skill.Name);
             if (left != null) Add(left.Value.Label, left.Value.Text);

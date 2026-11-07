@@ -557,6 +557,12 @@ namespace Scry
                 Each($"{TargetPortalMap.PluginType}.{TargetPortalMap.HidesPinsField}", () => list.Add($"{TargetPortalMap.PluginType}.{TargetPortalMap.HidesPinsField}", Feature.MarksAsideOnPortalMap,
                     TargetPortalMap.Member(TargetPortalMap.PluginType, TargetPortalMap.HidesPinsField) != null ? Found.Present : Found.Missing));
             }
+            // Kinsmen's answer of what a skill counts as, asked after only where the mod is loaded.
+            if (YourSkills.KinsmenLoaded)
+            {
+                Each($"{KinsmenLink.TypeName}.{KinsmenLink.MethodName}", () => list.Add($"{KinsmenLink.TypeName}.{KinsmenLink.MethodName}", Feature.KinsmenCounting,
+                    YourSkills.FindKinsmen() != null ? Found.Present : Found.Missing));
+            }
             Each("Minimap.m_pinNameRootSmall", () => Member(list, "Minimap", "m_pinNameRootSmall", Feature.DungeonMarksOnMap));
             Each("Minimap.m_mapImageSmall", () => Member(list, "Minimap", "m_mapImageSmall", Feature.DungeonMarksOnMap));
             Each("Minimap.m_pinSizeSmall", () => Member(list, "Minimap", "m_pinSizeSmall", Feature.DungeonMarksOnMap));

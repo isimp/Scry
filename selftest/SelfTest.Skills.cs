@@ -91,6 +91,54 @@ namespace Scry
         }
 
         /// <summary>
+        /// Every trained skill's level on its page is the one the game works with
+        /// (<c>Skills.GetSkillLevel</c>, which Kinsmen lowers where its server holds a skill). Scry
+        /// finds Kinsmen's answer where the mod is loaded and asks nothing without it. A skill held
+        /// tells on its page the level counted here, the level kept and whose level holds it, its
+        /// table's column saying here, pictured; with no skill held that is left untried.
+        /// </summary>
+        private static IEnumerator SkillsCountedHere(Probe p)
+        {
+            var player = Player.m_localPlayer;
+            if (player == null) p.Skip("no character in the world");
+            var loaded = YourSkills.KinsmenLoaded;
+            p.Note(loaded ? "Kinsmen is loaded" : "Kinsmen is not loaded");
+            p.Check(YourSkills.KinsmenLinkedForTest == loaded, loaded ? "Scry finds Kinsmen's answer of what a skill counts as" : "without Kinsmen Scry asks it nothing",
+                YourSkills.KinsmenLinkedForTest ? "linked" : "not linked");
+            // The character's skills are read once a second; a fresh read after that.
+            yield return new WaitForSecondsRealtime(1.1f);
+            var skills = player.GetSkills();
+            // The game's own level only for skills trained: asking it of one never trained gives the character that skill.
+            var trained = skills.GetSkillList().Where(s => s?.m_info != null).Select(s => s.m_info.m_skill).ToList();
+            var apart = trained.Where(t => YourSkills.LevelOf(t) != Mathf.Floor(skills.GetSkillLevel(t)))
+                .Select(t => $"{t} {Numbers.Count((long)YourSkills.LevelOf(t))} / {Numbers.Count((long)skills.GetSkillLevel(t))}").ToList();
+            p.Check(apart.Count == 0, "every trained skill's level is the one the game works with", apart.Count == 0 ? $"{Numbers.Count(trained.Count)} skills" : string.Join(", ", apart));
+
+            var held = trained.Where(t => YourSkills.CountOf(t).Held).ToList();
+            p.Note(held.Count == 0 ? "no skill held" : string.Join(", ", held.Select(t => $"{t} {Numbers.Count((long)YourSkills.LevelOf(t))} of {Numbers.Count((long)YourSkills.Detail(t).Kept)}")));
+            if (held.Count == 0)
+            {
+                p.Untried("a skill the server counts lower", "on a server running Kinsmen, with a character far ahead of the others in a fight skill", "kinsmen");
+                yield break;
+            }
+            var type = held[0];
+            var page = Pick(Kind.Skill, type.ToString());
+            if (!p.Check(page != null, $"{type} has a page")) yield break;
+            Select(page);
+            yield return null;
+            var you = YourSkills.Lines((SkillSource)page.Source);
+            var count = YourSkills.CountOf(type);
+            var level = YourSkills.LevelOf(type);
+            var (kept, fromEffects, _) = YourSkills.Detail(type);
+            var lines = string.Join("; ", you.Select(l => l.Label + ": " + l.Value));
+            p.Check(you.Count > 1 && you[0].Value == SkillPageWords.Level(level, fromEffects, kept) && you[0].Value.Contains(" here, "), "its You box tells the level counted here and the level kept", lines);
+            p.Check(you.Count > 1 && you[1].Label == SkillPageWords.HeldByLabel && you[1].Value == SkillPageWords.HeldBy(Facts.SkillName(type), count.Holder, count.HolderLevel), "and whose level holds it", lines);
+            var table = Facts.For(page).Rows.FirstOrDefault(r => r.Title == SkillPageWords.ChangesTitle);
+            if (table != null) p.Check(table.Columns[2] == SkillPageWords.ChangesColumns(level, true)[2], "its table's own column is at the level counted here", table.Columns[2]);
+            yield return PictureOf(p, "facts", $"skill held {type}");
+        }
+
+        /// <summary>
         /// Pages tell, faint under the game's figures, what they come to at the character's skill:
         /// an iron sword's damage as the game's own range for its tooltip (Skills.GetRandomSkillRange)
         /// and each line of its attacks, an axe's hits on trees, a creature's sight while sneaking,

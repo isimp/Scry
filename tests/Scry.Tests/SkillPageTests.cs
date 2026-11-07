@@ -166,6 +166,34 @@ namespace Scry.Tests
             Assert.Equal("Your level 54, 20 of it from effects", SkillPageWords.Card(54f, 20f));
         }
 
+        // A server running Kinsmen counts a skill far ahead of the group lower than the character
+        // keeps it: the page tells the level it counts here, the level kept, and whose level holds it.
+
+        [Fact]
+        public void AHeldLevelSaysWhatItCountsHereAndWhatIsKept()
+        {
+            Assert.Equal("58 here, 100 kept", SkillPageWords.Level(58f, 0f, 100f));
+            Assert.Equal("68 here, 10 of it from effects, 100 kept", SkillPageWords.Level(68f, 10f, 100f));
+            Assert.Equal("Your level 58 here, 100 kept", SkillPageWords.Card(58f, 0f, 100f));
+            // A level counting in full reads as before.
+            Assert.Equal("100, the top", SkillPageWords.Level(100f, 0f, null));
+        }
+
+        [Fact]
+        public void AHeldLevelNamesWhoseLevelHoldsIt()
+        {
+            Assert.Equal("Held by", SkillPageWords.HeldByLabel);
+            Assert.Equal("Ragna's 40, the best Swords of the group", SkillPageWords.HeldBy("Swords", "Ragna", 40.7f));
+            Assert.Equal("the server's cap", SkillPageWords.HeldBy("Swords", null, 60f));
+        }
+
+        [Fact]
+        public void TheTablesYourColumnSaysAHeldLevelCountsHere()
+        {
+            Assert.Equal(new[] { "", "At 0", "You, 58 here", "At 100" }, SkillPageWords.ChangesColumns(58.9f, true));
+            Assert.Equal(new[] { "", "At 0", "You, 58", "At 100" }, SkillPageWords.ChangesColumns(58.9f, false));
+        }
+
         [Fact]
         public void EffectsSayHowMuchTheyAddOrSpeed()
         {

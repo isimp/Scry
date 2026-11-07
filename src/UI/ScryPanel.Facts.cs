@@ -172,7 +172,8 @@ namespace Scry
                 }
                 GUI.Label(new Rect(pad, y, labelW, height), label, Skin.DimWrap);
                 var valueRect = new Rect(pad + labelW + U(10f), y, valueW, height);
-                GUI.Label(valueRect, value, Skin.Wrap);
+                // Whose level holds a skill stands dim beside the level it explains.
+                GUI.Label(valueRect, value, label == SkillPageWords.HeldByLabel ? Skin.DimWrap : Skin.Wrap);
                 y += height + U(6f);
             }
             if (_youSpots > 0) y = SeenSpotsRow(entry, pad, labelW, valueW, y);
