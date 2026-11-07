@@ -213,6 +213,12 @@ namespace Scry
             var reach = book.World.SeenReach;
             var upClose = seen && reach > 0f && ax * ax + ay * ay + az * az <= reach * reach;
             if (share == EventShare.None) return share;
+            // Loot watched fall, within the reach a death is seen from and in sight, is met, as a
+            // serpent's meat dropped on the water; a kill credited from farther shows none of it.
+            if (told.What == Happened.Died && seen && ax * ax + ay * ay + az * az <= Sighting.PersonReach * Sighting.PersonReach)
+            {
+                foreach (var (item, _) in told.Came) book.Raise(item, KnownLevel.Seen);
+            }
             if (ledger.Marked(told, now)) Paired(told, book, ledger.CameBefore(told));
             else
             {

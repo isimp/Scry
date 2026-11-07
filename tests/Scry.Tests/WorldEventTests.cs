@@ -51,6 +51,21 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void LootTheCharacterWatchedFallIsSeen()
+        {
+            // A serpent killed from a boat drops its meat on the water: watched fall, it is met.
+            Assert.Equal(KnownLevel.Seen, Told(Death(20f, doers: new[] { Friend })).Level("TrollHide"));
+            Assert.Equal(KnownLevel.Seen, Told(Death(25f, doers: new[] { Me })).Level("TrollHide"));
+            // A kill credited from farther than a death is seen, or one behind a wall, shows no loot.
+            Assert.Equal(KnownLevel.Unknown, Told(Death(80f, doers: new[] { Me })).Level("TrollHide"));
+            var book = new CompendiumBook();
+            EventRule.Tell(Death(5f, doers: new[] { Me }), Me, 0f, 0f, 0f, new EventLedger(), book, null, (x, y, z) => false);
+            Assert.Equal(KnownLevel.Unknown, book.Level("TrollHide"));
+            // Seen, not known: what it is for comes with picking it up.
+            Assert.Equal(KnownLevel.Seen, Told(Death(5f, doers: new[] { Me })).Level("TrollHide"));
+        }
+
+        [Fact]
         public void AKillTheCharacterTookPartInShowsThatVeryCreaturesHealth()
         {
             // The death names the creature as it was, so its health shows, and no other going by its name.

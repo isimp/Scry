@@ -101,6 +101,7 @@ namespace Scry
             yield return S("a made-up character's pages read under the strict rules as a player sees them", CompendiumStrictRead, 30, () => { AllKnown(); ResetList(); });
             yield return S("an ancient root's page tells its sap and what each line on it means, kept back until tapped, and the extractor what its slow line means", RootSapTold, 30, () => { AllKnown(); ResetList(); });
             yield return S("an item the Serving Tray places tells it under Placing it, with what a placed one does, and no build cost", PlacedItemsTold, 20, () => { AllKnown(); ResetList(); });
+            yield return S("a magmafish near the character is measured against the ground under it, and one near enough to be seen has a clear line from the eye", MagmafishInSight, 10);
             yield return S("resources the game names alike are one row with their broken forms, and a page of several kinds shows and keeps them all on the map at once", AllKindsOnAPage, 20, () => { AllKnown(); ResetList(); });
             yield return S("one page of each kind is pictured under the strict, the loose and no rules, from one made-up book", PagesAudited, 240, () => { X.LearnedOnly = false; AllKnown(); ResetList(); });
             yield return S("a made-up character's You box tells its moments, Learned goes by day and the notice tells what happened", YouAndLearnedRead, 20, () => { X.LearnedOnly = false; AllKnown(); ResetList(); });
