@@ -217,6 +217,13 @@ namespace Scry
             yield return Until(() => MapSquares.SquaresShown > 0, 5);
             yield return null;
             yield return Picture(p, "show on map, a square near");
+            // Zoomed all the way out, a square too small for its count shows a pip for each place in it instead.
+            map.LargeZoom = SeenOnMap.FarthestZoom;
+            yield return Until(() => MapSquares.PipsShown == 3 && MapSquares.CountsShown == 0, 5);
+            p.Check(MapSquares.PipsShown == 3 && MapSquares.CountsShown == 0, "zoomed out, too small for its count, the square holding three shows three pips instead, the others none",
+                $"{Numbers.Count(MapSquares.PipsShown)} pips, {Numbers.Count(MapSquares.CountsShown)} counts");
+            yield return Picture(p, "show on map, squares zoomed out with pips");
+            map.LargeZoom = SpotsZoom;
 
             MapSpots.Hide();
             yield return null;

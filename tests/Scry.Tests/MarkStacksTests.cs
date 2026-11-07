@@ -87,6 +87,28 @@ namespace Scry.Tests
             var stacks = Gathered(10f, (0f, 0f), (15f, 0f), (7.5f, 0f));
             Assert.Equal(0, stacks.AnchorOf(2));
             Assert.Equal(1, stacks.CountAt(1));
+            // Wherever the two stacks lie on the world's grid.
+            foreach (var (a, b, mark) in new[] { (12f, 25f, 18.5f), (-25f, -12f, -18.5f), (5f, 18f, 11.5f) })
+            {
+                stacks = Gathered(10f, (a, 3f), (b, 3f), (mark, 3f));
+                Assert.Equal(0, stacks.AnchorOf(2));
+                stacks = Gathered(10f, (3f, a), (3f, b), (3f, mark));
+                Assert.Equal(0, stacks.AnchorOf(2));
+            }
+        }
+
+        [Fact]
+        public void MarksTouchingAcrossAnyEdgeOfTheGridAreOneStack()
+        {
+            foreach (var (a, b) in new[] { (19f, 21f), (21f, 19f), (-21f, -19f), (-19f, -21f), (39.5f, 40.5f), (-0.5f, 0.5f) })
+            {
+                var across = Gathered(10f, (a, 5f), (b, 5f));
+                Assert.Equal(0, across.AnchorOf(1));
+                var down = Gathered(10f, (5f, a), (5f, b));
+                Assert.Equal(0, down.AnchorOf(1));
+                var corner = Gathered(10f, (a, a), (b, b));
+                Assert.Equal(0, corner.AnchorOf(1));
+            }
         }
 
         [Fact]
@@ -109,6 +131,34 @@ namespace Scry.Tests
             for (var i = 1; i < pips.Count; i++) Assert.True(pips[i].X - pips[i - 1].X >= MarkStacks.PipSize(size) * 1.2f);
             // Big enough to see on the minimap's small marks.
             Assert.True(MarkStacks.PipSize(8f) >= 2.5f);
+        }
+
+        [Fact]
+        public void ASquareTooSmallForItsCountShowsAPipForEachPlaceInsteadUpToFour()
+        {
+            // Its tab counting them stands where the square has room; zoomed out, the pips do.
+            Assert.Equal(0, MarkStacks.SquarePips(3, tabShows: true));
+            Assert.Equal(3, MarkStacks.SquarePips(3, tabShows: false));
+            Assert.Equal(4, MarkStacks.SquarePips(12, tabShows: false));
+            Assert.Equal(0, MarkStacks.SquarePips(1, tabShows: false));
+        }
+
+        [Fact]
+        public void ASquaresPipsStandInARowInItsMiddleInsideIt()
+        {
+            foreach (var side in new[] { 20f, 31f })
+            {
+                var pips = Enumerable.Range(0, 4).Select(i => MarkStacks.SquarePipAt(i, 4, side)).ToList();
+                var width = MarkStacks.SquarePipSize(side);
+                Assert.Equal(0f, pips.Sum(p => p.X), 3);
+                Assert.All(pips, p => Assert.Equal(0f, p.Y));
+                // The whole row inside the square, the pips apart.
+                Assert.True(pips[3].X + width / 2f <= side / 2f && pips[0].X - width / 2f >= -side / 2f, $"{side}");
+                for (var i = 1; i < pips.Count; i++) Assert.True(pips[i].X - pips[i - 1].X > width, $"{side}");
+            }
+            // Never so small it cannot be seen, nor grown past a pip in a square zoomed near.
+            Assert.True(MarkStacks.SquarePipSize(4f) >= 3f);
+            Assert.True(MarkStacks.SquarePipSize(200f) <= 6f);
         }
 
         [Fact]
@@ -184,7 +234,9 @@ namespace Scry.Tests
                 stacks.Gather(spots.Length, j => spots[j], 90f);
                 quickest = Math.Min(quickest, watch.Elapsed.TotalMilliseconds);
             }
-            Assert.True(quickest < 2.0, $"{quickest:0.00} ms");
+            // A quarter of a frame here, the rest of the suite's work still going beside it; some
+            // 0.8 ms alone. The self-test times the same in the game's own runtime.
+            Assert.True(quickest < 4.0, $"{quickest:0.00} ms");
         }
     }
 }

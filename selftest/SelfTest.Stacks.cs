@@ -92,6 +92,19 @@ namespace Scry
             if (MapSpots.TouchForTest < 10f) p.Check(MapSpots.PipsShown == 0, "zoomed in, the two part and their pips go", $"{Numbers.Count(MapSpots.PipsShown)} pips, touching within {Numbers.Amount(MapSpots.TouchForTest, 1)} m");
             else p.Note($"at the nearest zoom marks still touch within {Numbers.Amount(MapSpots.TouchForTest, 1)} m, so two 10 m apart never part");
             p.Within(Timing.MostMs("spots stacked"), 2, "gathering the marks into stacks holds no frame long", $"{Numbers.Amount(Timing.MostMs("spots stacked"), 2)} ms at the most");
+            // As many marks as the map keeps at most, gathered in the game's own runtime: the quickest of five.
+            var random = new System.Random(7);
+            var many = new (float X, float Z)[SeenOnMap.MostKept];
+            for (var i = 0; i < many.Length; i++) many[i] = ((float)random.NextDouble() * 10000f, (float)random.NextDouble() * 10000f);
+            var stacks = new MarkStacks();
+            var quickest = double.MaxValue;
+            for (var round = 0; round < 6; round++)
+            {
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                stacks.Gather(many.Length, i => many[i], 90f);
+                if (round > 0) quickest = System.Math.Min(quickest, watch.Elapsed.TotalMilliseconds);
+            }
+            p.Within(quickest, 3, $"gathering the {Numbers.Count(many.Length)} marks the map keeps at most holds no frame long", $"{Numbers.Amount(quickest, 2)} ms");
 
             // On the minimap, where its marks are small, a stack shows its pips by the minimap's own zoom.
             Settings.DungeonMarksOnMinimap = true;

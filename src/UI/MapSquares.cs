@@ -40,6 +40,43 @@ namespace Scry
             public int Said;
             public Color Tint;
             public readonly List<RawImage> Swatches = new List<RawImage>();
+            public readonly List<Image> Pips = new List<Image>();
+        }
+
+        /// <summary>How many pips stand in squares too small for their tab, counted as they are placed, for the self-test.</summary>
+        [ForTest]
+        public static int PipsShown => _pipsShown;
+
+        private static int _pipsShown, _pipsPlacing;
+
+        /// <summary>
+        /// A square's pips where its tab does not fit (<see cref="MarkStacks.SquarePips"/>): in a
+        /// row across its middle, over its hatch, cut to explored ground with it; made the first
+        /// time they are wanted, the rest put away.
+        /// </summary>
+        private static void PlacePips(Square square, int pips, float side)
+        {
+            var width = MarkStacks.SquarePipSize(side);
+            for (var i = 0; i < pips; i++)
+            {
+                if (i == square.Pips.Count)
+                {
+                    var rect = Child("Scry place square pip", square.Rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
+                    var picture = rect.gameObject.AddComponent<Image>();
+                    picture.sprite = StackPips.Picture();
+                    picture.raycastTarget = false;
+                    square.Pips.Add(picture);
+                }
+                var pip = square.Pips[i];
+                var (x, y) = MarkStacks.SquarePipAt(i, pips, side);
+                var at = new Vector2(x, y);
+                if (pip.rectTransform.anchoredPosition != at) pip.rectTransform.anchoredPosition = at;
+                var sized = new Vector2(width, width);
+                if (pip.rectTransform.sizeDelta != sized) pip.rectTransform.sizeDelta = sized;
+                if (!pip.gameObject.activeSelf) pip.gameObject.SetActive(true);
+            }
+            for (var i = pips; i < square.Pips.Count; i++) if (square.Pips[i].gameObject.activeSelf) square.Pips[i].gameObject.SetActive(false);
+            _pipsPlacing += pips;
         }
 
         /// <summary>
@@ -187,6 +224,7 @@ namespace Scry
             var standing = 0;
             var allMade = true;
             var (own, shared) = CompendiumMap.ExploredBits(map);
+            _pipsPlacing = 0;
             foreach (var (x, z, kinds) in _shown)
             {
                 Assigned.TryGetValue((x, z), out var square);
@@ -214,6 +252,7 @@ namespace Scry
                 standing++;
             }
             _standing = standing;
+            _pipsShown = _pipsPlacing;
             _placedFor = placing;
             _allMade = allMade;
             Version++;
@@ -252,6 +291,7 @@ namespace Scry
             var tab = new Vector2(TabPad * 2f + swatches + TabDigit * digits, TabHeight);
             // Inside the corner, under the edge, only where the square has room for it twice over; its tab made the first time it is wanted.
             var shows = left > 1 && at.W >= tab.x * 2f && at.H >= tab.y * 2f;
+            PlacePips(square, MarkStacks.SquarePips(left, shows), side);
             if (shows && square.Tab == null) MakeTab(square, map);
             if (square.Tab == null) return;
             if (shows)
@@ -310,6 +350,7 @@ namespace Scry
         {
             if (_holder != null && _holder.gameObject.activeSelf) _holder.gameObject.SetActive(false);
             _standing = 0;
+            _pipsShown = 0;
             _placedFor = default;
         }
 
