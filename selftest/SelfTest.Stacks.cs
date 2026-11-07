@@ -33,8 +33,11 @@ namespace Scry
             KeepWhatIsKept(book);
             _stacksBefore = (map.LargeZoom, ZInput.pointerPosition);
             yield return MapCodeCompiled(p);
+            // On explored ground with no pin near, so no pin or its name hides the pips pictured.
             var here = player.transform.position;
-            var (hx, hz) = ((int)here.x, (int)here.z);
+            var clear = ClearGround(map, here);
+            if (clear == null) p.Note("no explored ground lies away from the map's pins; the marks stand by you, where pins may hide them");
+            var (hx, hz) = clear is Vector2 ground ? ((int)ground.x, (int)ground.y) : ((int)here.x, (int)here.z);
             var copperSpots = new List<(int X, int Z)> { (hx + 20, hz), (hx - 30, hz + 10) };
             var tinSpots = new List<(int X, int Z)> { (hx + 40, hz) };
             MapSpots.SpotsInsteadForTest(k => k == copper ? copperSpots : k == tin ? tinSpots : new List<(int X, int Z)>());
@@ -51,6 +54,7 @@ namespace Scry
             if (Cursor.lockState != CursorLockMode.Locked) ZInput.SetMousePosition(new Vector2(2f, 2f));
             map.SetMapMode(Minimap.MapMode.Large);
             map.LargeZoom = 0.06f;
+            if (clear != null) CentreMapOn(map, new Vector2(hx + 20, hz));
             yield return Until(() => MapSpots.DotsShown == 3, 5);
             if (MapSpots.TouchForTest > 0f) map.LargeZoom = Mathf.Clamp(0.06f * 35f / MapSpots.TouchForTest, SeenOnMap.NearestZoom, SeenOnMap.FarthestZoom);
             yield return Until(() => MapSpots.DotsShown == 3 && MapSpots.PipsShown == 2, 5);
@@ -108,7 +112,15 @@ namespace Scry
             }
             p.Within(quickest, 3, $"gathering the {Numbers.Count(many.Length)} marks the map keeps at most holds no frame long", $"{Numbers.Amount(quickest, 2)} ms");
 
-            // On the minimap, where its marks are small, a stack shows its pips by the minimap's own zoom.
+            // On the minimap, where its marks are small, a stack shows its pips by the minimap's own
+            // zoom: the marks by the character, as the minimap shows only what is round it, kept anew.
+            var (nx, nz) = ((int)here.x, (int)here.z);
+            copperSpots[0] = (nx + 20, nz);
+            copperSpots[1] = (nx - 30, nz + 10);
+            tinSpots[0] = (nx + 40, nz);
+            ScryPanel.TakeAllOffMap();
+            ScryPanel.KeepOnMap(copper, true);
+            ScryPanel.KeepOnMap(tin, true);
             Settings.DungeonMarksOnMinimap = true;
             map.SetMapMode(Minimap.MapMode.Small);
             yield return Until(() => MiniKept.DotsShown == 3 && MiniKept.TouchForTest > 0f, 5);
@@ -125,7 +137,11 @@ namespace Scry
         {
             if (_stacksBefore is (float zoom, Vector2 pointer))
             {
-                if (Minimap.instance != null) Minimap.instance.LargeZoom = zoom;
+                if (Minimap.instance != null)
+                {
+                    Minimap.instance.LargeZoom = zoom;
+                    MapPanned(Minimap.instance) = Vector3.zero;
+                }
                 if (Cursor.lockState != CursorLockMode.Locked) ZInput.SetMousePosition(pointer);
             }
             _stacksBefore = null;
