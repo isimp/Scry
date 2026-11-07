@@ -56,6 +56,19 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void SearchMatchesTheNameTheGameShowsWhenLookingAtAThing()
+        {
+            // The giant ribs read Petrified Bone when looked at, the name their row goes by.
+            var ribs = new Entry { Name = "giant_ribs", Kind = Kind.Resource, HoverName = "$piece_giant_bone", HoverShownName = "Petrified Bone" };
+            var rock = new Entry { Name = "rock1", Kind = Kind.Resource };
+            var found = Search.Run(new[] { ribs, rock }, new Query { Text = "petrified" }, new List<string>());
+            Assert.Equal(new[] { ribs }, found);
+            Assert.Equal(new[] { ribs }, Search.Run(new[] { ribs, rock }, new Query { Text = "petrified bone" }, new List<string>()));
+            // A word left out by a minus leaves it out by that name too.
+            Assert.Equal(new[] { rock }, Search.Run(new[] { ribs, rock }, new Query { Text = "-petrified" }, new List<string>()));
+        }
+
+        [Fact]
         public void EveryWordTypedHasToMatch()
         {
             Assert.Equal(new[] { "TrollArmorChest" }, Find("leather troll"));

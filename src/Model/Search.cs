@@ -507,13 +507,14 @@ namespace Scry
             foreach (var term in search.NotTerms) if (TermMatches(entry, term, guard)) return Miss;
             foreach (var word in search.NotWords)
             {
-                if (Rank(entry.Name, entry.NameUpper, word) != Miss || Rank(entry.DisplayName, entry.DisplayNameUpper, word) != Miss) return Miss;
+                if (Rank(entry.Name, entry.NameUpper, word) != Miss || Rank(entry.DisplayName, entry.DisplayNameUpper, word) != Miss || Rank(entry.HoverShownName, entry.HoverShownNameUpper, word) != Miss) return Miss;
             }
 
             var total = 0;
             foreach (var word in search.Words)
             {
-                var best = Math.Min(Rank(entry.Name, entry.NameUpper, word), Rank(entry.DisplayName, entry.DisplayNameUpper, word));
+                // Also by the name the game shows when it is looked at, which names a row of things named alike ("Petrified Bone").
+                var best = Math.Min(Math.Min(Rank(entry.Name, entry.NameUpper, word), Rank(entry.DisplayName, entry.DisplayNameUpper, word)), Rank(entry.HoverShownName, entry.HoverShownNameUpper, word));
                 if (best == Miss) return Miss;
                 total += best;
             }

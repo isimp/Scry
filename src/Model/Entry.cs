@@ -70,6 +70,11 @@ namespace Scry
         /// <summary>The shown name in capitals, to match typed words against whatever their case.</summary>
         internal string DisplayNameUpper => _displayNameUpper ?? (_displayNameUpper = _displayName?.ToUpperInvariant());
 
+        /// <summary>The name the game shows when it is looked at, in capitals, for the search (<see cref="HoverShownName"/>).</summary>
+        internal string HoverShownNameUpper => _hoverShownNameUpper ?? (_hoverShownNameUpper = HoverShownName?.ToUpperInvariant());
+
+        private string _hoverShownNameUpper;
+
         private Kind _kind;
 
         public Kind Kind
