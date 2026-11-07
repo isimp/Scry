@@ -79,6 +79,7 @@ namespace Scry
             var ore = MapSpots.MarkPicture(own, kind);
             yield return Until(() => MapSpots.DotPictureForTest(0) == ore, 10);
             p.Check(book.MarkOf(kind) == own && MapSpots.DotPictureForTest(0) == ore, "a pick from the strip stands on the map at once", ore != null ? ore.texture.name : "none");
+            p.Check(ScryPanel.OwnNamedBesideItsPictureForTest, "its own picture picked, the picker names it beside that picture, not among the colours");
             yield return Picture(p, "map strip, the deposit in its own picture");
 
             // Taken off, the mark and its picker go.

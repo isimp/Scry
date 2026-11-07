@@ -61,6 +61,13 @@ namespace Scry
         [Diagnostic]
         public static bool MarkPickerShownForTest => _picking != null && _pickRect.width > 0f && (_pickFrom != PickFrom.List || KeptClick.Open);
 
+        /// <summary>The choice the own picture's name was last drawn beside.</summary>
+        private static Rect _ownNamedBeside;
+
+        /// <summary>Whether the own picture's name stands beside its own cell, the picker's last, not beside another choice, for the self-test.</summary>
+        [Diagnostic]
+        public static bool OwnNamedBesideItsPictureForTest => Choices.Count > 0 && _ownNamedBeside == Choices[Choices.Count - 1].Cell;
+
         /// <summary>What the picker stands open from, the list, a page or the strip; none while put away, for the self-test.</summary>
         [Diagnostic]
         public static string MarkPickerFromForTest => _picking == null ? null : _pickFrom.ToString();
@@ -323,7 +330,9 @@ namespace Scry
                 GUI.DrawTexture(new Rect(cell.center.x - size / 2f, cell.center.y - size / 2f, size, size), picture.texture);
                 if (OthersMarks.Contains(mark)) Skin.Icon(new Rect(cell.xMax - U(7f), cell.yMax - U(7f), U(5f), U(5f)), Skin.Circle, Skin.Faint);
             }
-            var own = Choices.FirstOrDefault(c => KeptMarks.IsOwn(c.Mark));
+            // The own picture's cell, not a colour swatch, which holds an own mark too while the mark is one.
+            var own = Choices.FirstOrDefault(c => !c.Colour && KeptMarks.IsOwn(c.Mark));
+            if (Event.current.type == EventType.Repaint) _ownNamedBeside = own.Cell;
             if (own.Cell.width > 0f)
             {
                 var name = KeptMarkPictures.OwnNameOf(_picking);
