@@ -9,11 +9,14 @@ namespace Scry
         /// <summary>The kinds of Petrified Bone that keep spots, ribs and skull, by their keys.</summary>
         private static readonly string[] BoneKinds = { "giant_ribs", "giant_skull" };
 
+        /// <summary>How Petrified Bone's page tells those kinds apart.</summary>
+        private static readonly string[] BoneLabels = { "Ribs", "Skull" };
+
         /// <summary>
-        /// The ribs and the skull of Petrified Bone, which the game names alike, are one page's two
-        /// kinds on the map, as the tar pits are one place's three: a made-up character who knows them
-        /// gets Show all and Keep all beside Show on map and Keep on the map on each page, their
-        /// tips naming the kinds; pictured.
+        /// The ribs and the skull of Petrified Bone, which the game names alike, are one row whose
+        /// page switches between them and their broken forms, and its two kinds on the map, as the
+        /// tar pits are one place's three: a made-up character who knows them gets Show all and Keep
+        /// all beside Show on map and Keep on the map, their tips naming the kinds; pictured.
         /// </summary>
         private static IEnumerator AllKindsOnAPage(Probe p)
         {
@@ -25,8 +28,13 @@ namespace Scry
                 p.Skip("there are no giant ribs and skull, or no tar pits, in this game's catalog");
                 yield break;
             }
-            p.Check(ribs.Kind == Kind.Resource && ribs.HoverName != null && ribs.HoverName == skull.HoverName && MapSpots.FamilyNameOf(skull) == CatalogBuilder.Localize(ribs.HoverName),
-                "the ribs and the skull go by the name the game shows when looking at them", $"{ribs.HoverName} / {skull.HoverName}: {MapSpots.FamilyNameOf(skull)}");
+            var family = skull.Family;
+            p.Check(family != null && ribs.Family == family && ribs.HoverName != null && family.Name == CatalogBuilder.Localize(ribs.HoverName),
+                "the ribs and the skull are one row by the name the game shows when looking at them", family == null ? "no family" : family.Name);
+            var ribsBroken = X.Catalog.FirstOrDefault(e => e.Name == "giant_ribs_frac");
+            p.Check(family != null && family.Kinds.Select(family.Label).SequenceEqual(BoneLabels) && ribsBroken != null && family.CopyOf(ribsBroken) == ribs,
+                "its kinds are told Ribs and Skull, each with its broken form beside it",
+                family == null ? "no family" : string.Join(", ", family.Members.Select(m => m.Name + " " + family.Label(m))));
 
             var book = new CompendiumBook();
             // Known, so their pages open: a page only seen is closed and offers nothing for the map.
@@ -55,7 +63,7 @@ namespace Scry
                 var keeps = ScryPanel.Drawn(PanelPart.PageKeepAll);
                 yield return Until(() => ScryPanel.Drawn(PanelPart.PageShowAll) > shows && ScryPanel.Drawn(PanelPart.PageKeepAll) > keeps, 3);
                 p.Check(ScryPanel.Drawn(PanelPart.PageShowAll) > shows && ScryPanel.Drawn(PanelPart.PageKeepAll) > keeps, "the page draws Show all 2 kinds and Keep all 2 kinds beside its own two");
-                yield return Picture(p, "Petrified Bone's page, its map actions");
+                yield return Picture(p, "Petrified Bone's row and page, its kinds and map actions");
             }
             finally
             {

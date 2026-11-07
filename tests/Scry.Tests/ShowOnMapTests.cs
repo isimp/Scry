@@ -37,22 +37,6 @@ namespace Scry.Tests
             Assert.Equal("Shows Tar pit 1, Tar pit 2 and Tar pit 3 on the map at once", SpotWords.ShowAllTip(new[] { "Tar pit 1", "Tar pit 2", "Tar pit 3" }));
         }
 
-        [Fact]
-        public void ResourcesTheGameNamesAlikeAreOnePagesKinds()
-        {
-            // Ribs and skull both read Petrified Bone when looked at; a copper deposit reads its own name.
-            Entry R(string name, string hover) => new Entry { Kind = Kind.Resource, Name = name, HoverName = hover };
-            var ribs = R("giant_ribs", "$piece_giant_bone");
-            var skull = R("giant_skull", "$piece_giant_bone");
-            var copper = R("rock4_copper", "$piece_deposit_copper");
-            var plain = R("rock1", null);
-            var item = new Entry { Kind = Kind.Item, Name = "BlackMarble", HoverName = "$piece_giant_bone" };
-            var all = new[] { copper, skull, ribs, plain, item };
-            Assert.Equal(new[] { ribs, skull }, MapShowing.NamedAlike(skull, all));
-            Assert.Equal(new[] { copper }, MapShowing.NamedAlike(copper, all));
-            Assert.Empty(MapShowing.NamedAlike(plain, all));
-        }
-
         // A page's Show on map opens Valheim's large map with a dot on every spot of its kind the
         // character saw in the world played, a strip naming the kind, how many and the nearest,
         // until Hide or the map closes.

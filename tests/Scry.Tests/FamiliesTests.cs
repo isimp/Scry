@@ -209,6 +209,60 @@ namespace Scry.Tests
             Assert.Null(goblins.CopyOf(archer));
         }
 
+        /// <summary>A resource as the catalog holds it: the name the game shows when it is looked at, and the kind the map keeps its spots by.</summary>
+        private static Entry Resource(string name, string hover, string shown, string spotKind)
+        {
+            var e = E(name, Kind.Resource, Naming.Capital(Naming.Readable(name)));
+            e.HoverName = hover;
+            e.HoverShownName = shown;
+            e.SpotKind = spotKind;
+            return e;
+        }
+
+        [Fact]
+        public void ResourcesTheGameNamesAlikeAndTheMapMarksAreOneRowTheirBrokenFormsBesideThem()
+        {
+            // Petrified Bone: the ribs and the skull, each breaking into a form kept on the map as it.
+            var ribs = Resource("giant_ribs", "$piece_giant_bone", "Petrified Bone", "giant_ribs");
+            var skull = Resource("giant_skull", "$piece_giant_bone", "Petrified Bone", "giant_skull");
+            var ribsBroken = Resource("giant_ribs_frac", null, null, "giant_ribs");
+            var skullBroken = Resource("giant_skull_frac", null, null, "giant_skull");
+            var helmet1 = Resource("giant_helmet1", "$piece_giant_helmet", "Ancient Armour", "giant_helmet1");
+            var helmet2 = Resource("giant_helmet2", "$piece_giant_helmet", "Ancient Armour", "giant_helmet2");
+            var mud = Resource("mudpile", "$piece_mudpile", "Muddy Scrap Pile", "mudpile");
+            var mud2 = Resource("mudpile2", "$piece_mudpile", "Muddy Scrap Pile", "mudpile2");
+            var vein = Resource("goldvein", "$piece_deposit_goldvein", "Petrified Gammeltroll", "goldvein");
+            var troll = Resource("TrollFrost_Dead", "$piece_deposit_goldvein", "Petrified Gammeltroll", "TrollFrost_Dead");
+            // Named alike but not marked on the map (trees give wood), and a name only one find goes by.
+            var beech = Resource("Beech1", "$prop_beech", "Beech", null);
+            var smallBeech = Resource("Beech_small1", "$prop_beech", "Beech", null);
+            var copper = Resource("rock4_copper", "$piece_deposit_copper", "Copper", "rock4_copper");
+            var families = Families.Of(new[] { skullBroken, skull, beech, ribs, helmet2, mud2, copper, ribsBroken, helmet1, smallBeech, mud, troll, vein });
+
+            var bone = ribs.Family;
+            Assert.NotNull(bone);
+            Assert.Equal("Petrified Bone", bone.Name);
+            Assert.Equal(new[] { ribs, skull }, bone.Kinds);
+            Assert.Equal(new[] { ribs, ribsBroken, skull, skullBroken }, bone.Members);
+            Assert.Equal(new[] { "Ribs", "Ribs, broken", "Skull", "Skull, broken" }, bone.Members.Select(bone.Label));
+            Assert.Equal(ribs, bone.CopyOf(ribsBroken));
+            Assert.Equal("Ancient Armour", helmet1.Family.Name);
+            Assert.Equal(new[] { "1", "2" }, helmet1.Family.Kinds.Select(helmet1.Family.Label));
+            // A kind with no number beside numbered ones is the first.
+            Assert.Equal(new[] { "1", "2" }, mud.Family.Kinds.Select(mud.Family.Label));
+            // Kinds of no shared start go by their whole names, in their prefabs' order, as places' kinds do.
+            Assert.Equal(new[] { "Troll frost dead", "Goldvein" }, vein.Family.Kinds.Select(vein.Family.Label));
+            Assert.Null(beech.Family);
+            Assert.Null(copper.Family);
+            Assert.Equal(4, families.Count);
+
+            // A bare name beside one already numbered 1 is told by its words, never a second 1.
+            var heap = Resource("scrap", "$piece_scrap", "Scrap", "scrap");
+            var heap1 = Resource("scrap1", "$piece_scrap", "Scrap", "scrap1");
+            var scraps = Families.Of(new[] { heap, heap1 }).Single();
+            Assert.Equal(new[] { "Scrap", "1" }, scraps.Kinds.Select(scraps.Label));
+        }
+
         [Fact]
         public void APlacesKindsShareTheirNameButItsNumber()
         {

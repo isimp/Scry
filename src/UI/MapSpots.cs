@@ -216,26 +216,22 @@ namespace Scry
 
         /// <summary>
         /// The kinds a page can show and keep at once, each keeping spots of its own: its family's
-        /// kinds met, as a place's numbered kinds, or every one with the compendium off; for a
-        /// resource, those the game names alike seen (<see cref="MapShowing.NamedAlike"/>), as the
-        /// ribs and the skull of Petrified Bone; none where fewer than two are left.
+        /// members met, as a place's numbered kinds or Petrified Bone's ribs and skull, or every one
+        /// with the compendium off, a broken form counting as its whole; none where fewer than two
+        /// are left.
         /// </summary>
         public static IReadOnlyList<Entry> KindsOf(Entry entry, Explorer explorer)
         {
-            if (entry == null) return System.Array.Empty<Entry>();
-            var set = explorer != null && explorer.CompendiumSet;
-            IEnumerable<Entry> members = entry.Family != null
-                ? (set ? explorer.MembersMet(entry) : entry.Family.Kinds)
-                : MapShowing.NamedAlike(entry, explorer?.Catalog ?? (IEnumerable<Entry>)System.Array.Empty<Entry>()).Where(e => !set || explorer.Compendium.Of(e) >= KnownLevel.Seen);
+            if (entry?.Family == null) return System.Array.Empty<Entry>();
+            IEnumerable<Entry> members = explorer != null && explorer.CompendiumSet ? explorer.MembersMet(entry) : entry.Family.Kinds;
             var kinds = new List<Entry>();
             var keys = new HashSet<string>(System.StringComparer.Ordinal);
             foreach (var member in members) if (KindOf(member) is string key && keys.Add(key)) kinds.Add(member);
             return kinds.Count >= 2 ? kinds : (IReadOnlyList<Entry>)System.Array.Empty<Entry>();
         }
 
-        /// <summary>What a page's kinds go by together: its family's name, else the name the game shows when looking at it, else its own.</summary>
-        public static string FamilyNameOf(Entry entry) =>
-            entry?.Family?.Name ?? (string.IsNullOrEmpty(entry?.HoverName) ? entry?.ShownName : CatalogBuilder.Localize(entry.HoverName));
+        /// <summary>What a page's kinds go by together: its family's name, else its own.</summary>
+        public static string FamilyNameOf(Entry entry) => entry?.Family?.Name ?? entry?.ShownName;
 
         /// <summary>How many kinds the strip offers to show at once: those of the page shown, none for one of a kind alone.</summary>
         public static int KindsOffered => Showing.Showing && _shownKinds.Count >= 2 ? _shownKinds.Count : 0;

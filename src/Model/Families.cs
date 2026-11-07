@@ -23,8 +23,11 @@ namespace Scry
         /// <summary>Every member, each kind followed by its copies.</summary>
         public readonly List<Entry> Members = new List<Entry>();
 
-        /// <summary>The name it goes by: its head's, a place's without the number it ends with ("Tar pit").</summary>
-        public string Name => Numbered ? Families.WithoutNumber(Head.ShownName) : Head.ShownName;
+        /// <summary>The name it goes by: the game's own for resources named alike ("Petrified Bone"), else its head's, a place's without the number it ends with ("Tar pit").</summary>
+        public string Name => Called ?? (Numbered ? Families.WithoutNumber(Head.ShownName) : Head.ShownName);
+
+        /// <summary>The name the game shows its resources by, where they are one by it; none for any other family.</summary>
+        internal string Called;
 
         /// <summary>Whether its kinds are told by the numbers their names end with, a place's.</summary>
         internal bool Numbered;
@@ -151,6 +154,7 @@ namespace Scry
             found.AddRange(ItemFamilies(entries.Where(e => e.Kind == Kind.Item), named));
             found.AddRange(CreatureFamilies(entries.Where(e => e.Kind == Kind.Creature), named));
             found.AddRange(PlaceFamilies(entries.Where(e => e.Kind == Kind.Location && !e.IsRoom)));
+            found.AddRange(ResourceFamilies(entries.Where(e => e.Kind == Kind.Resource).ToList()));
             foreach (var family in found) family.Seal();
             return found;
         }
@@ -287,6 +291,48 @@ namespace Scry
                 for (var i = 0; i < members.Count; i++) family.AddKind(members[i], told ? numbers[i].TrimStart('0') is var n && n.Length > 0 ? n : "0" : AfterStem(members[i].Name, stem));
                 yield return family;
             }
+        }
+
+        /// <summary>
+        /// Resources the game names alike when looked at (<see cref="Entry.HoverName"/>) whose spots
+        /// the map keeps as their own, two or more: one row by that name, as Petrified Bone's ribs and
+        /// skull, each kind told by the number its prefab ends with or the words after the start the
+        /// names share, as a place's kinds are; each one's broken form, whose spots the map keeps as
+        /// it, its copy. Trees, logs and what the map marks not are left as they are.
+        /// </summary>
+        private static IEnumerable<Family> ResourceFamilies(IReadOnlyList<Entry> resources)
+        {
+            var wholes = resources.Where(e => !string.IsNullOrEmpty(e.HoverName) && e.SpotKind == e.Name);
+            foreach (var alike in wholes.GroupBy(e => e.HoverName, StringComparer.Ordinal))
+            {
+                var kinds = alike.OrderBy(e => e.Name, NumberOrder.Instance).ToList();
+                if (kinds.Count < 2) continue;
+                var family = new Family { Called = kinds[0].HoverShownName ?? kinds[0].ShownName };
+                var labels = KindLabels(kinds.Select(k => k.Name).ToList());
+                for (var i = 0; i < kinds.Count; i++)
+                {
+                    family.AddKind(kinds[i], labels[i]);
+                    foreach (var broken in resources.Where(e => e != kinds[i] && e.SpotKind == kinds[i].Name).OrderBy(e => e.Name, StringComparer.Ordinal))
+                        family.AddCopy(broken, kinds[i], labels[i] + ", broken", "broken");
+                }
+                yield return family;
+            }
+        }
+
+        /// <summary>
+        /// The words telling resources named alike apart: the numbers their prefabs end with, one with
+        /// none beside numbered ones the first ("mudpile", "mudpile2"); else the words after the start
+        /// their names share ("Ribs" and "Skull" of giant_ribs and giant_skull), or the whole name where none follow.
+        /// </summary>
+        private static List<string> KindLabels(IReadOnlyList<string> names)
+        {
+            var numbers = names.Select(Number).ToList();
+            var bare = numbers.Count(n => n.Length == 0);
+            var numbered = numbers.Where(n => n.Length > 0).ToList();
+            if (bare <= 1 && numbered.Distinct().Count() == numbered.Count && !(bare == 1 && numbered.Contains("1")))
+                return numbers.Select(n => n.Length > 0 ? n.TrimStart('0') is var t && t.Length > 0 ? t : "0" : "1").ToList();
+            var stem = SharedStem(names);
+            return names.Select(n => Naming.Capital(Naming.Readable(n.Substring(stem).Trim('_') is var rest && rest.Length > 0 ? rest : n))).ToList();
         }
 
         /// <summary>How long the start all the names share is, but for the digits it ends with, which tell them apart: "TarPit" of TarPit1 and TarPit1_1.</summary>

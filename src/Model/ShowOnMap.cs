@@ -238,17 +238,6 @@ namespace Scry
             return offered.Count >= 2 ? offered : (IReadOnlyList<string>)Array.Empty<string>();
         }
 
-        /// <summary>
-        /// The resources one page offers as its kinds: those the game names alike when looked at
-        /// (<see cref="Entry.HoverName"/>), as the ribs and the skull both read Petrified Bone, by
-        /// their keys' order; none for a resource the game names on its own terms or not at all.
-        /// </summary>
-        public static IReadOnlyList<Entry> NamedAlike(Entry entry, IEnumerable<Entry> all)
-        {
-            if (entry == null || entry.Kind != Scry.Kind.Resource || string.IsNullOrEmpty(entry.HoverName)) return Array.Empty<Entry>();
-            return all.Where(e => e != null && e.Kind == Scry.Kind.Resource && e.HoverName == entry.HoverName).OrderBy(e => e.Key, StringComparer.Ordinal).ToList();
-        }
-
         /// <summary>A kind's spots shown in a world, in place of any shown before.</summary>
         public void Show(string world, string kind, string name, IReadOnlyList<(int X, int Z)> spots)
         {

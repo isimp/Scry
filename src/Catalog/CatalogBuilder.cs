@@ -294,6 +294,9 @@ namespace Scry
                 Kind = Kinds.Of(found.Traits),
                 Group = Kinds.GroupLabel(Kinds.GroupOf(found.Traits)),
                 HoverName = found.HoverName,
+                HoverShownName = string.IsNullOrEmpty(found.HoverName) ? null : Localize(found.HoverName),
+                // The kind the map keeps its spots by, read where the game's prefabs stand ready, for resources named alike to be one row.
+                SpotKind = Kinds.Of(found.Traits) == Kind.Resource && ZNetScene.instance != null ? SpotKinds.Of(name.GetStableHashCode()) : null,
                 GroupOrder = (int)Kinds.GroupOf(found.Traits),
                 PlayedIn = asEffect != null ? asEffect.Fields.ToArray() : Array.Empty<string>(),
                 Empty = Kinds.IsEmpty(found.Traits),
