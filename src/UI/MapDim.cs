@@ -82,7 +82,7 @@ namespace Scry
         }
 
         /// <summary>Each frame a kind is shown on the large map: its pin layers dimmed, and what is Scry's on them, or the game's own markers, at the map's brightness.</summary>
-        public static void Hold(Minimap map, RectTransform dots, RectTransform squares)
+        public static void Hold(Minimap map, RectTransform dots, RectTransform squares, RectTransform overPins = null)
         {
             if (Layers.Count == 0)
             {
@@ -94,6 +94,7 @@ namespace Scry
                 Dim(map.m_pinNameRootLarge, share);
                 Keep(dots);
                 Keep(squares);
+                Keep(overPins);
                 Keep(map.m_largeMarker);
                 Keep(map.m_largeShipMarker);
             }

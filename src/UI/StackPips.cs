@@ -25,6 +25,9 @@ namespace Scry
         /// <summary>How many pips stood at the last placing, for the self-test.</summary>
         public int Shown => _live;
 
+        /// <summary>What the pips' holder stands in: the marks' holder, or what stands over the game's pins.</summary>
+        public Transform Parent => _holder != null ? _holder.parent : null;
+
         /// <summary>A placing begun: the holder made in what holds the marks, over them, and every pip free again.</summary>
         public void Begin(RectTransform marks)
         {

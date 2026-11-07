@@ -607,7 +607,9 @@ namespace Scry
                 return;
             }
             var holding = Timing.Start();
-            var layer = map.m_pinRootLarge;
+            // First under every pin, or, where the settings put every mark over the pins, on their names' layer.
+            var always = MapLook.DotsOver(Settings.MarksOverPins) && map.m_pinNameRootLarge != null;
+            var layer = always ? map.m_pinNameRootLarge : map.m_pinRootLarge;
             if (layer != _layer || (_layer != null && _holder == null))
             {
                 ForgetDots();
@@ -616,6 +618,8 @@ namespace Scry
                 if (_layer != null) MakeHolder();
             }
             if (_holder != null && !_holder.gameObject.activeSelf) _holder.gameObject.SetActive(true);
+            if (always && _holder != null && _holder.GetSiblingIndex() < _layer.childCount - 2) _holder.SetAsLastSibling();
+            var over = _holder != null ? OverPins(map) : null;
             Timing.Add("spots holder", holding);
             if (_holder == null) return;
             // The squares under the dots, placed as the map moves, as the dots are; the other pins dimmed while a kind is shown on demand.
@@ -624,7 +628,7 @@ namespace Scry
             MapSquares.Update(map);
             Timing.Add("spots squares", squaring);
             var dimming = Timing.Start();
-            if (Showing.Showing) MapDim.Hold(map, _holder, MapSquares.Holder);
+            if (Showing.Showing) MapDim.Hold(map, _holder, MapSquares.Holder, over);
             else MapDim.Restore();
             Timing.Add("spots dim", dimming);
             var working = Timing.Start();
@@ -646,6 +650,7 @@ namespace Scry
             var reading = Timing.Start();
             if (onMark) Pointed = null;
             else ReadPointer();
+            LiftPointed(map, size, map.m_pinPrefab != null ? map.m_pinPrefab.transform as RectTransform : null);
             Timing.Add("spots pointer", reading);
         }
 
@@ -659,7 +664,8 @@ namespace Scry
             var allMade = true;
             var like = map.m_pinPrefab != null ? map.m_pinPrefab.transform as RectTransform : null;
             Vector2? fanAt = null;
-            Pips.Begin(_holder);
+            // The pips over the game's pins where the settings ask, else over the dots alone.
+            Pips.Begin(MapLook.PipsOver(Settings.MarksOverPins, Settings.PipsOverPins) && _over != null ? _over : _holder);
             for (var i = 0; i < StandingDots.Count; i++)
             {
                 var (x, z, picture, _, _) = StandingDots[i];
@@ -701,6 +707,9 @@ namespace Scry
 
         private static (Vector2 Pointer, (Rect Window, Vector2 Area, (IReadOnlyList<(int X, int Z)> Spots, IReadOnlyList<(int X, int Z)> Told, Sprite Picture, int Kept) Dots, float Size) Placed, int Squares) _readFor;
 
+        /// <summary>Which dot standing the pointer rests on, alone and not in a stack, to stand over the pins while it does; -1 for none.</summary>
+        private static int _pointedAt = -1;
+
         /// <summary>What the pointer rests on, its words and, for a dot, where it stands on the screen to be ringed; none.</summary>
         public static (string Words, Rect? Ring)? Pointed { get; private set; }
 
@@ -717,6 +726,7 @@ namespace Scry
             if (reading == _readFor) return;
             _readFor = reading;
             Pointed = null;
+            _pointedAt = -1;
             if (Input.GetMouseButton(0) || PointerOnStrip()) return;
             var player = Player.m_localPlayer;
             // A stack fanned out reads the pointer first, as long as it rests on the fan.
@@ -748,6 +758,7 @@ namespace Scry
                     return;
                 }
                 Pointed = (DotWords(dot, player), RingOf(rect));
+                _pointedAt = i;
                 return;
             }
             if (MapSquares.SquareAt(pointer) is (int sx, int sz))
@@ -777,7 +788,9 @@ namespace Scry
         {
             Pointed = null;
             _readFor = default;
+            _pointedAt = -1;
             Unfan();
+            PutAwayOver();
             MapSquares.PutAway();
             MapDim.Restore();
             if (_holder != null && _holder.gameObject.activeSelf) _holder.gameObject.SetActive(false);

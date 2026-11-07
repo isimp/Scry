@@ -39,7 +39,9 @@ namespace Scry
                 PutAway();
                 return;
             }
-            var layer = map.m_pinRootSmall;
+            // First under every pin, or, where the settings put every mark over the pins, last on their names' layer.
+            var always = MapLook.DotsOver(Settings.MarksOverPins) && map.m_pinNameRootSmall != null;
+            var layer = always ? map.m_pinNameRootSmall : map.m_pinRootSmall;
             if (layer != _layer || (_layer != null && _holder == null))
             {
                 Forget();
@@ -48,7 +50,12 @@ namespace Scry
             }
             if (_holder == null) return;
             if (!_holder.gameObject.activeSelf) _holder.gameObject.SetActive(true);
-            if (_holder.GetSiblingIndex() != 0) _holder.SetAsFirstSibling();
+            if (always ? _holder.GetSiblingIndex() < _layer.childCount - 2 : _holder.GetSiblingIndex() != 0)
+            {
+                if (always) _holder.SetAsLastSibling();
+                else _holder.SetAsFirstSibling();
+            }
+            var pipsOver = MapLook.PipsOver(Settings.MarksOverPins, Settings.PipsOverPins) && !always && map.m_pinNameRootSmall != null;
             var image = map.m_mapImageSmall;
             var window = image.uvRect;
             var area = image.rectTransform.rect;
@@ -60,7 +67,8 @@ namespace Scry
             var made = 0;
             var allMade = true;
             var like = map.m_pinPrefab != null ? map.m_pinPrefab.transform as RectTransform : null;
-            Pips.Begin(_holder);
+            // The pips over the minimap's pins where the settings ask, on a holder last on their names' layer.
+            Pips.Begin(pipsOver ? OverPins(map) : _holder);
             // Only the dots near enough to fall in the window are placed: the minimap shows a few hundred metres round the character.
             var player = Player.m_localPlayer;
             var reach = window.width * map.m_textureSize * map.m_pixelSize * 0.75f;
@@ -132,7 +140,24 @@ namespace Scry
         private static void PutAway()
         {
             if (_holder != null && _holder.gameObject.activeSelf) _holder.gameObject.SetActive(false);
+            if (_over != null && _over.gameObject.activeSelf) _over.gameObject.SetActive(false);
             _placedFor = default;
+        }
+
+        /// <summary>What holds the pips over the minimap's pins: last on their names' layer, which shares the pins' layer's room.</summary>
+        private static RectTransform _over;
+
+        private static RectTransform OverPins(Minimap map)
+        {
+            var names = map.m_pinNameRootSmall;
+            if (_over == null || _over.parent != names)
+            {
+                if (_over != null) Object.Destroy(_over.gameObject);
+                _over = StackPips.Holder(names, "Scry minimap marks over pins");
+            }
+            if (!_over.gameObject.activeSelf) _over.gameObject.SetActive(true);
+            if (_over.GetSiblingIndex() != names.childCount - 1) _over.SetAsLastSibling();
+            return _over;
         }
 
         /// <summary>What holds the dots: first on the minimap's pins' layer and as big as it.</summary>
@@ -169,6 +194,8 @@ namespace Scry
         public static void Forget()
         {
             Pips.Forget();
+            if (_over != null) Object.Destroy(_over.gameObject);
+            _over = null;
             _stackedFor = default;
             if (_holder != null) Object.Destroy(_holder.gameObject);
             Dots.Clear();

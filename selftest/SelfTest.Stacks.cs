@@ -92,6 +92,9 @@ namespace Scry
             }
             else p.Check(false, "a stacked mark stands on the screen to point at");
 
+            // A pin of the game's laid between the two, as a base's pins lie over Scry's marks.
+            yield return MarksOverPinsTold(p, map, new Vector3(hx + 30, 0f, hz));
+
             // Zoomed in, 20 m apart, they part and the pips go, where the nearest zoom parts them at all.
             map.LargeZoom = SeenOnMap.NearestZoom;
             yield return Until(() => MapSpots.PipsShown == 0 && MapSpots.DotsShown >= 2, 5);
@@ -145,6 +148,7 @@ namespace Scry
                 if (Cursor.lockState != CursorLockMode.Locked) ZInput.SetMousePosition(pointer);
             }
             _stacksBefore = null;
+            OverPinsAsTheyWere();
             KeptOnMapAsItWas();
         }
     }

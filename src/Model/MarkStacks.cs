@@ -160,6 +160,9 @@ namespace Scry
             return ((float)(Math.Cos(angle) * radius), (float)(Math.Sin(angle) * radius));
         }
 
+        /// <summary>How far round a pointed mark the game's pins fade, where the settings ask: a spread stack's reach and a mark past it, a single dot's mark and a half.</summary>
+        public static float FadeReach(int marks, float size) => marks > 1 ? FanRadius(marks, size) + size : size * 1.5f;
+
         /// <summary>Whether the pointer, so far from a fanned stack's spot, still rests on it: anywhere within its marks' reach and half a mark past.</summary>
         public static bool StaysFanned(float dx, float dy, int marks, float size)
         {

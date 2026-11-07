@@ -46,6 +46,33 @@ namespace Scry
 
         private static int FanStanding => _fanHolder != null && _fanHolder.gameObject.activeSelf ? FanFrom.Count : 0;
 
+        /// <summary>Whether the stack fanned out stands over the game's pins, for the self-test.</summary>
+        [ForTest]
+        public static bool FanOverPinsForTest => FanStanding > 0 && _over != null && _fanHolder.parent == _over;
+
+        /// <summary>Whether the pips stand over the game's pins, for the self-test.</summary>
+        [ForTest]
+        public static bool PipsOverPinsForTest => Pips.Shown > 0 && _over != null && Pips.Parent == _over;
+
+        /// <summary>Whether a copy of the dot pointed at stands over the game's pins, for the self-test.</summary>
+        [ForTest]
+        public static bool LiftedForTest => _lifted.Picture != null && _lifted.Picture.gameObject.activeInHierarchy;
+
+        /// <summary>How many of the game's pins and names stand faded near a pointed mark, for the self-test.</summary>
+        [ForTest]
+        public static int PinsFadedForTest => Faded.Count;
+
+        /// <summary>Where the first dot standing alone, in no stack, stands on the screen; none, for the self-test.</summary>
+        [ForTest]
+        public static Vector2? LoneDotForTest()
+        {
+            for (var i = 0; i < _standing && i < PlacedFrom.Count; i++)
+            {
+                if (Stacks.CountAt(Stacks.AnchorOf(PlacedFrom[i])) == 1) return new Vector2(Dots[i].Rect.position.x, Dots[i].Rect.position.y);
+            }
+            return null;
+        }
+
         /// <summary>Where the first dot standing in a stack stands on the screen; none, for the self-test.</summary>
         [ForTest]
         public static Vector2? StackedDotForTest()
@@ -117,14 +144,17 @@ namespace Scry
         /// </summary>
         private static void PlaceFan(Vector2 at, float size, RectTransform like)
         {
-            if (_fanHolder == null || _fanHolder.parent != _holder)
+            // Over the game's pins and their names where the settings ask, else over the dots alone.
+            var parent = MapLook.PointedOver(Settings.MarksOverPins) && _over != null ? _over : _holder;
+            if (_fanHolder == null || _fanHolder.parent != parent)
             {
+                if (_fanHolder != null) Object.Destroy(_fanHolder.gameObject);
                 FanDots.Clear();
                 FanLines.Clear();
-                _fanHolder = StackPips.Holder(_holder, "Scry fanned stack");
+                _fanHolder = StackPips.Holder(parent, "Scry fanned stack");
                 _fanSpot = StackPips.Piece(_fanHolder, like, "Scry fanned spot");
             }
-            if (_fanHolder.GetSiblingIndex() != _holder.childCount - 1) _fanHolder.SetAsLastSibling();
+            if (_fanHolder.GetSiblingIndex() != parent.childCount - 1) _fanHolder.SetAsLastSibling();
             if (!_fanHolder.gameObject.activeSelf) _fanHolder.gameObject.SetActive(true);
             var members = Stacks.MembersOf(_fanned);
             var n = Mathf.Min(members.Count, MarkStacks.MostFanned);
@@ -223,10 +253,118 @@ namespace Scry
             return _line;
         }
 
+        /// <summary>
+        /// What stands over the game's pins and their names (<see cref="MarksOverPins"/>): a holder
+        /// last on the pins' names' layer, which shares the pins' layer's room, made with the dots
+        /// so the dimming of the other pins keeps it bright as it does them; last again each frame,
+        /// over every name made since. None where the map has no names' layer.
+        /// </summary>
+        private static RectTransform _over;
+
+        /// <summary>The copy of the dot pointed at, standing over the pins while the pointer rests on it.</summary>
+        private static (Image Picture, RectTransform Rect) _lifted;
+
+        /// <summary>The game's pins and names faded near a pointed mark, each by a group of its own, with its see-through before; and what they were faded for.</summary>
+        private static readonly List<(CanvasGroup Group, float Before)> Faded = new List<(CanvasGroup, float)>();
+        private static (Vector2 At, float Reach) _fadedFor;
+
+        private static readonly HarmonyLib.AccessTools.FieldRef<Minimap, List<Minimap.PinData>> GamePins = HarmonyLib.AccessTools.FieldRefAccess<Minimap, List<Minimap.PinData>>("m_pins");
+
+        /// <summary>The holder over the pins, made where it is missing and last on its layer.</summary>
+        private static RectTransform OverPins(Minimap map)
+        {
+            var names = map.m_pinNameRootLarge;
+            if (names == null) return null;
+            if (_over == null || _over.parent != names)
+            {
+                if (_over != null) Object.Destroy(_over.gameObject);
+                _over = StackPips.Holder(names, "Scry marks over pins");
+            }
+            if (!_over.gameObject.activeSelf) _over.gameObject.SetActive(true);
+            if (_over.GetSiblingIndex() != names.childCount - 1) _over.SetAsLastSibling();
+            return _over;
+        }
+
+        /// <summary>
+        /// Each frame after the pointer is read: the dot pointed at stood over the pins as a copy
+        /// where the settings ask and every dot does not stand there already; the game's pins near
+        /// the pointed mark faded where the settings ask (<see cref="FadeNear"/>).
+        /// </summary>
+        private static void LiftPointed(Minimap map, float size, RectTransform like)
+        {
+            var over = MapLook.PointedOver(Settings.MarksOverPins) && !MapLook.DotsOver(Settings.MarksOverPins);
+            var dot = _pointedAt >= 0 && _pointedAt < _standing ? Dots[_pointedAt] : default;
+            if (over && dot.Rect != null && _over != null && like != null)
+            {
+                if (_lifted.Rect == null) _lifted = StackPips.Piece(_over, like, "Scry pointed dot");
+                if (_lifted.Rect.GetSiblingIndex() != _over.childCount - 1) _lifted.Rect.SetAsLastSibling();
+                StackPips.Stand(_lifted, dot.Rect.anchoredPosition, size, dot.Picture.sprite);
+            }
+            else if (_lifted.Picture != null && _lifted.Picture.gameObject.activeSelf) _lifted.Picture.gameObject.SetActive(false);
+            FadeNear(map, size);
+        }
+
+        /// <summary>
+        /// The game's pins and their names within reach of the pointed mark on the screen, a spread
+        /// stack or a dot (<see cref="MarkStacks.FadeReach"/>), faded to the settings' share, each
+        /// by a group laid on it, which the game leaves be as it sets each pin's own colour; worked
+        /// out again only as the pointed mark moves on the screen, and put back as nothing is pointed.
+        /// </summary>
+        private static void FadeNear(Minimap map, float size)
+        {
+            var share = MapLook.NearShare(Settings.PinsNearPointer);
+            var scale = _holder != null ? _holder.lossyScale.x : 1f;
+            var near = (At: Vector2.zero, Reach: 0f);
+            if (share < 1f && FanStanding > 0) near = (_fanSpot.Rect.position, MarkStacks.FadeReach(FanFrom.Count, _fanSize) * scale);
+            else if (share < 1f && _pointedAt >= 0 && _pointedAt < _standing) near = (Dots[_pointedAt].Rect.position, MarkStacks.FadeReach(1, size) * scale);
+            if (near == _fadedFor) return;
+            _fadedFor = near;
+            Unfade();
+            if (near.Reach <= 0f) return;
+            var pins = GamePins(map);
+            if (pins == null) return;
+            foreach (var pin in pins)
+            {
+                if (pin?.m_uiElement == null) continue;
+                var at = (Vector2)pin.m_uiElement.position - near.At;
+                if (!MapLook.Fades(at.x, at.y, near.Reach)) continue;
+                Fade(pin.m_uiElement.gameObject, share);
+                if (pin.m_NamePinData?.PinNameGameObject != null) Fade(pin.m_NamePinData.PinNameGameObject, share);
+            }
+        }
+
+        private static void Fade(GameObject thing, float share)
+        {
+            var group = thing.GetComponent<CanvasGroup>();
+            if (group == null) group = thing.AddComponent<CanvasGroup>();
+            Faded.Add((group, group.alpha));
+            group.alpha *= share;
+        }
+
+        /// <summary>What stands over the pins put away with the dots, and the faded pins back.</summary>
+        private static void PutAwayOver()
+        {
+            Unfade();
+            _fadedFor = default;
+            if (_over != null && _over.gameObject.activeSelf) _over.gameObject.SetActive(false);
+        }
+
+        /// <summary>The faded pins back as they stood; a pin the game let go of meanwhile is passed over.</summary>
+        private static void Unfade()
+        {
+            foreach (var (group, before) in Faded) if (group != null) group.alpha = before;
+            Faded.Clear();
+        }
+
         /// <summary>Lets go of the stacks, the pips and the fan with the dots.</summary>
         private static void ForgetStacks()
         {
             Pips.Forget();
+            Unfade();
+            if (_over != null) Object.Destroy(_over.gameObject);
+            _over = null;
+            _lifted = default;
+            _fadedFor = default;
             _fanned = -1;
             _fanHolder = null;
             _fanSpot = default;

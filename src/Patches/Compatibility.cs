@@ -437,6 +437,7 @@ namespace Scry
             ("Minimap", "MapPointToLocalGuiPos", 4, 0x867FE4B7, Feature.DungeonMarksOnMap),
             ("Minimap", "OnMapLeftUp", 1, 0xE21A99DA, Feature.DungeonMarksOnMap),
             ("Minimap", "CenterMap", 1, 0x6BA2BC1C, Feature.ShowOnMap),
+            ("Minimap", "AddPin", 7, 0x35346BA9, Feature.ShowOnMap),
             ("OfferingBowl", "Interact", 3, 0xE0D1BB7B, Feature.AltarsItemStands),
             ("Player", "HaveRequirements", 4, 0x23C01547, Feature.UpgradeKits),
             ("Player", "TakeInput", 0, 0x3DECB72C, Feature.KeysKeptFromGame),

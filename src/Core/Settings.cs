@@ -39,6 +39,9 @@ namespace Scry
         private static ConfigEntry<MapDarkening> _mapDarken;
         private static ConfigEntry<DotSizeChoice> _mapDotSize;
         private static ConfigEntry<DotSizeChoice> _miniDotSize;
+        private static ConfigEntry<MarksOverPins> _marksOverPins;
+        private static ConfigEntry<bool> _pipsOverPins;
+        private static ConfigEntry<PinsNearPointer> _pinsNearPointer;
         private static ConfigEntry<bool> _mapZoomOut, _mapSquares;
 
         /// <summary>
@@ -190,6 +193,11 @@ namespace Scry
 
         /// <summary>How big the marks kept on the map stand on the minimap, apart from the map's own dots.</summary>
         public static DotSizeChoice MinimapDotSize { get => _miniDotSize?.Value ?? MapDotSize; set => Set(_miniDotSize, value); }
+
+        /// <summary>What of Scry's marks stands over the game's pins and their names, and how the pins near a pointed mark stand.</summary>
+        public static MarksOverPins MarksOverPins { get => _marksOverPins?.Value ?? MarksOverPins.Pointed; set => Set(_marksOverPins, value); }
+        public static bool PipsOverPins { get => _pipsOverPins?.Value ?? true; set => Set(_pipsOverPins, value); }
+        public static PinsNearPointer PinsNearPointer { get => _pinsNearPointer?.Value ?? PinsNearPointer.Full; set => Set(_pinsNearPointer, value); }
         public static bool MapZoomOut { get => _mapZoomOut?.Value ?? true; set => Set(_mapZoomOut, value); }
         public static bool MapSquares { get => _mapSquares?.Value ?? true; set => Set(_mapSquares, value); }
 
@@ -350,6 +358,12 @@ namespace Scry
             // Set apart from the map's dots, it starts as they stand, so the minimap looks as it did until it is changed.
             _miniDotSize = config.Bind("1 - General", "MinimapDotSize", _mapDotSize.Value,
                 "How big the marks kept on the map stand on the minimap beside its pins: XSmall, Small, Normal or Large. It starts as the map's dot size.");
+            _marksOverPins = config.Bind("1 - General", "MarksOverPins", MarksOverPins.Pointed,
+                "Whether Scry's marks on the map stand over the game's pins and their names: Never; Pointed, a mark or a spread stack while the pointer rests on it; or Always.");
+            _pipsOverPins = config.Bind("1 - General", "PipsOverPins", true,
+                "The small pips under marks that touch stand over the game's pins, so a stack under your pins still shows it holds several.");
+            _pinsNearPointer = config.Bind("1 - General", "PinsNearPointer", PinsNearPointer.Full,
+                "How the game's pins near a mark the pointer rests on stand: Full, or Third, faded to a third so the mark reads.");
             _mapZoomOut = config.Bind("1 - General", "ShowOnMapZoomOut", true,
                 "Opens the map zoomed out just far enough to hold the nearest marks of the kind shown; your own zoom comes back as it closes. Off, the map keeps your zoom.");
             _mapSquares = config.Bind("1 - General", "ShowOnMapSquares", true,

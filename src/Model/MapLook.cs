@@ -16,6 +16,21 @@ namespace Scry
         Strong,
     }
 
+    /// <summary>When Scry's marks stand over the game's pins and their names: never, while the pointer rests on them, or always.</summary>
+    internal enum MarksOverPins
+    {
+        Never,
+        Pointed,
+        Always,
+    }
+
+    /// <summary>How the game's pins near a mark the pointer rests on stand.</summary>
+    internal enum PinsNearPointer
+    {
+        Full,
+        Third,
+    }
+
     /// <summary>How big Show on map's dots are drawn, beside their normal size.</summary>
     internal enum DotSizeChoice
     {
@@ -39,6 +54,21 @@ namespace Scry
 
         /// <summary>Whether the pins are dimmed at all, so that at full their layers are left as the game has them.</summary>
         public static bool Dims(OtherPinsShown shown) => shown != OtherPinsShown.Full;
+
+        /// <summary>Whether every dot stands over the game's pins and their names, at rest too.</summary>
+        public static bool DotsOver(MarksOverPins over) => over == MarksOverPins.Always;
+
+        /// <summary>Whether a dot or a spread stack the pointer rests on comes over the pins while it does.</summary>
+        public static bool PointedOver(MarksOverPins over) => over != MarksOverPins.Never;
+
+        /// <summary>Whether the pips under touching marks stand over the pins: by their own switch, or with every mark.</summary>
+        public static bool PipsOver(MarksOverPins over, bool pipsOver) => pipsOver || over == MarksOverPins.Always;
+
+        /// <summary>The share of their brightness the game's pins near a pointed mark keep.</summary>
+        public static float NearShare(PinsNearPointer near) => near == PinsNearPointer.Third ? SeenOnMap.OthersDimmed : 1f;
+
+        /// <summary>Whether a pin so far from the pointed mark's middle, on the screen, stands near enough to fade.</summary>
+        public static bool Fades(float dx, float dy, float reach) => dx * dx + dy * dy < reach * reach;
 
         /// <summary>
         /// How much of the veil covers the map: none, half of what the eye sees, or about a third
