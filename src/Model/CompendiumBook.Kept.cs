@@ -63,10 +63,26 @@ namespace Scry
                 var replaced = kind.IndexOf('+') >= 0 ? kind.Split('+').Where(_kept.ContainsKey).ToList() : new List<string>();
                 var marks = replaced.Select(k => _kept[k]).ToList();
                 foreach (var own in replaced) _kept.Remove(own);
-                _kept[kind] = marks.Count > 0 ? marks.Min() : FreeMark();
+                // A picture is only ever picked, so it is the look the player gave them.
+                var pictured = marks.Where(m => m >= KeptMarks.Most).ToList();
+                _kept[kind] = pictured.Count > 0 ? pictured.Min() : marks.Count > 0 ? marks.Min() : FreeMark();
             }
             else _kept.Remove(kind);
             KeptChanged();
+        }
+
+        /// <summary>
+        /// Gives a kept kind the mark the player picked (<see cref="KeptMarks"/>); another kept may
+        /// stand in it too. Whether it changed: never for every kind of dungeon, a kind not kept,
+        /// a mark this Scry does not offer, or the mark it has. Every kind of dungeon is kept without a
+        /// mark of its own, so it is never picked.
+        /// </summary>
+        public bool Pick(string kind, int mark)
+        {
+            if (kind == null || !KeptMarks.Offered(mark) || !_kept.TryGetValue(kind, out var had) || had == mark) return false;
+            _kept[kind] = mark;
+            KeptChanged();
+            return true;
         }
 
         /// <summary>Takes every kind off the map, the dungeons too.</summary>
@@ -79,16 +95,18 @@ namespace Scry
         }
 
         /// <summary>
-        /// Once a book is read: a kind kept without a mark, as an older book keeps it, or in a mark
-        /// another kept holds too, given the lowest free, in the order of their keys.
+        /// Once a book is read: a kind kept without a mark, as an older book keeps it, or in one
+        /// this Scry does not offer, given the lowest free, in the order of their keys. Kinds
+        /// sharing a mark keep it, as the player may pick one look for several.
         /// </summary>
         private void MarkKept()
         {
-            var held = new HashSet<int>();
+            var held = new List<int>();
             var unmarked = new List<string>();
             foreach (var kind in _kept.Keys.OrderBy(k => k, StringComparer.Ordinal))
             {
-                if (_kept[kind] < 0 || !held.Add(_kept[kind])) unmarked.Add(kind);
+                if (KeptMarks.Offered(_kept[kind])) held.Add(_kept[kind]);
+                else unmarked.Add(kind);
             }
             foreach (var kind in unmarked)
             {

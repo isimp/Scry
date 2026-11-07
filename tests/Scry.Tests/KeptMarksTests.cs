@@ -61,9 +61,9 @@ namespace Scry.Tests
             var book = CompendiumBook.Load("kept\trock4_tin\nkept\trock4_copper\n");
             Assert.Equal(0, book.MarkOf("rock4_copper"));
             Assert.Equal(1, book.MarkOf("rock4_tin"));
-            // Two kept in one mark, as a hand-edited book may hold, are told apart again.
+            // Two kept in one mark stay so: the player may pick one look for both.
             var twice = CompendiumBook.Load("kept\trock4_tin\t0\nkept\trock4_copper\t0\n");
-            Assert.NotEqual(twice.MarkOf("rock4_tin"), twice.MarkOf("rock4_copper"));
+            Assert.Equal(twice.MarkOf("rock4_tin"), twice.MarkOf("rock4_copper"));
         }
 
         [Fact]
@@ -76,7 +76,9 @@ namespace Scry.Tests
             Assert.Equal((0, MarkShape.Diamond), looks[8]);
             Assert.Equal((0, MarkShape.Triangle), looks[24]);
             // Past them the marks begin again.
-            Assert.Equal(looks[0], (KeptMarks.ColourOf(KeptMarks.Most), KeptMarks.ShapeOf(KeptMarks.Most)));
+            var all = Enumerable.Range(0, KeptMarks.Most).ToList();
+            Assert.Equal(0, KeptMarks.Lowest(all));
+            Assert.Equal(1, KeptMarks.Lowest(all.Append(0)));
         }
 
         [Fact]

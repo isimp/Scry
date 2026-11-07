@@ -14,30 +14,79 @@ namespace Scry
     /// <summary>
     /// The mark each kind stands in on Valheim's map, so a dot or a square tells which kind it is
     /// at a glance: a number, its colour one of eight, then past eight kinds the same colours in
-    /// the next shape, 32 told apart before they begin again. Every kind of dungeon keeps its
-    /// amber discs (<see cref="Dungeons"/>).
+    /// the next shape, 32 told apart before they begin again. The player may pick a kept kind's
+    /// mark instead: past those 32, one of the game's map pictures in each colour
+    /// (<see cref="Pictured"/>), then the kind's own picture on each colour (<see cref="Own"/>).
+    /// Each number's colour is its remainder by the colours, so an older Scry reading a picked
+    /// mark still stands it in its colour. Every kind of dungeon keeps its amber discs
+    /// (<see cref="Dungeons"/>).
     /// </summary>
     internal static class KeptMarks
     {
         /// <summary>How many colours the marks are told apart by, how many shapes, and how many marks so.</summary>
         public const int Colours = 8, Shapes = 4, Most = Colours * Shapes;
 
+        /// <summary>How many of the game's map pictures a mark may stand in.</summary>
+        public const int Pictures = 10;
+
+        /// <summary>How many marks there are to pick from: the colours in each shape, in each picture, and on the kind's own picture.</summary>
+        public const int Looks = Most + Pictures * Colours + Colours;
+
         /// <summary>The mark of every kind of dungeon, kept as one: the accent's amber, as their discs stand.</summary>
         public const int Dungeons = -1;
+
+        /// <summary>A colour in a shape.</summary>
+        public static int Plain(int colour, MarkShape shape) => (int)shape * Colours + colour;
+
+        /// <summary>One of the game's map pictures in a colour.</summary>
+        public static int Pictured(int colour, int picture) => Most + picture * Colours + colour;
+
+        /// <summary>The kind's own picture on a colour (<see cref="OwnPictureOf"/>).</summary>
+        public static int Own(int colour) => Most + Pictures * Colours + colour;
+
+        /// <summary>Whether a mark is one this Scry offers, the dungeons' aside.</summary>
+        public static bool Offered(int mark) => mark >= 0 && mark < Looks;
 
         /// <summary>A mark's colour, one of <see cref="Colours"/>; none for the dungeons', which stand in the accent.</summary>
         public static int ColourOf(int mark) => mark < 0 ? -1 : mark % Colours;
 
-        /// <summary>A mark's shape: past every colour, the next.</summary>
-        public static MarkShape ShapeOf(int mark) => mark < 0 ? MarkShape.Circle : (MarkShape)(mark / Colours % Shapes);
+        /// <summary>A mark's shape: past every colour, the next; a picture stands in the round.</summary>
+        public static MarkShape ShapeOf(int mark) => mark < 0 || mark >= Most ? MarkShape.Circle : (MarkShape)(mark / Colours);
 
-        /// <summary>The lowest mark none of those taken has.</summary>
+        /// <summary>Which of the game's map pictures a mark stands in; none for a shape or its own picture.</summary>
+        public static int? PictureOf(int mark) => mark >= Most && mark < Own(0) ? (mark - Most) / Colours : (int?)null;
+
+        /// <summary>Whether a mark stands in the kind's own picture.</summary>
+        public static bool IsOwn(int mark) => mark >= Own(0) && mark < Looks;
+
+        /// <summary>
+        /// The lowest colour and shape none of those taken has; past all of them, the one fewest
+        /// stand in, the lowest of those. A picture is only ever picked, never dealt.
+        /// </summary>
         public static int Lowest(IEnumerable<int> taken)
         {
-            var held = new HashSet<int>(taken);
-            var mark = 0;
-            while (held.Contains(mark)) mark++;
-            return mark;
+            var held = new int[Most];
+            foreach (var mark in taken) if (mark >= 0 && mark < Most) held[mark]++;
+            var lowest = 0;
+            for (var mark = 1; mark < Most; mark++) if (held[mark] < held[lowest]) lowest = mark;
+            return lowest;
+        }
+
+        /// <summary>
+        /// The entry whose picture a kind's own mark shows: its own icon where it has one (an item,
+        /// a piece); for a creature its trophy, never another drop; for a deposit, bush or tree the
+        /// first thing it drops that has an icon; none for anything else, a place among them.
+        /// </summary>
+        public static string OwnPictureOf(string name, Kind kind, bool hasIcon, IEnumerable<(string Name, bool HasIcon)> drops)
+        {
+            if (hasIcon) return name;
+            foreach (var (drop, icon) in drops)
+            {
+                if (!icon) continue;
+                if (kind == Kind.Creature && drop.StartsWith("Trophy", System.StringComparison.Ordinal)) return drop;
+                if (kind == Kind.Resource) return drop;
+            }
+            return null;
         }
 
         /// <summary>The mark a square stands in: the one kind's it holds, none where it holds several.</summary>

@@ -4,6 +4,8 @@
 
 An ancient root is listed with the resources, under *Tapped for sap*, and becomes known once you build a sap extractor on it or take sap from one, and *Show on map* marks the roots your character saw. Its page tells how much sap it holds, how fast it refills and how much sap each line it shows when you look at it stands for, and the extractor's page what its slow line means. A kill the game counts under a name several creatures share, as both Dvergr rogues do, now counts only for the ones you met, so entering the Ashlands no longer makes the Ashlands rogue known. A food or Royal Jelly the Serving Tray places tells so under *Placing it*, with what a placed one does, in place of a build cost. A page of several kinds, as a numbered place or the ribs and skulls of Petrified Bone, offers buttons beside *Show on map* that show all its kinds on the map at once or keep them as one line, from the page as well as the map.
 
+A click on a kind's mark in the *On the map* list now picks how it stands on the map: any of the eight colours in any shape, one of the game's own map pictures in that colour, or the kind's own picture, such as a deposit's ore or a creature's trophy. Two kinds may share a look.
+
 ## 0.4.2
 
 A creature's attacks table now tells what each attack does to you at your armour and resistances, with stars, and how much harder your world makes creatures hit; an armour's Armour row tells what it does to a hit. A Dvergr mage's robes are its looks rather than kinds to switch to, and a creature that rolls one of several sets lists the attacks of the look shown. Creatures stand in the gear you saw them in, and a Dvergr's hair is no longer called a shield.

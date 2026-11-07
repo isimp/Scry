@@ -292,7 +292,7 @@ namespace Scry
                 }
                 var swatch = square.Swatches[i];
                 var mark = kinds[i].Mark;
-                swatch.texture = MapSpots.Picture(Skin.MarkColour(mark), KeptMarks.ShapeOf(mark)).texture;
+                swatch.texture = MapSpots.MarkPicture(mark, null).texture;
                 swatch.rectTransform.anchoredPosition = new Vector2(TabPad + i * (TabSwatch + 1f), 0f);
                 if (!swatch.gameObject.activeSelf) swatch.gameObject.SetActive(true);
             }

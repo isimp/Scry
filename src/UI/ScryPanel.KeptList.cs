@@ -79,9 +79,13 @@ namespace Scry
             if (e.rawType == EventType.MouseDown)
             {
                 var zone = KeptClick.Open ? Rect.MinMaxRect(Mathf.Min(button.x, _keptRect.x), button.y, Mathf.Max(button.xMax, _keptRect.xMax), Mathf.Max(button.yMax, _keptRect.yMax)) : button;
-                KeptClick.DownAt(zone.Contains(e.mousePosition));
+                KeptClick.DownAt(zone.Contains(e.mousePosition) || (KeptClick.Open && _pickRect.Contains(e.mousePosition)));
             }
-            if (!KeptClick.Open) return;
+            if (!KeptClick.Open)
+            {
+                PutPickerAway();
+                return;
+            }
             MapKept.Refresh();
             KeptRows.Clear();
             _dungeonsOff = !book.Keeps(CompendiumBook.Dungeons);
@@ -95,17 +99,31 @@ namespace Scry
             var width = Mathf.Min(U(400f), room.width);
             var x = Mathf.Clamp(button.xMax - width, room.x, room.xMax - width);
             _keptRect = new Rect(x, button.yMax + U(4f), width, KeptTop + lines * KeptRowH + KeptFootH);
+            PickerLayout(book, room);
         }
 
-        /// <summary>Before anything under the list is drawn: a click on a line's name or its ×, or on Take all off.</summary>
+        /// <summary>Before anything under the list is drawn: a click on a line's mark, name or ×, on Take all off, or in the mark's picker.</summary>
         private static void KeptClicks(Explorer explorer, Event e)
         {
             var book = CompendiumKeeper.Book;
-            if (!KeptClick.Open || book == null || e.type != EventType.MouseDown || !_keptRect.Contains(e.mousePosition)) return;
+            if (!KeptClick.Open || book == null || e.type != EventType.MouseDown) return;
+            if (_pickRect.width > 0f && _pickRect.Contains(e.mousePosition))
+            {
+                if (e.button == 0 && PickerChoiceAt(e.mousePosition) is int chosen) PickMark(_picking, chosen);
+                e.Use();
+                return;
+            }
+            if (!_keptRect.Contains(e.mousePosition)) return;
+            var picking = PutPickerAway();
             if (e.button == 0)
             {
                 var index = Mathf.FloorToInt((e.mousePosition.y - _keptRect.y - KeptTop) / KeptRowH);
-                if (e.mousePosition.y >= _keptRect.yMax - KeptFootH)
+                if (index >= 0 && index < _keptFits && Pickable(index) && e.mousePosition.x < MarkRight(_keptRect) && e.mousePosition.y < _keptRect.yMax - KeptFootH)
+                {
+                    // A line's mark opens its picker, or puts it away again.
+                    if (picking != KeptRows[index]) OpenPicker(KeptRows[index]);
+                }
+                else if (e.mousePosition.y >= _keptRect.yMax - KeptFootH)
                 {
                     // Only on Take all off itself, not on the words beside it.
                     if (book.Kept.Count > 0 && e.mousePosition.x >= _keptRect.xMax - U(120f)) TakeAllOffMap();
@@ -194,10 +212,16 @@ namespace Scry
                 if (line.Contains(mouse) && !onCross) Skin.Box(line, Skin.Hover);
                 var dungeons = kept == CompendiumBook.Dungeons;
                 var mark = new Rect(r.x + U(12f), y + (KeptRowH - U(12f)) / 2f, U(12f), U(12f));
-                // Its mark as it stands on the map, as a legend; every kind of dungeon by the accent of its discs.
+                // Its mark as it stands on the map, as a legend, lit where a click opens its picker; every kind of dungeon by the accent of its discs.
                 var shown = MapKept.MarkOf(CompendiumKeeper.Book, kept);
                 if (shown == KeptMarks.Dungeons) Skin.Icon(mark, Skin.Circle, Skin.Accent);
-                else GUI.DrawTexture(new Rect(mark.x - U(2f), mark.y - U(2f), mark.width + U(4f), mark.height + U(4f)), MapSpots.Picture(Skin.MarkColour(shown), KeptMarks.ShapeOf(shown)).texture);
+                else
+                {
+                    var around = MarkBox(r, y);
+                    if (_picking == kept) Skin.Box(around, Skin.Alpha(Skin.Accent, 0.16f), Skin.Accent);
+                    else if (around.Contains(mouse)) Skin.Box(around, Skin.Hover, Skin.Alpha(Skin.Text, 0.18f));
+                    GUI.DrawTexture(new Rect(mark.x - U(2f), mark.y - U(2f), mark.width + U(4f), mark.height + U(4f)), MapSpots.MarkPicture(shown, kept).texture);
+                }
                 var (seen, squares, told) = MapKept.CountOf(kept);
                 var count = dungeons ? SpotWords.DungeonsCount(seen, squares, told) : SpotWords.KeptCount(seen, squares, told);
                 var countW = Skin.Width(Skin.DimRight, count) + U(4f);
@@ -223,7 +247,9 @@ namespace Scry
                 y += KeptRowH;
             }
             Skin.Fill(new Rect(r.x + U(8f), y + U(2f), r.width - U(16f), 1f), Skin.Alpha(Skin.Text, 0.06f));
-            GUI.Label(new Rect(r.x + U(12f), y + U(6f), r.width - U(120f), U(20f)), SpotWords.KeptFoot, Skin.FaintLabel);
+            // Resting on a mark that can be picked, the foot says what its click does.
+            var onMark = MarkPointedRow(mouse) >= 0;
+            GUI.Label(new Rect(r.x + U(12f), y + U(6f), r.width - U(120f), U(20f)), Skin.Fit(Skin.FaintLabel, onMark ? KeptMarkWords.MarkHint : SpotWords.KeptFoot, r.width - U(120f)), Skin.FaintLabel);
             if (CompendiumKeeper.Book?.Kept.Count is null or 0) return;
             // Take all off lit under the pointer, as a line's × is.
             var all = new Rect(r.xMax - U(120f), y + U(4f), U(116f), U(24f));
@@ -231,6 +257,7 @@ namespace Scry
             if (onAll) Skin.Box(all, Skin.Hover);
             var allW = Skin.Width(Skin.Label, SpotWords.TakeAllOff);
             GUI.Label(new Rect(all.xMax - U(8f) - allW, all.y + U(2f), allW, U(20f)), SpotWords.TakeAllOff, onAll ? Skin.Label : Skin.DimLabel);
+            DrawMarkPicker();
         }
     }
 }

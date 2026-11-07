@@ -167,6 +167,7 @@ namespace Scry
             yield return S("Show on map shades the server's squares round places never come near, under the dots, cut to explored ground, counted in the strip", ShowOnMapSquares, 60, ShowOnMapAsItWas);
             yield return S("Show on map shows a place of several kinds one kind at a time, or all at once by the strip's button", ShowOnMapAllKinds, 30, AllKindsAsTheyWere);
             yield return S("a kind kept on the map stands every time it opens, named where the pointer rests, listed in the title row, on the minimap too, holding no frame long", KeptOnMapShown, 40, KeptOnMapAsItWas);
+            yield return S("a kept kind's mark is picked in the On the map list, a colour, a shape, a picture of the game's or its own, and stands so on the map at once", MarkPicked, 40, MarkPickedAsItWas);
             yield return S("Show on map follows the settings' Map section: your other pins, the darkened map, the dots' size, zooming out and the squares", ShowOnMapFollowsItsSettings, 60, ShowOnMapAsItWas);
         }
 

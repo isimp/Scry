@@ -187,7 +187,7 @@ namespace Scry
                 MarkByKind[kind] = mark;
                 if (!IsDungeon(kind))
                 {
-                    var picture = MapSpots.Picture(Skin.MarkColour(mark), KeptMarks.ShapeOf(mark));
+                    var picture = MapSpots.MarkPicture(mark, kept);
                     foreach (var (x, z) in spots) _dots.Add((x, z, picture, name, kind, false));
                 }
                 if (!(PlaceOf(kind) is string place) || !Settings.MapSquares) continue;
@@ -195,7 +195,7 @@ namespace Scry
                 var told = MapSpots.ToldOf(place, spots);
                 if (told.Count > 0)
                 {
-                    var hollow = MapSpots.Picture(Skin.MarkColour(mark), KeptMarks.ShapeOf(mark), hollow: true);
+                    var hollow = MapSpots.MarkPicture(mark, kept, hollow: true);
                     foreach (var (x, z) in told) _dots.Add((x, z, hollow, name, kind, true));
                     toldOf += told.Count;
                 }

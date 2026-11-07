@@ -12,6 +12,7 @@ namespace Scry
         public static readonly Feature DungeonMarksOnMap = Listed("marks on Valheim's map at the dungeons been in");
         public static readonly Feature SeenSpots = Listed("where your character saw things worth finding again, for the map");
         public static readonly Feature ShowOnMap = Listed("dots on Valheim's map where your character saw a page's kind");
+        public static readonly Feature MarkPictures = Listed("pictures a kept kind's mark on Valheim's map may stand in");
         public static readonly Feature MarksAsideOnPortalMap = Listed("Scry's marks stepping aside on TargetPortal's map of portals");
         public static readonly Feature GroupDungeonMaps = Listed("the walks of the dungeons kept on the server");
         public static readonly Feature BossFightsAmongRaids = Listed("boss fights among the raids");

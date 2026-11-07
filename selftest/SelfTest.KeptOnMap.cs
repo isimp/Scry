@@ -8,8 +8,8 @@ namespace Scry
     /// <summary>The self-test's case for kinds kept on Valheim's map, their list, the words on what the pointer rests on, and the minimap.</summary>
     internal static partial class SelfTest
     {
-        /// <summary>What the character kept on the map and whether the minimap showed it, before the part chose otherwise; put back after it.</summary>
-        private static (List<string> Kept, bool Minimap)? _keptBefore;
+        /// <summary>What the character kept on the map, each in its mark, and whether the minimap showed it, before the part chose otherwise; put back after it.</summary>
+        private static (List<(string Kind, int? Mark)> Kept, bool Minimap)? _keptBefore;
 
         /// <summary>
         /// A kind kept on the map stands every time the large map opens, at the map's own
@@ -29,7 +29,7 @@ namespace Scry
                 p.Skip("there is no character, no map, or no copper deposit in this game");
                 yield break;
             }
-            _keptBefore = (book.Kept.ToList(), Settings.DungeonMarksOnMinimap);
+            KeepWhatIsKept(book);
             // Timed as play shows the map: once Scry's code is compiled ahead, its first use compiling none in a measured frame.
             yield return MapCodeCompiled(p);
 
@@ -117,15 +117,20 @@ namespace Scry
             KeptOnMapAsItWas();
         }
 
+        /// <summary>Notes what is kept, each in its mark, and whether the minimap shows it, to be put back after the part.</summary>
+        private static void KeepWhatIsKept(CompendiumBook book) => _keptBefore = (book.Kept.Select(k => (k, book.MarkOf(k))).ToList(), Settings.DungeonMarksOnMinimap);
+
         /// <summary>What was kept and the minimap put back, the sight's own spots, the maps shut and the panel open, should the part have stopped before it did.</summary>
         private static void KeptOnMapAsItWas()
         {
             MapSpots.SpotsInsteadForTest(null);
             ScryPanel.OpenKeptListForTest(false);
-            if (_keptBefore is (List<string> kept, bool minimap) && CompendiumKeeper.Book is CompendiumBook book)
+            if (_keptBefore is (List<(string Kind, int? Mark)> kept, bool minimap) && CompendiumKeeper.Book is CompendiumBook book)
             {
                 ScryPanel.TakeAllOffMap();
-                foreach (var each in kept) ScryPanel.KeepOnMap(each, true);
+                foreach (var (each, _) in kept) ScryPanel.KeepOnMap(each, true);
+                // Each in the mark the player gave it, picked or dealt.
+                foreach (var (each, mark) in kept) if (mark is int was) ScryPanel.PickMark(each, was);
                 Settings.DungeonMarksOnMinimap = minimap;
             }
             _keptBefore = null;
