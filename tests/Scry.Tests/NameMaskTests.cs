@@ -37,6 +37,17 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AWordOfANameSeenStaysThoughAnUnseenThingGoesByIt()
+        {
+            // The Swamp's Root is not met; the Ancient Root is, and its own lines keep their words.
+            var mask = new NameMask(new[] { "Root" }, new[] { "Ancient Root" });
+            Assert.Equal("The ancient root is pulsating with energy", mask.Apply("The ancient root is pulsating with energy"));
+            Assert.Equal("The ancient root's glow is fading", mask.Apply("The ancient root's glow is fading"));
+            // Alone, the word names the Root still.
+            Assert.Equal($"Dropped as {CompendiumWords.Hidden} by a draugr", mask.Apply("Dropped as Root by a draugr"));
+        }
+
+        [Fact]
         public void TheLongestNameIsTakenFirst()
         {
             Assert.Equal("Smelt –– into bars.", Mask.Apply("Smelt Black metal scrap into bars."));

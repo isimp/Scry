@@ -16,12 +16,22 @@ namespace Scry
         private const int ShortestName = 3;
 
         private readonly HashSet<string> _hidden = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>The names seen of two words or more, whose words stay whatever else goes by one of them ("ancient root" though the Root is not seen).</summary>
+        private readonly HashSet<string> _shown = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly int _mostWords;
 
         /// <summary>A mask of the names not seen, less any also among the names seen.</summary>
         public NameMask(IEnumerable<string> unseen, IEnumerable<string> seen)
         {
             var keep = new HashSet<string>(seen ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+            // A name of one word is taken whole above; only a longer one can hold another's name.
+            foreach (var name in keep)
+            {
+                if (name == null) continue;
+                _shown.Add(name);
+                _mostWords = Math.Max(_mostWords, Spans(name).Count);
+            }
             foreach (var name in unseen ?? Array.Empty<string>())
             {
                 if (name == null || name.Length < ShortestName || keep.Contains(name) || !_hidden.Add(name)) continue;
@@ -52,7 +62,14 @@ namespace Scry
                 {
                     var start = words[w].Start;
                     var end = words[w + n - 1].End;
-                    if (!Hidden(text.Substring(start, end - start))) continue;
+                    var span = text.Substring(start, end - start);
+                    // A longer name seen keeps its words, before any shorter name in them is looked for.
+                    if (n >= 2 && _shown.Contains(span))
+                    {
+                        w += n - 1;
+                        break;
+                    }
+                    if (!Hidden(span)) continue;
                     if (masked == null) masked = new StringBuilder(text.Length);
                     masked.Append(text, copied, start - copied).Append(CompendiumWords.Hidden);
                     copied = end;

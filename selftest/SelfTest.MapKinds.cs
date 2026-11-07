@@ -11,7 +11,7 @@ namespace Scry
 
         /// <summary>
         /// The ribs and the skull of Petrified Bone, which the game names alike, are one page's two
-        /// kinds on the map, as the tar pits are one place's three: a made-up character who saw them
+        /// kinds on the map, as the tar pits are one place's three: a made-up character who knows them
         /// gets the all-kinds switch on each page, the strip's own, and with it lit Show on map and
         /// Keep on the map act on both as one; pictured lit.
         /// </summary>
@@ -29,7 +29,8 @@ namespace Scry
                 "the ribs and the skull go by the name the game shows when looking at them", $"{ribs.HoverName} / {skull.HoverName}: {MapSpots.FamilyNameOf(skull)}");
 
             var book = new CompendiumBook();
-            foreach (var seen in new[] { ribs, skull }.Concat(pits)) book.Raise(seen.Key, KnownLevel.Seen);
+            // Known, so their pages open: a page only seen is closed and offers nothing for the map.
+            foreach (var met in new[] { ribs, skull }.Concat(pits)) book.Raise(met.Key, KnownLevel.Known);
             var view = new CompendiumView(X.Entries);
             view.Tell(book, CompendiumRule.Strict);
             var allWas = MapSpots.AllKinds;
