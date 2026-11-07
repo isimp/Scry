@@ -143,6 +143,8 @@ namespace Scry
                     ("Off", "Off"), ("Half", "Half"), ("Strong", "Strong"))),
                 In("Show on map", Choices("ShowOnMapDotSize", "Dot size", "How big the dots stand beside the game's pins.",
                     ("XSmall", SizeNames[0]), ("Small", SizeNames[1]), ("Normal", SizeNames[2]), ("Large", SizeNames[3]))),
+                In("Show on map", Choices("MinimapDotSize", "Minimap dot size", "How big the kept marks stand on the minimap beside its pins, apart from the map's dots.",
+                    ("XSmall", SizeNames[0]), ("Small", SizeNames[1]), ("Normal", SizeNames[2]), ("Large", SizeNames[3]))),
                 In("Show on map", Switch("ShowOnMapZoomOut", "Zoom out to the marks", "The map opens just far enough out to hold the nearest marks, and your own zoom comes back when it closes.")),
                 In("Show on map", Switch("ShowOnMapSquares", "Told by the server", "The places you never came near that the world's server tells of, as squares or hollow dots as it tells them. Off, only what you saw is shown.")),
                 In("Show on map", Switch("DungeonMarksOnMinimap", "Kept on the minimap", "What is kept on the map stands on the minimap too, at its pins' size: the kinds' dots and the dungeons' marks, without names or squares."))),

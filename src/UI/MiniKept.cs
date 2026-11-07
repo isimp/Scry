@@ -52,7 +52,7 @@ namespace Scry
             var image = map.m_mapImageSmall;
             var window = image.uvRect;
             var area = image.rectTransform.rect;
-            var size = SeenOnMap.MiniDotSize(map.m_pinSizeSmall, MapLook.DotScale(Settings.MapDotSize));
+            var size = SeenOnMap.MiniDotSize(map.m_pinSizeSmall, MapLook.DotScale(Settings.MinimapDotSize));
             var placing = (window, area.size, MapKept.Version, size);
             if (placing == _placedFor) return;
             var standing = 0;

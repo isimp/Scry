@@ -38,6 +38,7 @@ namespace Scry
         private static ConfigEntry<OtherPinsShown> _mapOtherPins;
         private static ConfigEntry<MapDarkening> _mapDarken;
         private static ConfigEntry<DotSizeChoice> _mapDotSize;
+        private static ConfigEntry<DotSizeChoice> _miniDotSize;
         private static ConfigEntry<bool> _mapZoomOut, _mapSquares;
 
         /// <summary>
@@ -186,6 +187,9 @@ namespace Scry
         public static OtherPinsShown MapOtherPins { get => _mapOtherPins?.Value ?? OtherPinsShown.Third; set => Set(_mapOtherPins, value); }
         public static MapDarkening MapDarken { get => _mapDarken?.Value ?? MapDarkening.Half; set => Set(_mapDarken, value); }
         public static DotSizeChoice MapDotSize { get => _mapDotSize?.Value ?? DotSizeChoice.Normal; set => Set(_mapDotSize, value); }
+
+        /// <summary>How big the marks kept on the map stand on the minimap, apart from the map's own dots.</summary>
+        public static DotSizeChoice MinimapDotSize { get => _miniDotSize?.Value ?? MapDotSize; set => Set(_miniDotSize, value); }
         public static bool MapZoomOut { get => _mapZoomOut?.Value ?? true; set => Set(_mapZoomOut, value); }
         public static bool MapSquares { get => _mapSquares?.Value ?? true; set => Set(_mapSquares, value); }
 
@@ -343,6 +347,9 @@ namespace Scry
                 "While a kind is shown, the map's picture under its marks is not darkened, darkened by half, or strongly.");
             _mapDotSize = config.Bind("1 - General", "ShowOnMapDotSize", DotSizeChoice.Normal,
                 "How big the dots of a kind shown or kept on the map are drawn beside the game's pins: XSmall, Small, Normal or Large.");
+            // Set apart from the map's dots, it starts as they stand, so the minimap looks as it did until it is changed.
+            _miniDotSize = config.Bind("1 - General", "MinimapDotSize", _mapDotSize.Value,
+                "How big the marks kept on the map stand on the minimap beside its pins: XSmall, Small, Normal or Large. It starts as the map's dot size.");
             _mapZoomOut = config.Bind("1 - General", "ShowOnMapZoomOut", true,
                 "Opens the map zoomed out just far enough to hold the nearest marks of the kind shown; your own zoom comes back as it closes. Off, the map keeps your zoom.");
             _mapSquares = config.Bind("1 - General", "ShowOnMapSquares", true,

@@ -109,6 +109,11 @@ namespace Scry.Tests
             Assert.Equal(dots.Choices.Select(c => c.Name), marks.Choices.Select(c => c.Name));
             Assert.Equal(new[] { "X-small", "Small", "Normal", "Large" }, dots.Choices.Select(c => c.Name));
             Assert.Equal(MapLook.MarkScales.Select(Stored.Exact), marks.Choices.Select(c => c.Value));
+            // The minimap's marks have a size of their own, chosen as the map's dots are.
+            var mini = Rows.Single(r => r.Keys.FirstOrDefault() == "MinimapDotSize");
+            Assert.Equal(SettingControl.Choices, mini.Control);
+            Assert.Equal(dots.Choices.Select(c => (c.Name, c.Value)), mini.Choices.Select(c => (c.Name, c.Value)));
+            Assert.Equal(dots.Group, mini.Group);
             // A slider stands only for seconds, metres, a loudness, a speed, a count or the panel's own size.
             var sliders = Rows.Where(r => r.Control == SettingControl.Slider).Select(r => r.Keys[0]).OrderBy(k => k).ToArray();
             Assert.Equal(new[] { "CatalogDelay", "LighterFilmFromMs", "PanelScale", "PreviewLoudness", "RecentCount", "SeenOnMapReach", "SeenReach", "SpinSpeed", "TooltipDelay" }, sliders);
@@ -281,7 +286,7 @@ namespace Scry.Tests
             var types = new Dictionary<string, Type>
             {
                 ["StageQuality"] = typeof(StageQuality), ["Rules"] = typeof(WorldRule),
-                ["ShowOnMapOtherPins"] = typeof(OtherPinsShown), ["ShowOnMapDarken"] = typeof(MapDarkening), ["ShowOnMapDotSize"] = typeof(DotSizeChoice), ["News"] = typeof(NewsShown), ["PlacesOnMap"] = typeof(PlacesTold),
+                ["ShowOnMapOtherPins"] = typeof(OtherPinsShown), ["ShowOnMapDarken"] = typeof(MapDarkening), ["ShowOnMapDotSize"] = typeof(DotSizeChoice), ["MinimapDotSize"] = typeof(DotSizeChoice), ["News"] = typeof(NewsShown), ["PlacesOnMap"] = typeof(PlacesTold),
             };
             foreach (var each in WorldSources.All) types[each + "UpTo"] = typeof(SourceLevel);
             foreach (var row in Rows.Where(r => r.Control == SettingControl.Choices))
