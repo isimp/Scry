@@ -26,8 +26,7 @@ namespace Scry
             }
             KeepWhatIsKept(book);
             yield return MapCodeCompiled(p);
-            var here = player.transform.position;
-            var spots = new List<(int X, int Z)> { ((int)here.x + 20, (int)here.z), ((int)here.x - 25, (int)here.z + 10), ((int)here.x, (int)here.z - 30) };
+            var spots = SpreadSpots(player.transform.position);
             MapSpots.SpotsInsteadForTest(k => k == kind ? spots : new List<(int X, int Z)>());
             ScryPanel.TakeAllOffMap();
 
@@ -64,6 +63,7 @@ namespace Scry
             // The map strip's Keep on the map has the mark beside it too, its picker under it.
             Session.Hide();
             Minimap.instance.SetMapMode(Minimap.MapMode.Large);
+            LookCloserAtMarks();
             var marks = ScryPanel.Drawn(PanelPart.MapKeepMark);
             MapSpots.Show(X.Find(kind));
             yield return Until(() => ScryPanel.Drawn(PanelPart.MapKeepMark) > marks + 1 && ScryPanel.MarkPieceForTest(strip: true) == kind, 5);
@@ -93,8 +93,39 @@ namespace Scry
         private static void MarkOfferedAsItWas()
         {
             ScryPanel.OpenMarkPickerForTest(null);
+            MarksLookedAtAsBefore();
             MapSpots.Hide();
             KeptOnMapAsItWas();
+        }
+
+        /// <summary>The large map's zoom before a part looked closer at its marks; put back after.</summary>
+        private static float? _zoomBeforeMarks;
+
+        /// <summary>Three made-up spots of a kind round the character, far enough apart, and from the character's own arrow, to be told apart on a map looked at closely.</summary>
+        private static List<(int X, int Z)> SpreadSpots(Vector3 here) => new List<(int X, int Z)>
+        {
+            ((int)here.x + 140, (int)here.z + 20), ((int)here.x - 150, (int)here.z + 90), ((int)here.x + 30, (int)here.z - 160),
+        };
+
+        /// <summary>
+        /// The large map looked at closely, as play sees a mark near, so its picture can be judged
+        /// in the part's pictures; every ground counted shown, so the made-up spots stand.
+        /// </summary>
+        private static void LookCloserAtMarks()
+        {
+            CompendiumMap.ShownEverywhereForTest(true);
+            var map = Minimap.instance;
+            if (map == null) return;
+            if (_zoomBeforeMarks == null) _zoomBeforeMarks = map.LargeZoom;
+            map.LargeZoom = 0.04f;
+        }
+
+        /// <summary>The large map's zoom put back, and only the map's own ground counted shown again.</summary>
+        private static void MarksLookedAtAsBefore()
+        {
+            CompendiumMap.ShownEverywhereForTest(false);
+            if (_zoomBeforeMarks is float was && Minimap.instance != null) Minimap.instance.LargeZoom = was;
+            _zoomBeforeMarks = null;
         }
     }
 }

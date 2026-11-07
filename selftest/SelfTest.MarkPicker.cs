@@ -28,8 +28,7 @@ namespace Scry
             }
             KeepWhatIsKept(book);
             yield return MapCodeCompiled(p);
-            var here = player.transform.position;
-            var spots = new List<(int X, int Z)> { ((int)here.x + 20, (int)here.z), ((int)here.x - 25, (int)here.z + 10), ((int)here.x, (int)here.z - 30) };
+            var spots = SpreadSpots(player.transform.position);
             MapSpots.SpotsInsteadForTest(k => k == kind ? spots : new List<(int X, int Z)>());
             ScryPanel.TakeAllOffMap();
             ScryPanel.KeepOnMap(kind, true);
@@ -70,6 +69,7 @@ namespace Scry
             ScryPanel.OpenKeptListForTest(false);
             Session.Hide();
             Minimap.instance.SetMapMode(Minimap.MapMode.Large);
+            LookCloserAtMarks();
             yield return Until(() => MapSpots.DotsShown == spots.Count && MapSpots.DotPictureForTest(0) == made, 10);
             p.Check(MapSpots.DotsShown == spots.Count && Enumerable.Range(0, spots.Count).All(d => MapSpots.DotPictureForTest(d) == made), "the large map's dots stand in the hammer at once",
                 $"{Numbers.Count(MapSpots.DotsShown)} dots, {(MapSpots.DotPictureForTest(0) is Sprite first && first != null ? first.texture.name : "none")}");
@@ -92,6 +92,7 @@ namespace Scry
         private static void MarkPickedAsItWas()
         {
             ScryPanel.OpenMarkPickerForTest(null);
+            MarksLookedAtAsBefore();
             KeptOnMapAsItWas();
         }
     }

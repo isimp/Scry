@@ -564,8 +564,13 @@ namespace Scry
             if (!large) PutZoomBack(map);
             // A server ceasing to remember what is seen while a kind is shown takes it away, as it does what is kept.
             if (Showing.Showing && !MapKept.Remembered) Hide();
+            // Timed apart, so a first frame's slow start is told by its piece.
+            var ticking = Timing.Start();
             if (Showing.Showing) Showing.Tick(large, CompendiumMap.World);
+            Timing.Add("spots showing", ticking);
+            var refreshing = Timing.Start();
             if (large) MapKept.Refresh();
+            Timing.Add("spots kept", refreshing);
             // On TargetPortal's map of portals, hiding the map's pins, the dots, squares and dimming
             // step aside; a kind shown on demand is still told the map is open, so it ends as before.
             if (!large || !Showing.Showing && !MapKept.Any || TargetPortalMap.MarksAside)
@@ -573,6 +578,7 @@ namespace Scry
                 PutAway();
                 return;
             }
+            var holding = Timing.Start();
             var layer = map.m_pinRootLarge;
             if (layer != _layer || (_layer != null && _holder == null))
             {
@@ -581,6 +587,7 @@ namespace Scry
                 _layer = layer;
                 if (_layer != null) MakeHolder();
             }
+            Timing.Add("spots holder", holding);
             if (_holder == null) return;
             if (!_holder.gameObject.activeSelf) _holder.gameObject.SetActive(true);
             // The squares under the dots, placed as the map moves, as the dots are; the other pins dimmed while a kind is shown on demand.

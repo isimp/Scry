@@ -110,10 +110,22 @@ namespace Scry
             var kinds = MapKept.KindsIn(kept);
             var entry = kinds.Length > 0 ? WorldCatalog.Find(kinds[0]) : null;
             if (entry == null) return (null, null);
-            var drops = entry.TermLinks("drops");
-            var name = KeptMarks.OwnPictureOf(entry.Name, entry.Kind, entry.Icon is Sprite, drops.Select(d => (d.Name, d.Icon is Sprite)));
+            var drops = entry.TermLinks("drops").ToList();
+            // A deposit's shell drops nothing itself: what is mined inside it does, as its page tells.
+            if (!drops.Any(d => d.Icon is Sprite)) drops.AddRange(MinedInsideDrops(entry));
+            var name =KeptMarks.OwnPictureOf(entry.Name, entry.Kind, entry.Icon is Sprite, drops.Select(d => (d.Name, d.Icon is Sprite)));
             var shows = name == null ? null : name == entry.Name ? entry : drops.FirstOrDefault(d => d.Name == name);
             return shows?.Icon is Sprite picture ? (picture, shows.ShownName) : (null, null);
+        }
+
+        /// <summary>What the part a shell breaks into drops, a copper deposit's rock that is mined a piece at a time (<see cref="Knowledge.MinedInside"/>); none for anything else.</summary>
+        private static IReadOnlyList<Entry> MinedInsideDrops(Entry entry)
+        {
+            if (!(entry.Source is GameObject prefab) || prefab == null) return System.Array.Empty<Entry>();
+            var breaks = prefab.GetComponent<Destructible>();
+            var inside = breaks != null ? Knowledge.MinedInside(breaks.m_spawnWhenDestroyed) : null;
+            var mined = inside != null && inside != prefab ? WorldCatalog.Find(inside.name) : null;
+            return mined != null ? mined.TermLinks("drops") : System.Array.Empty<Entry>();
         }
 
         /// <summary>
