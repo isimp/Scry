@@ -11,7 +11,7 @@ namespace Scry
         private static (float Zoom, Vector2 Pointer)? _stacksBefore;
 
         /// <summary>
-        /// Two kinds kept 4 m apart, as Petrified Bone's ribs and skull lie, and a third mark of one
+        /// Two kinds kept 20 m apart, as remains of one find lie, and a third mark of one
         /// of them farther off: zoomed out, the two touch and show two pips under them, the lone one
         /// none; the pointer on them fans them out round their spot, naming both, one of them named
         /// alone when pointed at in the fan, and the fan closes as the pointer leaves it; zoomed in,
@@ -36,7 +36,7 @@ namespace Scry
             var here = player.transform.position;
             var (hx, hz) = ((int)here.x, (int)here.z);
             var copperSpots = new List<(int X, int Z)> { (hx + 20, hz), (hx - 30, hz + 10) };
-            var tinSpots = new List<(int X, int Z)> { (hx + 30, hz) };
+            var tinSpots = new List<(int X, int Z)> { (hx + 40, hz) };
             MapSpots.SpotsInsteadForTest(k => k == copper ? copperSpots : k == tin ? tinSpots : new List<(int X, int Z)>());
             ScryPanel.TakeAllOffMap();
             ScryPanel.KeepOnMap(copper, true);
@@ -45,15 +45,17 @@ namespace Scry
             MapSpots.Hide();
             Timing.ForgetBytesByPart();
 
-            // Zoomed out so a mark spans some 25 m, by the touch the map's zoom gives, the two touch:
-            // two pips under them, none under the lone one 50 m off.
+            // Zoomed out so a mark spans some 35 m, by the touch the map's zoom gives, the two 20 m
+            // apart touch: two pips under them, none under the lone one 50 m off. The pointer off
+            // the map first, so it rests on no mark it would fan out.
+            if (Cursor.lockState != CursorLockMode.Locked) ZInput.SetMousePosition(new Vector2(2f, 2f));
             map.SetMapMode(Minimap.MapMode.Large);
             map.LargeZoom = 0.06f;
             yield return Until(() => MapSpots.DotsShown == 3, 5);
-            if (MapSpots.TouchForTest > 0f) map.LargeZoom = Mathf.Clamp(0.06f * 25f / MapSpots.TouchForTest, SeenOnMap.NearestZoom, SeenOnMap.FarthestZoom);
+            if (MapSpots.TouchForTest > 0f) map.LargeZoom = Mathf.Clamp(0.06f * 35f / MapSpots.TouchForTest, SeenOnMap.NearestZoom, SeenOnMap.FarthestZoom);
             yield return Until(() => MapSpots.DotsShown == 3 && MapSpots.PipsShown == 2, 5);
             p.Note($"zoomed out to {Numbers.Amount(map.LargeZoom, 3)}, marks touch within {Numbers.Amount(MapSpots.TouchForTest, 1)} m");
-            p.Check(MapSpots.DotsShown == 3 && MapSpots.PipsShown == 2, "zoomed out, two kinds lying 4 m apart stand where they lie with two pips under them, the lone mark none",
+            p.Check(MapSpots.DotsShown == 3 && MapSpots.PipsShown == 2, "zoomed out, two kinds lying 20 m apart stand where they lie with two pips under them, the lone mark none",
                 $"{Numbers.Count(MapSpots.DotsShown)} dots, {Numbers.Count(MapSpots.PipsShown)} pips");
             yield return Picture(p, "stacked marks at rest, zoomed out");
 
@@ -86,11 +88,11 @@ namespace Scry
             }
             else p.Check(false, "a stacked mark stands on the screen to point at");
 
-            // Zoomed in, 10 m apart, they part and the pips go, where the nearest zoom parts them at all.
+            // Zoomed in, 20 m apart, they part and the pips go, where the nearest zoom parts them at all.
             map.LargeZoom = SeenOnMap.NearestZoom;
             yield return Until(() => MapSpots.PipsShown == 0 && MapSpots.DotsShown >= 2, 5);
-            if (MapSpots.TouchForTest < 10f) p.Check(MapSpots.PipsShown == 0, "zoomed in, the two part and their pips go", $"{Numbers.Count(MapSpots.PipsShown)} pips, touching within {Numbers.Amount(MapSpots.TouchForTest, 1)} m");
-            else p.Note($"at the nearest zoom marks still touch within {Numbers.Amount(MapSpots.TouchForTest, 1)} m, so two 10 m apart never part");
+            if (MapSpots.TouchForTest < 20f) p.Check(MapSpots.PipsShown == 0, "zoomed in, the two part and their pips go", $"{Numbers.Count(MapSpots.PipsShown)} pips, touching within {Numbers.Amount(MapSpots.TouchForTest, 1)} m");
+            else p.Note($"at the nearest zoom marks still touch within {Numbers.Amount(MapSpots.TouchForTest, 1)} m, so two 20 m apart never part");
             p.Within(Timing.MostMs("spots stacked"), 2, "gathering the marks into stacks holds no frame long", $"{Numbers.Amount(Timing.MostMs("spots stacked"), 2)} ms at the most");
             // As many marks as the map keeps at most, gathered in the game's own runtime: the quickest of five.
             var random = new System.Random(7);
@@ -111,7 +113,7 @@ namespace Scry
             map.SetMapMode(Minimap.MapMode.Small);
             yield return Until(() => MiniKept.DotsShown == 3 && MiniKept.TouchForTest > 0f, 5);
             yield return null;
-            var pips = MiniKept.TouchForTest > 10f ? 2 : 0;
+            var pips = MiniKept.TouchForTest > 20f ? 2 : 0;
             p.Check(MiniKept.PipsShown == pips, pips == 2 ? "on the minimap the two touch and show their pips too" : "on the minimap, zoomed near, the two stand apart with no pips",
                 $"{Numbers.Count(MiniKept.DotsShown)} dots, {Numbers.Count(MiniKept.PipsShown)} pips, touching within {Numbers.Amount(MiniKept.TouchForTest, 1)} m");
             yield return Picture(p, "stacked marks on the minimap");

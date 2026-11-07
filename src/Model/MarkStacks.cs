@@ -167,4 +167,21 @@ namespace Scry
             return dx * dx + dy * dy <= reach * reach;
         }
     }
+
+    /// <summary>A mark of a stack as its words name it: its kind, whether the server told of it, and how far and which way it is.</summary>
+    internal sealed class StackedMark
+    {
+        public StackedMark(string name, bool told, float metres, string direction)
+        {
+            Name = name;
+            Told = told;
+            Metres = metres;
+            Direction = direction;
+        }
+
+        public string Name { get; }
+        public bool Told { get; }
+        public float Metres { get; }
+        public string Direction { get; }
+    }
 }

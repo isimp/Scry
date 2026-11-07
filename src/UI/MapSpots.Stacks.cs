@@ -50,6 +50,7 @@ namespace Scry
         [ForTest]
         public static Vector2? StackedDotForTest()
         {
+            if (FanStanding > 0) return new Vector2(_fanSpot.Rect.position.x, _fanSpot.Rect.position.y);
             for (var i = 0; i < _standing && i < PlacedFrom.Count; i++)
             {
                 if (Stacks.CountAt(Stacks.AnchorOf(PlacedFrom[i])) > 1) return new Vector2(Dots[i].Rect.position.x, Dots[i].Rect.position.y);
@@ -180,12 +181,13 @@ namespace Scry
         /// <summary>The words of a stack pointed at: every kind there, nearest first (<see cref="SpotWords.StackHover"/>).</summary>
         private static string StackWords(int anchor, Player player)
         {
-            var marks = new List<(string Name, bool Told, float Metres, string Direction)>();
-            foreach (var dot in Stacks.MembersOf(anchor))
+            var marks = new List<StackedMark>();
+            var members = Stacks.MembersOf(anchor);
+            for (var i = 0; i < members.Count; i++)
             {
-                var (x, z, _, name, told) = StandingDots[dot];
+                var (x, z, _, name, told) = StandingDots[members[i]];
                 var (dx, dz) = player != null ? (x - player.transform.position.x, z - player.transform.position.z) : (0f, 0f);
-                marks.Add((name, told, Mathf.Sqrt(dx * dx + dz * dz), SpotWords.Direction(dx, dz)));
+                marks.Add(new StackedMark(name, told, Mathf.Sqrt(dx * dx + dz * dz), SpotWords.Direction(dx, dz)));
             }
             return SpotWords.StackHover(marks);
         }

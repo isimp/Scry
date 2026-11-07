@@ -199,10 +199,10 @@ namespace Scry.Tests
         {
             var words = SpotWords.StackHover(new[]
             {
-                ("Giant skull", false, 160f, "north-east"),
-                ("Giant ribs", false, 140f, "north-east"),
-                ("Giant ribs", false, 150f, "east"),
-                ("Copper deposit", true, 300f, "north"),
+                new StackedMark("Giant skull", false, 160f, "north-east"),
+                new StackedMark("Giant ribs", false, 150f, "east"),
+                new StackedMark("Giant ribs", false, 140f, "north-east"),
+                new StackedMark("Copper deposit", true, 300f, "north"),
             });
             Assert.Equal(
                 "4 marks here, point at one to name it alone\n" +
@@ -211,7 +211,9 @@ namespace Scry.Tests
                 "Copper deposit · the server says one stands here · 300 m north",
                 words);
             // One told of beside you says so.
-            Assert.EndsWith("Tin · the server says one stands here, beside you", SpotWords.StackHover(new[] { ("Tin", true, 2f, "north"), ("Tin", false, 3f, "north") }).Split('\n')[1]);
+            // One told of and one seen of a kind are two lines, as their dots differ.
+            var lines = SpotWords.StackHover(new[] { new StackedMark("Tin", true, 2f, "north"), new StackedMark("Tin", false, 3f, "north") }).Split('\n');
+            Assert.Equal(new[] { "Tin · the server says one stands here, beside you", "Tin · beside you" }, lines.Skip(1));
         }
     }
 

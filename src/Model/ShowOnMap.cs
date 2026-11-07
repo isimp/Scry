@@ -85,20 +85,37 @@ namespace Scry
         /// <summary>
         /// A stack of marks pointed at (<see cref="MarkStacks"/>): how many stand there, then each
         /// kind once, nearest first, with how many of it and how far and which way the nearest is;
-        /// a kind the server told of said so, as its hollow dot is.
+        /// a kind the server told of said so, as its hollow dot is. In plain loops over marks as
+        /// objects, so the first stack pointed at in a game compiles no new generic code mid-frame.
         /// </summary>
-        public static string StackHover(IEnumerable<(string Name, bool Told, float Metres, string Direction)> marks)
+        public static string StackHover(IReadOnlyList<StackedMark> marks)
         {
-            var all = marks.ToList();
-            var kinds = all.GroupBy(m => (m.Name, m.Told))
-                .Select(g => (g.Key.Name, g.Key.Told, Count: g.Count(), Nearest: g.OrderBy(m => m.Metres).First()))
-                .OrderBy(k => k.Nearest.Metres).ThenBy(k => k.Name, StringComparer.Ordinal);
-            var said = $"{Numbers.Count(all.Count)} marks here, point at one to name it alone";
-            foreach (var (name, told, count, nearest) in kinds)
+            var kinds = new List<StackedMark>();
+            var counts = new List<int>();
+            for (var i = 0; i < marks.Count; i++)
             {
-                var where = nearest.Metres < Beside ? (told ? "the server says one stands here, beside you" : "beside you")
-                    : (told ? "the server says one stands here · " : "") + (count > 1 ? "nearest " : "") + $"{Distance(nearest.Metres)} {nearest.Direction}";
-                said += "\n" + (count > 1 ? Numbers.Count(count) + " " : "") + name + " · " + where;
+                var mark = marks[i];
+                var at = -1;
+                for (var k = 0; k < kinds.Count && at < 0; k++) if (kinds[k].Told == mark.Told && string.Equals(kinds[k].Name, mark.Name, StringComparison.Ordinal)) at = k;
+                if (at < 0)
+                {
+                    kinds.Add(mark);
+                    counts.Add(1);
+                    continue;
+                }
+                counts[at]++;
+                if (mark.Metres < kinds[at].Metres) kinds[at] = mark;
+            }
+            var order = new List<int>();
+            for (var k = 0; k < kinds.Count; k++) order.Add(k);
+            order.Sort((a, b) => kinds[a].Metres != kinds[b].Metres ? kinds[a].Metres.CompareTo(kinds[b].Metres) : string.CompareOrdinal(kinds[a].Name, kinds[b].Name));
+            var said = $"{Numbers.Count(marks.Count)} marks here, point at one to name it alone";
+            foreach (var k in order)
+            {
+                var (nearest, count) = (kinds[k], counts[k]);
+                var where = nearest.Metres < Beside ? (nearest.Told ? "the server says one stands here, beside you" : "beside you")
+                    : (nearest.Told ? "the server says one stands here · " : "") + (count > 1 ? "nearest " : "") + $"{Distance(nearest.Metres)} {nearest.Direction}";
+                said += "\n" + (count > 1 ? Numbers.Count(count) + " " : "") + nearest.Name + " · " + where;
             }
             return said;
         }

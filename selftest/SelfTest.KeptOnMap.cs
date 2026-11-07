@@ -70,7 +70,11 @@ namespace Scry
             MapSpots.Hide();
             yield return Until(() => MapSpots.DotsShown == spots.Count && MapSpots.Strip == null, 5);
 
-            // The pointer on a dot names it, ringed.
+            // The pointer on a dot names it, ringed: at the nearest zoom, where the kind's dots 30 m and
+            // more apart stand apart; farther out they touch and stand as one stack, named together.
+            var zoomWas = Minimap.instance.LargeZoom;
+            Minimap.instance.LargeZoom = SeenOnMap.NearestZoom;
+            yield return Until(() => MapSpots.DotsShown == spots.Count && MapSpots.PipsShown == 0, 5);
             var first = MapSpots.DotCenterForTest(0);
             if (first is Vector2 at)
             {
@@ -81,6 +85,7 @@ namespace Scry
                 yield return Picture(p, "kept on the map, a dot pointed at");
             }
             else p.Note("no dot stands on the screen to point at");
+            Minimap.instance.LargeZoom = zoomWas;
 
             // The minimap shows what is kept, where the settings ask.
             Settings.DungeonMarksOnMinimap = true;

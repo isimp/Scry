@@ -28,7 +28,9 @@ namespace Scry
                 Skin.Icon(new Rect(at.x - pad, at.y - pad, at.width + pad * 2f, at.height + pad * 2f), Skin.PointedRing, Color.white);
             }
             var content = new GUIContent(words);
-            var size = Skin.Tip.CalcSize(content);
+            // As wide as its longest line and a point more, so no line wraps at its own width, and as tall as it then stands.
+            var width = Mathf.Ceil(Skin.Tip.CalcSize(content).x) + 1f;
+            var size = new Vector2(width, Skin.Tip.CalcHeight(content, width));
             var pointer = ZInput.pointerPosition;
             var x = Mathf.Min(pointer.x + U(18f), Screen.width - size.x - U(4f));
             var y = Mathf.Min(Screen.height - pointer.y + U(18f), Screen.height - size.y - U(4f));
