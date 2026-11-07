@@ -69,8 +69,9 @@ namespace Scry
         MapKeep,
         PageKeep,
 
-        /// <summary>A page's all-kinds switch beside its Show on map, the strip's own.</summary>
-        PageAllKinds,
+        /// <summary>A page's buttons showing and keeping all its kinds at once.</summary>
+        PageShowAll,
+        PageKeepAll,
 
         /// <summary>The words of a dot or square the pointer rests on, on Valheim's map.</summary>
         MapPointed,

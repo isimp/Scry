@@ -12,8 +12,8 @@ namespace Scry
         /// <summary>
         /// The ribs and the skull of Petrified Bone, which the game names alike, are one page's two
         /// kinds on the map, as the tar pits are one place's three: a made-up character who knows them
-        /// gets the all-kinds switch on each page, the strip's own, and with it lit Show on map and
-        /// Keep on the map act on both as one; pictured lit.
+        /// gets Show all and Keep all beside Show on map and Keep on the map on each page, their
+        /// tips naming the kinds; pictured.
         /// </summary>
         private static IEnumerator AllKindsOnAPage(Probe p)
         {
@@ -33,7 +33,6 @@ namespace Scry
             foreach (var met in new[] { ribs, skull }.Concat(pits)) book.Raise(met.Key, KnownLevel.Known);
             var view = new CompendiumView(X.Entries);
             view.Tell(book, CompendiumRule.Strict);
-            var allWas = MapSpots.AllKinds;
             Session.ShowKnownInstead(view);
             try
             {
@@ -46,19 +45,20 @@ namespace Scry
                 var pitKinds = MapSpots.KindsOf(pits[0], X).Count;
                 p.Check(pitKinds == pits.Count, "a tar pit's page offers all three tar pits", Numbers.Count(pitKinds));
 
-                MapSpots.ShowAllKinds(true);
-                p.Check(MapShowing.KeyFor(MapSpots.KindOf(skull), kinds, MapSpots.AllKinds) == MapShowing.AllKindsKey(kinds), "with the switch lit, Show on map and Keep on the map act on both kinds as one");
+                var names = MapSpots.KindsOf(skull, X).Select(k => k.ShownName).ToList();
+                var tip = SpotWords.ShowAllTip(names);
+                p.Check(names.Count == 2 && names.All(n => tip.Contains(n)), "Show all names both kinds in its tip", tip);
                 Select(skull);
                 yield return Until(() => X.Selected == skull, 3);
                 yield return Settled();
-                var drawn = ScryPanel.Drawn(PanelPart.PageAllKinds);
-                yield return Until(() => ScryPanel.Drawn(PanelPart.PageAllKinds) > drawn, 3);
-                p.Check(ScryPanel.Drawn(PanelPart.PageAllKinds) > drawn, "the page draws the all-kinds switch beside Show on map");
-                yield return Picture(p, "Petrified Bone's page, all 2 kinds lit");
+                var shows = ScryPanel.Drawn(PanelPart.PageShowAll);
+                var keeps = ScryPanel.Drawn(PanelPart.PageKeepAll);
+                yield return Until(() => ScryPanel.Drawn(PanelPart.PageShowAll) > shows && ScryPanel.Drawn(PanelPart.PageKeepAll) > keeps, 3);
+                p.Check(ScryPanel.Drawn(PanelPart.PageShowAll) > shows && ScryPanel.Drawn(PanelPart.PageKeepAll) > keeps, "the page draws Show all 2 kinds and Keep all 2 kinds beside its own two");
+                yield return Picture(p, "Petrified Bone's page, its map actions");
             }
             finally
             {
-                MapSpots.ShowAllKinds(allWas);
                 Session.ShowKnownInstead(null);
             }
         }

@@ -233,7 +233,7 @@ namespace Scry
                 }
                 LinkLabel(link, SpotWords.ShowOnMap, Skin.Wrap, Skin.Accent);
                 if (link.Contains(Event.current.mousePosition)) AskTip("you-map", SpotWords.Tip(_youSpots));
-                if (GUI.Button(link, GUIContent.none, GUIStyle.none)) ShowOnMap(entry);
+                if (GUI.Button(link, GUIContent.none, GUIStyle.none)) ShowOnMap(entry, all: false);
             }
             return y + height + U(6f);
         }

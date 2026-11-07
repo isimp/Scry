@@ -27,14 +27,14 @@ namespace Scry.Tests
             // The kinds a page offers: each kept as spots once, in order; a broken form keeps its whole's spots, so it adds none.
             Assert.Equal(new[] { "giant_ribs", "giant_skull" }, MapShowing.KindsOffered(new[] { "giant_ribs", null, "giant_skull", "giant_skull" }));
             Assert.Empty(MapShowing.KindsOffered(new[] { "giant_ribs", null }));
-            // Show on map and Keep on the map act on all of them while the switch is lit, else on the page's own kind.
-            var kinds = new[] { "giant_ribs", "giant_skull" };
-            Assert.Equal("giant_ribs+giant_skull", MapShowing.KeyFor("giant_skull", kinds, all: true));
-            Assert.Equal("giant_skull", MapShowing.KeyFor("giant_skull", kinds, all: false));
-            Assert.Equal("giant_skull", MapShowing.KeyFor("giant_skull", new[] { "giant_skull" }, all: true));
-            // The page's switch says what it does, lit or not.
-            Assert.Equal("Shows and keeps all 2 kinds of Petrified Bone on the map, here and on the map's strip", SpotWords.AllKindsTip("Petrified Bone", 2, on: false));
-            Assert.Equal("All 2 kinds of Petrified Bone are shown and kept together: a click goes back to this kind alone", SpotWords.AllKindsTip("Petrified Bone", 2, on: true));
+            // Plain actions, each doing one thing: the buttons count the kinds, their tips name them.
+            Assert.Equal("Show all 2 kinds", SpotWords.ShowAll(2));
+            Assert.Equal("Keep all 2 kinds", SpotWords.KeepAll(2));
+            var names = new[] { "Giant ribs", "Giant skull" };
+            Assert.Equal("Shows Giant ribs and Giant skull on the map at once", SpotWords.ShowAllTip(names));
+            Assert.Equal("Keeps Giant ribs and Giant skull on Valheim's map as one line, every time it opens", SpotWords.KeepAllTip(names, kept: false));
+            Assert.Equal("Giant ribs and Giant skull are kept on the map as one line: a click takes them off", SpotWords.KeepAllTip(names, kept: true));
+            Assert.Equal("Shows Tar pit 1, Tar pit 2 and Tar pit 3 on the map at once", SpotWords.ShowAllTip(new[] { "Tar pit 1", "Tar pit 2", "Tar pit 3" }));
         }
 
         [Fact]

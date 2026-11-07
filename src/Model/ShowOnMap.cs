@@ -100,10 +100,19 @@ namespace Scry
         /// <summary>The strip's button showing all of a place's kinds, lit while they are shown, or the page's kind alone again.</summary>
         public static string AllKindsChip(int kinds) => $"All {Numbers.Count(kinds)} kinds";
 
-        /// <summary>The tip of a page's all-kinds switch, the same switch as the strip's: what a click does, lit or not.</summary>
-        public static string AllKindsTip(string family, int kinds, bool on) => on
-            ? $"All {Numbers.Count(kinds)} kinds of {family} are shown and kept together: a click goes back to this kind alone"
-            : $"Shows and keeps all {Numbers.Count(kinds)} kinds of {family} on the map, here and on the map's strip";
+        /// <summary>A page's button opening the map with all its kinds at once.</summary>
+        public static string ShowAll(int kinds) => $"Show all {Numbers.Count(kinds)} kinds";
+
+        /// <summary>Its tip, naming the kinds it shows.</summary>
+        public static string ShowAllTip(IReadOnlyList<string> kinds) => $"Shows {Naming.Joined(kinds)} on the map at once";
+
+        /// <summary>A page's button keeping all its kinds on the map as one line at once.</summary>
+        public static string KeepAll(int kinds) => $"Keep all {Numbers.Count(kinds)} kinds";
+
+        /// <summary>Its tip, naming the kinds it keeps: what a click does, kept or not.</summary>
+        public static string KeepAllTip(IReadOnlyList<string> kinds, bool kept) => kept
+            ? $"{Naming.Joined(kinds)} are kept on the map as one line: a click takes them off"
+            : $"Keeps {Naming.Joined(kinds)} on Valheim's map as one line, every time it opens";
 
         /// <summary>How near the nearest stands to be beside you rather than at a distance.</summary>
         private const float Beside = 5f;
@@ -228,9 +237,6 @@ namespace Scry
             var offered = kinds.Where(k => k != null).Distinct(StringComparer.Ordinal).ToList();
             return offered.Count >= 2 ? offered : (IReadOnlyList<string>)Array.Empty<string>();
         }
-
-        /// <summary>What Show on map and Keep on the map act on: all the kinds offered while the all-kinds switch is lit, else the page's own kind.</summary>
-        public static string KeyFor(string kind, IReadOnlyList<string> kinds, bool all) => all && kinds != null && kinds.Count >= 2 ? AllKindsKey(kinds) : kind;
 
         /// <summary>
         /// The resources one page offers as its kinds: those the game names alike when looked at

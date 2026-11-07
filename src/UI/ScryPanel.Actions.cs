@@ -197,29 +197,23 @@ namespace Scry
 
         /// <summary>
         /// Show on map, after a page's other actions, where its kind's spots are kept: greyed, its tip
-        /// saying why, where it can show nothing now; where the page has two or more kinds, the
-        /// all-kinds switch, the same as the map strip's, which Show on map and Keep on the map then
-        /// follow; and Keep on the map beside them, lit while what they act on is kept.
+        /// saying why, where it can show nothing now; Show all N kinds beside it where the page has
+        /// two or more kinds, its tip naming them; Keep on the map, lit while its kind is kept, alone
+        /// or with the others; and Keep all N kinds, lit while they are kept as one line. Each does
+        /// one thing; the map strip's own chip switches what the open map shows.
         /// </summary>
         private static void ShowOnMapAction(Entry entry)
         {
-            var own = MapSpots.KindOf(entry);
-            if (own == null) return;
+            var kind = MapSpots.KindOf(entry);
+            if (kind == null) return;
             var kinds = MapSpots.KindsOf(entry, _explorer);
             var keys = kinds.Select(MapSpots.KindOf).ToList();
-            var all = MapSpots.AllKinds && keys.Count >= 2;
-            var kind = MapShowing.KeyFor(own, keys, MapSpots.AllKinds);
-            var shown = all ? kinds : (IReadOnlyList<Entry>)new[] { entry };
-            var count = shown.Sum(e => SeenSpotsKeeper.CountOf(MapSpots.KindOf(e)));
-            var squares = shown.Sum(MapSpots.SquareCount);
-            var told = shown.Sum(MapSpots.ToldCount);
-            // What the server tells stands apart from what the character keeps, as its squares do.
-            var block = MapSpots.BlockOf(count, squares + told);
-            if (ActionShown(SpotWords.ShowOnMap, ActionLook.Plain, block == MapBlock.None, block == MapBlock.None ? SpotWords.Tip(count, squares, told) : SpotWords.WhyNot(block))) ShowOnMap(entry);
+            var names = kinds.Select(k => k.ShownName).ToList();
+            MapAction(SpotWords.ShowOnMap, new[] { entry }, null, () => ShowOnMap(entry, all: false));
             if (keys.Count >= 2)
             {
-                CountDrawn(PanelPart.PageAllKinds);
-                if (ActionShown(SpotWords.AllKindsChip(keys.Count), all ? ActionLook.On : ActionLook.Plain, true, SpotWords.AllKindsTip(MapSpots.FamilyNameOf(entry), keys.Count, all))) MapSpots.ShowAllKinds(!MapSpots.AllKinds);
+                CountDrawn(PanelPart.PageShowAll);
+                MapAction(SpotWords.ShowAll(keys.Count), kinds, SpotWords.ShowAllTip(names), () => ShowOnMap(entry, all: true));
             }
             // Kept without showing it now: it stands every time the map opens, as the strip's own button keeps it.
             var book = CompendiumKeeper.Book;
@@ -230,12 +224,36 @@ namespace Scry
             var itself = keptBy == kind;
             var tip = keptBy != null && !itself ? SpotWords.KeptWith(KeptName(keptBy)) : SpotWords.KeepTip(itself);
             if (ActionShown(SpotWords.Keep, keptBy != null ? ActionLook.On : ActionLook.Plain, keptBy == null || itself, tip)) KeepOnMap(kind, !itself);
+            if (keys.Count < 2) return;
+            CountDrawn(PanelPart.PageKeepAll);
+            var allKey = MapShowing.AllKindsKey(keys);
+            var keptAll = book.Keeps(allKey);
+            if (ActionShown(SpotWords.KeepAll(keys.Count), keptAll ? ActionLook.On : ActionLook.Plain, true, SpotWords.KeepAllTip(names, keptAll))) KeepOnMap(allKey, !keptAll);
         }
 
-        /// <summary>Closes Scry and opens Valheim's map with a dot on each of the page's kind the character saw, and a place's squares (<see cref="MapSpots"/>).</summary>
-        private static void ShowOnMap(Entry entry)
+        /// <summary>
+        /// One of the page's map buttons showing kinds: greyed, its tip saying why, where they can
+        /// show nothing now; else its tip, or how many they show (<see cref="SpotWords.Tip(int, int, int)"/>).
+        /// </summary>
+        private static void MapAction(string label, IReadOnlyList<Entry> shown, string tip, System.Action show)
+        {
+            var count = shown.Sum(e => SeenSpotsKeeper.CountOf(MapSpots.KindOf(e)));
+            var squares = shown.Sum(MapSpots.SquareCount);
+            var told = shown.Sum(MapSpots.ToldCount);
+            // What the server tells stands apart from what the character keeps, as its squares do.
+            var block = MapSpots.BlockOf(count, squares + told);
+            if (ActionShown(label, ActionLook.Plain, block == MapBlock.None, block == MapBlock.None ? tip ?? SpotWords.Tip(count, squares, told) : SpotWords.WhyNot(block))) show();
+        }
+
+        /// <summary>
+        /// Closes Scry and opens Valheim's map with a dot on each of the page's kind the character
+        /// saw, and a place's squares, or all its kinds at once, the strip's chip set to match
+        /// (<see cref="MapSpots"/>).
+        /// </summary>
+        private static void ShowOnMap(Entry entry, bool all)
         {
             AskClose();
+            MapSpots.ShowAllKinds(all);
             MapSpots.Show(entry, MapSpots.KindsOf(entry, _explorer), MapSpots.FamilyNameOf(entry));
         }
 
