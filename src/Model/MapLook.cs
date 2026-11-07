@@ -64,6 +64,13 @@ namespace Scry
         /// <summary>Whether the pips under touching marks stand over the pins: by their own switch, or with every mark.</summary>
         public static bool PipsOver(MarksOverPins over, bool pipsOver) => pipsOver || over == MarksOverPins.Always;
 
+        /// <summary>
+        /// Whether a click on a dot is the dot's, opening its kind's page: so wherever the dot the
+        /// pointer rests on stands in front, and under every pin only where no pin of the game's
+        /// stands under the pointer, which the game's own click then crosses off.
+        /// </summary>
+        public static bool ClickIsMarks(MarksOverPins over, bool pinUnder) => over != MarksOverPins.Never || !pinUnder;
+
         /// <summary>The share of their brightness the game's pins near a pointed mark keep.</summary>
         public static float NearShare(PinsNearPointer near) => near == PinsNearPointer.Third ? SeenOnMap.OthersDimmed : 1f;
 

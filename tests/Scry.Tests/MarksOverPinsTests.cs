@@ -65,6 +65,17 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AClickOnADotIsTheDotsUnlessAPinOfTheGamesStandsOverIt()
+        {
+            // A dot clicked opens its kind's page; a pin of the game's under the pointer is crossed
+            // off by the game's own click only where Scry's dots stand under every pin.
+            Assert.True(MapLook.ClickIsMarks(MarksOverPins.Never, pinUnder: false));
+            Assert.False(MapLook.ClickIsMarks(MarksOverPins.Never, pinUnder: true));
+            Assert.True(MapLook.ClickIsMarks(MarksOverPins.Pointed, pinUnder: true));
+            Assert.True(MapLook.ClickIsMarks(MarksOverPins.Always, pinUnder: true));
+        }
+
+        [Fact]
         public void PinsNearAPointedMarkFadeToAThirdWhereTheSettingsAsk()
         {
             Assert.Equal(1f, MapLook.NearShare(PinsNearPointer.Full));

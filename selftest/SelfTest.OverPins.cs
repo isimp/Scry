@@ -59,6 +59,37 @@ namespace Scry
         }
 
         /// <summary>
+        /// The lone copper dot clicked on the large map, through the map's own click as a player's
+        /// is (<c>Minimap.OnMapLeftClick</c>): its kind's page opens in Scry and the map goes back to
+        /// the minimap. Pictured, then the large map opened again where it stood.
+        /// </summary>
+        private static IEnumerator DotClickOpensPage(Probe p, Minimap map, string kind)
+        {
+            var lone = MapSpots.LoneDotForTest();
+            if (lone == null)
+            {
+                p.Check(false, "a lone dot stands on the screen to click");
+                yield break;
+            }
+            var (zoom, panned) = (map.LargeZoom, MapPanned(map));
+            PointerTo(lone.Value);
+            yield return null;
+            MapSpots.PressedForTest(lone.Value);
+            map.OnMapLeftClick();
+            yield return Until(() => Session.IsOpen && X.Selected != null, 3);
+            var wanted = X.Find(kind)?.Key;
+            p.Check(MapMarkButtons.DotOpenedForTest == wanted && map.m_mode == Minimap.MapMode.Small && Session.IsOpen && X.Selected?.Key == wanted,
+                "a click on a dot opens its kind's page in Scry, the map going back to the minimap", $"{MapMarkButtons.DotOpenedForTest}, {map.m_mode}, {X.Selected?.Key}");
+            yield return Settled();
+            yield return Picture(p, "a dot clicked on the map, its page open");
+            Session.Hide();
+            map.SetMapMode(Minimap.MapMode.Large);
+            map.LargeZoom = zoom;
+            MapPanned(map) = panned;
+            yield return null;
+        }
+
+        /// <summary>
         /// A pin of the game's laid as the player lays one, not saved, by the game's own call; its
         /// last parameter, of a type in an assembly the self-test does not build against, at its
         /// default. None where the game has no such call.

@@ -523,6 +523,28 @@ namespace Scry
             return null;
         }
 
+        /// <summary>
+        /// A click of the map's own on one of Show on map's dots (<see cref="MapSpots.ClickedKind"/>):
+        /// its kind's page opened in Scry, the map back to the minimap, as a dungeon's mark opens
+        /// its dungeon; false where the click is no dot's.
+        /// </summary>
+        public static bool OpenDot(Vector2 screen)
+        {
+            var key = MapSpots.ClickedKind(screen);
+            if (key == null) return false;
+            HideName();
+            Minimap.instance.OrNull()?.SetMapMode(Minimap.MapMode.Small);
+            Session.ShowEntry(key);
+            _dotOpened = key;
+            return true;
+        }
+
+        private static string _dotOpened;
+
+        /// <summary>The page the last click on a dot opened, for the self-test.</summary>
+        [ForTest]
+        public static string DotOpenedForTest => _dotOpened;
+
         /// <summary>A click of the map's own at a point of the screen: the mark's there, opening its map; false where it is on none.</summary>
         public static bool TakeClick(Vector2 screen)
         {
@@ -647,7 +669,7 @@ namespace Scry
     /// <summary>
     /// The game's map ticks the pin nearest a click (<c>Minimap.OnMapLeftClick</c>) and opens the box
     /// for a new pin on a double-click (<c>Minimap.OnMapDblClick</c>); with the pointer on a dungeon's
-    /// mark, the click is the mark's, and on Show on map's strip the strip's, and the map does neither. Should it fail, it stands aside and
+    /// mark, the click is the mark's, on Show on map's strip the strip's, and on one of Scry's dots the dot's, and the map does neither. Should it fail, it stands aside and
     /// leaves the map as it is.
     /// </summary>
     [HarmonyPatch(typeof(Minimap), "OnMapLeftClick")]
@@ -666,9 +688,9 @@ namespace Scry
             return !taken;
         }
 
-        /// <summary>A click on a mark is the mark's; one on Show on map's strip is the strip's (<see cref="MapSpots.PointerOnStrip"/>).</summary>
+        /// <summary>A click on a mark is the mark's; one on Show on map's strip is the strip's (<see cref="MapSpots.PointerOnStrip"/>); one on a dot the dot's, opening its kind's page (<see cref="MapMarkButtons.OpenDot"/>).</summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static bool Take() => MapSpots.PointerOnStrip() || MapMarkButtons.TakeClick(ZInput.pointerPosition);
+        private static bool Take() => MapSpots.PointerOnStrip() || MapMarkButtons.TakeClick(ZInput.pointerPosition) || MapMarkButtons.OpenDot(ZInput.pointerPosition);
     }
 
     /// <summary>A double-click on a dungeon's mark adds no pin (<see cref="MapMarkClick"/>).</summary>
@@ -689,6 +711,6 @@ namespace Scry
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static bool On() => MapSpots.PointerOnStrip() || MapMarkButtons.PointerOnMark();
+        private static bool On() => MapSpots.PointerOnStrip() || MapMarkButtons.PointerOnMark() || MapSpots.PointerOnDot();
     }
 }

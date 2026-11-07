@@ -479,6 +479,7 @@ namespace Scry
             _dotsFor = default;
             _mergedFor = default;
             StandingDots.Clear();
+            StandingKinds.Clear();
             PlacedFrom.Clear();
             _shownKindsOf = null;
             ShownKinds.Clear();
@@ -508,6 +509,9 @@ namespace Scry
 
         /// <summary>The dots standing: the kind shown on demand in its picture, then those kept, each in its kind's; and what they were worked out for.</summary>
         private static readonly List<(int X, int Z, Sprite Picture, string Name, bool Told)> StandingDots = new List<(int, int, Sprite, string, bool)>();
+
+        /// <summary>The kind each dot standing stands for, by the same index, for a click on it to open its page.</summary>
+        private static readonly List<string> StandingKinds = new List<string>();
 
         /// <summary>Which of the dots worked out each dot placed stands for, as only those in the map's window are placed.</summary>
         private static readonly List<int> PlacedFrom = new List<int>();
@@ -546,11 +550,19 @@ namespace Scry
             if (now == _dotsFor) return;
             _dotsFor = now;
             StandingDots.Clear();
+            StandingKinds.Clear();
             foreach (var (x, z) in demand) StandingDots.Add((x, z, _sprite, Showing.Name, false));
+            foreach (var _ in demand) StandingKinds.Add(Showing.Kind);
             foreach (var (x, z) in told) StandingDots.Add((x, z, _toldSprite, Showing.Name, true));
+            foreach (var _ in told) StandingKinds.Add(Showing.Kind);
             // A kind kept and shown on demand stands once, as shown.
             var shown = KindsShownNow();
-            foreach (var (x, z, picture, name, kind, toldDot) in MapKept.Dots) if (!shown.Contains(kind)) StandingDots.Add((x, z, picture, name, toldDot));
+            foreach (var (x, z, picture, name, kind, toldDot) in MapKept.Dots)
+            {
+                if (shown.Contains(kind)) continue;
+                StandingDots.Add((x, z, picture, name, toldDot));
+                StandingKinds.Add(kind);
+            }
         }
 
         /// <summary>The squares shaded: the kind shown on demand's with the kinds kept, a square both share counting each, given again only as either changes.</summary>
@@ -648,6 +660,7 @@ namespace Scry
             if (!_allMade || placing != _placedFor) PlaceDots(map, window, area, size, placing);
             Timing.Add("spots placed", placingDots);
             var reading = Timing.Start();
+            NotePress();
             if (onMark) Pointed = null;
             else ReadPointer();
             LiftPointed(map, size, map.m_pinPrefab != null ? map.m_pinPrefab.transform as RectTransform : null);
