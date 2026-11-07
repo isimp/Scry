@@ -27,7 +27,7 @@ namespace Scry
                 yield break;
             }
             var eye = GameCamera.instance != null ? GameCamera.instance.transform.position : player.GetEyePoint();
-            var fish = Object.FindObjectsOfType<Fish>()
+            var fish = Object.FindObjectsByType<Fish>(FindObjectsSortMode.None)
                 .Where(f => f != null && f.name.StartsWith(Magmafish, System.StringComparison.Ordinal))
                 .OrderBy(f => (f.transform.position - eye).sqrMagnitude).Take(6).ToList();
             if (fish.Count == 0)

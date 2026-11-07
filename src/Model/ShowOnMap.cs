@@ -82,6 +82,27 @@ namespace Scry
         public static string DotHover(string name, float metres, string direction) =>
             name + "\n" + (metres < Beside ? "you saw it here, beside you" : $"you saw it here · {Distance(metres)} {direction}");
 
+        /// <summary>
+        /// A stack of marks pointed at (<see cref="MarkStacks"/>): how many stand there, then each
+        /// kind once, nearest first, with how many of it and how far and which way the nearest is;
+        /// a kind the server told of said so, as its hollow dot is.
+        /// </summary>
+        public static string StackHover(IEnumerable<(string Name, bool Told, float Metres, string Direction)> marks)
+        {
+            var all = marks.ToList();
+            var kinds = all.GroupBy(m => (m.Name, m.Told))
+                .Select(g => (g.Key.Name, g.Key.Told, Count: g.Count(), Nearest: g.OrderBy(m => m.Metres).First()))
+                .OrderBy(k => k.Nearest.Metres).ThenBy(k => k.Name, StringComparer.Ordinal);
+            var said = $"{Numbers.Count(all.Count)} marks here, point at one to name it alone";
+            foreach (var (name, told, count, nearest) in kinds)
+            {
+                var where = nearest.Metres < Beside ? (told ? "the server says one stands here, beside you" : "beside you")
+                    : (told ? "the server says one stands here · " : "") + (count > 1 ? "nearest " : "") + $"{Distance(nearest.Metres)} {nearest.Direction}";
+                said += "\n" + (count > 1 ? Numbers.Count(count) + " " : "") + name + " · " + where;
+            }
+            return said;
+        }
+
         /// <summary>A hollow dot pointed at, one the server told of: its kind, then how far and which way it is from you.</summary>
         public static string ToldHover(string name, float metres, string direction) =>
             name + "\n" + (metres < Beside ? "the server says one stands here, beside you" : $"the server says one stands here · {Distance(metres)} {direction}");

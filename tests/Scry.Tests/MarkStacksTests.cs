@@ -1,0 +1,190 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Xunit;
+
+namespace Scry.Tests
+{
+    public class MarkStacksTests
+    {
+        // Marks kept on the map that stand so near on the screen that they touch are a stack:
+        // at rest each stands where it lies, with a pip under it for each mark there; pointed at,
+        // the stack fans its marks out round their spot and its words name every kind there.
+
+        private static MarkStacks Gathered(float touch, params (float X, float Z)[] spots)
+        {
+            var stacks = new MarkStacks();
+            stacks.Gather(spots.Length, i => spots[i], touch);
+            return stacks;
+        }
+
+        [Fact]
+        public void MarksThatTouchOnTheScreenAreOneStackAndPartAsTheMapZoomsIn()
+        {
+            // Ribs and skull 3 m apart: a dot spans 90 m far out, 0.5 m near in.
+            var far = Gathered(90f, (0f, 0f), (3f, 0.5f), (400f, 0f));
+            Assert.Equal(far.AnchorOf(0), far.AnchorOf(1));
+            Assert.Equal(2, far.CountAt(far.AnchorOf(0)));
+            Assert.Equal(1, far.CountAt(far.AnchorOf(2)));
+            // Wherever they lie on the world's grid, below and left of its middle too.
+            var across = Gathered(10f, (9f, -1f), (11f, 1f), (-31f, -29f), (-29f, -31f));
+            Assert.Equal(across.AnchorOf(0), across.AnchorOf(1));
+            Assert.Equal(across.AnchorOf(2), across.AnchorOf(3));
+            var near = Gathered(0.5f, (0f, 0f), (3f, 0.5f));
+            Assert.NotEqual(near.AnchorOf(0), near.AnchorOf(1));
+            Assert.Equal(1, near.CountAt(near.AnchorOf(0)));
+        }
+
+        [Fact]
+        public void AStackGathersRoundItsFirstMarkSoARowOfMarksIsNotOneLongStack()
+        {
+            // Ten marks in a row, each touching the next: stacks round the first mark of each, never all ten as one.
+            var row = Enumerable.Range(0, 10).Select(i => (i * 8f, 0f)).ToArray();
+            var stacks = Gathered(10f, row);
+            Assert.True(stacks.CountAt(stacks.AnchorOf(0)) < 10);
+            Assert.All(Enumerable.Range(0, 10), i => Assert.True(Math.Abs(row[stacks.AnchorOf(i)].Item1 - row[i].Item1) < 10f));
+            // Every mark is in exactly one stack, and a stack's members are told first to last.
+            Assert.Equal(10, Enumerable.Range(0, 10).Select(stacks.AnchorOf).Distinct().Sum(stacks.CountAt));
+            Assert.Equal(new[] { 0, 1 }, stacks.MembersOf(stacks.AnchorOf(0)));
+        }
+
+        [Fact]
+        public void GatheringAgainForgetsTheStacksBefore()
+        {
+            var stacks = Gathered(90f, (0f, 0f), (3f, 0f));
+            stacks.Gather(2, i => i == 0 ? (0f, 0f) : (3f, 0f), 0.5f);
+            Assert.Equal(1, stacks.CountAt(stacks.AnchorOf(0)));
+            Assert.Equal(new[] { 1 }, stacks.MembersOf(stacks.AnchorOf(1)));
+            // Zoomed out again, the second mark heads no stack of its own any more.
+            stacks.Gather(2, i => i == 0 ? (0f, 0f) : (3f, 0f), 90f);
+            Assert.Equal(0, stacks.CountAt(1));
+            Assert.Empty(stacks.MembersOf(1));
+            Assert.Equal(new[] { 0, 1 }, stacks.MembersOf(0));
+        }
+
+        [Fact]
+        public void ZoomingInAndOutAgainCountsEveryMarkOnceInItsOwnStack()
+        {
+            var random = new Random(3);
+            var spots = Enumerable.Range(0, 60).Select(_ => ((float)random.NextDouble() * 400f, (float)random.NextDouble() * 400f)).ToArray();
+            var stacks = new MarkStacks();
+            foreach (var touch in new[] { 5f, 60f, 5f, 30f, 120f, 2f, 60f })
+            {
+                stacks.Gather(spots.Length, i => spots[i], touch);
+                for (var i = 0; i < spots.Length; i++)
+                {
+                    var anchor = stacks.AnchorOf(i);
+                    Assert.Contains(i, stacks.MembersOf(anchor));
+                    if (anchor != i) Assert.Equal(0, stacks.CountAt(i));
+                }
+                Assert.Equal(spots.Length, Enumerable.Range(0, spots.Length).Where(i => stacks.AnchorOf(i) == i).Sum(stacks.CountAt));
+            }
+        }
+
+        [Fact]
+        public void AMarkTouchingTwoStacksJoinsTheFirst()
+        {
+            var stacks = Gathered(10f, (0f, 0f), (15f, 0f), (7.5f, 0f));
+            Assert.Equal(0, stacks.AnchorOf(2));
+            Assert.Equal(1, stacks.CountAt(1));
+        }
+
+        [Fact]
+        public void AStackShowsAPipForEachMarkUpToFourAndALoneMarkNone()
+        {
+            Assert.Equal(0, MarkStacks.Pips(1));
+            Assert.Equal(2, MarkStacks.Pips(2));
+            Assert.Equal(3, MarkStacks.Pips(3));
+            Assert.Equal(4, MarkStacks.Pips(9));
+        }
+
+        [Fact]
+        public void PipsStandInARowUnderTheMarkClearOfIt()
+        {
+            const float size = 20f;
+            var pips = Enumerable.Range(0, 3).Select(i => MarkStacks.PipAt(i, 3, size)).ToList();
+            // Under the mark, past its ring, centred, in order left to right and apart.
+            Assert.All(pips, p => Assert.True(p.Y <= -size / 2f));
+            Assert.Equal(0f, pips.Sum(p => p.X), 3);
+            for (var i = 1; i < pips.Count; i++) Assert.True(pips[i].X - pips[i - 1].X >= MarkStacks.PipSize(size) * 1.2f);
+            // Big enough to see on the minimap's small marks.
+            Assert.True(MarkStacks.PipSize(8f) >= 2.5f);
+        }
+
+        [Fact]
+        public void APointedStackFansItsMarksRoundTheirSpotWithoutTouching()
+        {
+            const float size = 20f;
+            foreach (var n in new[] { 2, 3, 5, 12 })
+            {
+                var fan = Enumerable.Range(0, n).Select(i => MarkStacks.FanAt(i, n, size)).ToList();
+                // Each clear of the spot itself, which stays marked, and of every other.
+                Assert.All(fan, f => Assert.True(Math.Sqrt(f.X * f.X + f.Y * f.Y) >= size * 0.9f, $"{n}: {f}"));
+                for (var i = 0; i < n; i++)
+                {
+                    for (var j = i + 1; j < n; j++)
+                    {
+                        var (dx, dy) = (fan[i].X - fan[j].X, fan[i].Y - fan[j].Y);
+                        Assert.True(Math.Sqrt(dx * dx + dy * dy) >= size, $"{n}: {i} and {j}");
+                    }
+                }
+            }
+            // Two stand left and right of their spot, as the eye reads them.
+            var (left, right) = (MarkStacks.FanAt(0, 2, size), MarkStacks.FanAt(1, 2, size));
+            Assert.True(left.X < 0 && right.X > 0 && Math.Abs(left.Y) < 0.01f && Math.Abs(right.Y) < 0.01f);
+        }
+
+        [Fact]
+        public void AFanStaysWhileThePointerIsOnItAndClosesPastIt()
+        {
+            const float size = 20f;
+            var reach = MarkStacks.FanRadius(3, size);
+            Assert.True(MarkStacks.StaysFanned(0f, 0f, 3, size));
+            Assert.True(MarkStacks.StaysFanned(reach + size / 2f - 1f, 0f, 3, size));
+            Assert.False(MarkStacks.StaysFanned(reach + size, 0f, 3, size));
+        }
+
+        [Fact]
+        public void APointedStackNamesEveryKindThereNearestFirst()
+        {
+            var words = SpotWords.StackHover(new[]
+            {
+                ("Giant skull", false, 160f, "north-east"),
+                ("Giant ribs", false, 140f, "north-east"),
+                ("Giant ribs", false, 150f, "east"),
+                ("Copper deposit", true, 300f, "north"),
+            });
+            Assert.Equal(
+                "4 marks here, point at one to name it alone\n" +
+                "2 Giant ribs · nearest 140 m north-east\n" +
+                "Giant skull · 160 m north-east\n" +
+                "Copper deposit · the server says one stands here · 300 m north",
+                words);
+            // One told of beside you says so.
+            Assert.EndsWith("Tin · the server says one stands here, beside you", SpotWords.StackHover(new[] { ("Tin", true, 2f, "north"), ("Tin", false, 3f, "north") }).Split('\n')[1]);
+        }
+    }
+
+    /// <summary>The gathering timed with no other test running beside it, as the search's load is.</summary>
+    [Collection(nameof(SearchLoadTests))]
+    public class MarkStacksLoadTests
+    {
+        [Fact]
+        public void TwoThousandMarksAreGatheredWellInsideAFrame()
+        {
+            var random = new Random(7);
+            var spots = Enumerable.Range(0, 2000).Select(_ => ((float)random.NextDouble() * 10000f, (float)random.NextDouble() * 10000f)).ToArray();
+            var stacks = new MarkStacks();
+            stacks.Gather(spots.Length, i => spots[i], 90f);
+            // The quickest of ten, so a pause of the test process is not taken for the gathering's own cost.
+            var quickest = double.MaxValue;
+            for (var i = 0; i < 10; i++)
+            {
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                stacks.Gather(spots.Length, j => spots[j], 90f);
+                quickest = Math.Min(quickest, watch.Elapsed.TotalMilliseconds);
+            }
+            Assert.True(quickest < 2.0, $"{quickest:0.00} ms");
+        }
+    }
+}

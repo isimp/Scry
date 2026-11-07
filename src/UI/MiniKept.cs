@@ -55,9 +55,12 @@ namespace Scry
             var size = SeenOnMap.MiniDotSize(map.m_pinSizeSmall, MapLook.DotScale(Settings.MinimapDotSize));
             var placing = (window, area.size, MapKept.Version, size);
             if (placing == _placedFor) return;
+            GatherStacks(map, window, area, size);
             var standing = 0;
             var made = 0;
             var allMade = true;
+            var like = map.m_pinPrefab != null ? map.m_pinPrefab.transform as RectTransform : null;
+            Pips.Begin(_holder);
             // Only the dots near enough to fall in the window are placed: the minimap shows a few hundred metres round the character.
             var player = Player.m_localPlayer;
             var reach = window.width * map.m_textureSize * map.m_pixelSize * 0.75f;
@@ -80,11 +83,41 @@ namespace Scry
                     made++;
                 }
                 Stand(Dots[standing++], new Vector2(at.X, at.Y), size, picture);
+                // A stack's pips under its first dot, as on the large map; the minimap takes no pointer, so nothing fans out.
+                var count = Stacks.AnchorOf(i) == i ? Stacks.CountAt(i) : 0;
+                if (count > 1 && !Pips.Put(new Vector2(at.X, at.Y), size, count, like)) allMade = false;
             }
+            Pips.End();
             for (var i = standing; i < _live && i < Dots.Count; i++) Dots[i].Picture.gameObject.SetActive(false);
             _live = standing;
             // Placed again next frame while dots are still being made.
             _placedFor = allMade ? placing : default;
+        }
+
+        private static readonly MarkStacks Stacks = new MarkStacks();
+        private static readonly StackPips Pips = new StackPips("Scry minimap stack pips");
+        private static (int Kept, int Step) _stackedFor;
+
+        /// <summary>How near two dots stand to touch at the minimap's zoom, in metres, for the self-test.</summary>
+        [ForTest]
+        public static float TouchForTest => _touch;
+
+        private static float _touch;
+
+        /// <summary>How many pips stand under stacks on the minimap, for the self-test.</summary>
+        [ForTest]
+        public static int PipsShown => Pips.Shown;
+
+        /// <summary>The kept dots gathered into stacks again as what is kept or the minimap's zoom changes, by where they lie, as on the large map.</summary>
+        private static void GatherStacks(Minimap map, Rect window, Rect area, float size)
+        {
+            var touch = size * MarkStacks.Touching * window.width * map.m_textureSize * map.m_pixelSize / Mathf.Max(1f, area.width);
+            var key = (MapKept.Version, Mathf.RoundToInt(Mathf.Log(Mathf.Max(0.001f, touch)) * 50f));
+            _touch = touch;
+            if (key == _stackedFor) return;
+            _stackedFor = key;
+            var dots = MapKept.Dots;
+            Stacks.Gather(dots.Count, i => (dots[i].X, dots[i].Z), touch);
         }
 
         private static void Stand((Image Picture, RectTransform Rect) dot, Vector2 at, float size, Sprite picture)
@@ -135,6 +168,8 @@ namespace Scry
 
         public static void Forget()
         {
+            Pips.Forget();
+            _stackedFor = default;
             if (_holder != null) Object.Destroy(_holder.gameObject);
             Dots.Clear();
             _holder = null;

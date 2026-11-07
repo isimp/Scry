@@ -21,7 +21,7 @@ namespace Scry
     /// the server's squares too (<see cref="MapSquares"/>), each round one of its kind the
     /// character never came near, in ground it explored or saw on a shared map.
     /// </summary>
-    internal static class MapSpots
+    internal static partial class MapSpots
     {
         /// <summary>Leaving a world lets go of the dots and what is shown (<see cref="WorldCaches"/>).</summary>
         static MapSpots() => WorldCaches.Register(nameof(MapSpots), Forget);
@@ -52,8 +52,6 @@ namespace Scry
         private static Entry _kindFor;
         private static string _kindOf;
 
-        /// <summary>The dots' pictures, one drawn for each colour and shape a kind is shown in.</summary>
-        private static readonly Dictionary<(Color32, MarkShape, bool), Sprite> Pictures = new Dictionary<(Color32, MarkShape, bool), Sprite>();
 
         /// <summary>A couple of milliseconds a frame for making dots.</summary>
         private static readonly FrameShare Share = new FrameShare(2.0);
@@ -490,6 +488,7 @@ namespace Scry
         /// <summary>Lets go of the dots made and what holds them, for another map or another world.</summary>
         private static void ForgetDots()
         {
+            ForgetStacks();
             if (_holder != null) Object.Destroy(_holder.gameObject);
             Dots.Clear();
             _holder = null;
@@ -636,6 +635,9 @@ namespace Scry
             var window = image.uvRect;
             var area = image.rectTransform.rect;
             var size = SeenOnMap.DotSize(map.m_pinSizeLarge, window.height) * MapLook.DotScale(Settings.MapDotSize);
+            var stacking = Timing.Start();
+            GatherStacks(map, window, area, size);
+            Timing.Add("spots stacked", stacking);
             // A map standing still with every dot made costs nothing more: nothing moved; the pointer is read all the same.
             var placing = (window, area.size, _dotsFor, size);
             var placingDots = Timing.Start();
@@ -655,12 +657,21 @@ namespace Scry
             var made = 0;
             var standing = 0;
             var allMade = true;
+            var like = map.m_pinPrefab != null ? map.m_pinPrefab.transform as RectTransform : null;
+            Vector2? fanAt = null;
+            Pips.Begin(_holder);
             for (var i = 0; i < StandingDots.Count; i++)
             {
                 var (x, z, picture, _, _) = StandingDots[i];
                 if (!MapMarks.Place(new Vec3(x, 0f, z), map.m_pixelSize, map.m_textureSize, (window.xMin, window.yMin, window.width, window.height), (area.width, area.height), out var at)) continue;
                 // Only where the map shows the ground: a place seen farther than it explores waits under its fog.
                 if (!CompendiumMap.ShownAt(map, x, z)) continue;
+                // A dot of the stack fanned out stands in the fan, round where its first dot lies.
+                if (InFan(i))
+                {
+                    if (i == _fanned) fanAt = new Vector2(at.X, at.Y);
+                    continue;
+                }
                 if (standing == Dots.Count)
                 {
                     // Making a dot is a piece of the frame's share; the rest wait for the frames after.
@@ -675,7 +686,11 @@ namespace Scry
                 }
                 Stand(Dots[standing++], new Vector2(at.X, at.Y), size, picture);
                 PlacedFrom.Add(i);
+                if (!PutPips(i, new Vector2(at.X, at.Y), size, like)) allMade = false;
             }
+            Pips.End();
+            if (fanAt is Vector2 spot && like != null) PlaceFan(spot, size, like);
+            else Unfan();
             // Those no spot holds now put away, only as fewer stand than before.
             for (var i = standing; i < _live && i < Dots.Count; i++) Away(Dots[i].Picture);
             _live = standing;
@@ -704,6 +719,17 @@ namespace Scry
             Pointed = null;
             if (Input.GetMouseButton(0) || PointerOnStrip()) return;
             var player = Player.m_localPlayer;
+            // A stack fanned out reads the pointer first, as long as it rests on the fan.
+            if (_fanned >= 0)
+            {
+                if (ReadFan(pointer, player, out var fanSaid))
+                {
+                    Pointed = fanSaid;
+                    return;
+                }
+                // The fan closed: its dots placed where they lie again.
+                _placedFor = default;
+            }
             // Every dot is as big and in one holder: its half on the screen read once.
             var half = _standing > 0 ? Dots[0].Rect.rect.width * Dots[0].Rect.lossyScale.x / 2f : 0f;
             for (var i = _standing - 1; i >= 0; i--)
@@ -711,18 +737,17 @@ namespace Scry
                 var rect = Dots[i].Rect;
                 // A dot is round and centred on its place: how far the pointer stands from its middle, on the screen.
                 if (((Vector2)rect.position - pointer).sqrMagnitude > half * half || i >= PlacedFrom.Count) continue;
-                var (x, z, _, name, toldDot) = StandingDots[PlacedFrom[i]];
-                var corners = new Vector3[4];
-                rect.GetWorldCorners(corners);
-                var ring = Rect.MinMaxRect(corners[0].x, Screen.height - corners[2].y, corners[2].x, Screen.height - corners[0].y);
-                if (player == null)
+                var dot = PlacedFrom[i];
+                // A dot of a stack fans the stack out, naming every kind there.
+                var anchor = Stacks.AnchorOf(dot);
+                if (Stacks.CountAt(anchor) > 1)
                 {
-                    Pointed = (name, ring);
+                    Fan(anchor);
+                    _placedFor = default;
+                    Pointed = (StackWords(anchor, player), null);
                     return;
                 }
-                var (dx, dz) = (x - player.transform.position.x, z - player.transform.position.z);
-                var away = Mathf.Sqrt(dx * dx + dz * dz);
-                Pointed = (toldDot ? SpotWords.ToldHover(name, away, SpotWords.Direction(dx, dz)) : SpotWords.DotHover(name, away, SpotWords.Direction(dx, dz)), ring);
+                Pointed = (DotWords(dot, player), RingOf(rect));
                 return;
             }
             if (MapSquares.SquareAt(pointer) is (int sx, int sz))
@@ -752,6 +777,7 @@ namespace Scry
         {
             Pointed = null;
             _readFor = default;
+            Unfan();
             MapSquares.PutAway();
             MapDim.Restore();
             if (_holder != null && _holder.gameObject.activeSelf) _holder.gameObject.SetActive(false);
@@ -789,153 +815,6 @@ namespace Scry
             picture.raycastTarget = false;
             Dots.Add((picture, rect));
             return true;
-        }
-
-        /// <summary>
-        /// The dots' picture in a colour, drawn once for it: the colour inside a dark edge, the map
-        /// showing between it and a light ring, a dark halo either side of the ring
-        /// (<see cref="SeenOnMap.DotAt"/>); the edge and halo in the dark the dungeon marks are
-        /// outlined in, the ring in Scry's writing colour; in a circle, or the shape of a kind's mark
-        /// (<see cref="SeenOnMap.ShapeShare"/>). Each pixel is the mean of four by four points in
-        /// it, so the edges stay smooth when the dot is drawn small.
-        /// </summary>
-        public static Sprite Picture(Color colour, MarkShape shape = MarkShape.Circle, bool hollow = false)
-        {
-            var key = ((Color32)colour, shape, hollow);
-            if (Pictures.TryGetValue(key, out var made) && made != null) return made;
-            const int side = 64, points = 4;
-            var pixels = new Color32[side * side];
-            for (var y = 0; y < side; y++)
-            {
-                for (var x = 0; x < side; x++)
-                {
-                    var sum = Skin.Alpha(Skin.OnAccent, 0f) * 0f;
-                    var a = 0f;
-                    for (var py = 0; py < points; py++)
-                    {
-                        for (var px = 0; px < points; px++)
-                        {
-                            var dx = (x + (px + 0.5f) / points - side / 2f) / (side / 2f);
-                            var dy = (y + (py + 0.5f) / points - side / 2f) / (side / 2f);
-                            var shade = Shade(SeenOnMap.DotAt(SeenOnMap.ShapeShare(shape, dx, dy)), colour, hollow);
-                            sum += shade * shade.a;
-                            a += shade.a;
-                        }
-                    }
-                    // Each point's colour by how much of it shows, so the parts' borders blend as they lie on the map.
-                    pixels[y * side + x] = a > 0f ? Skin.Alpha(sum / a, a / (points * points)) : Skin.Alpha(Skin.OnAccent, 0f);
-                }
-            }
-            var texture = Kept.Add(new Texture2D(side, side, TextureFormat.RGBA32, false) { name = "Scry seen spot", filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp });
-            texture.SetPixels32(pixels);
-            texture.Apply(false, false);
-            made = Kept.Add(Sprite.Create(texture, new Rect(0f, 0f, side, side), new Vector2(0.5f, 0.5f)));
-            Pictures[key] = made;
-            return made;
-        }
-
-        /// <summary>The dots' pictures in a picture of the game's or a kind's own, one drawn for each colour and picture.</summary>
-        private static readonly Dictionary<(Color32, int, bool, bool), Sprite> PicturedMarks = new Dictionary<(Color32, int, bool, bool), Sprite>();
-
-        /// <summary>
-        /// The picture a kept line's mark stands in (<see cref="KeptMarks"/>): its colour in its
-        /// shape, or a picture inside the ring (<see cref="KeptMarkPictures"/>); where the picture
-        /// cannot be had, as a square's tab asks for a kind's own without naming the line, the
-        /// colour in the round. The dungeons' in the accent.
-        /// </summary>
-        public static Sprite MarkPicture(int mark, string kept, bool hollow = false)
-        {
-            var colour = Skin.MarkColour(mark);
-            var picture = mark >= KeptMarks.Most ? KeptMarkPictures.Of(mark, kept) : null;
-            if (picture == null) return Picture(colour, KeptMarks.ShapeOf(mark), hollow);
-            var pictured = Pictured(colour, picture, own: KeptMarks.IsOwn(mark), hollow);
-            return pictured != null ? pictured : Picture(colour, MarkShape.Circle, hollow);
-        }
-
-        /// <summary>
-        /// A mark standing in a picture, drawn once for each colour and picture: inside the ring and
-        /// its halo, as every dot has, a dark disc holding one of the game's map pictures in the
-        /// colour, or the colour's disc holding a kind's own picture as the game draws it; a place
-        /// the server told of with the picture faint and the disc's edge in the colour. None where
-        /// the picture cannot be copied.
-        /// </summary>
-        private static Sprite Pictured(Color colour, Sprite picture, bool own, bool hollow)
-        {
-            var key = ((Color32)colour, picture.GetInstanceID(), own, hollow);
-            if (PicturedMarks.TryGetValue(key, out var made)) return made;
-            const int side = 64, points = 4;
-            var (w, h) = KeptMarkPictures.Fit(picture, Mathf.RoundToInt(side * (own ? 0.6f : 0.58f)));
-            var drawn = KeptMarkPictures.Pixels(picture, w, h);
-            if (drawn == null)
-            {
-                PicturedMarks[key] = null;
-                return null;
-            }
-            var backing = own && !hollow ? colour : Skin.Alpha(Skin.OnAccent, 0.92f);
-            var pixels = new Color32[side * side];
-            for (var y = 0; y < side; y++)
-            {
-                for (var x = 0; x < side; x++)
-                {
-                    var sum = Skin.Alpha(Skin.OnAccent, 0f) * 0f;
-                    var a = 0f;
-                    for (var py = 0; py < points; py++)
-                    {
-                        for (var px = 0; px < points; px++)
-                        {
-                            var dx = (x + (px + 0.5f) / points - side / 2f) / (side / 2f);
-                            var dy = (y + (py + 0.5f) / points - side / 2f) / (side / 2f);
-                            var share = SeenOnMap.ShapeShare(MarkShape.Circle, dx, dy);
-                            var part = SeenOnMap.DotAt(share);
-                            // The disc fills the ring's inside, the map's gap with it, so the picture stands as large as it can.
-                            var shade = share > 1f ? Skin.Alpha(Skin.OnAccent, 0f)
-                                : part == DotPart.Halo ? Skin.Alpha(Skin.OnAccent, 0.55f)
-                                : part == DotPart.Ring ? Skin.Text
-                                : hollow && part == DotPart.Edge ? colour
-                                : backing;
-                            sum += shade * shade.a;
-                            a += shade.a;
-                        }
-                    }
-                    pixels[y * side + x] = a > 0f ? Skin.Alpha(sum / a, a / (points * points)) : Skin.Alpha(Skin.OnAccent, 0f);
-                }
-            }
-            // The picture over the disc, in the middle; the game's tinted in the colour, as its grey pictures take one.
-            int left = (side - w) / 2, bottom = (side - h) / 2;
-            var faint = hollow ? 0.6f : 1f;
-            for (var y = 0; y < h; y++)
-            {
-                for (var x = 0; x < w; x++)
-                {
-                    var p = drawn[y * w + x];
-                    if (p.a == 0) continue;
-                    Color over = p;
-                    if (!own) over *= colour;
-                    var at = (bottom + y) * side + left + x;
-                    Color under = pixels[at];
-                    var t = p.a / 255f * faint;
-                    pixels[at] = Skin.Alpha(under + (over - under) * t, Mathf.Max(under.a, t));
-                }
-            }
-            var texture = Kept.Add(new Texture2D(side, side, TextureFormat.RGBA32, false) { name = "Scry pictured spot", filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp });
-            texture.SetPixels32(pixels);
-            texture.Apply(false, false);
-            made = Kept.Add(Sprite.Create(texture, new Rect(0f, 0f, side, side), new Vector2(0.5f, 0.5f)));
-            PicturedMarks[key] = made;
-            return made;
-        }
-
-        /// <summary>The colour a part of a dot is drawn in; a hollow one, a place the server told of, dark inside its edge in the colour.</summary>
-        private static Color Shade(DotPart part, Color colour, bool hollow)
-        {
-            switch (part)
-            {
-                case DotPart.Disc: return hollow ? Skin.Alpha(Skin.OnAccent, 0.7f) : colour;
-                case DotPart.Edge: return hollow ? colour : Skin.OnAccent;
-                case DotPart.Halo: return Skin.Alpha(Skin.OnAccent, 0.55f);
-                case DotPart.Ring: return Skin.Text;
-                default: return Skin.Alpha(Skin.OnAccent, 0f);
-            }
         }
 
         /// <summary>Milliseconds since a timestamp.</summary>
