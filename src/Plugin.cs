@@ -193,7 +193,13 @@ namespace Scry
             // Once the game's map has moved this frame, so the dungeons' marks keep to it as it is dragged;
             // timed as a part of the frame's own, "marks".
             Guard.Run(Feature.DungeonMarksOnMap, "the marks on Valheim's map", MapMarkButtons.Update, "marks");
-            Guard.Run(Feature.ShowOnMap, "the dots on Valheim's map", () => MapSpots.Update(MapMarkButtons.PointerOnMark()), "spots");
+            Guard.Run(Feature.ShowOnMap, "the dots on Valheim's map", () =>
+            {
+                var pointing = Timing.Start();
+                var onMark = MapMarkButtons.PointerOnMark();
+                Timing.Add("spots on mark", pointing);
+                MapSpots.Update(onMark);
+            }, "spots");
             Guard.Run(Feature.ShowOnMap, "the kept dots on Valheim's minimap", MiniKept.Update, "minimap kept");
             Guard.Run(Feature.Stage, "drawing the stage", Session.LateUpdate, "render");
             FrameWork.End();

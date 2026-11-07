@@ -277,6 +277,39 @@ namespace Scry
             return told.Count == 0 ? None : PlacesToldBy.Besides(told, MapGameMarks.With(place, seen));
         }
 
+        /// <summary>
+        /// The kind shown on demand stood in a mark: its colour, and its dots' pictures, of the line
+        /// that keeps it where one does; the book's kept lines noted as they stood, for a mark
+        /// picked for that line while it shows to stand at once (<see cref="FollowPickedMark"/>).
+        /// </summary>
+        private static void ShowInMark(string kind, int mark)
+        {
+            _mark = mark;
+            _colour = Skin.MarkColour(mark);
+            var book = CompendiumKeeper.Book;
+            _markForKept = book != null ? book.KeptVersion : -1;
+            var kept = book != null ? MapKept.KeptBy(book, kind) ?? kind : kind;
+            _sprite = MarkPicture(mark, kept);
+            // The hollow picture drawn only where the server told of some, as drawing a picture holds its frame a while.
+            _toldSprite = _demandTold.Count > 0 ? MarkPicture(mark, kept, hollow: true) : null;
+        }
+
+        /// <summary>The book's kept lines as the shown kind's mark was worked out from them.</summary>
+        private static int _markForKept = -1;
+
+        /// <summary>
+        /// While a kind shows on demand, what is kept changing: its mark worked out again, so a look
+        /// picked for its line, on the strip's mark or in the list, stands on its dots at once.
+        /// </summary>
+        private static void FollowPickedMark()
+        {
+            var book = CompendiumKeeper.Book;
+            if (!Showing.Showing || book == null || book.KeptVersion == _markForKept) return;
+            var mark = DemandMark(Showing.Kind);
+            if (mark == _mark) _markForKept = book.KeptVersion;
+            else ShowInMark(Showing.Kind, mark);
+        }
+
         /// <summary>The mark a kind shown on demand stands in: a dungeon's the dungeons' amber, another the one of the line that keeps it, else the lowest no kept kind stands in.</summary>
         private static int DemandMark(string key)
         {
@@ -352,12 +385,7 @@ namespace Scry
             squares = squares ?? NoSquares;
             _demandSquares = squares;
             _demandTold = told ?? None;
-            _mark = mark;
-            _colour = Skin.MarkColour(mark);
-            var kept = CompendiumKeeper.Book is CompendiumBook book ? MapKept.KeptBy(book, kind) ?? kind : kind;
-            _sprite = MarkPicture(mark, kept);
-            // The hollow picture drawn only where the server told of some, as drawing a picture holds its frame a while.
-            _toldSprite = _demandTold.Count > 0 ? MarkPicture(mark, kept, hollow: true) : null;
+            ShowInMark(kind, mark);
             var player = Player.m_localPlayer;
             var nearest = player != null ? SeenOnMap.Nearest(spots, player.transform.position.x, player.transform.position.z) : null;
             var more = PlaceSquares.More(squares);
@@ -555,11 +583,13 @@ namespace Scry
         /// <summary>Each frame, as above; <paramref name="onMark"/> the pointer resting on a dungeon's mark, whose words it tells itself.</summary>
         public static void Update(bool onMark)
         {
+            var starting = Timing.Start();
             var map = Minimap.instance;
             var large = LargeOpen;
             if (!large) PutZoomBack(map);
             // A server ceasing to remember what is seen while a kind is shown takes it away, as it does what is kept.
             if (Showing.Showing && !MapKept.Remembered) Hide();
+            Timing.Add("spots start", starting);
             // Timed apart, so a first frame's slow start is told by its piece.
             var ticking = Timing.Start();
             if (Showing.Showing) Showing.Tick(large, CompendiumMap.World);
@@ -583,17 +613,20 @@ namespace Scry
                 _layer = layer;
                 if (_layer != null) MakeHolder();
             }
+            if (_holder != null && !_holder.gameObject.activeSelf) _holder.gameObject.SetActive(true);
             Timing.Add("spots holder", holding);
             if (_holder == null) return;
-            if (!_holder.gameObject.activeSelf) _holder.gameObject.SetActive(true);
             // The squares under the dots, placed as the map moves, as the dots are; the other pins dimmed while a kind is shown on demand.
             var squaring = Timing.Start();
             MergeSquares();
             MapSquares.Update(map);
             Timing.Add("spots squares", squaring);
+            var dimming = Timing.Start();
             if (Showing.Showing) MapDim.Hold(map, _holder, MapSquares.Holder);
             else MapDim.Restore();
+            Timing.Add("spots dim", dimming);
             var working = Timing.Start();
+            FollowPickedMark();
             WorkOutDots();
             Timing.Add("spots worked out", working);
             var image = map.m_mapImageLarge;
