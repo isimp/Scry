@@ -37,7 +37,7 @@ namespace Scry
         /// <summary>The most each piece of the map's work took in one frame since the part began counting, so a slow one shows where its time went.</summary>
         private static string MapPartsTimed()
         {
-            var parts = new[] { "spots", "spots squares", "spots worked out", "spots placed", "spots pointer", "spots on mark", "spots start", "spots showing", "spots kept", "spots holder", "spots dim", "map kept", "map game marks", "marks" };
+            var parts = new[] { "spots", "spots squares", "spots worked out", "spots placed", "spots pointer", "spots on mark", "spots start", "spots showing", "spots kept", "spots holder", "spots dim", "spots portal map", "map kept", "map game marks", "marks" };
             return "the most a frame, by piece: " + string.Join(", ", parts.Select(part => $"{part} {Numbers.Amount(Timing.MostMs(part), 2)} ms"));
         }
 

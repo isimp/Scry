@@ -599,7 +599,10 @@ namespace Scry
             Timing.Add("spots kept", refreshing);
             // On TargetPortal's map of portals, hiding the map's pins, the dots, squares and dimming
             // step aside; a kind shown on demand is still told the map is open, so it ends as before.
-            if (!large || !Showing.Showing && !MapKept.Any || TargetPortalMap.MarksAside)
+            var asking = Timing.Start();
+            var aside = large && (Showing.Showing || MapKept.Any) && TargetPortalMap.MarksAside;
+            Timing.Add("spots portal map", asking);
+            if (!large || !Showing.Showing && !MapKept.Any || aside)
             {
                 PutAway();
                 return;

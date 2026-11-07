@@ -102,8 +102,10 @@ namespace Scry
         /// <summary>A member of TargetPortal by its type and name, static; none where the mod or the member is not there.</summary>
         public static FieldInfo Member(string type, string name)
         {
-            if (!Loaded) return null;
-            return TypeFields.StaticNamed(AccessTools.TypeByName(type), name);
+            if (!Chainloader.PluginInfos.TryGetValue(Guid, out var info) || info == null || info.Instance == null) return null;
+            // Looked up in TargetPortal's own assembly: a search by the name alone goes through every
+            // loaded mod's types, which held the large map's first frame for a good part of a second.
+            return TypeFields.StaticNamed(info.Instance.GetType().Assembly.GetType(type, false), name);
         }
 
         /// <summary>Finds the members once, the flag made a getter that reads it without boxing it each frame.</summary>
