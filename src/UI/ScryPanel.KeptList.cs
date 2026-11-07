@@ -158,7 +158,8 @@ namespace Scry
             if (kept == CompendiumBook.Dungeons) return SpotWords.DungeonsRow;
             var kinds = MapKept.KindsIn(kept);
             if (kinds.Length < 2) return MapKept.NameOf(kept);
-            var family = WorldCatalog.Find(kinds[0])?.Family?.Name ?? MapKept.NameOf(kinds[0]);
+            var first = WorldCatalog.Find(kinds[0]);
+            var family = first != null ? MapSpots.FamilyNameOf(first) : MapKept.NameOf(kinds[0]);
             return SpotWords.AllKindsName(family, kinds.Length);
         }
 

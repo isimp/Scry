@@ -54,6 +54,41 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void KeepingAllKindsTakesTheirOwnLinesOffSoNothingStandsTwice()
+        {
+            // The skulls of Petrified Bone kept alone, then the ribs and the skulls kept as one line.
+            var book = new CompendiumBook();
+            book.Keep("rock4_copper", true);
+            book.Keep("giant_skull", true);
+            var skullMark = book.MarkOf("giant_skull");
+            var both = MapShowing.AllKindsKey(new[] { "giant_ribs", "giant_skull" });
+            book.Keep(both, true);
+            Assert.True(book.Keeps(both));
+            Assert.False(book.Keeps("giant_skull"));
+            // The line keeps the mark the skulls stood in, so they keep their look.
+            Assert.Equal(skullMark, book.MarkOf(both));
+            // A kind of no other line stays kept.
+            Assert.True(book.Keeps("rock4_copper"));
+            // Kept again alone, the skulls stand on their own beside the line, as the player chose.
+            book.Keep("giant_skull", true);
+            Assert.True(book.Keeps("giant_skull") && book.Keeps(both));
+            // Taking the line off brings no kind back.
+            book.Keep("giant_skull", false);
+            book.Keep(both, false);
+            Assert.Equal(new[] { CompendiumBook.Dungeons, "rock4_copper" }, book.Kept);
+
+            // A lower mark freed meanwhile goes to no one: the line keeps the skulls' own.
+            var marked = new CompendiumBook();
+            marked.Keep("rock4_copper", true);
+            marked.Keep("giant_skull", true);
+            var own = marked.MarkOf("giant_skull");
+            marked.Keep("rock4_copper", false);
+            marked.Keep(both, true);
+            Assert.Equal(own, marked.MarkOf(both));
+            Assert.NotEqual(marked.FreeMark(), own);
+        }
+
+        [Fact]
         public void TakingAllOffLeavesNothingKept()
         {
             var book = new CompendiumBook();

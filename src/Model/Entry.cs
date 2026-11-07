@@ -90,6 +90,9 @@ namespace Scry
         public string Group = "";
         public int GroupOrder;
 
+        /// <summary>The name the game shows when it is looked at (<c>HoverText.m_text</c>), as a token; none where it shows none. Resources named alike are one page's kinds on the map (<see cref="MapShowing.NamedAlike"/>).</summary>
+        public string HoverName;
+
         /// <summary>For an effect or sound, the effect lists that play it, by field name (a status effect's marked "se:", the interface's "ui:").</summary>
         public string[] PlayedIn = Array.Empty<string>();
 

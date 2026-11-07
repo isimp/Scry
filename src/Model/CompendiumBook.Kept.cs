@@ -49,12 +49,22 @@ namespace Scry
             }
         }
 
-        /// <summary>Keeps a kind on the map, or takes it off: a choice of the player's.</summary>
+        /// <summary>
+        /// Keeps a kind on the map, or takes it off: a choice of the player's. Several kinds kept as
+        /// one (<see cref="MapShowing.AllKindsKey"/>) take each one's own line off, so nothing stands
+        /// twice, and stand in the lowest mark those stood in, so they keep their look.
+        /// </summary>
         public void Keep(string kind, bool on)
         {
             if (string.IsNullOrEmpty(kind) || Keeps(kind) == on) return;
             if (kind == Dungeons) _dungeonsUnkept = !on;
-            else if (on) _kept[kind] = FreeMark();
+            else if (on)
+            {
+                var replaced = kind.IndexOf('+') >= 0 ? kind.Split('+').Where(_kept.ContainsKey).ToList() : new List<string>();
+                var marks = replaced.Select(k => _kept[k]).ToList();
+                foreach (var own in replaced) _kept.Remove(own);
+                _kept[kind] = marks.Count > 0 ? marks.Min() : FreeMark();
+            }
             else _kept.Remove(kind);
             KeptChanged();
         }

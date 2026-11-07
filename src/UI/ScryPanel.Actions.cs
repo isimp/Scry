@@ -195,40 +195,48 @@ namespace Scry
             return note;
         }
 
-        /// <summary>Show on map, after a page's other actions, where its kind's spots are kept: greyed, its tip saying why, where it can show nothing now; and Keep on the map beside it, lit while the kind is kept.</summary>
+        /// <summary>
+        /// Show on map, after a page's other actions, where its kind's spots are kept: greyed, its tip
+        /// saying why, where it can show nothing now; where the page has two or more kinds, the
+        /// all-kinds switch, the same as the map strip's, which Show on map and Keep on the map then
+        /// follow; and Keep on the map beside them, lit while what they act on is kept.
+        /// </summary>
         private static void ShowOnMapAction(Entry entry)
         {
-            var kind = MapSpots.KindOf(entry);
-            if (kind == null) return;
-            var count = SeenSpotsKeeper.CountOf(kind);
-            var squares = MapSpots.SquareCount(entry);
-            var told = MapSpots.ToldCount(entry);
+            var own = MapSpots.KindOf(entry);
+            if (own == null) return;
+            var kinds = MapSpots.KindsOf(entry, _explorer);
+            var keys = kinds.Select(MapSpots.KindOf).ToList();
+            var all = MapSpots.AllKinds && keys.Count >= 2;
+            var kind = MapShowing.KeyFor(own, keys, MapSpots.AllKinds);
+            var shown = all ? kinds : (IReadOnlyList<Entry>)new[] { entry };
+            var count = shown.Sum(e => SeenSpotsKeeper.CountOf(MapSpots.KindOf(e)));
+            var squares = shown.Sum(MapSpots.SquareCount);
+            var told = shown.Sum(MapSpots.ToldCount);
             // What the server tells stands apart from what the character keeps, as its squares do.
             var block = MapSpots.BlockOf(count, squares + told);
             if (ActionShown(SpotWords.ShowOnMap, ActionLook.Plain, block == MapBlock.None, block == MapBlock.None ? SpotWords.Tip(count, squares, told) : SpotWords.WhyNot(block))) ShowOnMap(entry);
+            if (keys.Count >= 2)
+            {
+                CountDrawn(PanelPart.PageAllKinds);
+                if (ActionShown(SpotWords.AllKindsChip(keys.Count), all ? ActionLook.On : ActionLook.Plain, true, SpotWords.AllKindsTip(MapSpots.FamilyNameOf(entry), keys.Count, all))) MapSpots.ShowAllKinds(!MapSpots.AllKinds);
+            }
             // Kept without showing it now: it stands every time the map opens, as the strip's own button keeps it.
             var book = CompendiumKeeper.Book;
             if (book == null) return;
             // Kept with others, as a dungeon with every kind of dungeon, it stands lit and says by which line, its own button taking nothing off.
             CountDrawn(PanelPart.PageKeep);
             var keptBy = MapKept.KeptBy(book, kind);
-            var own = keptBy == kind;
-            var tip = keptBy != null && !own ? SpotWords.KeptWith(KeptName(keptBy)) : SpotWords.KeepTip(own);
-            if (ActionShown(SpotWords.Keep, keptBy != null ? ActionLook.On : ActionLook.Plain, keptBy == null || own, tip)) KeepOnMap(kind, !own);
+            var itself = keptBy == kind;
+            var tip = keptBy != null && !itself ? SpotWords.KeptWith(KeptName(keptBy)) : SpotWords.KeepTip(itself);
+            if (ActionShown(SpotWords.Keep, keptBy != null ? ActionLook.On : ActionLook.Plain, keptBy == null || itself, tip)) KeepOnMap(kind, !itself);
         }
 
         /// <summary>Closes Scry and opens Valheim's map with a dot on each of the page's kind the character saw, and a place's squares (<see cref="MapSpots"/>).</summary>
         private static void ShowOnMap(Entry entry)
         {
             AskClose();
-            MapSpots.Show(entry, KindsMet(entry), entry.Family?.Name);
-        }
-
-        /// <summary>The kinds of a page's place the strip may show at once: those met, or every one with the compendium off; none for one of a kind alone.</summary>
-        private static IReadOnlyList<Entry> KindsMet(Entry entry)
-        {
-            if (entry?.Family == null) return System.Array.Empty<Entry>();
-            return _explorer != null && _explorer.CompendiumSet ? _explorer.MembersMet(entry) : entry.Family.Kinds;
+            MapSpots.Show(entry, MapSpots.KindsOf(entry, _explorer), MapSpots.FamilyNameOf(entry));
         }
 
         /// <summary>

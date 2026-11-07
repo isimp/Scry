@@ -28,6 +28,9 @@ namespace Scry
             public PrefabTraits Traits;
             public string Token;
 
+            /// <summary>The name the game shows when it is looked at (<c>HoverText.m_text</c>), as a token; none where it shows none.</summary>
+            public string HoverName;
+
             /// <summary>Whether its name is a piece's a mod switched off on it, numbered by the copy it was made of ("Ancient Tree (1)").</summary>
             public bool TokenFromModPiece;
 
@@ -290,6 +293,7 @@ namespace Scry
                 DisplayName = found.TokenFromModPiece ? Naming.WithoutVariant(Localize(found.Token)) : Localize(found.Token),
                 Kind = Kinds.Of(found.Traits),
                 Group = Kinds.GroupLabel(Kinds.GroupOf(found.Traits)),
+                HoverName = found.HoverName,
                 GroupOrder = (int)Kinds.GroupOf(found.Traits),
                 PlayedIn = asEffect != null ? asEffect.Fields.ToArray() : Array.Empty<string>(),
                 Empty = Kinds.IsEmpty(found.Traits),
@@ -518,9 +522,54 @@ namespace Scry
             }
         }
 
+        /// <summary>What a part tells of how its prefab is gathered (chopped, mined, picked, grown, tapped) and the name the game shows when looking at it; false for a part of none of these.</summary>
+        private static bool NoteGathered(Component component, Found found, PrefabTraits traits)
+        {
+            switch (component)
+            {
+                case TreeBase _:
+                    traits.HasResource = true;
+                    traits.IsTree = true;
+                    break;
+                case TreeLog _:
+                    traits.HasResource = true;
+                    traits.IsLog = true;
+                    break;
+                case MineRock _:
+                case MineRock5 _:
+                    traits.HasResource = true;
+                    traits.IsMined = true;
+                    break;
+                case Pickable _:
+                case PickableItem _:
+                    traits.HasResource = true;
+                    traits.IsPicked = true;
+                    break;
+                case Plant _:
+                    traits.HasResource = true;
+                    traits.HasPlant = true;
+                    break;
+                // A root a tap draws from, named as the game names it when looked at (ResourceRoot.GetHoverName).
+                case ResourceRoot root:
+                    traits.HasResource = true;
+                    traits.IsTapped = true;
+                    found.Token = found.Token ?? root.m_name;
+                    Named(found, root.m_name);
+                    break;
+                // What the game shows when it is looked at, which names alike the kinds of one thing, as the ribs and the skull of Petrified Bone.
+                case HoverText hover:
+                    found.HoverName = found.HoverName ?? hover.m_text;
+                    break;
+                default:
+                    return false;
+            }
+            return true;
+        }
+
         private static void Note(Component component, Found found, PrefabTraits traits)
         {
             if (component is Interactable) traits.IsUsable = true;
+            if (NoteGathered(component, found, traits)) return;
             switch (component)
             {
                 case OfferingBowl _:
@@ -583,35 +632,6 @@ namespace Scry
                     break;
                 case Collider collider:
                     if (!collider.isTrigger) traits.HasSolidCollider = true;
-                    break;
-                case TreeBase _:
-                    traits.HasResource = true;
-                    traits.IsTree = true;
-                    break;
-                case TreeLog _:
-                    traits.HasResource = true;
-                    traits.IsLog = true;
-                    break;
-                case MineRock _:
-                case MineRock5 _:
-                    traits.HasResource = true;
-                    traits.IsMined = true;
-                    break;
-                case Pickable _:
-                case PickableItem _:
-                    traits.HasResource = true;
-                    traits.IsPicked = true;
-                    break;
-                case Plant _:
-                    traits.HasResource = true;
-                    traits.HasPlant = true;
-                    break;
-                // A root a tap draws from, named as the game names it when looked at (ResourceRoot.GetHoverName).
-                case ResourceRoot root:
-                    traits.HasResource = true;
-                    traits.IsTapped = true;
-                    found.Token = found.Token ?? root.m_name;
-                    Named(found, root.m_name);
                     break;
                 case Destructible breaks:
                     traits.HasDestructible = true;

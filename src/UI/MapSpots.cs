@@ -214,7 +214,30 @@ namespace Scry
         /// <summary>Whether a place of several kinds shows them all rather than the page's alone, kept for the session; the strip's button.</summary>
         public static bool AllKinds { get; private set; }
 
-        /// <summary>How many kinds the strip offers to show at once: those of the place shown met, none for one of a kind alone.</summary>
+        /// <summary>
+        /// The kinds a page can show and keep at once, each keeping spots of its own: its family's
+        /// kinds met, as a place's numbered kinds, or every one with the compendium off; for a
+        /// resource, those the game names alike seen (<see cref="MapShowing.NamedAlike"/>), as the
+        /// ribs and the skull of Petrified Bone; none where fewer than two are left.
+        /// </summary>
+        public static IReadOnlyList<Entry> KindsOf(Entry entry, Explorer explorer)
+        {
+            if (entry == null) return System.Array.Empty<Entry>();
+            var set = explorer != null && explorer.CompendiumSet;
+            IEnumerable<Entry> members = entry.Family != null
+                ? (set ? explorer.MembersMet(entry) : entry.Family.Kinds)
+                : MapShowing.NamedAlike(entry, explorer?.Catalog ?? (IEnumerable<Entry>)System.Array.Empty<Entry>()).Where(e => !set || explorer.Compendium.Of(e) >= KnownLevel.Seen);
+            var kinds = new List<Entry>();
+            var keys = new HashSet<string>(System.StringComparer.Ordinal);
+            foreach (var member in members) if (KindOf(member) is string key && keys.Add(key)) kinds.Add(member);
+            return kinds.Count >= 2 ? kinds : (IReadOnlyList<Entry>)System.Array.Empty<Entry>();
+        }
+
+        /// <summary>What a page's kinds go by together: its family's name, else the name the game shows when looking at it, else its own.</summary>
+        public static string FamilyNameOf(Entry entry) =>
+            entry?.Family?.Name ?? (string.IsNullOrEmpty(entry?.HoverName) ? entry?.ShownName : CatalogBuilder.Localize(entry.HoverName));
+
+        /// <summary>How many kinds the strip offers to show at once: those of the page shown, none for one of a kind alone.</summary>
         public static int KindsOffered => Showing.Showing && _shownKinds.Count >= 2 ? _shownKinds.Count : 0;
 
         /// <summary>
@@ -228,7 +251,7 @@ namespace Scry
             var kind = KindOf(entry);
             if (kind == null) return;
             _shownEntry = entry;
-            _shownKinds = entry.Kind == Kind.Location && kinds != null && kinds.Count >= 2 ? kinds : System.Array.Empty<Entry>();
+            _shownKinds = kinds != null && kinds.Count >= 2 ? kinds : System.Array.Empty<Entry>();
             _shownFamily = family ?? entry.ShownName;
             if (AllKinds && _shownKinds.Count >= 2)
             {
@@ -267,20 +290,21 @@ namespace Scry
             return MapKept.KeptBy(book, key) is string line && book.MarkOf(line) is int kept ? kept : book.FreeMark();
         }
 
-        /// <summary>Every kind of the place shown at once: their spots together, their squares added up, less those seen.</summary>
+        /// <summary>Every kind of the page shown at once: their spots together; a place's squares added up, less those seen.</summary>
         private static void ShowAll()
         {
             var spots = new List<(int X, int Z)>();
-            foreach (var member in _shownKinds) spots.AddRange(SpotsOf(member.Key));
+            foreach (var member in _shownKinds) spots.AddRange(SpotsOf(KindOf(member)));
+            var place = _shownEntry.Kind == Kind.Location && !_shownEntry.IsRoom;
             IReadOnlyList<(int X, int Z)> marked = spots;
-            foreach (var member in _shownKinds) marked = MapGameMarks.With(member.Name, marked);
-            var squares = Settings.MapSquares && !_shownEntry.IsRoom
+            if (place) foreach (var member in _shownKinds) marked = MapGameMarks.With(member.Name, marked);
+            var squares = Settings.MapSquares && place
                 ? PlaceSquares.Shown(PlaceSquares.Merged(_shownKinds.Select(member => CompendiumMap.Counts.Squares(member.Name, SquaresGround))), marked)
                 : NoSquares;
             var told = new List<(int X, int Z)>();
-            if (Settings.MapSquares && !_shownEntry.IsRoom) foreach (var member in _shownKinds) told.AddRange(ToldOf(member.Name, spots));
+            if (Settings.MapSquares && place) foreach (var member in _shownKinds) told.AddRange(ToldOf(member.Name, spots));
             var note = squares.Count == 0 && told.Count == 0 && Settings.MapSquares ? SquaresNote() : null;
-            var key = MapShowing.AllKindsKey(_shownKinds.Select(member => member.Key));
+            var key = MapShowing.AllKindsKey(_shownKinds.Select(KindOf));
             Show(key, SpotWords.AllKindsName(_shownFamily, _shownKinds.Count), DemandMark(key), spots, squares, note, told);
         }
 

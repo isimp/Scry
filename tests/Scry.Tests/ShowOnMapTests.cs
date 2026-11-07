@@ -21,6 +21,38 @@ namespace Scry.Tests
             Assert.Equal("All 3 kinds", SpotWords.AllKindsChip(3));
         }
 
+        [Fact]
+        public void APageOffersAllItsKindsWhereTwoOrMoreAreKeptAsSpots()
+        {
+            // The kinds a page offers: each kept as spots once, in order; a broken form keeps its whole's spots, so it adds none.
+            Assert.Equal(new[] { "giant_ribs", "giant_skull" }, MapShowing.KindsOffered(new[] { "giant_ribs", null, "giant_skull", "giant_skull" }));
+            Assert.Empty(MapShowing.KindsOffered(new[] { "giant_ribs", null }));
+            // Show on map and Keep on the map act on all of them while the switch is lit, else on the page's own kind.
+            var kinds = new[] { "giant_ribs", "giant_skull" };
+            Assert.Equal("giant_ribs+giant_skull", MapShowing.KeyFor("giant_skull", kinds, all: true));
+            Assert.Equal("giant_skull", MapShowing.KeyFor("giant_skull", kinds, all: false));
+            Assert.Equal("giant_skull", MapShowing.KeyFor("giant_skull", new[] { "giant_skull" }, all: true));
+            // The page's switch says what it does, lit or not.
+            Assert.Equal("Shows and keeps all 2 kinds of Petrified Bone on the map, here and on the map's strip", SpotWords.AllKindsTip("Petrified Bone", 2, on: false));
+            Assert.Equal("All 2 kinds of Petrified Bone are shown and kept together: a click goes back to this kind alone", SpotWords.AllKindsTip("Petrified Bone", 2, on: true));
+        }
+
+        [Fact]
+        public void ResourcesTheGameNamesAlikeAreOnePagesKinds()
+        {
+            // Ribs and skull both read Petrified Bone when looked at; a copper deposit reads its own name.
+            Entry R(string name, string hover) => new Entry { Kind = Kind.Resource, Name = name, HoverName = hover };
+            var ribs = R("giant_ribs", "$piece_giant_bone");
+            var skull = R("giant_skull", "$piece_giant_bone");
+            var copper = R("rock4_copper", "$piece_deposit_copper");
+            var plain = R("rock1", null);
+            var item = new Entry { Kind = Kind.Item, Name = "BlackMarble", HoverName = "$piece_giant_bone" };
+            var all = new[] { copper, skull, ribs, plain, item };
+            Assert.Equal(new[] { ribs, skull }, MapShowing.NamedAlike(skull, all));
+            Assert.Equal(new[] { copper }, MapShowing.NamedAlike(copper, all));
+            Assert.Empty(MapShowing.NamedAlike(plain, all));
+        }
+
         // A page's Show on map opens Valheim's large map with a dot on every spot of its kind the
         // character saw in the world played, a strip naming the kind, how many and the nearest,
         // until Hide or the map closes.

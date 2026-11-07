@@ -100,6 +100,11 @@ namespace Scry
         /// <summary>The strip's button showing all of a place's kinds, lit while they are shown, or the page's kind alone again.</summary>
         public static string AllKindsChip(int kinds) => $"All {Numbers.Count(kinds)} kinds";
 
+        /// <summary>The tip of a page's all-kinds switch, the same switch as the strip's: what a click does, lit or not.</summary>
+        public static string AllKindsTip(string family, int kinds, bool on) => on
+            ? $"All {Numbers.Count(kinds)} kinds of {family} are shown and kept together: a click goes back to this kind alone"
+            : $"Shows and keeps all {Numbers.Count(kinds)} kinds of {family} on the map, here and on the map's strip";
+
         /// <summary>How near the nearest stands to be beside you rather than at a distance.</summary>
         private const float Beside = 5f;
 
@@ -216,6 +221,27 @@ namespace Scry
 
         /// <summary>The key several kinds shown at once go by, each kind's key in it.</summary>
         public static string AllKindsKey(IEnumerable<string> kinds) => string.Join("+", kinds);
+
+        /// <summary>The kinds a page offers to show and keep at once: each kept as spots once, in order, a member keeping none left out; none where fewer than two are left.</summary>
+        public static IReadOnlyList<string> KindsOffered(IEnumerable<string> kinds)
+        {
+            var offered = kinds.Where(k => k != null).Distinct(StringComparer.Ordinal).ToList();
+            return offered.Count >= 2 ? offered : (IReadOnlyList<string>)Array.Empty<string>();
+        }
+
+        /// <summary>What Show on map and Keep on the map act on: all the kinds offered while the all-kinds switch is lit, else the page's own kind.</summary>
+        public static string KeyFor(string kind, IReadOnlyList<string> kinds, bool all) => all && kinds != null && kinds.Count >= 2 ? AllKindsKey(kinds) : kind;
+
+        /// <summary>
+        /// The resources one page offers as its kinds: those the game names alike when looked at
+        /// (<see cref="Entry.HoverName"/>), as the ribs and the skull both read Petrified Bone, by
+        /// their keys' order; none for a resource the game names on its own terms or not at all.
+        /// </summary>
+        public static IReadOnlyList<Entry> NamedAlike(Entry entry, IEnumerable<Entry> all)
+        {
+            if (entry == null || entry.Kind != Scry.Kind.Resource || string.IsNullOrEmpty(entry.HoverName)) return Array.Empty<Entry>();
+            return all.Where(e => e != null && e.Kind == Scry.Kind.Resource && e.HoverName == entry.HoverName).OrderBy(e => e.Key, StringComparer.Ordinal).ToList();
+        }
 
         /// <summary>A kind's spots shown in a world, in place of any shown before.</summary>
         public void Show(string world, string kind, string name, IReadOnlyList<(int X, int Z)> spots)
