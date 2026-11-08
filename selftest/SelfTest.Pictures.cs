@@ -12,8 +12,9 @@ namespace Scry
     /// the player sees it, saved by name under Scry's cache folder. A quick, deep or full run
     /// first moves the last run's pictures into <c>previous</c> under it, those there before
     /// let go, so the folder holds only pictures of views that still are; a run of a few parts
-    /// takes its pictures over those in place. The log names each picture a run took. A full run
-    /// also takes a few of them again clean, for the README and the player's guide (<see cref="ReadmeShots"/>).
+    /// takes its pictures over those in place. The log names each picture a run took. A full run, or
+    /// a plan asking for it, also takes a few of them again clean, for the README and the player's
+    /// guide (<see cref="ReadmeShots"/>).
     /// </summary>
     internal static partial class SelfTest
     {
@@ -74,7 +75,7 @@ namespace Scry
         }
 
         /// <summary>
-        /// The pictures a full run also takes clean, for the README and the player's guide, by
+        /// The pictures a full run or a plan asking for them also takes clean, for the README and the player's guide, by
         /// what a part pictures: the self-test's strip and, but for the large map, which closes
         /// with it, the game's HUD hidden for the shot, saved as "readme" and a name, the first
         /// time a part pictures it in the run.
@@ -90,16 +91,27 @@ namespace Scry
             (w => w == "compact header", "readme compact view", false),
             (w => w == "skill Swords", "readme skill page", false),
             (w => w == "skill lines SwordIron", "readme item skill lines", false),
+            (w => w == "compendium guide", "readme compendium guide", false),
+            (w => w == "first start setup", "readme first start setup", false),
+            (w => w == "settings card, compendium", "readme settings card", false),
+            (w => w == "notice of the server's rules", "readme server rules notice", false),
+            (w => w == "compendium box under the server's rules", "readme box under server rules", false),
+            (w => w == "the kinds list, a category picked", "readme kinds list", true),
+            (w => w == "the On the map list by category", "readme on the map list", false),
+            (w => w == "mark picker, a copper deposit's", "readme mark picker", false),
+            (w => w == "dungeon marks, one kind picked", "readme dungeon kind picked", true),
+            (w => w == "a crowded patch far out, merged and plain", "readme crowded map", true),
+            (w => w == "stacked marks pointed at, fanned out", "readme stacked marks", true),
         };
 
-        /// <summary>Whether this run takes the README's pictures, a full one; and those it took.</summary>
+        /// <summary>Whether this run takes the README's pictures, a full one or a plan asking for them; and those it took.</summary>
         private static bool _readme;
         private static readonly HashSet<string> ReadmeTaken = new HashSet<string>(StringComparer.Ordinal);
 
         /// <summary>As a run starts: whether it takes the README's pictures, by its scope, none taken yet.</summary>
         private static void ReadmeFor(RunScope scope)
         {
-            _readme = scope == RunScope.Full;
+            _readme = scope == RunScope.Full || (scope == RunScope.Plan && SelfTestPlan.Load(Kept(PlanFile)).TakesShots);
             ReadmeTaken.Clear();
         }
 
@@ -122,7 +134,7 @@ namespace Scry
         {
             if (!_readme)
             {
-                p.Skip("only a full run takes the README's pictures");
+                p.Skip("only a full run, or a plan asking for them, takes the README's pictures");
                 yield break;
             }
             var missing = ReadmeShots.Select(s => s.Name).Where(n => !ReadmeTaken.Contains(n)).ToList();

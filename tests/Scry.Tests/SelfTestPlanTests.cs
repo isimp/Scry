@@ -118,6 +118,19 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void APlanMayAskForTheDocsPicturesAndKeepsAskingUntilItIsDone()
+        {
+            var plan = SelfTestPlan.Load("why\tthe docs\npart\tone\npart\ttwo\nshots\tyes\n");
+            Assert.True(plan.TakesShots);
+            Assert.False(SelfTestPlan.Load("part\tone\n").TakesShots);
+            Assert.False(SelfTestPlan.Load("part\tone\nshots\tno\n").TakesShots);
+            // One passed and one failed: what is left, written again, still asks for them.
+            var left = plan.After(new[] { "one", "two" }, new[] { ("one", Result.Pass), ("two", Result.Fail) });
+            Assert.True(SelfTestPlan.Load(left.Save()).TakesShots);
+            Assert.Equal(new[] { "two" }, SelfTestPlan.Load(left.Save()).Parts(new[] { "one", "two" }));
+        }
+
+        [Fact]
         public void TheRecommendedRunsArePlanNearFailedAndBusyOnceTheMachineIsQuiet()
         {
             var results = SelfTestResults.Load(SelfTestResults.Merge(null, new[]

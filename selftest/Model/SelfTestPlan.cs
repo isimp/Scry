@@ -9,9 +9,10 @@ namespace Scry
     /// The parts a session plans for a change (<c>BepInEx/Scry-selftest.plan</c>), one line each,
     /// a word and a tab before it: <c>why</c> the change the plan is for, <c>part</c> a part by its
     /// whole name, <c>words</c> every part whose name holds all the words, as a run by words takes
-    /// them, and <c>run on-load</c> to start the plan once the world is ready. A part comes off once
-    /// it passes; words become the parts they matched as the plan is written again; the plan is
-    /// done once nothing is left.
+    /// them, <c>run on-load</c> to start the plan once the world is ready, and <c>shots yes</c> for
+    /// its parts to take the docs' pictures clean as a full run does. A part comes off once it passes;
+    /// words become the parts they matched as the plan is written again; the plan is done once nothing
+    /// is left.
     /// </summary>
     internal sealed class SelfTestPlan
     {
@@ -22,6 +23,9 @@ namespace Scry
 
         /// <summary>Whether the plan starts once the world is ready.</summary>
         public bool OnLoad { get; private set; }
+
+        /// <summary>Whether its parts take the docs' pictures clean, as a full run's do.</summary>
+        public bool TakesShots { get; private set; }
 
         /// <summary>Whether nothing is left to run.</summary>
         public bool Done => _asked.Count == 0;
@@ -41,6 +45,7 @@ namespace Scry
                 {
                     case "why": plan.Why = value; break;
                     case "run": plan.OnLoad = value.Equals("on-load", StringComparison.OrdinalIgnoreCase); break;
+                    case "shots": plan.TakesShots = value.Equals("yes", StringComparison.OrdinalIgnoreCase); break;
                     case "part":
                     case "words":
                         plan._asked.Add((kind, value));
@@ -64,7 +69,7 @@ namespace Scry
         public SelfTestPlan After(IReadOnlyList<string> all, IEnumerable<(string Part, Result Result)> ran)
         {
             var passed = new HashSet<string>(ran.Where(r => r.Result == Result.Pass).Select(r => r.Part), StringComparer.Ordinal);
-            var left = new SelfTestPlan { Why = Why, OnLoad = OnLoad };
+            var left = new SelfTestPlan { Why = Why, OnLoad = OnLoad, TakesShots = TakesShots };
             foreach (var part in Parts(all)) if (!passed.Contains(part)) left._asked.Add(("part", part));
             return left;
         }
@@ -75,6 +80,7 @@ namespace Scry
             if (Why != null) text.Append("why\t").Append(Why).Append('\n');
             foreach (var (kind, value) in _asked) text.Append(kind).Append('\t').Append(value).Append('\n');
             if (OnLoad) text.Append("run\ton-load\n");
+            if (TakesShots) text.Append("shots\tyes\n");
             return text.ToString();
         }
 
