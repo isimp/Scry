@@ -173,6 +173,48 @@ namespace Scry
             return ((float)(Math.Cos(angle) * radius), (float)(Math.Sin(angle) * radius));
         }
 
+        /// <summary>
+        /// The way each of a stack's marks fans out, in radians from the right, up being up, by how
+        /// it lies from the stack's middle (<paramref name="offsets"/>): evenly round, as
+        /// <see cref="FanAt"/> spaces them, in the order of the ways they lie, the whole turned to
+        /// lie nearest those ways, so each stays on its own side; as <see cref="FanAt"/> lays them
+        /// where all lie on one spot.
+        /// </summary>
+        public static double[] FanAngles(IReadOnlyList<(float X, float Y)> offsets)
+        {
+            var n = offsets.Count;
+            var angles = new double[n];
+            var step = 2 * Math.PI / Math.Max(1, n);
+            var order = new List<int>();
+            for (var i = 0; i < n; i++) if (offsets[i].X * offsets[i].X + offsets[i].Y * offsets[i].Y > 1e-6f) order.Add(i);
+            if (order.Count < n || n < 2)
+            {
+                for (var i = 0; i < n; i++) angles[i] = Math.PI / 2 + Math.PI / Math.Max(1, n) + i * step;
+                return angles;
+            }
+            var ways = new double[n];
+            for (var i = 0; i < n; i++) ways[i] = Math.Atan2(offsets[i].Y, offsets[i].X);
+            order.Sort((a, b) => ways[a].CompareTo(ways[b]));
+            // The turn that lies nearest: the mean of each way less its slot, round the circle.
+            double sin = 0, cos = 0;
+            for (var j = 0; j < n; j++)
+            {
+                var turn = ways[order[j]] - j * step;
+                sin += Math.Sin(turn);
+                cos += Math.Cos(turn);
+            }
+            var start = Math.Atan2(sin, cos);
+            for (var j = 0; j < n; j++) angles[order[j]] = start + j * step;
+            return angles;
+        }
+
+        /// <summary>Where a mark stands fanned out a way from its spot, up being up, at the fan's reach for so many marks.</summary>
+        public static (float X, float Y) FanToward(double angle, int marks, float size)
+        {
+            var radius = FanRadius(marks, size);
+            return ((float)(Math.Cos(angle) * radius), (float)(Math.Sin(angle) * radius));
+        }
+
         /// <summary>How far round a pointed mark the game's pins fade, where the settings ask: a spread stack's reach and a mark past it, a single dot's mark and a half.</summary>
         public static float FadeReach(int marks, float size) => marks > 1 ? FanRadius(marks, size) + size : size * 1.5f;
 

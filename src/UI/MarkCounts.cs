@@ -20,8 +20,32 @@ namespace Scry
         private sealed class Tab
         {
             public RectTransform Rect;
+            public RawImage Back;
             public GameObject Words;
             public int Said = -1;
+            public bool? Told;
+        }
+
+        /// <summary>A told count's tab: a light edge round a faint middle, hollow as the server's told dots are; made once.</summary>
+        private static Texture2D _hollow;
+
+        private static Texture2D Hollow()
+        {
+            if (_hollow != null) return _hollow;
+            const int side = 16;
+            var pixels = new Color32[side * side];
+            for (var y = 0; y < side; y++)
+            {
+                for (var x = 0; x < side; x++)
+                {
+                    var edge = x < 2 || y < 2 || x >= side - 2 || y >= side - 2;
+                    pixels[y * side + x] = edge ? Skin.Text : Skin.Alpha(Skin.TipFill, 0.45f);
+                }
+            }
+            _hollow = Kept.Add(new Texture2D(side, side, TextureFormat.RGBA32, false) { name = "Scry told count", filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp });
+            _hollow.SetPixels32(pixels);
+            _hollow.Apply(false, false);
+            return _hollow;
         }
 
         private readonly string _name;
@@ -43,11 +67,17 @@ namespace Scry
             _made = 0;
         }
 
-        /// <summary>A merged mark's count stood at its upper right; false where its tab could not be made this frame.</summary>
-        public bool Put(Minimap map, Vector2 at, float size, int count, RectTransform like)
+        /// <summary>A merged mark's count stood at its upper right, on a hollow tab where the server told of them; false where its tab could not be made this frame.</summary>
+        public bool Put(Minimap map, Vector2 at, float size, int count, bool told, RectTransform like)
         {
             if (_used == _tabs.Count && !Make(map, like)) return false;
             var tab = _tabs[_used++];
+            if (tab.Told != told)
+            {
+                tab.Back.texture = told ? Hollow() : Texture2D.whiteTexture;
+                tab.Back.color = told ? Skin.MarkShown : Skin.Alpha(Skin.TipFill, 0.9f);
+                tab.Told = told;
+            }
             if (tab.Said != count)
             {
                 if (tab.Words != null) PinNames.SetText(tab.Words, Numbers.Count(count));
@@ -97,7 +127,7 @@ namespace Scry
                 PinNames.Centred(words, TabWriting);
                 words.SetActive(true);
             }
-            _tabs.Add(new Tab { Rect = rect, Words = words });
+            _tabs.Add(new Tab { Rect = rect, Back = back, Words = words });
             return true;
         }
     }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Scry
 {
@@ -20,15 +21,18 @@ namespace Scry
         private static readonly Dictionary<(string Kind, bool Told), int> KindNumbers = new Dictionary<(string Kind, bool Told), int>();
         private static readonly List<int> KindOfDot = new List<int>();
 
-        /// <summary>Each dot's plain look, by its full picture: the same texture, cut to its middle.</summary>
+        /// <summary>How much of a plain picture a plain mark shows: its shape out to a square's corners, all it holds.</summary>
+        private const float PlainCut = 0.75f;
+
+        /// <summary>Each dot's plain look, by its full picture: its plain picture cut to its middle.</summary>
         private static readonly Dictionary<Sprite, Sprite> Plains = new Dictionary<Sprite, Sprite>();
 
-        /// <summary>The kind shown alone, none while all are; and whether that changed since the dots were last placed.</summary>
-        private static string _solo;
+        /// <summary>The kinds picked on the kinds strip to stand out, none while all do; and whether they changed since the dots were last placed.</summary>
+        private static readonly HashSet<string> Picked = new HashSet<string>(System.StringComparer.Ordinal);
         private static bool _soloChanged;
 
-        /// <summary>The kinds kept that stand, for the kinds strip: each with its name, how many and its picture; and what they were worked out for.</summary>
-        private static readonly List<(string Kind, string Name, int Count, Sprite Picture)> StripKinds = new List<(string, string, int, Sprite)>();
+        /// <summary>The kinds kept that stand, for the kinds strip: each with its name, how many you saw and how many the server told of, and its picture; and what they were worked out for.</summary>
+        private static readonly List<(string Kind, string Name, int Seen, int Told, Sprite Picture)> StripKinds = new List<(string, string, int, int, Sprite)>();
         private static (IReadOnlyList<(int X, int Z)>, IReadOnlyList<(int X, int Z)>, Sprite, int) _stripFor;
 
         /// <summary>Where the kinds strip was drawn and the frame, for its clicks to be kept from the map under it.</summary>
@@ -55,14 +59,17 @@ namespace Scry
             }
         }
 
-        /// <summary>The kind shown alone; none while all are.</summary>
-        public static string ShownAlone => _solo;
+        /// <summary>Whether a kind is picked to stand out on the kinds strip.</summary>
+        public static bool IsPicked(string kind) => kind != null && Picked.Contains(kind);
+
+        /// <summary>How many kinds are picked to stand out; none while all do.</summary>
+        public static int PickedCount => Picked.Count;
 
         /// <summary>Whether the kinds strip stands: on in the settings, the large map open, two kinds or more kept standing.</summary>
         public static bool KindsStripShown => Settings.KindsStrip && LargeOpen && KindsStanding().Count >= 2 && !TargetPortalMap.MarksAside;
 
         /// <summary>The kinds kept that stand on the map, for the strip, worked out again only as the dots change.</summary>
-        public static IReadOnlyList<(string Kind, string Name, int Count, Sprite Picture)> KindsStanding()
+        public static IReadOnlyList<(string Kind, string Name, int Seen, int Told, Sprite Picture)> KindsStanding()
         {
             if (_stripFor == _dotsFor) return StripKinds;
             _stripFor = _dotsFor;
@@ -72,22 +79,25 @@ namespace Scry
             {
                 var kind = StandingKinds[i];
                 if (kind == null) continue;
+                var told = StandingDots[i].Told;
                 if (at.TryGetValue(kind, out var index))
                 {
-                    var (k, name, count, picture) = StripKinds[index];
-                    StripKinds[index] = (k, name, count + 1, picture);
+                    var (k, name, seen, toldCount, picture) = StripKinds[index];
+                    // The picture of one you saw before one the server told of, as the strip names the kind by it.
+                    StripKinds[index] = (k, name, seen + (told ? 0 : 1), toldCount + (told ? 1 : 0), seen == 0 && !told ? StandingDots[i].Picture : picture);
                     continue;
                 }
                 at[kind] = StripKinds.Count;
-                StripKinds.Add((kind, StandingDots[i].Name, 1, StandingDots[i].Picture));
+                StripKinds.Add((kind, StandingDots[i].Name, told ? 0 : 1, told ? 1 : 0, StandingDots[i].Picture));
             }
             return StripKinds;
         }
 
-        /// <summary>A kind shown alone, as a click on its chip does; the same kind again, or none, shows them all.</summary>
+        /// <summary>A kind picked to stand out, or let go again, as a click on its chip does; several may stand out at once, the rest faded; none, all stand alike.</summary>
         public static void ShowAlone(string kind)
         {
-            _solo = kind == null || kind == _solo ? null : kind;
+            if (kind == null) Picked.Clear();
+            else if (!Picked.Remove(kind)) Picked.Add(kind);
             _soloChanged = true;
         }
 
@@ -102,8 +112,8 @@ namespace Scry
         /// <summary>All the kinds shown again as the map closes.</summary>
         private static void ForgetAlone()
         {
-            if (_solo != null) _soloChanged = true;
-            _solo = null;
+            if (Picked.Count > 0) _soloChanged = true;
+            Picked.Clear();
         }
 
         /// <summary>Where the kinds strip was drawn, for its clicks to be kept from the map under it.</summary>
@@ -150,18 +160,21 @@ namespace Scry
 
         private static Sprite LookOf(Sprite full) => _plain ? PlainOf(full) : full;
 
-        /// <summary>A dot's colour: as drawn, or faded where another kind is shown alone.</summary>
-        private static Color ShownColour(int dot) => _solo == null || (dot < StandingKinds.Count && StandingKinds[dot] == _solo) ? Skin.MarkShown : Skin.MarkFaded;
+        /// <summary>A dot's colour: as drawn, or faded where other kinds are picked to stand out.</summary>
+        private static Color ShownColour(int dot) => Picked.Count == 0 || (dot < StandingKinds.Count && IsPicked(StandingKinds[dot])) ? Skin.MarkShown : Skin.MarkFaded;
 
-        /// <summary>A dot's plain look: its own picture's middle, the kind's shape or picture and its edge, without the gap and ring, made once for each picture.</summary>
+        /// <summary>A dot's plain look: the kind's shape or picture and its edge drawn without the gap and ring, its middle shown, made once for each picture.</summary>
         public static Sprite PlainOf(Sprite full)
         {
             if (full == null) return null;
             if (Plains.TryGetValue(full, out var plain) && plain != null) return plain;
-            var whole = full.rect;
-            var side = whole.width * SeenOnMap.PlainShare;
+            // Drawn without its ring where the picture was made here, else the full one cut closer.
+            var drawn = PlainMakers.TryGetValue(full, out var make) ? make() : null;
+            var from = drawn != null ? drawn : full;
+            var whole = from.rect;
+            var side = whole.width * (drawn != null ? PlainCut : SeenOnMap.PlainShare * 0.85f);
             var middle = new Rect(whole.x + (whole.width - side) / 2f, whole.y + (whole.height - side) / 2f, side, side);
-            plain = Kept.Add(Sprite.Create(full.texture, middle, new Vector2(0.5f, 0.5f)));
+            plain = Kept.Add(Sprite.Create(from.texture, middle, new Vector2(0.5f, 0.5f)));
             Plains[full] = plain;
             return plain;
         }
@@ -199,8 +212,72 @@ namespace Scry
             return true;
         }
 
+        /// <summary>The dots a merged mark pointed at stands for, each at its own spot in an accent ring, and how many stand.</summary>
+        private static readonly List<(Image Picture, RectTransform Rect)> Members = new List<(Image, RectTransform)>();
+        private static int _membersShown;
+        private static Sprite _activeRing;
+
+        /// <summary>How many of a pointed merged mark's dots stand at their own spots, for the self-test.</summary>
+        [ForTest]
+        public static int MembersShownForTest => _membersShown;
+
+        /// <summary>
+        /// While the pointer rests on a kind's merged mark, every other dot it stands for at its own
+        /// spot, in the mark's look inside an accent ring, so where they lie shows without the
+        /// merged mark coming apart; the mark pointed at keeps its own ring. Over the game's pins
+        /// with what else the pointer brings up; put away as the pointer leaves it.
+        /// </summary>
+        private static void ShowMembers(Minimap map, float size, RectTransform like)
+        {
+            var dot = _pointedAt >= 0 && _pointedAt < _standing && _pointedAt < PlacedFrom.Count ? PlacedFrom[_pointedAt] : -1;
+            var parent = _over != null ? _over : _holder;
+            var shown = 0;
+            if (dot >= 0 && MergedCount(dot) > 1 && parent != null && like != null && map.m_mapImageLarge != null)
+            {
+                var window = map.m_mapImageLarge.uvRect;
+                var area = map.m_mapImageLarge.rectTransform.rect;
+                var look = ShownSize(size);
+                foreach (var member in Merged.MembersOf(dot))
+                {
+                    if (member == dot) continue;
+                    var (x, z, picture, _, _) = StandingDots[member];
+                    if (!MapMarks.Place(new Vec3(x, 0f, z), map.m_pixelSize, map.m_textureSize, (window.xMin, window.yMin, window.width, window.height), (area.width, area.height), out var at)) continue;
+                    while (Members.Count < (shown + 1) * 2) Members.Add(StackPips.Piece(parent, like, "Scry merged mark's dot"));
+                    var spot = new Vector2(at.X, at.Y);
+                    StackPips.Stand(Members[shown * 2], spot, look * 1.45f, ActiveRing());
+                    StackPips.Stand(Members[shown * 2 + 1], spot, look, LookOf(picture));
+                    shown++;
+                }
+            }
+            for (var i = shown * 2; i < Members.Count; i++) if (Members[i].Picture.gameObject.activeSelf) Members[i].Picture.gameObject.SetActive(false);
+            _membersShown = shown;
+        }
+
+        /// <summary>The ring round a merged mark's dots shown while it is pointed at: the accent between dark halos, made once.</summary>
+        private static Sprite ActiveRing()
+        {
+            if (_activeRing != null) return _activeRing;
+            const int side = 32;
+            var pixels = new Color32[side * side];
+            for (var y = 0; y < side; y++)
+            {
+                for (var x = 0; x < side; x++)
+                {
+                    var r = Mathf.Sqrt((x + 0.5f - side / 2f) * (x + 0.5f - side / 2f) + (y + 0.5f - side / 2f) * (y + 0.5f - side / 2f)) / (side / 2f);
+                    pixels[y * side + x] = r > 0.74f && r <= 0.88f ? Skin.Accent : r > 0.66f && r <= 0.98f ? Skin.Alpha(Skin.OnAccent, 0.6f) : Skin.Alpha(Skin.OnAccent, 0f);
+                }
+            }
+            var texture = Kept.Add(new Texture2D(side, side, TextureFormat.RGBA32, false) { name = "Scry merged mark's ring", filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp });
+            texture.SetPixels32(pixels);
+            texture.Apply(false, false);
+            _activeRing = Kept.Add(Sprite.Create(texture, new Rect(0f, 0f, side, side), new Vector2(0.5f, 0.5f)));
+            return _activeRing;
+        }
+
         private static void ForgetKinds()
         {
+            Members.Clear();
+            _membersShown = 0;
             Counts.Forget();
             _merging = false;
             _plain = false;

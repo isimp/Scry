@@ -124,14 +124,20 @@ namespace Scry
         public static string MergedHover(string name, int count, bool told, float metres, string direction) =>
             $"{Numbers.Count(count)} {name}{(told ? " the server told of" : "")} here\n" + (metres < Beside ? "nearest beside you" : $"nearest {Distance(metres)} {direction}") + " · click to zoom in on them";
 
-        /// <summary>A kind's chip on the map's kinds strip: its name and how many of it stand on the map.</summary>
-        public static string KindChip(string name, int count) => name + " " + Numbers.Count(count);
+        /// <summary>A kind's chip on the map's kinds strip: its name, how many of it you saw, and how many the server told of apart.</summary>
+        public static string KindChip(string name, int seen, int told) =>
+            told == 0 ? name + " " + Numbers.Count(seen)
+            : seen == 0 ? $"{name} · {Numbers.Count(told)} told"
+            : $"{name} {Numbers.Count(seen)} · {Numbers.Count(told)} told";
 
         /// <summary>The kinds strip's last line where more kinds are kept than its rows hold.</summary>
         public static string KindsMore(int more) => $"and {Numbers.Count(more)} more, in the title row's On the map list";
 
-        /// <summary>A kind's chip's tip: showing it alone, or all the kinds again where it is the one shown.</summary>
-        public static string KindChipTip(bool shownAlone) => shownAlone ? "Show all the kinds kept again" : "Show this kind alone, the others faded";
+        /// <summary>A kind's chip's tip: picking it to stand out, alone or beside those picked, or letting it fade with the others again.</summary>
+        public static string KindChipTip(bool picked, bool anyPicked) =>
+            picked ? "Let this kind fade with the others again"
+            : anyPicked ? "Show this kind too"
+            : "Show this kind alone, the others faded; pick more to show them too";
 
         /// <summary>A hollow dot pointed at, one the server told of: its kind, then how far and which way it is from you.</summary>
         public static string ToldHover(string name, float metres, string direction) =>

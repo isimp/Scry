@@ -197,6 +197,32 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AFanKeepsEachMarkOnTheSideItLies()
+        {
+            // Two side by side spread to their own sides, whichever comes first.
+            var two = MarkStacks.FanAngles(new[] { (-1f, 0f), (1f, 0f) });
+            Assert.True(Math.Cos(two[0]) < -0.9 && Math.Cos(two[1]) > 0.9, $"{two[0]}, {two[1]}");
+            var swapped = MarkStacks.FanAngles(new[] { (1f, 0f), (-1f, 0f) });
+            Assert.True(Math.Cos(swapped[0]) > 0.9 && Math.Cos(swapped[1]) < -0.9);
+            // One above another, up and down.
+            var upright = MarkStacks.FanAngles(new[] { (0f, -2f), (0.1f, 3f) });
+            Assert.True(Math.Sin(upright[0]) < -0.9 && Math.Sin(upright[1]) > 0.9);
+            // Four round their middle each keep near their own way, and stay evenly apart.
+            var bearings = new[] { 3.4, 0.3, 4.8, 1.9 };
+            var four = MarkStacks.FanAngles(bearings.Select(b => ((float)Math.Cos(b), (float)Math.Sin(b))).ToArray());
+            for (var i = 0; i < 4; i++)
+            {
+                var off = Math.Abs(Math.IEEERemainder(four[i] - bearings[i], 2 * Math.PI));
+                Assert.True(off < Math.PI / 4, $"{i}: {four[i]} for {bearings[i]}");
+            }
+            var sorted = four.Select(a => (a % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI)).OrderBy(a => a).ToArray();
+            for (var i = 1; i < 4; i++) Assert.Equal(Math.PI / 2, sorted[i] - sorted[i - 1], 3);
+            // All on one spot: the fan as it stands with no way to go by.
+            var same = MarkStacks.FanAngles(new[] { (0f, 0f), (0f, 0f) });
+            Assert.True(Math.Abs(Math.Cos(same[0]) - Math.Cos(same[1])) > 1.9);
+        }
+
+        [Fact]
         public void AFanStaysWhileThePointerIsOnItAndClosesPastIt()
         {
             const float size = 20f;

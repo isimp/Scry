@@ -164,11 +164,24 @@ namespace Scry
             FanFrom.Clear();
             _fanSize = size;
             var lineWidth = Mathf.Max(1.5f, size * 0.07f);
+            // Round the middle of where the dots lie, each fanned to the side it lies on.
+            var middle = Vector2.zero;
+            var placed = 0;
+            for (var k = 0; k < n; k++)
+            {
+                if (!FannedAt.TryGetValue(members[k], out var lies)) continue;
+                middle += lies;
+                placed++;
+            }
+            if (placed == n && n > 0) at = middle / n;
+            var offsets = new (float X, float Y)[n];
+            for (var k = 0; k < n; k++) offsets[k] = placed == n && FannedAt.TryGetValue(members[k], out var lies) ? (lies.x - at.x, lies.y - at.y) : (0f, 0f);
+            var ways = MarkStacks.FanAngles(offsets);
             for (var k = 0; k < n; k++)
             {
                 if (k == FanLines.Count) FanLines.Add(StackPips.Piece(_fanHolder, like, "Scry fan line"));
                 if (k == FanDots.Count) FanDots.Add(StackPips.Piece(_fanHolder, like, "Scry fanned dot"));
-                var (x, y) = MarkStacks.FanAt(k, n, size);
+                var (x, y) = MarkStacks.FanToward(ways[k], n, size);
                 var line = FanLines[k];
                 line.Rect.anchoredPosition = at + new Vector2(x, y) / 2f;
                 line.Rect.sizeDelta = new Vector2(Mathf.Sqrt(x * x + y * y), lineWidth);
@@ -308,6 +321,7 @@ namespace Scry
             }
             else if (_lifted.Picture != null && _lifted.Picture.gameObject.activeSelf) _lifted.Picture.gameObject.SetActive(false);
             FadeNear(map, size);
+            ShowMembers(map, size, like);
         }
 
         /// <summary>

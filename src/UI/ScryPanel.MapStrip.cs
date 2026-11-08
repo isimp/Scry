@@ -63,7 +63,7 @@ namespace Scry
             var more = 0;
             for (var i = 0; i < kinds.Count; i++)
             {
-                var width = Skin.Width(Skin.Small, SpotWords.KindChip(kinds[i].Name, kinds[i].Count)) + U(30f);
+                var width = Skin.Width(Skin.Small, SpotWords.KindChip(kinds[i].Name, kinds[i].Seen, kinds[i].Told)) + U(30f);
                 if (x + width > right - pad && x > left + pad)
                 {
                     if (++row >= KindsRows)
@@ -85,12 +85,12 @@ namespace Scry
             string tip = null;
             foreach (var (at, index) in chips)
             {
-                var (kind, name, count, picture) = kinds[index];
-                var alone = MapSpots.ShownAlone == kind;
+                var (kind, name, seen, told, picture) = kinds[index];
+                var alone = MapSpots.IsPicked(kind);
                 if (GUI.Button(at, GUIContent.none, alone ? Skin.ChipOn : Skin.Chip)) MapSpots.ShowAlone(kind);
                 if (picture != null) GUI.DrawTexture(new Rect(at.x + U(6f), at.y + (at.height - U(16f)) / 2f, U(16f), U(16f)), picture.texture);
-                GUI.Label(new Rect(at.x + U(24f), at.y, at.width - U(26f), at.height), SpotWords.KindChip(name, count), Skin.Small);
-                if (at.Contains(pointer)) tip = SpotWords.KindChipTip(alone);
+                GUI.Label(new Rect(at.x + U(24f), at.y, at.width - U(26f), at.height), SpotWords.KindChip(name, seen, told), alone ? Skin.Badge : Skin.Small);
+                if (at.Contains(pointer)) tip = SpotWords.KindChipTip(alone, MapSpots.PickedCount > 0);
             }
             if (moreText != null) GUI.Label(new Rect(left + pad, box.yMax - pad - U(18f), box.width - pad * 2f, U(18f)), moreText, Skin.Small);
             if (tip != null)

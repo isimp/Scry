@@ -517,6 +517,9 @@ namespace Scry
         /// <summary>Which of the dots worked out each dot placed stands for, as only those in the map's window are placed.</summary>
         private static readonly List<int> PlacedFrom = new List<int>();
 
+        /// <summary>Where each dot of the stack fanned out lies on the map, by the dot, for the fan to keep each on its own side.</summary>
+        private static readonly Dictionary<int, Vector2> FannedAt = new Dictionary<int, Vector2>();
+
         /// <summary>The kinds the kind shown on demand holds, by key, left out of those kept as they stand shown; and the kind they were worked out for.</summary>
         private static readonly HashSet<string> ShownKinds = new HashSet<string>(System.StringComparer.Ordinal);
         private static string _shownKindsOf;
@@ -675,6 +678,7 @@ namespace Scry
         {
             var started = System.Diagnostics.Stopwatch.GetTimestamp();
             PlacedFrom.Clear();
+            FannedAt.Clear();
             var made = 0;
             var standing = 0;
             var allMade = true;
@@ -698,6 +702,7 @@ namespace Scry
                 if (InFan(i))
                 {
                     if (i == _fanned) fanAt = new Vector2(at.X, at.Y);
+                    FannedAt[i] = new Vector2(at.X, at.Y);
                     continue;
                 }
                 if (standing == Dots.Count)
@@ -716,7 +721,7 @@ namespace Scry
                 PlacedFrom.Add(i);
                 if (!PutPips(i, new Vector2(at.X, at.Y), shown, like)) allMade = false;
                 var merged = MergedCount(i);
-                if (merged > 1 && !Counts.Put(map, new Vector2(at.X, at.Y), shown, merged, like)) allMade = false;
+                if (merged > 1 && !Counts.Put(map, new Vector2(at.X, at.Y), shown, merged, StandingDots[i].Told, like)) allMade = false;
             }
             Pips.End();
             Counts.End();

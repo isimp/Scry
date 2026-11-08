@@ -30,6 +30,7 @@ namespace Scry.Tests
             "ModFolders.Icons",  // made from the mods' own files, of no world, so kept for the next
             "MapSpots.Pictures",  // Scry's own drawing of a dot in each colour, of no world, so kept for the next
             "MapSpots.PicturedMarks",  // likewise, in the game's pictures and icons, which are of no world either
+            "MapSpots.PlainMakers",  // how each of those drawings is drawn plain, of no world either
             "KeptMarkPictures.Copied",  // the game's pictures and icons copied, of no world, so kept for the next
         };
 

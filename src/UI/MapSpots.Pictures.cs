@@ -7,7 +7,10 @@ namespace Scry
     internal static partial class MapSpots
     {
         /// <summary>The dots' pictures, one drawn for each colour and shape a kind is shown in.</summary>
-        private static readonly Dictionary<(Color32, MarkShape, bool), Sprite> Pictures = new Dictionary<(Color32, MarkShape, bool), Sprite>();
+        private static readonly Dictionary<(Color32, MarkShape, bool, bool), Sprite> Pictures = new Dictionary<(Color32, MarkShape, bool, bool), Sprite>();
+
+        /// <summary>How each full picture's plain look is drawn, by the full picture, for the plain look far out (<see cref="PlainOf"/>).</summary>
+        private static readonly Dictionary<Sprite, System.Func<Sprite>> PlainMakers = new Dictionary<Sprite, System.Func<Sprite>>();
 
         /// <summary>
         /// The dots' picture in a colour, drawn once for it: the colour inside a dark edge, the map
@@ -17,9 +20,15 @@ namespace Scry
         /// (<see cref="SeenOnMap.ShapeShare"/>). Each pixel is the mean of four by four points in
         /// it, so the edges stay smooth when the dot is drawn small.
         /// </summary>
-        public static Sprite Picture(Color colour, MarkShape shape = MarkShape.Circle, bool hollow = false)
+        public static Sprite Picture(Color colour, MarkShape shape = MarkShape.Circle, bool hollow = false) => Picture(colour, shape, hollow, false);
+
+        /// <summary>
+        /// As above; <paramref name="plain"/>, the plain look far out: the kind's shape and its edge
+        /// alone, the map's gap, the ring and its halo left out, so no light edge stands round it.
+        /// </summary>
+        private static Sprite Picture(Color colour, MarkShape shape, bool hollow, bool plain)
         {
-            var key = ((Color32)colour, shape, hollow);
+            var key = ((Color32)colour, shape, hollow, plain);
             if (Pictures.TryGetValue(key, out var made) && made != null) return made;
             const int side = 64, points = 4;
             var pixels = new Color32[side * side];
@@ -35,7 +44,8 @@ namespace Scry
                         {
                             var dx = (x + (px + 0.5f) / points - side / 2f) / (side / 2f);
                             var dy = (y + (py + 0.5f) / points - side / 2f) / (side / 2f);
-                            var shade = Shade(SeenOnMap.DotAt(SeenOnMap.ShapeShare(shape, dx, dy)), colour, hollow);
+                            var part = SeenOnMap.DotAt(SeenOnMap.ShapeShare(shape, dx, dy));
+                            var shade = plain && part != DotPart.Disc && part != DotPart.Edge ? Skin.Alpha(Skin.OnAccent, 0f) : Shade(part, colour, hollow);
                             sum += shade * shade.a;
                             a += shade.a;
                         }
@@ -49,11 +59,15 @@ namespace Scry
             texture.Apply(false, false);
             made = Kept.Add(Sprite.Create(texture, new Rect(0f, 0f, side, side), new Vector2(0.5f, 0.5f)));
             Pictures[key] = made;
+            if (!plain) PlainMakers[made] = () => Picture(colour, shape, hollow, true);
             return made;
         }
 
         /// <summary>The dots' pictures in a picture of the game's or a kind's own, one drawn for each colour and picture.</summary>
-        private static readonly Dictionary<(Color32, int, bool, bool), Sprite> PicturedMarks = new Dictionary<(Color32, int, bool, bool), Sprite>();
+        private static readonly Dictionary<(Color32, int, bool, bool, bool), Sprite> PicturedMarks = new Dictionary<(Color32, int, bool, bool, bool), Sprite>();
+
+        /// <summary>How far a pictured mark's disc reaches in its plain look, as a share of the whole: as far as a square's corners in a shaped one.</summary>
+        private const float PlainDisc = 0.72f;
 
         /// <summary>
         /// The picture a kept line's mark stands in (<see cref="KeptMarks"/>): its colour in its
@@ -77,9 +91,9 @@ namespace Scry
         /// the server told of with the picture faint and the disc's edge in the colour. None where
         /// the picture cannot be copied.
         /// </summary>
-        private static Sprite Pictured(Color colour, Sprite picture, bool own, bool hollow)
+        private static Sprite Pictured(Color colour, Sprite picture, bool own, bool hollow, bool plain = false)
         {
-            var key = ((Color32)colour, picture.GetInstanceID(), own, hollow);
+            var key = ((Color32)colour, picture.GetInstanceID(), own, hollow, plain);
             if (PicturedMarks.TryGetValue(key, out var made)) return made;
             const int side = 64, points = 4;
             var (w, h) = KeptMarkPictures.Fit(picture, Mathf.RoundToInt(side * (own ? 0.6f : 0.58f)));
@@ -105,8 +119,10 @@ namespace Scry
                             var dy = (y + (py + 0.5f) / points - side / 2f) / (side / 2f);
                             var share = SeenOnMap.ShapeShare(MarkShape.Circle, dx, dy);
                             var part = SeenOnMap.DotAt(share);
-                            // The disc fills the ring's inside, the map's gap with it, so the picture stands as large as it can.
-                            var shade = share > 1f ? Skin.Alpha(Skin.OnAccent, 0f)
+                            // The disc fills the ring's inside, the map's gap with it, so the picture stands as large as it can;
+                            // plain, the disc alone to its own dark edge, no ring round it.
+                            var shade = share > 1f || (plain && share > PlainDisc) ? Skin.Alpha(Skin.OnAccent, 0f)
+                                : plain && share > PlainDisc - 0.07f ? Skin.OnAccent
                                 : part == DotPart.Halo ? Skin.Alpha(Skin.OnAccent, 0.55f)
                                 : part == DotPart.Ring ? Skin.Text
                                 : hollow && part == DotPart.Edge ? colour
@@ -140,6 +156,7 @@ namespace Scry
             texture.Apply(false, false);
             made = Kept.Add(Sprite.Create(texture, new Rect(0f, 0f, side, side), new Vector2(0.5f, 0.5f)));
             PicturedMarks[key] = made;
+            if (!plain) PlainMakers[made] = () => Pictured(colour, picture, own, hollow, true);
             return made;
         }
 

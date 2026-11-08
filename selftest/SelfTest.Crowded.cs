@@ -55,8 +55,14 @@ namespace Scry
             map.SetMapMode(Minimap.MapMode.Large);
             map.LargeZoom = 0.06f;
             CentreMapOn(map, new Vector2(cx + 70, cz));
-            yield return Until(() => MapSpots.TouchForTest > 0f, 5);
-            map.LargeZoom = Mathf.Clamp(0.06f * 70f * MarkStacks.Touching / MapSpots.TouchForTest, SeenOnMap.NearestZoom, SeenOnMap.FarthestZoom);
+            // The zoom settled over a few frames, each from the touch the map's own zoom then gives,
+            // as a touch read before the map draws at a new zoom is the zoom before it.
+            for (var round = 0; round < 3; round++)
+            {
+                yield return null;
+                yield return null;
+                if (MapSpots.TouchForTest > 0f) map.LargeZoom = Mathf.Clamp(map.LargeZoom * 70f * MarkStacks.Touching / MapSpots.TouchForTest, SeenOnMap.NearestZoom, SeenOnMap.FarthestZoom);
+            }
             yield return Until(() => MapSpots.DotsShown == 2 && MapSpots.MergedShownForTest == 2 && MapSpots.PlainForTest, 5);
             p.Note($"zoomed out to {Numbers.Amount(map.LargeZoom, 3)}, a dot spanning {Numbers.Amount(MapSpots.TouchForTest / MarkStacks.Touching, 0)} m");
             p.Check(MapSpots.DotsShown == 2 && MapSpots.MergedShownForTest == 2, "far out, each kind's dots that would cover each other stand as one mark with how many",
@@ -70,11 +76,18 @@ namespace Scry
             p.Check(ScryPanel.Drawn(PanelPart.MapKindsStrip) > strips && MapSpots.KindsStanding().Count == 2, "the kinds strip lists the two kinds kept", Numbers.Count(MapSpots.KindsStanding().Count));
             MapSpots.ShowAlone(tin);
             yield return Until(() => MapSpots.FadedDotsForTest == 1, 3);
-            p.Check(MapSpots.FadedDotsForTest == 1 && MapSpots.ShownAlone == tin, "tin shown alone, the copper's mark fades", $"{Numbers.Count(MapSpots.FadedDotsForTest)} faded");
+            p.Check(MapSpots.FadedDotsForTest == 1 && MapSpots.IsPicked(tin), "tin picked alone, the copper's mark fades", $"{Numbers.Count(MapSpots.FadedDotsForTest)} faded");
             yield return Picture(p, "a crowded patch with tin shown alone");
-            MapSpots.ShowAlone(tin);
+            // Copper picked too: both stand out; tin let go: copper alone; copper let go: all alike again.
+            MapSpots.ShowAlone(copper);
             yield return Until(() => MapSpots.FadedDotsForTest == 0, 3);
-            p.Check(MapSpots.FadedDotsForTest == 0 && MapSpots.ShownAlone == null, "clicked again, every kind shows again");
+            p.Check(MapSpots.FadedDotsForTest == 0 && MapSpots.PickedCount == 2, "copper picked too, both stand out", $"{Numbers.Count(MapSpots.FadedDotsForTest)} faded, {Numbers.Count(MapSpots.PickedCount)} picked");
+            MapSpots.ShowAlone(tin);
+            yield return Until(() => MapSpots.FadedDotsForTest == 1, 3);
+            p.Check(MapSpots.FadedDotsForTest == 1 && MapSpots.IsPicked(copper) && !MapSpots.IsPicked(tin), "tin let go, it fades and copper stands out alone");
+            MapSpots.ShowAlone(copper);
+            yield return Until(() => MapSpots.FadedDotsForTest == 0, 3);
+            p.Check(MapSpots.FadedDotsForTest == 0 && MapSpots.PickedCount == 0, "the last let go, every kind shows again");
 
             // A merged mark pointed at names its kind and how many; clicked, the map zooms in on it.
             if (MapSpots.LoneDotForTest() is Vector2 merged)
@@ -83,6 +96,10 @@ namespace Scry
                 yield return Until(() => (MapSpots.Pointed?.Words ?? "").Contains("click to zoom in"), 3);
                 var said = MapSpots.Pointed?.Words ?? "";
                 p.Check(said.Contains(" here\n") && said.Contains("click to zoom in"), "a merged mark pointed at names its kind and how many, and that a click zooms in", said);
+                // Every other dot it stands for shows at its own spot, ringed in the accent.
+                var count = said.StartsWith("6 ", System.StringComparison.Ordinal) ? 5 : 2;
+                yield return Until(() => MapSpots.MembersShownForTest == count, 3);
+                p.Check(MapSpots.MembersShownForTest == count, "pointed at, the merged mark's other dots show where each lies", $"{Numbers.Count(MapSpots.MembersShownForTest)} of {Numbers.Count(count)}");
                 yield return Picture(p, "a crowded patch, a merged mark pointed at");
                 var zoom = map.LargeZoom;
                 MapSpots.PressedForTest(merged);

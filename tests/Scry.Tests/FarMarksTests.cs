@@ -88,9 +88,14 @@ namespace Scry.Tests
         [Fact]
         public void TheKindsStripNamesEachKindWithHowManyStand()
         {
-            Assert.Equal("Ancient Armour 14", SpotWords.KindChip("Ancient Armour", 14));
-            Assert.Contains("alone", SpotWords.KindChipTip(false));
-            Assert.Contains("all", SpotWords.KindChipTip(true));
+            // How many you saw, and those the server told of apart, as their hollow dots are.
+            Assert.Equal("Ancient Armour 14", SpotWords.KindChip("Ancient Armour", 14, 0));
+            Assert.Equal("Infested Mine 2 · 4 told", SpotWords.KindChip("Infested Mine", 2, 4));
+            Assert.Equal("Infested Mine · 4 told", SpotWords.KindChip("Infested Mine", 0, 4));
+            // Several kinds may stand out at once: the first picked alone, then each added, and taken back.
+            Assert.Contains("alone", SpotWords.KindChipTip(picked: false, anyPicked: false));
+            Assert.Contains("too", SpotWords.KindChipTip(picked: false, anyPicked: true));
+            Assert.Contains("fade", SpotWords.KindChipTip(picked: true, anyPicked: true));
             // Past its rows, the kinds left out are counted and found in the kept list.
             Assert.Equal("and 4 more, in the title row's On the map list", SpotWords.KindsMore(4));
             // The kinds not shown alone fade to a fifth.
