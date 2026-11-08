@@ -6,7 +6,7 @@ namespace Scry.Tests
     public class KindsListTests
     {
         // The kinds list on Valheim's map: a small window dragged by its title, folded to it,
-        // made wider or narrower, kept where it was left, never off the map.
+        // made wider, narrower, taller or shorter, kept where it was left, never off the screen.
 
         [Fact]
         public void AListNeverMovedStandsAtTheMapsTopLeftAtAThirdOfItsWidth()
@@ -50,10 +50,43 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void PastSoManyRowsTheListScrolls()
+        public void PastTheRowsItIsMadeTallEnoughForTheListScrolls()
         {
-            Assert.Equal(3, KindsList.RowsShown(3));
-            Assert.Equal(KindsList.MostRows, KindsList.RowsShown(KindsList.MostRows + 5));
+            Assert.Equal(3, KindsList.RowsShown(3, 6));
+            Assert.Equal(6, KindsList.RowsShown(11, 6));
+            Assert.Equal(9, KindsList.RowsShown(11, 9));
+            Assert.Equal(0, KindsList.RowsShown(0, 6));
+        }
+
+        [Fact]
+        public void AListNeverSizedStandsSoManyRowsAndOneSizedStandsWhatItWasGiven()
+        {
+            Assert.Equal(KindsList.StartRows, KindsList.RowsAllowed(null, 100f, 1080f, 1f));
+            Assert.Equal(12, KindsList.RowsAllowed(12, 100f, 1080f, 1f));
+            Assert.Equal(1, KindsList.RowsAllowed(1, 100f, 1080f, 1f));
+        }
+
+        [Fact]
+        public void AListIsNeverTallerThanTheScreenBelowItNorShorterThanARow()
+        {
+            // 30 points' room per row, the title and the room round the rows taken first.
+            var fit = KindsList.RowsAllowed(500, 0f, 1080f, 1f);
+            Assert.Equal(34, fit);
+            Assert.Equal(16, KindsList.RowsAllowed(500, 0f, 1080f, 2f));
+            Assert.Equal(1, KindsList.RowsAllowed(500, 1070f, 1080f, 1f));
+            Assert.Equal(1, KindsList.RowsAllowed(0, 100f, 1080f, 1f));
+        }
+
+        [Fact]
+        public void TheCornerDraggedDownOrUpGivesTheRowsItsFootStandsAt()
+        {
+            float Foot(int rows, float top) => top + KindsList.TitleHeight + KindsList.Pad * 2f + rows * KindsList.ChipHeight + (rows - 1) * KindsList.Gap;
+            Assert.Equal(4, KindsList.RowsAt(Foot(4, 50f), 50f, 1f));
+            Assert.Equal(9, KindsList.RowsAt(Foot(9, 50f), 50f, 1f));
+            // Nearest the row it is let go by, and never none.
+            Assert.Equal(4, KindsList.RowsAt(Foot(4, 50f) + 10f, 50f, 1f));
+            Assert.Equal(5, KindsList.RowsAt(Foot(4, 50f) + 20f, 50f, 1f));
+            Assert.Equal(1, KindsList.RowsAt(0f, 50f, 1f));
         }
 
         [Fact]
@@ -69,12 +102,14 @@ namespace Scry.Tests
         [Fact]
         public void TheListIsKeptWithThePanelsPlace()
         {
-            var read = PanelPlace.Read(new PanelPlace { KindsList = (30f, 40f, 320f), KindsFolded = true }.Lines());
+            var read = PanelPlace.Read(new PanelPlace { KindsList = (30f, 40f, 320f), KindsRows = 9, KindsFolded = true }.Lines());
             Assert.Equal((30f, 40f, 320f), read.KindsList);
+            Assert.Equal(9, read.KindsRows);
             Assert.True(read.KindsFolded);
             // A file from before the list leaves it where it first stands, open.
             var before = PanelPlace.Read(new PanelPlace { PlanBig = true }.Lines());
             Assert.Null(before.KindsList);
+            Assert.Null(before.KindsRows);
             Assert.Null(before.KindsFolded);
         }
     }

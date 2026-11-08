@@ -8,13 +8,14 @@ namespace Scry
     /// a family's under one chip, each with its mark and how many you saw and the server told of; a
     /// click picks a chip's kinds to stand out, the rest faded (<see cref="MapSpots.ShowAlone(IReadOnlyList{string})"/>).
     /// Its title row drags it, the arrow at its end folds it to the title, the corner at its foot
-    /// makes it wider or narrower, its rows scroll past a few; where it stands, how wide and whether
-    /// folded are kept with the panel's place. Its presses are kept from the map under it.
+    /// sizes it, its rows scroll past those it is tall enough for; where it stands, how wide, how
+    /// tall and whether folded are kept with the panel's place. Its presses are kept from the map under it.
     /// </summary>
     internal static partial class ScryPanel
     {
-        /// <summary>Where the list was left, from the map's top left, and how wide; none until moved; and whether it is folded.</summary>
+        /// <summary>Where the list was left, from the map's top left, and how wide; none until moved; how many rows tall, none until sized; and whether it is folded.</summary>
         private static (float X, float Y, float Width)? _kindsKept;
+        private static int? _kindsRows;
         private static bool _kindsFolded;
 
         /// <summary>What a press on the list holds: nothing, its title moving it, or its corner sizing it; and where the press took hold.</summary>
@@ -48,6 +49,7 @@ namespace Scry
         private static void TakeKindsListPlace(PanelPlace place)
         {
             if (place.KindsList.HasValue) _kindsKept = place.KindsList;
+            if (place.KindsRows.HasValue) _kindsRows = place.KindsRows;
             if (place.KindsFolded.HasValue) _kindsFolded = place.KindsFolded.Value;
         }
 
@@ -62,10 +64,11 @@ namespace Scry
             var widths = new float[chips.Count];
             for (var i = 0; i < chips.Count; i++) widths[i] = Skin.Width(Skin.Small, SpotWords.KindChip(chips[i].Name, chips[i].Seen, chips[i].Told)) + U(30f);
             var bar = U(12f);
+            var allowed = KindsList.RowsAllowed(_kindsRows, y, Screen.height, U(1f));
             var flow = KindsList.Flow(widths, width - pad * 2f, gap);
-            if (KindsList.Rows(flow) > KindsList.MostRows) flow = KindsList.Flow(widths, width - pad * 2f - bar, gap);
+            if (KindsList.Rows(flow) > allowed) flow = KindsList.Flow(widths, width - pad * 2f - bar, gap);
             var rows = KindsList.Rows(flow);
-            var shown = KindsList.RowsShown(rows);
+            var shown = KindsList.RowsShown(rows, allowed);
             var bodyH = _kindsFolded || rows == 0 ? 0f : shown * chipH + (shown - 1) * gap + pad * 2f;
             var box = new Rect(x, y, width, titleH + bodyH);
             var title = new Rect(x, y, width, titleH);
@@ -119,7 +122,7 @@ namespace Scry
                 if (!_kindsFolded && grip.Contains(e.mousePosition))
                 {
                     _kindsHold = KindsHold.Sizing;
-                    _kindsGrab = new Vector2(box.xMax - e.mousePosition.x, 0f);
+                    _kindsGrab = new Vector2(box.xMax - e.mousePosition.x, box.yMax - e.mousePosition.y);
                     e.Use();
                 }
                 else if (title.Contains(e.mousePosition) && !fold.Contains(e.mousePosition))
@@ -132,7 +135,11 @@ namespace Scry
             else if (e.type == EventType.MouseDrag && _kindsHold != KindsHold.None)
             {
                 if (_kindsHold == KindsHold.Moving) _kindsKept = (e.mousePosition.x - _kindsGrab.x - map.x, e.mousePosition.y - _kindsGrab.y - map.y, width);
-                else _kindsKept = (box.x - map.x, box.y - map.y, e.mousePosition.x + _kindsGrab.x - box.x);
+                else
+                {
+                    _kindsKept = (box.x - map.x, box.y - map.y, e.mousePosition.x + _kindsGrab.x - box.x);
+                    _kindsRows = KindsList.RowsAt(e.mousePosition.y + _kindsGrab.y, box.y, U(1f));
+                }
                 e.Use();
             }
             else if (e.rawType == EventType.MouseUp && _kindsHold != KindsHold.None)

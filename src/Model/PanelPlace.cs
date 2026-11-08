@@ -53,8 +53,9 @@ namespace Scry
         /// <summary>Whether the key opening Scry was told once, and the first start's setup done (<see cref="FirstStart"/>).</summary>
         public bool? Hinted, SetUp;
 
-        /// <summary>Where the kinds list on the map was left, from the map's top left, and how wide; and whether it was folded (<see cref="KindsList"/>).</summary>
+        /// <summary>Where the kinds list on the map was left, from the map's top left, how wide and how many rows tall; and whether it was folded (<see cref="KindsList"/>).</summary>
         public (float X, float Y, float Width)? KindsList;
+        public int? KindsRows;
         public bool? KindsFolded;
 
         /// <summary>
@@ -108,6 +109,7 @@ namespace Scry
                     case "hinted" when value != null: place.Hinted = value == "1"; break;
                     case "setup" when value != null: place.SetUp = value == "1"; break;
                     case "kinds" when parts.Length == 4 && Stored.TryNumber(parts[1], out var kx) && Stored.TryNumber(parts[2], out var ky) && Stored.TryNumber(parts[3], out var kw): place.KindsList = (kx, ky, kw); break;
+                    case "kindsrows" when value != null && Stored.TryNumber(value, out var kr): place.KindsRows = (int)kr; break;
                     case "kindsfolded" when value != null: place.KindsFolded = value == "1"; break;
                 }
             }
@@ -141,6 +143,7 @@ namespace Scry
             if (Hinted.HasValue) yield return "hinted " + Flag(Hinted.Value);
             if (SetUp.HasValue) yield return "setup " + Flag(SetUp.Value);
             if (KindsList is (float x, float y, float width)) yield return "kinds " + Stored.Number((float)Math.Round(x)) + " " + Stored.Number((float)Math.Round(y)) + " " + Stored.Number((float)Math.Round(width));
+            if (KindsRows is int kindsRows) yield return "kindsrows " + Stored.Number(kindsRows);
             if (KindsFolded.HasValue) yield return "kindsfolded " + Flag(KindsFolded.Value);
         }
 

@@ -309,6 +309,7 @@ namespace Scry
                 PlanBelow = PlanBelowShown,
                 PlanNames = PlanNamesShown,
                 KindsList = _kindsKept,
+                KindsRows = _kindsRows,
                 KindsFolded = _kindsFolded,
             };
             GiveFirstStart(place);

@@ -5,10 +5,11 @@ namespace Scry
 {
     /// <summary>
     /// The kinds list on Valheim's map: a small window of the kinds kept, dragged by its title,
-    /// folded to it and made wider or narrower by its corner, anywhere on the screen, kept with the panel's place
-    /// (<see cref="PanelPlace"/>) as where it stands from the map's top left and how wide; never off
-    /// the screen, never narrower than a chip stands nor wider than the screen. Its chips flow into
-    /// rows as wide as it, and past so many rows it scrolls.
+    /// folded to it and sized by its corner, anywhere on the screen, kept with the panel's place
+    /// (<see cref="PanelPlace"/>) as where it stands from the map's top left, how wide and how many
+    /// rows tall; never off the screen, never narrower than a chip stands nor wider than the screen,
+    /// never shorter than a row nor taller than the screen below it. Its chips flow into rows as wide
+    /// as it, and past the rows it is tall enough for it scrolls.
     /// </summary>
     internal static class KindsList
     {
@@ -21,8 +22,8 @@ namespace Scry
         /// <summary>How wide a list never moved stands, of the map's width.</summary>
         public const float StartShare = 0.38f;
 
-        /// <summary>How many rows of chips stand before the list scrolls.</summary>
-        public const int MostRows = 6;
+        /// <summary>How many rows of chips a list never sized stands before it scrolls.</summary>
+        public const int StartRows = 6;
 
         /// <summary>
         /// Where the list stands with a map at a point and width on a screen: where it was left,
@@ -86,7 +87,18 @@ namespace Scry
             return groups;
         }
 
-        /// <summary>How many rows stand at once, the rest scrolled to.</summary>
-        public static int RowsShown(int rows) => Math.Min(rows, MostRows);
+        /// <summary>How many rows stand at once of so many, the rest scrolled to; no more than there are, so the list is no taller than it holds.</summary>
+        public static int RowsShown(int rows, int allowed) => Math.Min(rows, allowed);
+
+        /// <summary>How many rows a list with its top at a height may stand: as it was sized, or so many never sized; at least one, and no more than fit on the screen below it.</summary>
+        public static int RowsAllowed(int? kept, float top, float screenHeight, float scale)
+        {
+            var fit = (int)Math.Floor((screenHeight - top - (TitleHeight + Pad * 2f - Gap) * scale) / ((ChipHeight + Gap) * scale));
+            return Math.Max(1, Math.Min(kept ?? StartRows, fit));
+        }
+
+        /// <summary>The rows a list with its top at a height stands with its foot at another, the nearest; at least one.</summary>
+        public static int RowsAt(float foot, float top, float scale) =>
+            Math.Max(1, (int)Math.Round((foot - top - (TitleHeight + Pad * 2f - Gap) * scale) / ((ChipHeight + Gap) * scale)));
     }
 }
