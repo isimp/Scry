@@ -77,8 +77,8 @@ namespace Scry
             if (MapMarkButtons.MarkCenterForTest(MapMarkButtons.MarkOfKindForTest(otherKey)) is Vector2 onOther)
             {
                 PointerTo(onOther);
-                yield return Until(() => MapMarkButtons.NameShownForTest, 3);
-                p.Check(Alpha(otherKey) >= 0.99f, "the pointer on a faded mark brings it back to read", Numbers.Fixed(Alpha(otherKey), 2));
+                yield return Until(() => MapMarkButtons.NameShownForTest && Alpha(otherKey) >= 0.99f, 3);
+                p.Check(MapMarkButtons.NameShownForTest && Alpha(otherKey) >= 0.99f, "the pointer on a faded mark brings it back to read", Numbers.Fixed(Alpha(otherKey), 2));
                 if (Cursor.lockState != CursorLockMode.Locked) ZInput.SetMousePosition(new Vector2(2f, 2f));
                 yield return Until(() => !MapMarkButtons.NameShownForTest, 3);
             }
