@@ -74,8 +74,8 @@ namespace Scry.Tests
         [Fact]
         public void AMergedMarkPointedAtNamesItsKindHowManyAndTheNearest()
         {
-            Assert.Equal("6 Ancient Armour here\nnearest 410 m north-east · click to zoom in on them", SpotWords.MergedHover("Ancient Armour", 6, false, 410f, "north-east"));
-            Assert.Equal("2 Infested Mine the server told of here\nnearest beside you · click to zoom in on them", SpotWords.MergedHover("Infested Mine", 2, true, 2f, "north"));
+            Assert.Equal("6 Ancient Armour here\nnearest 410 m north-east", SpotWords.MergedHover("Ancient Armour", 6, false, 410f, "north-east"));
+            Assert.Equal("2 Infested Mine the server told of here\nnearest beside you", SpotWords.MergedHover("Infested Mine", 2, true, 2f, "north"));
         }
 
         [Fact]

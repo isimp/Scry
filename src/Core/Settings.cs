@@ -375,7 +375,7 @@ namespace Scry
             _farMarks = config.Bind("1 - General", "FarMarks", FarMarks.PlainMerged,
                 "How Scry's marks stand on the map zoomed far out: Full, as near; FullMerged, a kind's dots that would cover each other merged into one with how many; Plain, small shapes without their ring; or PlainMerged, both.");
             _crossedMarks = config.Bind("1 - General", "CrossedMarks", CrossedMarks.Faded,
-                "How spots you crossed off with a right click stand on the map: Faded, dimmed under a cross; or Hidden, gone from the map until you set this back.");
+                "How spots you crossed off stand on the map: Faded, dimmed under a cross; or Hidden, gone from the map until you set this back.");
             _kindsStrip = config.Bind("1 - General", "KindsStrip", true,
                 "Lists the kinds kept on the map at its top left; a click on one shows it alone, the others faded, until clicked again.");
             _mapZoomOut = config.Bind("1 - General", "ShowOnMapZoomOut", true,

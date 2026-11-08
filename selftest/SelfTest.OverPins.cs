@@ -59,8 +59,8 @@ namespace Scry
         }
 
         /// <summary>
-        /// A lone dot clicked on the large map, through the map's own click as a player's
-        /// is (<c>Minimap.OnMapLeftClick</c>): its kind's page opens in Scry and the map goes back to
+        /// A lone dot right-clicked on the large map, through the map's own handling as a player's
+        /// is: its menu stands, and its last line opens its kind's page in Scry, the map going back to
         /// the minimap. Pictured, then the large map opened again where it stood.
         /// </summary>
         private static IEnumerator DotClickOpensPage(Probe p, Minimap map, params string[] kinds)
@@ -74,14 +74,17 @@ namespace Scry
             var (zoom, panned) = (map.LargeZoom, MapPanned(map));
             PointerTo(lone.Value);
             yield return null;
-            MapSpots.PressedForTest(lone.Value);
-            map.OnMapLeftClick();
+            RightClick(map);
+            yield return Until(() => MapSpots.MenuOpen, 3);
+            p.Check(MapSpots.MenuOpen && MapSpots.MenuWordsForTest.Contains(SpotWords.MenuWord(MapMenuChoice.Cross, 1)) && MapSpots.MenuWordsForTest[MapSpots.MenuWordsForTest.Count - 1] == SpotWords.MenuWord(MapMenuChoice.OpenPage, 1), "a right click on a dot opens its menu, its page last", string.Join(", ", MapSpots.MenuWordsForTest));
+            yield return Picture(p, "a dot's menu on the map");
+            if (MapSpots.MenuOpen) MapSpots.PickMenuForTest(MapSpots.MenuItems.Count - 1);
             yield return Until(() => Session.IsOpen && X.Selected != null, 3);
             // Whichever of the kinds the lone dot stands for, as the zoom decides which stand alone.
             var opened = MapMarkButtons.DotOpenedForTest;
             var wanted = System.Array.Exists(kinds, k => X.Find(k)?.Key == opened) ? opened : null;
             p.Check(wanted != null && map.m_mode == Minimap.MapMode.Small && Session.IsOpen && X.Selected?.Key == wanted,
-                "a click on a dot opens its kind's page in Scry, the map going back to the minimap", $"{MapMarkButtons.DotOpenedForTest}, {map.m_mode}, {X.Selected?.Key}");
+                "its menu opens its kind's page in Scry, the map going back to the minimap", $"{MapMarkButtons.DotOpenedForTest}, {map.m_mode}, {X.Selected?.Key}");
             yield return Settled();
             yield return Picture(p, "a dot clicked on the map, its page open");
             Session.Hide();

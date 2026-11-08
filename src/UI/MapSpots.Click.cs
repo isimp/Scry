@@ -3,9 +3,9 @@ using UnityEngine;
 namespace Scry
 {
     /// <summary>
-    /// A click on a dot on the large map opens its kind's page in Scry, as a click on a dungeon's
-    /// mark opens the dungeon (<see cref="MapMarkClick"/>): the map goes back to the minimap and the
-    /// panel shows the page. A dot alone or one of a spread stack is clicked; a stack at rest
+    /// A click on a dot on the large map (<see cref="MapMarkClick"/>) goes through its modes, as the
+    /// game's click crosses its pins (<see cref="SpotModes"/>), and a right click opens a menu with its
+    /// page (<see cref="MapMenu"/>). A dot alone or one of a spread stack is clicked; a stack at rest
     /// spreads first as the pointer comes to it. The click is read where it is let go, as the
     /// pointer's words stand aside while the button is held, and counts only where it was pressed
     /// within half a dot of there, so a drag of the map is no click. Where Scry's dots stand under
@@ -27,27 +27,7 @@ namespace Scry
             if (Input.GetMouseButtonDown(0)) _pressedAt = ZInput.pointerPosition;
         }
 
-        /// <summary>
-        /// A click of the map's own at a point of the screen: the key of the page of the dot's kind
-        /// there, for the click to open it (<see cref="MapMarkClick"/>); none where it is on no
-        /// dot, on a stack at rest, a drag, or a pin the click is the game's for.
-        /// </summary>
-        public static string ClickedKind(Vector2 screen)
-        {
-            var map = Minimap.instance;
-            if (map == null || map.m_mode != Minimap.MapMode.Large || _holder == null || !_holder.gameObject.activeInHierarchy) return null;
-            var (from, size) = DotUnder(screen);
-            if (from < 0 || from >= StandingKinds.Count || MergedCount(from) > 1) return null;
-            if (!MapMarks.Clicked((_pressedAt.x, _pressedAt.y), (screen.x, screen.y), size)) return null;
-            if (!MapLook.ClickIsMarks(Settings.MarksOverPins, PinUnder(map, screen, size))) return null;
-            // A kind is its page's key: the page opens at once where the catalog is read, else once
-            // it is, as a dungeon's does; a line of several kinds opens its first.
-            var kind = StandingKinds[from];
-            if (string.IsNullOrEmpty(kind)) return null;
-            return WorldCatalog.Find(kind)?.Key ?? MapKept.KindsIn(kind)[0];
-        }
-
-        /// <summary>Whether the pointer stands on a dot a click would open, so a double-click there adds no pin.</summary>
+        /// <summary>Whether the pointer stands on a dot a click is for, so a double-click there adds no pin.</summary>
         public static bool PointerOnDot() => DotUnder(ZInput.pointerPosition).From >= 0;
 
         /// <summary>The dot standing under a point of the screen, a fanned one first, and how wide a dot stands there; -1 for none, or for a stack at rest.</summary>

@@ -117,9 +117,9 @@ namespace Scry
             return said;
         }
 
-        /// <summary>A kind's merged mark pointed at: how many of it stand there, whether the server told of them, and how far and which way the nearest is, a click zooming in on them.</summary>
+        /// <summary>A kind's merged mark pointed at: how many of it stand there, whether the server told of them, and how far and which way the nearest is.</summary>
         public static string MergedHover(string name, int count, bool told, float metres, string direction) =>
-            $"{Numbers.Count(count)} {name}{(told ? " the server told of" : "")} here\n" + (metres < Beside ? "nearest beside you" : $"nearest {Distance(metres)} {direction}") + " · click to zoom in on them";
+            $"{Numbers.Count(count)} {name}{(told ? " the server told of" : "")} here\n" + (metres < Beside ? "nearest beside you" : $"nearest {Distance(metres)} {direction}");
 
         /// <summary>A kind's chip on the map's kinds strip: its name, how many of it you saw, how many the server told of apart, and how many are crossed off.</summary>
         public static string KindChip(string name, int seen, int told, int crossed = 0) =>
@@ -131,14 +131,31 @@ namespace Scry
         /// <summary>A mark's words with what it says of its mode on a line under them.</summary>
         public static string WithModeHint(string said, SpotMode mode, int spots) => said + "\n" + ModeHint(mode, spots);
 
-        /// <summary>What a mark pointed at says of its mode and of what a right click does next, for every spot of a merged mark.</summary>
+        /// <summary>What a mark pointed at says of its mode and of what a click does next, for every spot of a merged mark, and that a right click offers more.</summary>
         public static string ModeHint(SpotMode mode, int spots)
         {
             var all = spots > 1 ? $" all {Numbers.Count(spots)}" : "";
-            return mode == SpotMode.Crossed ? "crossed off · right-click: highlight" + all
-                : mode == SpotMode.Highlighted ? "highlighted · right-click: back to plain" + all
-                : "right-click: cross off" + all;
+            return (mode == SpotMode.Crossed ? "crossed off · click: highlight" + all
+                : mode == SpotMode.Highlighted ? "highlighted · click: back to plain" + all
+                : "click: cross off" + all) + " · right-click: more";
         }
+
+        /// <summary>A line of the menu a right click opens on a mark, for every spot of a merged mark.</summary>
+        public static string MenuWord(MapMenuChoice choice, int spots)
+        {
+            var all = spots > 1 ? $" all {Numbers.Count(spots)}" : "";
+            switch (choice)
+            {
+                case MapMenuChoice.Cross: return "Cross off" + all;
+                case MapMenuChoice.Highlight: return "Highlight" + all;
+                case MapMenuChoice.Plain: return "Back to plain" + all;
+                case MapMenuChoice.ZoomIn: return "Zoom in on them";
+                default: return "Open its page";
+            }
+        }
+
+        /// <summary>The menu's name: the mark's, with how many spots it stands for.</summary>
+        public static string MenuTitle(string name, int spots) => spots > 1 ? $"{Numbers.Count(spots)} {name}" : name;
 
         /// <summary>The kinds list's title: how many kinds it lists, and how many are picked to stand out.</summary>
         public static string KindsTitle(int kinds, int picked) =>

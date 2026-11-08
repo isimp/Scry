@@ -120,10 +120,10 @@ namespace Scry
             }
 
             // A click on the entrance nobody walked shows an example standing in, tagged as one.
-            p.Check(MapMarkButtons.ClickAtForTest(entranceAt.Value), "a click on the map at the entrance goes to its mark");
+            p.Check(MapMarkButtons.OpenAtForTest(entranceAt.Value), "the entrance's menu goes to its mark");
             yield return Until(() => Session.IsOpen && X.Selected == entry && ExampleLayouts.Example != null && ScryPanel.ExampleTaggedForTest && (ScryPanel.DungeonNoteForTest ?? "").Contains("stands in for the one"), 30);
             p.Check(Minimap.instance.m_mode != Minimap.MapMode.Large && X.Selected == entry && ExampleLayouts.ShownMap == null && !MapMarkButtons.OpenedForTest.Rooms,
-                "a click on the entrance nobody walked opens its page with an example", $"map {Minimap.instance.m_mode}, selected {X.Selected?.Name}, shown {ExampleLayouts.ShownMap ?? "an example"}");
+                "the menu of the entrance nobody walked opens its page with an example", $"map {Minimap.instance.m_mode}, selected {X.Selected?.Name}, shown {ExampleLayouts.ShownMap ?? "an example"}");
             p.Check(ScryPanel.ExampleTaggedForTest, "the example is tagged as one");
             p.Check((ScryPanel.DungeonNoteForTest ?? "").Contains("This example stands in for the one in your world, whose area has not loaded yet"), "its note says it stands in, and why", ScryPanel.DungeonNoteForTest);
             yield return Picture(p, $"an example standing in for a {entry.Name} seen by its entrance");
@@ -133,10 +133,10 @@ namespace Scry
             Minimap.instance.SetMapMode(Minimap.MapMode.Large);
             yield return Until(() => MapMarkButtons.MarksShown == 3, 5);
             var again = MapMarkButtons.MarkCenterForTest(1);
-            p.Check(again != null && MapMarkButtons.ClickAtForTest(again.Value), "a click on the map at the hollow mark goes to it");
+            p.Check(again != null && MapMarkButtons.OpenAtForTest(again.Value), "the hollow mark's menu goes to it");
             yield return Until(() => ExampleLayouts.ShownMap == serverId && Stage.ExampleRoomsTotal == rolled.Rooms.Count, 60);
             p.Check(Minimap.instance.m_mode != Minimap.MapMode.Large && Session.IsOpen && X.Selected == entry && ExampleLayouts.ShownMap == serverId,
-                "a click on it closes the map and shows that crypt's own rooms on the stage", $"map {Minimap.instance.m_mode}, selected {X.Selected?.Name}, shown {ExampleLayouts.ShownMap ?? "an example"}");
+                "its menu closes the map and shows that crypt's own rooms on the stage", $"map {Minimap.instance.m_mode}, selected {X.Selected?.Name}, shown {ExampleLayouts.ShownMap ?? "an example"}");
             SeenMarksAsTheyWere();
         }
 

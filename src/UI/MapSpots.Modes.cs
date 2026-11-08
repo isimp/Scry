@@ -4,9 +4,10 @@ using UnityEngine;
 namespace Scry
 {
     /// <summary>
-    /// A single spot crossed off or highlighted (<see cref="SpotModes"/>): a right click on a dot
-    /// goes through the modes, on a merged mark for every spot it stands for, kept with the character
-    /// for its world. Crossed spots stand dimmed under a cross, or not at all where the settings ask
+    /// A single spot crossed off or highlighted (<see cref="SpotModes"/>): a click on a dot goes
+    /// through the modes, as the game's own click crosses its pins, on a merged mark for every spot it
+    /// stands for, kept with the character for its world; a right click opens a menu of the same and
+    /// the page (<see cref="MapMenu"/>). Crossed spots stand dimmed under a cross, or not at all where the settings ask
     /// (<see cref="CrossedMarks"/>); highlighted ones bigger, in an accent ring, over the game's pins.
     /// </summary>
     internal static partial class MapSpots
@@ -78,30 +79,118 @@ namespace Scry
             foreach (var (x, z, _, _, _) in StandingDots) StandingModes.Add(ModeAt(x, z));
         }
 
-        /// <summary>
-        /// A right click of the map's own at a point of the screen (<see cref="MapRightClick"/>): on the
-        /// strip or the list nothing happens, on a dot its next mode, on a merged mark for every spot it
-        /// stands for; false where it is on neither, or on a pin the click is the game's for, as a left click's is.
-        /// </summary>
-        public static bool TakeRightClick(Vector2 screen)
+        /// <summary>The dot a click at a point of the screen is for: none on the map shut, off every dot, on a stack at rest, or on a pin the click is the game's for.</summary>
+        private static int DotClicked(Vector2 screen, out float size)
         {
+            size = 0f;
             var map = Minimap.instance;
-            if (map == null || map.m_mode != Minimap.MapMode.Large || _holder == null || !_holder.gameObject.activeInHierarchy) return false;
-            if (PointerOnStrip()) return true;
-            var (from, size) = DotUnder(screen);
-            if (from < 0 || from >= StandingDots.Count) return false;
-            if (!MapLook.ClickIsMarks(Settings.MarksOverPins, PinUnder(map, screen, size))) return false;
+            if (map == null || map.m_mode != Minimap.MapMode.Large || _holder == null || !_holder.gameObject.activeInHierarchy) return -1;
+            var (from, wide) = DotUnder(screen);
+            size = wide;
+            if (from < 0 || from >= StandingDots.Count) return -1;
+            return MapLook.ClickIsMarks(Settings.MarksOverPins, PinUnder(map, screen, wide)) ? from : -1;
+        }
+
+        /// <summary>Every spot a dot stands for: its own, or a merged mark's.</summary>
+        private static List<(int X, int Z)> SpotsOfDot(int dot)
+        {
+            var spots = new List<(int X, int Z)>();
+            if (MergedCount(dot) > 1) foreach (var member in Merged.MembersOf(dot)) spots.Add((StandingDots[member].X, StandingDots[member].Z));
+            else spots.Add((StandingDots[dot].X, StandingDots[dot].Z));
+            return spots;
+        }
+
+        /// <summary>A click of the map's own at a point of the screen (<see cref="MapMarkClick"/>): the dot's next mode there; false where it is on none, or the press was a drag.</summary>
+        public static bool TakeLeftClick(Vector2 screen)
+        {
+            var from = DotClicked(screen, out var size);
+            if (from < 0 || !MapMarks.Clicked((_pressedAt.x, _pressedAt.y), (screen.x, screen.y), size)) return false;
+            SetModes(SpotsOfDot(from), SpotModes.Next(ModeOf(from)));
+            return true;
+        }
+
+        /// <summary>A mode given to spots, the marks placed again and the book kept at once.</summary>
+        public static void SetModes(IReadOnlyList<(int X, int Z)> spots, SpotMode mode)
+        {
             var book = CompendiumKeeper.Book;
             var world = CompendiumMap.World;
-            if (book == null || world == null) return false;
-            var to = SpotModes.Next(ModeOf(from));
-            if (MergedCount(from) > 1) foreach (var member in Merged.MembersOf(from)) book.SetSpotMode(world, StandingDots[member].X, StandingDots[member].Z, to);
-            else book.SetSpotMode(world, StandingDots[from].X, StandingDots[from].Z, to);
+            if (book == null || world == null) return;
+            foreach (var (x, z) in spots) book.SetSpotMode(world, x, z, mode);
             _modesChanged = true;
             MapKept.MarksChanged();
             CompendiumKeeper.Save(now: true);
+        }
+
+        /// <summary>What a right click at a point of the screen is on, for the menu: the dot's kind, its name, its mode and its spots; false where it is on none.</summary>
+        public static bool DotMenuAt(Vector2 screen, out (string Kind, string Name, SpotMode Mode, List<(int X, int Z)> Spots) dot)
+        {
+            dot = default;
+            var from = DotClicked(screen, out _);
+            if (from < 0 || from >= StandingKinds.Count) return false;
+            dot = (StandingKinds[from], StandingDots[from].Name, ModeOf(from), SpotsOfDot(from));
             return true;
         }
+
+        /// <summary>The page of a dot's kind: its key where the catalog is read, else its first kind's own, which opens once it is.</summary>
+        public static string PageOf(string kind) => string.IsNullOrEmpty(kind) ? null : WorldCatalog.Find(kind)?.Key ?? MapKept.KindsIn(kind)[0];
+
+        /// <summary>The menu standing open: its name, where the right click was in the GUI's own coordinates, its lines, and where it was drawn and the frame.</summary>
+        private static readonly List<(string Words, System.Action Act)> MenuLines = new List<(string, System.Action)>();
+        private static Rect _menuRect;
+        private static int _menuFrame = -10;
+
+        public static string MenuTitle { get; private set; }
+
+        public static Vector2 MenuAt { get; private set; }
+
+        public static IReadOnlyList<(string Words, System.Action Act)> MenuItems => MenuLines;
+
+        public static bool MenuOpen => MenuTitle != null;
+
+        /// <summary>The menu's lines, for the self-test.</summary>
+        [ForTest]
+        public static List<string> MenuWordsForTest => MenuLines.ConvertAll(line => line.Words);
+
+        /// <summary>A line of the menu chosen, as a click on it does, for the self-test.</summary>
+        [ForTest]
+        public static void PickMenuForTest(int line)
+        {
+            var act = MenuLines[line].Act;
+            CloseMenu();
+            act();
+        }
+
+        /// <summary>The menu opened at a point of the screen, the pointer's words put away while it stands.</summary>
+        public static void OpenMenu(string title, Vector2 screen, IEnumerable<(string Words, System.Action Act)> lines)
+        {
+            MenuLines.Clear();
+            MenuLines.AddRange(lines);
+            MenuTitle = title;
+            MenuAt = new Vector2(screen.x, Screen.height - screen.y);
+            _menuRect = Rect.zero;
+            ReadPointerAgain();
+        }
+
+        public static void CloseMenu()
+        {
+            if (!MenuOpen) return;
+            MenuTitle = null;
+            MenuLines.Clear();
+            _menuRect = Rect.zero;
+            ReadPointerAgain();
+        }
+
+        /// <summary>Where the menu was drawn and the frame, for a press on it to be kept from the map under it.</summary>
+        public static void MenuDrawn(Rect at)
+        {
+            _menuRect = at;
+            _menuFrame = Time.frameCount;
+        }
+
+        private static bool PointerOnMenu(Vector2 gui) => Time.frameCount <= _menuFrame + 1 && _menuRect.Contains(gui);
+
+        /// <summary>Whether a press on the map is not the map's: on the strip or the list, or anywhere while the menu stands, a press outside it only putting it away.</summary>
+        public static bool PressTaken() => MenuOpen || PointerOnStrip();
 
         /// <summary>Whether a mode changed since last asked, taken once.</summary>
         private static bool TakeModesChanged()
@@ -118,6 +207,8 @@ namespace Scry
             ModeMarks.Forget();
             FanModes.Forget();
             _modesChanged = false;
+            MenuLines.Clear();
+            MenuTitle = null;
         }
     }
 }

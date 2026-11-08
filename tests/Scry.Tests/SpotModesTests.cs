@@ -5,10 +5,11 @@ namespace Scry.Tests
 {
     public class SpotModesTests
     {
-        // A single spot on the map crossed off, as the game crosses its pins, or highlighted.
+        // A single spot on the map crossed off, as the game crosses its pins, or highlighted:
+        // a left click goes through the modes, a right click opens a menu with them and the page.
 
         [Fact]
-        public void ARightClickGoesThroughTheModesAndBackToPlain()
+        public void AClickGoesThroughTheModesAndBackToPlain()
         {
             Assert.Equal(SpotMode.Crossed, SpotModes.Next(SpotMode.Plain));
             Assert.Equal(SpotMode.Highlighted, SpotModes.Next(SpotMode.Crossed));
@@ -104,17 +105,49 @@ namespace Scry.Tests
         [Fact]
         public void ThePointerSaysWhatTheNextClickDoes()
         {
-            Assert.Equal("right-click: cross off", SpotWords.ModeHint(SpotMode.Plain, 1));
-            Assert.Equal("crossed off · right-click: highlight", SpotWords.ModeHint(SpotMode.Crossed, 1));
-            Assert.Equal("highlighted · right-click: back to plain", SpotWords.ModeHint(SpotMode.Highlighted, 1));
-            Assert.Equal("right-click: cross off all 6", SpotWords.ModeHint(SpotMode.Plain, 6));
-            Assert.Equal("crossed off · right-click: highlight all 2", SpotWords.ModeHint(SpotMode.Crossed, 2));
+            Assert.Equal("click: cross off · right-click: more", SpotWords.ModeHint(SpotMode.Plain, 1));
+            Assert.Equal("crossed off · click: highlight · right-click: more", SpotWords.ModeHint(SpotMode.Crossed, 1));
+            Assert.Equal("highlighted · click: back to plain · right-click: more", SpotWords.ModeHint(SpotMode.Highlighted, 1));
+            Assert.Equal("click: cross off all 6 · right-click: more", SpotWords.ModeHint(SpotMode.Plain, 6));
+            Assert.Equal("crossed off · click: highlight all 2 · right-click: more", SpotWords.ModeHint(SpotMode.Crossed, 2));
         }
 
         [Fact]
         public void ThatStandsOnALineUnderTheMarksOwnWords()
         {
-            Assert.Equal("Rock copper\nright-click: cross off", SpotWords.WithModeHint("Rock copper", SpotMode.Plain, 1));
+            Assert.Equal("Rock copper\nclick: cross off · right-click: more", SpotWords.WithModeHint("Rock copper", SpotMode.Plain, 1));
+        }
+
+        [Fact]
+        public void TheMenuOffersTheOtherModesAndLastThePage()
+        {
+            Assert.Equal(new[] { MapMenuChoice.Cross, MapMenuChoice.Highlight, MapMenuChoice.OpenPage }, MapMenu.Of(SpotMode.Plain, 1));
+            Assert.Equal(new[] { MapMenuChoice.Highlight, MapMenuChoice.Plain, MapMenuChoice.OpenPage }, MapMenu.Of(SpotMode.Crossed, 1));
+            Assert.Equal(new[] { MapMenuChoice.Cross, MapMenuChoice.Plain, MapMenuChoice.OpenPage }, MapMenu.Of(SpotMode.Highlighted, 1));
+        }
+
+        [Fact]
+        public void OnAMergedMarkTheMenuAlsoZoomsInOnIt()
+        {
+            Assert.Equal(new[] { MapMenuChoice.Cross, MapMenuChoice.Highlight, MapMenuChoice.ZoomIn, MapMenuChoice.OpenPage }, MapMenu.Of(SpotMode.Plain, 6));
+            Assert.Equal("Cross off all 6", SpotWords.MenuWord(MapMenuChoice.Cross, 6));
+            Assert.Equal("Zoom in on them", SpotWords.MenuWord(MapMenuChoice.ZoomIn, 6));
+        }
+
+        [Fact]
+        public void EachChoiceGivesItsModeAndSaysSo()
+        {
+            Assert.Equal(SpotMode.Crossed, MapMenu.ModeOf(MapMenuChoice.Cross));
+            Assert.Equal(SpotMode.Highlighted, MapMenu.ModeOf(MapMenuChoice.Highlight));
+            Assert.Equal(SpotMode.Plain, MapMenu.ModeOf(MapMenuChoice.Plain));
+            Assert.Null(MapMenu.ModeOf(MapMenuChoice.OpenPage));
+            Assert.Null(MapMenu.ModeOf(MapMenuChoice.ZoomIn));
+            Assert.Equal("Cross off", SpotWords.MenuWord(MapMenuChoice.Cross, 1));
+            Assert.Equal("Highlight", SpotWords.MenuWord(MapMenuChoice.Highlight, 1));
+            Assert.Equal("Back to plain", SpotWords.MenuWord(MapMenuChoice.Plain, 1));
+            Assert.Equal("Open its page", SpotWords.MenuWord(MapMenuChoice.OpenPage, 1));
+            Assert.Equal("Rock copper", SpotWords.MenuTitle("Rock copper", 1));
+            Assert.Equal("6 Rock copper", SpotWords.MenuTitle("Rock copper", 6));
         }
 
         [Fact]

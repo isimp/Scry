@@ -185,13 +185,18 @@ namespace Scry
         [Diagnostic]
         public static int MarkAtForTest(Vector2 screen) => Placed.IndexOf(MarkAt(screen));
 
-        /// <summary>Clicks the map at a point of the screen, as the map's own click hands a mark its click there, for the self-test.</summary>
-        [Diagnostic]
-        public static bool ClickAtForTest(Vector2 screen)
+        /// <summary>Opens what a mark at a point of the screen stands for, as the last line of its menu does, for the self-test.</summary>
+        [ForTest]
+        public static bool OpenAtForTest(Vector2 screen)
         {
-            _pressedAt = screen;
-            return TakeClick(screen);
+            if (MarkAt(screen) == null || !OpenMenuAt(screen)) return false;
+            MapSpots.PickMenuForTest(MapSpots.MenuItems.Count - 1);
+            return true;
         }
+
+        /// <summary>A click on the map at a point of the screen, the press noted there, for the self-test.</summary>
+        [ForTest]
+        public static void PressedForTest(Vector2 screen) => _pressedAt = screen;
 
         /// <summary>What the pointer first meets at a mark's middle, as the game's event system finds it, for the self-test.</summary>
         [Diagnostic]
@@ -388,18 +393,58 @@ namespace Scry
         /// <summary>The version of the modes the kinds list last heard of.</summary>
         private static int _modesListed = -1;
 
-        /// <summary>A right click of the map's own at a point of the screen: the next mode for the mark there; false where it is on none.</summary>
-        public static bool TakeRightClick(Vector2 screen)
+        /// <summary>A mode given to a mark's spot: its look and its words told anew.</summary>
+        private static void SetMarkMode(Mark mark, SpotMode mode)
+        {
+            mark.Mode = mode;
+            mark.Retell = true;
+            MapSpots.SetModes(new[] { (mark.SpotX, mark.SpotZ) }, mode);
+        }
+
+        /// <summary>
+        /// A right click of the map's own at a point of the screen (<see cref="MapRightClick"/>): the menu
+        /// of the mark or dot there, or, on neither, the menu put away if one stands; false where there
+        /// was nothing to take, so the game's own removes its pin.
+        /// </summary>
+        public static bool OpenMenuAt(Vector2 screen)
         {
             var mark = MarkAt(screen);
-            var book = CompendiumKeeper.Book;
-            var world = CompendiumMap.World;
-            if (mark == null || book == null || world == null) return false;
-            mark.Mode = SpotModes.Next(mark.Mode);
-            book.SetSpotMode(world, mark.SpotX, mark.SpotZ, mark.Mode);
-            mark.Retell = true;
-            MapKept.MarksChanged();
-            CompendiumKeeper.Save(now: true);
+            if (mark != null)
+            {
+                var (id, look) = (mark.Id, mark.Look);
+                var lines = new List<(string, System.Action)>();
+                foreach (var choice in MapMenu.Of(mark.Mode, 1))
+                {
+                    var mode = MapMenu.ModeOf(choice);
+                    lines.Add((SpotWords.MenuWord(choice, 1), () =>
+                    {
+                        if (mode is SpotMode to) SetMarkMode(mark, to);
+                        else Open(id, look);
+                    }));
+                }
+                MapSpots.OpenMenu(SpotWords.MenuTitle(mark.Plain, 1), screen, lines);
+                return true;
+            }
+            if (MapSpots.DotMenuAt(screen, out var dot))
+            {
+                var lines = new List<(string, System.Action)>();
+                var spots = dot.Spots;
+                foreach (var choice in MapMenu.Of(dot.Mode, spots.Count))
+                {
+                    var mode = MapMenu.ModeOf(choice);
+                    var kind = dot.Kind;
+                    lines.Add((SpotWords.MenuWord(choice, spots.Count), () =>
+                    {
+                        if (mode is SpotMode to) MapSpots.SetModes(spots, to);
+                        else if (choice == MapMenuChoice.ZoomIn) MapSpots.ZoomOn(spots[0].X, spots[0].Z);
+                        else OpenPage(MapSpots.PageOf(kind));
+                    }));
+                }
+                MapSpots.OpenMenu(SpotWords.MenuTitle(dot.Name, spots.Count), screen, lines);
+                return true;
+            }
+            if (!MapSpots.MenuOpen) return false;
+            MapSpots.CloseMenu();
             return true;
         }
 
@@ -640,36 +685,28 @@ namespace Scry
             return null;
         }
 
-        /// <summary>
-        /// A click of the map's own on one of Show on map's dots (<see cref="MapSpots.ClickedKind"/>):
-        /// its kind's page opened in Scry, the map back to the minimap, as a dungeon's mark opens
-        /// its dungeon; false where the click is no dot's.
-        /// </summary>
-        public static bool OpenDot(Vector2 screen)
+        /// <summary>A kind's page opened in Scry, the map back to the minimap, as a dungeon's mark opens its dungeon.</summary>
+        private static void OpenPage(string key)
         {
-            // A kind's merged mark zooms the map in on it rather than opening a page.
-            if (MapSpots.ZoomOnMerged(screen)) return true;
-            var key = MapSpots.ClickedKind(screen);
-            if (key == null) return false;
+            if (key == null) return;
             HideName();
             Minimap.instance.OrNull()?.SetMapMode(Minimap.MapMode.Small);
             Session.ShowEntry(key);
             _dotOpened = key;
-            return true;
         }
 
         private static string _dotOpened;
 
-        /// <summary>The page the last click on a dot opened, for the self-test.</summary>
+        /// <summary>The page a dot's menu last opened, for the self-test.</summary>
         [ForTest]
         public static string DotOpenedForTest => _dotOpened;
 
-        /// <summary>A click of the map's own at a point of the screen: the mark's there, opening its map; false where it is on none.</summary>
+        /// <summary>A click of the map's own at a point of the screen: the next mode for the mark there; false where it is on none, or the press was a drag.</summary>
         public static bool TakeClick(Vector2 screen)
         {
             var mark = MarkAt(screen);
             if (mark == null || !MapMarks.Clicked((_pressedAt.x, _pressedAt.y), (screen.x, screen.y), _sizeOnScreen)) return false;
-            Open(mark.Id, mark.Look);
+            SetMarkMode(mark, SpotModes.Next(mark.Mode));
             return true;
         }
 
@@ -788,7 +825,8 @@ namespace Scry
     /// <summary>
     /// The game's map ticks the pin nearest a click (<c>Minimap.OnMapLeftClick</c>) and opens the box
     /// for a new pin on a double-click (<c>Minimap.OnMapDblClick</c>); with the pointer on a dungeon's
-    /// mark, the click is the mark's, on Show on map's strip the strip's, and on one of Scry's dots the dot's, and the map does neither. Should it fail, it stands aside and
+    /// mark or one of Scry's dots, the click goes through that spot's modes as the game's goes through
+    /// a pin's, on Show on map's strip the click is the strip's, and the map does neither. Should it fail, it stands aside and
     /// leaves the map as it is.
     /// </summary>
     [HarmonyPatch(typeof(Minimap), "OnMapLeftClick")]
@@ -807,16 +845,16 @@ namespace Scry
             return !taken;
         }
 
-        /// <summary>A click on a mark is the mark's; one on Show on map's strip is the strip's (<see cref="MapSpots.PointerOnStrip"/>); one on a dot the dot's, opening its kind's page (<see cref="MapMarkButtons.OpenDot"/>).</summary>
+        /// <summary>A click on Show on map's strip is the strip's; on a mark or a dot, it goes through that spot's modes.</summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static bool Take() => MapSpots.PointerOnStrip() || MapMarkButtons.TakeClick(ZInput.pointerPosition) || MapMarkButtons.OpenDot(ZInput.pointerPosition);
+        private static bool Take() => MapSpots.PointerOnStrip() || MapMarkButtons.TakeClick(ZInput.pointerPosition) || MapSpots.TakeLeftClick(ZInput.pointerPosition);
     }
 
     /// <summary>
     /// The game's map takes a right click to remove the pin under the pointer
     /// (<c>Minimap.RemovePinUnderPointer</c>); with the pointer on a dungeon's mark or one of Scry's
-    /// dots it goes through their modes instead (<see cref="SpotModes"/>), and on Show on map's strip or
-    /// the kinds list it does nothing. Should it fail, it stands aside and leaves the map as it is.
+    /// dots it opens their menu instead (<see cref="MapMenu"/>), and on Show on map's strip, the kinds
+    /// list or the menu it does nothing. Should it fail, it stands aside and leaves the map as it is.
     /// </summary>
     [HarmonyPatch(typeof(Minimap), "RemovePinUnderPointer")]
     internal static class MapRightClick
@@ -826,7 +864,7 @@ namespace Scry
         private static bool Prefix()
         {
             if (_off) return true;
-            if (!Guard.Run(Feature.ShowOnMap, "taking a right click on a mark", Take, out var taken))
+            if (!Guard.Run(Feature.ShowOnMap, "opening a mark's menu", Take, out var taken))
             {
                 _off = true;
                 return true;
@@ -837,8 +875,7 @@ namespace Scry
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static bool Take()
         {
-            var at = ZInput.pointerPosition;
-            return MapSpots.PointerOnStrip() || MapMarkButtons.TakeRightClick(at) || MapSpots.TakeRightClick(at);
+            return MapSpots.PointerOnStrip() || MapMarkButtons.OpenMenuAt(ZInput.pointerPosition);
         }
     }
 
@@ -855,7 +892,7 @@ namespace Scry
         private static bool Prefix()
         {
             if (_off) return true;
-            if (!Guard.Run(Feature.ShowOnMap, "keeping a press on the map's strip from the map", MapSpots.PointerOnStrip, out var on))
+            if (!Guard.Run(Feature.ShowOnMap, "keeping a press on the map's strip from the map", MapSpots.PressTaken, out var on))
             {
                 _off = true;
                 return true;

@@ -409,18 +409,18 @@ namespace Scry
                 var shownAt = Time.unscaledTime;
                 yield return Until(() => Time.unscaledTime - shownAt > 1.2f, 3);
                 yield return Picture(p, $"the mark of {entry.Name} on the map with its tip");
-                clicked = MapMarkButtons.ClickAtForTest(ZInput.pointerPosition);
+                clicked = MapMarkButtons.OpenAtForTest(ZInput.pointerPosition);
             }
             else
             {
                 Vector2 read = ZInput.pointerPosition;
                 p.Note($"the pointer was put at {Numbers.Fixed(center.Value.x, 0)}, {Numbers.Fixed(center.Value.y, 0)} but the game reads it at {Numbers.Fixed(read.x, 0)}, {Numbers.Fixed(read.y, 0)}, as while its window is not in front: the tip untried, the click made at the mark's middle");
-                clicked = MapMarkButtons.ClickAtForTest(center.Value);
+                clicked = MapMarkButtons.OpenAtForTest(center.Value);
             }
-            p.Check(clicked, "a click on the map at the mark goes to the mark");
+            p.Check(clicked, "the mark's menu goes to the mark");
             yield return Until(() => ExampleLayouts.ShownMap == id && Stage.ExampleRoomsTotal == rolled.Rooms.Count, 60);
             p.Check(Minimap.instance.m_mode != Minimap.MapMode.Large && Session.IsOpen && X.Selected == entry && ExampleLayouts.ShownMap == id,
-                "a click on it closes the map and opens Scry on its page, its map on the stage", $"map {Minimap.instance.m_mode}, selected {X.Selected?.Name}, shown {ExampleLayouts.ShownMap ?? "an example"}");
+                "its menu closes the map and opens Scry on its page, its map on the stage", $"map {Minimap.instance.m_mode}, selected {X.Selected?.Name}, shown {ExampleLayouts.ShownMap ?? "an example"}");
             if (today >= 0)
             {
                 var said = "day " + Numbers.Count(today);

@@ -351,19 +351,14 @@ namespace Scry
             return SpotWords.MergedHover(name, MergedCount(dot), told, nearest, SpotWords.Direction(ndx, ndz));
         }
 
-        /// <summary>A merged mark clicked: the map zoomed in on it, centred where it stands, until its dots come apart; false where the click is on none.</summary>
-        public static bool ZoomOnMerged(Vector2 screen)
+        /// <summary>The map zoomed in on a spot, as its menu asks of a merged mark, until its dots come apart.</summary>
+        public static void ZoomOn(int x, int z)
         {
             var map = Minimap.instance;
             var player = Player.m_localPlayer;
-            if (map == null || player == null || map.m_mode != Minimap.MapMode.Large || _holder == null || !_holder.gameObject.activeInHierarchy) return false;
-            var (from, size) = DotUnder(screen);
-            if (from < 0 || MergedCount(from) < 2) return false;
-            if (!MapMarks.Clicked((_pressedAt.x, _pressedAt.y), (screen.x, screen.y), size)) return false;
-            var (x, z, _, _, _) = StandingDots[from];
+            if (map == null || player == null || map.m_mode != Minimap.MapMode.Large) return;
             map.LargeZoom = MapLook.ZoomInOn(map.LargeZoom);
             MapOffset(map) = new Vector3(x - player.transform.position.x, 0f, z - player.transform.position.z);
-            return true;
         }
 
         /// <summary>The picked kinds' dots over the game's pins while any are picked: a copy of each over the pins, how many stand and stood.</summary>

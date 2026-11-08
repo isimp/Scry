@@ -97,13 +97,30 @@ namespace Scry
             yield return Until(() => MapSpots.FadedDotsForTest == 0, 3);
             p.Check(MapSpots.FadedDotsForTest == 0 && MapSpots.PickedCount == 0, "the last let go, every kind shows again");
 
+            yield return MergedMarkTold(p, map);
+
+            // At the nearest zoom, 12 m apart, every dot stands apart in its full look.
+            map.LargeZoom = SeenOnMap.NearestZoom;
+            CentreMapOn(map, new Vector2(cx + 70, cz));
+            yield return Until(() => MapSpots.DotsShown == 9 && !MapSpots.PlainForTest, 5);
+            if (MapSpots.TouchForTest < 12f)
+                p.Check(MapSpots.DotsShown == 9 && MapSpots.MergedShownForTest == 0 && !MapSpots.PlainForTest, "near, every dot stands apart in its full look",
+                    $"{Numbers.Count(MapSpots.DotsShown)} dots, {Numbers.Count(MapSpots.MergedShownForTest)} counts, plain {MapSpots.PlainForTest}");
+            else p.Note($"at the nearest zoom dots still touch within {Numbers.Amount(MapSpots.TouchForTest, 1)} m, so dots 12 m apart stay merged");
+            yield return Picture(p, "a crowded patch near, every dot apart");
+            CrowdedAsItWas();
+        }
+
+        /// <summary>A merged mark pointed at: its words, its other dots and its count over them; the wheel kept from the map on the kinds list; its menu zooming in on it.</summary>
+        private static IEnumerator MergedMarkTold(Probe p, Minimap map)
+        {
             // A merged mark pointed at names its kind and how many; clicked, the map zooms in on it.
             if (MapSpots.LoneDotForTest() is Vector2 merged)
             {
                 PointerTo(merged);
-                yield return Until(() => (MapSpots.Pointed?.Words ?? "").Contains("click to zoom in"), 3);
+                yield return Until(() => (MapSpots.Pointed?.Words ?? "").Contains("right-click: more"), 3);
                 var said = MapSpots.Pointed?.Words ?? "";
-                p.Check(said.Contains(" here\n") && said.Contains("click to zoom in"), "a merged mark pointed at names its kind and how many, and that a click zooms in", said);
+                p.Check(said.Contains(" here\n") && said.Contains("right-click: more"), "a merged mark pointed at names its kind and how many, and what a click does", said);
                 // Every other dot it stands for shows at its own spot, ringed in the accent.
                 var count = said.StartsWith("6 ", System.StringComparison.Ordinal) ? 5 : 2;
                 yield return Until(() => MapSpots.MembersShownForTest == count, 3);
@@ -119,25 +136,17 @@ namespace Scry
                 p.Check(WheelBlock.Blocks(), "with the pointer on the kinds list, the map hears no wheel");
                 p.Check(MapSpots.PointedCountsForTest == 0, "the pointer gone from the merged mark, its count stands over the rest no more", Numbers.Count(MapSpots.PointedCountsForTest));
                 PointerTo(merged);
-                yield return Until(() => (MapSpots.Pointed?.Words ?? "").Contains("click to zoom in"), 3);
+                yield return Until(() => (MapSpots.Pointed?.Words ?? "").Contains("right-click: more"), 3);
                 var zoom = map.LargeZoom;
-                MapSpots.PressedForTest(merged);
-                map.OnMapLeftClick();
+                RightClick(map);
+                yield return Until(() => MapSpots.MenuOpen, 3);
+                var zoomLine = MapSpots.MenuWordsForTest.IndexOf(SpotWords.MenuWord(MapMenuChoice.ZoomIn, 2));
+                if (zoomLine >= 0) MapSpots.PickMenuForTest(zoomLine);
+                else MapSpots.CloseMenu();
                 yield return null;
-                p.Check(map.LargeZoom < zoom && map.m_mode == Minimap.MapMode.Large, "clicked, the map zooms in on the merged mark", $"{Numbers.Amount(zoom, 3)} to {Numbers.Amount(map.LargeZoom, 3)}");
+                p.Check(map.LargeZoom < zoom && map.m_mode == Minimap.MapMode.Large, "its menu zooms the map in on the merged mark", $"{Numbers.Amount(zoom, 3)} to {Numbers.Amount(map.LargeZoom, 3)}");
             }
             else p.Check(false, "a merged mark stands on the screen to point at");
-
-            // At the nearest zoom, 12 m apart, every dot stands apart in its full look.
-            map.LargeZoom = SeenOnMap.NearestZoom;
-            CentreMapOn(map, new Vector2(cx + 70, cz));
-            yield return Until(() => MapSpots.DotsShown == 9 && !MapSpots.PlainForTest, 5);
-            if (MapSpots.TouchForTest < 12f)
-                p.Check(MapSpots.DotsShown == 9 && MapSpots.MergedShownForTest == 0 && !MapSpots.PlainForTest, "near, every dot stands apart in its full look",
-                    $"{Numbers.Count(MapSpots.DotsShown)} dots, {Numbers.Count(MapSpots.MergedShownForTest)} counts, plain {MapSpots.PlainForTest}");
-            else p.Note($"at the nearest zoom dots still touch within {Numbers.Amount(MapSpots.TouchForTest, 1)} m, so dots 12 m apart stay merged");
-            yield return Picture(p, "a crowded patch near, every dot apart");
-            CrowdedAsItWas();
         }
 
         /// <summary>The settings, the map's zoom and pan and the pointer noted, for <see cref="CrowdedAsItWas"/> to put back.</summary>

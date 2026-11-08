@@ -6,9 +6,9 @@ Kinds on the map now group by category, on the map's kinds list and the *On the 
 
 A click on a kind's mark picks its look: any colour and shape, one of the game's map pictures or the kind's own picture. *Minimap dot size* sizes the minimap's marks apart from the map's.
 
-Marks that overlap show a pip each and spread out when you point at them. Far out, a kind's dots merge into one plain mark with how many, and a click zooms in on it. A click on a dot opens its page. The settings' *Map* section chooses all this and how marks sit with the game's pins.
+Marks that overlap show a pip each and spread out when you point at them. Far out, a kind's dots merge into one plain mark with how many. The settings' *Map* section chooses all this and how marks sit with the game's pins.
 
-A right click on a mark crosses that one spot off, as the game crosses its pins, a second highlights it, a third clears it. *Crossed marks* in the settings can hide those crossed.
+A click on a mark crosses that one spot off, as the game crosses its pins, a second highlights it, a third clears it. A right click opens a menu with those and its page. *Crossed marks* in the settings can hide those crossed.
 
 The kinds list picks which kinds stand out, the rest faded, dungeon marks too. Drag it anywhere, fold it, size it. The *On the map* list scrolls, and a heading folds or takes off a whole category.
 

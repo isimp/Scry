@@ -160,7 +160,7 @@ namespace Scry
         /// <summary>The parts on Valheim's map: the dungeon marks, what the sight keeps, and Show on map.</summary>
         private static IEnumerable<Scenario> MapParts()
         {
-            yield return S("Valheim's large map marks the dungeons been in, a click opening the map in Scry", MarksOnTheMap, 200, () => { MarksAsTheyWere(); StageAsItWas(); }, bearsSkips: true);
+            yield return S("Valheim's large map marks the dungeons been in, the menu opening the map in Scry", MarksOnTheMap, 200, () => { MarksAsTheyWere(); StageAsItWas(); }, bearsSkips: true);
             yield return S("a dungeon whose entrance was seen is marked on Valheim's large map, hollow where walked on this server and shown with insides, no pin on any row, and With insides is dimmed where nothing has insides", SeenEntrancesMarked, 240, () => { SeenMarksAsTheyWere(); StageAsItWas(); });
             yield return S("show on map checks: the map's sizes, the resources the world's rules place and how deep, what a Wishbone finds, sight lines to deposits near you, and squares over your ground and fog", MapChecks, 30, MapChecksAsTheyWere, full: true);
             yield return S("the sight keeps where things worth finding again stand, a deposit by the whole it was, a thing destroyed taking its spot away, at little cost a frame", SpotsKept, 30, SpotPutBack);
@@ -169,12 +169,12 @@ namespace Scry
             yield return S("Show on map shades the server's squares round places never come near, under the dots, cut to explored ground, counted in the strip, a pip for each place where too small for its count", ShowOnMapSquares, 60, ShowOnMapAsItWas);
             yield return S("Show on map shows a place of several kinds one kind at a time, or all at once by the strip's button", ShowOnMapAllKinds, 30, AllKindsAsTheyWere);
             yield return S("a kind kept on the map stands every time it opens, named where the pointer rests, listed in the title row, on the minimap too, holding no frame long", KeptOnMapShown, 90, KeptOnMapAsItWas);
-            yield return S("marks that touch on the map show a pip each under them, fan out round their spot when pointed at, naming every kind there, and part as the map zooms in; pointed at, they and their pips stand over the game's pins as the settings ask; a dot clicked opens its page", StackedMarksTold, 90, StacksAsTheyWere);
+            yield return S("marks that touch on the map show a pip each under them, fan out round their spot when pointed at, naming every kind there, and part as the map zooms in; pointed at, they and their pips stand over the game's pins as the settings ask; a dot's menu opens its page", StackedMarksTold, 90, StacksAsTheyWere);
             yield return S("a crowded map far out stands each kind's touching dots as one plain mark with how many, zooms in on one clicked, and shows one kind alone from the kinds strip", CrowdedMapTold, 60, CrowdedAsItWas);
             yield return S("every kind of dungeon kept, the kinds list holds each by its marks, a family under one chip, and picking one fades the other dungeons' marks and words", DungeonChipsTold, 60, DungeonChipsAsItWas);
             yield return S("more kinds kept than the On the map list stands, the wheel scrolls it and it stops at its ends", KeptListScrollsTold, 60, KeptOnMapAsItWas);
             yield return S("kinds kept stand in their category's shape, and the kinds list and the On the map list group them by category, a heading picking, folding and taking off", CategoriesTold, 60, CrowdedAsItWas);
-            yield return S("a right click crosses a spot off the map or highlights it, kept with the character, far out apart from what merges", SpotModesTold, 60, SpotModesAsTheyWere);
+            yield return S("a click crosses a spot off the map or highlights it, a right click opens its menu, kept with the character, far out apart from what merges", SpotModesTold, 60, SpotModesAsTheyWere);
             yield return S("a kept kind's mark is picked in the On the map list, a colour, a shape, a picture of the game's or its own, and stands so on the map at once", MarkPicked, 90, MarkPickedAsItWas);
             yield return S("kept from its page or the map strip, a kind's mark stands beside Keep on the map and opens its picker under it", MarkOfferedAsKept, 90, MarkOfferedAsItWas);
             yield return S("Show on map follows the settings' Map section: your other pins, the darkened map, the dots' size, zooming out and the squares", ShowOnMapFollowsItsSettings, 60, ShowOnMapAsItWas);

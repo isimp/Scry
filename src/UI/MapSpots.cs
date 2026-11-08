@@ -752,6 +752,9 @@ namespace Scry
         /// <summary>What the pointer rests on, its words and, for a dot, where it stands on the screen to be ringed; none.</summary>
         public static (string Words, Rect? Ring)? Pointed { get; private set; }
 
+        /// <summary>The pointer read anew next frame, as what it may read changed though it did not move.</summary>
+        private static void ReadPointerAgain() => _readFor = default;
+
         /// <summary>
         /// The dot or square the pointer rests on, as the map stands: a dot named, and how far and
         /// which way from the character; a square, what stands somewhere inside and in which ground.
@@ -766,7 +769,7 @@ namespace Scry
             _readFor = reading;
             Pointed = null;
             _pointedAt = -1;
-            if (Input.GetMouseButton(0) || PointerOnStrip()) return;
+            if (Input.GetMouseButton(0) || PointerOnStrip() || MenuOpen) return;
             var player = Player.m_localPlayer;
             // A stack fanned out reads the pointer first, as long as it rests on the fan.
             if (_fanned >= 0)
@@ -832,6 +835,7 @@ namespace Scry
             Unfan();
             PutAwayOver();
             ForgetAlone();
+            CloseMenu();
             MapSquares.PutAway();
             MapDim.Restore();
             if (_holder != null && _holder.gameObject.activeSelf) _holder.gameObject.SetActive(false);
@@ -901,7 +905,7 @@ namespace Scry
         {
             var pointer = ZInput.pointerPosition;
             var at = new Vector2(pointer.x, Screen.height - pointer.y);
-            return (Time.frameCount <= _stripFrame + 1 && _stripAt.Contains(at)) || (Time.frameCount <= _pickerFrame + 1 && _pickerAt.Contains(at)) || PointerOnKindsStrip(at);
+            return (Time.frameCount <= _stripFrame + 1 && _stripAt.Contains(at)) || (Time.frameCount <= _pickerFrame + 1 && _pickerAt.Contains(at)) || PointerOnKindsStrip(at) || PointerOnMenu(at);
         }
 
         /// <summary>Where the large map's picture stands on the screen, in the GUI's own coordinates; none while it is shut.</summary>

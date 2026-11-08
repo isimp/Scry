@@ -18,7 +18,7 @@ Turn it on for a character with *Compendium* at the top of the panel. A creature
 
 ## Exploring
 
-Dungeons you walk are kept as you walked them, room by room, and marked on Valheim's large map; a click on a mark shows the dungeon in Scry, its rooms on a plan you can go into. A page's *Show on map* marks where your character saw its kind, its shape telling the category and its colour the kind, and *Keep on the map* keeps it there every time the map opens; the map's kinds list picks which stand out. Each world can show more as known, source by source: the ground you explored, maps shared at a cartography table, places a Vegvisir or a rune stone marked, the places every map shows. Places tell where they lie in your ground and what they hold.
+Dungeons you walk are kept as you walked them, room by room, and marked on Valheim's large map; a right click on a mark opens a menu that shows the dungeon in Scry, its rooms on a plan you can go into, and a click crosses a mark off or highlights it. A page's *Show on map* marks where your character saw its kind, its shape telling the category and its colour the kind, and *Keep on the map* keeps it there every time the map opens; the map's kinds list picks which stand out. Each world can show more as known, source by source: the ground you explored, maps shared at a cartography table, places a Vegvisir or a rune stone marked, the places every map shows. Places tell where they lie in your ground and what they hold.
 
 ![A dungeon's example on the stage, the plan box seen from above and the card of the room gone into](https://raw.githubusercontent.com/isimp/Scry/main/docs/images/dungeon-plan.webp)
 
