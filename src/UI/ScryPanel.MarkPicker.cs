@@ -211,14 +211,14 @@ namespace Scry
         }
 
         /// <summary>Where a line's mark stands, lit under the pointer; the box a click opens its picker in.</summary>
-        private static Rect MarkBox(Rect list, float lineY) => new Rect(list.x + U(7f), lineY + U(2f), U(22f), KeptRowH - U(4f));
+        private static Rect MarkBox(Rect list, float lineY) => new Rect(list.x + U(21f), lineY + U(2f), U(22f), KeptRowH - U(4f));
 
         /// <summary>The right edge of the lines' marks, left of which a click is on the mark.</summary>
-        private static float MarkRight(Rect list) => list.x + U(29f);
+        private static float MarkRight(Rect list) => list.x + U(43f);
 
         /// <summary>Whether a shown line's mark can be picked: a kept kind's, never every kind of dungeon's, or a line taken off.</summary>
         private static bool Pickable(int row) =>
-            row >= 0 && row < KeptRows.Count && !(_dungeonsOff && row == 0) && CompendiumKeeper.Book?.PickableMark(KeptRows[row]) != null;
+            row >= 0 && row < KeptRows.Count && KeptRows[row].Look == KeptLineLook.Kept && CompendiumKeeper.Book?.PickableMark(KeptRows[row].Key) != null;
 
         /// <summary>The line whose pickable mark the pointer rests on; -1 for none.</summary>
         private static int MarkPointedRow(Vector2 mouse)
@@ -239,14 +239,14 @@ namespace Scry
             Choices.Clear();
             PickerWords.Clear();
             if (_picking == null) return;
-            var row = KeptRows.IndexOf(_picking);
+            var row = KeptRows.FindIndex(line => line.Look == KeptLineLook.Kept && line.Key == _picking);
             if (row < _keptFirst || row >= _keptFirst + _keptFits || !Pickable(row))
             {
                 PutPickerAway();
                 return;
             }
             var lineTop = KeptRowTop(row);
-            LayPicker(book, new Rect(_keptRect.x + U(8f), lineTop, U(22f), KeptRowH), room);
+            LayPicker(book, new Rect(_keptRect.x + U(22f), lineTop, U(22f), KeptRowH), room);
         }
 
         /// <summary>The picker's place under what opened it (<see cref="MarkPickerPlace"/>), and its choices and words.</summary>

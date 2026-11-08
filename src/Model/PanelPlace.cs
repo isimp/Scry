@@ -56,6 +56,9 @@ namespace Scry
         /// <summary>Where the kinds list on the map was left, from the map's top left, how wide and how many rows tall; and whether it was folded (<see cref="KindsList"/>).</summary>
         public (float X, float Y, float Width)? KindsList;
         public int? KindsRows;
+
+        /// <summary>Which categories stand folded on the kinds list and the On the map list (<see cref="KeptCategories.Folded"/>).</summary>
+        public int? KindsCats, KeptCats;
         public bool? KindsFolded;
 
         /// <summary>
@@ -110,6 +113,8 @@ namespace Scry
                     case "setup" when value != null: place.SetUp = value == "1"; break;
                     case "kinds" when parts.Length == 4 && Stored.TryNumber(parts[1], out var kx) && Stored.TryNumber(parts[2], out var ky) && Stored.TryNumber(parts[3], out var kw): place.KindsList = (kx, ky, kw); break;
                     case "kindsrows" when value != null && Stored.TryNumber(value, out var kr): place.KindsRows = (int)kr; break;
+                    case "kindscats" when value != null && Stored.TryNumber(value, out var kc): place.KindsCats = (int)kc; break;
+                    case "keptcats" when value != null && Stored.TryNumber(value, out var pc): place.KeptCats = (int)pc; break;
                     case "kindsfolded" when value != null: place.KindsFolded = value == "1"; break;
                 }
             }
@@ -144,6 +149,8 @@ namespace Scry
             if (SetUp.HasValue) yield return "setup " + Flag(SetUp.Value);
             if (KindsList is (float x, float y, float width)) yield return "kinds " + Stored.Number((float)Math.Round(x)) + " " + Stored.Number((float)Math.Round(y)) + " " + Stored.Number((float)Math.Round(width));
             if (KindsRows is int kindsRows) yield return "kindsrows " + Stored.Number(kindsRows);
+            if (KindsCats is int kindsCats) yield return "kindscats " + Stored.Number(kindsCats);
+            if (KeptCats is int keptCats) yield return "keptcats " + Stored.Number(keptCats);
             if (KindsFolded.HasValue) yield return "kindsfolded " + Flag(KindsFolded.Value);
         }
 

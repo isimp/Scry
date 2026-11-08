@@ -13,9 +13,10 @@ namespace Scry
 
     /// <summary>
     /// The mark each kind stands in on Valheim's map, so a dot or a square tells which kind it is
-    /// at a glance: a number, its colour one of eight, then past eight kinds the same colours in
-    /// the next shape, 32 told apart before they begin again. The player may pick a kept kind's
-    /// mark instead: past those 32, one of the game's map pictures in each colour
+    /// at a glance: a number, its colour one of eight in the shape of its category
+    /// (<see cref="KeptCategories"/>), eight told apart in a category before the colours begin again.
+    /// The player may pick a kept kind's mark instead: any colour in any shape, then past those 32
+    /// one of the game's map pictures in each colour
     /// (<see cref="Pictured"/>), then the kind's own picture on each colour (<see cref="Own"/>).
     /// Each number's colour is its remainder by the colours, so an older Scry reading a picked
     /// mark still stands it in its colour. Every kind of dungeon keeps its amber discs
@@ -60,16 +61,16 @@ namespace Scry
         public static bool IsOwn(int mark) => mark >= Own(0) && mark < Looks;
 
         /// <summary>
-        /// The lowest colour and shape none of those taken has; past all of them, the one fewest
-        /// stand in, the lowest of those. A picture is only ever picked, never dealt.
+        /// The mark dealt in a shape: the lowest colour none of those taken has in it; past all of
+        /// them, the one fewest stand in, the lowest of those. A picture is only ever picked, never dealt.
         /// </summary>
-        public static int Lowest(IEnumerable<int> taken)
+        public static int Dealt(MarkShape shape, IEnumerable<int> taken)
         {
-            var held = new int[Most];
-            foreach (var mark in taken) if (mark >= 0 && mark < Most) held[mark]++;
+            var held = new int[Colours];
+            foreach (var mark in taken) if (mark >= 0 && mark < Most && ShapeOf(mark) == shape) held[ColourOf(mark)]++;
             var lowest = 0;
-            for (var mark = 1; mark < Most; mark++) if (held[mark] < held[lowest]) lowest = mark;
-            return lowest;
+            for (var colour = 1; colour < Colours; colour++) if (held[colour] < held[lowest]) lowest = colour;
+            return Plain(lowest, shape);
         }
 
         /// <summary>

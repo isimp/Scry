@@ -111,6 +111,10 @@ namespace Scry
             {
                 if (parts.Length == 2 && name == Dungeons) book._dungeonsUnkept = true;
             },
+            ["categoryshapes"] = (book, parts, name) =>
+            {
+                if (parts.Length == 2) book._keptShapes = true;
+            },
             ["welcomed"] = (book, parts, name) =>
             {
                 if (parts.Length == 2) book._welcomed = true;

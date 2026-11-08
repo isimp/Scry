@@ -19,7 +19,7 @@ namespace Scry.Tests
             book.Keep("rock4_copper", true);
             book.Keep("rock4_tin", true);
             book.Keep("loc:Grave1", true);
-            Assert.Equal(new int?[] { 0, 1, 2 }, new[] { book.MarkOf("rock4_copper"), book.MarkOf("rock4_tin"), book.MarkOf("loc:Grave1") });
+            Assert.Equal(new int?[] { KeptMarks.Plain(0, MarkShape.Triangle), KeptMarks.Plain(1, MarkShape.Triangle), KeptMarks.Plain(0, MarkShape.Circle) }, new[] { book.MarkOf("rock4_copper"), book.MarkOf("rock4_tin"), book.MarkOf("loc:Grave1") });
             Assert.Equal(KeptMarks.Dungeons, book.MarkOf(CompendiumBook.Dungeons));
             Assert.Null(book.MarkOf("rock4_silver"));
 
@@ -28,11 +28,12 @@ namespace Scry.Tests
 
             // Taken off, its mark is free for the next kept; the others keep theirs.
             back.Keep("rock4_copper", false);
-            back.Keep("loc:Crypt2", true);
-            Assert.Equal(0, back.MarkOf("loc:Crypt2"));
-            Assert.Equal(1, back.MarkOf("rock4_tin"));
-            // A kind shown and not kept takes the lowest mark free.
-            Assert.Equal(3, back.FreeMark());
+            back.Keep("rock4_silver", true);
+            Assert.Equal(KeptMarks.Plain(0, MarkShape.Triangle), back.MarkOf("rock4_silver"));
+            Assert.Equal(KeptMarks.Plain(1, MarkShape.Triangle), back.MarkOf("rock4_tin"));
+            // A kind shown and not kept takes the lowest mark free in its category's shape.
+            Assert.Equal(KeptMarks.Plain(2, MarkShape.Triangle), back.FreeMark("rock4_obsidian"));
+            Assert.Equal(KeptMarks.Plain(1, MarkShape.Circle), back.FreeMark("loc:Ruin1"));
         }
 
         [Fact]
@@ -43,7 +44,7 @@ namespace Scry.Tests
             book.Keep("rock4_copper", true);
             var saved = book.Save();
             Assert.Contains("kept\trock4_copper\n", saved);
-            Assert.Equal(0, CompendiumBook.Load(saved).MarkOf("rock4_copper"));
+            Assert.Equal(KeptMarks.Plain(0, MarkShape.Triangle), CompendiumBook.Load(saved).MarkOf("rock4_copper"));
         }
 
         [Fact]
@@ -59,8 +60,8 @@ namespace Scry.Tests
         public void AnOlderBooksKeptKindsAreGivenMarksInTheirOrder()
         {
             var book = CompendiumBook.Load("kept\trock4_tin\nkept\trock4_copper\n");
-            Assert.Equal(0, book.MarkOf("rock4_copper"));
-            Assert.Equal(1, book.MarkOf("rock4_tin"));
+            Assert.Equal(KeptMarks.Plain(0, MarkShape.Triangle), book.MarkOf("rock4_copper"));
+            Assert.Equal(KeptMarks.Plain(1, MarkShape.Triangle), book.MarkOf("rock4_tin"));
             // Two kept in one mark stay so: the player may pick one look for both.
             var twice = CompendiumBook.Load("kept\trock4_tin\t0\nkept\trock4_copper\t0\n");
             Assert.Equal(twice.MarkOf("rock4_tin"), twice.MarkOf("rock4_copper"));
@@ -75,10 +76,13 @@ namespace Scry.Tests
             Assert.Equal((7, MarkShape.Circle), looks[7]);
             Assert.Equal((0, MarkShape.Diamond), looks[8]);
             Assert.Equal((0, MarkShape.Triangle), looks[24]);
-            // Past them the marks begin again.
-            var all = Enumerable.Range(0, KeptMarks.Most).ToList();
-            Assert.Equal(0, KeptMarks.Lowest(all));
-            Assert.Equal(1, KeptMarks.Lowest(all.Append(0)));
+            // Dealt within a shape, the colour fewest stand in, past them beginning again.
+            var circles = Enumerable.Range(0, KeptMarks.Colours).ToList();
+            Assert.Equal(KeptMarks.Plain(0, MarkShape.Triangle), KeptMarks.Dealt(MarkShape.Triangle, circles));
+            Assert.Equal(0, KeptMarks.Dealt(MarkShape.Circle, circles));
+            Assert.Equal(1, KeptMarks.Dealt(MarkShape.Circle, circles.Append(0)));
+            // A picture stands in no shape's colours.
+            Assert.Equal(0, KeptMarks.Dealt(MarkShape.Circle, new[] { KeptMarks.Pictured(0, 1) }));
         }
 
         [Fact]

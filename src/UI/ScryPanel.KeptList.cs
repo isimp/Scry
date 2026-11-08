@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Scry
@@ -8,15 +9,22 @@ namespace Scry
     /// the title row's "On the map" button, as Clear previews lists what is in the world: the
     /// list opens on a click and a click outside puts it away (<see cref="ClickBox"/>); each line
     /// its kind's mark, its name and how many stand, a click on the name opening its page and its
-    /// × taking it off the map; "Take all off" at its foot. Every kind of dungeon taken off stays
-    /// at its top, faint, with Keep on the map to put it back. More lines than fit under the button
+    /// × taking it off the map, under a heading for each category (<see cref="KeptCategories"/>), its
+    /// arrow folding it and its × taking the whole category off; "Take all off" at its foot. Every
+    /// kind of dungeon kept is the dungeons' heading, its types under it to read and open; taken off it
+    /// stays at the top, faint, with Keep on the map to put it back. More lines than fit under the button
     /// scroll, by the wheel or the thumb at its right edge (<see cref="RowScroll"/>).
     /// </summary>
     internal static partial class ScryPanel
     {
         private static readonly ClickBox KeptClick = new ClickBox();
         private static Rect _keptButton, _keptRect;
-        private static readonly List<string> KeptRows = new List<string>();
+        private static readonly List<KeptLine> KeptRows = new List<KeptLine>();
+
+        /// <summary>What the lines were worked out for, which categories stand folded (<see cref="KeptCategories.Folded"/>), and each type of dungeon's name and counts by the key it opens.</summary>
+        private static (CompendiumBook, int, int, int, int) _keptRowsFor;
+        private static int _keptCats;
+        private static readonly Dictionary<string, (string Name, int Seen, int Told)> KeptTypes = new Dictionary<string, (string, int, int)>(System.StringComparer.Ordinal);
 
         /// <summary>How many kept lines stand under the button, the rest scrolled to, and the line standing first.</summary>
         private static int _keptFits;
@@ -39,7 +47,19 @@ namespace Scry
 
         /// <summary>Whether the list stands every kind of dungeon first, taken off, to be kept again, for the self-test.</summary>
         [Diagnostic]
-        public static bool KeptDungeonsOffForTest => KeptClick.Open && _dungeonsOff && KeptRows.Count > 0 && KeptRows[0] == CompendiumBook.Dungeons;
+        public static bool KeptDungeonsOffForTest => KeptClick.Open && _dungeonsOff && KeptRows.Count > 0 && KeptRows[0].Key == CompendiumBook.Dungeons;
+
+        /// <summary>The first line of a look in the list, among all it holds, for the self-test; -1 for none.</summary>
+        [ForTest]
+        public static int KeptLineForTest(KeptLineLook look, KeptCategory category) => KeptRows.FindIndex(line => line.Look == look && line.Category == category);
+
+        /// <summary>Folds a category of the list or opens it, as its arrow does, for the self-test.</summary>
+        [ForTest]
+        public static void FoldKeptCategoryForTest(KeptCategory category) => FoldKeptCategory(category);
+
+        /// <summary>Takes a category off the map, as its heading's × does, for the self-test.</summary>
+        [ForTest]
+        public static void TakeCategoryOffForTest(KeptCategory category) => TakeCategoryOffMap(category);
 
         /// <summary>How many lines the list stands at once, for the self-test.</summary>
         [ForTest]
@@ -111,10 +131,8 @@ namespace Scry
                 return;
             }
             MapKept.Refresh();
-            KeptRows.Clear();
             _dungeonsOff = !book.Keeps(CompendiumBook.Dungeons);
-            if (_dungeonsOff) KeptRows.Add(CompendiumBook.Dungeons);
-            KeptRows.AddRange(book.Kept);
+            KeptRowsWorkedOut(book);
             var top = button.yMax + U(4f);
             var capped = (MapKept.AllDots > SeenOnMap.MostKept ? 1 : 0) + (book.Kept.Count == 0 ? 1 : 0);
             var fit = Mathf.Max(1, Mathf.FloorToInt((room.yMax - top - KeptTop - KeptFootH - U(6f)) / KeptRowH) - capped);
@@ -144,31 +162,90 @@ namespace Scry
             if (e.button == 0)
             {
                 var index = KeptRowAt(e.mousePosition.y);
-                if (index >= 0 && Pickable(index) && e.mousePosition.x < MarkRight(_keptRect) && e.mousePosition.y < _keptRect.yMax - KeptFootH)
-                {
-                    // A line's mark opens its picker, or puts it away again.
-                    if (picking != KeptRows[index]) OpenPicker(KeptRows[index]);
-                }
-                else if (e.mousePosition.y >= _keptRect.yMax - KeptFootH)
+                if (e.mousePosition.y >= _keptRect.yMax - KeptFootH)
                 {
                     // Only on Take all off itself, not on the words beside it.
                     if (book.Kept.Count > 0 && e.mousePosition.x >= _keptRect.xMax - U(120f)) TakeAllOffMap();
                 }
                 else if (index >= 0)
                 {
-                    if (_dungeonsOff && index == 0)
+                    var line = KeptRows[index];
+                    var onCross = e.mousePosition.x >= _keptRect.xMax - U(34f);
+                    if (line.Look == KeptLineLook.Heading) HeadingClicked(line, e.mousePosition, onCross);
+                    else if (line.Look == KeptLineLook.Type) OpenKept(explorer, line.Key);
+                    else if (Pickable(index) && MarkBox(_keptRect, KeptRowTop(index)).Contains(e.mousePosition))
                     {
-                        if (KeepAgain(_keptRect).Contains(e.mousePosition)) KeepOnMap(CompendiumBook.Dungeons, true);
+                        // A line's mark opens its picker, or puts it away again.
+                        if (picking != line.Key) OpenPicker(line.Key);
                     }
-                    else if (e.mousePosition.x >= _keptRect.xMax - U(34f)) KeepOnMap(KeptRows[index], false);
-                    else if (KeptRows[index] != CompendiumBook.Dungeons)
-                    {
-                        KeptClick.Close();
-                        Go(explorer, MapKept.KindsIn(KeptRows[index])[0]);
-                    }
+                    else if (onCross) KeepOnMap(line.Key, false);
+                    else OpenKept(explorer, MapKept.KindsIn(line.Key)[0]);
                 }
             }
             e.Use();
+        }
+
+        /// <summary>A click on a heading: Keep on the map where the dungeons were taken off, its × taking its category off, elsewhere folding it where it holds lines.</summary>
+        private static void HeadingClicked(KeptLine line, Vector2 at, bool onCross)
+        {
+            var off = line.Category == KeptCategory.Dungeons && _dungeonsOff;
+            if (off && KeepAgain(_keptRect).Contains(at)) KeepOnMap(CompendiumBook.Dungeons, true);
+            else if (!off && onCross && line.Keeps > 0) TakeCategoryOffMap(line.Category);
+            else if (line.Under > 0) FoldKeptCategory(line.Category);
+        }
+
+        private static void OpenKept(Explorer explorer, string key)
+        {
+            KeptClick.Close();
+            Go(explorer, key);
+        }
+
+        private static void FoldKeptCategory(KeptCategory category)
+        {
+            _keptCats = KeptCategories.Toggled(_keptCats, category);
+            SaveRects();
+        }
+
+        /// <summary>The categories folded as the panel's file kept them.</summary>
+        private static void TakeKeptListPlace(PanelPlace place)
+        {
+            if (place.KeptCats.HasValue) _keptCats = place.KeptCats.Value;
+        }
+
+        /// <summary>Every kind of a category taken off the map, kept at once: its heading's ×.</summary>
+        private static void TakeCategoryOffMap(KeptCategory category)
+        {
+            var book = CompendiumKeeper.Book;
+            if (book == null) return;
+            foreach (var kept in book.Kept.ToList()) if (MapKept.CategoryOf(kept) == category) book.Keep(kept, false);
+            CompendiumKeeper.Save(now: true);
+        }
+
+        /// <summary>The list's lines, worked out again only as what is kept, what stands, what is folded or the catalog changes; a family's types of dungeon as one (<see cref="KindsList.Group"/>).</summary>
+        private static void KeptRowsWorkedOut(CompendiumBook book)
+        {
+            var now = (book, book.KeptVersion, MapKept.Worked, _keptCats, WorldCatalog.Current?.Regroups ?? -1);
+            if (now == _keptRowsFor) return;
+            _keptRowsFor = now;
+            KeptTypes.Clear();
+            var keys = MapKept.DungeonCounts.Keys.OrderBy(key => key, System.StringComparer.Ordinal).ToList();
+            var under = keys.Select(key => WorldCatalog.Find(key)?.Family is Family family && family.Kinds.Count > 1 ? family.Head.Key : key).ToList();
+            var types = new List<string>();
+            foreach (var (_, members) in KindsList.Group(under))
+            {
+                var first = keys[members[0]];
+                var (seen, told) = (0, 0);
+                foreach (var member in members)
+                {
+                    seen += MapKept.DungeonCounts[keys[member]].Seen;
+                    told += MapKept.DungeonCounts[keys[member]].Told;
+                }
+                var entry = WorldCatalog.Find(first);
+                KeptTypes[first] = (entry != null ? MapSpots.FamilyNameOf(entry) : MapKept.NameOf(first), seen, told);
+                types.Add(first);
+            }
+            KeptRows.Clear();
+            KeptRows.AddRange(KeptLine.Of(book.Kept, types, MapKept.IsDungeon, _keptCats));
         }
 
         /// <summary>The line standing at a height, among all the list holds; -1 where none does.</summary>
@@ -280,6 +357,85 @@ namespace Scry
             return SpotWords.AllKindsName(family, kinds.Length);
         }
 
+        /// <summary>Where a line's × stands, and whether the pointer is on it, not on the thumb beside it.</summary>
+        private static bool OnKeptCross(Rect line, Rect cross, Vector2 mouse) => line.Contains(mouse) && mouse.x >= cross.x && !(KeptScrolls && mouse.x >= KeptTrack.x);
+
+        /// <summary>A category's heading: its arrow where it holds lines, its shape, name and how many, and its ×; the dungeons taken off faint, with Keep on the map.</summary>
+        private static void DrawKeptHeading(KeptLine heading, Rect r, float y, Vector2 mouse)
+        {
+            var dungeons = heading.Category == KeptCategory.Dungeons;
+            var off = dungeons && _dungeonsOff;
+            var line = new Rect(r.x + U(4f), y, r.width - U(8f), KeptRowH);
+            var cross = new Rect(r.xMax - U(34f), y, U(30f), KeptRowH);
+            var onCross = OnKeptCross(line, cross, mouse) && heading.Keeps > 0 && !off;
+            if (line.Contains(mouse) && !onCross && heading.Under > 0) Skin.Box(line, Skin.Hover);
+            if (heading.Under > 0) Skin.Icon(new Rect(r.x + U(7f), y + (KeptRowH - U(12f)) / 2f, U(12f), U(12f)), KeptCategories.Folded(_keptCats, heading.Category) ? Skin.Down : Skin.Up, Skin.Dim);
+            var picture = new Rect(r.x + U(23f), y + (KeptRowH - U(16f)) / 2f, U(16f), U(16f));
+            if (off) GUI.color = Skin.Alpha(Skin.MarkShown, 0.4f);
+            GUI.DrawTexture(picture, MapSpots.CategoryPicture(heading.Category).texture);
+            GUI.color = Skin.MarkShown;
+            var name = dungeons ? SpotWords.DungeonsRow : SpotWords.CategoryName(heading.Category);
+            if (off)
+            {
+                var again = KeepAgain(r);
+                GUI.Label(new Rect(picture.xMax + U(8f), y, again.x - picture.xMax - U(14f), KeptRowH), name, Skin.DimLabel);
+                Skin.Chip.Draw(again, new GUIContent(SpotWords.Keep), again.Contains(mouse), false, false, false);
+                return;
+            }
+            string count;
+            if (dungeons && KeptTypes.Count > 0)
+            {
+                var (seen, squares, told) = MapKept.CountOf(CompendiumBook.Dungeons);
+                count = SpotWords.DungeonsCount(seen, squares, told);
+            }
+            else count = SpotWords.CategoryKinds(heading.Keeps);
+            var countW = Skin.Width(Skin.DimRight, count) + U(4f);
+            GUI.Label(new Rect(picture.xMax + U(8f), y, r.width - U(84f) - countW, KeptRowH), Skin.Fit(Skin.Label, name, r.width - U(84f) - countW), Skin.Label);
+            GUI.Label(new Rect(r.xMax - U(40f) - countW, y, countW, KeptRowH), count, Skin.DimRight);
+            if (heading.Keeps == 0) return;
+            if (onCross) Skin.Box(cross, Skin.Hover);
+            GUI.Label(cross, "×", onCross ? Skin.Center : Skin.CenterDim);
+        }
+
+        /// <summary>A type of dungeon kept with every kind: its disc, name and how many, lit under the pointer as a click opens its page; no × of its own, as they are kept as one.</summary>
+        private static void DrawKeptType(KeptLine type, Rect r, float y, Vector2 mouse)
+        {
+            if (!KeptTypes.TryGetValue(type.Key, out var told)) return;
+            var line = new Rect(r.x + U(4f), y, r.width - U(8f), KeptRowH);
+            if (line.Contains(mouse)) Skin.Box(line, Skin.Hover);
+            GUI.DrawTexture(new Rect(r.x + U(24f), y + (KeptRowH - U(14f)) / 2f, U(14f), U(14f)), MapSpots.CategoryPicture(KeptCategory.Dungeons).texture);
+            var count = SpotWords.KeptCount(told.Seen, 0, told.Told);
+            var countW = Skin.Width(Skin.DimRight, count) + U(4f);
+            GUI.Label(new Rect(r.x + U(48f), y, r.width - U(84f) - countW, KeptRowH), Skin.Fit(Skin.Label, told.Name, r.width - U(84f) - countW), Skin.Label);
+            GUI.Label(new Rect(r.xMax - U(40f) - countW, y, countW, KeptRowH), count, Skin.DimRight);
+        }
+
+        /// <summary>A kept kind's line, lit under the pointer, or its × alone where the pointer is on it, as Clear previews lights them; its mark as it stands on the map, as a legend, lit where a click opens its picker.</summary>
+        private static void DrawKeptOwn(string kept, Rect r, float y, Vector2 mouse)
+        {
+            var line = new Rect(r.x + U(4f), y, r.width - U(8f), KeptRowH);
+            var cross = new Rect(r.xMax - U(34f), y, U(30f), KeptRowH);
+            var onCross = OnKeptCross(line, cross, mouse);
+            if (line.Contains(mouse) && !onCross) Skin.Box(line, Skin.Hover);
+            var mark = new Rect(r.x + U(26f), y + (KeptRowH - U(12f)) / 2f, U(12f), U(12f));
+            var shown = MapKept.MarkOf(CompendiumKeeper.Book, kept);
+            if (shown == KeptMarks.Dungeons) Skin.Icon(mark, Skin.Circle, Skin.Accent);
+            else
+            {
+                var around = MarkBox(r, y);
+                if (PickingFrom(kept, PickFrom.List)) Skin.Box(around, Skin.Alpha(Skin.Accent, 0.16f), Skin.Accent);
+                else if (around.Contains(mouse)) Skin.Box(around, Skin.Hover, Skin.Alpha(Skin.Text, 0.18f));
+                GUI.DrawTexture(new Rect(mark.x - U(2f), mark.y - U(2f), mark.width + U(4f), mark.height + U(4f)), MapSpots.MarkPicture(shown, kept).texture);
+            }
+            var (seen, squares, told) = MapKept.CountOf(kept);
+            var count = SpotWords.KeptCount(seen, squares, told);
+            var countW = Skin.Width(Skin.DimRight, count) + U(4f);
+            GUI.Label(new Rect(mark.xMax + U(10f), y, r.width - U(84f) - countW, KeptRowH), Skin.Fit(Skin.Label, KeptName(kept), r.width - U(84f) - countW), Skin.Label);
+            GUI.Label(new Rect(r.xMax - U(40f) - countW, y, countW, KeptRowH), count, Skin.DimRight);
+            if (onCross) Skin.Box(cross, Skin.Hover);
+            GUI.Label(cross, "×", onCross ? Skin.Center : Skin.CenterDim);
+        }
+
         /// <summary>Drawn last, over what lies below the button: the heading, each kept kind's line, a line where too many marks stand, and the foot.</summary>
         private static void DrawKeptList()
         {
@@ -294,40 +450,9 @@ namespace Scry
             for (var row = _keptFirst; row < _keptFirst + _keptFits; row++)
             {
                 var kept = KeptRows[row];
-                var line = new Rect(r.x + U(4f), y, r.width - U(8f), KeptRowH);
-                if (_dungeonsOff && row == 0)
-                {
-                    // Taken off: faint, no count, Keep on the map putting it back.
-                    var again = KeepAgain(r);
-                    Skin.Icon(new Rect(r.x + U(12f), y + (KeptRowH - U(12f)) / 2f, U(12f), U(12f)), Skin.Circle, Skin.Alpha(Skin.Accent, 0.3f));
-                    GUI.Label(new Rect(r.x + U(34f), y, again.x - r.x - U(40f), KeptRowH), SpotWords.DungeonsRow, Skin.DimLabel);
-                    Skin.Chip.Draw(again, new GUIContent(SpotWords.Keep), again.Contains(mouse), false, false, false);
-                    y += KeptRowH;
-                    continue;
-                }
-                // The line lit under the pointer, or its × alone where the pointer is on it, as Clear previews lights them.
-                var cross = new Rect(r.xMax - U(34f), y, U(30f), KeptRowH);
-                var onCross = line.Contains(mouse) && mouse.x >= cross.x && !(KeptScrolls && mouse.x >= KeptTrack.x);
-                if (line.Contains(mouse) && !onCross) Skin.Box(line, Skin.Hover);
-                var dungeons = kept == CompendiumBook.Dungeons;
-                var mark = new Rect(r.x + U(12f), y + (KeptRowH - U(12f)) / 2f, U(12f), U(12f));
-                // Its mark as it stands on the map, as a legend, lit where a click opens its picker; every kind of dungeon by the accent of its discs.
-                var shown = MapKept.MarkOf(CompendiumKeeper.Book, kept);
-                if (shown == KeptMarks.Dungeons) Skin.Icon(mark, Skin.Circle, Skin.Accent);
-                else
-                {
-                    var around = MarkBox(r, y);
-                    if (PickingFrom(kept, PickFrom.List)) Skin.Box(around, Skin.Alpha(Skin.Accent, 0.16f), Skin.Accent);
-                    else if (around.Contains(mouse)) Skin.Box(around, Skin.Hover, Skin.Alpha(Skin.Text, 0.18f));
-                    GUI.DrawTexture(new Rect(mark.x - U(2f), mark.y - U(2f), mark.width + U(4f), mark.height + U(4f)), MapSpots.MarkPicture(shown, kept).texture);
-                }
-                var (seen, squares, told) = MapKept.CountOf(kept);
-                var count = dungeons ? SpotWords.DungeonsCount(seen, squares, told) : SpotWords.KeptCount(seen, squares, told);
-                var countW = Skin.Width(Skin.DimRight, count) + U(4f);
-                GUI.Label(new Rect(mark.xMax + U(10f), y, r.width - U(70f) - countW, KeptRowH), Skin.Fit(Skin.Label, KeptName(kept), r.width - U(70f) - countW), Skin.Label);
-                GUI.Label(new Rect(r.xMax - U(40f) - countW, y, countW, KeptRowH), count, Skin.DimRight);
-                if (onCross) Skin.Box(cross, Skin.Hover);
-                GUI.Label(cross, "×", onCross ? Skin.Center : Skin.CenterDim);
+                if (kept.Look == KeptLineLook.Heading) DrawKeptHeading(kept, r, y, mouse);
+                else if (kept.Look == KeptLineLook.Type) DrawKeptType(kept, r, y, mouse);
+                else DrawKeptOwn(kept.Key, r, y, mouse);
                 y += KeptRowH;
             }
             DrawKeptThumb(mouse);

@@ -143,6 +143,39 @@ namespace Scry
         private static readonly List<(string Name, int Seen, int Told, Sprite Picture, string[] Kinds)> Chips = new List<(string, int, int, Sprite, string[])>();
         private static (((IReadOnlyList<(int X, int Z)>, IReadOnlyList<(int X, int Z)>, Sprite, int), int) Kinds, int Regroups) _chipsFor;
 
+        /// <summary>The kinds list's categories in order, each with how many stand under it, all its kinds, and which chips are its.</summary>
+        private static readonly List<(KeptCategory Category, int Count, string[] Kinds, int First, int Chips)> KindCategories = new List<(KeptCategory, int, string[], int, int)>();
+
+        /// <summary>The kinds list's categories, worked out with its chips.</summary>
+        public static IReadOnlyList<(KeptCategory Category, int Count, string[] Kinds, int First, int Chips)> KindGroups()
+        {
+            KindChips();
+            return KindCategories;
+        }
+
+        /// <summary>The chips stood in their categories' order, and each category's told.</summary>
+        private static void GroupChips()
+        {
+            KindCategories.Clear();
+            var sorted = new List<(string Name, int Seen, int Told, Sprite Picture, string[] Kinds)>(Chips.Count);
+            foreach (var category in KeptCategories.All)
+            {
+                var first = sorted.Count;
+                var count = 0;
+                var kinds = new List<string>();
+                foreach (var chip in Chips)
+                {
+                    if (MapKept.CategoryOf(chip.Kinds[0]) != category) continue;
+                    sorted.Add(chip);
+                    kinds.AddRange(chip.Kinds);
+                    count += chip.Seen + chip.Told;
+                }
+                if (sorted.Count > first) KindCategories.Add((category, count, kinds.ToArray(), first, sorted.Count - first));
+            }
+            Chips.Clear();
+            Chips.AddRange(sorted);
+        }
+
         /// <summary>The kinds list's chips, worked out again only as the dots change (<see cref="KindsList.Group"/>).</summary>
         public static IReadOnlyList<(string Name, int Seen, int Told, Sprite Picture, string[] Kinds)> KindChips()
         {
@@ -174,6 +207,7 @@ namespace Scry
                 }
                 Chips.Add((families[members[0]]?.Name ?? first.Name, seen, told, first.Picture, names));
             }
+            GroupChips();
             return Chips;
         }
 
@@ -183,6 +217,13 @@ namespace Scry
             if (kinds.Count == 0) return false;
             foreach (var kind in kinds) if (!Picked.Contains(kind)) return false;
             return true;
+        }
+
+        /// <summary>Whether any kind under a heading is picked, so it stands outlined.</summary>
+        public static bool AnyPicked(IReadOnlyList<string> kinds)
+        {
+            foreach (var kind in kinds) if (Picked.Contains(kind)) return true;
+            return false;
         }
 
         /// <summary>A chip's kinds picked to stand out together, or let go together where all are picked, as a click on the chip does.</summary>
@@ -435,6 +476,7 @@ namespace Scry
             MarkedKindsAre(System.Array.Empty<(string, string, int)>());
             _merging = false;
             _plain = false;
+            KindCategories.Clear();
             KindNumbers.Clear();
             KindOfDot.Clear();
             StripKinds.Clear();

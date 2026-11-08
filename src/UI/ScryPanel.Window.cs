@@ -280,6 +280,7 @@ namespace Scry
             if (place.Repeat.HasValue) Previews.Repeat = place.Repeat.Value;
             TakePlanBoxPlace(place);
             TakeKindsListPlace(place);
+            TakeKeptListPlace(place);
             TakeFirstStart(place);
         });
 
@@ -310,6 +311,8 @@ namespace Scry
                 PlanNames = PlanNamesShown,
                 KindsList = _kindsKept,
                 KindsRows = _kindsRows,
+                KindsCats = _kindsCats,
+                KeptCats = _keptCats,
                 KindsFolded = _kindsFolded,
             };
             GiveFirstStart(place);

@@ -103,6 +103,86 @@ namespace Scry
         }
 
         /// <summary>
+        /// Copper, tin and a place kept: each in its category's shape, the kinds list and the On the
+        /// map list under the same headings. A heading picks every kind under it and fades the rest,
+        /// its arrow folds it, and on the list its × takes the category off. Pictured.
+        /// </summary>
+        private static IEnumerator CategoriesTold(Probe p)
+        {
+            yield return Until(() => CompendiumKeeper.Book != null, 10);
+            var book = CompendiumKeeper.Book;
+            var player = Player.m_localPlayer;
+            var map = Minimap.instance;
+            const string copper = "rock4_copper", tin = "MineRock_Tin";
+            var place = X.Catalog.FirstOrDefault(e => e.Kind == Kind.Location && !e.IsRoom && !DungeonKinds.Is(e.Name));
+            if (book == null || player == null || map == null || Game.m_noMap || X.Find(copper) == null || X.Find(tin) == null || place == null)
+            {
+                p.Skip("there is no character, no map, or no copper, tin or place in this game");
+                yield break;
+            }
+            KeepWhatIsKept(book);
+            NoteMapAsItWas(map);
+            Settings.KindsStrip = true;
+            Settings.FarMarks = FarMarks.Full;
+            yield return MapCodeCompiled(p);
+            var clear = ClearGround(map, player.transform.position);
+            var at = clear ?? new Vector2(player.transform.position.x, player.transform.position.z);
+            var (cx, cz) = ((int)at.x, (int)at.y);
+            var placeKey = place.Key;
+            MapSpots.SpotsInsteadForTest(k => k == copper ? new List<(int X, int Z)> { (cx - 300, cz), (cx - 300, cz + 100) } : k == tin ? new List<(int X, int Z)> { (cx - 150, cz) } : k == placeKey ? new List<(int X, int Z)> { (cx + 150, cz), (cx + 300, cz) } : new List<(int X, int Z)>());
+            ScryPanel.TakeAllOffMap();
+            ScryPanel.KeepOnMap(copper, true);
+            ScryPanel.KeepOnMap(tin, true);
+            ScryPanel.KeepOnMap(placeKey, true);
+            p.Check(KeptMarks.ShapeOf(book.MarkOf(copper) ?? 0) == MarkShape.Triangle && KeptMarks.ShapeOf(book.MarkOf(tin) ?? 0) == MarkShape.Triangle && book.MarkOf(copper) != book.MarkOf(tin), "what is found stands in triangles, each kind its colour");
+            p.Check(KeptMarks.ShapeOf(book.MarkOf(placeKey) ?? 24) == MarkShape.Circle, "a place stands in a circle");
+            Session.Hide();
+            MapSpots.Hide();
+            if (Cursor.lockState != CursorLockMode.Locked) ZInput.SetMousePosition(new Vector2(2f, 2f));
+            map.SetMapMode(Minimap.MapMode.Large);
+            map.LargeZoom = 0.08f;
+            CentreMapOn(map, at);
+            yield return Until(() => MapSpots.KindGroups().Count == 2, 5);
+            var groups = MapSpots.KindGroups();
+            p.Check(groups.Count == 2 && groups[0].Category == KeptCategory.Locations && groups[1].Category == KeptCategory.Resources && groups[1].Kinds.Length == 2, "the kinds list stands each under its category", string.Join(", ", groups.Select(g => SpotWords.CategoryName(g.Category))));
+            yield return Picture(p, "the kinds list by category");
+
+            if (groups.Count == 2)
+            {
+                MapSpots.ShowAlone(groups[1].Kinds);
+                yield return Until(() => MapSpots.FadedDotsForTest > 0, 3);
+                p.Check(MapSpots.IsPicked(copper) && MapSpots.IsPicked(tin) && !MapSpots.IsPicked(placeKey) && MapSpots.FadedDotsForTest == 2, "a heading picks every kind under it and fades the rest", Numbers.Count(MapSpots.FadedDotsForTest));
+                yield return Picture(p, "the kinds list, a category picked");
+                MapSpots.ShowAlone(groups[1].Kinds);
+                yield return Until(() => MapSpots.FadedDotsForTest == 0, 3);
+                p.Check(MapSpots.PickedCount == 0, "picked again, its kinds are let go");
+            }
+            var was = ScryPanel.KindCategoryFoldedForTest(KeptCategory.Resources);
+            ScryPanel.FoldKindCategoryForTest(KeptCategory.Resources);
+            p.Check(ScryPanel.KindCategoryFoldedForTest(KeptCategory.Resources) != was, "its arrow folds a category");
+            yield return Picture(p, "the kinds list, a category folded");
+            ScryPanel.FoldKindCategoryForTest(KeptCategory.Resources);
+
+            map.SetMapMode(Minimap.MapMode.Small);
+            if (!Session.IsOpen) Session.Show(null);
+            KeepView();
+            ScryPanel.Compact = false;
+            var lists = ScryPanel.Drawn(PanelPart.KeptList);
+            ScryPanel.OpenKeptListForTest(true);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.KeptList) > lists + 1, 3);
+            var lines = ScryPanel.KeptLinesForTest;
+            p.Check(ScryPanel.KeptLineForTest(KeptLineLook.Heading, KeptCategory.Locations) >= 0 && ScryPanel.KeptLineForTest(KeptLineLook.Heading, KeptCategory.Resources) >= 0 && ScryPanel.KeptLineForTest(KeptLineLook.Kept, KeptCategory.Resources) >= 0, "the On the map list stands the same categories", Numbers.Count(lines));
+            yield return Picture(p, "the On the map list by category");
+            ScryPanel.FoldKeptCategoryForTest(KeptCategory.Resources);
+            yield return Until(() => ScryPanel.KeptLineForTest(KeptLineLook.Kept, KeptCategory.Resources) < 0, 3);
+            p.Check(ScryPanel.KeptLineForTest(KeptLineLook.Kept, KeptCategory.Resources) < 0 && ScryPanel.KeptLineForTest(KeptLineLook.Heading, KeptCategory.Resources) >= 0, "folded, a category stands its heading alone");
+            ScryPanel.FoldKeptCategoryForTest(KeptCategory.Resources);
+            ScryPanel.TakeCategoryOffForTest(KeptCategory.Resources);
+            p.Check(!book.Keeps(copper) && !book.Keeps(tin) && book.Keeps(placeKey), "a heading's × takes its whole category off, no other");
+            CrowdedAsItWas();
+        }
+
+        /// <summary>
         /// More kinds kept than the On the map list stands: it stands as many as fit, with no line
         /// asking any taken off, the wheel moving it a step and stopping at its end, and with few
         /// left it comes back to its top. Pictured scrolled.

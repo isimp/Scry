@@ -314,7 +314,7 @@ namespace Scry
             if (MapKept.KindsIn(key).All(MapKept.IsDungeon)) return KeptMarks.Dungeons;
             var book = CompendiumKeeper.Book;
             if (book == null) return 0;
-            return MapKept.KeptBy(book, key) is string line && book.MarkOf(line) is int kept ? kept : book.FreeMark();
+            return MapKept.KeptBy(book, key) is string line && book.MarkOf(line) is int kept ? kept : book.FreeMark(key);
         }
 
         /// <summary>Every kind of the page shown at once: their spots together; a place's squares added up, less those seen.</summary>

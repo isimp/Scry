@@ -151,6 +151,8 @@ namespace Scry
             NamesByKind.Clear();
             MarkByKind.Clear();
             Counted.Clear();
+            TypeCounts.Clear();
+            Worked++;
             AllDots = 0;
             if (book == null || world == null || AsideForTest) return;
             var counted = new HashSet<string>(System.StringComparer.Ordinal);
@@ -198,6 +200,7 @@ namespace Scry
                     var hollow = MapSpots.MarkPicture(mark, kept, hollow: true);
                     foreach (var (x, z) in told) _dots.Add((x, z, hollow, name, kind, true));
                     toldOf += told.Count;
+                    if (kept == CompendiumBook.Dungeons) TypeCounts[kind] = (0, told.Count);
                 }
                 var shown = PlaceSquares.Shown(CompendiumMap.Counts.Squares(place, MapSpots.SquaresGround), MapGameMarks.With(place, spots));
                 if (shown.Count == 0) continue;
@@ -208,8 +211,21 @@ namespace Scry
             }
             // The dungeons count those marked, walked or seen, each once.
             if (dungeons.Count > 0)
-                seen += DungeonWalks.Maps.OfWorld(world).Where(m => dungeons.Contains(m.Map.Location)).Select(m => m.Id)
-                    .Concat(DungeonMarks.Seen(world, dungeons, SeenSpotsKeeper.Of, remembered).Select(s => s.Id)).Distinct().Count();
+            {
+                var marked = new Dictionary<string, string>(System.StringComparer.Ordinal);
+                foreach (var (id, map) in DungeonWalks.Maps.OfWorld(world).Where(m => dungeons.Contains(m.Map.Location))) marked[id] = map.Location;
+                foreach (var (id, location, _, _) in DungeonMarks.Seen(world, dungeons, SeenSpotsKeeper.Of, remembered)) marked[id] = location;
+                seen += marked.Count;
+                if (kept == CompendiumBook.Dungeons)
+                {
+                    foreach (var location in marked.Values)
+                    {
+                        var key = EntryKeys.For(Kind.Location, location);
+                        TypeCounts.TryGetValue(key, out var had);
+                        TypeCounts[key] = (had.Seen + 1, had.Told);
+                    }
+                }
+            }
             Counted[kept] = (seen, square, toldOf);
         }
 
@@ -231,8 +247,19 @@ namespace Scry
             return true;
         }
 
+        /// <summary>How many of each type of dungeon stand while every kind is kept, by the type's key: marked, and told of alone; and how many times what is kept was worked out.</summary>
+        private static readonly Dictionary<string, (int Seen, int Told)> TypeCounts = new Dictionary<string, (int, int)>(System.StringComparer.Ordinal);
+
+        public static IReadOnlyDictionary<string, (int Seen, int Told)> DungeonCounts => TypeCounts;
+
+        public static int Worked { get; private set; }
+
+        /// <summary>The category a kept line stands under on the lists.</summary>
+        public static KeptCategory CategoryOf(string kept) => KeptCategories.Of(kept, IsDungeon);
+
         public static void Forget()
         {
+            TypeCounts.Clear();
             _dots = new List<(int, int, Sprite, string, string, bool)>();
             _squaresByKind = new Dictionary<string, Dictionary<(int X, int Z), int>>(System.StringComparer.Ordinal);
             NamesByKind.Clear();

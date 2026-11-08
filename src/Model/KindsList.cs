@@ -62,6 +62,32 @@ namespace Scry
             return placed;
         }
 
+        /// <summary>
+        /// Categories laid out: each its heading's row, then under it, unless folded, its chips flowed
+        /// in the rows left beside an indent. Each heading's row, each category's chips, how many rows in all.
+        /// </summary>
+        public static (int[] Headings, (float X, int Row)[][] Chips, int Rows) Laid(IReadOnlyList<(bool Folded, IReadOnlyList<float> Widths)> categories, float inner, float gap, float indent)
+        {
+            var headings = new int[categories.Count];
+            var chips = new (float X, int Row)[categories.Count][];
+            var row = 0;
+            for (var i = 0; i < categories.Count; i++)
+            {
+                headings[i] = row++;
+                var (folded, widths) = categories[i];
+                if (folded)
+                {
+                    chips[i] = Array.Empty<(float X, int Row)>();
+                    continue;
+                }
+                var flow = Flow(widths, inner - indent, gap);
+                chips[i] = new (float X, int Row)[flow.Length];
+                for (var c = 0; c < flow.Length; c++) chips[i][c] = (flow[c].X + indent, flow[c].Row + row);
+                row += Rows(flow);
+            }
+            return (headings, chips, row);
+        }
+
         /// <summary>How many rows flowed chips take; none for none.</summary>
         public static int Rows(IReadOnlyList<(float X, int Row)> flow) => flow.Count == 0 ? 0 : flow[flow.Count - 1].Row + 1;
 

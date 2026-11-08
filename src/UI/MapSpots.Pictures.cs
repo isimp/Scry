@@ -84,6 +84,10 @@ namespace Scry
             return pictured != null ? pictured : Picture(colour, MarkShape.Circle, hollow);
         }
 
+        /// <summary>A category's mark on the lists' headings: the dungeons' amber disc, another's shape in the writing's colour.</summary>
+        public static Sprite CategoryPicture(KeptCategory category) =>
+            category == KeptCategory.Dungeons ? MarkPicture(KeptMarks.Dungeons, CompendiumBook.Dungeons) : Picture(Skin.Text, KeptCategories.ShapeIn(category));
+
         /// <summary>
         /// A mark standing in a picture, drawn once for each colour and picture: inside the ring and
         /// its halo, as every dot has, a dark disc holding one of the game's map pictures in the

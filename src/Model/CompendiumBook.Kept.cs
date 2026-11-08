@@ -9,7 +9,7 @@ namespace Scry
     /// shows them: each by the key its spots are kept by, several kinds of one place shown at once
     /// as one (<see cref="MapShowing.AllKindsKey"/>); every kind of dungeon kept from the start,
     /// as one, until taken off. Each kept kind stands in a mark of its own (<see cref="KeptMarks"/>),
-    /// the lowest free as it is kept, kept with it while it is.
+    /// the lowest free in its category's shape as it is kept, kept with it while it is.
     /// </summary>
     internal sealed partial class CompendiumBook
     {
@@ -39,8 +39,11 @@ namespace Scry
         /// </summary>
         public int? PickableMark(string kind) => kind != null && _kept.TryGetValue(kind, out var mark) ? mark : (int?)null;
 
-        /// <summary>The lowest mark no kept kind stands in, for one shown and not kept.</summary>
-        public int FreeMark() => KeptMarks.Lowest(_kept.Values);
+        /// <summary>The lowest mark no kept kind stands in, in the shape of a kind's category: for that kind as it is kept, or shown and not kept.</summary>
+        public int FreeMark(string kind) => KeptMarks.Dealt(KeptCategories.ShapeOf(kind), _kept.Values);
+
+        /// <summary>Whether the marks stand in their categories' shapes, those of a book kept before them moved once as it is read.</summary>
+        private bool _keptShapes = true;
 
         /// <summary>What is kept, the dungeons first, then the rest by their keys.</summary>
         public IReadOnlyList<string> Kept
@@ -71,7 +74,7 @@ namespace Scry
                 foreach (var own in replaced) _kept.Remove(own);
                 // A picture is only ever picked, so it is the look the player gave them.
                 var pictured = marks.Where(m => m >= KeptMarks.Most).ToList();
-                _kept[kind] = pictured.Count > 0 ? pictured.Min() : marks.Count > 0 ? marks.Min() : FreeMark();
+                _kept[kind] = pictured.Count > 0 ? pictured.Min() : marks.Count > 0 ? marks.Min() : FreeMark(kind);
             }
             else _kept.Remove(kind);
             KeptChanged();
@@ -116,9 +119,39 @@ namespace Scry
             }
             foreach (var kind in unmarked)
             {
-                var mark = KeptMarks.Lowest(held);
+                var mark = KeptMarks.Dealt(KeptCategories.ShapeOf(kind), held);
                 _kept[kind] = mark;
                 held.Add(mark);
+            }
+            if (!_keptShapes) MoveToCategoryShapes();
+        }
+
+        /// <summary>
+        /// A book kept before categories: each plain mark moved into its category's shape, in its
+        /// colour where that is free there, else the lowest free, and kinds that shared a mark still
+        /// sharing one. Nothing tells a dealt mark from a picked one, so a plain shape picked moves too,
+        /// this once. A picture was only ever picked, so it stays.
+        /// </summary>
+        private void MoveToCategoryShapes()
+        {
+            _keptShapes = true;
+            var keys = _kept.Keys.OrderBy(k => k, StringComparer.Ordinal).ToList();
+            bool Stays(string kind) => _kept[kind] >= KeptMarks.Most || KeptMarks.ShapeOf(_kept[kind]) == KeptCategories.ShapeOf(kind);
+            var held = keys.Where(Stays).Select(k => _kept[k]).ToList();
+            var moved = new Dictionary<(int Mark, MarkShape Shape), int>();
+            foreach (var kind in keys.Where(k => !Stays(k)).ToList())
+            {
+                var shape = KeptCategories.ShapeOf(kind);
+                var was = _kept[kind];
+                if (!moved.TryGetValue((was, shape), out var mark))
+                {
+                    mark = KeptMarks.Plain(KeptMarks.ColourOf(was), shape);
+                    if (held.Contains(mark)) mark = KeptMarks.Dealt(shape, held);
+                    moved[(was, shape)] = mark;
+                    held.Add(mark);
+                }
+                _kept[kind] = mark;
+                Changed = true;
             }
         }
 

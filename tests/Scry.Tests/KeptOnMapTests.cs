@@ -85,7 +85,7 @@ namespace Scry.Tests
             marked.Keep("rock4_copper", false);
             marked.Keep(both, true);
             Assert.Equal(own, marked.MarkOf(both));
-            Assert.NotEqual(marked.FreeMark(), own);
+            Assert.NotEqual(marked.FreeMark("giant_skull"), own);
         }
 
         [Fact]

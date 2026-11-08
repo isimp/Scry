@@ -131,6 +131,18 @@ namespace Scry
         public static string KindsTitle(int kinds, int picked) =>
             $"Kinds on the map · {Numbers.Count(kinds)}" + (picked > 0 ? $" · {Numbers.Count(picked)} picked" : "");
 
+        /// <summary>A category's name on the lists.</summary>
+        public static string CategoryName(KeptCategory category) => category == KeptCategory.Dungeons ? "Dungeons" : category == KeptCategory.Locations ? "Locations" : "Resources";
+
+        /// <summary>How many kinds a category's heading holds.</summary>
+        public static string CategoryKinds(int kinds) => kinds == 1 ? "1 kind" : $"{Numbers.Count(kinds)} kinds";
+
+        /// <summary>A category's heading's tip: picking every kind under it to stand out, or letting them fade again.</summary>
+        public static string KindHeadingTip(bool picked, bool anyPicked) =>
+            picked ? "Let these kinds fade with the others again"
+            : anyPicked ? "Show every kind under it too"
+            : "Show every kind under it, the others faded";
+
         /// <summary>A kind's chip's tip: picking it to stand out, alone or beside those picked, or letting it fade with the others again.</summary>
         public static string KindChipTip(bool picked, bool anyPicked) =>
             picked ? "Let this kind fade with the others again"

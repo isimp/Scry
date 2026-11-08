@@ -5,8 +5,10 @@ namespace Scry
 {
     /// <summary>
     /// The kinds list on Valheim's map (<see cref="KindsList"/>): a small window of the kinds kept,
-    /// a family's under one chip, each with its mark and how many you saw and the server told of; a
-    /// click picks a chip's kinds to stand out, the rest faded (<see cref="MapSpots.ShowAlone(IReadOnlyList{string})"/>).
+    /// under a heading for each category (<see cref="KeptCategories"/>), a family's under one chip, each
+    /// with its mark and how many you saw and the server told of; a click picks a chip's kinds, or a
+    /// heading's all, to stand out, the rest faded (<see cref="MapSpots.ShowAlone(IReadOnlyList{string})"/>);
+    /// a heading's arrow folds it.
     /// Its title row drags it, the arrow at its end folds it to the title, the corner at its foot
     /// sizes it, its rows scroll past those it is tall enough for; where it stands, how wide, how
     /// tall and whether folded are kept with the panel's place. Its presses are kept from the map under it.
@@ -16,6 +18,23 @@ namespace Scry
         /// <summary>Where the list was left, from the map's top left, and how wide; none until moved; how many rows tall, none until sized; and whether it is folded.</summary>
         private static (float X, float Y, float Width)? _kindsKept;
         private static int? _kindsRows;
+
+        /// <summary>Which categories stand folded on the list (<see cref="KeptCategories.Folded"/>).</summary>
+        private static int _kindsCats;
+
+        /// <summary>Which categories stand folded on the list, for the self-test.</summary>
+        [ForTest]
+        public static bool KindCategoryFoldedForTest(KeptCategory category) => KeptCategories.Folded(_kindsCats, category);
+
+        /// <summary>Folds a category or opens it, as its arrow does, for the self-test.</summary>
+        [ForTest]
+        public static void FoldKindCategoryForTest(KeptCategory category) => FoldKindCategory(category);
+
+        private static void FoldKindCategory(KeptCategory category)
+        {
+            _kindsCats = KeptCategories.Toggled(_kindsCats, category);
+            SaveRects();
+        }
         private static bool _kindsFolded;
 
         /// <summary>What a press on the list holds: nothing, its title moving it, or its corner sizing it; and where the press took hold.</summary>
@@ -50,6 +69,7 @@ namespace Scry
         {
             if (place.KindsList.HasValue) _kindsKept = place.KindsList;
             if (place.KindsRows.HasValue) _kindsRows = place.KindsRows;
+            if (place.KindsCats.HasValue) _kindsCats = place.KindsCats.Value;
             if (place.KindsFolded.HasValue) _kindsFolded = place.KindsFolded.Value;
         }
 
@@ -65,9 +85,18 @@ namespace Scry
             for (var i = 0; i < chips.Count; i++) widths[i] = Skin.Width(Skin.Small, SpotWords.KindChip(chips[i].Name, chips[i].Seen, chips[i].Told)) + U(30f);
             var bar = U(12f);
             var allowed = KindsList.RowsAllowed(_kindsRows, y, Screen.height, U(1f));
-            var flow = KindsList.Flow(widths, width - pad * 2f, gap);
-            if (KindsList.Rows(flow) > allowed) flow = KindsList.Flow(widths, width - pad * 2f - bar, gap);
-            var rows = KindsList.Rows(flow);
+            var groups = MapSpots.KindGroups();
+            var laying = new (bool Folded, IReadOnlyList<float> Widths)[groups.Count];
+            for (var g = 0; g < groups.Count; g++)
+            {
+                var these = new float[groups[g].Chips];
+                System.Array.Copy(widths, groups[g].First, these, 0, these.Length);
+                laying[g] = (KeptCategories.Folded(_kindsCats, groups[g].Category), these);
+            }
+            var indent = U(18f);
+            var laid = KindsList.Laid(laying, width - pad * 2f, gap, indent);
+            if (laid.Rows > allowed) laid = KindsList.Laid(laying, width - pad * 2f - bar, gap, indent);
+            var rows = laid.Rows;
             var shown = KindsList.RowsShown(rows, allowed);
             var bodyH = _kindsFolded || rows == 0 ? 0f : shown * chipH + (shown - 1) * gap + pad * 2f;
             var box = new Rect(x, y, width, titleH + bodyH);
@@ -86,10 +115,17 @@ namespace Scry
                 var content = new Rect(0f, 0f, body.width - (rows > shown ? bar : 0f), rows * chipH + (rows - 1) * gap);
                 _kindsScroll = GUI.BeginScrollView(body, _kindsScroll, content);
                 var pointer = e.mousePosition;
-                for (var i = 0; i < chips.Count; i++)
+                for (var g = 0; g < groups.Count; g++)
                 {
-                    var at = new Rect(flow[i].X, flow[i].Row * (chipH + gap), widths[i], chipH);
-                    if (KindChip(at, chips[i], pointer)) tip = SpotWords.KindChipTip(MapSpots.IsPicked(chips[i].Kinds), MapSpots.PickedCount > 0);
+                    var group = groups[g];
+                    var heading = new Rect(0f, laid.Headings[g] * (chipH + gap), content.width, chipH);
+                    if (KindHeading(heading, group, pointer)) tip = SpotWords.KindHeadingTip(MapSpots.IsPicked(group.Kinds), MapSpots.PickedCount > 0);
+                    for (var c = 0; c < laid.Chips[g].Length; c++)
+                    {
+                        var i = group.First + c;
+                        var at = new Rect(laid.Chips[g][c].X, laid.Chips[g][c].Row * (chipH + gap), widths[i], chipH);
+                        if (KindChip(at, chips[i], pointer)) tip = SpotWords.KindChipTip(MapSpots.IsPicked(chips[i].Kinds), MapSpots.PickedCount > 0);
+                    }
                 }
                 GUI.EndScrollView();
                 Skin.Icon(grip, Skin.Resize, _kindsHold == KindsHold.Sizing || grip.Contains(e.mousePosition) ? Skin.Text : Skin.Dim);
@@ -102,6 +138,31 @@ namespace Scry
             }
             MapSpots.KindsStripDrawn(box);
             CountDrawn(PanelPart.MapKindsStrip);
+        }
+
+        /// <summary>
+        /// A category's heading: its arrow folding it, its shape, its name and how many stand under
+        /// it; a click picks all its kinds or lets them go, lit while all stand out and outlined while
+        /// some do. True where the pointer rests on it, not on its arrow.
+        /// </summary>
+        private static bool KindHeading(Rect at, (KeptCategory Category, int Count, string[] Kinds, int First, int Chips) group, Vector2 pointer)
+        {
+            var picked = MapSpots.IsPicked(group.Kinds);
+            var arrow = new Rect(at.x, at.y, U(18f), at.height);
+            if (GUI.Button(arrow, GUIContent.none, GUIStyle.none)) FoldKindCategory(group.Category);
+            else if (GUI.Button(at, GUIContent.none, picked ? Skin.ChipOn : GUIStyle.none)) MapSpots.ShowAlone(group.Kinds);
+            if (!picked && MapSpots.AnyPicked(group.Kinds)) Skin.Box(at, Skin.Alpha(Skin.Accent, 0f), Skin.Alpha(Skin.Accent, 0.55f));
+            else if (!picked && at.Contains(pointer)) Skin.Box(at, Skin.Hover);
+            var folded = KeptCategories.Folded(_kindsCats, group.Category);
+            Skin.Icon(new Rect(at.x + U(3f), at.y + (at.height - U(12f)) / 2f, U(12f), U(12f)), folded ? Skin.Down : Skin.Up, picked ? Skin.OnAccent : Skin.Dim);
+            GUI.DrawTexture(new Rect(at.x + U(19f), at.y + (at.height - U(16f)) / 2f, U(16f), U(16f)), MapSpots.CategoryPicture(group.Category).texture);
+            var style = picked ? Skin.Badge : Skin.Small;
+            var name = SpotWords.CategoryName(group.Category);
+            GUI.Label(new Rect(at.x + U(38f), at.y, Skin.Width(style, name) + U(2f), at.height), name, style);
+            var many = Numbers.Count(group.Count);
+            var manyW = Skin.Width(style, many) + U(2f);
+            GUI.Label(new Rect(at.xMax - manyW - U(6f), at.y, manyW, at.height), many, style);
+            return at.Contains(pointer) && !arrow.Contains(pointer);
         }
 
         /// <summary>A chip drawn in its mark, lit while its kinds stand out; a click picks them or lets them go. True where the pointer rests on it.</summary>

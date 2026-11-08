@@ -66,23 +66,23 @@ namespace Scry.Tests
 
             var back = CompendiumBook.Load(book.Save());
             Assert.Equal(back.MarkOf("rock4_copper"), back.MarkOf("rock4_tin"));
-            Assert.Equal(KeptMarks.Plain(0, MarkShape.Circle), back.MarkOf("rock4_tin"));
+            Assert.Equal(KeptMarks.Plain(0, MarkShape.Triangle), back.MarkOf("rock4_tin"));
         }
 
         [Fact]
-        public void AKindKeptAnewTakesTheLowestColourAndShapeNoKindStandsIn()
+        public void AKindKeptAnewTakesTheLowestColourNoKindStandsInInItsShape()
         {
             var book = new CompendiumBook();
             book.Keep("rock4_copper", true);
             book.Pick("rock4_copper", KeptMarks.Pictured(0, 4));
-            // Copper left the first colour's circle for a picture, so the next kept takes it.
+            // Copper left the first colour for a picture, so the next kept takes it.
             book.Keep("rock4_tin", true);
-            Assert.Equal(KeptMarks.Plain(0, MarkShape.Circle), book.MarkOf("rock4_tin"));
-            Assert.Equal(KeptMarks.Plain(1, MarkShape.Circle), book.FreeMark());
+            Assert.Equal(KeptMarks.Plain(0, MarkShape.Triangle), book.MarkOf("rock4_tin"));
+            Assert.Equal(KeptMarks.Plain(1, MarkShape.Triangle), book.FreeMark("rock4_silver"));
         }
 
         [Fact]
-        public void PastEveryColourAndShapeAKindKeptAnewStandsInOneAgainNeverAPicture()
+        public void PastEveryColourAKindKeptAnewStandsInOneAgainNeverAPicture()
         {
             var book = new CompendiumBook();
             for (var i = 0; i < KeptMarks.Most; i++) book.Keep("kind" + i, true);
@@ -92,9 +92,9 @@ namespace Scry.Tests
             Assert.False(KeptMarks.IsOwn(mark));
             Assert.InRange(mark, 0, KeptMarks.Most - 1);
             // One held by fewest kinds, the first of them: none is held twice yet, so the first.
-            Assert.Equal(KeptMarks.Plain(0, MarkShape.Circle), mark);
+            Assert.Equal(KeptMarks.Plain(0, MarkShape.Triangle), mark);
             book.Keep("and another", true);
-            Assert.Equal(KeptMarks.Plain(1, MarkShape.Circle), book.MarkOf("and another"));
+            Assert.Equal(KeptMarks.Plain(1, MarkShape.Triangle), book.MarkOf("and another"));
         }
 
         [Fact]
@@ -119,8 +119,8 @@ namespace Scry.Tests
         public void AMarkThisScryDoesNotOfferIsDealtAnewWhenTheBookIsRead()
         {
             var book = CompendiumBook.Load("kept\trock4_copper\nkeptmark\trock4_copper\t999\nkept\trock4_tin\t500\n");
-            Assert.Equal(KeptMarks.Plain(0, MarkShape.Circle), book.MarkOf("rock4_copper"));
-            Assert.Equal(KeptMarks.Plain(1, MarkShape.Circle), book.MarkOf("rock4_tin"));
+            Assert.Equal(KeptMarks.Plain(0, MarkShape.Triangle), book.MarkOf("rock4_copper"));
+            Assert.Equal(KeptMarks.Plain(1, MarkShape.Triangle), book.MarkOf("rock4_tin"));
         }
 
         [Fact]

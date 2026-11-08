@@ -764,6 +764,7 @@ namespace Scry
             var shows = c.Shows.Of(_shows.Where(p => p.Value != WorldSources.Starts(p.Key)), mayReuse);
             var mapApart = _mapApart;
             var biomesApart = _biomesApart;
+            var keptShapes = _keptShapes;
             var keptLines = c.KeptLines.Of(_keptLines, mayReuse);
             var keptOnMap = c.KeptOnMap.Of(_kept, mayReuse);
             var dungeonsUnkept = _dungeonsUnkept;
@@ -815,6 +816,7 @@ namespace Scry
                     text.Append("keptmark\t").Append(Stored.Escaped(pair.Key)).Append('\t').Append(Stored.Count(pair.Value)).Append('\n');
                 }
                 if (dungeonsUnkept) text.Append("unkept\t").Append(Dungeons).Append('\n');
+                if (keptShapes) text.Append("categoryshapes\tyes\n");
                 if (rule != CompendiumRule.Off) text.Append("rule\t").Append(rule).Append('\n');
                 if (floor > 0) text.Append("floor\t").Append(Stored.Count(floor)).Append('\n');
                 if (welcomed) text.Append("welcomed\tyes\n");
@@ -930,6 +932,7 @@ namespace Scry
             if (string.IsNullOrEmpty(text)) return book;
             book._mapApart = false;
             book._biomesApart = false;
+            book._keptShapes = false;
             book._latelyRead = new HashSet<string>(StringComparer.Ordinal);
             // The counts of what fell and was given, each its own text inside the book's.
             var fell = new StringBuilder();
