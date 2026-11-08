@@ -47,7 +47,8 @@ namespace Scry
         public const float FaintAlpha = 0.45f;
 
         /// <summary>A mark's opacity: an entrance alone faint until pointed at, every other whole.</summary>
-        public static float Alpha(MarkLook look, bool pointedAt) => look == MarkLook.Entrance && !pointedAt ? FaintAlpha : 1f;
+        public static float Alpha(MarkLook look, bool pointedAt, float fadedTo = 1f) =>
+            pointedAt ? 1f : System.Math.Min(look == MarkLook.Entrance ? FaintAlpha : 1f, fadedTo);
 
         /// <summary>
         /// Whether a press let go is a click of a mark: the pointer moved no more than half a mark

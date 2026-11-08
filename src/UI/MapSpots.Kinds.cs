@@ -36,7 +36,7 @@ namespace Scry
 
         /// <summary>The kinds kept that stand, for the kinds strip: each with its name, how many you saw and how many the server told of, and its picture; and what they were worked out for.</summary>
         private static readonly List<(string Kind, string Name, int Seen, int Told, Sprite Picture)> StripKinds = new List<(string, string, int, int, Sprite)>();
-        private static (IReadOnlyList<(int X, int Z)>, IReadOnlyList<(int X, int Z)>, Sprite, int) _stripFor;
+        private static ((IReadOnlyList<(int X, int Z)>, IReadOnlyList<(int X, int Z)>, Sprite, int) Dots, int Marks) _stripFor;
 
         /// <summary>Where the kinds strip was drawn and the frame, for its clicks to be kept from the map under it.</summary>
         private static Rect _kindsStripAt;
@@ -81,47 +81,76 @@ namespace Scry
         /// <summary>Whether a kind is picked to stand out on the kinds strip.</summary>
         public static bool IsPicked(string kind) => kind != null && Picked.Contains(kind);
 
+        /// <summary>How much of its full look a kind stands at: all of it while none is picked or it is, else a faded dot's.</summary>
+        public static float ShownShare(string kind) => Picked.Count == 0 || IsPicked(kind) ? 1f : Skin.MarkFaded.a;
+
         /// <summary>How many kinds are picked to stand out; none while all do.</summary>
         public static int PickedCount => Picked.Count;
 
         /// <summary>Whether the kinds strip stands: on in the settings, the large map open, two kinds or more kept standing.</summary>
         public static bool KindsStripShown => Settings.KindsStrip && LargeOpen && KindChips().Count >= 2 && !TargetPortalMap.MarksAside;
 
-        /// <summary>The kinds kept that stand on the map, for the strip, worked out again only as the dots change.</summary>
+        /// <summary>The kinds with dungeon marks kept, each with its name and how many, as the marks last told; and how often that changed.</summary>
+        private static readonly List<(string Kind, string Name, int Count)> KindsMarked = new List<(string, string, int)>();
+        private static int _markedVersion;
+
+        /// <summary>The kinds with dungeon marks kept, for the self-test.</summary>
+        [ForTest]
+        public static int MarkedKindsForTest => KindsMarked.Count;
+
+        /// <summary>The kinds the dungeon marks kept are of, told by the marks as they are listed.</summary>
+        public static void MarkedKindsAre(IReadOnlyList<(string Kind, string Name, int Count)> kinds)
+        {
+            if (kinds.Count == 0 && KindsMarked.Count == 0) return;
+            KindsMarked.Clear();
+            KindsMarked.AddRange(kinds);
+            _markedVersion++;
+        }
+
+        /// <summary>The kinds kept that stand on the map, for the strip, by their dots and a dungeon's marks too, worked out again only as those change.</summary>
         public static IReadOnlyList<(string Kind, string Name, int Seen, int Told, Sprite Picture)> KindsStanding()
         {
-            if (_stripFor == _dotsFor) return StripKinds;
-            _stripFor = _dotsFor;
+            var now = (_dotsFor, _markedVersion);
+            if (_stripFor == now) return StripKinds;
+            _stripFor = now;
             StripKinds.Clear();
             var at = new Dictionary<string, int>(System.StringComparer.Ordinal);
             for (var i = 0; i < StandingDots.Count && i < StandingKinds.Count; i++)
             {
-                var kind = StandingKinds[i];
-                if (kind == null) continue;
+                if (StandingKinds[i] == null) continue;
                 var told = StandingDots[i].Told;
-                if (at.TryGetValue(kind, out var index))
-                {
-                    var (k, name, seen, toldCount, picture) = StripKinds[index];
-                    // The picture of one you saw before one the server told of, as the strip names the kind by it.
-                    StripKinds[index] = (k, name, seen + (told ? 0 : 1), toldCount + (told ? 1 : 0), seen == 0 && !told ? StandingDots[i].Picture : picture);
-                    continue;
-                }
-                at[kind] = StripKinds.Count;
-                StripKinds.Add((kind, StandingDots[i].Name, told ? 0 : 1, told ? 1 : 0, StandingDots[i].Picture));
+                TallyKind(at, StandingKinds[i], StandingDots[i].Name, told ? 0 : 1, told ? 1 : 0, StandingDots[i].Picture);
             }
+            // A dungeon stands by its mark rather than a dot, the amber of the dungeons on the list.
+            foreach (var (kind, name, count) in KindsMarked) TallyKind(at, kind, name, count, 0, MarkPicture(KeptMarks.Dungeons, CompendiumBook.Dungeons));
             return StripKinds;
+        }
+
+        /// <summary>So many of a kind counted in; the picture of one you saw before one the server told of, as the strip names the kind by it.</summary>
+        private static void TallyKind(Dictionary<string, int> at, string kind, string name, int seen, int told, Sprite picture)
+        {
+            if (at.TryGetValue(kind, out var index))
+            {
+                var was = StripKinds[index];
+                StripKinds[index] = (was.Kind, was.Name, was.Seen + seen, was.Told + told, was.Seen == 0 && seen > 0 ? picture : was.Picture);
+                return;
+            }
+            at[kind] = StripKinds.Count;
+            StripKinds.Add((kind, name, seen, told, picture));
         }
 
         /// <summary>The kinds list's chips: a family's kinds standing under one chip, as a place's numbered ones, a kind of no family alone; and what they were worked out for.</summary>
         private static readonly List<(string Name, int Seen, int Told, Sprite Picture, string[] Kinds)> Chips = new List<(string, int, int, Sprite, string[])>();
-        private static (IReadOnlyList<(int X, int Z)>, IReadOnlyList<(int X, int Z)>, Sprite, int) _chipsFor;
+        private static (((IReadOnlyList<(int X, int Z)>, IReadOnlyList<(int X, int Z)>, Sprite, int), int) Kinds, int Regroups) _chipsFor;
 
         /// <summary>The kinds list's chips, worked out again only as the dots change (<see cref="KindsList.Group"/>).</summary>
         public static IReadOnlyList<(string Name, int Seen, int Told, Sprite Picture, string[] Kinds)> KindChips()
         {
             var kinds = KindsStanding();
-            if (_chipsFor == _dotsFor && (Chips.Count > 0 || kinds.Count == 0)) return Chips;
-            _chipsFor = _dotsFor;
+            // Again as the catalog is read or grouped anew too, a family's kinds coming under one chip.
+            var now = (_stripFor, WorldCatalog.Current?.Regroups ?? -1);
+            if (_chipsFor == now && (Chips.Count > 0 || kinds.Count == 0)) return Chips;
+            _chipsFor = now;
             Chips.Clear();
             var under = new List<string>(kinds.Count);
             var families = new List<Family>(kinds.Count);
@@ -403,6 +432,7 @@ namespace Scry
             _membersShown = 0;
             Counts.Forget();
             PointedCount.Forget();
+            MarkedKindsAre(System.Array.Empty<(string, string, int)>());
             _merging = false;
             _plain = false;
             KindNumbers.Clear();

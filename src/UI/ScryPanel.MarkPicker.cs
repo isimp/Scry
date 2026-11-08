@@ -223,9 +223,9 @@ namespace Scry
         /// <summary>The line whose pickable mark the pointer rests on; -1 for none.</summary>
         private static int MarkPointedRow(Vector2 mouse)
         {
-            var row = Mathf.FloorToInt((mouse.y - _keptRect.y - KeptTop) / KeptRowH);
-            if (row < 0 || row >= _keptFits || !Pickable(row)) return -1;
-            return MarkBox(_keptRect, _keptRect.y + KeptTop + row * KeptRowH).Contains(mouse) ? row : -1;
+            var row = KeptRowAt(mouse.y);
+            if (row < 0 || !Pickable(row)) return -1;
+            return MarkBox(_keptRect, KeptRowTop(row)).Contains(mouse) ? row : -1;
         }
 
         /// <summary>
@@ -240,12 +240,12 @@ namespace Scry
             PickerWords.Clear();
             if (_picking == null) return;
             var row = KeptRows.IndexOf(_picking);
-            if (row < 0 || row >= _keptFits || !Pickable(row))
+            if (row < _keptFirst || row >= _keptFirst + _keptFits || !Pickable(row))
             {
                 PutPickerAway();
                 return;
             }
-            var lineTop = _keptRect.y + KeptTop + row * KeptRowH;
+            var lineTop = KeptRowTop(row);
             LayPicker(book, new Rect(_keptRect.x + U(8f), lineTop, U(22f), KeptRowH), room);
         }
 

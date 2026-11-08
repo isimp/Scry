@@ -44,6 +44,10 @@ namespace Scry
             public Image Picture;
             public string Id;
 
+            /// <summary>Its kind's key, for its look to follow the kinds picked to stand out; and what fades its words with it, laid on once first faded.</summary>
+            public string KindKey;
+            public CanvasGroup WordsFade;
+
             /// <summary>How it looks (<see cref="MarkLook"/>) and which glyph it carries (<see cref="MarkGlyph"/>), as last drawn.</summary>
             public MarkLook Look;
             public MarkGlyph Glyph;
@@ -118,6 +122,10 @@ namespace Scry
         /// <summary>How faint a mark is drawn, for the self-test; 0 for one not shown.</summary>
         [Diagnostic]
         public static float AlphaForTest(int mark) => mark >= 0 && mark < Placed.Count && Placed[mark].Made.activeSelf && Placed[mark].Picture != null ? Placed[mark].Picture.color.a : 0f;
+
+        /// <summary>The first mark standing of a kind, by its place among those placed, for the self-test; -1 for none.</summary>
+        [ForTest]
+        public static int MarkOfKindForTest(string kind) => Placed.FindIndex(m => m.KindKey == kind && m.Made.activeSelf);
 
         /// <summary>The mark the pointer rests on, whose words are shown; none.</summary>
         private static Mark _hovered;
@@ -226,6 +234,7 @@ namespace Scry
             // On TargetPortal's map of portals, hiding the map's pins, the marks step aside too.
             if (map == null || !(large || small) || !marked || (large && TargetPortalMap.MarksAside))
             {
+                if (!marked) MapSpots.MarkedKindsAre(System.Array.Empty<(string, string, int)>());
                 PutAway();
                 return;
             }
@@ -245,6 +254,7 @@ namespace Scry
                 var listing = Timing.Start();
                 Kept.Clear();
                 Kept.AddRange(DungeonMarks.Of(book, maps.OfWorld(world), SeenDungeons(world), RoomKinds.Of, GroupMapsLink.Group.Of).Where(m => KeptOnMap(book, m.Map.Location)));
+                ListMarkedKinds();
                 Timing.Add("marks listed", listing);
                 _keptStamp = stamp;
                 _keptWorld = world;
@@ -343,6 +353,20 @@ namespace Scry
             if (spare != null) Hide(spare);
         }
 
+        /// <summary>The kinds the marks kept are of, in the order first met, each with how many, told to the kinds list.</summary>
+        private static void ListMarkedKinds()
+        {
+            var kinds = new List<(string Kind, string Name, int Count)>();
+            foreach (var kept in Kept)
+            {
+                var kind = EntryKeys.For(Kind.Location, kept.Map.Location);
+                var at = kinds.FindIndex(k => k.Kind == kind);
+                if (at >= 0) kinds[at] = (kind, kinds[at].Name, kinds[at].Count + 1);
+                else kinds.Add((kind, Shown(kept.Map.Location), 1));
+            }
+            MapSpots.MarkedKindsAre(kinds);
+        }
+
         /// <summary>The marks the map shows now, in view and as the settings ask, and the marks made that none of them holds.</summary>
         private static void ListInView(Minimap map, bool small, Rect window, Rect area)
         {
@@ -379,21 +403,37 @@ namespace Scry
                 mark.Rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, size);
                 mark.Size = size;
             }
-            var alpha = MapMarks.Alpha(look, mark == _hovered);
+            var share = MapSpots.ShownShare(mark.KindKey);
+            var alpha = MapMarks.Alpha(look, mark == _hovered, share);
             if (mark.Picture != null && !Mathf.Approximately(mark.Alpha, alpha))
             {
                 mark.Picture.color = new Color(1f, 1f, 1f, alpha);
                 mark.Alpha = alpha;
             }
+            FadeWords(mark, mark == _hovered ? 1f : share);
             SizeName(mark, MapMarks.NameScale(scale));
             if (!mark.Made.activeSelf) mark.Made.SetActive(true);
             if (small) Hide(mark.Label);
             else ShowWords(mark);
         }
 
+        /// <summary>A mark's words as faded as it stands, by a group laid on them the first time they fade.</summary>
+        private static void FadeWords(Mark mark, float share)
+        {
+            if (mark.Label == null) return;
+            if (mark.WordsFade == null)
+            {
+                if (share >= 1f) return;
+                mark.WordsFade = mark.Label.AddComponent<CanvasGroup>();
+                mark.WordsFade.blocksRaycasts = false;
+            }
+            if (!Mathf.Approximately(mark.WordsFade.alpha, share)) mark.WordsFade.alpha = share;
+        }
+
         /// <summary>Tells a mark its dungeon's look, glyph and words.</summary>
         private static void Tell(Mark mark, DungeonMark kept, MarkGlyph glyph)
         {
+            mark.KindKey = EntryKeys.For(Kind.Location, kept.Map.Location);
             mark.Look = kept.Look;
             mark.Glyph = glyph;
             mark.Retell = false;

@@ -137,7 +137,6 @@ namespace Scry.Tests
             Assert.Contains("takes it off", SpotWords.KeepTip(kept: true));
             // A kind kept with others says by which line, as its own button cannot take it off alone.
             Assert.Equal("Kept on the map with Dungeons, every kind; the title row's On the map list takes it off", SpotWords.KeptWith(SpotWords.DungeonsRow));
-            Assert.Equal("and 3 more kept; take some off to see them", SpotWords.KeptMore(3));
             // Both buttons that keep a kind are named where the list is empty and under the Map section.
             Assert.Contains("on a page or on the map's strip", SpotWords.NothingKept);
             Assert.Contains("on a page or on the map's strip", SettingsWords.ShowOnMapIntro);

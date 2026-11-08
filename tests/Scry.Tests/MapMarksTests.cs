@@ -74,6 +74,19 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void AMarkOfAKindNotPickedFadesLikeAnyDotUntilThePointerRestsOnIt()
+        {
+            const float faded = 0.2f;
+            Assert.Equal(faded, MapMarks.Alpha(MarkLook.Yours, pointedAt: false, faded), 3);
+            Assert.Equal(faded, MapMarks.Alpha(MarkLook.Entrance, pointedAt: false, faded), 3);
+            Assert.Equal(1f, MapMarks.Alpha(MarkLook.Yours, pointedAt: true, faded), 3);
+            Assert.Equal(1f, MapMarks.Alpha(MarkLook.Entrance, pointedAt: true, faded), 3);
+            // A kind picked, or none picked, stands as it did.
+            Assert.Equal(MapMarks.FaintAlpha, MapMarks.Alpha(MarkLook.Entrance, pointedAt: false, 1f), 3);
+            Assert.Equal(1f, MapMarks.Alpha(MarkLook.Yours, pointedAt: false, 1f), 3);
+        }
+
+        [Fact]
         public void TheSmallMapShowsEveryDungeonKeptAsTheLargeOneDoes()
         {
             // What is kept on the map stands on the minimap too: dungeons walked, seen, or walked by others.

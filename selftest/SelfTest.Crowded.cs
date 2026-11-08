@@ -32,7 +32,7 @@ namespace Scry
                 yield break;
             }
             KeepWhatIsKept(book);
-            _crowdedBefore = (Settings.FarMarks, Settings.KindsStrip, map.LargeZoom, MapPanned(map), ZInput.pointerPosition);
+            NoteMapAsItWas(map);
             Settings.FarMarks = FarMarks.PlainMerged;
             Settings.KindsStrip = true;
             yield return MapCodeCompiled(p);
@@ -139,6 +139,9 @@ namespace Scry
             yield return Picture(p, "a crowded patch near, every dot apart");
             CrowdedAsItWas();
         }
+
+        /// <summary>The settings, the map's zoom and pan and the pointer noted, for <see cref="CrowdedAsItWas"/> to put back.</summary>
+        private static void NoteMapAsItWas(Minimap map) => _crowdedBefore = (Settings.FarMarks, Settings.KindsStrip, map.LargeZoom, MapPanned(map), ZInput.pointerPosition);
 
         /// <summary>The settings, the map's zoom and pan, the pointer and what was kept put back, should the part have stopped before it did.</summary>
         private static void CrowdedAsItWas()

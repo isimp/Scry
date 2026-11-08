@@ -58,9 +58,6 @@ namespace Scry
         /// <summary>The tip of a page's Keep on the map for a kind kept with others, by the list's line that keeps it.</summary>
         public static string KeptWith(string line) => $"Kept on the map with {line}; the title row's On the map list takes it off";
 
-        /// <summary>The list's last line where more are kept than fit.</summary>
-        public static string KeptMore(int more) => $"and {Numbers.Count(more)} more kept; take some off to see them";
-
         /// <summary>How many of a kept kind stand: those seen, and the squares of a place.</summary>
         public static string KeptCount(int seen, int squares, int told = 0)
         {
