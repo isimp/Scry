@@ -66,7 +66,11 @@ Scry's dots stand under the game's pins and their names, so a base's pins can hi
 
 A click on a dot or a dungeon's mark goes through its modes, as the game's own click crosses its pins, for that one spot alone: crossed off, the mark dimmed under the game's own cross; highlighted, bigger with an amber outline following its shape and over the game's pins at all times; then plain again. On a merged mark it takes every spot the mark stands for, and in a spread each dot its own. A click counts let go within half a dot of where it was pressed, so dragging the map is no click, and a double-click there adds no pin. The pointer's words say what the next click does.
 
+![A mark plain, crossed off and highlighted](../images/spot-modes.webp)
+
 A right click opens a small menu at the pointer, named for the mark: the other modes, *Zoom in on them* on a merged mark, and last *Open its page*, which shows the kind's page in Scry, or the dungeon with its rooms, the map going back to the minimap, at once where Scry's catalog is read, else once it is. A press outside it puts it away. On *Never*, a pin of the game's under the pointer takes both clicks instead, as the game's own do (`MapSpots.TakeLeftClick`, `MapMarkButtons.OpenMenuAt`, `MapLook.ClickIsMarks`).
+
+![A mark's menu: the other modes and its page](../images/mark-menu.webp)
 
 Far out a kind's spots merge only with those of their own mode, and a highlighted one never, so it stays where it can be seen. A chip on the kinds list counts those crossed; picking kinds fades a highlighted mark like any other. *Crossed marks* in the settings' *Map* section leaves them *Faded* or makes them *Hidden*, until set back. A mode is kept with your character for its world, so friends do not see it and a cartography table does not pass it on; a thing the server told of and later seen shares it where the two lie within a few metres. Squares have no one spot and take no mode.
 
