@@ -232,7 +232,7 @@ namespace Scry.Tests
         {
             // An ancient root takes no hit, no picking and gives nothing to hold: tapping it is the one way to know it.
             var root = new Entry { Kind = Kind.Resource, Name = "YggdrasilRoot", GroupOrder = (int)ResourceGroup.Tapped };
-            Assert.Equal("Build a sap extractor on it or take sap from one to come to know it.", CompendiumWords.HowToKnow(root));
+            Assert.Equal("Tap it for sap, or take sap from one already tapped, to come to know it.", CompendiumWords.HowToKnow(root));
             // Any other resource keeps its kind's words.
             var rock = new Entry { Kind = Kind.Resource, Name = "rock4_copper", GroupOrder = (int)ResourceGroup.RocksAndOre };
             Assert.Equal(CompendiumWords.HowToKnow(Kind.Resource), CompendiumWords.HowToKnow(rock));

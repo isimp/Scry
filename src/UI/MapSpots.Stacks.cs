@@ -290,6 +290,12 @@ namespace Scry
         /// </summary>
         private static RectTransform _over;
 
+        /// <summary>The words of the dungeon mark the pointer rests on, which stand above what stands over the pins.</summary>
+        private static RectTransform _wordsOver;
+
+        /// <summary>The words that stand above everything on the names' layer, as a mark tells them; none as it leaves them.</summary>
+        public static void WordsOverAll(RectTransform words) => _wordsOver = words;
+
         /// <summary>The copy of the dot pointed at, standing over the pins while the pointer rests on it.</summary>
         private static (Image Picture, RectTransform Rect) _lifted;
 
@@ -310,7 +316,10 @@ namespace Scry
                 _over = StackPips.Holder(names, "Scry marks over pins");
             }
             if (!_over.gameObject.activeSelf) _over.gameObject.SetActive(true);
-            if (_over.GetSiblingIndex() != names.childCount - 1) _over.SetAsLastSibling();
+            // Last on its layer, but under the words of a mark pointed at, so neither moves the other each frame.
+            var top = names.childCount - 1;
+            if (top > 0 && _wordsOver != null && _wordsOver.parent == names && _wordsOver.gameObject.activeSelf && _wordsOver.GetSiblingIndex() == top) top--;
+            if (_over.GetSiblingIndex() != top) _over.SetSiblingIndex(top);
             return _over;
         }
 

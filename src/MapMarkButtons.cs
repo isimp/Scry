@@ -462,6 +462,7 @@ namespace Scry
         {
             // The small map takes no pointer: nothing is pointed at there.
             var over = Input.GetMouseButton(0) || Minimap.instance == null || Minimap.instance.m_mode != Minimap.MapMode.Large ? null : MarkAt(ZInput.pointerPosition);
+            MapSpots.WordsOverAll(over?.LabelRect);
             if (over == _hovered)
             {
                 // The game adds a pin's name to the layer as the pin comes into view, above what stands there: the words hovered go back on top.

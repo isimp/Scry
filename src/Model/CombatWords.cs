@@ -173,7 +173,7 @@ namespace Scry
             Naming.Count(attacks, "more attack comes", "more attacks come") + " with its other gear  \u00B7  No gear lists every one";
 
         /// <summary>That line's tip.</summary>
-        public const string OtherGearAttacksTip = "It fights with what the set it rolls gives it: the table lists the attacks of the look chosen, and every one at No gear.";
+        public const string OtherGearAttacksTip = "It fights with what the set it rolls gives it: the attacks listed are those of the look chosen, and every one at No gear.";
 
         /// <summary>One faint line under the attacks table counting the attacks not yet seen begun or taken under the strict rules, and what shows them.</summary>
         public static string AttacksWait(int attacks) => Naming.Count(attacks, "attack not shown yet", "attacks not shown yet") + "  \u00B7  " + ClipWords.SeeItAttack;
@@ -233,7 +233,7 @@ namespace Scry
         }
 
         /// <summary>That line's tip: what armour does.</summary>
-        public const string ArmourTip = "Armour is what your helmet, chest, legs and cape add up to. It comes off each hit after your resistances, from all its damage together: a hit more than twice your armour loses your armour; a smaller one is cut much harder, a small one to nearly nothing. A creature's page tells what each of its attacks does to you.";
+        public const string ArmourTip = "Armour is what all you wear adds up to. It comes off each hit after your resistances, from all its damage together: a hit more than twice your armour loses your armour; a smaller one is cut much harder, a small one to nearly nothing. A creature's page tells what each of its attacks does to you.";
 
         /// <summary>The columns of an attacks table an attack keeps back until it hit the character or was seen begun: its damage, what it puts on you, its reach and how often it comes, none of which the game shows.</summary>
         public static int[] AttackKeptCells(string[] columns)
