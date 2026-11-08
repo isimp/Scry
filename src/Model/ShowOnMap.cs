@@ -130,8 +130,9 @@ namespace Scry
             : seen == 0 ? $"{name} · {Numbers.Count(told)} told"
             : $"{name} {Numbers.Count(seen)} · {Numbers.Count(told)} told";
 
-        /// <summary>The kinds strip's last line where more kinds are kept than its rows hold.</summary>
-        public static string KindsMore(int more) => $"and {Numbers.Count(more)} more, in the title row's On the map list";
+        /// <summary>The kinds list's title: how many kinds it lists, and how many are picked to stand out.</summary>
+        public static string KindsTitle(int kinds, int picked) =>
+            $"Kinds on the map · {Numbers.Count(kinds)}" + (picked > 0 ? $" · {Numbers.Count(picked)} picked" : "");
 
         /// <summary>A kind's chip's tip: picking it to stand out, alone or beside those picked, or letting it fade with the others again.</summary>
         public static string KindChipTip(bool picked, bool anyPicked) =>

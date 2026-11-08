@@ -66,7 +66,7 @@ namespace Scry
         public static int PickedCount => Picked.Count;
 
         /// <summary>Whether the kinds strip stands: on in the settings, the large map open, two kinds or more kept standing.</summary>
-        public static bool KindsStripShown => Settings.KindsStrip && LargeOpen && KindsStanding().Count >= 2 && !TargetPortalMap.MarksAside;
+        public static bool KindsStripShown => Settings.KindsStrip && LargeOpen && KindChips().Count >= 2 && !TargetPortalMap.MarksAside;
 
         /// <summary>The kinds kept that stand on the map, for the strip, worked out again only as the dots change.</summary>
         public static IReadOnlyList<(string Kind, string Name, int Seen, int Told, Sprite Picture)> KindsStanding()
@@ -93,7 +93,64 @@ namespace Scry
             return StripKinds;
         }
 
-        /// <summary>A kind picked to stand out, or let go again, as a click on its chip does; several may stand out at once, the rest faded; none, all stand alike.</summary>
+        /// <summary>The kinds list's chips: a family's kinds standing under one chip, as a place's numbered ones, a kind of no family alone; and what they were worked out for.</summary>
+        private static readonly List<(string Name, int Seen, int Told, Sprite Picture, string[] Kinds)> Chips = new List<(string, int, int, Sprite, string[])>();
+        private static (IReadOnlyList<(int X, int Z)>, IReadOnlyList<(int X, int Z)>, Sprite, int) _chipsFor;
+
+        /// <summary>The kinds list's chips, worked out again only as the dots change (<see cref="KindsList.Group"/>).</summary>
+        public static IReadOnlyList<(string Name, int Seen, int Told, Sprite Picture, string[] Kinds)> KindChips()
+        {
+            var kinds = KindsStanding();
+            if (_chipsFor == _dotsFor && (Chips.Count > 0 || kinds.Count == 0)) return Chips;
+            _chipsFor = _dotsFor;
+            Chips.Clear();
+            var under = new List<string>(kinds.Count);
+            var families = new List<Family>(kinds.Count);
+            foreach (var (kind, _, _, _, _) in kinds)
+            {
+                var family = WorldCatalog.Find(kind)?.Family;
+                var grouped = family != null && family.Kinds.Count > 1 ? family : null;
+                families.Add(grouped);
+                under.Add(grouped != null ? grouped.Head.Key : kind);
+            }
+            foreach (var (_, members) in KindsList.Group(under))
+            {
+                var first = kinds[members[0]];
+                var (seen, told) = (0, 0);
+                var names = new string[members.Count];
+                for (var i = 0; i < members.Count; i++)
+                {
+                    seen += kinds[members[i]].Seen;
+                    told += kinds[members[i]].Told;
+                    names[i] = kinds[members[i]].Kind;
+                }
+                Chips.Add((families[members[0]]?.Name ?? first.Name, seen, told, first.Picture, names));
+            }
+            return Chips;
+        }
+
+        /// <summary>Whether every kind under a chip is picked, so the chip stands lit.</summary>
+        public static bool IsPicked(IReadOnlyList<string> kinds)
+        {
+            if (kinds.Count == 0) return false;
+            foreach (var kind in kinds) if (!Picked.Contains(kind)) return false;
+            return true;
+        }
+
+        /// <summary>A chip's kinds picked to stand out together, or let go together where all are picked, as a click on the chip does.</summary>
+        public static void ShowAlone(IReadOnlyList<string> kinds)
+        {
+            var all = IsPicked(kinds);
+            foreach (var kind in kinds)
+            {
+                if (all) Picked.Remove(kind);
+                else Picked.Add(kind);
+            }
+            _soloChanged = true;
+        }
+
+        /// <summary>A single kind picked to stand out, or let go again, as a click on a chip of it alone does; none, all stand alike; for the self-test.</summary>
+        [ForTest]
         public static void ShowAlone(string kind)
         {
             if (kind == null) Picked.Clear();
@@ -286,6 +343,8 @@ namespace Scry
             StripKinds.Clear();
             Plains.Clear();
             _stripFor = default;
+            Chips.Clear();
+            _chipsFor = default;
         }
     }
 }

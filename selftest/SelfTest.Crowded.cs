@@ -74,6 +74,14 @@ namespace Scry
             var strips = ScryPanel.Drawn(PanelPart.MapKindsStrip);
             yield return Until(() => ScryPanel.Drawn(PanelPart.MapKindsStrip) > strips + 1, 3);
             p.Check(ScryPanel.Drawn(PanelPart.MapKindsStrip) > strips && MapSpots.KindsStanding().Count == 2, "the kinds strip lists the two kinds kept", Numbers.Count(MapSpots.KindsStanding().Count));
+            // Folded by its arrow, the list stands as its title alone and is kept so; then as it was.
+            var foldedBefore = ScryPanel.KindsFoldedForTest;
+            ScryPanel.FoldKindsForTest(true);
+            yield return null;
+            yield return Picture(p, "the kinds list folded to its title");
+            p.Check(ScryPanel.KindsFoldedForTest && ScryPanel.RememberedForTest().KindsFolded == true, "folded by its arrow, the list stands as its title and is kept folded with the panel's place");
+            ScryPanel.FoldKindsForTest(foldedBefore);
+            yield return null;
             MapSpots.ShowAlone(tin);
             yield return Until(() => MapSpots.FadedDotsForTest == 1, 3);
             p.Check(MapSpots.FadedDotsForTest == 1 && MapSpots.IsPicked(tin), "tin picked alone, the copper's mark fades", $"{Numbers.Count(MapSpots.FadedDotsForTest)} faded");
@@ -124,7 +132,7 @@ namespace Scry
         /// <summary>The settings, the map's zoom and pan, the pointer and what was kept put back, should the part have stopped before it did.</summary>
         private static void CrowdedAsItWas()
         {
-            MapSpots.ShowAlone(null);
+            MapSpots.ShowAlone((string)null);
             if (_crowdedBefore is (FarMarks far, bool strip, float zoom, Vector3 panned, Vector2 pointer))
             {
                 Settings.FarMarks = far;

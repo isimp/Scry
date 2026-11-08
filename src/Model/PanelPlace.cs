@@ -53,6 +53,10 @@ namespace Scry
         /// <summary>Whether the key opening Scry was told once, and the first start's setup done (<see cref="FirstStart"/>).</summary>
         public bool? Hinted, SetUp;
 
+        /// <summary>Where the kinds list on the map was left, from the map's top left, and how wide; and whether it was folded (<see cref="KindsList"/>).</summary>
+        public (float X, float Y, float Width)? KindsList;
+        public bool? KindsFolded;
+
         /// <summary>
         /// A panel file's lines with the first start's flags written in, every other line kept as
         /// it was, those this build no longer writes too, as the flags may be written before the
@@ -103,6 +107,8 @@ namespace Scry
                     case "plannames" when value != null: place.PlanNames = value == "1"; break;
                     case "hinted" when value != null: place.Hinted = value == "1"; break;
                     case "setup" when value != null: place.SetUp = value == "1"; break;
+                    case "kinds" when parts.Length == 4 && Stored.TryNumber(parts[1], out var kx) && Stored.TryNumber(parts[2], out var ky) && Stored.TryNumber(parts[3], out var kw): place.KindsList = (kx, ky, kw); break;
+                    case "kindsfolded" when value != null: place.KindsFolded = value == "1"; break;
                 }
             }
             return place;
@@ -134,6 +140,8 @@ namespace Scry
             if (PlanNames.HasValue) yield return "plannames " + Flag(PlanNames.Value);
             if (Hinted.HasValue) yield return "hinted " + Flag(Hinted.Value);
             if (SetUp.HasValue) yield return "setup " + Flag(SetUp.Value);
+            if (KindsList is (float x, float y, float width)) yield return "kinds " + Stored.Number((float)Math.Round(x)) + " " + Stored.Number((float)Math.Round(y)) + " " + Stored.Number((float)Math.Round(width));
+            if (KindsFolded.HasValue) yield return "kindsfolded " + Flag(KindsFolded.Value);
         }
 
         private static string WordOf(PlanView view) => view == Scry.PlanView.Levels ? "levels" : view == Scry.PlanView.Tree ? "tree" : "above";

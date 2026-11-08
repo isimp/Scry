@@ -279,6 +279,7 @@ namespace Scry
             if (place.ListHiddenCompact.HasValue) _listHiddenCompact = place.ListHiddenCompact.Value;
             if (place.Repeat.HasValue) Previews.Repeat = place.Repeat.Value;
             TakePlanBoxPlace(place);
+            TakeKindsListPlace(place);
             TakeFirstStart(place);
         });
 
@@ -307,6 +308,8 @@ namespace Scry
                 PlanBig = _planBig,
                 PlanBelow = PlanBelowShown,
                 PlanNames = PlanNamesShown,
+                KindsList = _kindsKept,
+                KindsFolded = _kindsFolded,
             };
             GiveFirstStart(place);
             Directory.CreateDirectory(Settings.DataFolder);

@@ -695,6 +695,28 @@ namespace Scry
         private static bool Take() => MapSpots.PointerOnStrip() || MapMarkButtons.TakeClick(ZInput.pointerPosition) || MapMarkButtons.OpenDot(ZInput.pointerPosition);
     }
 
+    /// <summary>
+    /// A press on Show on map's strip or the kinds list is theirs: the map neither starts dragging
+    /// nor counts a click from it (<c>Minimap.OnMapLeftDown</c>, which notes when the press began),
+    /// so dragging the list moves the list and not the map. Should it fail, it stands aside.
+    /// </summary>
+    [HarmonyPatch(typeof(Minimap), "OnMapLeftDown")]
+    internal static class MapStripPress
+    {
+        private static bool _off;
+
+        private static bool Prefix()
+        {
+            if (_off) return true;
+            if (!Guard.Run(Feature.ShowOnMap, "keeping a press on the map's strip from the map", MapSpots.PointerOnStrip, out var on))
+            {
+                _off = true;
+                return true;
+            }
+            return !on;
+        }
+    }
+
     /// <summary>A double-click on a dungeon's mark adds no pin (<see cref="MapMarkClick"/>).</summary>
     [HarmonyPatch(typeof(Minimap), "OnMapDblClick")]
     internal static class MapMarkDoubleClick

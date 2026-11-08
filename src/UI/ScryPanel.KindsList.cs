@@ -1,0 +1,146 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace Scry
+{
+    /// <summary>
+    /// The kinds list on Valheim's map (<see cref="KindsList"/>): a small window of the kinds kept,
+    /// a family's under one chip, each with its mark and how many you saw and the server told of; a
+    /// click picks a chip's kinds to stand out, the rest faded (<see cref="MapSpots.ShowAlone(IReadOnlyList{string})"/>).
+    /// Its title row drags it, the arrow at its end folds it to the title, the corner at its foot
+    /// makes it wider or narrower, its rows scroll past a few; where it stands, how wide and whether
+    /// folded are kept with the panel's place. Its presses are kept from the map under it.
+    /// </summary>
+    internal static partial class ScryPanel
+    {
+        /// <summary>Where the list was left, from the map's top left, and how wide; none until moved; and whether it is folded.</summary>
+        private static (float X, float Y, float Width)? _kindsKept;
+        private static bool _kindsFolded;
+
+        /// <summary>What a press on the list holds: nothing, its title moving it, or its corner sizing it; and where the press took hold.</summary>
+        private enum KindsHold
+        {
+            None,
+            Moving,
+            Sizing,
+        }
+
+        private static KindsHold _kindsHold;
+        private static Vector2 _kindsGrab;
+        private static Vector2 _kindsScroll;
+
+        /// <summary>Whether the kinds list stands folded to its title, for the self-test.</summary>
+        [ForTest]
+        public static bool KindsFoldedForTest => _kindsFolded;
+
+        /// <summary>Folds the list or opens it, as its arrow does, for the self-test.</summary>
+        [ForTest]
+        public static void FoldKindsForTest(bool folded) => FoldKinds(folded);
+
+        private static void FoldKinds(bool folded)
+        {
+            if (_kindsFolded == folded) return;
+            _kindsFolded = folded;
+            SaveRects();
+        }
+
+        /// <summary>The list's place as the panel's file kept it.</summary>
+        private static void TakeKindsListPlace(PanelPlace place)
+        {
+            if (place.KindsList.HasValue) _kindsKept = place.KindsList;
+            if (place.KindsFolded.HasValue) _kindsFolded = place.KindsFolded.Value;
+        }
+
+        /// <summary>The list drawn over the map: where it was left, else at the top left from a height down.</summary>
+        private static void KindsListGUI(Rect map, float top)
+        {
+            var e = Event.current;
+            var start = (U(12f), top - map.y, map.width * KindsList.StartShare);
+            var (x, y, width) = KindsList.Place(map.x, map.y, map.width, map.height, _kindsKept ?? start, U(1f));
+            var chips = MapSpots.KindChips();
+            var (pad, gap, chipH, titleH) = (U(KindsList.Pad), U(KindsList.Gap), U(KindsList.ChipHeight), U(KindsList.TitleHeight));
+            var widths = new float[chips.Count];
+            for (var i = 0; i < chips.Count; i++) widths[i] = Skin.Width(Skin.Small, SpotWords.KindChip(chips[i].Name, chips[i].Seen, chips[i].Told)) + U(30f);
+            var bar = U(12f);
+            var flow = KindsList.Flow(widths, width - pad * 2f, gap);
+            if (KindsList.Rows(flow) > KindsList.MostRows) flow = KindsList.Flow(widths, width - pad * 2f - bar, gap);
+            var rows = KindsList.Rows(flow);
+            var shown = KindsList.RowsShown(rows);
+            var bodyH = _kindsFolded || rows == 0 ? 0f : shown * chipH + (shown - 1) * gap + pad * 2f;
+            var box = new Rect(x, y, width, titleH + bodyH);
+            var title = new Rect(x, y, width, titleH);
+            var fold = new Rect(title.xMax - titleH, y, titleH, titleH);
+            var grip = new Rect(box.xMax - U(14f), box.yMax - U(14f), U(14f), U(14f));
+            HoldKindsList(e, map, box, title, fold, grip, width);
+            Skin.Box(box, Skin.Panel, Skin.Outline);
+            GUI.Label(new Rect(x + pad, y, width - titleH - pad, titleH), SpotWords.KindsTitle(chips.Count, MapSpots.PickedCount), Skin.Small);
+            if (GUI.Button(fold, GUIContent.none, GUIStyle.none)) FoldKinds(!_kindsFolded);
+            Skin.Icon(new Rect(fold.x + U(6f), fold.y + U(6f), fold.width - U(12f), fold.height - U(12f)), _kindsFolded ? Skin.Down : Skin.Up, fold.Contains(e.mousePosition) ? Skin.Text : Skin.Dim);
+            string tip = null;
+            if (!_kindsFolded && rows > 0)
+            {
+                var body = new Rect(x + pad, y + titleH + pad, width - pad * 2f, bodyH - pad * 2f);
+                var content = new Rect(0f, 0f, body.width - (rows > shown ? bar : 0f), rows * chipH + (rows - 1) * gap);
+                _kindsScroll = GUI.BeginScrollView(body, _kindsScroll, content);
+                var pointer = e.mousePosition;
+                for (var i = 0; i < chips.Count; i++)
+                {
+                    var at = new Rect(flow[i].X, flow[i].Row * (chipH + gap), widths[i], chipH);
+                    if (KindChip(at, chips[i], pointer)) tip = SpotWords.KindChipTip(MapSpots.IsPicked(chips[i].Kinds), MapSpots.PickedCount > 0);
+                }
+                GUI.EndScrollView();
+                Skin.Icon(grip, Skin.Resize, _kindsHold == KindsHold.Sizing || grip.Contains(e.mousePosition) ? Skin.Text : Skin.Dim);
+            }
+            if (tip != null)
+            {
+                var said = new GUIContent(tip);
+                var size = Skin.Tip.CalcSize(said);
+                GUI.Label(new Rect(Mathf.Min(e.mousePosition.x + U(14f), Screen.width - size.x - U(4f)), e.mousePosition.y + U(18f), size.x, size.y), said, Skin.Tip);
+            }
+            MapSpots.KindsStripDrawn(box);
+            CountDrawn(PanelPart.MapKindsStrip);
+        }
+
+        /// <summary>A chip drawn in its mark, lit while its kinds stand out; a click picks them or lets them go. True where the pointer rests on it.</summary>
+        private static bool KindChip(Rect at, (string Name, int Seen, int Told, Sprite Picture, string[] Kinds) chip, Vector2 pointer)
+        {
+            var picked = MapSpots.IsPicked(chip.Kinds);
+            if (GUI.Button(at, GUIContent.none, picked ? Skin.ChipOn : Skin.Chip)) MapSpots.ShowAlone(chip.Kinds);
+            if (chip.Picture != null) GUI.DrawTexture(new Rect(at.x + U(6f), at.y + (at.height - U(16f)) / 2f, U(16f), U(16f)), chip.Picture.texture);
+            GUI.Label(new Rect(at.x + U(24f), at.y, at.width - U(26f), at.height), SpotWords.KindChip(chip.Name, chip.Seen, chip.Told), picked ? Skin.Badge : Skin.Small);
+            return at.Contains(pointer);
+        }
+
+        /// <summary>A press on the title moving the list, on its corner sizing it, held until let go, where it is kept.</summary>
+        private static void HoldKindsList(Event e, Rect map, Rect box, Rect title, Rect fold, Rect grip, float width)
+        {
+            if (e.type == EventType.MouseDown && e.button == 0)
+            {
+                if (!_kindsFolded && grip.Contains(e.mousePosition))
+                {
+                    _kindsHold = KindsHold.Sizing;
+                    _kindsGrab = new Vector2(box.xMax - e.mousePosition.x, 0f);
+                    e.Use();
+                }
+                else if (title.Contains(e.mousePosition) && !fold.Contains(e.mousePosition))
+                {
+                    _kindsHold = KindsHold.Moving;
+                    _kindsGrab = e.mousePosition - box.position;
+                    e.Use();
+                }
+            }
+            else if (e.type == EventType.MouseDrag && _kindsHold != KindsHold.None)
+            {
+                if (_kindsHold == KindsHold.Moving) _kindsKept = (e.mousePosition.x - _kindsGrab.x - map.x, e.mousePosition.y - _kindsGrab.y - map.y, width);
+                else _kindsKept = (box.x - map.x, box.y - map.y, e.mousePosition.x + _kindsGrab.x - box.x);
+                e.Use();
+            }
+            else if (e.rawType == EventType.MouseUp && _kindsHold != KindsHold.None)
+            {
+                _kindsHold = KindsHold.None;
+                SaveRects();
+                e.Use();
+            }
+        }
+    }
+}
