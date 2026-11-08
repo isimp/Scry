@@ -111,8 +111,10 @@ namespace Scry
             _stackedFor = key;
             // A kind's own dots merged first where the settings ask, then the kinds stacked from what stands.
             GatherMerged(touch, merging);
-            Stacks.Gather(StandingDots.Count, i => (StandingDots[i].X, StandingDots[i].Z), touch, null, merging ? new System.Func<int, bool>(Visible) : null);
-            Unfan();
+            Stacks.Gather(StandingDots.Count, i => (StandingDots[i].X, StandingDots[i].Z), touch, null, Visible);
+            // A right click in a spread leaves it open while it still holds several.
+            var stays = TakeModesChanged() && _fanned >= 0 && Stacks.AnchorOf(_fanned) == _fanned && Stacks.CountAt(_fanned) > 1;
+            if (!stays) Unfan();
         }
 
         /// <summary>Whether a dot stands in the stack fanned out, so it stands in the fan instead of where it lies.</summary>
@@ -163,6 +165,7 @@ namespace Scry
             if (_fanHolder.GetSiblingIndex() != parent.childCount - 1) _fanHolder.SetAsLastSibling();
             if (!_fanHolder.gameObject.activeSelf) _fanHolder.gameObject.SetActive(true);
             FanCounts.Begin(_fanHolder);
+            FanModes.Begin(_fanHolder, _fanHolder);
             var members = Stacks.MembersOf(_fanned);
             var n = Mathf.Min(members.Count, MarkStacks.MostFanned);
             FanFrom.Clear();
@@ -194,6 +197,7 @@ namespace Scry
                 if (!line.Picture.gameObject.activeSelf) line.Picture.gameObject.SetActive(true);
                 StackPips.Stand(FanDots[k], at + new Vector2(x, y), size, LookOf(StandingDots[members[k]].Picture));
                 FanDots[k].Picture.color = ShownColour(members[k]);
+                FanModes.Put(Minimap.instance, at + new Vector2(x, y), size, ModeOf(members[k]), LookOf(StandingDots[members[k]].Picture), PickColour(members[k]), like);
                 // A merged mark in the fan keeps its count beside it.
                 var merged = MergedCount(members[k]);
                 if (merged > 1) FanCounts.Put(Minimap.instance, at + new Vector2(x, y), size, merged, StandingDots[members[k]].Told, ShownColour(members[k]).a, like);
@@ -201,6 +205,7 @@ namespace Scry
             }
             // The lines under every dot, the spot's mark over the lines' ends.
             FanCounts.End();
+            FanModes.End();
             for (var k = 0; k < n; k++) FanLines[k].Rect.SetSiblingIndex(k);
             StackPips.Stand(_fanSpot, at, MarkStacks.PipSize(size) * 1.2f, StackPips.Picture());
             _fanSpot.Rect.SetSiblingIndex(n);
@@ -251,7 +256,9 @@ namespace Scry
         }
 
         /// <summary>A dot's words: its kind, then how far and which way it is from the character; its name alone with no character.</summary>
-        private static string DotWords(int dot, Player player)
+        private static string DotWords(int dot, Player player) => SpotWords.WithModeHint(DotSaid(dot, player), ModeOf(dot), MergedCount(dot));
+
+        private static string DotSaid(int dot, Player player)
         {
             if (MergedCount(dot) > 1) return MergedWords(dot, player);
             var (x, z, _, name, told) = StandingDots[dot];

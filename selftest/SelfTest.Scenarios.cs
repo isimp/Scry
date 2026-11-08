@@ -174,6 +174,7 @@ namespace Scry
             yield return S("every kind of dungeon kept, the kinds list holds each by its marks, a family under one chip, and picking one fades the other dungeons' marks and words", DungeonChipsTold, 60, DungeonChipsAsItWas);
             yield return S("more kinds kept than the On the map list stands, the wheel scrolls it and it stops at its ends", KeptListScrollsTold, 60, KeptOnMapAsItWas);
             yield return S("kinds kept stand in their category's shape, and the kinds list and the On the map list group them by category, a heading picking, folding and taking off", CategoriesTold, 60, CrowdedAsItWas);
+            yield return S("a right click crosses a spot off the map or highlights it, kept with the character, far out apart from what merges", SpotModesTold, 60, SpotModesAsTheyWere);
             yield return S("a kept kind's mark is picked in the On the map list, a colour, a shape, a picture of the game's or its own, and stands so on the map at once", MarkPicked, 90, MarkPickedAsItWas);
             yield return S("kept from its page or the map strip, a kind's mark stands beside Keep on the map and opens its picker under it", MarkOfferedAsKept, 90, MarkOfferedAsItWas);
             yield return S("Show on map follows the settings' Map section: your other pins, the darkened map, the dots' size, zooming out and the squares", ShowOnMapFollowsItsSettings, 60, ShowOnMapAsItWas);

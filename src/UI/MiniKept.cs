@@ -33,7 +33,11 @@ namespace Scry
         {
             var map = Minimap.instance;
             var small = map != null && map.m_mode == Minimap.MapMode.Small && Settings.DungeonMarksOnMinimap;
-            if (small) MapKept.Refresh();
+            if (small)
+            {
+                MapSpots.FollowCrossedSetting();
+                MapKept.Refresh();
+            }
             if (!small || MapKept.Dots.Count == 0)
             {
                 PutAway();
@@ -69,6 +73,7 @@ namespace Scry
             var like = map.m_pinPrefab != null ? map.m_pinPrefab.transform as RectTransform : null;
             // The pips over the minimap's pins where the settings ask, on a holder last on their names' layer.
             Pips.Begin(pipsOver ? OverPins(map) : _holder);
+            Marks.Begin(_holder, map.m_pinNameRootSmall != null ? OverPins(map) : _holder);
             // Only the dots near enough to fall in the window are placed: the minimap shows a few hundred metres round the character.
             var player = Player.m_localPlayer;
             var reach = window.width * map.m_textureSize * map.m_pixelSize * 0.75f;
@@ -94,13 +99,17 @@ namespace Scry
                     }
                     made++;
                 }
-                Stand(Dots[standing++], new Vector2(at.X, at.Y), shown, plain ? MapSpots.PlainOf(picture) : picture);
+                var look = plain ? MapSpots.PlainOf(picture) : picture;
+                var mode = ModeOf(i);
+                Stand(Dots[standing++], new Vector2(at.X, at.Y), shown, look, Skin.Alpha(Skin.MarkShown, SpotModes.ShareOf(mode, 1f)));
+                Marks.Put(map, new Vector2(at.X, at.Y), shown, mode, look, Skin.MarkShown, like);
                 // A stack's pips under its first dot, as on the large map, counting a merged mark's dots
                 // too, as the minimap is too small for counts; it takes no pointer, so nothing fans out.
                 var count = Standing(i);
                 if (count > 1 && !Pips.Put(new Vector2(at.X, at.Y), shown, count, like)) allMade = false;
             }
             Pips.End();
+            Marks.End();
             for (var i = standing; i < _live && i < Dots.Count; i++) Dots[i].Picture.gameObject.SetActive(false);
             _live = standing;
             // Placed again next frame while dots are still being made.
@@ -115,7 +124,13 @@ namespace Scry
         private static readonly List<int> KindOfDot = new List<int>();
         private static bool _merging;
 
-        private static bool Visible(int dot) => !_merging || Merged.AnchorOf(dot) == dot;
+        /// <summary>Each dot's mode, and what the modes lay on the dots.</summary>
+        private static readonly List<SpotMode> Modes = new List<SpotMode>();
+        private static readonly SpotMarks Marks = new SpotMarks();
+
+        private static SpotMode ModeOf(int dot) => dot < Modes.Count ? Modes[dot] : SpotMode.Plain;
+
+        private static bool Visible(int dot) => (!_merging || Merged.AnchorOf(dot) == dot) && MapSpots.ModeStands(ModeOf(dot));
 
         private static int MergedCount(int dot) => _merging ? Mathf.Max(1, Merged.CountAt(dot)) : 1;
 
@@ -150,6 +165,8 @@ namespace Scry
             if (key == _stackedFor) return;
             _stackedFor = key;
             var dots = MapKept.Dots;
+            Modes.Clear();
+            foreach (var (x, z, _, _, _, _) in dots) Modes.Add(MapSpots.ModeAt(x, z));
             // A kind's own dots merged first where the settings ask, as on the large map, then the kinds stacked from what stands.
             _merging = merging;
             if (merging)
@@ -161,15 +178,16 @@ namespace Scry
                     // A kind told of by the server merges apart from the same kind seen, as its hollow dot differs.
                     var kind = (dots[i].Kind ?? "", dots[i].Told);
                     if (!KindNumbers.TryGetValue(kind, out var number)) KindNumbers[kind] = number = KindNumbers.Count;
-                    KindOfDot.Add(number);
+                    KindOfDot.Add(SpotModes.MergeGroup(number, Modes[i], i));
                 }
                 Merged.Gather(dots.Count, i => (dots[i].X, dots[i].Z), touch, i => KindOfDot[i]);
             }
-            Stacks.Gather(dots.Count, i => (dots[i].X, dots[i].Z), touch, null, merging ? new System.Func<int, bool>(Visible) : null);
+            Stacks.Gather(dots.Count, i => (dots[i].X, dots[i].Z), touch, null, Visible);
         }
 
-        private static void Stand((Image Picture, RectTransform Rect) dot, Vector2 at, float size, Sprite picture)
+        private static void Stand((Image Picture, RectTransform Rect) dot, Vector2 at, float size, Sprite picture, Color colour)
         {
+            if (dot.Picture.color != colour) dot.Picture.color = colour;
             if (dot.Rect.anchoredPosition != at) dot.Rect.anchoredPosition = at;
             var sized = new Vector2(size, size);
             if (dot.Rect.sizeDelta != sized) dot.Rect.sizeDelta = sized;
@@ -234,6 +252,8 @@ namespace Scry
         public static void Forget()
         {
             Pips.Forget();
+            Marks.Forget();
+            Modes.Clear();
             if (_over != null) Object.Destroy(_over.gameObject);
             _over = null;
             _stackedFor = default;

@@ -150,6 +150,8 @@ namespace Scry
                     ("Full", "Full"), ("Third", "A third"))),
                 In("Show on map", Choices("FarMarks", "Far out", "How Scry's marks stand zoomed far out: in their full look, with a kind's dots that would cover each other merged into one with how many, as plain small shapes, or plain and merged.",
                     ("Full", "Full marks"), ("FullMerged", "Full, merged by kind"), ("Plain", "Plain"), ("PlainMerged", "Plain, merged by kind"))),
+                In("Show on map", Choices("CrossedMarks", "Crossed marks", "How spots you crossed off with a right click stand on the map: dimmed under a cross, or gone from it until you set this back.",
+                    ("Faded", "Faded"), ("Hidden", "Hidden"))),
                 In("Show on map", Switch("KindsStrip", "Kinds strip", "Lists the kinds kept at the map's top left; a click on one shows it alone, the others faded, until clicked again.")),
                 In("Show on map", Choices("MinimapDotSize", "Minimap dot size", "How big the kept marks stand on the minimap beside its pins, apart from the map's dots.",
                     ("XSmall", SizeNames[0]), ("Small", SizeNames[1]), ("Normal", SizeNames[2]), ("Large", SizeNames[3]))),

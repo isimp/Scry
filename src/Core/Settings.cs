@@ -43,6 +43,7 @@ namespace Scry
         private static ConfigEntry<bool> _pipsOverPins;
         private static ConfigEntry<PinsNearPointer> _pinsNearPointer;
         private static ConfigEntry<FarMarks> _farMarks;
+        private static ConfigEntry<CrossedMarks> _crossedMarks;
         private static ConfigEntry<bool> _kindsStrip;
         private static ConfigEntry<bool> _mapZoomOut, _mapSquares;
 
@@ -203,6 +204,7 @@ namespace Scry
 
         /// <summary>How the marks stand far out, and whether the map lists the kinds kept to show one alone.</summary>
         public static FarMarks FarMarks { get => _farMarks?.Value ?? FarMarks.PlainMerged; set => Set(_farMarks, value); }
+        public static CrossedMarks CrossedMarks { get => _crossedMarks?.Value ?? CrossedMarks.Faded; set => Set(_crossedMarks, value); }
         public static bool KindsStrip { get => _kindsStrip?.Value ?? true; set => Set(_kindsStrip, value); }
         public static bool MapZoomOut { get => _mapZoomOut?.Value ?? true; set => Set(_mapZoomOut, value); }
         public static bool MapSquares { get => _mapSquares?.Value ?? true; set => Set(_mapSquares, value); }
@@ -372,6 +374,8 @@ namespace Scry
                 "How the game's pins near a mark the pointer rests on stand: Full, or Third, faded to a third so the mark reads.");
             _farMarks = config.Bind("1 - General", "FarMarks", FarMarks.PlainMerged,
                 "How Scry's marks stand on the map zoomed far out: Full, as near; FullMerged, a kind's dots that would cover each other merged into one with how many; Plain, small shapes without their ring; or PlainMerged, both.");
+            _crossedMarks = config.Bind("1 - General", "CrossedMarks", CrossedMarks.Faded,
+                "How spots you crossed off with a right click stand on the map: Faded, dimmed under a cross; or Hidden, gone from the map until you set this back.");
             _kindsStrip = config.Bind("1 - General", "KindsStrip", true,
                 "Lists the kinds kept on the map at its top left; a click on one shows it alone, the others faded, until clicked again.");
             _mapZoomOut = config.Bind("1 - General", "ShowOnMapZoomOut", true,

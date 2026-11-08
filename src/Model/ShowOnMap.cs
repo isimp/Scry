@@ -121,11 +121,24 @@ namespace Scry
         public static string MergedHover(string name, int count, bool told, float metres, string direction) =>
             $"{Numbers.Count(count)} {name}{(told ? " the server told of" : "")} here\n" + (metres < Beside ? "nearest beside you" : $"nearest {Distance(metres)} {direction}") + " · click to zoom in on them";
 
-        /// <summary>A kind's chip on the map's kinds strip: its name, how many of it you saw, and how many the server told of apart.</summary>
-        public static string KindChip(string name, int seen, int told) =>
-            told == 0 ? name + " " + Numbers.Count(seen)
+        /// <summary>A kind's chip on the map's kinds strip: its name, how many of it you saw, how many the server told of apart, and how many are crossed off.</summary>
+        public static string KindChip(string name, int seen, int told, int crossed = 0) =>
+            (told == 0 ? name + " " + Numbers.Count(seen)
             : seen == 0 ? $"{name} · {Numbers.Count(told)} told"
-            : $"{name} {Numbers.Count(seen)} · {Numbers.Count(told)} told";
+            : $"{name} {Numbers.Count(seen)} · {Numbers.Count(told)} told")
+            + (crossed > 0 ? $" · {Numbers.Count(crossed)} crossed" : "");
+
+        /// <summary>A mark's words with what it says of its mode on a line under them.</summary>
+        public static string WithModeHint(string said, SpotMode mode, int spots) => said + "\n" + ModeHint(mode, spots);
+
+        /// <summary>What a mark pointed at says of its mode and of what a right click does next, for every spot of a merged mark.</summary>
+        public static string ModeHint(SpotMode mode, int spots)
+        {
+            var all = spots > 1 ? $" all {Numbers.Count(spots)}" : "";
+            return mode == SpotMode.Crossed ? "crossed off · right-click: highlight" + all
+                : mode == SpotMode.Highlighted ? "highlighted · right-click: back to plain" + all
+                : "right-click: cross off" + all;
+        }
 
         /// <summary>The kinds list's title: how many kinds it lists, and how many are picked to stand out.</summary>
         public static string KindsTitle(int kinds, int picked) =>

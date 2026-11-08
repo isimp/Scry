@@ -42,6 +42,47 @@ namespace Scry
         /// <summary>The lowest mark no kept kind stands in, in the shape of a kind's category: for that kind as it is kept, or shown and not kept.</summary>
         public int FreeMark(string kind) => KeptMarks.Dealt(KeptCategories.ShapeOf(kind), _kept.Values);
 
+        /// <summary>The spots crossed off or highlighted, by world and where each lies; plain ones are not kept.</summary>
+        private readonly Dictionary<string, Dictionary<(int X, int Z), SpotMode>> _spotModes = new Dictionary<string, Dictionary<(int X, int Z), SpotMode>>(StringComparer.Ordinal);
+
+        /// <summary>Counts up whenever a spot's mode changes.</summary>
+        public int SpotModesVersion { get; private set; }
+
+        /// <summary>A spot's mode in a world: its own, or that of one lying within a few metres of it (<see cref="SpotModes.Near"/>).</summary>
+        public SpotMode SpotModeAt(string world, int x, int z)
+        {
+            if (world == null || !_spotModes.TryGetValue(world, out var spots) || spots.Count == 0) return SpotMode.Plain;
+            if (spots.TryGetValue((x, z), out var own)) return own;
+            for (var dz = -SpotModes.Near; dz <= SpotModes.Near; dz++)
+            {
+                for (var dx = -SpotModes.Near; dx <= SpotModes.Near; dx++)
+                {
+                    if (spots.TryGetValue((x + dx, z + dz), out var near)) return near;
+                }
+            }
+            return SpotMode.Plain;
+        }
+
+        /// <summary>Gives a spot a mode, in place of any kept within a few metres of it, so one thing never holds two; whether it changed.</summary>
+        public bool SetSpotMode(string world, int x, int z, SpotMode mode)
+        {
+            if (world == null || SpotModeAt(world, x, z) == mode) return false;
+            if (!_spotModes.TryGetValue(world, out var spots)) _spotModes[world] = spots = new Dictionary<(int X, int Z), SpotMode>();
+            for (var dz = -SpotModes.Near; dz <= SpotModes.Near; dz++)
+            {
+                for (var dx = -SpotModes.Near; dx <= SpotModes.Near; dx++) spots.Remove((x + dx, z + dz));
+            }
+            if (mode != SpotMode.Plain) spots[(x, z)] = mode;
+            SpotModesVersion++;
+            Changed = true;
+            return true;
+        }
+
+        /// <summary>The spots' modes as they are saved, in an order that does not change.</summary>
+        private List<(string World, int X, int Z, SpotMode Mode)> SpotModeLines() =>
+            _spotModes.SelectMany(w => w.Value.Select(s => (World: w.Key, s.Key.X, s.Key.Z, Mode: s.Value)))
+                .OrderBy(s => s.World, StringComparer.Ordinal).ThenBy(s => s.X).ThenBy(s => s.Z).ToList();
+
         /// <summary>Whether the marks stand in their categories' shapes, those of a book kept before them moved once as it is read.</summary>
         private bool _keptShapes = true;
 

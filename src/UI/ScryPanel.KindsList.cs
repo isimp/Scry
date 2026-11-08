@@ -82,7 +82,7 @@ namespace Scry
             var chips = MapSpots.KindChips();
             var (pad, gap, chipH, titleH) = (U(KindsList.Pad), U(KindsList.Gap), U(KindsList.ChipHeight), U(KindsList.TitleHeight));
             var widths = new float[chips.Count];
-            for (var i = 0; i < chips.Count; i++) widths[i] = Skin.Width(Skin.Small, SpotWords.KindChip(chips[i].Name, chips[i].Seen, chips[i].Told)) + U(30f);
+            for (var i = 0; i < chips.Count; i++) widths[i] = Skin.Width(Skin.Small, SpotWords.KindChip(chips[i].Name, chips[i].Seen, chips[i].Told, chips[i].Crossed)) + U(30f);
             var bar = U(12f);
             var allowed = KindsList.RowsAllowed(_kindsRows, y, Screen.height, U(1f));
             var groups = MapSpots.KindGroups();
@@ -166,12 +166,12 @@ namespace Scry
         }
 
         /// <summary>A chip drawn in its mark, lit while its kinds stand out; a click picks them or lets them go. True where the pointer rests on it.</summary>
-        private static bool KindChip(Rect at, (string Name, int Seen, int Told, Sprite Picture, string[] Kinds) chip, Vector2 pointer)
+        private static bool KindChip(Rect at, (string Name, int Seen, int Told, Sprite Picture, string[] Kinds, int Crossed) chip, Vector2 pointer)
         {
             var picked = MapSpots.IsPicked(chip.Kinds);
             if (GUI.Button(at, GUIContent.none, picked ? Skin.ChipOn : Skin.Chip)) MapSpots.ShowAlone(chip.Kinds);
             if (chip.Picture != null) GUI.DrawTexture(new Rect(at.x + U(6f), at.y + (at.height - U(16f)) / 2f, U(16f), U(16f)), chip.Picture.texture);
-            GUI.Label(new Rect(at.x + U(24f), at.y, at.width - U(26f), at.height), SpotWords.KindChip(chip.Name, chip.Seen, chip.Told), picked ? Skin.Badge : Skin.Small);
+            GUI.Label(new Rect(at.x + U(24f), at.y, at.width - U(26f), at.height), SpotWords.KindChip(chip.Name, chip.Seen, chip.Told, chip.Crossed), picked ? Skin.Badge : Skin.Small);
             return at.Contains(pointer);
         }
 

@@ -111,6 +111,12 @@ namespace Scry
             {
                 if (parts.Length == 2 && name == Dungeons) book._dungeonsUnkept = true;
             },
+            ["spotmode"] = (book, parts, name) =>
+            {
+                if (parts.Length != 5 || !Stored.TryNumber(parts[2], out var x) || !Stored.TryNumber(parts[3], out var z)) return;
+                if (!Enum.TryParse(parts[4], out SpotMode mode) || !Enum.IsDefined(typeof(SpotMode), mode) || mode == SpotMode.Plain) return;
+                book.SetSpotMode(name, (int)x, (int)z, mode);
+            },
             ["categoryshapes"] = (book, parts, name) =>
             {
                 if (parts.Length == 2) book._keptShapes = true;

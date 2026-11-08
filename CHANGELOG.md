@@ -8,6 +8,8 @@ A click on a kind's mark picks its look: any colour and shape, one of the game's
 
 Marks that overlap show a pip each and spread out when you point at them. Far out, a kind's dots merge into one plain mark with how many, and a click zooms in on it. A click on a dot opens its page. The settings' *Map* section chooses all this and how marks sit with the game's pins.
 
+A right click on a mark crosses that one spot off, as the game crosses its pins, a second highlights it, a third clears it. *Crossed marks* in the settings can hide those crossed.
+
 The kinds list picks which kinds stand out, the rest faded, dungeon marks too. Drag it anywhere, fold it, size it. The *On the map* list scrolls, and a heading folds or takes off a whole category.
 
 Ancient roots are listed under *Tapped for sap*, their pages telling their sap. Remains the game names alike are one row, as Petrified Bone. A page of several kinds can show or keep them all at once. A food the Serving Tray places tells so under *Placing it*.

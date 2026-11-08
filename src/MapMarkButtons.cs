@@ -48,6 +48,12 @@ namespace Scry
             public string KindKey;
             public CanvasGroup WordsFade;
 
+            /// <summary>Where its spot lies, its mode there, and what that lays on it, as last set.</summary>
+            public int SpotX, SpotZ;
+            public SpotMode Mode, ModeShown;
+            public Image Cross, Ring;
+            public float ModeAlpha = -1f;
+
             /// <summary>How it looks (<see cref="MarkLook"/>) and which glyph it carries (<see cref="MarkGlyph"/>), as last drawn.</summary>
             public MarkLook Look;
             public MarkGlyph Glyph;
@@ -234,7 +240,7 @@ namespace Scry
             // On TargetPortal's map of portals, hiding the map's pins, the marks step aside too.
             if (map == null || !(large || small) || !marked || (large && TargetPortalMap.MarksAside))
             {
-                if (!marked) MapSpots.MarkedKindsAre(System.Array.Empty<(string, string, int)>());
+                if (!marked) MapSpots.MarkedKindsAre(System.Array.Empty<(string, string, int, int)>());
                 PutAway();
                 return;
             }
@@ -255,11 +261,18 @@ namespace Scry
                 Kept.Clear();
                 Kept.AddRange(DungeonMarks.Of(book, maps.OfWorld(world), SeenDungeons(world), RoomKinds.Of, GroupMapsLink.Group.Of).Where(m => KeptOnMap(book, m.Map.Location)));
                 ListMarkedKinds();
+                _modesListed = book?.SpotModesVersion ?? 0;
                 Timing.Add("marks listed", listing);
                 _keptStamp = stamp;
                 _keptWorld = world;
                 // Their words told afresh, as the days in them may have moved.
                 foreach (var mark in Marks) mark.Retell = true;
+            }
+            // The kinds list counts what is crossed off as it changes.
+            if (book != null && book.SpotModesVersion != _modesListed)
+            {
+                _modesListed = book.SpotModesVersion;
+                ListMarkedKinds();
             }
             // As the map opens, the server is asked for the records of the dungeons marked, for the last day anyone walked each.
             if (!_askedServer)
@@ -353,18 +366,73 @@ namespace Scry
             if (spare != null) Hide(spare);
         }
 
-        /// <summary>The kinds the marks kept are of, in the order first met, each with how many, told to the kinds list.</summary>
+        /// <summary>The kinds the marks kept are of, in the order first met, each with how many and how many are crossed off, told to the kinds list.</summary>
         private static void ListMarkedKinds()
         {
-            var kinds = new List<(string Kind, string Name, int Count)>();
+            var kinds = new List<(string Kind, string Name, int Count, int Crossed)>();
             foreach (var kept in Kept)
             {
                 var kind = EntryKeys.For(Kind.Location, kept.Map.Location);
+                var (x, z) = SpotOf(kept);
+                var crossed = MapSpots.ModeAt(x, z) == SpotMode.Crossed ? 1 : 0;
                 var at = kinds.FindIndex(k => k.Kind == kind);
-                if (at >= 0) kinds[at] = (kind, kinds[at].Name, kinds[at].Count + 1);
-                else kinds.Add((kind, Shown(kept.Map.Location), 1));
+                if (at >= 0) kinds[at] = (kind, kinds[at].Name, kinds[at].Count + 1, kinds[at].Crossed + crossed);
+                else kinds.Add((kind, Shown(kept.Map.Location), 1, crossed));
             }
             MapSpots.MarkedKindsAre(kinds);
+        }
+
+        /// <summary>Where a dungeon's mark lies, as a spot's mode goes by it.</summary>
+        private static (int X, int Z) SpotOf(DungeonMark kept) => (Mathf.RoundToInt(kept.Map.Entrance.X), Mathf.RoundToInt(kept.Map.Entrance.Z));
+
+        /// <summary>The version of the modes the kinds list last heard of.</summary>
+        private static int _modesListed = -1;
+
+        /// <summary>A right click of the map's own at a point of the screen: the next mode for the mark there; false where it is on none.</summary>
+        public static bool TakeRightClick(Vector2 screen)
+        {
+            var mark = MarkAt(screen);
+            var book = CompendiumKeeper.Book;
+            var world = CompendiumMap.World;
+            if (mark == null || book == null || world == null) return false;
+            mark.Mode = SpotModes.Next(mark.Mode);
+            book.SetSpotMode(world, mark.SpotX, mark.SpotZ, mark.Mode);
+            mark.Retell = true;
+            MapKept.MarksChanged();
+            CompendiumKeeper.Save(now: true);
+            return true;
+        }
+
+        /// <summary>What a mark's mode lays on it, children of it made the first time each is needed: the game's cross, or the accent ring.</summary>
+        private static void StandMode(Mark mark, Minimap map, float kindShare)
+        {
+            if (mark.ModeShown != mark.Mode)
+            {
+                mark.ModeShown = mark.Mode;
+                if (mark.Mode == SpotMode.Crossed && mark.Cross == null) mark.Cross = ModePiece(mark, SpotMarks.CrossPicture(map), 0.05f, 0.95f);
+                if (mark.Mode == SpotMode.Highlighted && mark.Ring == null) mark.Ring = ModePiece(mark, MapSpots.ActiveRing(), -0.28f, 1.28f);
+                if (mark.Cross != null) mark.Cross.gameObject.SetActive(mark.Mode == SpotMode.Crossed);
+                if (mark.Ring != null) mark.Ring.gameObject.SetActive(mark.Mode == SpotMode.Highlighted);
+            }
+            if (Mathf.Approximately(mark.ModeAlpha, kindShare)) return;
+            mark.ModeAlpha = kindShare;
+            if (mark.Cross != null) mark.Cross.color = new Color(1f, 1f, 1f, kindShare);
+            if (mark.Ring != null) mark.Ring.color = new Color(1f, 1f, 1f, kindShare);
+        }
+
+        private static Image ModePiece(Mark mark, Sprite picture, float from, float to)
+        {
+            var made = new GameObject("Scry dungeon mark's mode", typeof(RectTransform));
+            var rect = (RectTransform)made.transform;
+            rect.SetParent(mark.Rect, false);
+            rect.anchorMin = new Vector2(from, from);
+            rect.anchorMax = new Vector2(to, to);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            var image = made.AddComponent<Image>();
+            image.sprite = picture;
+            image.raycastTarget = false;
+            return image;
         }
 
         /// <summary>The marks the map shows now, in view and as the settings ask, and the marks made that none of them holds.</summary>
@@ -374,6 +442,8 @@ namespace Scry
             InViewIds.Clear();
             foreach (var kept in Kept)
             {
+                // Crossed off and left off the map, where the settings ask.
+                if (Settings.CrossedMarks == CrossedMarks.Hidden && !MapSpots.ModeStands(MapSpots.ModeAt(SpotOf(kept).X, SpotOf(kept).Z))) continue;
                 if (!MapMarks.Place(kept.Map.Entrance, map.m_pixelSize, map.m_textureSize, (window.xMin, window.yMin, window.width, window.height), (area.width, area.height), out var at)) continue;
                 // Only where the map shows the ground: an entrance seen farther than it explores waits under its fog.
                 if (!CompendiumMap.ShownAt(map, kept.Map.Entrance.X, kept.Map.Entrance.Z)) continue;
@@ -397,13 +467,17 @@ namespace Scry
                 if (mark.LabelRect != null) mark.LabelRect.anchoredPosition = spot;
                 mark.At = spot;
             }
-            if (!Mathf.Approximately(mark.Size, size))
+            // A highlighted mark stands bigger, its name as big as any.
+            var drawn = mark.Mode == SpotMode.Highlighted ? size * SpotModes.HighlightScale : size;
+            if (!Mathf.Approximately(mark.Size, drawn))
             {
-                mark.Rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, size);
-                mark.Rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, size);
-                mark.Size = size;
+                mark.Rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, drawn);
+                mark.Rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, drawn);
+                mark.Size = drawn;
             }
-            var share = MapSpots.ShownShare(mark.KindKey);
+            var kindShare = MapSpots.ShownShare(mark.KindKey);
+            StandMode(mark, Minimap.instance, kindShare);
+            var share = SpotModes.ShareOf(mark.Mode, kindShare);
             var alpha = MapMarks.Alpha(look, mark == _hovered, share);
             if (mark.Picture != null && !Mathf.Approximately(mark.Alpha, alpha))
             {
@@ -434,12 +508,14 @@ namespace Scry
         private static void Tell(Mark mark, DungeonMark kept, MarkGlyph glyph)
         {
             mark.KindKey = EntryKeys.For(Kind.Location, kept.Map.Location);
+            (mark.SpotX, mark.SpotZ) = SpotOf(kept);
+            mark.Mode = MapSpots.ModeAt(mark.SpotX, mark.SpotZ);
             mark.Look = kept.Look;
             mark.Glyph = glyph;
             mark.Retell = false;
             // A place stood in is drawn as one you walked.
             if (mark.Picture != null) mark.Picture.sprite = ScryPanel.MarkPicture(glyph, kept.Look == MarkLook.Visited ? MarkLook.Yours : kept.Look);
-            mark.Said = Said(kept);
+            mark.Said = Said(kept, mark.Mode);
             mark.Plain = Shown(kept.Map.Location);
             mark.Showing = null;
         }
@@ -530,7 +606,7 @@ namespace Scry
         }
 
         /// <summary>A mark's words, by its look, on a dark plate: how far you walked it, how far anyone on this server did, or whether anyone did.</summary>
-        private static string Said(DungeonMark kept) => DungeonMapWords.OnPlate(SaidOf(kept), ColorUtility.ToHtmlStringRGBA(new Color(Skin.TipFill.r, Skin.TipFill.g, Skin.TipFill.b, 0.92f)));
+        private static string Said(DungeonMark kept, SpotMode mode) => DungeonMapWords.OnPlate(SpotWords.WithModeHint(SaidOf(kept), mode, 1), ColorUtility.ToHtmlStringRGBA(new Color(Skin.TipFill.r, Skin.TipFill.g, Skin.TipFill.b, 0.92f)));
 
         private static string SaidOf(DungeonMark kept)
         {
@@ -734,6 +810,36 @@ namespace Scry
         /// <summary>A click on a mark is the mark's; one on Show on map's strip is the strip's (<see cref="MapSpots.PointerOnStrip"/>); one on a dot the dot's, opening its kind's page (<see cref="MapMarkButtons.OpenDot"/>).</summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static bool Take() => MapSpots.PointerOnStrip() || MapMarkButtons.TakeClick(ZInput.pointerPosition) || MapMarkButtons.OpenDot(ZInput.pointerPosition);
+    }
+
+    /// <summary>
+    /// The game's map takes a right click to remove the pin under the pointer
+    /// (<c>Minimap.RemovePinUnderPointer</c>); with the pointer on a dungeon's mark or one of Scry's
+    /// dots it goes through their modes instead (<see cref="SpotModes"/>), and on Show on map's strip or
+    /// the kinds list it does nothing. Should it fail, it stands aside and leaves the map as it is.
+    /// </summary>
+    [HarmonyPatch(typeof(Minimap), "RemovePinUnderPointer")]
+    internal static class MapRightClick
+    {
+        private static bool _off;
+
+        private static bool Prefix()
+        {
+            if (_off) return true;
+            if (!Guard.Run(Feature.ShowOnMap, "taking a right click on a mark", Take, out var taken))
+            {
+                _off = true;
+                return true;
+            }
+            return !taken;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool Take()
+        {
+            var at = ZInput.pointerPosition;
+            return MapSpots.PointerOnStrip() || MapMarkButtons.TakeRightClick(at) || MapSpots.TakeRightClick(at);
+        }
     }
 
     /// <summary>

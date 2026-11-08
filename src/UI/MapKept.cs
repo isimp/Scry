@@ -254,6 +254,9 @@ namespace Scry
 
         public static int Worked { get; private set; }
 
+        /// <summary>A spot's mode changed, or how crossed spots stand: the marks placed again.</summary>
+        public static void MarksChanged() => Version++;
+
         /// <summary>The category a kept line stands under on the lists.</summary>
         public static KeptCategory CategoryOf(string kept) => KeptCategories.Of(kept, IsDungeon);
 

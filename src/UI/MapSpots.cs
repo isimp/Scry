@@ -548,6 +548,7 @@ namespace Scry
         /// <summary>The dots to stand, worked out again only as the kind shown or what is kept changes.</summary>
         private static void WorkOutDots()
         {
+            FollowCrossedSetting();
             var demand = Showing.Showing ? Showing.Spots : None;
             var told = Showing.Showing ? _demandTold : None;
             var now = (demand, told, _sprite, MapKept.Version);
@@ -567,6 +568,7 @@ namespace Scry
                 StandingDots.Add((x, z, picture, name, toldDot));
                 StandingKinds.Add(kind);
             }
+            WorkOutModes();
         }
 
         /// <summary>The squares shaded: the kind shown on demand's with the kinds kept, a square both share counting each, given again only as either changes.</summary>
@@ -692,6 +694,7 @@ namespace Scry
             // Picked kinds stand over the game's pins too, and the counts with them.
             Counts.Begin(PickedCount > 0 && _over != null ? _over : _holder);
             BeginPickedOver();
+            ModeMarks.Begin(_holder, _over != null ? _over : _holder);
             for (var i = 0; i < StandingDots.Count; i++)
             {
                 // A dot its kind's merged mark stands for stands no more itself.
@@ -721,6 +724,7 @@ namespace Scry
                 }
                 Stand(Dots[standing++], new Vector2(at.X, at.Y), shown, LookOf(picture), ShownColour(i));
                 PutPickedOver(i, new Vector2(at.X, at.Y), shown, LookOf(picture), like);
+                ModeMarks.Put(map, new Vector2(at.X, at.Y), shown, ModeOf(i), LookOf(picture), PickColour(i), like);
                 PlacedFrom.Add(i);
                 if (!PutPips(i, new Vector2(at.X, at.Y), shown, like)) allMade = false;
                 var merged = MergedCount(i);
@@ -729,6 +733,7 @@ namespace Scry
             Pips.End();
             Counts.End();
             EndPickedOver();
+            ModeMarks.End();
             if (fanAt is Vector2 spot && like != null) PlaceFan(spot, shown, like);
             else Unfan();
             // Those no spot holds now put away, only as fewer stand than before.

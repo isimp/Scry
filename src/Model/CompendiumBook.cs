@@ -765,6 +765,7 @@ namespace Scry
             var mapApart = _mapApart;
             var biomesApart = _biomesApart;
             var keptShapes = _keptShapes;
+            var spotModes = SpotModeLines();
             var keptLines = c.KeptLines.Of(_keptLines, mayReuse);
             var keptOnMap = c.KeptOnMap.Of(_kept, mayReuse);
             var dungeonsUnkept = _dungeonsUnkept;
@@ -817,6 +818,7 @@ namespace Scry
                 }
                 if (dungeonsUnkept) text.Append("unkept\t").Append(Dungeons).Append('\n');
                 if (keptShapes) text.Append("categoryshapes\tyes\n");
+                foreach (var (world, x, z, mode) in spotModes) text.Append("spotmode\t").Append(Stored.Escaped(world)).Append('\t').Append(Stored.Number(x)).Append('\t').Append(Stored.Number(z)).Append('\t').Append(mode).Append('\n');
                 if (rule != CompendiumRule.Off) text.Append("rule\t").Append(rule).Append('\n');
                 if (floor > 0) text.Append("floor\t").Append(Stored.Count(floor)).Append('\n');
                 if (welcomed) text.Append("welcomed\tyes\n");
