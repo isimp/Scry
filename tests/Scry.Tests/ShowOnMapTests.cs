@@ -222,6 +222,33 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void EveryShapesRingAndEdgeAreAsThickAsACirclesAndItStaysInsideItsPicture()
+        {
+            // Measured straight out across a side: a circle anywhere, a square along x, a diamond
+            // along its diagonal, a triangle down through its bottom side.
+            float Thickness(MarkShape shape, float dx, float dy, DotPart part)
+            {
+                var length = (float)System.Math.Sqrt(dx * dx + dy * dy);
+                var inside = 0;
+                for (var i = 0; i <= 2000; i++)
+                {
+                    var d = i / 2000f;
+                    if (SeenOnMap.DotAt(SeenOnMap.ShapeShare(shape, dx / length * d, dy / length * d), shape) == part) inside++;
+                }
+                return inside / 2000f;
+            }
+            var ring = Thickness(MarkShape.Circle, 1f, 0f, DotPart.Ring);
+            var edge = Thickness(MarkShape.Circle, 1f, 0f, DotPart.Edge);
+            foreach (var (shape, dx, dy) in new[] { (MarkShape.Square, 1f, 0f), (MarkShape.Diamond, 1f, 1f), (MarkShape.Triangle, 0f, -1f) })
+            {
+                Assert.InRange(Thickness(shape, dx, dy, DotPart.Ring), ring * 0.85f, ring * 1.15f);
+                Assert.InRange(Thickness(shape, dx, dy, DotPart.Edge), edge * 0.35f, edge * 1.15f);
+            }
+            // The triangle's point, farthest out, still ends inside the picture.
+            Assert.Equal(DotPart.Clear, SeenOnMap.DotAt(SeenOnMap.ShapeShare(MarkShape.Triangle, 0f, 1.01f), MarkShape.Triangle));
+        }
+
+        [Fact]
         public void YourOtherPinsDimToAThirdWhileScrysMarksKeepTheMapsOwnBrightness()
         {
             Assert.Equal(1f / 3f, SeenOnMap.Dimmed(1f), 4);

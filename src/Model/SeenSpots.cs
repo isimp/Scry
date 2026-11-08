@@ -329,7 +329,7 @@ namespace Scry
         public const float NearestZoom = 0.01f, FarthestZoom = 1f;
 
         /// <summary>
-        /// How big a dot is drawn, ring and all (<see cref="DotAt"/>): a pin and a half at the
+        /// How big a dot is drawn, ring and all (<see cref="DotAt(float)"/>): a pin and a half at the
         /// map's nearest zoom, smaller as it zooms out, to a whole pin at the whole world, so a dot
         /// stands as big as the pins it is among.
         /// </summary>
@@ -369,13 +369,25 @@ namespace Scry
         /// side of the ring so it reads on light ground and dark. No pin of the game is ringed, so
         /// a ringed dot reads as Scry's among them.
         /// </summary>
-        public static DotPart DotAt(float share)
+        public static DotPart DotAt(float share) => DotAt(share, MarkShape.Circle);
+
+        /// <summary>
+        /// As above for a mark of a shape: a shape whose share grows faster across its sides than
+        /// a circle's across its round (<see cref="ShapeShare"/>: a diamond's by about 1.4, a
+        /// triangle's by 2) takes its ring, halos and edge wider in share, so each stands as thick as
+        /// a circle's across a side, its middle and gap the narrower.
+        /// </summary>
+        public static DotPart DotAt(float share, MarkShape shape)
         {
-            if (share <= 0.41f) return DotPart.Disc;
-            if (share <= 0.57f) return DotPart.Edge;
-            if (share <= 0.71f) return DotPart.Clear;
-            if (share <= 0.78f) return DotPart.Halo;
-            if (share <= 0.93f) return DotPart.Ring;
+            var (disc, edge, clear, halo, ring) =
+                shape == MarkShape.Triangle ? (0.34f, 0.46f, 0.54f, 0.62f, 0.90f)
+                : shape == MarkShape.Diamond ? (0.40f, 0.55f, 0.65f, 0.71f, 0.92f)
+                : (0.41f, 0.57f, 0.71f, 0.78f, 0.93f);
+            if (share <= disc) return DotPart.Disc;
+            if (share <= edge) return DotPart.Edge;
+            if (share <= clear) return DotPart.Clear;
+            if (share <= halo) return DotPart.Halo;
+            if (share <= ring) return DotPart.Ring;
             return share <= 1f ? DotPart.Halo : DotPart.Clear;
         }
 
@@ -438,7 +450,7 @@ namespace Scry
         }
     }
 
-    /// <summary>The parts of a dot on the map, from its middle out (<see cref="SeenOnMap.DotAt"/>).</summary>
+    /// <summary>The parts of a dot on the map, from its middle out (<see cref="SeenOnMap.DotAt(float)"/>).</summary>
     internal enum DotPart
     {
         Clear,

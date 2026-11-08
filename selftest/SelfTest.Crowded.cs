@@ -84,7 +84,7 @@ namespace Scry
             yield return null;
             MapSpots.ShowAlone(tin);
             yield return Until(() => MapSpots.FadedDotsForTest == 1, 3);
-            p.Check(MapSpots.FadedDotsForTest == 1 && MapSpots.IsPicked(tin), "tin picked alone, the copper's mark fades", $"{Numbers.Count(MapSpots.FadedDotsForTest)} faded");
+            p.Check(MapSpots.FadedDotsForTest == 1 && MapSpots.FadedCountsForTest == 1 && MapSpots.PickedOverForTest == 1 && MapSpots.IsPicked(tin), "tin picked alone, the copper's mark and its count fade, the tin standing over the game's pins", $"{Numbers.Count(MapSpots.FadedDotsForTest)} marks, {Numbers.Count(MapSpots.FadedCountsForTest)} counts faded");
             yield return Picture(p, "a crowded patch with tin shown alone");
             // Copper picked too: both stand out; tin let go: copper alone; copper let go: all alike again.
             MapSpots.ShowAlone(copper);

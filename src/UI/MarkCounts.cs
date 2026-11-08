@@ -21,6 +21,7 @@ namespace Scry
         {
             public RectTransform Rect;
             public RawImage Back;
+            public CanvasGroup Group;
             public GameObject Words;
             public int Said = -1;
             public bool? Told;
@@ -58,6 +59,17 @@ namespace Scry
         /// <summary>How many tabs stood at the last placing, for the self-test.</summary>
         public int Shown => _live;
 
+        /// <summary>How many tabs standing are faded with their marks, for the self-test.</summary>
+        public int Faded
+        {
+            get
+            {
+                var faded = 0;
+                for (var i = 0; i < _live && i < _tabs.Count; i++) if (_tabs[i].Group != null && _tabs[i].Group.alpha < 1f) faded++;
+                return faded;
+            }
+        }
+
         /// <summary>A placing begun: the holder made in what holds the marks, and every tab free again.</summary>
         public void Begin(RectTransform marks)
         {
@@ -67,8 +79,8 @@ namespace Scry
             _made = 0;
         }
 
-        /// <summary>A merged mark's count stood at its upper right, on a hollow tab where the server told of them; false where its tab could not be made this frame.</summary>
-        public bool Put(Minimap map, Vector2 at, float size, int count, bool told, RectTransform like)
+        /// <summary>A merged mark's count stood at its upper right, on a hollow tab where the server told of them, as bright as its mark (<paramref name="shown"/>); false where its tab could not be made this frame.</summary>
+        public bool Put(Minimap map, Vector2 at, float size, int count, bool told, float shown, RectTransform like)
         {
             if (_used == _tabs.Count && !Make(map, like)) return false;
             var tab = _tabs[_used++];
@@ -85,6 +97,8 @@ namespace Scry
                 tab.Said = count;
             }
             tab.Rect.anchoredPosition = at + new Vector2(size * 0.35f + tab.Rect.sizeDelta.x / 2f, size * 0.45f);
+            // Faded with its mark where other kinds are picked to stand out.
+            if (tab.Group.alpha != shown) tab.Group.alpha = shown;
             if (!tab.Rect.gameObject.activeSelf) tab.Rect.gameObject.SetActive(true);
             return true;
         }
@@ -117,6 +131,8 @@ namespace Scry
             rect.anchorMax = like.anchorMax;
             rect.pivot = new Vector2(0.5f, 0.5f);
             made.SetActive(false);
+            var group = made.AddComponent<CanvasGroup>();
+            group.blocksRaycasts = false;
             var back = made.AddComponent<RawImage>();
             back.texture = Texture2D.whiteTexture;
             back.color = Skin.Alpha(Skin.TipFill, 0.9f);
@@ -127,7 +143,7 @@ namespace Scry
                 PinNames.Centred(words, TabWriting);
                 words.SetActive(true);
             }
-            _tabs.Add(new Tab { Rect = rect, Back = back, Words = words });
+            _tabs.Add(new Tab { Rect = rect, Back = back, Group = group, Words = words });
             return true;
         }
     }

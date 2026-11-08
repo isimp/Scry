@@ -11,28 +11,31 @@ namespace Scry.Tests
         [Fact]
         public void AListNeverMovedStandsAtTheMapsTopLeftAtAThirdOfItsWidth()
         {
-            var (x, y, width) = KindsList.Place(100f, 50f, 1200f, 800f, null, 1f);
+            var (x, y, width) = KindsList.Place(100f, 50f, 1200f, 1920f, 1080f, null, 1f);
             Assert.Equal(112f, x);
             Assert.Equal(62f, y);
             Assert.Equal(1200f * KindsList.StartShare, width, 3);
         }
 
         [Fact]
-        public void AListStandsWhereItWasLeftAndNeverOffTheMap()
+        public void AListStandsWhereItWasLeftOffTheMapTooButNeverOffTheScreen()
         {
-            Assert.Equal((400f, 250f, 300f), KindsList.Place(100f, 50f, 1200f, 800f, (300f, 200f, 300f), 1f));
-            // Left past the right or the bottom, as on a smaller screen: brought back inside.
-            var (x, y, width) = KindsList.Place(100f, 50f, 600f, 400f, (900f, 900f, 300f), 1f);
-            Assert.Equal(100f + 600f - 300f, x);
-            Assert.Equal(50f + 400f - KindsList.TitleHeight, y);
+            Assert.Equal((400f, 250f, 300f), KindsList.Place(100f, 50f, 1200f, 1920f, 1080f, (300f, 200f, 300f), 1f));
+            // Left beside the map, as at the screen's edge past it: it stands there.
+            Assert.Equal((10f, 50f + 900f, 300f), KindsList.Place(100f, 50f, 1200f, 1920f, 1080f, (-90f, 900f, 300f), 1f));
+            // Left past the screen's right or bottom, as on a smaller screen: brought back inside it.
+            var (x, y, width) = KindsList.Place(100f, 50f, 600f, 1280f, 720f, (2000f, 2000f, 300f), 1f);
+            Assert.Equal(1280f - 300f, x);
+            Assert.Equal(720f - KindsList.TitleHeight, y);
             Assert.Equal(300f, width);
+            Assert.Equal((0f, 0f), (KindsList.Place(100f, 50f, 600f, 1280f, 720f, (-500f, -500f, 300f), 1f).X, KindsList.Place(100f, 50f, 600f, 1280f, 720f, (-500f, -500f, 300f), 1f).Y));
         }
 
         [Fact]
-        public void AListIsNeverNarrowerThanAChipStandsNorWiderThanTheMap()
+        public void AListIsNeverNarrowerThanAChipStandsNorWiderThanTheScreen()
         {
-            Assert.Equal(KindsList.LeastWidth * 1.5f, KindsList.Place(0f, 0f, 1200f, 800f, (0f, 0f, 10f), 1.5f).Width);
-            Assert.Equal(1200f - 24f, KindsList.Place(0f, 0f, 1200f, 800f, (0f, 0f, 5000f), 1f).Width);
+            Assert.Equal(KindsList.LeastWidth * 1.5f, KindsList.Place(0f, 0f, 1200f, 1920f, 1080f, (0f, 0f, 10f), 1.5f).Width);
+            Assert.Equal(1920f - 24f, KindsList.Place(0f, 0f, 1200f, 1920f, 1080f, (0f, 0f, 5000f), 1f).Width);
         }
 
         [Fact]

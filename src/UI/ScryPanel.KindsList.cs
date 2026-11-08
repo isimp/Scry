@@ -56,7 +56,7 @@ namespace Scry
         {
             var e = Event.current;
             var start = (U(12f), top - map.y, map.width * KindsList.StartShare);
-            var (x, y, width) = KindsList.Place(map.x, map.y, map.width, map.height, _kindsKept ?? start, U(1f));
+            var (x, y, width) = KindsList.Place(map.x, map.y, map.width, Screen.width, Screen.height, _kindsKept ?? start, U(1f));
             var chips = MapSpots.KindChips();
             var (pad, gap, chipH, titleH) = (U(KindsList.Pad), U(KindsList.Gap), U(KindsList.ChipHeight), U(KindsList.TitleHeight));
             var widths = new float[chips.Count];

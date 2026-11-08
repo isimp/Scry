@@ -14,11 +14,13 @@ namespace Scry
     {
         private static readonly MarkStacks Stacks = new MarkStacks();
         private static readonly StackPips Pips = new StackPips("Scry stack pips");
+        private static readonly MarkCounts FanCounts = new MarkCounts("Scry fanned counts");
 
         /// <summary>What the stacks were gathered for: the dots, and the touch's zoom step.</summary>
         private static ((IReadOnlyList<(int X, int Z)>, IReadOnlyList<(int X, int Z)>, Sprite, int) Dots, int Step, bool Merging) _stackedFor;
 
-        /// <summary>The stack fanned out, by its first dot; -1 for none.</summary>
+        /// <summary>The stack fanned out, by its first dot; -1 for none; and the fanned dot the pointer rests on, by the dot standing, -1 for none.</summary>
+        private static int _fanPointed = -1;
         private static int _fanned = -1;
 
         /// <summary>What holds the fan, over the dots and pips; its dots, its lines, the mark on the spot, and which dot each fanned dot stands for.</summary>
@@ -131,6 +133,7 @@ namespace Scry
         {
             if (_fanned < 0) return;
             _fanned = -1;
+            _fanPointed = -1;
             HideFan();
         }
 
@@ -159,6 +162,7 @@ namespace Scry
             }
             if (_fanHolder.GetSiblingIndex() != parent.childCount - 1) _fanHolder.SetAsLastSibling();
             if (!_fanHolder.gameObject.activeSelf) _fanHolder.gameObject.SetActive(true);
+            FanCounts.Begin(_fanHolder);
             var members = Stacks.MembersOf(_fanned);
             var n = Mathf.Min(members.Count, MarkStacks.MostFanned);
             FanFrom.Clear();
@@ -190,9 +194,13 @@ namespace Scry
                 if (!line.Picture.gameObject.activeSelf) line.Picture.gameObject.SetActive(true);
                 StackPips.Stand(FanDots[k], at + new Vector2(x, y), size, LookOf(StandingDots[members[k]].Picture));
                 FanDots[k].Picture.color = ShownColour(members[k]);
+                // A merged mark in the fan keeps its count beside it.
+                var merged = MergedCount(members[k]);
+                if (merged > 1) FanCounts.Put(Minimap.instance, at + new Vector2(x, y), size, merged, StandingDots[members[k]].Told, ShownColour(members[k]).a, like);
                 FanFrom.Add(members[k]);
             }
             // The lines under every dot, the spot's mark over the lines' ends.
+            FanCounts.End();
             for (var k = 0; k < n; k++) FanLines[k].Rect.SetSiblingIndex(k);
             StackPips.Stand(_fanSpot, at, MarkStacks.PipSize(size) * 1.2f, StackPips.Picture());
             _fanSpot.Rect.SetSiblingIndex(n);
@@ -208,6 +216,7 @@ namespace Scry
         private static bool ReadFan(Vector2 pointer, Player player, out (string Words, Rect? Ring) said)
         {
             said = (StackWords(_fanned, player), null);
+            _fanPointed = -1;
             // Fanned this frame and not yet placed: the stack's words stand.
             if (FanStanding == 0) return true;
             var scale = _fanHolder.lossyScale.x;
@@ -217,6 +226,7 @@ namespace Scry
                 var rect = FanDots[k].Rect;
                 if (((Vector2)rect.position - pointer).sqrMagnitude > half * half) continue;
                 said = (DotWords(FanFrom[k], player), RingOf(rect));
+                _fanPointed = FanFrom[k];
                 return true;
             }
             var off = (pointer - (Vector2)_fanSpot.Rect.position) / Mathf.Max(0.0001f, scale);
@@ -386,6 +396,8 @@ namespace Scry
             _lifted = default;
             _fadedFor = default;
             _fanned = -1;
+            _fanPointed = -1;
+            FanCounts.Forget();
             _fanHolder = null;
             _fanSpot = default;
             FanDots.Clear();

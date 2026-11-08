@@ -5,9 +5,9 @@ namespace Scry
 {
     /// <summary>
     /// The kinds list on Valheim's map: a small window of the kinds kept, dragged by its title,
-    /// folded to it and made wider or narrower by its corner, kept with the panel's place
-    /// (<see cref="PanelPlace"/>) as where it stands from the map's top left and how wide; never
-    /// off the map, never narrower than a chip stands nor wider than the map. Its chips flow into
+    /// folded to it and made wider or narrower by its corner, anywhere on the screen, kept with the panel's place
+    /// (<see cref="PanelPlace"/>) as where it stands from the map's top left and how wide; never off
+    /// the screen, never narrower than a chip stands nor wider than the screen. Its chips flow into
     /// rows as wide as it, and past so many rows it scrolls.
     /// </summary>
     internal static class KindsList
@@ -25,19 +25,20 @@ namespace Scry
         public const int MostRows = 6;
 
         /// <summary>
-        /// Where the list stands over a map at a point and size: where it was left, from the map's
-        /// top left and as wide, or at the top left at a share of the map's width; brought inside
-        /// the map, its title row at least, and between its least width and the map's.
+        /// Where the list stands with a map at a point and width on a screen: where it was left,
+        /// from the map's top left and as wide, beside the map too, or at the map's top left at a
+        /// share of its width; brought inside the screen, its title row at least, and between its
+        /// least width and the screen's.
         /// </summary>
-        public static (float X, float Y, float Width) Place(float mapX, float mapY, float mapWidth, float mapHeight, (float X, float Y, float Width)? kept, float scale)
+        public static (float X, float Y, float Width) Place(float mapX, float mapY, float mapWidth, float screenWidth, float screenHeight, (float X, float Y, float Width)? kept, float scale)
         {
             var least = LeastWidth * scale;
-            var most = Math.Max(least, mapWidth - 24f * scale);
+            var most = Math.Max(least, screenWidth - 24f * scale);
             var width = Math.Min(most, Math.Max(least, kept?.Width ?? mapWidth * StartShare));
             var x = mapX + (kept?.X ?? 12f * scale);
             var y = mapY + (kept?.Y ?? 12f * scale);
-            x = Math.Max(mapX, Math.Min(x, mapX + mapWidth - width));
-            y = Math.Max(mapY, Math.Min(y, mapY + mapHeight - TitleHeight * scale));
+            x = Math.Max(0f, Math.Min(x, screenWidth - width));
+            y = Math.Max(0f, Math.Min(y, screenHeight - TitleHeight * scale));
             return (x, y, width);
         }
 

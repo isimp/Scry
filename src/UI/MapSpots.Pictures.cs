@@ -15,7 +15,7 @@ namespace Scry
         /// <summary>
         /// The dots' picture in a colour, drawn once for it: the colour inside a dark edge, the map
         /// showing between it and a light ring, a dark halo either side of the ring
-        /// (<see cref="SeenOnMap.DotAt"/>); the edge and halo in the dark the dungeon marks are
+        /// (<see cref="SeenOnMap.DotAt(float)"/>); the edge and halo in the dark the dungeon marks are
         /// outlined in, the ring in Scry's writing colour; in a circle, or the shape of a kind's mark
         /// (<see cref="SeenOnMap.ShapeShare"/>). Each pixel is the mean of four by four points in
         /// it, so the edges stay smooth when the dot is drawn small.
@@ -44,7 +44,7 @@ namespace Scry
                         {
                             var dx = (x + (px + 0.5f) / points - side / 2f) / (side / 2f);
                             var dy = (y + (py + 0.5f) / points - side / 2f) / (side / 2f);
-                            var part = SeenOnMap.DotAt(SeenOnMap.ShapeShare(shape, dx, dy));
+                            var part = SeenOnMap.DotAt(SeenOnMap.ShapeShare(shape, dx, dy), shape);
                             var shade = plain && part != DotPart.Disc && part != DotPart.Edge ? Skin.Alpha(Skin.OnAccent, 0f) : Shade(part, colour, hollow);
                             sum += shade * shade.a;
                             a += shade.a;

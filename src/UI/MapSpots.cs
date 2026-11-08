@@ -11,7 +11,7 @@ namespace Scry
     /// character saw in the world played (<see cref="SeenSpotsKeeper"/>), until <see cref="Hide"/>,
     /// until the map opened for it closes, or until it never opens (<see cref="MapShowing"/>). The
     /// button closes Scry and opens the map as its key does, centred on the character. Each dot is
-    /// a picture in the kind's list colour inside a light ring (<see cref="SeenOnMap.DotAt"/>), on
+    /// a picture in the kind's list colour inside a light ring (<see cref="SeenOnMap.DotAt(float)"/>), on
     /// the layer of the game's pins and first on it, so pins and their names stand over it and
     /// Scry's dungeon marks, on the names' layer, too; it takes no clicks, so a click on it is the
     /// map's. While a kind is shown the other pins stand dimmed (<see cref="MapDim"/>). Dots are
@@ -689,7 +689,9 @@ namespace Scry
             // Plain far out where the settings ask, by the ground a dot spans; merged marks' counts over the dots.
             NotePlain(_touch / MarkStacks.Touching);
             var shown = ShownSize(size);
-            Counts.Begin(_holder);
+            // Picked kinds stand over the game's pins too, and the counts with them.
+            Counts.Begin(PickedCount > 0 && _over != null ? _over : _holder);
+            BeginPickedOver();
             for (var i = 0; i < StandingDots.Count; i++)
             {
                 // A dot its kind's merged mark stands for stands no more itself.
@@ -718,13 +720,15 @@ namespace Scry
                     made++;
                 }
                 Stand(Dots[standing++], new Vector2(at.X, at.Y), shown, LookOf(picture), ShownColour(i));
+                PutPickedOver(i, new Vector2(at.X, at.Y), shown, LookOf(picture), like);
                 PlacedFrom.Add(i);
                 if (!PutPips(i, new Vector2(at.X, at.Y), shown, like)) allMade = false;
                 var merged = MergedCount(i);
-                if (merged > 1 && !Counts.Put(map, new Vector2(at.X, at.Y), shown, merged, StandingDots[i].Told, like)) allMade = false;
+                if (merged > 1 && !Counts.Put(map, new Vector2(at.X, at.Y), shown, merged, StandingDots[i].Told, ShownColour(i).a, like)) allMade = false;
             }
             Pips.End();
             Counts.End();
+            EndPickedOver();
             if (fanAt is Vector2 spot && like != null) PlaceFan(spot, shown, like);
             else Unfan();
             // Those no spot holds now put away, only as fewer stand than before.

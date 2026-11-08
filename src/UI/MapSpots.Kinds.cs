@@ -43,6 +43,10 @@ namespace Scry
         [ForTest]
         public static int MergedShownForTest => Counts.Shown;
 
+        /// <summary>How many merged marks' counts stand faded with their marks, for the self-test.</summary>
+        [ForTest]
+        public static int FadedCountsForTest => Counts.Faded;
+
         /// <summary>Whether the dots stand in their plain look, for the self-test.</summary>
         [ForTest]
         public static bool PlainForTest => _plain;
@@ -269,6 +273,30 @@ namespace Scry
             return true;
         }
 
+        /// <summary>The picked kinds' dots over the game's pins while any are picked: a copy of each over the pins, how many stand and stood.</summary>
+        private static readonly List<(Image Picture, RectTransform Rect)> PickedOver = new List<(Image, RectTransform)>();
+        private static int _pickedUsed, _pickedLive;
+
+        /// <summary>How many picked dots stand over the game's pins, for the self-test.</summary>
+        [ForTest]
+        public static int PickedOverForTest => _pickedLive;
+
+        private static void BeginPickedOver() => _pickedUsed = 0;
+
+        /// <summary>A picked kind's dot stood over the game's pins as well, so it stands out above them; none while no kind is picked.</summary>
+        private static void PutPickedOver(int dot, Vector2 at, float size, Sprite picture, RectTransform like)
+        {
+            if (Picked.Count == 0 || _over == null || like == null || dot >= StandingKinds.Count || !IsPicked(StandingKinds[dot])) return;
+            if (_pickedUsed == PickedOver.Count) PickedOver.Add(StackPips.Piece(_over, like, "Scry picked dot over pins"));
+            StackPips.Stand(PickedOver[_pickedUsed++], at, size, picture);
+        }
+
+        private static void EndPickedOver()
+        {
+            for (var i = _pickedUsed; i < _pickedLive && i < PickedOver.Count; i++) PickedOver[i].Picture.gameObject.SetActive(false);
+            _pickedLive = _pickedUsed;
+        }
+
         /// <summary>The dots a merged mark pointed at stands for, each at its own spot in an accent ring, and how many stand.</summary>
         private static readonly List<(Image Picture, RectTransform Rect)> Members = new List<(Image, RectTransform)>();
         private static int _membersShown;
@@ -286,7 +314,8 @@ namespace Scry
         /// </summary>
         private static void ShowMembers(Minimap map, float size, RectTransform like)
         {
-            var dot = _pointedAt >= 0 && _pointedAt < _standing && _pointedAt < PlacedFrom.Count ? PlacedFrom[_pointedAt] : -1;
+            // A merged mark at rest pointed at, or one fanned out of a stack.
+            var dot = _fanPointed >= 0 ? _fanPointed : _pointedAt >= 0 && _pointedAt < _standing && _pointedAt < PlacedFrom.Count ? PlacedFrom[_pointedAt] : -1;
             var parent = _over != null ? _over : _holder;
             var shown = 0;
             if (dot >= 0 && MergedCount(dot) > 1 && parent != null && like != null && map.m_mapImageLarge != null)
@@ -334,6 +363,8 @@ namespace Scry
         private static void ForgetKinds()
         {
             Members.Clear();
+            PickedOver.Clear();
+            _pickedUsed = _pickedLive = 0;
             _membersShown = 0;
             Counts.Forget();
             _merging = false;
