@@ -6,8 +6,9 @@ namespace Scry
 {
     /// <summary>
     /// What a spot's mode lays on its mark (<see cref="SpotModes"/>): the game's own cross over a
-    /// crossed one, in a holder over the marks, and over a highlighted one a bigger copy in an accent
-    /// ring, in a holder over the game's pins; made from a pool as the marks are.
+    /// crossed one, in a holder over the marks, and over a highlighted one a bigger copy on its own
+    /// shape in the accent, so the outline follows it, in a holder over the game's pins; made from a
+    /// pool as the marks are.
     /// </summary>
     internal sealed class SpotMarks
     {
@@ -74,12 +75,12 @@ namespace Scry
             }
             if (_highlights == null) return;
             while (_high.Count < (_highUsed + 1) * 2) _high.Add(StackPips.Piece(_highlights, like, "Scry highlighted mark"));
-            var ring = _high[_highUsed * 2];
+            var outline = _high[_highUsed * 2];
             var copy = _high[_highUsed * 2 + 1];
             _highUsed++;
-            StackPips.Stand(ring, at, size * SpotModes.RingScale, MapSpots.ActiveRing());
+            StackPips.Stand(outline, at, size * SpotModes.HighlightScale * SpotModes.OutlineScale, MapSpots.Silhouette(picture));
             StackPips.Stand(copy, at, size * SpotModes.HighlightScale, picture);
-            ring.Picture.color = colour;
+            outline.Picture.color = colour;
             copy.Picture.color = colour;
         }
 

@@ -839,7 +839,7 @@ namespace Scry
             entry != null && entry.Kind == Kind.Resource && entry.GroupOrder == (int)ResourceGroup.Tapped ? TapToKnow : HowToKnow(entry?.Kind ?? Kind.Other);
 
         /// <summary>What opens a root's page (<see cref="HowToKnow(Entry)"/>).</summary>
-        public const string TapToKnow = "Tap it for sap, or take sap from one already tapped, to come to know it.";
+        public const string TapToKnow = "Tap it, or draw from one already tapped, to come to know it.";
 
         /// <summary>What opens a page of this kind: every way that makes it known, by the one verb for a page.</summary>
         public static string HowToKnow(Kind kind)

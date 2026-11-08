@@ -230,7 +230,8 @@ namespace Scry
             {
                 var rect = FanDots[k].Rect;
                 if (((Vector2)rect.position - pointer).sqrMagnitude > half * half) continue;
-                said = (DotWords(FanFrom[k], player), RingOf(rect));
+                // A highlighted mark's own outline tells it is the one, no ring round it besides.
+                said = (DotWords(FanFrom[k], player), ModeOf(FanFrom[k]) == SpotMode.Highlighted ? (Rect?)null : RingOf(rect));
                 _fanPointed = FanFrom[k];
                 return true;
             }
@@ -306,6 +307,9 @@ namespace Scry
         /// <summary>The copy of the dot pointed at, standing over the pins while the pointer rests on it.</summary>
         private static (Image Picture, RectTransform Rect) _lifted;
 
+        /// <summary>The cross over that copy, where the dot pointed at is crossed off.</summary>
+        private static (Image Picture, RectTransform Rect) _liftedCross;
+
         /// <summary>The game's pins and names faded near a pointed mark, each by a group of its own, with its see-through before; and what they were faded for.</summary>
         private static readonly List<(CanvasGroup Group, float Before)> Faded = new List<(CanvasGroup, float)>();
         private static (Vector2 At, float Reach) _fadedFor;
@@ -339,15 +343,27 @@ namespace Scry
         {
             var over = MapLook.PointedOver(Settings.MarksOverPins) && !MapLook.DotsOver(Settings.MarksOverPins);
             var dot = _pointedAt >= 0 && _pointedAt < _standing ? Dots[_pointedAt] : default;
-            if (over && dot.Rect != null && _over != null && like != null)
+            // A highlighted mark stands over the pins already, in its own look; a crossed one keeps its look and its cross.
+            var mode = _pointedAt >= 0 && _pointedAt < PlacedFrom.Count ? ModeOf(PlacedFrom[_pointedAt]) : SpotMode.Plain;
+            var crossed = mode == SpotMode.Crossed;
+            if (over && dot.Rect != null && _over != null && like != null && mode != SpotMode.Highlighted)
             {
                 if (_lifted.Rect == null) _lifted = StackPips.Piece(_over, like, "Scry pointed dot");
+                if (crossed && _liftedCross.Rect == null) _liftedCross = StackPips.Piece(_over, like, "Scry pointed dot's cross");
                 // Over all else there but the pointed mark's count.
                 var top = _over.childCount - (PointedCount.Parent == _over ? 2 : 1);
-                if (_lifted.Rect.GetSiblingIndex() != top) _lifted.Rect.SetSiblingIndex(top);
+                var liftedAt = crossed ? top - 1 : top;
+                if (_lifted.Rect.GetSiblingIndex() != liftedAt) _lifted.Rect.SetSiblingIndex(liftedAt);
                 StackPips.Stand(_lifted, dot.Rect.anchoredPosition, dot.Rect.sizeDelta.x, dot.Picture.sprite);
+                _lifted.Picture.color = Skin.Alpha(Skin.MarkShown, SpotModes.ShareOf(mode, 1f));
+                if (crossed)
+                {
+                    if (_liftedCross.Rect.GetSiblingIndex() != top) _liftedCross.Rect.SetSiblingIndex(top);
+                    StackPips.Stand(_liftedCross, dot.Rect.anchoredPosition, dot.Rect.sizeDelta.x * SpotModes.CrossScale, SpotMarks.CrossPicture(map));
+                }
             }
             else if (_lifted.Picture != null && _lifted.Picture.gameObject.activeSelf) _lifted.Picture.gameObject.SetActive(false);
+            if (!crossed && _liftedCross.Picture != null && _liftedCross.Picture.gameObject.activeSelf) _liftedCross.Picture.gameObject.SetActive(false);
             FadeNear(map, size);
             ShowMembers(map, size, like);
             ShowPointedCount(map, like);
@@ -413,6 +429,7 @@ namespace Scry
             if (_over != null) Object.Destroy(_over.gameObject);
             _over = null;
             _lifted = default;
+            _liftedCross = default;
             _fadedFor = default;
             _fanned = -1;
             _fanPointed = -1;

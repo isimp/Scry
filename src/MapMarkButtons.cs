@@ -455,7 +455,7 @@ namespace Scry
             {
                 mark.ModeShown = mark.Mode;
                 if (mark.Mode == SpotMode.Crossed && mark.Cross == null) mark.Cross = ModePiece(mark, SpotMarks.CrossPicture(map), 0.05f, 0.95f);
-                if (mark.Mode == SpotMode.Highlighted && mark.Ring == null) mark.Ring = ModePiece(mark, MapSpots.ActiveRing(), -0.28f, 1.28f);
+                if (mark.Mode == SpotMode.Highlighted && mark.Ring == null) mark.Ring = ModePiece(mark, MapSpots.ActiveRing(), -0.12f, 1.12f);
                 if (mark.Cross != null) mark.Cross.gameObject.SetActive(mark.Mode == SpotMode.Crossed);
                 if (mark.Ring != null) mark.Ring.gameObject.SetActive(mark.Mode == SpotMode.Highlighted);
             }

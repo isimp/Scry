@@ -84,6 +84,29 @@ namespace Scry
             return pictured != null ? pictured : Picture(colour, MarkShape.Circle, hollow);
         }
 
+        /// <summary>Each mark's shape alone in the accent, by its look, for a highlighted one's outline.</summary>
+        private static readonly Dictionary<Sprite, Sprite> Silhouettes = new Dictionary<Sprite, Sprite>();
+
+        /// <summary>A mark's look as its shape alone in the accent, each pixel as see-through as the look's, so a bigger one behind it outlines it, whatever its shape; the round ring where its pixels cannot be read.</summary>
+        public static Sprite Silhouette(Sprite look)
+        {
+            if (look == null) return ActiveRing();
+            if (Silhouettes.TryGetValue(look, out var made) && made != null) return made;
+            var source = look.texture;
+            if (source == null || !source.isReadable) return ActiveRing();
+            var from = look.rect;
+            var (w, h) = ((int)from.width, (int)from.height);
+            var read = source.GetPixels((int)from.x, (int)from.y, w, h);
+            var pixels = new Color32[read.Length];
+            for (var i = 0; i < read.Length; i++) pixels[i] = Skin.Alpha(Skin.Accent, read[i].a);
+            var texture = Kept.Add(new Texture2D(w, h, TextureFormat.RGBA32, false) { name = "Scry mark's outline", filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp });
+            texture.SetPixels32(pixels);
+            texture.Apply(false, false);
+            return Silhouettes[look] = Kept.Add(Sprite.Create(texture, new Rect(0f, 0f, w, h), new Vector2(0.5f, 0.5f)));
+        }
+
+        private static void ForgetSilhouettes() => Silhouettes.Clear();
+
         /// <summary>A category's mark on the lists' headings: the dungeons' amber disc, another's shape in the writing's colour.</summary>
         public static Sprite CategoryPicture(KeptCategory category) =>
             category == KeptCategory.Dungeons ? MarkPicture(KeptMarks.Dungeons, CompendiumBook.Dungeons) : Picture(Skin.Text, KeptCategories.ShapeIn(category));

@@ -74,6 +74,9 @@ namespace Scry
             // more apart stand apart; farther out they touch and stand as one stack, named together.
             var zoomWas = Minimap.instance.LargeZoom;
             Minimap.instance.LargeZoom = SeenOnMap.NearestZoom;
+            // The dots stand where the new zoom puts them a frame or two on: read too soon, the pointer misses.
+            yield return null;
+            yield return null;
             yield return Until(() => MapSpots.DotsShown == spots.Count && MapSpots.PipsShown == 0, 5);
             var first = MapSpots.DotCenterForTest(0);
             if (first is Vector2 at)

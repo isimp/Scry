@@ -799,7 +799,8 @@ namespace Scry
                     Pointed = (StackWords(anchor, player), null);
                     return;
                 }
-                Pointed = (DotWords(dot, player), RingOf(rect));
+                // A highlighted mark's own outline tells it is the one, no ring round it besides.
+                Pointed = (DotWords(dot, player), ModeOf(dot) == SpotMode.Highlighted ? (Rect?)null : RingOf(rect));
                 _pointedAt = i;
                 return;
             }

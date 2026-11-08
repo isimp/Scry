@@ -209,6 +209,7 @@ namespace Scry
             _modesChanged = false;
             MenuLines.Clear();
             MenuTitle = null;
+            ForgetSilhouettes();
         }
     }
 }

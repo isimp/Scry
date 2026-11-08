@@ -31,8 +31,8 @@ namespace Scry
         /// <summary>How much of its look a crossed mark keeps.</summary>
         public const float CrossedShare = 0.45f;
 
-        /// <summary>How much bigger a highlighted mark stands, its ring's width of a mark's, and a cross's.</summary>
-        public const float HighlightScale = 1.35f, RingScale = 2.1f, CrossScale = 0.9f;
+        /// <summary>How much bigger a highlighted mark stands, how much bigger than that the amber outline following its shape, and a cross's width of a mark's.</summary>
+        public const float HighlightScale = 1.35f, OutlineScale = 1.22f, CrossScale = 0.9f;
 
         /// <summary>The mode a right click gives a spot in another.</summary>
         public static SpotMode Next(SpotMode mode) =>
