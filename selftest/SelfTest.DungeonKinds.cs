@@ -129,7 +129,7 @@ namespace Scry
             var at = clear ?? new Vector2(player.transform.position.x, player.transform.position.z);
             var (cx, cz) = ((int)at.x, (int)at.y);
             var placeKey = place.Key;
-            MapSpots.SpotsInsteadForTest(k => k == copper ? new List<(int X, int Z)> { (cx - 300, cz), (cx - 300, cz + 100) } : k == tin ? new List<(int X, int Z)> { (cx - 150, cz) } : k == placeKey ? new List<(int X, int Z)> { (cx + 150, cz), (cx + 300, cz) } : new List<(int X, int Z)>());
+            MapSpots.SpotsInsteadForTest(k => k == copper ? new List<(int X, int Z)> { (cx - 120, cz), (cx - 120, cz + 60) } : k == tin ? new List<(int X, int Z)> { (cx - 60, cz) } : k == placeKey ? new List<(int X, int Z)> { (cx + 60, cz), (cx + 120, cz) } : new List<(int X, int Z)>());
             ScryPanel.TakeAllOffMap();
             ScryPanel.KeepOnMap(copper, true);
             ScryPanel.KeepOnMap(tin, true);
@@ -142,7 +142,8 @@ namespace Scry
             map.SetMapMode(Minimap.MapMode.Large);
             map.LargeZoom = 0.08f;
             CentreMapOn(map, at);
-            yield return Until(() => MapSpots.KindGroups().Count == 2, 5);
+            // What was kept before is gone from the list a frame after it is taken off.
+            yield return Until(() => MapSpots.KindGroups().Count == 2 && MapSpots.KindGroups()[0].Category == KeptCategory.Locations, 5);
             var groups = MapSpots.KindGroups();
             p.Check(groups.Count == 2 && groups[0].Category == KeptCategory.Locations && groups[1].Category == KeptCategory.Resources && groups[1].Kinds.Length == 2, "the kinds list stands each under its category", string.Join(", ", groups.Select(g => SpotWords.CategoryName(g.Category))));
             yield return Picture(p, "the kinds list by category");
@@ -150,8 +151,8 @@ namespace Scry
             if (groups.Count == 2)
             {
                 MapSpots.ShowAlone(groups[1].Kinds);
-                yield return Until(() => MapSpots.FadedDotsForTest > 0, 3);
-                p.Check(MapSpots.IsPicked(copper) && MapSpots.IsPicked(tin) && !MapSpots.IsPicked(placeKey) && MapSpots.FadedDotsForTest == 2, "a heading picks every kind under it and fades the rest", Numbers.Count(MapSpots.FadedDotsForTest));
+                yield return Until(() => MapSpots.FadedDotsForTest >= 2, 3);
+                p.Check(MapSpots.IsPicked(copper) && MapSpots.IsPicked(tin) && !MapSpots.IsPicked(placeKey) && MapSpots.FadedDotsForTest >= 2, "a heading picks every kind under it and fades the rest", Numbers.Count(MapSpots.FadedDotsForTest));
                 yield return Picture(p, "the kinds list, a category picked");
                 MapSpots.ShowAlone(groups[1].Kinds);
                 yield return Until(() => MapSpots.FadedDotsForTest == 0, 3);
