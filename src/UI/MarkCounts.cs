@@ -70,10 +70,16 @@ namespace Scry
             }
         }
 
-        /// <summary>A placing begun: the holder made in what holds the marks, and every tab free again.</summary>
+        /// <summary>What the tabs' holder stands in, none before it is made.</summary>
+        public Transform Parent => _holder != null ? _holder.parent : null;
+
+        /// <summary>Whether the tabs stand over all else in what holds them, for the self-test.</summary>
+        public bool StandsLast => _holder != null && _holder.GetSiblingIndex() == _holder.parent.childCount - 1;
+
+        /// <summary>A placing begun: the holder made in what holds the marks, and every tab free again; a holder gone with what held it taking its tabs along.</summary>
         public void Begin(RectTransform marks)
         {
-            if (_holder != null && _holder.parent != marks) Forget();
+            if (_holder == null || _holder.parent != marks) Forget();
             if (_holder == null && marks != null) _holder = StackPips.Holder(marks, _name);
             _used = 0;
             _made = 0;

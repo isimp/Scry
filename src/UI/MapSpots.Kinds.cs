@@ -15,6 +15,9 @@ namespace Scry
     {
         private static readonly MarkStacks Merged = new MarkStacks();
         private static readonly MarkCounts Counts = new MarkCounts("Scry merged counts");
+
+        /// <summary>The count of the merged mark the pointer rests on, over the dots it brings up and the game's pins.</summary>
+        private static readonly MarkCounts PointedCount = new MarkCounts("Scry pointed count");
         private static bool _merging, _plain;
 
         /// <summary>Each standing dot's kind as a number, for only a kind's own dots to merge.</summary>
@@ -46,6 +49,18 @@ namespace Scry
         /// <summary>How many merged marks' counts stand faded with their marks, for the self-test.</summary>
         [ForTest]
         public static int FadedCountsForTest => Counts.Faded;
+
+        /// <summary>Whether the merged mark pointed at shows its count over all that stands with it, for the self-test.</summary>
+        [ForTest]
+        public static bool PointedCountOnTopForTest => PointedCount.Shown == 1 && PointedCount.StandsLast;
+
+        /// <summary>How many counts stand over the rest for a merged mark pointed at, for the self-test.</summary>
+        [ForTest]
+        public static int PointedCountsForTest => PointedCount.Shown;
+
+        /// <summary>The middle of the kinds list on the screen, for the self-test.</summary>
+        [ForTest]
+        public static Vector2 KindsListMiddleForTest => new Vector2(_kindsStripAt.center.x, Screen.height - _kindsStripAt.center.y);
 
         /// <summary>Whether the dots stand in their plain look, for the self-test.</summary>
         [ForTest]
@@ -314,8 +329,7 @@ namespace Scry
         /// </summary>
         private static void ShowMembers(Minimap map, float size, RectTransform like)
         {
-            // A merged mark at rest pointed at, or one fanned out of a stack.
-            var dot = _fanPointed >= 0 ? _fanPointed : _pointedAt >= 0 && _pointedAt < _standing && _pointedAt < PlacedFrom.Count ? PlacedFrom[_pointedAt] : -1;
+            var dot = PointedDot();
             var parent = _over != null ? _over : _holder;
             var shown = 0;
             if (dot >= 0 && MergedCount(dot) > 1 && parent != null && like != null && map.m_mapImageLarge != null)
@@ -337,6 +351,27 @@ namespace Scry
             }
             for (var i = shown * 2; i < Members.Count; i++) if (Members[i].Picture.gameObject.activeSelf) Members[i].Picture.gameObject.SetActive(false);
             _membersShown = shown;
+        }
+
+        /// <summary>The dot the pointer rests on: a mark at rest, or one fanned out of a stack; -1 for none.</summary>
+        private static int PointedDot() => _fanPointed >= 0 ? _fanPointed : _pointedAt >= 0 && _pointedAt < _standing && _pointedAt < PlacedFrom.Count ? PlacedFrom[_pointedAt] : -1;
+
+        /// <summary>
+        /// The count of a merged mark pointed at stood again over everything, the dots it brings up
+        /// and their rings too, at its full look as the mark pointed at stands; so the number stays
+        /// readable where its dots lie close. None while no merged mark is pointed at.
+        /// </summary>
+        private static void ShowPointedCount(Minimap map, RectTransform like)
+        {
+            PointedCount.Begin(_over != null ? _over : _holder);
+            var dot = PointedDot();
+            if (dot >= 0 && MergedCount(dot) > 1)
+            {
+                var fanned = _fanPointed >= 0 ? FanFrom.IndexOf(_fanPointed) : -1;
+                if (fanned >= 0) PointedCount.Put(map, FanDots[fanned].Rect.anchoredPosition, _fanSize, MergedCount(dot), StandingDots[dot].Told, 1f, like);
+                else if (_fanPointed < 0) PointedCount.Put(map, Dots[_pointedAt].Rect.anchoredPosition, Dots[_pointedAt].Rect.sizeDelta.x, MergedCount(dot), StandingDots[dot].Told, 1f, like);
+            }
+            PointedCount.End();
         }
 
         /// <summary>The ring round a merged mark's dots shown while it is pointed at: the accent between dark halos, made once.</summary>
@@ -367,6 +402,7 @@ namespace Scry
             _pickedUsed = _pickedLive = 0;
             _membersShown = 0;
             Counts.Forget();
+            PointedCount.Forget();
             _merging = false;
             _plain = false;
             KindNumbers.Clear();

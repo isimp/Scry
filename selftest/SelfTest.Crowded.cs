@@ -108,7 +108,18 @@ namespace Scry
                 var count = said.StartsWith("6 ", System.StringComparison.Ordinal) ? 5 : 2;
                 yield return Until(() => MapSpots.MembersShownForTest == count, 3);
                 p.Check(MapSpots.MembersShownForTest == count, "pointed at, the merged mark's other dots show where each lies", $"{Numbers.Count(MapSpots.MembersShownForTest)} of {Numbers.Count(count)}");
+                yield return Until(() => MapSpots.PointedCountOnTopForTest, 3);
+                p.Check(MapSpots.PointedCountOnTopForTest, "pointed at, the merged mark's count stands over the dots it brings up");
+                p.Check(!WheelBlock.Blocks(), "with the pointer on the map, the wheel is the map's");
                 yield return Picture(p, "a crowded patch, a merged mark pointed at");
+                // On the kinds list the wheel is the list's: the map under it hears none.
+                PointerTo(MapSpots.KindsListMiddleForTest);
+                yield return null;
+                yield return null;
+                p.Check(WheelBlock.Blocks(), "with the pointer on the kinds list, the map hears no wheel");
+                p.Check(MapSpots.PointedCountsForTest == 0, "the pointer gone from the merged mark, its count stands over the rest no more", Numbers.Count(MapSpots.PointedCountsForTest));
+                PointerTo(merged);
+                yield return Until(() => (MapSpots.Pointed?.Words ?? "").Contains("click to zoom in"), 3);
                 var zoom = map.LargeZoom;
                 MapSpots.PressedForTest(merged);
                 map.OnMapLeftClick();

@@ -163,7 +163,8 @@ namespace Scry
     /// <summary>
     /// The mouse wheel is not covered by the text box check: the camera zoom reads it regardless.
     /// Every wheel read in the game goes through this one method, so while the panel is open it
-    /// answers nothing, and the wheel only scrolls the panel.
+    /// answers nothing, and the wheel only scrolls the panel; nor while the pointer stands on what
+    /// Scry draws over the large map, its strip or its kinds list, so the map under it holds its zoom.
     /// </summary>
     [HarmonyPatch(typeof(ZInput), "Internal_GetMouseScrollWheel")]
     internal static class WheelBlock
@@ -178,6 +179,6 @@ namespace Scry
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static bool Blocks() => ScryPanel.BlocksInput;
+        internal static bool Blocks() => ScryPanel.BlocksInput || MapSpots.PointerOnStrip();
     }
 }

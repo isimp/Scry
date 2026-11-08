@@ -326,12 +326,15 @@ namespace Scry
             if (over && dot.Rect != null && _over != null && like != null)
             {
                 if (_lifted.Rect == null) _lifted = StackPips.Piece(_over, like, "Scry pointed dot");
-                if (_lifted.Rect.GetSiblingIndex() != _over.childCount - 1) _lifted.Rect.SetAsLastSibling();
+                // Over all else there but the pointed mark's count.
+                var top = _over.childCount - (PointedCount.Parent == _over ? 2 : 1);
+                if (_lifted.Rect.GetSiblingIndex() != top) _lifted.Rect.SetSiblingIndex(top);
                 StackPips.Stand(_lifted, dot.Rect.anchoredPosition, dot.Rect.sizeDelta.x, dot.Picture.sprite);
             }
             else if (_lifted.Picture != null && _lifted.Picture.gameObject.activeSelf) _lifted.Picture.gameObject.SetActive(false);
             FadeNear(map, size);
             ShowMembers(map, size, like);
+            ShowPointedCount(map, like);
         }
 
         /// <summary>
