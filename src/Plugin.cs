@@ -218,7 +218,7 @@ namespace Scry
             // The panel catches its own sections; this is for a panel that cannot run at all,
             // which is told once rather than an error every frame.
             Guard.Run(Feature.Panel, "the panel", ScryPanel.OnGUI, "panel");
-            if (MapSpots.Strip != null || MapSpots.Pointed != null) Guard.Run(Feature.ShowOnMap, "the strip on Valheim's map", ScryPanel.MapStripGUI, "map strip");
+            if (MapSpots.Strip != null || MapSpots.Pointed != null || MapSpots.KindsStripShown) Guard.Run(Feature.ShowOnMap, "the strip on Valheim's map", ScryPanel.MapStripGUI, "map strip");
             if (Settings.LogPreviews) Timing.Add(EventPart(kind), started);
 
             // The resource monitor over everything, its own drawing a part of its own.

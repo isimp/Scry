@@ -42,6 +42,8 @@ namespace Scry
         private static ConfigEntry<MarksOverPins> _marksOverPins;
         private static ConfigEntry<bool> _pipsOverPins;
         private static ConfigEntry<PinsNearPointer> _pinsNearPointer;
+        private static ConfigEntry<FarMarks> _farMarks;
+        private static ConfigEntry<bool> _kindsStrip;
         private static ConfigEntry<bool> _mapZoomOut, _mapSquares;
 
         /// <summary>
@@ -198,6 +200,10 @@ namespace Scry
         public static MarksOverPins MarksOverPins { get => _marksOverPins?.Value ?? MarksOverPins.Pointed; set => Set(_marksOverPins, value); }
         public static bool PipsOverPins { get => _pipsOverPins?.Value ?? true; set => Set(_pipsOverPins, value); }
         public static PinsNearPointer PinsNearPointer { get => _pinsNearPointer?.Value ?? PinsNearPointer.Full; set => Set(_pinsNearPointer, value); }
+
+        /// <summary>How the marks stand far out, and whether the map lists the kinds kept to show one alone.</summary>
+        public static FarMarks FarMarks { get => _farMarks?.Value ?? FarMarks.PlainMerged; set => Set(_farMarks, value); }
+        public static bool KindsStrip { get => _kindsStrip?.Value ?? true; set => Set(_kindsStrip, value); }
         public static bool MapZoomOut { get => _mapZoomOut?.Value ?? true; set => Set(_mapZoomOut, value); }
         public static bool MapSquares { get => _mapSquares?.Value ?? true; set => Set(_mapSquares, value); }
 
@@ -364,6 +370,10 @@ namespace Scry
                 "The small pips under marks that touch stand over the game's pins, so a stack under your pins still shows it holds several.");
             _pinsNearPointer = config.Bind("1 - General", "PinsNearPointer", PinsNearPointer.Full,
                 "How the game's pins near a mark the pointer rests on stand: Full, or Third, faded to a third so the mark reads.");
+            _farMarks = config.Bind("1 - General", "FarMarks", FarMarks.PlainMerged,
+                "How Scry's marks stand on the map zoomed far out: Full, as near; FullMerged, a kind's dots that would cover each other merged into one with how many; Plain, small shapes without their ring; or PlainMerged, both.");
+            _kindsStrip = config.Bind("1 - General", "KindsStrip", true,
+                "Lists the kinds kept on the map at its top left; a click on one shows it alone, the others faded, until clicked again.");
             _mapZoomOut = config.Bind("1 - General", "ShowOnMapZoomOut", true,
                 "Opens the map zoomed out just far enough to hold the nearest marks of the kind shown; your own zoom comes back as it closes. Off, the map keeps your zoom.");
             _mapSquares = config.Bind("1 - General", "ShowOnMapSquares", true,

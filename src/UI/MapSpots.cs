@@ -490,6 +490,7 @@ namespace Scry
         private static void ForgetDots()
         {
             ForgetStacks();
+            ForgetKinds();
             if (_holder != null) Object.Destroy(_holder.gameObject);
             Dots.Clear();
             _holder = null;
@@ -657,6 +658,8 @@ namespace Scry
             // A map standing still with every dot made costs nothing more: nothing moved; the pointer is read all the same.
             var placing = (window, area.size, _dotsFor, size);
             var placingDots = Timing.Start();
+            // A kind shown alone, or all again, places the dots again in their colours.
+            if (TakeSoloChange()) _placedFor = default;
             if (!_allMade || placing != _placedFor) PlaceDots(map, window, area, size, placing);
             Timing.Add("spots placed", placingDots);
             var reading = Timing.Start();
@@ -679,8 +682,14 @@ namespace Scry
             Vector2? fanAt = null;
             // The pips over the game's pins where the settings ask, else over the dots alone.
             Pips.Begin(MapLook.PipsOver(Settings.MarksOverPins, Settings.PipsOverPins) && _over != null ? _over : _holder);
+            // Plain far out where the settings ask, by the ground a dot spans; merged marks' counts over the dots.
+            NotePlain(_touch / MarkStacks.Touching);
+            var shown = ShownSize(size);
+            Counts.Begin(_holder);
             for (var i = 0; i < StandingDots.Count; i++)
             {
+                // A dot its kind's merged mark stands for stands no more itself.
+                if (!Visible(i)) continue;
                 var (x, z, picture, _, _) = StandingDots[i];
                 if (!MapMarks.Place(new Vec3(x, 0f, z), map.m_pixelSize, map.m_textureSize, (window.xMin, window.yMin, window.width, window.height), (area.width, area.height), out var at)) continue;
                 // Only where the map shows the ground: a place seen farther than it explores waits under its fog.
@@ -703,12 +712,15 @@ namespace Scry
                     Share.Took(Since(started) - pieceFrom);
                     made++;
                 }
-                Stand(Dots[standing++], new Vector2(at.X, at.Y), size, picture);
+                Stand(Dots[standing++], new Vector2(at.X, at.Y), shown, LookOf(picture), ShownColour(i));
                 PlacedFrom.Add(i);
-                if (!PutPips(i, new Vector2(at.X, at.Y), size, like)) allMade = false;
+                if (!PutPips(i, new Vector2(at.X, at.Y), shown, like)) allMade = false;
+                var merged = MergedCount(i);
+                if (merged > 1 && !Counts.Put(map, new Vector2(at.X, at.Y), shown, merged, like)) allMade = false;
             }
             Pips.End();
-            if (fanAt is Vector2 spot && like != null) PlaceFan(spot, size, like);
+            Counts.End();
+            if (fanAt is Vector2 spot && like != null) PlaceFan(spot, shown, like);
             else Unfan();
             // Those no spot holds now put away, only as fewer stand than before.
             for (var i = standing; i < _live && i < Dots.Count; i++) Away(Dots[i].Picture);
@@ -782,12 +794,13 @@ namespace Scry
         }
 
         /// <summary>A dot stood where the map shows its spot, as big and in the picture of the colour asked, each set only as it changes.</summary>
-        private static void Stand((Image Picture, RectTransform Rect) dot, Vector2 at, float size, Sprite picture)
+        private static void Stand((Image Picture, RectTransform Rect) dot, Vector2 at, float size, Sprite picture, Color colour)
         {
             if (dot.Rect.anchoredPosition != at) dot.Rect.anchoredPosition = at;
             var sized = new Vector2(size, size);
             if (dot.Rect.sizeDelta != sized) dot.Rect.sizeDelta = sized;
             if (dot.Picture.sprite != picture) dot.Picture.sprite = picture;
+            if (dot.Picture.color != colour) dot.Picture.color = colour;
             if (!dot.Picture.gameObject.activeSelf) dot.Picture.gameObject.SetActive(true);
         }
 
@@ -804,6 +817,7 @@ namespace Scry
             _pointedAt = -1;
             Unfan();
             PutAwayOver();
+            ForgetAlone();
             MapSquares.PutAway();
             MapDim.Restore();
             if (_holder != null && _holder.gameObject.activeSelf) _holder.gameObject.SetActive(false);
@@ -873,7 +887,7 @@ namespace Scry
         {
             var pointer = ZInput.pointerPosition;
             var at = new Vector2(pointer.x, Screen.height - pointer.y);
-            return (Time.frameCount <= _stripFrame + 1 && _stripAt.Contains(at)) || (Time.frameCount <= _pickerFrame + 1 && _pickerAt.Contains(at));
+            return (Time.frameCount <= _stripFrame + 1 && _stripAt.Contains(at)) || (Time.frameCount <= _pickerFrame + 1 && _pickerAt.Contains(at)) || PointerOnKindsStrip(at);
         }
 
         /// <summary>Where the large map's picture stands on the screen, in the GUI's own coordinates; none while it is shut.</summary>

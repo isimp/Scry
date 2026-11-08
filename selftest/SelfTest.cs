@@ -182,6 +182,9 @@ namespace Scry
             ScryPanel.ListsHidden = (false, false);
             // The rooms below stand dimmed while the test runs, as its parts look at them so.
             ScryPanel.PlanBelowShown = true;
+            // The map's marks in their full look, none merged, as its parts count each dot; the
+            // crowded map's part sets them as it looks at them.
+            Settings.FarMarks = FarMarks.Full;
             // The grown plan names its rooms while the test runs, as its parts read the names.
             ScryPanel.PlanNamesShown = true;
             // Only where the test points the mouse lights a room, wherever the player's own stands.
@@ -360,8 +363,12 @@ namespace Scry
             /// <summary>The view the panel was in when the test first opened it, for the full view the stage is drawn in.</summary>
             public bool? Compact;
 
+            /// <summary>How the map's marks stood far out, as every part but the crowded map's counts them in their full look.</summary>
+            public FarMarks FarMarks;
+
             public static Before Take() => new Before
             {
+                FarMarks = Settings.FarMarks,
                 Explorer = Session.Explorer,
                 Kept = Session.Explorer.Keep(),
                 Open = Session.IsOpen,
@@ -427,6 +434,7 @@ namespace Scry
             if (Previews.InWorld != before.InWorld) Previews.ToggleWorld();
             Previews.Repeat = before.Repeat;
             Looks.OnPerson = before.OnPerson;
+            Settings.FarMarks = before.FarMarks;
             ScryPanel.PlanFolded = before.PlanFolded;
             ScryPanel.RunesFolded = before.RunesFolded;
             ScryPanel.ReadmeFolded = before.ReadmeFolded;

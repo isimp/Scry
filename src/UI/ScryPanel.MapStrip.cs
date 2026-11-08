@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Scry
@@ -38,6 +40,69 @@ namespace Scry
             CountDrawn(PanelPart.MapPointed);
         }
 
+        /// <summary>The most rows of kinds the kinds strip takes; the kinds past them counted on its last chip.</summary>
+        private const int KindsRows = 2;
+
+        /// <summary>
+        /// The kinds kept that stand on the map, at its top left from a height down: each a chip in
+        /// its mark with how many stand, wrapping to a second row, the rest counted; a click shows
+        /// that kind alone, lit, and again shows them all (<see cref="MapSpots.ShowAlone"/>); the
+        /// pointer on a chip says what its click does. Its clicks are kept from the map under it.
+        /// </summary>
+        private static void KindsStrip(Rect map, float top)
+        {
+            var kinds = MapSpots.KindsStanding();
+            var rowH = U(26f);
+            var gap = U(4f);
+            var pad = U(6f);
+            var left = map.x + U(12f);
+            var right = map.xMax - U(12f);
+            var x = left + pad;
+            var row = 0;
+            var chips = new List<(Rect At, int Index)>();
+            var more = 0;
+            for (var i = 0; i < kinds.Count; i++)
+            {
+                var width = Skin.Width(Skin.Small, SpotWords.KindChip(kinds[i].Name, kinds[i].Count)) + U(30f);
+                if (x + width > right - pad && x > left + pad)
+                {
+                    if (++row >= KindsRows)
+                    {
+                        more = kinds.Count - i;
+                        break;
+                    }
+                    x = left + pad;
+                }
+                chips.Add((new Rect(x, top + pad + row * (rowH + gap), width, rowH), i));
+                x += width + gap;
+            }
+            var rows = Mathf.Min(row + 1, KindsRows);
+            var widest = chips.Count > 0 ? chips.Max(c => c.At.xMax) : left + pad;
+            var moreText = more > 0 ? SpotWords.KindsMore(more) : null;
+            var box = new Rect(left, top, Mathf.Min(right, widest + pad) - left, rows * rowH + (rows - 1) * gap + pad * 2f + (moreText != null ? U(18f) : 0f));
+            Skin.Box(box, Skin.Panel, Skin.Outline);
+            var pointer = Event.current.mousePosition;
+            string tip = null;
+            foreach (var (at, index) in chips)
+            {
+                var (kind, name, count, picture) = kinds[index];
+                var alone = MapSpots.ShownAlone == kind;
+                if (GUI.Button(at, GUIContent.none, alone ? Skin.ChipOn : Skin.Chip)) MapSpots.ShowAlone(kind);
+                if (picture != null) GUI.DrawTexture(new Rect(at.x + U(6f), at.y + (at.height - U(16f)) / 2f, U(16f), U(16f)), picture.texture);
+                GUI.Label(new Rect(at.x + U(24f), at.y, at.width - U(26f), at.height), SpotWords.KindChip(name, count), Skin.Small);
+                if (at.Contains(pointer)) tip = SpotWords.KindChipTip(alone);
+            }
+            if (moreText != null) GUI.Label(new Rect(left + pad, box.yMax - pad - U(18f), box.width - pad * 2f, U(18f)), moreText, Skin.Small);
+            if (tip != null)
+            {
+                var content = new GUIContent(tip);
+                var size = Skin.Tip.CalcSize(content);
+                GUI.Label(new Rect(Mathf.Min(pointer.x + U(14f), Screen.width - size.x - U(4f)), pointer.y + U(18f), size.x, size.y), content, Skin.Tip);
+            }
+            MapSpots.KindsStripDrawn(box);
+            CountDrawn(PanelPart.MapKindsStrip);
+        }
+
         /// <summary>The strip's button keeping the kind shown on the map every time it opens, lit while it is kept.</summary>
         private static void KeepButton(Rect at, string key)
         {
@@ -68,6 +133,8 @@ namespace Scry
                 GUI.skin = Skin.Gui;
                 // A press in the mark's picker, or one putting it away, before the strip's buttons take it.
                 PickerClicks(Event.current, PickFrom.Strip);
+                // The kinds strip under Show on map's strip, or in its place where none stands.
+                if (MapSpots.KindsStripShown) KindsStrip(map.Value, map.Value.y + U(12f) + (line != null ? U(28f) * 2f + U(2f) + U(6f) : 0f));
                 PointedWords();
                 if (line == null) return;
                 var hideW = Skin.Width(Skin.Chip, SpotWords.Hide) + U(12f);

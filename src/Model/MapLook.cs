@@ -1,3 +1,5 @@
+using System;
+
 namespace Scry
 {
     /// <summary>How the player's other pins stand while a kind is shown on the map.</summary>
@@ -22,6 +24,15 @@ namespace Scry
         Never,
         Pointed,
         Always,
+    }
+
+    /// <summary>How Scry's marks stand far out: in their full look, with a kind's touching dots merged, plain, or plain and merged.</summary>
+    internal enum FarMarks
+    {
+        Full,
+        FullMerged,
+        Plain,
+        PlainMerged,
     }
 
     /// <summary>How the game's pins near a mark the pointer rests on stand.</summary>
@@ -70,6 +81,15 @@ namespace Scry
         /// stands under the pointer, which the game's own click then crosses off.
         /// </summary>
         public static bool ClickIsMarks(MarksOverPins over, bool pinUnder) => over != MarksOverPins.Never || !pinUnder;
+
+        /// <summary>Whether a kind's dots that would cover each other merge into one mark with how many.</summary>
+        public static bool Merges(FarMarks far) => far == FarMarks.FullMerged || far == FarMarks.PlainMerged;
+
+        /// <summary>Whether marks stand plain, their middle without the ring, at a zoom where a dot spans so many metres of ground.</summary>
+        public static bool PlainAt(FarMarks far, float dotMetres) => (far == FarMarks.Plain || far == FarMarks.PlainMerged) && dotMetres >= SeenOnMap.PlainFrom;
+
+        /// <summary>The zoom a click on a merged mark goes to: a fifth of the way, never nearer than the map goes.</summary>
+        public static float ZoomInOn(float zoom) => Math.Max(SeenOnMap.NearestZoom, zoom * 0.2f);
 
         /// <summary>The share of their brightness the game's pins near a pointed mark keep.</summary>
         public static float NearShare(PinsNearPointer near) => near == PinsNearPointer.Third ? SeenOnMap.OthersDimmed : 1f;

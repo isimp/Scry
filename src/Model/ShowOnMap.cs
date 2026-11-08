@@ -120,6 +120,19 @@ namespace Scry
             return said;
         }
 
+        /// <summary>A kind's merged mark pointed at: how many of it stand there, whether the server told of them, and how far and which way the nearest is, a click zooming in on them.</summary>
+        public static string MergedHover(string name, int count, bool told, float metres, string direction) =>
+            $"{Numbers.Count(count)} {name}{(told ? " the server told of" : "")} here\n" + (metres < Beside ? "nearest beside you" : $"nearest {Distance(metres)} {direction}") + " · click to zoom in on them";
+
+        /// <summary>A kind's chip on the map's kinds strip: its name and how many of it stand on the map.</summary>
+        public static string KindChip(string name, int count) => name + " " + Numbers.Count(count);
+
+        /// <summary>The kinds strip's last line where more kinds are kept than its rows hold.</summary>
+        public static string KindsMore(int more) => $"and {Numbers.Count(more)} more, in the title row's On the map list";
+
+        /// <summary>A kind's chip's tip: showing it alone, or all the kinds again where it is the one shown.</summary>
+        public static string KindChipTip(bool shownAlone) => shownAlone ? "Show all the kinds kept again" : "Show this kind alone, the others faded";
+
         /// <summary>A hollow dot pointed at, one the server told of: its kind, then how far and which way it is from you.</summary>
         public static string ToldHover(string name, float metres, string direction) =>
             name + "\n" + (metres < Beside ? "the server says one stands here, beside you" : $"the server says one stands here · {Distance(metres)} {direction}");

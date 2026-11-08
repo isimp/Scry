@@ -73,6 +73,9 @@ namespace Scry
         PageKeepMark,
         MapKeepMark,
 
+        /// <summary>The kinds strip on Valheim's map, listing the kinds kept to show one alone.</summary>
+        MapKindsStrip,
+
         /// <summary>A page's buttons showing and keeping all its kinds at once.</summary>
         PageShowAll,
         PageKeepAll,

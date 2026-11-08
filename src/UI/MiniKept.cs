@@ -74,8 +74,12 @@ namespace Scry
             var reach = window.width * map.m_textureSize * map.m_pixelSize * 0.75f;
             var (px, pz) = player != null ? (player.transform.position.x, player.transform.position.z) : (0f, 0f);
             var dots = MapKept.Dots;
+            // Plain where the settings ask and a dot spans enough ground, as on the large map.
+            var plain = MapLook.PlainAt(Settings.FarMarks, _touch / MarkStacks.Touching);
+            var shown = plain ? size * SeenOnMap.PlainShare : size;
             for (var i = 0; i < dots.Count; i++)
             {
+                if (!Visible(i)) continue;
                 var (x, z, picture, _, _, _) = dots[i];
                 if (player != null && (Mathf.Abs(x - px) > reach || Mathf.Abs(z - pz) > reach)) continue;
                 if (!MapMarks.Place(new Vec3(x, 0f, z), map.m_pixelSize, map.m_textureSize, (window.xMin, window.yMin, window.width, window.height), (area.width, area.height), out var at)) continue;
@@ -90,10 +94,11 @@ namespace Scry
                     }
                     made++;
                 }
-                Stand(Dots[standing++], new Vector2(at.X, at.Y), size, picture);
-                // A stack's pips under its first dot, as on the large map; the minimap takes no pointer, so nothing fans out.
-                var count = Stacks.AnchorOf(i) == i ? Stacks.CountAt(i) : 0;
-                if (count > 1 && !Pips.Put(new Vector2(at.X, at.Y), size, count, like)) allMade = false;
+                Stand(Dots[standing++], new Vector2(at.X, at.Y), shown, plain ? MapSpots.PlainOf(picture) : picture);
+                // A stack's pips under its first dot, as on the large map, counting a merged mark's dots
+                // too, as the minimap is too small for counts; it takes no pointer, so nothing fans out.
+                var count = Standing(i);
+                if (count > 1 && !Pips.Put(new Vector2(at.X, at.Y), shown, count, like)) allMade = false;
             }
             Pips.End();
             for (var i = standing; i < _live && i < Dots.Count; i++) Dots[i].Picture.gameObject.SetActive(false);
@@ -103,8 +108,27 @@ namespace Scry
         }
 
         private static readonly MarkStacks Stacks = new MarkStacks();
+
+        /// <summary>A kind's dots merged where the settings ask, by each dot's kind as a number, as on the large map.</summary>
+        private static readonly MarkStacks Merged = new MarkStacks();
+        private static readonly Dictionary<(string Kind, bool Told), int> KindNumbers = new Dictionary<(string Kind, bool Told), int>();
+        private static readonly List<int> KindOfDot = new List<int>();
+        private static bool _merging;
+
+        private static bool Visible(int dot) => !_merging || Merged.AnchorOf(dot) == dot;
+
+        private static int MergedCount(int dot) => _merging ? Mathf.Max(1, Merged.CountAt(dot)) : 1;
+
+        /// <summary>How many dots a stack's pips stand for: every dot each mark in it stands for, its kind's merged ones too; none under a mark alone.</summary>
+        private static int Standing(int dot)
+        {
+            if (Stacks.AnchorOf(dot) != dot) return 0;
+            var count = 0;
+            foreach (var member in Stacks.MembersOf(dot)) count += MergedCount(member);
+            return count;
+        }
         private static readonly StackPips Pips = new StackPips("Scry minimap stack pips");
-        private static (int Kept, int Step) _stackedFor;
+        private static (int Kept, int Step, bool Merging) _stackedFor;
 
         /// <summary>How near two dots stand to touch at the minimap's zoom, in metres, for the self-test.</summary>
         [ForTest]
@@ -120,12 +144,28 @@ namespace Scry
         private static void GatherStacks(Minimap map, Rect window, Rect area, float size)
         {
             var touch = size * MarkStacks.Touching * window.width * map.m_textureSize * map.m_pixelSize / Mathf.Max(1f, area.width);
-            var key = (MapKept.Version, Mathf.RoundToInt(Mathf.Log(Mathf.Max(0.001f, touch)) * 50f));
+            var merging = MapLook.Merges(Settings.FarMarks);
+            var key = (MapKept.Version, Mathf.RoundToInt(Mathf.Log(Mathf.Max(0.001f, touch)) * 50f), merging);
             _touch = touch;
             if (key == _stackedFor) return;
             _stackedFor = key;
             var dots = MapKept.Dots;
-            Stacks.Gather(dots.Count, i => (dots[i].X, dots[i].Z), touch);
+            // A kind's own dots merged first where the settings ask, as on the large map, then the kinds stacked from what stands.
+            _merging = merging;
+            if (merging)
+            {
+                KindNumbers.Clear();
+                KindOfDot.Clear();
+                for (var i = 0; i < dots.Count; i++)
+                {
+                    // A kind told of by the server merges apart from the same kind seen, as its hollow dot differs.
+                    var kind = (dots[i].Kind ?? "", dots[i].Told);
+                    if (!KindNumbers.TryGetValue(kind, out var number)) KindNumbers[kind] = number = KindNumbers.Count;
+                    KindOfDot.Add(number);
+                }
+                Merged.Gather(dots.Count, i => (dots[i].X, dots[i].Z), touch, i => KindOfDot[i]);
+            }
+            Stacks.Gather(dots.Count, i => (dots[i].X, dots[i].Z), touch, null, merging ? new System.Func<int, bool>(Visible) : null);
         }
 
         private static void Stand((Image Picture, RectTransform Rect) dot, Vector2 at, float size, Sprite picture)

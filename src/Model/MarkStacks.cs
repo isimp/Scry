@@ -33,6 +33,9 @@ namespace Scry
         private readonly List<int> _before = new List<int>();
 
         private readonly List<(float X, float Z)> _spots = new List<(float X, float Z)>();
+
+        /// <summary>Each mark's group, where only marks of one group gather, as a kind's own dots merge; all one group otherwise.</summary>
+        private readonly List<int> _groups = new List<int>();
         private readonly Stack<List<int>> _spare = new Stack<List<int>>();
         private static readonly IReadOnlyList<int> Alone = Array.Empty<int>();
 
@@ -40,14 +43,17 @@ namespace Scry
         /// The marks gathered afresh: <paramref name="count"/> of them, each where
         /// <paramref name="at"/> says it lies, touching within <paramref name="touch"/> metres;
         /// by a grid of twice that width, so each mark looks only at the anchors in the four cells nearest it.
+        /// With <paramref name="group"/>, a mark joins only an anchor of its own group, as a kind's
+        /// own dots merge; with <paramref name="include"/>, a mark it leaves out stands in no stack.
         /// </summary>
-        public void Gather(int count, Func<int, (float X, float Z)> at, float touch)
+        public void Gather(int count, Func<int, (float X, float Z)> at, float touch, Func<int, int> group = null, Func<int, bool> include = null)
         {
             foreach (var list in _members.Values) Spare(list);
             _members.Clear();
             _lastIn.Clear();
             _before.Clear();
             _anchorOf.Clear();
+            _groups.Clear();
             if (!(touch > 0.001f) || float.IsInfinity(touch)) touch = 0.001f;
             var reach = touch * touch;
             // Cells twice the touch wide: what touches a mark lies in its own cell or the three
@@ -60,6 +66,13 @@ namespace Scry
                 var (x, z) = at(i);
                 spots.Add((x, z));
                 _before.Add(-1);
+                _groups.Add(group?.Invoke(i) ?? 0);
+                // A mark left out stands in no stack and heads none.
+                if (include != null && !include(i))
+                {
+                    _anchorOf.Add(-1);
+                    continue;
+                }
                 var (fx, fz) = (x / width, z / width);
                 var (cx, cz) = ((int)Math.Floor(fx), (int)Math.Floor(fz));
                 var nx = fx - cx < 0.5f ? cx - 1 : cx + 1;
@@ -71,7 +84,7 @@ namespace Scry
                     for (; a >= 0; a = _before[a])
                     {
                         var (dx, dz) = (spots[a].X - x, spots[a].Z - z);
-                        if (dx * dx + dz * dz >= reach) continue;
+                        if (dx * dx + dz * dz >= reach || _groups[a] != _groups[i]) continue;
                         // The first anchor before it wins, as the marks stand in order.
                         if (anchor < 0 || a < anchor) anchor = a;
                     }

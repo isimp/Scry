@@ -37,7 +37,7 @@ namespace Scry
             var map = Minimap.instance;
             if (map == null || map.m_mode != Minimap.MapMode.Large || _holder == null || !_holder.gameObject.activeInHierarchy) return null;
             var (from, size) = DotUnder(screen);
-            if (from < 0 || from >= StandingKinds.Count) return null;
+            if (from < 0 || from >= StandingKinds.Count || MergedCount(from) > 1) return null;
             if (!MapMarks.Clicked((_pressedAt.x, _pressedAt.y), (screen.x, screen.y), size)) return null;
             if (!MapLook.ClickIsMarks(Settings.MarksOverPins, PinUnder(map, screen, size))) return null;
             // A kind is its page's key: the page opens at once where the catalog is read, else once

@@ -530,6 +530,8 @@ namespace Scry
         /// </summary>
         public static bool OpenDot(Vector2 screen)
         {
+            // A kind's merged mark zooms the map in on it rather than opening a page.
+            if (MapSpots.ZoomOnMerged(screen)) return true;
             var key = MapSpots.ClickedKind(screen);
             if (key == null) return false;
             HideName();

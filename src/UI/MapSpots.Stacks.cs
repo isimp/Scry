@@ -16,7 +16,7 @@ namespace Scry
         private static readonly StackPips Pips = new StackPips("Scry stack pips");
 
         /// <summary>What the stacks were gathered for: the dots, and the touch's zoom step.</summary>
-        private static ((IReadOnlyList<(int X, int Z)>, IReadOnlyList<(int X, int Z)>, Sprite, int) Dots, int Step) _stackedFor;
+        private static ((IReadOnlyList<(int X, int Z)>, IReadOnlyList<(int X, int Z)>, Sprite, int) Dots, int Step, bool Merging) _stackedFor;
 
         /// <summary>The stack fanned out, by its first dot; -1 for none.</summary>
         private static int _fanned = -1;
@@ -102,11 +102,14 @@ namespace Scry
         private static void GatherStacks(Minimap map, Rect window, Rect area, float size)
         {
             var touch = size * MarkStacks.Touching * window.width * map.m_textureSize * map.m_pixelSize / Mathf.Max(1f, area.width);
-            var key = (_dotsFor, Mathf.RoundToInt(Mathf.Log(Mathf.Max(0.001f, touch)) * 50f));
+            var merging = MapLook.Merges(Settings.FarMarks);
+            var key = (_dotsFor, Mathf.RoundToInt(Mathf.Log(Mathf.Max(0.001f, touch)) * 50f), merging);
             _touch = touch;
             if (key == _stackedFor) return;
             _stackedFor = key;
-            Stacks.Gather(StandingDots.Count, i => (StandingDots[i].X, StandingDots[i].Z), touch);
+            // A kind's own dots merged first where the settings ask, then the kinds stacked from what stands.
+            GatherMerged(touch, merging);
+            Stacks.Gather(StandingDots.Count, i => (StandingDots[i].X, StandingDots[i].Z), touch, null, merging ? new System.Func<int, bool>(Visible) : null);
             Unfan();
         }
 
@@ -172,7 +175,8 @@ namespace Scry
                 line.Rect.localRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(y, x) * Mathf.Rad2Deg);
                 line.Picture.sprite = Line();
                 if (!line.Picture.gameObject.activeSelf) line.Picture.gameObject.SetActive(true);
-                StackPips.Stand(FanDots[k], at + new Vector2(x, y), size, StandingDots[members[k]].Picture);
+                StackPips.Stand(FanDots[k], at + new Vector2(x, y), size, LookOf(StandingDots[members[k]].Picture));
+                FanDots[k].Picture.color = ShownColour(members[k]);
                 FanFrom.Add(members[k]);
             }
             // The lines under every dot, the spot's mark over the lines' ends.
@@ -217,7 +221,8 @@ namespace Scry
             {
                 var (x, z, _, name, told) = StandingDots[members[i]];
                 var (dx, dz) = player != null ? (x - player.transform.position.x, z - player.transform.position.z) : (0f, 0f);
-                marks.Add(new StackedMark(name, told, Mathf.Sqrt(dx * dx + dz * dz), SpotWords.Direction(dx, dz)));
+                // A kind's merged mark counts every dot it stands for.
+                for (var n = MergedCount(members[i]); n > 0; n--) marks.Add(new StackedMark(name, told, Mathf.Sqrt(dx * dx + dz * dz), SpotWords.Direction(dx, dz)));
             }
             return SpotWords.StackHover(marks);
         }
@@ -225,6 +230,7 @@ namespace Scry
         /// <summary>A dot's words: its kind, then how far and which way it is from the character; its name alone with no character.</summary>
         private static string DotWords(int dot, Player player)
         {
+            if (MergedCount(dot) > 1) return MergedWords(dot, player);
             var (x, z, _, name, told) = StandingDots[dot];
             if (player == null) return name;
             var (dx, dz) = (x - player.transform.position.x, z - player.transform.position.z);
@@ -298,7 +304,7 @@ namespace Scry
             {
                 if (_lifted.Rect == null) _lifted = StackPips.Piece(_over, like, "Scry pointed dot");
                 if (_lifted.Rect.GetSiblingIndex() != _over.childCount - 1) _lifted.Rect.SetAsLastSibling();
-                StackPips.Stand(_lifted, dot.Rect.anchoredPosition, size, dot.Picture.sprite);
+                StackPips.Stand(_lifted, dot.Rect.anchoredPosition, dot.Rect.sizeDelta.x, dot.Picture.sprite);
             }
             else if (_lifted.Picture != null && _lifted.Picture.gameObject.activeSelf) _lifted.Picture.gameObject.SetActive(false);
             FadeNear(map, size);

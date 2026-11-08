@@ -402,6 +402,15 @@ namespace Scry
         /// <summary>How bright the player's other pins stand while a kind is shown, of what they were.</summary>
         public const float OthersDimmed = 1f / 3f;
 
+        /// <summary>How many metres of ground a dot spans, at least, for marks to stand plain where the settings ask: some 60, a few dots to a place, far out.</summary>
+        public const float PlainFrom = 60f;
+
+        /// <summary>How big a plain mark stands of the full one: its middle, the kind's shape and edge, without the ring.</summary>
+        public const float PlainShare = 0.6f;
+
+        /// <summary>How bright the kinds not shown alone stand while one is (<see cref="MapLook"/>).</summary>
+        public const float SoloOthers = 0.2f;
+
         /// <summary>
         /// How much of the dark veil covers the map's picture while a kind is shown, under every
         /// mark: the map then looks half as bright. The game blends in linear colour, where a veil
