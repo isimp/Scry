@@ -88,8 +88,12 @@ namespace Scry
             var chips = MapSpots.KindChips();
             var (pad, gap, chipH, titleH) = (U(KindsList.Pad), U(KindsList.Gap), U(KindsList.ChipHeight), U(KindsList.TitleHeight));
             var eyeW = U(20f);
+            var indent = U(18f);
+            var bar = U(12f);
+            // No chip wider than a row of the list, scroll bar and all, so its eye at its end always shows; its words are cut short instead.
+            var widest = Mathf.Max(U(60f), width - pad * 2f - indent - bar);
             var widths = new float[chips.Count];
-            for (var i = 0; i < chips.Count; i++) widths[i] = Skin.Width(Skin.Small, SpotWords.KindChip(chips[i].Name, chips[i].Seen, chips[i].Told, chips[i].Crossed)) + U(30f) + eyeW;
+            for (var i = 0; i < chips.Count; i++) widths[i] = Mathf.Min(widest, Skin.Width(Skin.Small, SpotWords.KindChip(chips[i].Name, chips[i].Seen, chips[i].Told, chips[i].Crossed)) + U(30f) + eyeW);
             // The foot: the spots crossed off and those the server told of, each where any stand or they are hidden, and the button showing all again.
             var book = CompendiumKeeper.Book;
             var (crossed, told) = (0, 0);
@@ -103,9 +107,11 @@ namespace Scry
             var crossedHidden = Settings.CrossedMarks == CrossedMarks.Hidden;
             var toldHidden = !Settings.MapSquares;
             var hidden = KindsList.HiddenCount(kindsOf, MapSpots.HiddenKind, book?.HidesAll ?? false, crossedHidden, toldHidden);
-            var footed = !_kindsFolded && (crossed > 0 || crossedHidden || told > 0 || toldHidden || hidden > 0);
-            var footH = footed ? chipH + gap : 0f;
-            var bar = U(12f);
+            // The foot's chips flow into as many rows as the list's width needs, clear of the corner that sizes it.
+            var foot = _kindsFolded ? new List<(FootItem Item, string Words, float Width)>() : FootItems(crossed, told, hidden, width - pad * 2f - U(14f));
+            var footFlow = KindsList.Flow(foot.ConvertAll(f => f.Width), width - pad * 2f - U(14f), gap);
+            var footRows = KindsList.Rows(footFlow);
+            var footH = footRows > 0 ? footRows * chipH + footRows * gap : 0f;
             var allowed = KindsList.RowsAllowed(_kindsRows, y + footH, Screen.height, U(1f));
             var groups = MapSpots.KindGroups();
             var laying = new (bool Folded, IReadOnlyList<float> Widths)[groups.Count];
@@ -115,7 +121,6 @@ namespace Scry
                 System.Array.Copy(widths, groups[g].First, these, 0, these.Length);
                 laying[g] = (KeptCategories.Folded(_kindsCats, groups[g].Category), these);
             }
-            var indent = U(18f);
             var laid = KindsList.Laid(laying, width - pad * 2f, gap, indent);
             if (laid.Rows > allowed) laid = KindsList.Laid(laying, width - pad * 2f - bar, gap, indent);
             var rows = laid.Rows;
@@ -128,7 +133,10 @@ namespace Scry
             var grip = new Rect(box.xMax - U(14f), box.yMax - U(14f), U(14f), U(14f));
             HoldKindsList(e, map, box, title, fold, grip, width, footH, allEye);
             Skin.Box(box, Skin.Panel, Skin.Outline);
-            GUI.Label(new Rect(x + pad, y, allEye.x - x - pad, titleH), SpotWords.KindsTitle(chips.Count, MapSpots.PickedCount, hidden), Skin.Small);
+            var titleRoom = allEye.x - x - pad;
+            var titleWords = SpotWords.KindsTitle(chips.Count, MapSpots.PickedCount, hidden);
+            if (Skin.Width(Skin.Small, titleWords) > titleRoom) titleWords = SpotWords.KindsTitleShort(chips.Count, MapSpots.PickedCount, hidden);
+            GUI.Label(new Rect(x + pad, y, titleRoom, titleH), titleWords, Skin.Small);
             string tip = null;
             var allHidden = book?.HidesAll ?? false;
             if (Eye(allEye, allHidden, e.mousePosition)) MapSpots.HideAllKinds(!allHidden);
@@ -155,7 +163,7 @@ namespace Scry
                 }
                 GUI.EndScrollView();
             }
-            if (footed) tip = KindsFoot(new Rect(x + pad, y + titleH + bodyH, width - pad * 2f - U(14f), chipH), e.mousePosition, crossed, told, hidden) ?? tip;
+            if (footRows > 0) tip = KindsFoot(new Vector2(x + pad, y + titleH + bodyH), foot, footFlow, e.mousePosition) ?? tip;
             if (!_kindsFolded && rows > 0) Skin.Icon(grip, Skin.Resize, _kindsHold == KindsHold.Sizing || grip.Contains(e.mousePosition) ? Skin.Text : Skin.Dim);
             if (tip != null)
             {
@@ -177,52 +185,73 @@ namespace Scry
             return clicked;
         }
 
+        /// <summary>What stands on the list's foot.</summary>
+        private enum FootItem
+        {
+            Crossed,
+            Told,
+            ShowAll,
+        }
+
         /// <summary>
-        /// The list's foot: the spots crossed off and the places the server told of, each a chip
-        /// hiding them or showing them again, grey while hidden, and, while anything is hidden, the
+        /// The list's foot: the spots crossed off and the places the server told of, each where any
+        /// stand or while they are hidden, and, while anything is hidden, the button showing
+        /// everything again; each with its words and width, none wider than the foot.
+        /// </summary>
+        private static List<(FootItem Item, string Words, float Width)> FootItems(int crossed, int told, int hidden, float most)
+        {
+            var items = new List<(FootItem Item, string Words, float Width)>();
+            if (crossed > 0 || Settings.CrossedMarks == CrossedMarks.Hidden) items.Add((FootItem.Crossed, SpotWords.CrossedChip(crossed), 0f));
+            if (told > 0 || !Settings.MapSquares) items.Add((FootItem.Told, SpotWords.ToldChip(Settings.MapSquares ? told : (int?)null), 0f));
+            if (hidden > 0) items.Add((FootItem.ShowAll, SpotWords.ShowEverything, 0f));
+            for (var i = 0; i < items.Count; i++)
+            {
+                var room = Skin.Width(Skin.Small, items[i].Words) + (items[i].Item == FootItem.ShowAll ? U(16f) : U(30f));
+                items[i] = (items[i].Item, items[i].Words, Mathf.Min(most, room));
+            }
+            return items;
+        }
+
+        /// <summary>
+        /// The list's foot drawn where its chips flowed: the spots crossed off and the places the
+        /// server told of, each a chip hiding them or showing them again, grey while hidden, and the
         /// button showing everything again. The tip of what the pointer rests on; none.
         /// </summary>
-        private static string KindsFoot(Rect row, Vector2 pointer, int crossed, int told, int hidden)
+        private static string KindsFoot(Vector2 from, List<(FootItem Item, string Words, float Width)> foot, (float X, int Row)[] flow, Vector2 pointer)
         {
             string tip = null;
-            var x = row.x;
-            var gap = U(KindsList.Gap);
-            var crossedHidden = Settings.CrossedMarks == CrossedMarks.Hidden;
-            if (crossed > 0 || crossedHidden)
+            var (gap, chipH) = (U(KindsList.Gap), U(KindsList.ChipHeight));
+            for (var i = 0; i < foot.Count; i++)
             {
-                var words = SpotWords.CrossedChip(crossed);
-                var at = new Rect(x, row.y, Skin.Width(Skin.Small, words) + U(30f), row.height);
-                if (GUI.Button(at, GUIContent.none, Skin.Chip)) Settings.CrossedMarks = crossedHidden ? CrossedMarks.Faded : CrossedMarks.Hidden;
-                var cross = Minimap.instance != null ? SpotMarks.CrossPicture(Minimap.instance) : null;
-                FootChip(at, cross != null ? cross.texture : null, words, crossedHidden);
-                if (at.Contains(pointer)) tip = SpotWords.CrossedChipTip(crossedHidden);
-                x = at.xMax + gap;
-            }
-            var toldHidden = !Settings.MapSquares;
-            if (told > 0 || toldHidden)
-            {
-                var words = SpotWords.ToldChip(toldHidden ? (int?)null : told);
-                var at = new Rect(x, row.y, Skin.Width(Skin.Small, words) + U(30f), row.height);
-                if (GUI.Button(at, GUIContent.none, Skin.Chip)) Settings.MapSquares = toldHidden;
-                FootChip(at, Skin.PointedRing, words, toldHidden);
-                if (at.Contains(pointer)) tip = SpotWords.ToldChipTip(toldHidden);
-                x = at.xMax + gap;
-            }
-            if (hidden > 0)
-            {
-                var w = Skin.Width(Skin.Small, SpotWords.ShowEverything) + U(16f);
-                var at = new Rect(Mathf.Max(x, row.xMax - w), row.y, w, row.height);
-                if (GUI.Button(at, SpotWords.ShowEverything, Skin.Chip)) MapSpots.ShowEverything();
+                var (item, words, w) = foot[i];
+                var at = new Rect(from.x + flow[i].X, from.y + flow[i].Row * (chipH + gap), w, chipH);
+                if (item == FootItem.Crossed)
+                {
+                    var hidden = Settings.CrossedMarks == CrossedMarks.Hidden;
+                    if (GUI.Button(at, GUIContent.none, Skin.Chip)) Settings.CrossedMarks = hidden ? CrossedMarks.Faded : CrossedMarks.Hidden;
+                    FootChip(at, Minimap.instance != null ? SpotMarks.CrossPicture(Minimap.instance) : null, null, words, hidden);
+                    if (at.Contains(pointer)) tip = SpotWords.CrossedChipTip(hidden);
+                }
+                else if (item == FootItem.Told)
+                {
+                    var hidden = !Settings.MapSquares;
+                    if (GUI.Button(at, GUIContent.none, Skin.Chip)) Settings.MapSquares = hidden;
+                    FootChip(at, null, Skin.PointedRing, words, hidden);
+                    if (at.Contains(pointer)) tip = SpotWords.ToldChipTip(hidden);
+                }
+                else if (GUI.Button(at, words, Skin.Chip)) MapSpots.ShowEverything();
             }
             return tip;
         }
 
-        /// <summary>A foot chip's picture and words, grey while what it stands for is hidden.</summary>
-        private static void FootChip(Rect at, Texture picture, string words, bool hidden)
+        /// <summary>A foot chip's picture, the game's own or Scry's, and its words, grey while what it stands for is hidden.</summary>
+        private static void FootChip(Rect at, Sprite sprite, Texture picture, string words, bool hidden)
         {
             var was = GUI.color;
             if (hidden) GUI.color = Skin.Alpha(was, HiddenShare);
-            if (picture != null) GUI.DrawTexture(new Rect(at.x + U(6f), at.y + (at.height - U(14f)) / 2f, U(14f), U(14f)), picture);
+            var icon = new Rect(at.x + U(6f), at.y + (at.height - U(14f)) / 2f, U(14f), U(14f));
+            if (sprite != null) DrawSprite(sprite, icon);
+            else if (picture != null) GUI.DrawTexture(icon, picture);
             GUI.Label(new Rect(at.x + U(24f), at.y, at.width - U(26f), at.height), words, Skin.Small);
             GUI.color = was;
         }

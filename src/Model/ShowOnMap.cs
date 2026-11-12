@@ -171,6 +171,10 @@ namespace Scry
         public static string KindsTitle(int kinds, int picked, int hidden) =>
             $"Kinds on the map · {Numbers.Count(kinds)}" + (picked > 0 ? $" · {Numbers.Count(picked)} picked" : "") + (hidden > 0 ? $" · {Numbers.Count(hidden)} hidden" : "");
 
+        /// <summary>The kinds list's title where the whole does not fit: the same counts after a shorter name.</summary>
+        public static string KindsTitleShort(int kinds, int picked, int hidden) =>
+            $"Kinds · {Numbers.Count(kinds)}" + (picked > 0 ? $" · {Numbers.Count(picked)} picked" : "") + (hidden > 0 ? $" · {Numbers.Count(hidden)} hidden" : "");
+
         /// <summary>An eye's tip on the kinds list: hiding a kind, a category's kinds or every mark, each staying kept, or showing them again.</summary>
         public static string EyeTip(EyeOn on, bool hidden) =>
             on == EyeOn.Kind ? (hidden ? "Show this kind on the map again" : "Hide this kind on the map; it stays kept")

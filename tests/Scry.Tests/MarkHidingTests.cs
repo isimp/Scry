@@ -122,6 +122,14 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void ANarrowListsTitleSaysTheSameInFewerWords()
+        {
+            // Its eye and its arrow leave a narrow list's title little room, so the counts keep it.
+            Assert.Equal("Kinds · 5", SpotWords.KindsTitleShort(5, 0, 0));
+            Assert.Equal("Kinds · 5 · 1 picked · 2 hidden", SpotWords.KindsTitleShort(5, 1, 2));
+        }
+
+        [Fact]
         public void HiddenCountsEachKindListedWhollyHiddenAndEachSwitchOff()
         {
             var chips = new[] { new[] { "rock4_copper" }, new[] { "giant_ribs", "giant_skull" }, new[] { "MineRock_Tin" } };
