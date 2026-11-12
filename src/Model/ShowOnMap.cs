@@ -200,7 +200,7 @@ namespace Scry
 
         /// <summary>The kinds list's foot, set apart as settings: its label, and its switches for the spots crossed off and the places the server told of.</summary>
         public const string FootLabel = "Show";
-        public const string FootCrossed = "Crossed off";
+        public const string FootCrossed = "Crossed";
         public const string FootTold = "Told";
 
         public static string CrossedChipTip(bool hidden) => hidden ? "Show the spots you crossed off again, faded" : "Hide the spots you crossed off";

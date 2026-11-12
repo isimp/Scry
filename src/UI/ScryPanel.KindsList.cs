@@ -104,10 +104,10 @@ namespace Scry
             var foldedH = words != null ? words.Count * wordH + pad : 0f;
             var footInner = inner - U(14f);
             var foot = _kindsFolded ? new List<(FootPiece Piece, float Width)>() : FootPieces();
-            var footFlow = KindsList.Flow(foot.ConvertAll(f => f.Width), footInner, U(10f));
+            var footFlow = KindsList.Flow(foot.ConvertAll(f => f.Width), footInner, U(8f));
             var footRows = KindsList.Rows(footFlow);
             var footLineH = U(22f);
-            var footH = footRows > 0 ? footRows * footLineH + U(8f) : 0f;
+            var footH = footRows > 0 ? footRows * footLineH + U(10f) : 0f;
             var bar = U(12f);
             var allowed = KindsList.RowsAllowed(_kindsRows, y + footH, Screen.height, U(1f));
             var laying = new (bool Folded, int Kinds)[groups.Count];
@@ -247,7 +247,7 @@ namespace Scry
         /// <summary>The foot's pieces with their widths: a switch with its words after it.</summary>
         private static List<(FootPiece Piece, float Width)> FootPieces()
         {
-            var switchW = U(22f) + U(5f);
+            var switchW = U(20f) + U(4f);
             return new List<(FootPiece Piece, float Width)>
             {
                 (FootPiece.Label, Skin.Width(Skin.FaintLabel, SpotWords.FootLabel) + U(2f)),
@@ -257,17 +257,17 @@ namespace Scry
         }
 
         /// <summary>
-        /// The list's foot, set apart as settings: a sunken strip under a hairline, its label and two
+        /// The list's foot, set apart as settings: a sunken well inside the list's edge, its label and two
         /// small switches of the settings card's own look, lit while the spots crossed off or the
         /// places the server told of stand, which a click hides or shows again. The tip of what the pointer rests on; none.
         /// </summary>
         private static string KindsFoot(Rect strip, List<(FootPiece Piece, float Width)> foot, (float X, int Row)[] flow, Vector2 pointer)
         {
-            Skin.Fill(strip, Skin.Sunken);
-            Skin.Fill(new Rect(strip.x, strip.y, strip.width, U(1f)), Skin.Outline);
+            // Inside the list's rounded edge, as a well of its own.
+            Skin.Box(new Rect(strip.x + U(4f), strip.y + U(1f), strip.width - U(8f), strip.height - U(5f)), Skin.Sunken);
             string tip = null;
             var lineH = U(22f);
-            var from = new Vector2(strip.x + U(KindsList.Pad) + U(3f), strip.y + U(4f));
+            var from = new Vector2(strip.x + U(KindsList.Pad) + U(3f), strip.y + U(3f));
             for (var i = 0; i < foot.Count; i++)
             {
                 var (piece, w) = foot[i];
@@ -284,13 +284,13 @@ namespace Scry
                     if (crossed) Settings.CrossedMarks = on ? CrossedMarks.Hidden : CrossedMarks.Faded;
                     else Settings.MapSquares = !on;
                 }
-                var track = new Rect(at.x, at.y + (at.height - U(12f)) / 2f, U(22f), U(12f));
+                var track = new Rect(at.x, at.y + (at.height - U(11f)) / 2f, U(20f), U(11f));
                 Skin.PillBox(track, on ? Skin.Accent : Skin.Raised);
-                Skin.Icon(new Rect(on ? track.xMax - U(10f) : track.x + U(2f), track.y + U(2f), U(8f), U(8f)), Skin.Circle, on ? Skin.OnAccent : Skin.Faint);
+                Skin.Icon(new Rect(on ? track.xMax - U(9f) : track.x + U(2f), track.y + U(2f), U(7f), U(7f)), Skin.Circle, on ? Skin.OnAccent : Skin.Faint);
                 var was = GUI.color;
                 if (at.Contains(pointer)) GUI.color = Skin.Alpha(was, 1f);
                 else if (!on) GUI.color = Skin.Alpha(was, HiddenShare + 0.25f);
-                GUI.Label(new Rect(track.xMax + U(5f), at.y, at.xMax - track.xMax - U(5f), at.height), crossed ? SpotWords.FootCrossed : SpotWords.FootTold, Skin.FaintLabel);
+                GUI.Label(new Rect(track.xMax + U(4f), at.y, at.xMax - track.xMax - U(4f), at.height), crossed ? SpotWords.FootCrossed : SpotWords.FootTold, Skin.FaintLabel);
                 GUI.color = was;
                 if (at.Contains(pointer)) tip = crossed ? SpotWords.CrossedChipTip(!on) : SpotWords.ToldChipTip(!on);
             }

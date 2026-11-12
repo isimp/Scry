@@ -215,7 +215,7 @@ namespace Scry.Tests
         public void TheListsFootSwitchesTheSpotsCrossedOffAndThoseTheServerToldOf()
         {
             // Set apart as settings, not as kinds: a label and two switches.
-            Assert.Equal(("Show", "Crossed off", "Told"), (SpotWords.FootLabel, SpotWords.FootCrossed, SpotWords.FootTold));
+            Assert.Equal(("Show", "Crossed", "Told"), (SpotWords.FootLabel, SpotWords.FootCrossed, SpotWords.FootTold));
             Assert.Equal("Hide the spots you crossed off", SpotWords.CrossedChipTip(hidden: false));
             Assert.Equal("Show the spots you crossed off again, faded", SpotWords.CrossedChipTip(hidden: true));
             Assert.Equal("Hide what the server told of: its squares and hollow dots", SpotWords.ToldChipTip(hidden: false));
