@@ -206,7 +206,7 @@ namespace Scry
             if (hidden > 0) items.Add((FootItem.ShowAll, SpotWords.ShowEverything, 0f));
             for (var i = 0; i < items.Count; i++)
             {
-                var room = Skin.Width(Skin.Small, items[i].Words) + (items[i].Item == FootItem.ShowAll ? U(16f) : U(30f));
+                var room = items[i].Item == FootItem.ShowAll ? Skin.Width(Skin.Chip, items[i].Words) + U(12f) : Skin.Width(Skin.Small, items[i].Words) + U(30f);
                 items[i] = (items[i].Item, items[i].Words, Mathf.Min(most, room));
             }
             return items;
@@ -299,8 +299,10 @@ namespace Scry
             var picked = MapSpots.IsPicked(chip.Kinds);
             var hidden = chip.Kinds.Length > 0 && System.Array.TrueForAll(chip.Kinds, MapSpots.HiddenKind);
             var eye = new Rect(at.xMax - U(22f), at.y, U(22f), at.height);
+            // The chip painted first, so its eye stands on it; the eye still takes its click before the chip does.
+            if (Event.current.type == EventType.Repaint) (picked && !hidden ? Skin.ChipOn : Skin.Chip).Draw(at, GUIContent.none, at.Contains(pointer), false, false, false);
             if (Eye(eye, hidden, pointer)) MapSpots.HideKinds(chip.Kinds, !hidden);
-            else if (GUI.Button(at, GUIContent.none, picked && !hidden ? Skin.ChipOn : Skin.Chip))
+            else if (GUI.Button(at, GUIContent.none, GUIStyle.none))
             {
                 if (hidden) MapSpots.HideKinds(chip.Kinds, false);
                 else MapSpots.ShowAlone(chip.Kinds);
