@@ -438,6 +438,7 @@ namespace Scry
             ("Minimap", "OnMapLeftUp", 1, 0xE21A99DA, Feature.DungeonMarksOnMap),
             ("Minimap", "OnMapLeftDown", 1, 0xD253E2A6, Feature.ShowOnMap),
             ("Minimap", "RemovePinUnderPointer", 0, 0x6A4C7E25, Feature.ShowOnMap),
+            ("Minimap", "GetClosestPin", 3, 0x3A8E76A5, Feature.ShowOnMap),
             ("Minimap", "CenterMap", 1, 0x6BA2BC1C, Feature.ShowOnMap),
             ("Minimap", "AddPin", 7, 0x35346BA9, Feature.ShowOnMap),
             ("OfferingBowl", "Interact", 3, 0xE0D1BB7B, Feature.AltarsItemStands),

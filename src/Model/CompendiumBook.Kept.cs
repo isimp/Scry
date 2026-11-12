@@ -107,6 +107,7 @@ namespace Scry
         public void Keep(string kind, bool on)
         {
             if (string.IsNullOrEmpty(kind) || Keeps(kind) == on) return;
+            if (on) ShowKept(kind);
             if (kind == Dungeons) _dungeonsUnkept = !on;
             else if (on)
             {
@@ -134,6 +135,83 @@ namespace Scry
             KeptChanged();
             return true;
         }
+
+        /// <summary>The kinds hidden on the map while kept, by their own keys, and whether every mark is hidden.</summary>
+        private readonly HashSet<string> _hidden = new HashSet<string>(StringComparer.Ordinal);
+        private bool _hideAll;
+
+        /// <summary>Counts up whenever what is hidden changes, for the map to place its marks again.</summary>
+        public int HiddenVersion { get; private set; }
+
+        /// <summary>Whether every one of Scry's marks is hidden on the map.</summary>
+        public bool HidesAll => _hideAll;
+
+        /// <summary>Whether anything is hidden on the map.</summary>
+        public bool HidesAny => _hideAll || _hidden.Count > 0;
+
+        /// <summary>The kinds hidden on their own, as the self-test notes them to put back.</summary>
+        [ForTest]
+        public IReadOnlyCollection<string> HiddenKinds => _hidden;
+
+        /// <summary>Whether a kind's marks are hidden on the map: on its own, or with every mark.</summary>
+        public bool Hides(string kind) => _hideAll || kind != null && _hidden.Contains(kind);
+
+        /// <summary>
+        /// Hides kinds on the map or shows them again, each kept as it was: a choice of the player's.
+        /// Showing one while every mark is hidden shows it alone, every other kind standing,
+        /// <paramref name="standing"/>, staying hidden.
+        /// </summary>
+        public void Hide(IEnumerable<string> kinds, bool on, IEnumerable<string> standing = null)
+        {
+            var changed = false;
+            if (!on && _hideAll)
+            {
+                _hideAll = false;
+                if (standing != null) foreach (var kind in standing) _hidden.Add(kind);
+                changed = true;
+            }
+            foreach (var kind in kinds)
+            {
+                if (string.IsNullOrEmpty(kind)) continue;
+                changed |= on ? _hidden.Add(kind) : _hidden.Remove(kind);
+            }
+            if (changed) HiddenChanged();
+        }
+
+        /// <summary>Hides every one of Scry's marks on the map, or lets those not hidden on their own stand again.</summary>
+        public void HideAll(bool on)
+        {
+            if (_hideAll == on) return;
+            _hideAll = on;
+            HiddenChanged();
+        }
+
+        /// <summary>Shows every mark hidden again.</summary>
+        public void ShowAll()
+        {
+            if (!HidesAny) return;
+            _hideAll = false;
+            _hidden.Clear();
+            HiddenChanged();
+        }
+
+        /// <summary>A kind kept stands again, as keeping it is asking to see it.</summary>
+        private void ShowKept(string kind)
+        {
+            if (_hidden.Count == 0) return;
+            var changed = false;
+            foreach (var one in kind.Split('+')) changed |= _hidden.Remove(one);
+            if (changed) HiddenChanged();
+        }
+
+        private void HiddenChanged()
+        {
+            HiddenVersion++;
+            Changed = true;
+        }
+
+        /// <summary>The kinds hidden as they are saved, in an order that does not change.</summary>
+        private List<string> HiddenLines() => _hidden.OrderBy(kind => kind, StringComparer.Ordinal).ToList();
 
         /// <summary>Takes every kind off the map, the dungeons too.</summary>
         public void TakeAllOff()

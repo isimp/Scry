@@ -36,6 +36,7 @@ namespace Scry
             if (small)
             {
                 MapSpots.FollowCrossedSetting();
+                MapSpots.FollowHiding();
                 MapKept.Refresh();
             }
             if (!small || MapKept.Dots.Count == 0)
@@ -130,7 +131,7 @@ namespace Scry
 
         private static SpotMode ModeOf(int dot) => dot < Modes.Count ? Modes[dot] : SpotMode.Plain;
 
-        private static bool Visible(int dot) => (!_merging || Merged.AnchorOf(dot) == dot) && MapSpots.ModeStands(ModeOf(dot));
+        private static bool Visible(int dot) => (!_merging || Merged.AnchorOf(dot) == dot) && MapSpots.ModeStands(ModeOf(dot)) && !MapSpots.HiddenKind(MapKept.Dots[dot].Kind);
 
         private static int MergedCount(int dot) => _merging ? Mathf.Max(1, Merged.CountAt(dot)) : 1;
 

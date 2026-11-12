@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.4
+
+The kinds list on the map hides marks. An eye on a kind, a category or the list's title hides those marks, and the kinds stay kept. A mark's right-click menu can hide its kind or every mark.
+
+The list's foot hides the spots you crossed off or what the server told of at a click, and *Show everything* brings it all back.
+
+With the game's other pins hidden while a page shows its kind, a click can no longer cross off or remove a pin you cannot see.
+
 ## 0.4.3
 
 Kinds on the map now group by category, on the map's kinds list and the *On the map* list. Locations stand in circles and resources in triangles, each kind in a colour of its own. Marks you already have move to their category's shape once and keep their colour where it is free; a picture stays.

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Scry
 {
@@ -115,6 +116,19 @@ namespace Scry
 
         /// <summary>How many rows stand at once of so many, the rest scrolled to; no more than there are, so the list is no taller than it holds.</summary>
         public static int RowsShown(int rows, int allowed) => Math.Min(rows, allowed);
+
+        /// <summary>Whether the list stands on the map: turned on, and two kinds or more, or one while anything is hidden, so what is hidden can always be shown again.</summary>
+        public static bool Stands(bool listOn, int chips, bool anyHidden) => listOn && (chips >= 2 || chips >= 1 && anyHidden);
+
+        /// <summary>Whether a kind hidden is left off the map: only while the list stands turned on, where it is shown again.</summary>
+        public static bool Hides(bool listOn, bool hidden) => listOn && hidden;
+
+        /// <summary>How much the list's title says is hidden: each chip whose kinds are all hidden, every chip while all are, and each of the crossed spots and the told places hidden.</summary>
+        public static int HiddenCount(IReadOnlyList<string[]> chips, Func<string, bool> hidden, bool all, bool crossedHidden, bool toldHidden)
+        {
+            var count = all ? chips.Count : chips.Count(kinds => kinds.Length > 0 && kinds.All(hidden));
+            return count + (crossedHidden ? 1 : 0) + (toldHidden ? 1 : 0);
+        }
 
         /// <summary>How many rows a list with its top at a height may stand: as it was sized, or so many never sized; at least one, and no more than fit on the screen below it.</summary>
         public static int RowsAllowed(int? kept, float top, float screenHeight, float scale)

@@ -25,6 +25,14 @@ namespace Scry
         NoneSeen,
     }
 
+    /// <summary>What an eye on the kinds list hides: one kind, a category's kinds, or every mark.</summary>
+    internal enum EyeOn
+    {
+        Kind,
+        Category,
+        All,
+    }
+
     /// <summary>What Show on map says: its strip on the map, its button's tip, and the You box's line.</summary>
     internal static class SpotWords
     {
@@ -140,8 +148,8 @@ namespace Scry
                 : "click: cross off" + all) + " · right-click: more";
         }
 
-        /// <summary>A line of the menu a right click opens on a mark, for every spot of a merged mark.</summary>
-        public static string MenuWord(MapMenuChoice choice, int spots)
+        /// <summary>A line of the menu a right click opens on a mark, for every spot of a merged mark, naming the kind it hides.</summary>
+        public static string MenuWord(MapMenuChoice choice, int spots, string kind = null)
         {
             var all = spots > 1 ? $" all {Numbers.Count(spots)}" : "";
             switch (choice)
@@ -150,6 +158,8 @@ namespace Scry
                 case MapMenuChoice.Highlight: return "Highlight" + all;
                 case MapMenuChoice.Plain: return "Back to plain" + all;
                 case MapMenuChoice.ZoomIn: return "Zoom in on them";
+                case MapMenuChoice.HideKind: return "Hide " + kind;
+                case MapMenuChoice.HideAll: return "Hide all marks";
                 default: return "Open its page";
             }
         }
@@ -157,9 +167,27 @@ namespace Scry
         /// <summary>The menu's name: the mark's, with how many spots it stands for.</summary>
         public static string MenuTitle(string name, int spots) => spots > 1 ? $"{Numbers.Count(spots)} {name}" : name;
 
-        /// <summary>The kinds list's title: how many kinds it lists, and how many are picked to stand out.</summary>
-        public static string KindsTitle(int kinds, int picked) =>
-            $"Kinds on the map · {Numbers.Count(kinds)}" + (picked > 0 ? $" · {Numbers.Count(picked)} picked" : "");
+        /// <summary>The kinds list's title: how many kinds it lists, how many are picked to stand out, and how many are hidden.</summary>
+        public static string KindsTitle(int kinds, int picked, int hidden) =>
+            $"Kinds on the map · {Numbers.Count(kinds)}" + (picked > 0 ? $" · {Numbers.Count(picked)} picked" : "") + (hidden > 0 ? $" · {Numbers.Count(hidden)} hidden" : "");
+
+        /// <summary>An eye's tip on the kinds list: hiding a kind, a category's kinds or every mark, each staying kept, or showing them again.</summary>
+        public static string EyeTip(EyeOn on, bool hidden) =>
+            on == EyeOn.Kind ? (hidden ? "Show this kind on the map again" : "Hide this kind on the map; it stays kept")
+            : on == EyeOn.Category ? (hidden ? "Show every kind under it again" : "Hide every kind under it; they stay kept")
+            : hidden ? "Show Scry's marks on the map again" : "Hide all of Scry's marks on the map; they stay kept";
+
+        /// <summary>The kinds list's foot: the spots crossed off and those the server told of, each hidden at a click, and its button showing all again.</summary>
+        public static string CrossedChip(int crossed) => "Crossed off " + Numbers.Count(crossed);
+
+        /// <summary>The places the server told of, with how many where they stand; none is counted while they are hidden.</summary>
+        public static string ToldChip(int? told) => told is int many ? "Told by the server " + Numbers.Count(many) : "Told by the server";
+
+        public const string ShowEverything = "Show everything";
+
+        public static string CrossedChipTip(bool hidden) => hidden ? "Show the spots you crossed off again, faded" : "Hide the spots you crossed off";
+
+        public static string ToldChipTip(bool hidden) => hidden ? "Show what the server told of again" : "Hide what the server told of: its squares and hollow dots";
 
         /// <summary>A category's name on the lists.</summary>
         public static string CategoryName(KeptCategory category) => category == KeptCategory.Dungeons ? "Dungeons" : category == KeptCategory.Locations ? "Locations" : "Resources";

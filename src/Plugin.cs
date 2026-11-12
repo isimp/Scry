@@ -69,6 +69,7 @@ namespace Scry
             { typeof(MapMarkDoubleClick), Feature.DungeonMarksOnMap },
             { typeof(MapStripPress), Feature.ShowOnMap },
             { typeof(MapRightClick), Feature.ShowOnMap },
+            { typeof(UnseenPinsUntouched), Feature.ShowOnMap },
             { typeof(SceneOrigins), Feature.PrefabOrigins },
             { typeof(StatusEffectOrigins), Feature.StatusEffectOrigins },
             { typeof(RaidOrigins), Feature.RaidOrigins },

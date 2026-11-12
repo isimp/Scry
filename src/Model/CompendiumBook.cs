@@ -769,6 +769,8 @@ namespace Scry
             var keptLines = c.KeptLines.Of(_keptLines, mayReuse);
             var keptOnMap = c.KeptOnMap.Of(_kept, mayReuse);
             var dungeonsUnkept = _dungeonsUnkept;
+            var hidden = HiddenLines();
+            var hideAll = _hideAll;
             // A book of a later format keeps saying so, so its lines this Scry cannot read stay kept past this save.
             var format = Math.Max(Format, _formatSeen);
             var rule = _rule;
@@ -818,6 +820,8 @@ namespace Scry
                 }
                 if (dungeonsUnkept) text.Append("unkept\t").Append(Dungeons).Append('\n');
                 if (keptShapes) text.Append("categoryshapes\tyes\n");
+                foreach (var kind in hidden) text.Append("hidden\t").Append(Stored.Escaped(kind)).Append('\n');
+                if (hideAll) text.Append("hideall\tyes\n");
                 foreach (var (world, x, z, mode) in spotModes) text.Append("spotmode\t").Append(Stored.Escaped(world)).Append('\t').Append(Stored.Number(x)).Append('\t').Append(Stored.Number(z)).Append('\t').Append(mode).Append('\n');
                 if (rule != CompendiumRule.Off) text.Append("rule\t").Append(rule).Append('\n');
                 if (floor > 0) text.Append("floor\t").Append(Stored.Count(floor)).Append('\n');

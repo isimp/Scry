@@ -77,7 +77,7 @@ namespace Scry
                 // A right click opens the menu, naming the modes it does not stand in, a line giving one.
                 RightClick(map);
                 yield return Until(() => MapSpots.MenuOpen, 3);
-                p.Check(MapSpots.MenuOpen && MapSpots.MenuWordsForTest.Count == 3 && MapSpots.MenuWordsForTest.Contains(SpotWords.MenuWord(MapMenuChoice.Highlight, 1)) && !MapSpots.MenuWordsForTest.Contains(SpotWords.MenuWord(MapMenuChoice.Plain, 1)), "a right click opens its menu, the other modes and its page", string.Join(", ", MapSpots.MenuWordsForTest));
+                p.Check(MapSpots.MenuOpen && MapSpots.MenuWordsForTest.Count >= 3 && MapSpots.MenuWordsForTest[MapSpots.MenuWordsForTest.Count - 1] == SpotWords.MenuWord(MapMenuChoice.OpenPage, 1) && MapSpots.MenuWordsForTest.Contains(SpotWords.MenuWord(MapMenuChoice.Highlight, 1)) && !MapSpots.MenuWordsForTest.Contains(SpotWords.MenuWord(MapMenuChoice.Plain, 1)), "a right click opens its menu, the other modes and its page", string.Join(", ", MapSpots.MenuWordsForTest));
                 p.Check(MapSpots.PressTaken(), "while it stands, a press on the map only puts it away");
                 yield return Picture(p, "a spot's menu");
                 var highlightLine = MapSpots.MenuWordsForTest.IndexOf(SpotWords.MenuWord(MapMenuChoice.Highlight, 1));

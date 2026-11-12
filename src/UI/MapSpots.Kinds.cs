@@ -88,7 +88,7 @@ namespace Scry
         public static int PickedCount => Picked.Count;
 
         /// <summary>Whether the kinds strip stands: on in the settings, the large map open, two kinds or more kept standing.</summary>
-        public static bool KindsStripShown => Settings.KindsStrip && LargeOpen && KindChips().Count >= 2 && !TargetPortalMap.MarksAside;
+        public static bool KindsStripShown => LargeOpen && !TargetPortalMap.MarksAside && KindsList.Stands(Settings.KindsStrip, KindChips().Count, AnyHidden);
 
         /// <summary>The kinds with dungeon marks kept, each with its name and how many, as the marks last told; and how often that changed.</summary>
         private static readonly List<(string Kind, string Name, int Count, int Crossed)> KindsMarked = new List<(string, string, int, int)>();
@@ -295,7 +295,7 @@ namespace Scry
         }
 
         /// <summary>Whether a dot stands on the map: one alone or the first of its kind's merged ones.</summary>
-        private static bool Visible(int dot) => (!_merging || Merged.AnchorOf(dot) == dot) && ModeStands(ModeOf(dot));
+        private static bool Visible(int dot) => (!_merging || Merged.AnchorOf(dot) == dot) && ModeStands(ModeOf(dot)) && !HiddenDot(dot);
 
         /// <summary>How many dots a standing dot stands for: itself, or its kind's merged ones.</summary>
         private static int MergedCount(int dot) => _merging ? Mathf.Max(1, Merged.CountAt(dot)) : 1;

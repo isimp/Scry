@@ -35,7 +35,17 @@ namespace Scry
         /// <summary>The colour of a kind's mark on the map; the accent for every kind of dungeon.</summary>
         public static Color MarkColour(int mark) => mark < 0 ? Accent : Marks[KeptMarks.ColourOf(mark)];
 
-        private static Texture2D _pointedRing;
+        private static Texture2D _pointedRing, _eyeShut;
+
+        /// <summary>The eye struck through from its lower left to its upper right, a gap kept round the stroke, for what is hidden on the map.</summary>
+        public static Texture2D EyeShut => _eyeShut != null ? _eyeShut : _eyeShut = Shape(32, 32, (x, y) =>
+        {
+            var across = Mathf.Abs(x + y - 32f) / 1.4142f;
+            var onStroke = x >= 5f && x <= 27f;
+            if (onStroke && across <= 1.6f) return true;
+            if (onStroke && across <= 3.4f) return false;
+            return EyeCoverage(x, y);
+        });
 
         /// <summary>A thin ring round the mark the pointer rests on, on Valheim's map.</summary>
         public static Texture2D PointedRing => _pointedRing != null ? _pointedRing : _pointedRing = Shape(32, 32, (x, y) =>

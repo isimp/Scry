@@ -117,6 +117,14 @@ namespace Scry
                 if (!Enum.TryParse(parts[4], out SpotMode mode) || !Enum.IsDefined(typeof(SpotMode), mode) || mode == SpotMode.Plain) return;
                 book.SetSpotMode(name, (int)x, (int)z, mode);
             },
+            ["hidden"] = (book, parts, name) =>
+            {
+                if (parts.Length == 2 && name.Length > 0) book._hidden.Add(name);
+            },
+            ["hideall"] = (book, parts, name) =>
+            {
+                if (parts.Length == 2) book._hideAll = true;
+            },
             ["categoryshapes"] = (book, parts, name) =>
             {
                 if (parts.Length == 2) book._keptShapes = true;

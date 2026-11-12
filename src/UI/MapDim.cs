@@ -57,6 +57,12 @@ namespace Scry
         [ForTest]
         public static bool Dimming => Layers.Count > 0;
 
+        /// <summary>How bright the pins' layers were set as they were dimmed.</summary>
+        private static float _share = 1f;
+
+        /// <summary>Whether the game's pins stand unseen now, their layers dimmed to nothing, so no click may reach them (<c>UnseenPinsUntouched</c>).</summary>
+        public static bool PinsUnseen => Layers.Count > 0 && _share <= 0f;
+
         /// <summary>
         /// How bright the pins' layer, its names' layer and Scry's dots stand on the screen, each as
         /// every group from it up makes it, for the self-test; 1 for one not there.
@@ -90,6 +96,7 @@ namespace Scry
                 Veil(map.m_mapImageLarge, MapLook.Veil(Settings.MapDarken));
                 if (!MapLook.Dims(Settings.MapOtherPins)) return;
                 var share = MapLook.PinsShare(Settings.MapOtherPins);
+                _share = share;
                 Dim(map.m_pinRootLarge, share);
                 Dim(map.m_pinNameRootLarge, share);
                 Keep(dots);

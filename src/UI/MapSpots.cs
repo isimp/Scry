@@ -541,14 +541,18 @@ namespace Scry
         {
             var inside = new List<(string Name, int Count)>();
             if (Showing.Showing) foreach (var (sx, sz, left) in _demandSquares) if (sx == x && sz == z) inside.Add((Showing.Name, left));
-            inside.AddRange(MapKept.Inside(x, z, KindsShownNow()));
+            inside.AddRange(MapKept.Inside(x, z, SquaresLeftOut));
             return inside;
         }
+
+        /// <summary>How many of the dots standing are the kind shown on demand's, first among them, which stand whatever is hidden.</summary>
+        private static int _demandDots;
 
         /// <summary>The dots to stand, worked out again only as the kind shown or what is kept changes.</summary>
         private static void WorkOutDots()
         {
             FollowCrossedSetting();
+            FollowHiding();
             var demand = Showing.Showing ? Showing.Spots : None;
             var told = Showing.Showing ? _demandTold : None;
             var now = (demand, told, _sprite, MapKept.Version);
@@ -560,6 +564,7 @@ namespace Scry
             foreach (var _ in demand) StandingKinds.Add(Showing.Kind);
             foreach (var (x, z) in told) StandingDots.Add((x, z, _toldSprite, Showing.Name, true));
             foreach (var _ in told) StandingKinds.Add(Showing.Kind);
+            _demandDots = StandingDots.Count;
             // A kind kept and shown on demand stands once, as shown.
             var shown = KindsShownNow();
             foreach (var (x, z, picture, name, kind, toldDot) in MapKept.Dots)
@@ -578,8 +583,8 @@ namespace Scry
             var now = (demand, MapKept.Version);
             if (now == _mergedFor) return;
             _mergedFor = now;
-            // The kept squares of a kind shown on demand are its own already.
-            var merged = MapKept.Squares(KindsShownNow());
+            // The kept squares of a kind shown on demand are its own already; those of a kind hidden are left out.
+            var merged = MapKept.Squares(SquaresLeftOut);
             foreach (var (x, z, left) in demand)
             {
                 if (!merged.TryGetValue((x, z), out var held)) merged[(x, z)] = held = new List<(int Mark, int Left)>();

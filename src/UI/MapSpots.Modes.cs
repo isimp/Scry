@@ -121,13 +121,13 @@ namespace Scry
             CompendiumKeeper.Save(now: true);
         }
 
-        /// <summary>What a right click at a point of the screen is on, for the menu: the dot's kind, its name, its mode and its spots; false where it is on none.</summary>
-        public static bool DotMenuAt(Vector2 screen, out (string Kind, string Name, SpotMode Mode, List<(int X, int Z)> Spots) dot)
+        /// <summary>What a right click at a point of the screen is on, for the menu: the dot's kind, its name, its mode, its spots, and whether it is a kept kind's rather than the kind shown on demand; false where it is on none.</summary>
+        public static bool DotMenuAt(Vector2 screen, out (string Kind, string Name, SpotMode Mode, List<(int X, int Z)> Spots, bool Kept) dot)
         {
             dot = default;
             var from = DotClicked(screen, out _);
             if (from < 0 || from >= StandingKinds.Count) return false;
-            dot = (StandingKinds[from], StandingDots[from].Name, ModeOf(from), SpotsOfDot(from));
+            dot = (StandingKinds[from], StandingDots[from].Name, ModeOf(from), SpotsOfDot(from), from >= _demandDots);
             return true;
         }
 

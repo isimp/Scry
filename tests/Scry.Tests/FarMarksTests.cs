@@ -97,8 +97,8 @@ namespace Scry.Tests
             Assert.Contains("too", SpotWords.KindChipTip(picked: false, anyPicked: true));
             Assert.Contains("fade", SpotWords.KindChipTip(picked: true, anyPicked: true));
             // The list's title counts its chips and those picked.
-            Assert.Equal("Kinds on the map · 5", SpotWords.KindsTitle(5, 0));
-            Assert.Equal("Kinds on the map · 5 · 2 picked", SpotWords.KindsTitle(5, 2));
+            Assert.Equal("Kinds on the map · 5", SpotWords.KindsTitle(5, 0, 0));
+            Assert.Equal("Kinds on the map · 5 · 2 picked", SpotWords.KindsTitle(5, 2, 0));
             // The kinds not shown alone fade to a fifth.
             Assert.Equal(0.2f, SeenOnMap.SoloOthers, 3);
         }

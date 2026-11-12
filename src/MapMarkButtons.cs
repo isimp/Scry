@@ -89,6 +89,13 @@ namespace Scry
         private static RectTransform _layer;
         private static (int Walked, (int, int) Seen, int Sources, int Server, int Kept, bool Remembered) _keptStamp = (-1, (-1, -1), -1, -1, -1, false);
 
+        /// <summary>The dungeons, by the place each is of, whose kind is hidden on the map, and what was hidden as they were worked out.</summary>
+        private static readonly HashSet<string> HiddenPlaces = new HashSet<string>(System.StringComparer.Ordinal);
+        private static (int Listed, CompendiumBook Book, int Hidden, bool ListOn) _hiddenFor = (-1, null, -1, false);
+
+        /// <summary>Counts up each time the dungeons kept are listed anew.</summary>
+        private static int _listed;
+
         /// <summary>Whether the server was asked for the marked dungeons' records since the map last opened.</summary>
         private static bool _askedServer;
         private static string _keptWorld;
@@ -266,6 +273,7 @@ namespace Scry
                 Kept.Clear();
                 Kept.AddRange(DungeonMarks.Of(book, maps.OfWorld(world), SeenDungeons(world), RoomKinds.Of, GroupMapsLink.Group.Of).Where(m => KeptOnMap(book, m.Map.Location)));
                 ListMarkedKinds();
+                _listed++;
                 _modesListed = book?.SpotModesVersion ?? 0;
                 Timing.Add("marks listed", listing);
                 _keptStamp = stamp;
@@ -413,12 +421,15 @@ namespace Scry
             {
                 var (id, look) = (mark.Id, mark.Look);
                 var lines = new List<(string, System.Action)>();
-                foreach (var choice in MapMenu.Of(mark.Mode, 1))
+                var (kinds, name) = MapSpots.ChipOf(mark.KindKey, mark.Plain);
+                foreach (var choice in MapMenu.Of(mark.Mode, 1, hideable: Settings.KindsStrip && mark.KindKey != null))
                 {
                     var mode = MapMenu.ModeOf(choice);
-                    lines.Add((SpotWords.MenuWord(choice, 1), () =>
+                    lines.Add((SpotWords.MenuWord(choice, 1, name), () =>
                     {
                         if (mode is SpotMode to) SetMarkMode(mark, to);
+                        else if (choice == MapMenuChoice.HideKind) MapSpots.HideKinds(kinds, true);
+                        else if (choice == MapMenuChoice.HideAll) MapSpots.HideAllKinds(true);
                         else Open(id, look);
                     }));
                 }
@@ -429,14 +440,17 @@ namespace Scry
             {
                 var lines = new List<(string, System.Action)>();
                 var spots = dot.Spots;
-                foreach (var choice in MapMenu.Of(dot.Mode, spots.Count))
+                var (kinds, name) = MapSpots.ChipOf(dot.Kind, dot.Name);
+                foreach (var choice in MapMenu.Of(dot.Mode, spots.Count, hideable: Settings.KindsStrip && dot.Kept))
                 {
                     var mode = MapMenu.ModeOf(choice);
                     var kind = dot.Kind;
-                    lines.Add((SpotWords.MenuWord(choice, spots.Count), () =>
+                    lines.Add((SpotWords.MenuWord(choice, spots.Count, name), () =>
                     {
                         if (mode is SpotMode to) MapSpots.SetModes(spots, to);
                         else if (choice == MapMenuChoice.ZoomIn) MapSpots.ZoomOn(spots[0].X, spots[0].Z);
+                        else if (choice == MapMenuChoice.HideKind) MapSpots.HideKinds(kinds, true);
+                        else if (choice == MapMenuChoice.HideAll) MapSpots.HideAllKinds(true);
                         else OpenPage(MapSpots.PageOf(kind));
                     }));
                 }
@@ -480,13 +494,28 @@ namespace Scry
             return image;
         }
 
+        /// <summary>The places of the dungeons kept whose kind is hidden, worked out again only as what is kept or hidden changes.</summary>
+        private static void WorkOutHidden()
+        {
+            var book = CompendiumKeeper.Book;
+            var now = (_listed, book, book?.HiddenVersion ?? -1, Settings.KindsStrip);
+            if (now == _hiddenFor) return;
+            _hiddenFor = now;
+            HiddenPlaces.Clear();
+            if (book == null || !book.HidesAny) return;
+            foreach (var kept in Kept) if (MapSpots.HiddenKind(EntryKeys.For(Kind.Location, kept.Map.Location))) HiddenPlaces.Add(kept.Map.Location);
+        }
+
         /// <summary>The marks the map shows now, in view and as the settings ask, and the marks made that none of them holds.</summary>
         private static void ListInView(Minimap map, bool small, Rect window, Rect area)
         {
             InView.Clear();
             InViewIds.Clear();
+            WorkOutHidden();
             foreach (var kept in Kept)
             {
+                // A kind hidden from the kinds list is left off.
+                if (HiddenPlaces.Count > 0 && HiddenPlaces.Contains(kept.Map.Location)) continue;
                 // Crossed off and left off the map, where the settings ask.
                 if (Settings.CrossedMarks == CrossedMarks.Hidden && !MapSpots.ModeStands(MapSpots.ModeAt(SpotOf(kept).X, SpotOf(kept).Z))) continue;
                 if (!MapMarks.Place(kept.Map.Entrance, map.m_pixelSize, map.m_textureSize, (window.xMin, window.yMin, window.width, window.height), (area.width, area.height), out var at)) continue;
@@ -877,6 +906,35 @@ namespace Scry
         {
             return MapSpots.PointerOnStrip() || MapMarkButtons.OpenMenuAt(ZInput.pointerPosition);
         }
+    }
+
+    /// <summary>
+    /// While Show on map leaves the game's other pins unseen (<c>ShowOnMapOtherPins</c> at Hidden),
+    /// the game finds no pin under a click (<c>Minimap.GetClosestPin</c>, which a click, a right
+    /// click and a pad's buttons on a pin all ask), so a click meant for the map never crosses off,
+    /// takes as one's own or removes a pin the player cannot see. A pin asked for whether seen or
+    /// not, as the game does reading its pins, is found as before. Should it fail, it stands aside.
+    /// </summary>
+    [HarmonyPatch(typeof(Minimap), "GetClosestPin")]
+    internal static class UnseenPinsUntouched
+    {
+        private static bool _off;
+
+        private static bool Prefix(bool mustBeVisible, ref Minimap.PinData __result)
+        {
+            if (_off || !mustBeVisible) return true;
+            if (!Guard.Run(Feature.ShowOnMap, "keeping unseen pins from clicks", Unseen, out var unseen))
+            {
+                _off = true;
+                return true;
+            }
+            if (!unseen) return true;
+            __result = null;
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool Unseen() => MapDim.PinsUnseen;
     }
 
     /// <summary>

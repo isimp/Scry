@@ -97,6 +97,7 @@ namespace Scry
             yield return Until(() => MapSpots.FadedDotsForTest == 0, 3);
             p.Check(MapSpots.FadedDotsForTest == 0 && MapSpots.PickedCount == 0, "the last let go, every kind shows again");
 
+            yield return HidingTold(p, book, copper, tin);
             yield return MergedMarkTold(p, map);
 
             // At the nearest zoom, 12 m apart, every dot stands apart in its full look.
@@ -109,6 +110,57 @@ namespace Scry
             else p.Note($"at the nearest zoom dots still touch within {Numbers.Amount(MapSpots.TouchForTest, 1)} m, so dots 12 m apart stay merged");
             yield return Picture(p, "a crowded patch near, every dot apart");
             CrowdedAsItWas();
+        }
+
+        /// <summary>
+        /// Kinds hidden from the kinds list and a mark's menu, far out with copper and tin each one
+        /// merged mark: tin's eye hides its mark while it stays kept and listed, grey; the title's eye
+        /// hides every mark, the list still standing; tin shown again while all are hidden stands
+        /// alone; a right click on copper's mark offers to hide it and every mark, and its line
+        /// hides it; Show everything brings both back. Pictured with tin hidden.
+        /// </summary>
+        private static IEnumerator HidingTold(Probe p, CompendiumBook book, string copper, string tin)
+        {
+            // Show everything shows the crossed spots and the told places too, so the player's settings for them are put back after.
+            var (crossedWas, squaresWas) = (Settings.CrossedMarks, Settings.MapSquares);
+            var strips = ScryPanel.Drawn(PanelPart.MapKindsStrip);
+            MapSpots.HideKinds(new[] { tin }, true);
+            yield return Until(() => MapSpots.DotsShown == 1, 3);
+            p.Check(MapSpots.DotsShown == 1 && book.Hides(tin) && book.Keeps(tin) && MapSpots.KindsStanding().Count == 2,
+                "tin hidden by its eye leaves the map, kept and still on the list", $"{Numbers.Count(MapSpots.DotsShown)} marks, {Numbers.Count(MapSpots.KindsStanding().Count)} listed");
+            yield return Picture(p, "a crowded patch with tin hidden");
+            MapSpots.HideAllKinds(true);
+            yield return Until(() => MapSpots.DotsShown == 0, 3);
+            yield return Until(() => ScryPanel.Drawn(PanelPart.MapKindsStrip) > strips + 2, 3);
+            p.Check(MapSpots.DotsShown == 0 && MapSpots.KindsStripShown, "the title's eye hides every mark, the list still standing", Numbers.Count(MapSpots.DotsShown));
+            MapSpots.HideKinds(new[] { tin }, false);
+            yield return Until(() => MapSpots.DotsShown == 1, 3);
+            p.Check(MapSpots.DotsShown == 1 && !book.HidesAll && !book.Hides(tin) && book.Hides(copper), "tin shown again while all are hidden stands alone", Numbers.Count(MapSpots.DotsShown));
+            MapSpots.ShowEverything();
+            yield return Until(() => MapSpots.DotsShown == 2, 3);
+            p.Check(MapSpots.DotsShown == 2 && !book.HidesAny, "Show everything brings every mark back", Numbers.Count(MapSpots.DotsShown));
+            // A mark's menu hides its kind.
+            var map = Minimap.instance;
+            if (MapSpots.LoneDotForTest() is Vector2 merged && map != null)
+            {
+                PointerTo(merged);
+                yield return Until(() => MapSpots.Pointed != null, 3);
+                RightClick(map);
+                yield return Until(() => MapSpots.MenuOpen, 3);
+                var words = MapSpots.MenuWordsForTest;
+                var hideLine = words.FindIndex(w => w.StartsWith("Hide ", System.StringComparison.Ordinal) && w != SpotWords.MenuWord(MapMenuChoice.HideAll, 1));
+                p.Check(hideLine >= 0 && words.Contains(SpotWords.MenuWord(MapMenuChoice.HideAll, 1)), "a kept kind's menu offers to hide it and every mark", string.Join(", ", words));
+                var hidden = hideLine >= 0 ? words[hideLine] : "";
+                if (hideLine >= 0) MapSpots.PickMenuForTest(hideLine);
+                else MapSpots.CloseMenu();
+                yield return Until(() => MapSpots.DotsShown == 1, 3);
+                p.Check(MapSpots.DotsShown == 1 && (book.Hides(copper) || book.Hides(tin)), "its line hides that kind", hidden);
+                MapSpots.ShowEverything();
+                yield return Until(() => MapSpots.DotsShown == 2, 3);
+            }
+            else p.Check(false, "a merged mark stands on the screen to right-click");
+            Settings.CrossedMarks = crossedWas;
+            Settings.MapSquares = squaresWas;
         }
 
         /// <summary>A merged mark pointed at: its words, its other dots and its count over them; the wheel kept from the map on the kinds list; its menu zooming in on it.</summary>

@@ -51,13 +51,13 @@ namespace Scry
         /// <summary>Whether anything kept stands on the map.</summary>
         public static bool Any => _dots.Count > 0 || _squaresByKind.Count > 0;
 
-        /// <summary>The kept kinds' squares, each with how many of each mark's kinds it holds, those of the kinds in <paramref name="except"/> left out, as they stand shown on demand.</summary>
-        public static Dictionary<(int X, int Z), List<(int Mark, int Left)>> Squares(ICollection<string> except)
+        /// <summary>The kept kinds' squares, each with how many of each mark's kinds it holds, those of the kinds <paramref name="except"/> names left out, as they stand shown on demand or hidden.</summary>
+        public static Dictionary<(int X, int Z), List<(int Mark, int Left)>> Squares(System.Func<string, bool> except)
         {
             var merged = new Dictionary<(int X, int Z), List<(int Mark, int Left)>>();
             foreach (var pair in _squaresByKind)
             {
-                if (except.Contains(pair.Key)) continue;
+                if (except(pair.Key)) continue;
                 var mark = MarkByKind.TryGetValue(pair.Key, out var of) ? of : 0;
                 foreach (var square in pair.Value)
                 {
@@ -70,11 +70,11 @@ namespace Scry
             return merged;
         }
 
-        /// <summary>What kept stands somewhere inside a square, by name and how many, the kinds in <paramref name="except"/> left out.</summary>
-        public static IEnumerable<(string Name, int Count)> Inside(int x, int z, ICollection<string> except)
+        /// <summary>What kept stands somewhere inside a square, by name and how many, the kinds <paramref name="except"/> names left out.</summary>
+        public static IEnumerable<(string Name, int Count)> Inside(int x, int z, System.Func<string, bool> except)
         {
             foreach (var pair in _squaresByKind)
-                if (!except.Contains(pair.Key) && pair.Value.TryGetValue((x, z), out var many)) yield return (NamesByKind.TryGetValue(pair.Key, out var name) ? name : pair.Key, many);
+                if (!except(pair.Key) && pair.Value.TryGetValue((x, z), out var many)) yield return (NamesByKind.TryGetValue(pair.Key, out var name) ? name : pair.Key, many);
         }
 
         /// <summary>How many of a kept kind stand: those seen, or for the dungeons those marked, the squares, and those the server told of; none worked out yet.</summary>
