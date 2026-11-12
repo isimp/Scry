@@ -2,13 +2,11 @@
 
 ## 0.4.4
 
-The kinds list on the map is clearer: one row per kind with its counts lined up, in columns when you make it wider. Folded, it still says what is picked and what is hidden.
+The kinds list on the map is one row per kind, in columns when made wider, and says what is picked and hidden when folded.
 
-It also hides marks. An eye on a kind, a category or the title hides those marks, and the kinds stay kept; a pill in the title shows them all again. A mark's right-click menu can hide its kind or every mark.
+An eye hides a kind, a category or every mark, which stay kept; the title's pill shows them again. A mark's right-click menu can hide its kind too.
 
-Two switches at the list's foot hide the spots you crossed off or what the server told of.
-
-With the game's other pins hidden while a page shows its kind, a click can no longer cross off or remove a pin you cannot see.
+A click no longer removes a game pin hidden while a page shows its kind.
 
 ## 0.4.3
 
