@@ -114,19 +114,40 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void TheListsTitleSaysHowManyAreHidden()
+        public void TheTitlesPillSaysHowManyAreHiddenAndShowsThemAgain()
         {
-            Assert.Equal("Kinds on the map · 5", SpotWords.KindsTitle(5, 0, 0));
-            Assert.Equal("Kinds on the map · 5 · 2 hidden", SpotWords.KindsTitle(5, 0, 2));
-            Assert.Equal("Kinds on the map · 5 · 1 picked · 2 hidden", SpotWords.KindsTitle(5, 1, 2));
+            Assert.Equal("2 hidden ×", SpotWords.HiddenPill(2));
+            Assert.Equal("Show everything hidden again", SpotWords.HiddenPillTip);
+            // A folded heading says how many under it are hidden, as it shows none of them.
+            Assert.Equal("1 hidden", SpotWords.HiddenBadge(1));
         }
 
         [Fact]
-        public void ANarrowListsTitleSaysTheSameInFewerWords()
+        public void ARowPointedAtSaysItsCountsAndWhatAClickDoes()
         {
-            // Its eye and its arrow leave a narrow list's title little room, so the counts keep it.
-            Assert.Equal("Kinds · 5", SpotWords.KindsTitleShort(5, 0, 0));
-            Assert.Equal("Kinds · 5 · 1 picked · 2 hidden", SpotWords.KindsTitleShort(5, 1, 2));
+            // The counts the row has no room for, the crossed ones too, over what a click does.
+            Assert.Equal("Road post 25 · 7 told · 3 crossed\nShow this kind alone, the others faded; pick more to show them too",
+                SpotWords.KindRowTip("Road post", 25, 7, 3, picked: false, anyPicked: false, hidden: false));
+            Assert.Equal("Frost Caves 18\nShow this kind on the map again", SpotWords.KindRowTip("Frost Caves", 18, 0, 0, false, false, hidden: true));
+        }
+
+        [Fact]
+        public void ANarrowListsTitleIsShorter()
+        {
+            Assert.Equal("Kinds on the map", SpotWords.KindsTitle);
+            Assert.Equal("Kinds", SpotWords.KindsTitleShort);
+        }
+
+        [Fact]
+        public void FoldedTheListSaysWhatStandsOutAndWhatIsHidden()
+        {
+            var lines = KindsList.FoldedLines(new[] { "Ancient Root", "Petrified Bone" }, new[] { "Frost Caves" }, all: false, crossedHidden: false, toldHidden: false);
+            Assert.Equal(new[] { ("Picked", "Ancient Root, Petrified Bone"), ("Hidden", "Frost Caves") }, lines);
+            // Nothing picked: every kind stands alike; nothing hidden: no line for it.
+            Assert.Equal(new[] { ((string)null, "Every kind alike") }, KindsList.FoldedLines(new string[0], new string[0], false, false, false));
+            // The spots crossed off and the told places hidden are named with the kinds, and every mark hidden says so.
+            Assert.Equal(("Hidden", "Frost Caves, crossed off, told by the server"), KindsList.FoldedLines(new string[0], new[] { "Frost Caves" }, false, true, true)[1]);
+            Assert.Equal(("Hidden", "every mark"), KindsList.FoldedLines(new string[0], new[] { "Frost Caves" }, true, false, false)[1]);
         }
 
         [Fact]
@@ -191,13 +212,10 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void TheListsFootNamesTheSpotsCrossedOffAndThoseTheServerToldOf()
+        public void TheListsFootSwitchesTheSpotsCrossedOffAndThoseTheServerToldOf()
         {
-            Assert.Equal("Crossed off 3", SpotWords.CrossedChip(3));
-            Assert.Equal("Told by the server 12", SpotWords.ToldChip(12));
-            // Hidden, they are not gathered, so the chip names them without a count.
-            Assert.Equal("Told by the server", SpotWords.ToldChip(null));
-            Assert.Equal("Show everything", SpotWords.ShowEverything);
+            // Set apart as settings, not as kinds: a label and two switches.
+            Assert.Equal(("Show", "Crossed off", "Told"), (SpotWords.FootLabel, SpotWords.FootCrossed, SpotWords.FootTold));
             Assert.Equal("Hide the spots you crossed off", SpotWords.CrossedChipTip(hidden: false));
             Assert.Equal("Show the spots you crossed off again, faded", SpotWords.CrossedChipTip(hidden: true));
             Assert.Equal("Hide what the server told of: its squares and hollow dots", SpotWords.ToldChipTip(hidden: false));

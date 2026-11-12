@@ -130,22 +130,28 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void TheKindsListLaysHeadingsOverTheirChips()
+        public void TheKindsListLaysHeadingsOverTheirRows()
         {
-            var open = new (bool Folded, System.Collections.Generic.IReadOnlyList<float> Widths)[]
-            {
-                (false, new[] { 100f, 100f, 100f }),
-                (true, new[] { 100f }),
-                (false, new[] { 50f }),
-            };
-            var laid = KindsList.Laid(open, 240f, 4f, 20f);
-            Assert.Equal(new[] { 0, 3, 4 }, laid.Headings);
-            // Indented under their heading, flowing in what is left of the row's width.
-            Assert.Equal(new[] { (20f, 1), (124f, 1), (20f, 2) }, laid.Chips[0]);
-            Assert.Empty(laid.Chips[1]);
-            Assert.Equal(new[] { (20f, 5) }, laid.Chips[2]);
-            Assert.Equal(6, laid.Rows);
-            Assert.Equal(0, KindsList.Laid(new (bool, System.Collections.Generic.IReadOnlyList<float>)[0], 240f, 4f, 20f).Rows);
+            var open = new (bool Folded, int Kinds)[] { (false, 3), (true, 1), (false, 1) };
+            // One column: each kind a line under its heading, a folded category its heading alone.
+            var laid = KindsList.LaidRows(open, 1);
+            Assert.Equal(new[] { 0, 4, 5 }, laid.Headings);
+            Assert.Equal(new[] { (0, 1), (0, 2), (0, 3) }, laid.Rows[0]);
+            Assert.Empty(laid.Rows[1]);
+            Assert.Equal(new[] { (0, 6) }, laid.Rows[2]);
+            Assert.Equal(7, laid.Lines);
+            Assert.Equal(0, KindsList.LaidRows(new (bool, int)[0], 1).Lines);
+        }
+
+        [Fact]
+        public void WiderTheRowsFillAcrossThenDownEachCategoryOnLinesOfItsOwn()
+        {
+            var open = new (bool Folded, int Kinds)[] { (false, 5), (true, 4), (false, 2) };
+            var laid = KindsList.LaidRows(open, 2);
+            Assert.Equal(new[] { 0, 4, 5 }, laid.Headings);
+            Assert.Equal(new[] { (0, 1), (1, 1), (0, 2), (1, 2), (0, 3) }, laid.Rows[0]);
+            Assert.Equal(new[] { (0, 6), (1, 6) }, laid.Rows[2]);
+            Assert.Equal(7, laid.Lines);
         }
 
         [Fact]

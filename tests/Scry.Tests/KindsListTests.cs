@@ -32,7 +32,7 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void AListIsNeverNarrowerThanAChipStandsNorWiderThanTheScreen()
+        public void AListIsNeverNarrowerThanARowStandsNorWiderThanTheScreen()
         {
             Assert.Equal(KindsList.LeastWidth * 1.5f, KindsList.Place(0f, 0f, 1200f, 1920f, 1080f, (0f, 0f, 10f), 1.5f).Width);
             Assert.Equal(1920f - 24f, KindsList.Place(0f, 0f, 1200f, 1920f, 1080f, (0f, 0f, 5000f), 1f).Width);
@@ -47,6 +47,17 @@ namespace Scry.Tests
             // A chip wider than the list stands alone in its row.
             Assert.Equal(new[] { (0f, 0), (0f, 1) }, KindsList.Flow(new[] { 300f, 50f }, 220f, 4f));
             Assert.Equal(0, KindsList.Rows(KindsList.Flow(new float[0], 220f, 4f)));
+        }
+
+        [Fact]
+        public void AListAsNarrowAsPlayersLeaveItStandsInOneColumnAndAWiderOneInMore()
+        {
+            // As many columns as hold a row at its least width, gaps between them; never none.
+            Assert.Equal(1, KindsList.Columns(220f, 10f, 190f));
+            Assert.Equal(1, KindsList.Columns(389f, 10f, 190f));
+            Assert.Equal(2, KindsList.Columns(390f, 10f, 190f));
+            Assert.Equal(3, KindsList.Columns(600f, 10f, 190f));
+            Assert.Equal(1, KindsList.Columns(50f, 10f, 190f));
         }
 
         [Fact]
@@ -69,10 +80,10 @@ namespace Scry.Tests
         [Fact]
         public void AListIsNeverTallerThanTheScreenBelowItNorShorterThanARow()
         {
-            // 30 points' room per row, the title and the room round the rows taken first.
+            // 26 points' room per line, the title and the room round the lines taken first.
             var fit = KindsList.RowsAllowed(500, 0f, 1080f, 1f);
-            Assert.Equal(34, fit);
-            Assert.Equal(16, KindsList.RowsAllowed(500, 0f, 1080f, 2f));
+            Assert.Equal(40, fit);
+            Assert.Equal(19, KindsList.RowsAllowed(500, 0f, 1080f, 2f));
             Assert.Equal(1, KindsList.RowsAllowed(500, 1070f, 1080f, 1f));
             Assert.Equal(1, KindsList.RowsAllowed(0, 100f, 1080f, 1f));
         }
@@ -80,7 +91,7 @@ namespace Scry.Tests
         [Fact]
         public void TheCornerDraggedDownOrUpGivesTheRowsItsFootStandsAt()
         {
-            float Foot(int rows, float top) => top + KindsList.TitleHeight + KindsList.Pad * 2f + rows * KindsList.ChipHeight + (rows - 1) * KindsList.Gap;
+            float Foot(int rows, float top) => top + KindsList.TitleHeight + KindsList.Pad * 2f + rows * KindsList.LineHeight + (rows - 1) * KindsList.Gap;
             Assert.Equal(4, KindsList.RowsAt(Foot(4, 50f), 50f, 1f));
             Assert.Equal(9, KindsList.RowsAt(Foot(9, 50f), 50f, 1f));
             // Nearest the row it is let go by, and never none.

@@ -167,13 +167,30 @@ namespace Scry
         /// <summary>The menu's name: the mark's, with how many spots it stands for.</summary>
         public static string MenuTitle(string name, int spots) => spots > 1 ? $"{Numbers.Count(spots)} {name}" : name;
 
-        /// <summary>The kinds list's title: how many kinds it lists, how many are picked to stand out, and how many are hidden.</summary>
-        public static string KindsTitle(int kinds, int picked, int hidden) =>
-            $"Kinds on the map · {Numbers.Count(kinds)}" + (picked > 0 ? $" · {Numbers.Count(picked)} picked" : "") + (hidden > 0 ? $" · {Numbers.Count(hidden)} hidden" : "");
+        /// <summary>The kinds list's title, before how many kinds it lists, and its shorter form where that does not fit.</summary>
+        public const string KindsTitle = "Kinds on the map";
 
-        /// <summary>The kinds list's title where the whole does not fit: the same counts after a shorter name.</summary>
-        public static string KindsTitleShort(int kinds, int picked, int hidden) =>
-            $"Kinds · {Numbers.Count(kinds)}" + (picked > 0 ? $" · {Numbers.Count(picked)} picked" : "") + (hidden > 0 ? $" · {Numbers.Count(hidden)} hidden" : "");
+        public const string KindsTitleShort = "Kinds";
+
+        /// <summary>A kind's row pointed at: its counts, the crossed ones too, then what a click does, picking it or showing it again where hidden.</summary>
+        public static string KindRowTip(string name, int seen, int told, int crossed, bool picked, bool anyPicked, bool hidden) =>
+            KindChip(name, seen, told, crossed) + "\n" + (hidden ? EyeTip(EyeOn.Kind, true) : KindChipTip(picked, anyPicked));
+
+        /// <summary>The title's pill while anything is hidden: how much, its cross showing all of it again.</summary>
+        public static string HiddenPill(int hidden) => $"{Numbers.Count(hidden)} hidden ×";
+
+        public const string HiddenPillTip = "Show everything hidden again";
+
+        /// <summary>A folded heading's badge: how many kinds under it are hidden.</summary>
+        public static string HiddenBadge(int hidden) => $"{Numbers.Count(hidden)} hidden";
+
+        /// <summary>The folded list's lines: their labels, and what they say of every kind alike, every mark hidden, the spots crossed off and the places told.</summary>
+        public const string FoldedPicked = "Picked";
+        public const string FoldedHidden = "Hidden";
+        public const string FoldedAlike = "Every kind alike";
+        public const string FoldedEveryMark = "every mark";
+        public const string FoldedCrossed = "crossed off";
+        public const string FoldedTold = "told by the server";
 
         /// <summary>An eye's tip on the kinds list: hiding a kind, a category's kinds or every mark, each staying kept, or showing them again.</summary>
         public static string EyeTip(EyeOn on, bool hidden) =>
@@ -181,13 +198,10 @@ namespace Scry
             : on == EyeOn.Category ? (hidden ? "Show every kind under it again" : "Hide every kind under it; they stay kept")
             : hidden ? "Show Scry's marks on the map again" : "Hide all of Scry's marks on the map; they stay kept";
 
-        /// <summary>The kinds list's foot: the spots crossed off and those the server told of, each hidden at a click, and its button showing all again.</summary>
-        public static string CrossedChip(int crossed) => "Crossed off " + Numbers.Count(crossed);
-
-        /// <summary>The places the server told of, with how many where they stand; none is counted while they are hidden.</summary>
-        public static string ToldChip(int? told) => told is int many ? "Told by the server " + Numbers.Count(many) : "Told by the server";
-
-        public const string ShowEverything = "Show everything";
+        /// <summary>The kinds list's foot, set apart as settings: its label, and its switches for the spots crossed off and the places the server told of.</summary>
+        public const string FootLabel = "Show";
+        public const string FootCrossed = "Crossed off";
+        public const string FootTold = "Told";
 
         public static string CrossedChipTip(bool hidden) => hidden ? "Show the spots you crossed off again, faded" : "Hide the spots you crossed off";
 

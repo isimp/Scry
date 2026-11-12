@@ -8,14 +8,18 @@ namespace Scry
     /// The kinds list on Valheim's map: a small window of the kinds kept, dragged by its title,
     /// folded to it and sized by its corner, anywhere on the screen, kept with the panel's place
     /// (<see cref="PanelPlace"/>) as where it stands from the map's top left, how wide and how many
-    /// rows tall; never off the screen, never narrower than a chip stands nor wider than the screen,
-    /// never shorter than a row nor taller than the screen below it. Its chips flow into rows as wide
-    /// as it, and past the rows it is tall enough for it scrolls.
+    /// lines tall; never off the screen, never narrower than a row stands nor wider than the screen,
+    /// never shorter than a line nor taller than the screen below it. Each kind is a row under its
+    /// category's heading, the rows flowing into as many columns as its width holds, and past the
+    /// lines it is tall enough for it scrolls.
     /// </summary>
     internal static class KindsList
     {
-        /// <summary>The title row's height, a chip's, the gap between chips and the room round them, in the screen's points before the panel's scale.</summary>
-        public const float TitleHeight = 26f, ChipHeight = 26f, Gap = 4f, Pad = 6f;
+        /// <summary>The title row's height, a line's, the gap between lines and the room round them, in the screen's points before the panel's scale.</summary>
+        public const float TitleHeight = 26f, LineHeight = 24f, Gap = 2f, Pad = 6f;
+
+        /// <summary>How wide a column of rows is at the least, before the panel's scale: a kind's mark, its name, its counts and its eye.</summary>
+        public const float ColumnLeast = 190f;
 
         /// <summary>How narrow the list may be made, in points before the panel's scale.</summary>
         public const float LeastWidth = 160f;
@@ -23,8 +27,8 @@ namespace Scry
         /// <summary>How wide a list never moved stands, of the map's width.</summary>
         public const float StartShare = 0.38f;
 
-        /// <summary>How many rows of chips a list never sized stands before it scrolls.</summary>
-        public const int StartRows = 6;
+        /// <summary>How many lines a list never sized stands before it scrolls.</summary>
+        public const int StartRows = 10;
 
         /// <summary>
         /// Where the list stands with a map at a point and width on a screen: where it was left,
@@ -44,7 +48,7 @@ namespace Scry
             return (x, y, width);
         }
 
-        /// <summary>Chips of these widths flowed into rows of a width: each one's place along its row and its row; a chip wider than the row alone in its own.</summary>
+        /// <summary>Pieces of these widths flowed into rows of a width, as the foot's switches: each one's place along its row and its row; one wider than the row alone in its own.</summary>
         public static (float X, int Row)[] Flow(IReadOnlyList<float> widths, float inner, float gap)
         {
             var placed = new (float X, int Row)[widths.Count];
@@ -63,33 +67,57 @@ namespace Scry
             return placed;
         }
 
+        /// <summary>How many columns of rows a width holds, each at least so wide with gaps between; at least one.</summary>
+        public static int Columns(float inner, float gap, float least) => Math.Max(1, (int)Math.Floor((inner + gap) / (least + gap)));
+
         /// <summary>
-        /// Categories laid out: each its heading's row, then under it, unless folded, its chips flowed
-        /// in the rows left beside an indent. Each heading's row, each category's chips, how many rows in all.
+        /// Categories laid out as lines: each its heading's line, then under it, unless folded, its
+        /// kinds' rows across so many columns, left to right then down, each category on lines of
+        /// its own. Each heading's line, each category's rows by column and line, how many lines in all.
         /// </summary>
-        public static (int[] Headings, (float X, int Row)[][] Chips, int Rows) Laid(IReadOnlyList<(bool Folded, IReadOnlyList<float> Widths)> categories, float inner, float gap, float indent)
+        public static (int[] Headings, (int Column, int Line)[][] Rows, int Lines) LaidRows(IReadOnlyList<(bool Folded, int Kinds)> categories, int columns)
         {
+            columns = Math.Max(1, columns);
             var headings = new int[categories.Count];
-            var chips = new (float X, int Row)[categories.Count][];
-            var row = 0;
+            var rows = new (int Column, int Line)[categories.Count][];
+            var line = 0;
             for (var i = 0; i < categories.Count; i++)
             {
-                headings[i] = row++;
-                var (folded, widths) = categories[i];
-                if (folded)
+                headings[i] = line++;
+                var (folded, kinds) = categories[i];
+                if (folded || kinds <= 0)
                 {
-                    chips[i] = Array.Empty<(float X, int Row)>();
+                    rows[i] = Array.Empty<(int Column, int Line)>();
                     continue;
                 }
-                var flow = Flow(widths, inner - indent, gap);
-                chips[i] = new (float X, int Row)[flow.Length];
-                for (var c = 0; c < flow.Length; c++) chips[i][c] = (flow[c].X + indent, flow[c].Row + row);
-                row += Rows(flow);
+                rows[i] = new (int Column, int Line)[kinds];
+                for (var k = 0; k < kinds; k++) rows[i][k] = (k % columns, line + k / columns);
+                line += (kinds + columns - 1) / columns;
             }
-            return (headings, chips, row);
+            return (headings, rows, line);
         }
 
-        /// <summary>How many rows flowed chips take; none for none.</summary>
+        /// <summary>
+        /// What the list says folded to its title: the kinds picked to stand out by name, or that
+        /// every kind stands alike; and, where anything is hidden, what: the kinds by name, the spots
+        /// crossed off and the places the server told of, or every mark. Each line its label and words.
+        /// </summary>
+        public static List<(string Label, string Words)> FoldedLines(IReadOnlyList<string> picked, IReadOnlyList<string> hidden, bool all, bool crossedHidden, bool toldHidden)
+        {
+            var lines = new List<(string Label, string Words)>
+            {
+                picked.Count > 0 ? (SpotWords.FoldedPicked, string.Join(", ", picked)) : ((string)null, SpotWords.FoldedAlike),
+            };
+            var gone = new List<string>();
+            if (all) gone.Add(SpotWords.FoldedEveryMark);
+            else gone.AddRange(hidden);
+            if (crossedHidden) gone.Add(SpotWords.FoldedCrossed);
+            if (toldHidden) gone.Add(SpotWords.FoldedTold);
+            if (gone.Count > 0) lines.Add((SpotWords.FoldedHidden, string.Join(", ", gone)));
+            return lines;
+        }
+
+        /// <summary>How many rows flowed pieces take; none for none.</summary>
         public static int Rows(IReadOnlyList<(float X, int Row)> flow) => flow.Count == 0 ? 0 : flow[flow.Count - 1].Row + 1;
 
         /// <summary>
@@ -133,12 +161,12 @@ namespace Scry
         /// <summary>How many rows a list with its top at a height may stand: as it was sized, or so many never sized; at least one, and no more than fit on the screen below it.</summary>
         public static int RowsAllowed(int? kept, float top, float screenHeight, float scale)
         {
-            var fit = (int)Math.Floor((screenHeight - top - (TitleHeight + Pad * 2f - Gap) * scale) / ((ChipHeight + Gap) * scale));
+            var fit = (int)Math.Floor((screenHeight - top - (TitleHeight + Pad * 2f - Gap) * scale) / ((LineHeight + Gap) * scale));
             return Math.Max(1, Math.Min(kept ?? StartRows, fit));
         }
 
         /// <summary>The rows a list with its top at a height stands with its foot at another, the nearest; at least one.</summary>
         public static int RowsAt(float foot, float top, float scale) =>
-            Math.Max(1, (int)Math.Round((foot - top - (TitleHeight + Pad * 2f - Gap) * scale) / ((ChipHeight + Gap) * scale)));
+            Math.Max(1, (int)Math.Round((foot - top - (TitleHeight + Pad * 2f - Gap) * scale) / ((LineHeight + Gap) * scale)));
     }
 }

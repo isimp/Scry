@@ -35,7 +35,15 @@ namespace Scry
         /// <summary>The colour of a kind's mark on the map; the accent for every kind of dungeon.</summary>
         public static Color MarkColour(int mark) => mark < 0 ? Accent : Marks[KeptMarks.ColourOf(mark)];
 
-        private static Texture2D _pointedRing, _eyeShut;
+        private static Texture2D _pointedRing, _eyeShut, _eyeHalf;
+
+        /// <summary>The eye with its pupil's right half alone, for a heading some of whose kinds are hidden.</summary>
+        public static Texture2D EyeHalf => _eyeHalf != null ? _eyeHalf : _eyeHalf = Shape(32, 32, (x, y) =>
+        {
+            var dx = x - 16f;
+            var dy = y - 16f;
+            return dx * dx + dy * dy <= 4.8f * 4.8f ? dx >= 0f : EyeCoverage(x, y);
+        });
 
         /// <summary>The eye struck through from its lower left to its upper right, a gap kept round the stroke, for what is hidden on the map.</summary>
         public static Texture2D EyeShut => _eyeShut != null ? _eyeShut : _eyeShut = Shape(32, 32, (x, y) =>
