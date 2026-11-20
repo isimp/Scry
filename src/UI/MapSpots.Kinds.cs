@@ -88,7 +88,7 @@ namespace Scry
         public static int PickedCount => Picked.Count;
 
         /// <summary>Whether the kinds strip stands: on in the settings, the large map open, two kinds or more kept standing.</summary>
-        public static bool KindsStripShown => LargeOpen && !TargetPortalMap.MarksAside && KindsList.Stands(Settings.KindsStrip, KindChips().Count, AnyHidden);
+        public static bool KindsStripShown => LargeOpen && !PortalMaps.MarksAside && KindsList.Stands(Settings.KindsStrip, KindChips().Count, AnyHidden);
 
         /// <summary>The kinds with dungeon marks kept, each with its name and how many, as the marks last told; and how often that changed.</summary>
         private static readonly List<(string Kind, string Name, int Count, int Crossed)> KindsMarked = new List<(string, string, int, int)>();

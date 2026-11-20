@@ -126,8 +126,8 @@ namespace Scry
             }
         }
 
-        /// <summary>The strip's words while the large map shows a kind; none otherwise, nor on TargetPortal's map of portals hiding pins (<see cref="TargetPortalMap.MarksAside"/>).</summary>
-        public static string Strip => Showing.Showing && LargeOpen && !TargetPortalMap.MarksAside ? _strip : null;
+        /// <summary>The strip's words while the large map shows a kind; none otherwise, nor on a portal mod's map of portals they step aside on (<see cref="PortalMaps.MarksAside"/>).</summary>
+        public static string Strip => Showing.Showing && LargeOpen && !PortalMaps.MarksAside ? _strip : null;
 
         private static bool LargeOpen => Minimap.instance != null && Minimap.instance.m_mode == Minimap.MapMode.Large;
 
@@ -619,10 +619,10 @@ namespace Scry
             var refreshing = Timing.Start();
             if (large) MapKept.Refresh();
             Timing.Add("spots kept", refreshing);
-            // On TargetPortal's map of portals, hiding the map's pins, the dots, squares and dimming
+            // On a portal mod's map of portals they step aside on, the dots, squares and dimming
             // step aside; a kind shown on demand is still told the map is open, so it ends as before.
             var asking = Timing.Start();
-            var aside = large && (Showing.Showing || MapKept.Any) && TargetPortalMap.MarksAside;
+            var aside = large && (Showing.Showing || MapKept.Any) && PortalMaps.MarksAside;
             Timing.Add("spots portal map", asking);
             if (!large || !Showing.Showing && !MapKept.Any || aside)
             {

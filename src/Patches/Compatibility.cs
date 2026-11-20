@@ -561,6 +561,12 @@ namespace Scry
                 Each($"{TargetPortalMap.PluginType}.{TargetPortalMap.HidesPinsField}", () => list.Add($"{TargetPortalMap.PluginType}.{TargetPortalMap.HidesPinsField}", Feature.MarksAsideOnPortalMap,
                     TargetPortalMap.Member(TargetPortalMap.PluginType, TargetPortalMap.HidesPinsField) != null ? Found.Present : Found.Missing));
             }
+            // AdjustablePortals' map picker, asked after only where the mod is loaded.
+            if (AdjustablePortalsMap.Loaded)
+            {
+                Each($"{AdjustablePortalsMap.PickerType}.{AdjustablePortalsMap.PickingField}", () => list.Add($"{AdjustablePortalsMap.PickerType}.{AdjustablePortalsMap.PickingField}", Feature.MarksAsideOnPortalMap,
+                    AdjustablePortalsMap.Member(AdjustablePortalsMap.PickerType, AdjustablePortalsMap.PickingField)?.FieldType == typeof(bool) ? Found.Present : Found.Missing));
+            }
             // Kinsmen's answer of what a skill counts as, asked after only where the mod is loaded.
             if (YourSkills.KinsmenLoaded)
             {

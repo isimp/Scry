@@ -249,8 +249,8 @@ namespace Scry
             var small = map != null && map.m_mode == Minimap.MapMode.Small && Settings.DungeonMarksOnMinimap;
             var marked = DungeonsKept(CompendiumKeeper.Book);
             if (map != null && marked) Ahead(map);
-            // On TargetPortal's map of portals, hiding the map's pins, the marks step aside too.
-            if (map == null || !(large || small) || !marked || (large && TargetPortalMap.MarksAside))
+            // On a portal mod's map of portals that asks it (TargetPortal's hiding the map's pins, AdjustablePortals' picker), the marks step aside too.
+            if (map == null || !(large || small) || !marked || (large && PortalMaps.MarksAside))
             {
                 if (!marked) MapSpots.MarkedKindsAre(System.Array.Empty<(string, string, int, int)>());
                 PutAway();

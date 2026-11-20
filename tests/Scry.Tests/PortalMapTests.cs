@@ -24,6 +24,21 @@ namespace Scry.Tests
         }
 
         [Fact]
+        public void MarksStepAsideWhileAdjustablePortalsMapPickerIsOpen()
+        {
+            // AdjustablePortals hides no pins of the map's, yet its picker takes every click on the
+            // map while open, so a mark there would only stand over the portals to pick.
+            Assert.True(PortalMap.MarksAsideOnAny(targetPortalAside: false, adjustablePortalsPicking: true));
+        }
+
+        [Fact]
+        public void MarksStayOnceNeitherPortalMapAsksThemAside()
+        {
+            Assert.False(PortalMap.MarksAsideOnAny(targetPortalAside: false, adjustablePortalsPicking: false));
+            Assert.True(PortalMap.MarksAsideOnAny(targetPortalAside: true, adjustablePortalsPicking: false));
+        }
+
+        [Fact]
         public void TheSettingIsOnByItsOwnWord()
         {
             // TargetPortal's Toggle reads "On" or "Off"; anything else, or nothing read, hides nothing.

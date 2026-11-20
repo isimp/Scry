@@ -299,12 +299,68 @@ namespace Scry
         /// <summary>Whether the marks' part put a map of portals in place of TargetPortal's flag; none while it has not.</summary>
         private static bool? _portalChoosingWas;
 
-        /// <summary>Lets TargetPortal's own flag tell again, where the marks' part stood in for it.</summary>
+        /// <summary>Whether the marks' part put a picker in place of AdjustablePortals' flag; none while it has not.</summary>
+        private static bool? _pickingWas;
+
+        /// <summary>Lets TargetPortal's and AdjustablePortals' own flags tell again, where the marks' part stood in for them.</summary>
         private static void PortalChoosingAsItWas()
         {
-            if (_portalChoosingWas == null) return;
-            _portalChoosingWas = null;
-            TargetPortalMap.ChoosingInsteadForTest(null);
+            if (_portalChoosingWas != null)
+            {
+                _portalChoosingWas = null;
+                TargetPortalMap.ChoosingInsteadForTest(null);
+            }
+            if (_pickingWas != null)
+            {
+                _pickingWas = null;
+                AdjustablePortalsMap.PickingInsteadForTest(null);
+            }
+        }
+
+        /// <summary>
+        /// On each portal mod's map of portals that is loaded, stood in for as a portal opens it: the
+        /// one mark standing steps aside while that map is open, where the mod asks it, and comes back
+        /// as it closes.
+        /// </summary>
+        private static IEnumerator MarkAsideOnPortalMaps(Probe p)
+        {
+            // Standing in a portal, TargetPortal keeps its map of portals open by its own flag, read
+            // here as closed, the player standing in none: where its Hide map pins is on, the mark
+            // steps aside while it is open, and comes back once the map is the player's again.
+            if (!TargetPortalMap.Loaded) p.Note("TargetPortal is not loaded: its map of portals untried");
+            else
+            {
+                var choosing = TargetPortalMap.Member(TargetPortalMap.MapType, TargetPortalMap.ChoosingField);
+                var hidesSetting = TargetPortalMap.Member(TargetPortalMap.PluginType, TargetPortalMap.HidesPinsField);
+                p.Check(choosing?.FieldType == typeof(bool) && hidesSetting != null && !TargetPortalMap.ChoosingForTest,
+                    "TargetPortal's flag of its map of portals and its Hide map pins are read, the map of portals closed", $"flag {(choosing != null ? "found" : "missing")}, Hide map pins {(hidesSetting != null ? "found" : "missing")}");
+                _portalChoosingWas = false;
+                TargetPortalMap.ChoosingInsteadForTest(true);
+                var hides = TargetPortalMap.HidesPinsForTest;
+                yield return Until(() => (MapMarkButtons.MarksShown == 0) == hides, 3);
+                p.Check((MapMarkButtons.MarksShown == 0) == hides, hides ? "on TargetPortal's map of portals, hiding the map's pins, the mark steps aside" : "on TargetPortal's map of portals, keeping the map's pins, the mark stays",
+                    $"{Numbers.Count(MapMarkButtons.MarksShown)} marks, Hide map pins {(hides ? "on" : "off")}");
+                PortalChoosingAsItWas();
+                yield return Until(() => MapMarkButtons.MarksShown == 1, 3);
+                p.Check(MapMarkButtons.MarksShown == 1, "with the map of portals closed, the mark is back", $"{Numbers.Count(MapMarkButtons.MarksShown)} marks");
+            }
+            // Stepping into a portal with AdjustablePortals' SelectOnMap, its picker keeps its flag
+            // set until the map closes, read here as closed, the player standing in none: the mark
+            // steps aside while it is open, and comes back once the map is the player's again.
+            if (!AdjustablePortalsMap.Loaded) p.Note("AdjustablePortals is not loaded: its map of portals untried");
+            else
+            {
+                var picking = AdjustablePortalsMap.Member(AdjustablePortalsMap.PickerType, AdjustablePortalsMap.PickingField);
+                p.Check(picking?.FieldType == typeof(bool) && !AdjustablePortalsMap.PickingForTest,
+                    "AdjustablePortals' flag of its map picker is read, the picker closed", $"flag {(picking != null ? "found" : "missing")}");
+                _pickingWas = false;
+                AdjustablePortalsMap.PickingInsteadForTest(true);
+                yield return Until(() => MapMarkButtons.MarksShown == 0, 3);
+                p.Check(MapMarkButtons.MarksShown == 0, "on AdjustablePortals' map of portals, the mark steps aside", $"{Numbers.Count(MapMarkButtons.MarksShown)} marks");
+                PortalChoosingAsItWas();
+                yield return Until(() => MapMarkButtons.MarksShown == 1, 3);
+                p.Check(MapMarkButtons.MarksShown == 1, "with AdjustablePortals' picker closed, the mark is back", $"{Numbers.Count(MapMarkButtons.MarksShown)} marks");
+            }
         }
 
         /// <summary>
@@ -312,7 +368,8 @@ namespace Scry
         /// stands, walked today: the large map open, a mark stands for the one of this world alone, its
         /// words saying the last day you walked it; a click on it closes the map and opens Scry on the
         /// crypt's page, its map on the stage, its line saying the day walked. On TargetPortal's map of
-        /// portals, hiding the map's pins, the mark steps aside and comes back as it closes.
+        /// portals, hiding the map's pins, and on AdjustablePortals' map picker, the mark steps aside and
+        /// comes back as it closes.
         /// </summary>
         private static IEnumerator MarksOnTheMap(Probe p)
         {
@@ -366,26 +423,7 @@ namespace Scry
             p.Check(CompendiumKeeper.Book == null || MapMarkButtons.MarksShown == 0, "taken off in the list of what is kept on the map, the dungeon marks go from it", $"{Numbers.Count(MapMarkButtons.MarksShown)} marks");
             ScryPanel.KeepOnMap(CompendiumBook.Dungeons, keptWas);
             yield return Until(() => MapMarkButtons.MarksShown == 1, 3);
-            // Standing in a portal, TargetPortal keeps its map of portals open by its own flag, read
-            // here as closed, the player standing in none: where its Hide map pins is on, the mark
-            // steps aside while it is open, and comes back once the map is the player's again.
-            if (!TargetPortalMap.Loaded) p.Note("TargetPortal is not loaded: its map of portals untried");
-            else
-            {
-                var choosing = TargetPortalMap.Member(TargetPortalMap.MapType, TargetPortalMap.ChoosingField);
-                var hidesSetting = TargetPortalMap.Member(TargetPortalMap.PluginType, TargetPortalMap.HidesPinsField);
-                p.Check(choosing?.FieldType == typeof(bool) && hidesSetting != null && !TargetPortalMap.ChoosingForTest,
-                    "TargetPortal's flag of its map of portals and its Hide map pins are read, the map of portals closed", $"flag {(choosing != null ? "found" : "missing")}, Hide map pins {(hidesSetting != null ? "found" : "missing")}");
-                _portalChoosingWas = false;
-                TargetPortalMap.ChoosingInsteadForTest(true);
-                var hides = TargetPortalMap.HidesPinsForTest;
-                yield return Until(() => (MapMarkButtons.MarksShown == 0) == hides, 3);
-                p.Check((MapMarkButtons.MarksShown == 0) == hides, hides ? "on TargetPortal's map of portals, hiding the map's pins, the mark steps aside" : "on TargetPortal's map of portals, keeping the map's pins, the mark stays",
-                    $"{Numbers.Count(MapMarkButtons.MarksShown)} marks, Hide map pins {(hides ? "on" : "off")}");
-                PortalChoosingAsItWas();
-                yield return Until(() => MapMarkButtons.MarksShown == 1, 3);
-                p.Check(MapMarkButtons.MarksShown == 1, "with the map of portals closed, the mark is back", $"{Numbers.Count(MapMarkButtons.MarksShown)} marks");
-            }
+            yield return MarkAsideOnPortalMaps(p);
             // A dungeon's end caps and dividers are no rooms to walk, so its words count without them.
             var walkable = rolled.Rooms.Count(r => !r.Room.EndCap && !r.Room.Divider);
             p.Check(MapMarkButtons.SaidForTest(0)?.Contains("Walked by you: 1 of " + Numbers.Count(walkable) + " room") ?? false,
@@ -583,7 +621,7 @@ namespace Scry
         /// <summary>Closes the large map the self-test opened, puts the player's pointer back where it stood and ends the fog's stand-ins, and every kind of dungeon kept as the character had it.</summary>
         private static void MarksAsTheyWere()
         {
-            // TargetPortal's flag first, so the map is not closed as its map of portals.
+            // The portal mods' flags first, so the map is not closed as their map of portals.
             PortalChoosingAsItWas();
             if (_dungeonsKeptBefore is bool kept) ScryPanel.KeepOnMap(CompendiumBook.Dungeons, kept);
             _dungeonsKeptBefore = null;

@@ -8,6 +8,8 @@ An eye hides a kind, a category or every mark, which stay kept; the title's pill
 
 A click no longer removes a game pin hidden while a page shows its kind.
 
+Scry's marks step aside on AdjustablePortals' map of portals while you pick where to travel, as they do on TargetPortal's.
+
 ## 0.4.3
 
 Kinds on the map now group by category, on the map's kinds list and the *On the map* list. Locations stand in circles and resources in triangles, each kind in a colour of its own. Marks you already have move to their category's shape once and keep their colour where it is free; a picture stays.
