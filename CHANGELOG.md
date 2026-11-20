@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.5
+
+Scry's marks step aside on AdjustablePortals' map of portals while you pick where to travel, as they do on TargetPortal's.
+
 ## 0.4.4
 
 The kinds list on the map is one row per kind, in columns when made wider, and says what is picked and hidden when folded.
@@ -7,8 +11,6 @@ The kinds list on the map is one row per kind, in columns when made wider, and s
 An eye hides a kind, a category or every mark, which stay kept; the title's pill shows them again. A mark's right-click menu can hide its kind too.
 
 A click no longer removes a game pin hidden while a page shows its kind.
-
-Scry's marks step aside on AdjustablePortals' map of portals while you pick where to travel, as they do on TargetPortal's.
 
 ## 0.4.3
 
