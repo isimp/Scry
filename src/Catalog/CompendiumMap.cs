@@ -410,7 +410,7 @@ namespace Scry
         }
 
         /// <summary>A placed location's prefab name, as its kind goes by.</summary>
-        public static string NameOf(ZoneSystem.ZoneLocation location) => string.IsNullOrEmpty(location.m_prefabName) ? location.m_prefab.Name : location.m_prefabName;
+        public static string NameOf(ZoneSystem.ZoneLocation location) => string.IsNullOrEmpty(location.m_prefabName) ? location.m_prefab.name : location.m_prefabName;
 
         /// <summary>Works out on a worker thread which kinds of place lie in the explored map.</summary>
         private static void Start(string world, List<(string Kind, float X, float Z)> places)

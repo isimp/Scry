@@ -3,7 +3,13 @@ using System.Collections.Generic;
 
 namespace Scry
 {
-    /// <summary>What the game counted as the character's making that was none of it: food taken off a station this game ran by another player.</summary>
+    /// <summary>
+    /// What the game counted as the character's making that was none of it: food taken off a
+    /// station this game ran by another player. Valheim before 1.0.30 counted such food for the
+    /// game running the station; from 1.0.30 on the game counts it for whoever put it on, on that
+    /// player's own game, so nothing is noted apart any more and the counts kept from earlier play
+    /// are still read.
+    /// </summary>
     internal sealed partial class CompendiumBook
     {
         /// <summary>How often the game counted an item as made by the character for another player's taking it off a station this game ran (<see cref="CreditedApart"/>), by the item's name token.</summary>

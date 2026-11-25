@@ -51,15 +51,17 @@ namespace Scry
 
                 // Tried as often as its cap allows, once without one; the time since its last
                 // spawn is long as a raid starts. Each try rolls its chance, then stops at the cap,
-                // counted against all the pass has spawned so far.
+                // counted against what this creature has spawned in the pass.
                 var tries = spawn.MaxSpawned == 0 ? 1 : spawn.MaxSpawned;
+                var brought = 0;
                 for (var i = 0; i < tries; i++)
                 {
                     if (percent() > spawn.Chance) continue;
-                    if (spawn.MaxSpawned > 0 && rolled.Count >= spawn.MaxSpawned) break;
+                    if (spawn.MaxSpawned > 0 && brought >= spawn.MaxSpawned) break;
 
                     var size = Math.Min(range(spawn.GroupMin, spawn.GroupMax + 1), spawn.MaxSpawned > 0 ? spawn.MaxSpawned : 100);
                     for (var j = 0; j < size; j++) rolled.Add(new RolledCreature { Prefab = spawn.Prefab, Level = Level(spawn, percent), Group = group });
+                    brought += size;
                     group++;
                 }
             }

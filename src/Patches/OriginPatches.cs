@@ -135,7 +135,7 @@ namespace Scry
         private static void Record(ZoneSystem zones)
         {
             var locations = new List<string>();
-            foreach (var location in zones.m_locations) if (location != null && location.m_prefab.IsValid) locations.Add(location.m_prefab.Name);
+            foreach (var location in zones.m_locations) if (location != null && location.m_prefab.IsValid) locations.Add(location.m_prefab.name);
             Origins.Locations.RecordOriginal(locations);
 
             var before = _raidsBefore ?? new HashSet<string>();
@@ -163,7 +163,7 @@ namespace Scry
         private static void Record()
         {
             var names = new List<string>();
-            foreach (var room in DungeonDB.GetRooms()) if (room != null && room.m_prefab.IsValid) names.Add(room.m_prefab.Name);
+            foreach (var room in DungeonDB.GetRooms()) if (room != null && room.m_prefab.IsValid) names.Add(room.m_prefab.name);
             Origins.Rooms.RecordOriginal(names);
         }
     }

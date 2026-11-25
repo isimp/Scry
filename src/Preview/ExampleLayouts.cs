@@ -453,7 +453,7 @@ namespace Scry
             foreach (var room in rooms)
             {
                 if (room == null || !room.m_enabled || ((int)room.m_theme & plan.Themes) == 0 || !room.m_prefab.IsValid) continue;
-                if (byPrefab.TryGetValue(room.m_prefab.Name, out var found)) Rooms.Add(found);
+                if (byPrefab.TryGetValue(room.m_prefab.name, out var found)) Rooms.Add(found);
             }
         }
 

@@ -48,9 +48,6 @@ namespace Scry
         /// <summary>The bosses seen with their altars in this world, by their place in the world's data, each looked for once.</summary>
         private static readonly HashSet<ZDOID> BossesAtAltars = new HashSet<ZDOID>();
 
-        /// <summary>The game counting an item as made by the character, for another player's taking it off a station this game runs: noted apart (<see cref="CompendiumBook.CreditedApart"/>).</summary>
-        public static void CreditedApart(string token) => Into?.CreditedApart(token);
-
         /// <summary>What it held at the last look, to tell what came into its hands since.</summary>
         private static readonly HashSet<string> HeldBefore = new HashSet<string>(StringComparer.Ordinal);
 

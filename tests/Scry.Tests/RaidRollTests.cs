@@ -60,17 +60,18 @@ namespace Scry.Tests
         }
 
         [Fact]
-        public void TheWaveSoFarCountsAgainstEachLaterCreaturesCap()
+        public void EachCreaturesCapCountsOnlyWhatItBroughtInThePass()
         {
-            // UpdateSpawnList checks each cap against every creature it spawned in the pass, while
-            // a group is cut only by the cap less those about before it (none as a raid starts):
-            // two groups of 3 come under a cap of 4, and a creature with a cap of 2 brings none.
+            // UpdateSpawnList checks each creature's cap against what that creature spawned in the
+            // pass, while a group is cut only by the cap less those about before it (none as a raid
+            // starts): two groups of 3 come under a cap of 4, and a later creature with a cap of 2
+            // still brings its 2, whatever came before it.
             var spawns = new[] { Spawn("Draugr", max: 4, groupMin: 3, groupMax: 3), Spawn("Draugr_Elite", max: 2) };
-            var wave = RaidRoll.FirstRoll(spawns, Rolls(0f, 0f, 0f, 0f), Sizes(3, 3));
+            var wave = RaidRoll.FirstRoll(spawns, Rolls(0f, 0f, 0f, 0f, 0f), Sizes(3, 3, 1, 1));
 
             Assert.Equal(6, wave.Count(c => c.Prefab == "Draugr"));
-            Assert.Equal(new[] { 0, 0, 0, 1, 1, 1 }, wave.Select(c => c.Group));
-            Assert.DoesNotContain(wave, c => c.Prefab == "Draugr_Elite");
+            Assert.Equal(2, wave.Count(c => c.Prefab == "Draugr_Elite"));
+            Assert.Equal(new[] { 0, 0, 0, 1, 1, 1, 2, 3 }, wave.Select(c => c.Group));
         }
 
         [Fact]

@@ -199,7 +199,7 @@ namespace Scry
             foreach (var location in zones.m_locations)
             {
                 if (location == null || !location.m_enable || !location.m_prefab.IsValid) continue;
-                var name = string.IsNullOrEmpty(location.m_prefabName) ? location.m_prefab.Name : location.m_prefabName;
+                var name = string.IsNullOrEmpty(location.m_prefabName) ? location.m_prefab.name : location.m_prefabName;
                 if (seen.TryGetValue(name, out var at))
                 {
                     var known = World[at];
@@ -217,7 +217,7 @@ namespace Scry
                 foreach (var room in rooms)
                 {
                     if (room == null || !room.m_prefab.IsValid) continue;
-                    var name = room.m_prefab.Name;
+                    var name = room.m_prefab.name;
                     if (roomsSeen.Add(name)) World.Add(new Asset { Name = name, Room = true, Reference = room.m_prefab, Stamp = "" });
                 }
             }

@@ -72,7 +72,7 @@ namespace Scry
                 foreach (var location in zones.m_locations)
                 {
                     if (location == null || !location.m_enable || !location.m_prefab.IsValid) continue;
-                    var name = location.m_prefab.Name;
+                    var name = location.m_prefab.name;
                     if (!sources.TryGetValue(name, out var source))
                     {
                         sources[name] = source = new PlaceSource { Prefab = name, Reference = location.m_prefab };
@@ -94,12 +94,12 @@ namespace Scry
             }
             // Every room's name, so one is named without a leading "new" only where no room of that name without it is there.
             var named = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var room in rooms) if (room != null && room.m_prefab.IsValid) named.Add(room.m_prefab.Name);
+            foreach (var room in rooms) if (room != null && room.m_prefab.IsValid) named.Add(room.m_prefab.name);
             var seen = new HashSet<string>(StringComparer.Ordinal);
             foreach (var room in rooms)
             {
-                if (room == null || !room.m_enabled || !room.m_prefab.IsValid || !seen.Add(room.m_prefab.Name)) continue;
-                Guard.Each(Feature.Locations, "dungeon room entries", room.m_prefab.Name, () => entries.Add(RoomEntry(new PlaceSource { Prefab = room.m_prefab.Name, Reference = room.m_prefab, Room = room }, creatures, named.Contains)));
+                if (room == null || !room.m_enabled || !room.m_prefab.IsValid || !seen.Add(room.m_prefab.name)) continue;
+                Guard.Each(Feature.Locations, "dungeon room entries", room.m_prefab.name, () => entries.Add(RoomEntry(new PlaceSource { Prefab = room.m_prefab.name, Reference = room.m_prefab, Room = room }, creatures, named.Contains)));
             }
             Arrange(entries);
         }

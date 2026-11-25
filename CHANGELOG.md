@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.6
+
+Works with Valheim 1.0.30: places, dungeon rooms and their maps are read again.
+
+A raid's first roll follows Valheim 1.0.30, where each creature fills up to its own maximum whatever came before it.
+
+Food you put on a cooking station counts as made by you in the compendium even when another player takes it off, as Valheim 1.0.30 credits whoever put it on.
+
 ## 0.4.5
 
 Scry's marks step aside on AdjustablePortals' map of portals while you pick where to travel, as they do on TargetPortal's.
